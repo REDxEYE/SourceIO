@@ -1,5 +1,5 @@
 from byte_io_mdl import ByteIO
-from mdl_data import SourceMdlFileData
+from data_structures.mdl_data import SourceMdlFileData
 from mdl_readers.mdl_v49 import SourceMdlFile49
 
 

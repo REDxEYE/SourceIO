@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from Utils import case_insensitive_file_resolution
+from utilities.path_utilities import case_insensitive_file_resolution
 from byte_io_mdl import ByteIO
 from mdl_readers.mdl_v49 import SourceMdlFile49
 from mdl_readers.mdl_v53 import SourceMdlFile53

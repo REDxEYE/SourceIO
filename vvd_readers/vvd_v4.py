@@ -2,7 +2,7 @@ import sys
 
 
 from byte_io_mdl import ByteIO
-from vvd_data import SourceVvdFileData
+from data_structures.vvd_data import SourceVvdFileData
 
 
 class SourceVvdFile4:

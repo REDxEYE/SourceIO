@@ -2,7 +2,7 @@ from typing import List
 
 
 from byte_io_mdl import ByteIO
-from globals import SourceVertex
+from data_structures.globals import SourceVertex
 
 
 class SourceVvdFileData:

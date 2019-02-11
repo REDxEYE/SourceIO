@@ -1,6 +1,5 @@
-import math
 from pathlib import Path
-
+import os
 
 def get_class_var_name(class_, var):
     a = class_.__dict__  # type: dict
@@ -19,7 +18,7 @@ def case_insensitive_file_resolution(path):
     the files in the directory and do a lowercase comparison on
     all the files in there.
     '''
-    import os
+
     directory = os.path.dirname(path)
     filename = os.path.basename(path)
     for root, dirs, files in os.walk(directory, topdown=False):
@@ -40,21 +39,3 @@ def get_materials_path(path):
     path = Path(path)
     root_path = resolve_root_directory_from_file(path)
     material_path = root_path / 'materials'
-
-
-def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
-    angleY = -math.asin(round(m2, 6))
-    c = math.cos(angleY)
-    if abs(c) > 0.005:
-        translateX = m8 / c
-        translateY = -m5 / c
-        angleX = (math.atan2(translateY, translateX))
-        translateX = m0 / c
-        translateY = -m1 / c
-        angleZ = (math.atan2(translateY, translateX))
-    else:
-        angleX = 0
-        translateX = m4
-        translateY = m3
-        angleZ = (math.atan2(translateY, translateX))
-    return angleX, angleY, angleZ

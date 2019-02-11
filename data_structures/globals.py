@@ -3,7 +3,7 @@ import random
 import struct
 
 try:
-    from .byte_io_mdl import ByteIO
+    from byte_io_mdl import ByteIO
 except Exception:
     from byte_io_mdl import ByteIO
 

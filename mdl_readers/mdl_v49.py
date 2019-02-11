@@ -1,8 +1,5 @@
-import os.path
-
-from byte_io_mdl import ByteIO
-from mdl_data import *
-from progressBar import Progress_bar
+from data_structures.mdl_data import *
+from utilities.progressbar import Progress_bar
 
 
 class SourceMdlFile49:

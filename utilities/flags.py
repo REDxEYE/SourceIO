@@ -3,9 +3,9 @@ import collections
 import functools
 import pickle
 try:
-    from dictionaries import ReadonlyDictProxy
+    from utilities.dictionaries import ReadonlyDictProxy
 except ImportError:
-    from .dictionaries import ReadonlyDictProxy
+    from utilities.dictionaries import ReadonlyDictProxy
 __all__ = ['Flags', 'FlagsMeta', 'FlagData', 'UNDEFINED', 'unique', 'unique_bits']
 
 

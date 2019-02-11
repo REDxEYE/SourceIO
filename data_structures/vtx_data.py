@@ -3,7 +3,7 @@ from typing import List
 
 
 from byte_io_mdl import ByteIO
-from flags import Flags
+from utilities.flags import Flags
 
 max_bones_per_vertex = 3
 extra_8 = True
