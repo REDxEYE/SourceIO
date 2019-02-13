@@ -474,7 +474,7 @@ class Source2Blender:
             bone = self.armature.bones.get(self.mdl.file_data.bones[attachment.localBoneIndex].name)
 
             empty = bpy.data.objects.new("empty", None)
-            bpy.context.scene.objects.link(empty)
+            # bpy.context.scene.objects.link(empty)
             empty.name = attachment.name
             pos = Vector([attachment.pos.x, attachment.pos.y, attachment.pos.z])
             rot = Euler([attachment.rot.x, attachment.rot.y, attachment.rot.z])
