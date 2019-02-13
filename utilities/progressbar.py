@@ -17,7 +17,7 @@ import time
 # update_progress("Some job", 1)
 
 
-class Progress_bar:
+class ProgressBar:
 
     def __init__(self, desc, max_, len_):
         self.len = len_
@@ -71,8 +71,8 @@ class Progress_bar:
 
 
 if __name__ == '__main__':
-    a = Progress_bar(desc='Importing vertex indexes', max_=100, len_=20)
-    a2 = Progress_bar(desc='Generating model_path', max_=100, len_=20)
+    a = ProgressBar(desc='Importing vertex indexes', max_=100, len_=20)
+    a2 = ProgressBar(desc='Generating model_path', max_=100, len_=20)
     while not a2.is_done:
         if a.is_done:
             a2.increment(1)

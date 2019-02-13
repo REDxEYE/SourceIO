@@ -44,6 +44,18 @@ class ByteIO:
         else:
             self.file = BytesIO()
 
+    @property
+    def preview(self):
+        with self.save_current_pos():
+            return self.read_bytes(64)
+
+    @property
+    def preview_f(self):
+        with self.save_current_pos():
+            block = self.read_bytes(64)
+            hex_values = split(split(binascii.hexlify(block).decode().upper(), 2), 4)
+            return [' '.join(b) for b in hex_values]
+
     def __repr__(self):
         return "<ByteIO {}/{}>".format(self.tell(), self.size())
 

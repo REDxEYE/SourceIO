@@ -9,7 +9,7 @@ def get_class_var_name(class_, var):
 
 
 def case_insensitive_file_resolution(path):
-    '''
+    """
     There are a lot of cases where the .mdl file is lowercase whereas
     the .vvd/vtx files are mixed case. Resolving the file based on the
     same file name will work fine on case-insensitive
@@ -17,7 +17,7 @@ def case_insensitive_file_resolution(path):
     installations) we need to work around this behavior by walking through
     the files in the directory and do a lowercase comparison on
     all the files in there.
-    '''
+    """
 
     directory = os.path.dirname(path)
     filename = os.path.basename(path)

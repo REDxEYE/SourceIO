@@ -4,7 +4,7 @@ from utilities.path_utilities import case_insensitive_file_resolution
 from byte_io_mdl import ByteIO
 from mdl_readers.mdl_v49 import SourceMdlFile49
 from mdl_readers.mdl_v53 import SourceMdlFile53
-from vtx_readers.vtx import SourceVtxFile7
+from vtx_readers.vtx_v7 import SourceVtxFile7
 from vvd_readers.vvd_v4 import SourceVvdFile4
 
 
