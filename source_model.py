@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from utilities.path_utilities import case_insensitive_file_resolution
 from byte_io_mdl import ByteIO
 from mdl_readers.mdl_v49 import SourceMdlFile49
 from mdl_readers.mdl_v53 import SourceMdlFile53
+from utilities.path_utilities import case_insensitive_file_resolution
 from vtx_readers.vtx_v7 import SourceVtxFile7
 from vvd_readers.vvd_v4 import SourceVvdFile4
 
@@ -49,7 +49,23 @@ class SourceModel:
             self.vtx.read()
 
     def handle_v53(self):
-        pass
+        self.vvd_reader = self.mdl.vvd
+        vvd_magic, vvd_version = self.vvd_reader.peek_fmt('II')
+        if vvd_magic != 1448297545:
+            raise TypeError('Not a VVD file')
+
+        if vvd_version in self.vvd_version_list:
+            self.vvd = self.vvd_version_list[vvd_version](self.vvd_reader)
+        else:
+            raise NotImplementedError('Unsupported vvd v{} version'.format(vvd_version))
+
+        self.vtx_reader = self.mdl.vtx
+        vtx_version = self.vtx_reader.peek_int32()
+
+        if vtx_version in self.vtx_version_list:
+            self.vtx = self.vtx_version_list[vtx_version](self.vtx_reader)
+        else:
+            raise NotImplementedError('Unsupported vtx v{} version'.format(vtx_version))
 
     def find_vtx_vvd(self):
         vvd = case_insensitive_file_resolution(self.filepath.with_suffix('.vvd').absolute())
@@ -73,3 +89,8 @@ class SourceModel:
             self.vtx = self.vtx_version_list[vtx_version](self.vtx_reader)
         else:
             raise NotImplementedError('Unsupported vtx v{} version'.format(vtx_version))
+
+
+if __name__ == '__main__':
+    a = SourceModel(r"H:\games\Titanfall 2\extr\models\creatures\prowler\r2_prowler.mdl")
+    a.read()

@@ -9,8 +9,14 @@ class SourceMdlFile53(SourceMdlFile49):
     def __init__(self, reader: ByteIO):
         self.reader = reader
         self.file_data = SourceMdlFileDataV53()
-        self.VVD = self.file_data.vvd_data
-        self.VTX = self.file_data.vtx_data
+
+    @property
+    def vvd(self):
+        return self.file_data.vvd_data
+
+    @property
+    def vtx(self):
+        return self.file_data.vtx_data
 
     def read_flex_controllers_ui(self):
         return
