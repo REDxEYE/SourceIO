@@ -56,7 +56,8 @@ class QC:
         if model.flex_frames and self.vvd:
             fileh.write('$model "{0}" "{0}"'.format(model_name))
             fileh.write('{\n')
-            fileh.write('\tflexfile "{}" \n'.format(self.vta.write_vta(model)))
+            fileh.write('\tflexfile "{}" \n'.format(name+'.vta'))
+            # fileh.write('\tflexfile "{}" \n'.format(self.vta.write_vta(model)))
             fileh.write('\t{\n')
             fileh.write("\t\tdefaultflex frame 0\n")
             for n, flex_frame in enumerate(model.flex_frames):
