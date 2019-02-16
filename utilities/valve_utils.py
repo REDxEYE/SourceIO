@@ -108,7 +108,8 @@ class Chunk:
     a chunk's parent.  the value attribute can contain either a string or a list containing other Chunk instances
     """
 
-    def __init__(self, key, value=None, parent=None, append=False, quote_compound_keys=True):
+    def __init__(self, key, value=None, parent=None,
+                 append=False, quote_compound_keys=True):
         self.key = key
         self.value = value
         self.parent = parent
@@ -358,7 +359,7 @@ class KeyValueFile(object):
         """
         line_parser needs to return key,value
         """
-        if type(filepath) is Path:
+        if isinstance(filepath, Path):
             self._filepath = filepath
         else:
             self._filepath = Path(filepath)
@@ -407,7 +408,7 @@ class KeyValueFile(object):
         """
         this wrapper is here so to ensure the _filepath attribute is a ValvePath instance
         """
-        if type(new_filepath) is not Path:
+        if not isinstance(new_filepath, Path):
             self._filepath = Path(new_filepath)
         else:
             self._filepath = new_filepath
@@ -468,7 +469,9 @@ class KeyValueFile(object):
                     raise TypeError(
                         'Malformed keyvalue found in file near line {0} in {1}. Check for misplaced quotes'.format(
                             n + 1, self.filepath))
-                parent_list_end.append(self.chunk_class(key, value, parent_list_end))
+                parent_list_end.append(
+                    self.chunk_class(
+                        key, value, parent_list_end))
             n += 1
 
     def __getitem__(self, *args):
@@ -624,7 +627,8 @@ class GameInfoFile(KeyValueFile):
     The parselines method can be passed a list of strings to fill an empty GameInfoFile object.
     """
 
-    def __init__(self, filepath, chunk_class=Chunk, read_callback=None, modname=None):
+    def __init__(self, filepath, chunk_class=Chunk,
+                 read_callback=None, modname=None):
         self.modname = modname
 
         self.filepath = Path(filepath)
@@ -657,7 +661,8 @@ class GameInfoFile(KeyValueFile):
             if gi_path.exists():
                 gi = GameInfoFile(gi_path)
                 visited_mods.append(self.modname)
-                new_paths = gi.get_search_paths_recursive(list(set(visited_mods)))
+                new_paths = gi.get_search_paths_recursive(
+                    list(set(visited_mods)))
                 del gi
                 if new_paths:
                     for p in new_paths:
@@ -668,7 +673,8 @@ class GameInfoFile(KeyValueFile):
 
     def get_search_paths(self):
 
-        return [Path(self.project / modEntry) for modEntry in self.get_search_mods()]
+        return [Path(self.project / modEntry)
+                for modEntry in self.get_search_mods()]
 
     def get_search_mods(self, include_addons=None):
         """
@@ -698,7 +704,8 @@ class GameInfoFile(KeyValueFile):
         search_mods = [self.modname]
         # See if a global addon is set
         # if the user has explicitly set include_addons to True or the user has set a global
-        # addon and hasn't explicitly set include_addons to False then include addons
+        # addon and hasn't explicitly set include_addons to False then include
+        # addons
 
         gi = '|gameinfo_path|'
         sp = '|all_source_engine_paths|'
@@ -707,10 +714,12 @@ class GameInfoFile(KeyValueFile):
             if addon and not include_addons:
                 continue
             pos = chunk.value.find(gi)
-            if pos != -1: continue
+            if pos != -1:
+                continue
 
             s_path = chunk.value.replace(sp, '')
-            if not s_path: continue
+            if not s_path:
+                continue
             if s_path not in search_mods:
                 if addon:
                     search_mods.insert(0, s_path)
@@ -729,7 +738,8 @@ class GameInfoFile(KeyValueFile):
                     addonNames.append(chunk.value)
         return addonNames
 
-    def find_file(self, filepath: str, additional_dir=None, extention=None, use_recursive=False):
+    def find_file(self, filepath: str, additional_dir=None,
+                  extention=None, use_recursive=False):
         if use_recursive:
             if self.path_cache:
                 paths = self.path_cache
@@ -754,10 +764,12 @@ class GameInfoFile(KeyValueFile):
             return None
 
     def find_texture(self, filepath, use_recursive=False):
-        return self.find_file(filepath, 'materials', extention='.vtf', use_recursive=use_recursive)
+        return self.find_file(filepath, 'materials',
+                              extention='.vtf', use_recursive=use_recursive)
 
     def find_material(self, filepath, use_recursive=False):
-        return self.find_file(filepath, 'materials', extention='.vmt', use_recursive=use_recursive)
+        return self.find_file(filepath, 'materials',
+                              extention='.vmt', use_recursive=use_recursive)
 
     @property
     def title(self):
@@ -766,7 +778,7 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             try:
                 return self[0].game.value
-            except:
+            except BaseException:
                 return None
 
     @property
@@ -776,7 +788,7 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             try:
                 return self[0].engine.value
-            except:
+            except BaseException:
                 return None
 
     def tool_dirs(self):
@@ -785,7 +797,7 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             try:
                 return self[0].ToolsDir.value
-            except:
+            except BaseException:
                 return None
 
     def write_default_file(self):

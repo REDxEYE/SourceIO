@@ -16,8 +16,8 @@ class ByteIO:
         yield
         self.seek(entry)
 
-    def __init__(self, file=None, path=None, byte_object=None, mode='r', copy_data_from_handle=True):
-
+    def __init__(self, file=None, path=None, byte_object=None,
+                 mode='r', copy_data_from_handle=True):
         """
         Supported file handlers
         :type byte_object: bytes
@@ -53,7 +53,11 @@ class ByteIO:
     def preview_f(self):
         with self.save_current_pos():
             block = self.read_bytes(64)
-            hex_values = split(split(binascii.hexlify(block).decode().upper(), 2), 4)
+            hex_values = split(
+                split(
+                    binascii.hexlify(block).decode().upper(),
+                    2),
+                4)
             return [' '.join(b) for b in hex_values]
 
     def __repr__(self):
@@ -87,7 +91,7 @@ class ByteIO:
         for _ in range(amount):
             self._write(b'\x00')
 
-    def insert_begin(self,to_insert):
+    def insert_begin(self, to_insert):
         self.seek(0)
         buffer = self._read(-1)
 
@@ -190,7 +194,8 @@ class ByteIO:
 
     def read_ascii_string(self, length=None):
         if length:
-            return bytes(''.join([chr(self.read_uint8()) for _ in range(length)]), 'utf').strip(b'\x00').decode('utf')
+            return bytes(''.join([chr(self.read_uint8()) for _ in range(
+                length)]), 'utf').strip(b'\x00').decode('utf')
 
         acc = ''
         b = self.read_uint8()

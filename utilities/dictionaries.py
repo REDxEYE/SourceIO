@@ -3,7 +3,12 @@ import collections
 import functools
 import operator
 
-__all__ = ['Dict', 'OrderedDict', 'FrozenDict', 'FrozenOrderedDict', 'ReadonlyDictProxy']
+__all__ = [
+    'Dict',
+    'OrderedDict',
+    'FrozenDict',
+    'FrozenOrderedDict',
+    'ReadonlyDictProxy']
 
 
 # version_info[0]: Increase in case of large milestones/releases.
@@ -14,7 +19,7 @@ __all__ = ['Dict', 'OrderedDict', 'FrozenDict', 'FrozenOrderedDict', 'ReadonlyDi
 #                  previous interface documentation then you shouldn't increase this, in that
 #                  case increase only version_info[2].
 # version_info[2]: Increase in case of bugfixes. Also use this if you added new features
-#                  without modifying the behavior of the previously existing ones.
+# without modifying the behavior of the previously existing ones.
 version_info = (0, 0, 1)
 __version__ = '.'.join(str(n) for n in version_info)
 __author__ = 'István Pásztor'
@@ -57,16 +62,20 @@ class Items(object):
         try:
             return Items._getattr(self, '_dict')[item]
         except KeyError:
-            raise AttributeError("Couldn't retrieve dictionary key '%s' with attribute access" % item)
+            raise AttributeError(
+                "Couldn't retrieve dictionary key '%s' with attribute access" %
+                item)
 
     def __getitem__(self, item):
         return Items._getattr(self, '_dict')[item]
 
     def __setattr__(self, key, value):
-        raise AttributeError("Item assignment through attribute access isn't supported")
+        raise AttributeError(
+            "Item assignment through attribute access isn't supported")
 
     def __delattr__(self, item):
-        raise AttributeError("Item deletion through attribute access isn't supported")
+        raise AttributeError(
+            "Item deletion through attribute access isn't supported")
 
     def __setitem__(self, key, value):
         raise TypeError("Item assignment isn't supported")
@@ -86,7 +95,9 @@ class MutableItems(Items):
         try:
             del Items._getattr(self, '_dict')[item]
         except KeyError:
-            raise AttributeError("Key '%s' was not found for deletion through attribute access" % item)
+            raise AttributeError(
+                "Key '%s' was not found for deletion through attribute access" %
+                item)
 
     def __setitem__(self, key, value):
         Items._getattr(self, '_dict').__setitem__(key, value)
@@ -123,7 +134,9 @@ class ReadonlyDictProxy(ReadonlyItemsMixin, collections.Mapping):
         try:
             return self.__dict[item]
         except KeyError:
-            raise AttributeError("Couldn't retrieve %s key '%s' with attribute access" % (type(self).__name__, item))
+            raise AttributeError(
+                "Couldn't retrieve %s key '%s' with attribute access" %
+                (type(self).__name__, item))
 
     def copy(self):
         """ Returns another proxy instance wrapping the same dictionary as this proxy. """
@@ -200,7 +213,9 @@ class ReadAttributeAccessMixin(object):
         try:
             return self[item]
         except KeyError:
-            raise AttributeError("Couldn't retrieve %s key '%s' with attribute access" % (type(self).__name__, item))
+            raise AttributeError(
+                "Couldn't retrieve %s key '%s' with attribute access" %
+                (type(self).__name__, item))
 
 
 class WriteAttributeAccessMixin(object):
@@ -210,11 +225,13 @@ class WriteAttributeAccessMixin(object):
 
     def __setattr__(self, key, value):
         if not self._has_init_finished():
-            return super(WriteAttributeAccessMixin, self).__setattr__(key, value)
+            return super(WriteAttributeAccessMixin,
+                         self).__setattr__(key, value)
         # After finishing __init__ every __setattr__ call will be treated as item assignment.
         # This is a very dangerous and fragile method but at this point it works. If a base
         # class (like collections.OrderedDict) changes its implementation and starts assigning
-        # instance variables after its __init__ then this solution will fail miserably.
+        # instance variables after its __init__ then this solution will fail
+        # miserably.
         self[key] = value
 
     def __delattr__(self, item):
@@ -223,7 +240,9 @@ class WriteAttributeAccessMixin(object):
         try:
             del self[item]
         except KeyError:
-            raise AttributeError("%s has no '%s' key to delete through attribute access" % (type(self).__name__, item))
+            raise AttributeError(
+                "%s has no '%s' key to delete through attribute access" %
+                (type(self).__name__, item))
 
     def _has_init_finished(self):
         raise NotImplementedError
@@ -233,7 +252,8 @@ class WriteAttributeAccessMixin(object):
 # multiple inheritance with non-empty __slots__ doesn't work.
 # For this reason we "inline" the MutableItems code into the class
 # body instead of mixing it in. The same goes for OrderedDict.
-class Dict(WriteAttributeAccessMixin, ReadAttributeAccessMixin, ExtendedCopyMixin, dict):
+class Dict(WriteAttributeAccessMixin,
+           ReadAttributeAccessMixin, ExtendedCopyMixin, dict):
     __slots__ = ('__items', '_init_finished')
 
     def __init__(self, *args, **kwargs):
@@ -241,7 +261,8 @@ class Dict(WriteAttributeAccessMixin, ReadAttributeAccessMixin, ExtendedCopyMixi
         self.__items = MutableItems(self, super(Dict, self).items)
         self._init_finished = True
 
-    # Making items a property instead of an attribute in order to make it readonly.
+    # Making items a property instead of an attribute in order to make it
+    # readonly.
     @property
     def items(self):
         return self.__items
@@ -252,8 +273,10 @@ class Dict(WriteAttributeAccessMixin, ReadAttributeAccessMixin, ExtendedCopyMixi
 
 # Note: seemingly the collections.OrderedDict implementation doesn't have __slots__
 # so an unnecessary __dict__ is created for each OrderedDict instance. Later I may
-# drop collections.OrderedDict and come up with my own implementation to aid this.
-class OrderedDict(WriteAttributeAccessMixin, ReadAttributeAccessMixin, ExtendedCopyMixin, collections.OrderedDict):
+# drop collections.OrderedDict and come up with my own implementation to
+# aid this.
+class OrderedDict(WriteAttributeAccessMixin, ReadAttributeAccessMixin,
+                  ExtendedCopyMixin, collections.OrderedDict):
     __slots__ = ('__items', '_init_finished')
 
     def __init__(self, *args, **kwargs):

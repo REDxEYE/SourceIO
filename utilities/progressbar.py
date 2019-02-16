@@ -64,7 +64,7 @@ class ProgressBar:
             sys.stdout.write('\r')
             bar = '{name}  [{progress}] {curr}/{max} {percent:4}%   '.format(name=self.desc, progress='#' * round(
                 self.len * self.as_float) + ' ' * round(self.len * (1 - self.as_float)), curr=self.curr, max=self.max,
-                                                                             percent=round(self.as_percent, 2))
+                percent=round(self.as_percent, 2))
 
             sys.stdout.write(bar)
         sys.stdout.flush()

@@ -4,13 +4,14 @@ import time
 import os.path
 from typing import List
 
-from data_structures import vtx_data,mdl_data
+from data_structures import vtx_data, mdl_data
 from data_structures.mdl_data import SourceMdlModel, SourceMdlBone
 from data_structures.vtx_data import SourceVtxBodyPart, SourceVtxModel, SourceVtxModelLod
 from mdl_readers.mdl_v49 import SourceMdlFile49
 from vtx_readers.vtx_v7 import SourceVtxFile7
 from vvd_readers.vvd_v4 import SourceVvdFile4
 from utilities import progressbar
+
 
 class SMD:
     def __init__(self, mdl, vvd, vtx):
@@ -20,13 +21,17 @@ class SMD:
         self.filemap = {}
         self.vertex_offset = 0
 
-    def get_polygon(self, strip_group: vtx_data.SourceVtxStripGroup, vtx_index_index: int, _, mesh_vertex_offset):
+    def get_polygon(self, strip_group: vtx_data.SourceVtxStripGroup,
+                    vtx_index_index: int, _, mesh_vertex_offset):
         vertex_indices = []
         vn_s = []
         for i in [0, 2, 1]:
-            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: int
-            vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]  # type: vtx_data.SourceVtxVertex
-            vertex_index = vtx_vertex.original_mesh_vertex_index + self.vertex_offset + mesh_vertex_offset
+            # type: int
+            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]
+            # type: vtx_data.SourceVtxVertex
+            vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]
+            vertex_index = vtx_vertex.original_mesh_vertex_index + \
+                self.vertex_offset + mesh_vertex_offset
             if vertex_index > self.vvd.file_data.lod_vertex_count[0]:
                 print('vertex index out of bounds, skipping this mesh_data')
                 return False, False
@@ -41,7 +46,8 @@ class SMD:
 
     def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel, lod_index, model: mdl_data.SourceMdlModel,
                      material_indexes):
-        vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes  # type: List[vtx_data.SourceVtxMesh]
+        # type: List[vtx_data.SourceVtxMesh]
+        vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes
         indexes = []
         vertex_normals = []
         # small speedup
@@ -49,7 +55,8 @@ class SMD:
         m_ex = material_indexes.extend
         vn_ex = vertex_normals.extend
 
-        for mesh_index, vtx_mesh in enumerate(vtx_meshes):  # type: int,vtx_data.SourceVtxMesh
+        for mesh_index, vtx_mesh in enumerate(
+                vtx_meshes):  # type: int,vtx_data.SourceVtxMesh
             material_index = model.meshes[mesh_index].material_index
             mesh_vertex_start = model.meshes[mesh_index].vertex_index_start
             if vtx_mesh.vtx_strip_groups:
@@ -63,11 +70,15 @@ class SMD:
                     si_app = strip_indexes.append
                     svn_app = strip_vertex_normals.extend
                     if strip_group.vtx_strips and strip_group.vtx_indexes and strip_group.vtx_vertexes:
-                        field = progressbar.ProgressBar('Converting mesh_data', len(strip_group.vtx_indexes), 20)
-                        for vtx_index in range(0, len(strip_group.vtx_indexes), 3):
+                        field = progressbar.ProgressBar(
+                            'Converting mesh_data', len(
+                                strip_group.vtx_indexes), 20)
+                        for vtx_index in range(
+                                0, len(strip_group.vtx_indexes), 3):
                             if not vtx_index % 3 * 10:
                                 field.increment(3)
-                            f, vn = self.get_polygon(strip_group, vtx_index, lod_index, mesh_vertex_start)
+                            f, vn = self.get_polygon(
+                                strip_group, vtx_index, lod_index, mesh_vertex_start)
                             if not f and not vn:
                                 break
                             si_app(f)
@@ -87,51 +98,71 @@ class SMD:
 
     def write_meshes(self, output_dir=os.path.dirname(__file__)):
 
-        for bodypart_index, body_part in enumerate(self.vtx.vtx.vtx_body_parts):  # type: SourceVtxBodyPart
+        for bodypart_index, body_part in enumerate(
+                self.vtx.vtx.vtx_body_parts):  # type: SourceVtxBodyPart
             if body_part.model_count > 0:
-                for model_index, vtx_model in enumerate(body_part.vtx_models):  # type: SourceVtxModel
+                for model_index, vtx_model in enumerate(
+                        body_part.vtx_models):  # type: SourceVtxModel
                     if vtx_model.lodCount > 0:
                         if self.mdl.file_data.body_parts[bodypart_index].model_count < 1:
-                            print('Body part number {} don\'t have any models'.format(bodypart_index))
+                            print(
+                                'Body part number {} don\'t have any models'.format(bodypart_index))
                             continue
                         print(
                             "Trying to load model_path number {} from body part number {}, total body part count {}".format(
                                 model_index, bodypart_index, len(self.mdl.file_data.body_parts)))
-                        model = self.mdl.file_data.body_parts[bodypart_index].models[model_index]  # type: SourceMdlModel
-                        name = model.name if model.name else "mesh_{}-{}".format(bodypart_index, model_index)
-                        if os.path.split(name)[0]!='':
-                            os.makedirs(os.path.join(output_dir,'decompiled',os.path.dirname(name)),exist_ok=True)
-                        fileh = open(os.path.join(output_dir, 'decompiled', name) + '.smd', 'w')
-                        self.filemap[name] = name+'.smd'
+                        # type: SourceMdlModel
+                        model = self.mdl.file_data.body_parts[bodypart_index].models[model_index]
+                        name = model.name if model.name else "mesh_{}-{}".format(
+                            bodypart_index, model_index)
+                        if os.path.split(name)[0] != '':
+                            os.makedirs(
+                                os.path.join(
+                                    output_dir,
+                                    'decompiled',
+                                    os.path.dirname(name)),
+                                exist_ok=True)
+                        fileh = open(
+                            os.path.join(
+                                output_dir,
+                                'decompiled',
+                                name) + '.smd',
+                            'w')
+                        self.filemap[name] = name + '.smd'
                         self.write_header(fileh)
                         self.write_nodes(fileh)
                         self.write_skeleton(fileh)
                         material_indexes = []
-                        vtx_model_lod = vtx_model.vtx_model_lods[0]  # type: SourceVtxModelLod
+                        # type: SourceVtxModelLod
+                        vtx_model_lod = vtx_model.vtx_model_lods[0]
                         print('Converting {} mesh_data'.format(name))
                         print('Converting {} mesh_data'.format(name))
                         if vtx_model_lod.meshCount > 0:
                             t = time.time()
                             polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model,
                                                                                             material_indexes)
-                            print('Mesh convertation took {} sec'.format(round(time.time() - t), 3))
+                            print(
+                                'Mesh convertation took {} sec'.format(
+                                    round(
+                                        time.time() - t), 3))
                         else:
                             return
-                        for polygon,material_index in zip(polygons,polygon_material_indexes):
-                            fileh.write(self.mdl.file_data.textures[material_index].path_file_name)
+                        for polygon, material_index in zip(
+                                polygons, polygon_material_indexes):
+                            fileh.write(
+                                self.mdl.file_data.textures[material_index].path_file_name)
                             fileh.write('\n')
                             for vertex_id in polygon:
                                 v = self.vvd.file_data.vertexes[vertex_id]
 
-                                weight = ' '.join(["{} {}".format(bone, round(weight,4)) for weight, bone in zip(v.boneWeight.weight, v.boneWeight.bone)])
+                                weight = ' '.join(["{} {}".format(bone, round(weight, 4)) for weight, bone in zip(
+                                    v.boneWeight.weight, v.boneWeight.bone)])
                                 fileh.write(
                                     "{} {} {} {:.6f} {:.6f} {} {}\n".format(v.boneWeight.bone[0], v.position.as_string_smd,
                                                                             v.normal.as_string_smd, v.texCoordX, v.texCoordY,
                                                                             v.boneWeight.boneCount, weight))
 
                         self.vertex_offset += model.vertex_count
-
-
 
     def write_header(self, fileh):
         fileh.write('// Created by SourceIO\n')
@@ -141,7 +172,11 @@ class SMD:
         bones = self.mdl.file_data.bones  # type: List[SourceMdlBone]
         fileh.write('nodes\n')
         for num, bone in enumerate(bones):
-            fileh.write('{} "{}" {}\n'.format(num, bone.name, bone.parentBoneIndex))
+            fileh.write(
+                '{} "{}" {}\n'.format(
+                    num,
+                    bone.name,
+                    bone.parentBoneIndex))
         fileh.write('end\n')
 
     def write_skeleton(self, fileh):
@@ -149,10 +184,13 @@ class SMD:
         fileh.write('skeleton\n')
         fileh.write('time 0\n')
         for num, bone in enumerate(bones):
-            fileh.write("{} {} {}\n".format(num, bone.position.as_string_smd, bone.rotation.as_string_smd))
+            fileh.write(
+                "{} {} {}\n".format(
+                    num,
+                    bone.position.as_string_smd,
+                    bone.rotation.as_string_smd))
         fileh.write('end\n')
 
     @staticmethod
     def write_end(fileh):
         fileh.close()
-

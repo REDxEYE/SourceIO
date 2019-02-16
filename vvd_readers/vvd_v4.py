@@ -1,12 +1,12 @@
 import sys
 
 
-from byte_io_mdl import ByteIO
-from data_structures.vvd_data import SourceVvdFileData
+from SourceIO.byte_io_mdl import ByteIO
+from SourceIO.data_structures.vvd_data import SourceVvdFileData
 
 
 class SourceVvdFile4:
-    def __init__(self, reader:ByteIO):
+    def __init__(self, reader: ByteIO):
         self.reader = reader
         self.max_verts = 0
         self.file_data = SourceVvdFileData()

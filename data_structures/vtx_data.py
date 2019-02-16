@@ -2,8 +2,8 @@ import struct
 from typing import List
 
 
-from byte_io_mdl import ByteIO
-from utilities.flags import Flags
+from SourceIO.byte_io_mdl import ByteIO
+from SourceIO.utilities.flags import Flags
 
 max_bones_per_vertex = 3
 extra_8 = True
@@ -27,13 +27,15 @@ class SourceVtxFileData:
 
     def read(self, reader: ByteIO):
         self.version = reader.read_uint32()
-        if self.version!=7:
+        if self.version != 7:
             if self.version == 402653184:
                 reader.insert_begin(b'\x07')
                 self.version = reader.read_uint32()
                 print('VTX FILE WAS "PROTECTED", but screew it :P')
             else:
-                raise NotImplementedError('VTX version {} is not supported!'.format(self.version))
+                raise NotImplementedError(
+                    'VTX version {} is not supported!'.format(
+                        self.version))
         self.vertex_cache_size = reader.read_uint32()
         self.max_bones_per_strip = reader.read_uint16()
         self.max_bones_per_tri = reader.read_uint16()
@@ -50,18 +52,21 @@ class SourceVtxFileData:
             reader.seek(self.bodyPartOffset)
             try:
                 for _ in range(self.bodyPartCount):
-                    self.vtx_body_parts.append(SourceVtxBodyPart().read(reader))
+                    self.vtx_body_parts.append(
+                        SourceVtxBodyPart().read(reader))
             except struct.error:
                 global extra_8
                 extra_8 = False
                 self.vtx_body_parts.clear()
                 reader.seek(self.bodyPartOffset)
                 for _ in range(self.bodyPartCount):
-                    self.vtx_body_parts.append(SourceVtxBodyPart().read(reader))
+                    self.vtx_body_parts.append(
+                        SourceVtxBodyPart().read(reader))
         if self.material_replacement_list_offset > 0:
             reader.seek(self.material_replacement_list_offset)
             for _ in range(self.lodCount):
-                self.material_replacement_lists.append(MaterialReplacementList().read(reader))
+                self.material_replacement_lists.append(
+                    MaterialReplacementList().read(reader))
         # print(self.max_bones_per_vertex)
 
     def __repr__(self):
@@ -91,7 +96,8 @@ class MaterialReplacementList:
         return self
 
     def __repr__(self):
-        return '<MaterialReplacementList replacement count:{}>'.format(self.replacements_count)
+        return '<MaterialReplacementList replacement count:{}>'.format(
+            self.replacements_count)
 
 
 class MaterialReplacement:
@@ -110,7 +116,8 @@ class MaterialReplacement:
         return self
 
     def __repr__(self):
-        return '<MaterialReplacement mat id:{} -> "{}">'.format(self.material_id, self.replacement_material_name)
+        return '<MaterialReplacement mat id:{} -> "{}">'.format(
+            self.material_id, self.replacement_material_name)
 
 
 class SourceVtxBodyPart:
@@ -146,7 +153,8 @@ class SourceVtxModel:
             if self.lodCount > 0 and self.lodOffset != 0:
                 reader.seek(entry + self.lodOffset)
                 for _ in range(self.lodCount):
-                    self.vtx_model_lods.append(SourceVtxModelLod().read(reader, self))
+                    self.vtx_model_lods.append(
+                        SourceVtxModelLod().read(reader, self))
         return self
 
     def __repr__(self):
@@ -175,7 +183,8 @@ class SourceVtxModelLod:
         return self
 
     def __repr__(self):
-        return "<ModelLod mesh_data count:{} switch point:{}>".format(self.meshCount, self.switchPoint)
+        return "<ModelLod mesh_data count:{} switch point:{}>".format(
+            self.meshCount, self.switchPoint)
 
 
 class SourceVtxMesh:
@@ -195,7 +204,8 @@ class SourceVtxMesh:
             if self.strip_group_offset > 0:
                 reader.seek(entry + self.strip_group_offset)
                 for _ in range(self.strip_group_count):
-                    self.vtx_strip_groups.append(SourceVtxStripGroup().read(reader))
+                    self.vtx_strip_groups.append(
+                        SourceVtxStripGroup().read(reader))
         return self
 
     def __repr__(self):
@@ -208,7 +218,8 @@ class StripGroupFlags(Flags):
     STRIPGROUP_IS_FLEXED = 0x01
     STRIPGROUP_IS_HWSKINNED = 0x02
     STRIPGROUP_IS_DELTA_FLEXED = 0x04
-    STRIPGROUP_SUPPRESS_HW_MORPH = 0x08  # NOTE: This is a temporary flag used at run time.
+    # NOTE: This is a temporary flag used at run time.
+    STRIPGROUP_SUPPRESS_HW_MORPH = 0x08
 
 
 class SourceVtxStripGroup:
@@ -257,7 +268,9 @@ class SourceVtxStripGroup:
             if extra_8:
                 reader.seek(entry + self.topology_offset)
                 # for _ in range(self.topology_indices_count):
-                self.topology = (reader.read_bytes(self.topology_indices_count * 2))
+                self.topology = (
+                    reader.read_bytes(
+                        self.topology_indices_count * 2))
 
         return self
 
@@ -277,14 +290,17 @@ class SourceVtxVertex:
 
     def read(self, reader: ByteIO, stripgroup: SourceVtxStripGroup):
         global max_bones_per_vertex
-        self.bone_weight_index = [reader.read_uint8() for _ in range(max_bones_per_vertex)]
+        self.bone_weight_index = [reader.read_uint8()
+                                  for _ in range(max_bones_per_vertex)]
         self.bone_count = reader.read_uint8()
         self.original_mesh_vertex_index = reader.read_uint16()
-        self.bone_id = [reader.read_uint8() for _ in range(max_bones_per_vertex)]
+        self.bone_id = [reader.read_uint8()
+                        for _ in range(max_bones_per_vertex)]
         stripgroup.vtx_vertexes.append(self)
 
     def __repr__(self):
-        return "<Vertex bone:{} total bone count:{}>".format(self.bone_id, self.bone_count)
+        return "<Vertex bone:{} total bone count:{}>".format(
+            self.bone_id, self.bone_count)
 
 
 class StripHeaderFlags(Flags):
@@ -328,4 +344,4 @@ class SourceVtxStrip:
         return '<SourceVtxStrip index count:{} vertex count:{} flags:{} topology:{} topo offset: {}-{} offset into indices list:{}>'.format(
             self.index_count, self.vertex_count, self.flags, self.topology_indices_count, self.topology_offset,
             self.topology_offset + self.topology_indices_count * 2,
-        self.index_mesh_index)
+            self.index_mesh_index)

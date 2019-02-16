@@ -1,8 +1,8 @@
 from typing import List
 
 
-from byte_io_mdl import ByteIO
-from data_structures.source_shared import SourceVertex
+from SourceIO.byte_io_mdl import ByteIO
+from SourceIO.data_structures.source_shared import SourceVertex
 
 
 class SourceVvdFileData:
@@ -28,7 +28,9 @@ class SourceVvdFileData:
                 reader.insert_begin(b'I')
                 self.id = reader.read_fourcc()
             else:
-                raise NotImplementedError('VVD format {} is not supported!'.format(self.id))
+                raise NotImplementedError(
+                    'VVD format {} is not supported!'.format(
+                        self.id))
         self.version = reader.read_uint32()
         self.checksum = reader.read_uint32()
         self.lod_count = reader.read_uint32()
@@ -55,7 +57,8 @@ class SourceVvdFileData:
                     if fixup.lod_index >= lod_index:
                         for j in range(fixup.vertex_count):
                             vertex = self.vertexes[fixup.vertex_index + j]
-                            self.fixed_vertexes_by_lod[lod_index].append(vertex)
+                            self.fixed_vertexes_by_lod[lod_index].append(
+                                vertex)
 
     def __str__(self):
         return "<FileData id:{} version:{} lod count:{} fixup count:{}>".format(self.id, self.version, self.lod_count,

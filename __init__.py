@@ -1,3 +1,4 @@
+from bpy.props import StringProperty, BoolProperty, CollectionProperty
 import bpy
 from pathlib import Path
 
@@ -14,8 +15,6 @@ bl_info = {
     "category": "Import-Export"
 }
 
-from bpy.props import StringProperty, BoolProperty, CollectionProperty
-
 
 class MDLImporter_OT_operator(bpy.types.Operator):
     """Load Source Engine MDL models"""
@@ -26,11 +25,25 @@ class MDLImporter_OT_operator(bpy.types.Operator):
     filepath = StringProperty(
         subtype='FILE_PATH',
     )
-    files = CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-    normal_bones = BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
-    join_clamped = BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
-    organize_bodygroups = BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
-    write_qc = BoolProperty(name="Write QC file", default=True, subtype='UNSIGNED')
+    files = CollectionProperty(
+        name='File paths',
+        type=bpy.types.OperatorFileListElement)
+    normal_bones = BoolProperty(
+        name="Normalize bones",
+        default=False,
+        subtype='UNSIGNED')
+    join_clamped = BoolProperty(
+        name="Join clamped meshes",
+        default=False,
+        subtype='UNSIGNED')
+    organize_bodygroups = BoolProperty(
+        name="Organize bodygroups",
+        default=True,
+        subtype='UNSIGNED')
+    write_qc = BoolProperty(
+        name="Write QC file",
+        default=True,
+        subtype='UNSIGNED')
     filter_glob = StringProperty(default="*.mdl", options={'HIDDEN'})
 
     def execute(self, context):
@@ -46,7 +59,8 @@ class MDLImporter_OT_operator(bpy.types.Operator):
             if self.write_qc:
                 import qc_renerator
                 qc = qc_renerator.QC(importer.model)
-                qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
+                qc_file = bpy.data.texts.new(
+                    '{}.qc'.format(Path(file.name).stem))
                 qc.write_header(qc_file)
                 qc.write_models(qc_file)
                 qc.write_skins(qc_file)
@@ -60,11 +74,14 @@ class MDLImporter_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-classes = ( MDLImporter_OT_operator,)
+classes = (MDLImporter_OT_operator,)
 register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
+
 def menu_import(self, context):
-    self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
+    self.layout.operator(
+        MDLImporter_OT_operator.bl_idname,
+        text="Source model (.mdl)")
     # self.layout.operator(VmeshImporter_OT_operator.bl_idname, text="Source2 mesh (.vmesh_c)")
     # self.layout.operator(VmdlImporter_OT_operator.bl_idname, text="Source2 model (.vmdl_c)")
 

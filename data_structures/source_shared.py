@@ -3,9 +3,9 @@ import random
 import struct
 
 try:
-    from byte_io_mdl import ByteIO
+    from SourceIO.byte_io_mdl import ByteIO
 except Exception:
-    from byte_io_mdl import ByteIO
+    from SourceIO.byte_io_mdl import ByteIO
 
 
 class SourceVector:
@@ -26,13 +26,16 @@ class SourceVector:
         return self.x == other.x and self.y == other.y and self.z == other.z
 
     def __add__(self, other):
-        return SourceVector([self.x + other.x, self.y + other.y, self.z + other.z])
+        return SourceVector(
+            [self.x + other.x, self.y + other.y, self.z + other.z])
 
     def __sub__(self, other):
-        return SourceVector([self.x - other.x, self.y - other.y, self.z - other.z])
+        return SourceVector(
+            [self.x - other.x, self.y - other.y, self.z - other.z])
 
     def to_degrees(self):
-        return SourceVector(init_vec=[math.degrees(self.x), math.degrees(self.y), math.degrees(self.z)])
+        return SourceVector(init_vec=[math.degrees(
+            self.x), math.degrees(self.y), math.degrees(self.z)])
 
     @property
     def as_list(self):
@@ -43,7 +46,8 @@ class SourceVector:
         return "{:.6f} {:.6f} {:.6f}".format(self.x, self.y, self.z)
 
     def as_rounded(self, n):
-        return "{} {} {}".format(round(self.x, n), round(self.y, n), round(self.z, n))
+        return "{} {} {}".format(
+            round(self.x, n), round(self.y, n), round(self.z, n))
 
     @property
     def as_string(self):
@@ -91,10 +95,12 @@ class SourceQuaternion:
         return self
 
     def __str__(self):
-        return "<Quaternion X:{} Y:{} Z:{} W:{}".format(self.x, self.y, self.z, self.w)
+        return "<Quaternion X:{} Y:{} Z:{} W:{}".format(
+            self.x, self.y, self.z, self.w)
 
     def __repr__(self):
-        return "<Quaternion X:{} Y:{} Z:{} W:{}".format(self.x, self.y, self.z, self.w)
+        return "<Quaternion X:{} Y:{} Z:{} W:{}".format(
+            self.x, self.y, self.z, self.w)
 
 
 class SourceFloat16bits:
@@ -152,7 +158,10 @@ class SourceFloat16bits:
         if biased_exponent == 0:
             result_biased_exponent = 0
         else:
-            result_biased_exponent = (biased_exponent - self.float16bias + self.float32bias) << 23
+            result_biased_exponent = (
+                biased_exponent -
+                self.float16bias +
+                self.float32bias) << 23
         result_sign = sign << 31
 
         bits_result.i = result_sign | result_biased_exponent | result_mantissa
@@ -224,7 +233,8 @@ class SourceMdlTexture:
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.nameOffset = reader.read_uint32()
-        self.thePathFileName = reader.read_from_offset(entry + self.nameOffset, reader.read_ascii_string)
+        self.thePathFileName = reader.read_from_offset(
+            entry + self.nameOffset, reader.read_ascii_string)
         self.flags = reader.read_uint32()
         self.used = reader.read_uint32()
         self.unused1 = reader.read_uint32()
@@ -249,7 +259,8 @@ class SourceBoneWeight:
         return self
 
     def __str__(self):
-        return '<BoneWeight Weight: {} Bone: {} BoneCount: {}>'.format(self.weight, self.bone, self.boneCount)
+        return '<BoneWeight Weight: {} Bone: {} BoneCount: {}>'.format(
+            self.weight, self.bone, self.boneCount)
 
     def __repr__(self):
         return self.__str__()

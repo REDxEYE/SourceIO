@@ -23,7 +23,13 @@ class QC:
         self.fst_model = None
 
     def write_qc(self, output_dir=os.path.dirname(__file__)):
-        fileh = open(os.path.join(output_dir, 'decompiled', self.source_model.filepath) + '.qc', 'w')
+        fileh = open(
+            os.path.join(
+                output_dir,
+                'decompiled',
+                self.source_model.filepath) +
+            '.qc',
+            'w')
         self.smd = SMD(self.mdl, self.vvd, self.vtx)
         # self.vta = VTA(self.mdl, self.vvd)
         # self.smd.write_meshes()
@@ -38,7 +44,8 @@ class QC:
         fileh.write('$modelname "{}"\n\n'.format(self.mdl.file_data.name[:-4]))
 
     def write_models(self, fileh):
-        for n, bp in enumerate(self.mdl.file_data.body_parts):  # type: SourceMdlBodyPart
+        for n, bp in enumerate(
+                self.mdl.file_data.body_parts):  # type: SourceMdlBodyPart
             if bp.model_count > 1:
                 self.write_bodygroup(fileh, bp)
             if bp.model_count == 1:
@@ -49,20 +56,23 @@ class QC:
 
     def write_model(self, fileh, bp_index, m_index, model: SourceMdlModel):
         to_skip = 0
-        name = model.name if model.name else "mesh_{}-{}".format(bp_index, m_index)
+        name = model.name if model.name else "mesh_{}-{}".format(
+            bp_index, m_index)
         if not self.fst_model:
             self.fst_model = name
         model_name = str(Path(model.name).with_suffix('').with_suffix(''))
         if model.flex_frames and self.vvd:
             fileh.write('$model "{0}" "{0}"'.format(model_name))
             fileh.write('{\n')
-            fileh.write('\tflexfile "{}" \n'.format(name+'.vta'))
+            fileh.write('\tflexfile "{}" \n'.format(name + '.vta'))
             # fileh.write('\tflexfile "{}" \n'.format(self.vta.write_vta(model)))
             fileh.write('\t{\n')
             fileh.write("\t\tdefaultflex frame 0\n")
             for n, flex_frame in enumerate(model.flex_frames):
                 if flex_frame.has_partner:
-                    fileh.write('\t\tflexpair "{}" 1 frame {}\n'.format(flex_frame.flex_name, n + 1 + to_skip))
+                    fileh.write(
+                        '\t\tflexpair "{}" 1 frame {}\n'.format(
+                            flex_frame.flex_name, n + 1 + to_skip))
                     to_skip += 1
                 pass
             fileh.write('\t}\n')
@@ -80,12 +90,14 @@ class QC:
             else:
                 if not self.fst_model:
                     self.fst_model = model.name
-                model_name = str(Path(model.name).with_suffix('').with_suffix(''))
+                model_name = str(
+                    Path(model.name).with_suffix('').with_suffix(''))
                 fileh.write('\tstudio "{}"\n'.format(model_name))
                 if model.flex_frames and self.vvd:
                     fileh.write(
                         "//WARNING: this {} have flexes! Additional VTA will be written, you can import them manually\n"
-                        "//If you want to compile it back correctly - export as DMX\n".format(model.name)
+                        "//If you want to compile it back correctly - export as DMX\n".format(
+                            model.name)
                     )
                     if self.vta:
                         self.vta.write_vta(model)
@@ -104,11 +116,14 @@ class QC:
         fileh.write('\n}\n\n')
 
     def write_misc(self, fileh):
-        fileh.write('$surfaceprop "{}"\n\n'.format(self.mdl.file_data.surface_prop_name))
+        fileh.write('$surfaceprop "{}"\n\n'.format(
+            self.mdl.file_data.surface_prop_name))
         deflection = math.acos(self.mdl.file_data.max_eye_deflection)
         deflection = math.degrees(deflection)
         fileh.write('$maxeyedeflection {:.1f}\n\n'.format(deflection))
-        fileh.write('$eyeposition {}\n\n'.format(self.mdl.file_data.eye_position.as_string_smd))
+        fileh.write(
+            '$eyeposition {}\n\n'.format(
+                self.mdl.file_data.eye_position.as_string_smd))
         self.write_texture_paths(fileh)
         self.write_attachment(fileh)
         fileh.write('$cbox {} {}\n\n'.format(self.mdl.file_data.view_bounding_box_min_position.as_rounded(3),
@@ -143,7 +158,10 @@ class QC:
     def write_sequences(self, fileh):
         for sequence in self.mdl.file_data.sequence_descs:  # type: SourceMdlSequenceDesc
 
-            fileh.write('$sequence "{}" '.format(sequence.theName.replace("@", '')))
+            fileh.write(
+                '$sequence "{}" '.format(
+                    sequence.theName.replace(
+                        "@", '')))
             fileh.write('{\n')
             fileh.write('\t"{}"\n'.format(self.fst_model))
             fileh.write('\tactivity "{}" 1\n'.format(

@@ -3,10 +3,16 @@ import collections
 import functools
 import pickle
 try:
-    from utilities.dictionaries import ReadonlyDictProxy
+    from SourceIO.utilities.dictionaries import ReadonlyDictProxy
 except ImportError:
-    from utilities.dictionaries import ReadonlyDictProxy
-__all__ = ['Flags', 'FlagsMeta', 'FlagData', 'UNDEFINED', 'unique', 'unique_bits']
+    from SourceIO.utilities.dictionaries import ReadonlyDictProxy
+__all__ = [
+    'Flags',
+    'FlagsMeta',
+    'FlagData',
+    'UNDEFINED',
+    'unique',
+    'unique_bits']
 
 
 # version_info[0]: Increase in case of large milestones/releases.
@@ -17,7 +23,7 @@ __all__ = ['Flags', 'FlagsMeta', 'FlagData', 'UNDEFINED', 'unique', 'unique_bits
 #                  previous interface documentation then you shouldn't increase this, in that
 #                  case increase only version_info[2].
 # version_info[2]: Increase in case of bugfixes. Also use this if you added new features
-#                  without modifying the behavior of the previously existing ones.
+# without modifying the behavior of the previously existing ones.
 version_info = (1, 1, 2)
 __version__ = '.'.join(str(n) for n in version_info)
 __author__ = 'István Pásztor'
@@ -27,11 +33,15 @@ __license__ = 'MIT'
 def unique(flags_class):
     """ A decorator for flags classes to forbid flag aliases. """
     if not is_flags_class_final(flags_class):
-        raise TypeError('unique check can be applied only to flags classes that have members')
+        raise TypeError(
+            'unique check can be applied only to flags classes that have members')
     if not flags_class.__member_aliases__:
         return flags_class
-    aliases = ', '.join('%s -> %s' % (alias, name) for alias, name in flags_class.__member_aliases__.items())
-    raise ValueError('duplicate values found in %r: %s' % (flags_class, aliases))
+    aliases = ', '.join('%s -> %s' % (alias, name)
+                        for alias, name in flags_class.__member_aliases__.items())
+    raise ValueError(
+        'duplicate values found in %r: %s' %
+        (flags_class, aliases))
 
 
 def unique_bits(flags_class):
@@ -43,13 +53,16 @@ def unique_bits(flags_class):
         if other_bits & bits:
             for other_name, other_member in flags_class.__members_without_aliases__.items():
                 if int(other_member) & bits:
-                    raise ValueError("%r: '%s' and '%s' have overlapping bits" % (flags_class, other_name, name))
+                    raise ValueError(
+                        "%r: '%s' and '%s' have overlapping bits" %
+                        (flags_class, other_name, name))
         else:
             other_bits |= bits
 
 
 def is_descriptor(obj):
-    return hasattr(obj, '__get__') or hasattr(obj, '__set__') or hasattr(obj, '__delete__')
+    return hasattr(obj, '__get__') or hasattr(
+        obj, '__set__') or hasattr(obj, '__delete__')
 
 
 class Const:
@@ -75,11 +88,14 @@ def create_flags_subclass(base_enum_class, class_name, flags, *, mixins=(), modu
         class_dict['__all_flags_name__'] = all_flags_name
     flags_class = meta_class(class_name, bases, class_dict)
 
-    # disabling on enabling pickle on the new class based on our module parameter
+    # disabling on enabling pickle on the new class based on our module
+    # parameter
     if module is None:
         # Making the class unpicklable.
         def disabled_reduce_ex(self, proto):
-            raise pickle.PicklingError("'%s' is unpicklable" % (type(self).__name__,))
+            raise pickle.PicklingError(
+                "'%s' is unpicklable" %
+                (type(self).__name__,))
         flags_class.__reduce_ex__ = disabled_reduce_ex
 
         # For pickle module==None means the __main__ module so let's change it to a non-existing name.
@@ -104,7 +120,8 @@ def process_inline_members_definition(members):
     :return: An iterable of (name, data) pairs.
     """
     if isinstance(members, str):
-        members = ((name, UNDEFINED) for name in members.replace(',', ' ').split())
+        members = ((name, UNDEFINED)
+                   for name in members.replace(',', ' ').split())
     elif isinstance(members, (tuple, list, collections.Set)):
         if members and isinstance(next(iter(members)), str):
             members = ((name, UNDEFINED) for name in members)
@@ -125,7 +142,10 @@ def extract_member_definitions_from_class_attributes(class_dict):
     for name, _ in members:
         del class_dict[name]
 
-    members.extend(process_inline_members_definition(class_dict.pop('__members__', ())))
+    members.extend(
+        process_inline_members_definition(
+            class_dict.pop(
+                '__members__', ())))
     return members
 
 
@@ -152,19 +172,24 @@ class ReadonlyzerMixin:
 
     def __setattr__(self, key, value):
         if self.readonly:
-            raise AttributeError("Can't set attribute '%s' of readonly '%s' object" % (key, type(self).__name__))
+            raise AttributeError(
+                "Can't set attribute '%s' of readonly '%s' object" %
+                (key, type(self).__name__))
         super().__setattr__(key, value)
 
     def __delattr__(self, key):
         if self.readonly:
-            raise AttributeError("Can't delete attribute '%s' of readonly '%s' object" % (key, type(self).__name__))
+            raise AttributeError(
+                "Can't delete attribute '%s' of readonly '%s' object" %
+                (key, type(self).__name__))
         super().__delattr__(key)
 
 
 class FlagProperties(ReadonlyzerMixin):
     __slots__ = ('name', 'data', 'bits', 'index', 'index_without_aliases')
 
-    def __init__(self, *, name, bits, data=None, index=None, index_without_aliases=None):
+    def __init__(self, *, name, bits, data=None, index=None,
+                 index_without_aliases=None):
         self.name = name
         self.data = data
         self.bits = bits
@@ -178,22 +203,26 @@ READONLY_PROTECTED_FLAGS_CLASS_ATTRIBUTES = frozenset([
     '__member_aliases__', '__bits_to_properties__', '__bits_to_instance__', '__pickle_int_flags__',
 ])
 
-# these attributes are writable when __writable_protected_flags_class_attributes__ is set to True on the class.
+# these attributes are writable when
+# __writable_protected_flags_class_attributes__ is set to True on the
+# class.
 TEMPORARILY_WRITABLE_PROTECTED_FLAGS_CLASS_ATTRIBUTES = frozenset([
     '__all_bits__', '__no_flags__', '__all_flags__', '__no_flags_name__', '__all_flags_name__',
 ])
 
 PROTECTED_FLAGS_CLASS_ATTRIBUTES = READONLY_PROTECTED_FLAGS_CLASS_ATTRIBUTES | \
-                                   TEMPORARILY_WRITABLE_PROTECTED_FLAGS_CLASS_ATTRIBUTES
+    TEMPORARILY_WRITABLE_PROTECTED_FLAGS_CLASS_ATTRIBUTES
 
 
 def is_valid_bits_value(bits):
     return isinstance(bits, int) and not isinstance(bits, bool)
 
 
-def initialize_class_dict_and_create_flags_class(class_dict, class_name, create_flags_class):
+def initialize_class_dict_and_create_flags_class(
+        class_dict, class_name, create_flags_class):
     # all_members is used by __getattribute__ and __setattr__. It contains all items
-    # from members and also the no_flags and all_flags special members if they are defined.
+    # from members and also the no_flags and all_flags special members if they
+    # are defined.
     all_members = collections.OrderedDict()
     members = collections.OrderedDict()
     members_without_aliases = collections.OrderedDict()
@@ -202,8 +231,10 @@ def initialize_class_dict_and_create_flags_class(class_dict, class_name, create_
     member_aliases = collections.OrderedDict()
     class_dict['__all_members__'] = ReadonlyDictProxy(all_members)
     class_dict['__members__'] = ReadonlyDictProxy(members)
-    class_dict['__members_without_aliases__'] = ReadonlyDictProxy(members_without_aliases)
-    class_dict['__bits_to_properties__'] = ReadonlyDictProxy(bits_to_properties)
+    class_dict['__members_without_aliases__'] = ReadonlyDictProxy(
+        members_without_aliases)
+    class_dict['__bits_to_properties__'] = ReadonlyDictProxy(
+        bits_to_properties)
     class_dict['__bits_to_instance__'] = ReadonlyDictProxy(bits_to_instance)
     class_dict['__member_aliases__'] = ReadonlyDictProxy(member_aliases)
 
@@ -211,9 +242,13 @@ def initialize_class_dict_and_create_flags_class(class_dict, class_name, create_
 
     def instantiate_member(name, bits, special):
         if not isinstance(name, str):
-            raise TypeError('Flag name should be an str but it is %r' % (name,))
+            raise TypeError(
+                'Flag name should be an str but it is %r' %
+                (name,))
         if not is_valid_bits_value(bits):
-            raise TypeError("Bits for flag '%s' should be an int but it is %r" % (name, bits))
+            raise TypeError(
+                "Bits for flag '%s' should be an int but it is %r" %
+                (name, bits))
         if not special and bits == 0:
             raise ValueError("Flag '%s' has the invalid value of zero" % name)
         member = flags_class(bits)
@@ -229,26 +264,31 @@ def initialize_class_dict_and_create_flags_class(class_dict, class_name, create_
             raise ValueError('Duplicate flag name: %r' % name)
 
         # It isn't a problem if an instance with the same bits already exists in bits_to_instance because
-        # a member contains only the bits so our new member is equivalent with the replaced one.
+        # a member contains only the bits so our new member is equivalent with
+        # the replaced one.
         bits_to_instance[bits] = member
 
         if special:
             return
 
         members[name] = member
-        properties = FlagProperties(name=name, bits=bits, data=data, index=len(members))
+        properties = FlagProperties(
+            name=name, bits=bits, data=data, index=len(members))
         properties_for_bits = bits_to_properties.setdefault(bits, properties)
         is_alias = properties_for_bits is not properties
         if is_alias:
             if data is not UNDEFINED:
-                raise ValueError("You aren't allowed to associate data with alias '%s'" % name)
+                raise ValueError(
+                    "You aren't allowed to associate data with alias '%s'" %
+                    name)
             member_aliases[name] = properties_for_bits.name
         else:
             properties.index_without_aliases = len(members_without_aliases)
             members_without_aliases[name] = member
         properties.readonly = True
 
-    def instantiate_and_register_member(*, name, bits, data=None, special_member=False):
+    def instantiate_and_register_member(
+            *, name, bits, data=None, special_member=False):
         member = instantiate_member(name, bits, special_member)
         register_member(member, name, bits, data, special_member)
         return member
@@ -256,15 +296,18 @@ def initialize_class_dict_and_create_flags_class(class_dict, class_name, create_
     return flags_class, instantiate_and_register_member
 
 
-def create_flags_class_with_members(class_name, class_dict, member_definitions, create_flags_class):
+def create_flags_class_with_members(
+        class_name, class_dict, member_definitions, create_flags_class):
     class_dict['__writable_protected_flags_class_attributes__'] = True
 
     flags_class, instantiate_and_register_member = initialize_class_dict_and_create_flags_class(
         class_dict, class_name, create_flags_class)
 
     member_definitions = [(name, data) for name, data in member_definitions]
-    member_definitions = flags_class.process_member_definitions(member_definitions)
-    # member_definitions has to be an iterable of iterables yielding (name, bits, data)
+    member_definitions = flags_class.process_member_definitions(
+        member_definitions)
+    # member_definitions has to be an iterable of iterables yielding (name,
+    # bits, data)
 
     all_bits = 0
     for name, bits, data in member_definitions:
@@ -272,16 +315,20 @@ def create_flags_class_with_members(class_name, class_dict, member_definitions, 
         all_bits |= bits
 
     if len(flags_class) == 0:
-        # In this case process_member_definitions() returned an empty iterable which isn't allowed.
+        # In this case process_member_definitions() returned an empty iterable
+        # which isn't allowed.
         raise RuntimeError("%s.%s returned an empty iterable" %
                            (flags_class.__name__, flags_class.process_member_definitions.__name__))
 
     def instantiate_special_member(name, default_name, bits):
         name = default_name if name is None else name
-        return instantiate_and_register_member(name=name, bits=bits, special_member=True)
+        return instantiate_and_register_member(
+            name=name, bits=bits, special_member=True)
 
-    flags_class.__no_flags__ = instantiate_special_member(flags_class.__no_flags_name__, '__no_flags__', 0)
-    flags_class.__all_flags__ = instantiate_special_member(flags_class.__all_flags_name__, '__all_flags__', all_bits)
+    flags_class.__no_flags__ = instantiate_special_member(
+        flags_class.__no_flags_name__, '__no_flags__', 0)
+    flags_class.__all_flags__ = instantiate_special_member(
+        flags_class.__all_flags_name__, '__all_flags__', all_bits)
 
     flags_class.__all_bits__ = all_bits
 
@@ -300,11 +347,13 @@ def is_flags_class_final(flags_class):
 class FlagsMeta(type):
     def __new__(mcs, class_name, bases, class_dict):
         if '__slots__' in class_dict:
-            raise RuntimeError("You aren't allowed to use __slots__ in your Flags subclasses")
+            raise RuntimeError(
+                "You aren't allowed to use __slots__ in your Flags subclasses")
         class_dict['__slots__'] = ()
 
         def create_flags_class(custom_class_dict=None):
-            return super(FlagsMeta, mcs).__new__(mcs, class_name, bases, custom_class_dict or class_dict)
+            return super(FlagsMeta, mcs).__new__(mcs, class_name,
+                                                 bases, custom_class_dict or class_dict)
 
         if Flags is None:
             # This __new__ call is creating the Flags class of this module.
@@ -317,10 +366,12 @@ class FlagsMeta(type):
                 raise RuntimeError("You can't subclass '%s' because it has already defined flag members" %
                                    (base.__name__,))
 
-        member_definitions = extract_member_definitions_from_class_attributes(class_dict)
+        member_definitions = extract_member_definitions_from_class_attributes(
+            class_dict)
         if not member_definitions:
             return create_flags_class()
-        return create_flags_class_with_members(class_name, class_dict, member_definitions, create_flags_class)
+        return create_flags_class_with_members(
+            class_name, class_dict, member_definitions, create_flags_class)
 
     def __call__(cls, *args, **kwargs):
         if kwargs or len(args) >= 2:
@@ -333,7 +384,8 @@ class FlagsMeta(type):
         # 2. A single positional argument can be one of the following cases:
         #    1. An object whose class is exactly cls.
         #    2. An str object that comes from Flags.__str__() or Flags.to_simple_str()
-        #    3. An int object that specifies the bits of the Flags instance to be created.
+        # 3. An int object that specifies the bits of the Flags instance to be
+        # created.
 
         if not is_flags_class_final(cls):
             raise RuntimeError("Instantiation of abstract flags class '%s.%s' isn't allowed." % (
@@ -345,7 +397,7 @@ class FlagsMeta(type):
 
         value = args[0]
 
-        if type(value) is cls:
+        if isinstance(value, cls):
             # case 2.1
             return value
 
@@ -356,7 +408,9 @@ class FlagsMeta(type):
             # case 2.3
             bits = cls.__all_bits__ & value
         else:
-            raise TypeError("Can't instantiate flags class '%s' from value %r" % (cls.__name__, value))
+            raise TypeError(
+                "Can't instantiate flags class '%s' from value %r" %
+                (cls.__name__, value))
 
         instance = cls.__bits_to_instance__.get(bits)
         if instance:
@@ -370,16 +424,22 @@ class FlagsMeta(type):
     def __delattr__(cls, name):
         if (name in PROTECTED_FLAGS_CLASS_ATTRIBUTES and name != '__writable_protected_flags_class_attributes__') or\
                 (name in getattr(cls, '__all_members__', {})):
-            raise AttributeError("Can't delete protected attribute '%s'" % name)
+            raise AttributeError(
+                "Can't delete protected attribute '%s'" %
+                name)
         super().__delattr__(name)
 
     def __setattr__(cls, name, value):
         if name in PROTECTED_FLAGS_CLASS_ATTRIBUTES:
             if name in READONLY_PROTECTED_FLAGS_CLASS_ATTRIBUTES or\
                     not getattr(cls, '__writable_protected_flags_class_attributes__', False):
-                raise AttributeError("Can't assign protected attribute '%s'" % name)
+                raise AttributeError(
+                    "Can't assign protected attribute '%s'" %
+                    name)
         elif name in getattr(cls, '__all_members__', {}):
-            raise AttributeError("Can't assign protected attribute '%s'" % name)
+            raise AttributeError(
+                "Can't assign protected attribute '%s'" %
+                name)
         super().__setattr__(name, value)
 
     def __getattr__(cls, name):
@@ -445,7 +505,9 @@ class FlagsMeta(type):
                 all_bits |= bits
                 members.append((name, bits, data))
             else:
-                raise TypeError("Expected an int value as the bits of flag '%s', received %r" % (name, bits))
+                raise TypeError(
+                    "Expected an int value as the bits of flag '%s', received %r" %
+                    (name, bits))
 
         # auto-assigning unused bits to members without custom defined bits
         bit = 1
@@ -474,7 +536,7 @@ class FlagsMeta(type):
 def operator_requires_type_identity(wrapped):
     @functools.wraps(wrapped)
     def wrapper(self, other):
-        if type(other) is not type(self):
+        if not isinstance(other, type(self)):
             return NotImplemented
         return wrapped(self, other)
     return wrapper
@@ -496,7 +558,7 @@ class FlagsArithmeticMixin:
         return self.__bits != 0
 
     def __contains__(self, item):
-        if type(item) is not type(self):
+        if not isinstance(item, type(self)):
             return False
         # this logic is equivalent to that of __ge__(self, item) and __le__(item, self)
         # pylint: disable=protected-access
@@ -553,7 +615,8 @@ class FlagsArithmeticMixin:
     @operator_requires_type_identity
     def __gt__(self, other):
         # pylint: disable=protected-access
-        return (self.__bits != other.__bits) and (other.__bits == (self.__bits & other.__bits))
+        return (self.__bits != other.__bits) and (
+            other.__bits == (self.__bits & other.__bits))
 
     @operator_requires_type_identity
     def __le__(self, other):
@@ -563,13 +626,16 @@ class FlagsArithmeticMixin:
     @operator_requires_type_identity
     def __lt__(self, other):
         # pylint: disable=protected-access
-        return (self.__bits != other.__bits) and (self.__bits == (self.__bits & other.__bits))
+        return (self.__bits != other.__bits) and (
+            self.__bits == (self.__bits & other.__bits))
 
     def __invert__(self):
-        return self.__create_flags_instance(self.__bits ^ type(self).__all_bits__)
+        return self.__create_flags_instance(
+            self.__bits ^ type(self).__all_bits__)
 
 
-# This is used by FlagsMeta to detect whether the flags class currently being created is Flags.
+# This is used by FlagsMeta to detect whether the flags class currently
+# being created is Flags.
 Flags = None
 
 
@@ -621,7 +687,8 @@ class Flags(FlagsArithmeticMixin, metaclass=FlagsMeta):
         return (member for member in members if member in self)
 
     def __reversed__(self):
-        members = reversed(list(type(self).__members_without_aliases__.values()))
+        members = reversed(
+            list(type(self).__members_without_aliases__.values()))
         return (member for member in members if member in self)
 
     def __len__(self):
@@ -631,11 +698,13 @@ class Flags(FlagsArithmeticMixin, metaclass=FlagsMeta):
         return int(self) ^ hash(type(self))
 
     def __reduce_ex__(self, proto):
-        value = int(self) if type(self).__pickle_int_flags__ else self.to_simple_str()
+        value = int(self) if type(
+            self).__pickle_int_flags__ else self.to_simple_str()
         return type(self), (value,)
 
     def __str__(self):
-        # Warning: The output of this method has to be a string that can be processed by bits_from_str()
+        # Warning: The output of this method has to be a string that can be
+        # processed by bits_from_str()
         return self.__internal_str()
 
     def __internal_str(self):
@@ -644,15 +713,19 @@ class Flags(FlagsArithmeticMixin, metaclass=FlagsMeta):
         contained_flags = list(self)
         if len(contained_flags) != 1:
             # This is the zero flag or a set of flags (as a result of arithmetic)
-            # or a flags class member that is a superset of another flags member.
-            return '%s(%s)' % (type(self).__name__, '|'.join(member.name for member in contained_flags))
-        return '%s.%s' % (type(self).__name__, contained_flags[0].properties.name)
+            # or a flags class member that is a superset of another flags
+            # member.
+            return '%s(%s)' % (type(self).__name__, '|'.join(
+                member.name for member in contained_flags))
+        return '%s.%s' % (type(self).__name__,
+                          contained_flags[0].properties.name)
 
     def __repr__(self):
         contained_flags = list(self)
         if len(contained_flags) != 1:
             # This is the zero flag or a set of flags (as a result of arithmetic)
-            # or a flags class member that is a superset of another flags member.
+            # or a flags class member that is a superset of another flags
+            # member.
             return '<%s bits=0x%04X>' % (self.__internal_str(), int(self))
         return '<%s bits=0x%04X data=%r>' % (self.__internal_str(), contained_flags[0].properties.bits,
                                              contained_flags[0].properties.data)
@@ -682,7 +755,9 @@ class Flags(FlagsArithmeticMixin, metaclass=FlagsMeta):
         for member_name in filter(None, member_names):
             member = cls.__all_members__.get(member_name)
             if member is None:
-                raise ValueError("Invalid flag '%s.%s' in string %r" % (cls.__name__, member_name, s))
+                raise ValueError(
+                    "Invalid flag '%s.%s' in string %r" %
+                    (cls.__name__, member_name, s))
             bits |= int(member)
         return bits
 
@@ -696,16 +771,18 @@ class Flags(FlagsArithmeticMixin, metaclass=FlagsMeta):
             if c == '(':
                 if not s.endswith(')'):
                     raise ValueError
-                return cls.bits_from_simple_str(s[len(cls.__name__)+1:-1])
+                return cls.bits_from_simple_str(s[len(cls.__name__) + 1:-1])
             elif c == '.':
-                member_name = s[len(cls.__name__)+1:]
+                member_name = s[len(cls.__name__) + 1:]
                 return int(cls.__all_members__[member_name])
             else:
                 raise ValueError
         except ValueError as ex:
             if ex.args:
                 raise
-            raise ValueError("%s.%s: invalid input: %r" % (cls.__name__, cls.bits_from_str.__name__, s))
+            raise ValueError(
+                "%s.%s: invalid input: %r" %
+                (cls.__name__, cls.bits_from_str.__name__, s))
         except KeyError as ex:
             raise ValueError("%s.%s: Invalid flag name '%s' in input: %r" % (cls.__name__, cls.bits_from_str.__name__,
                                                                              ex.args[0], s))

@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from byte_io_mdl import ByteIO
-from mdl_readers.mdl_v49 import SourceMdlFile49
-from mdl_readers.mdl_v53 import SourceMdlFile53
-from utilities.path_utilities import case_insensitive_file_resolution
-from vtx_readers.vtx_v7 import SourceVtxFile7
-from vvd_readers.vvd_v4 import SourceVvdFile4
+from SourceIO.byte_io_mdl import ByteIO
+from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
+from SourceIO.mdl_readers.mdl_v53 import SourceMdlFile53
+from SourceIO.utilities.path_utilities import case_insensitive_file_resolution
+from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
+from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class SourceModel:
@@ -30,7 +30,9 @@ class SourceModel:
         if self.version in self.mdl_version_list:
             self.mdl = self.mdl_version_list[self.version]
         else:
-            raise NotImplementedError('Unsupported mdl v{} version'.format(self.version))
+            raise NotImplementedError(
+                'Unsupported mdl v{} version'.format(
+                    self.version))
         self.vvd = None
         self.vtx = None
 
@@ -57,7 +59,8 @@ class SourceModel:
         if vvd_version in self.vvd_version_list:
             self.vvd = self.vvd_version_list[vvd_version](self.vvd_reader)
         else:
-            raise NotImplementedError('Unsupported vvd v{} version'.format(vvd_version))
+            raise NotImplementedError(
+                'Unsupported vvd v{} version'.format(vvd_version))
 
         self.vtx_reader = self.mdl.vtx
         vtx_version = self.vtx_reader.peek_int32()
@@ -65,10 +68,12 @@ class SourceModel:
         if vtx_version in self.vtx_version_list:
             self.vtx = self.vtx_version_list[vtx_version](self.vtx_reader)
         else:
-            raise NotImplementedError('Unsupported vtx v{} version'.format(vtx_version))
+            raise NotImplementedError(
+                'Unsupported vtx v{} version'.format(vtx_version))
 
     def find_vtx_vvd(self):
-        vvd = case_insensitive_file_resolution(self.filepath.with_suffix('.vvd').absolute())
+        vvd = case_insensitive_file_resolution(
+            self.filepath.with_suffix('.vvd').absolute())
         vtx = case_insensitive_file_resolution(
             Path(self.filepath.parent / (self.filepath.stem + '.dx90.vtx')).absolute())
 
@@ -80,7 +85,8 @@ class SourceModel:
         if vvd_version in self.vvd_version_list:
             self.vvd = self.vvd_version_list[vvd_version](self.vvd_reader)
         else:
-            raise NotImplementedError('Unsupported vvd v{} version'.format(vvd_version))
+            raise NotImplementedError(
+                'Unsupported vvd v{} version'.format(vvd_version))
 
         self.vtx_reader = ByteIO(path=vtx)
         vtx_version = self.vtx_reader.peek_int32()
@@ -88,10 +94,12 @@ class SourceModel:
         if vtx_version in self.vtx_version_list:
             self.vtx = self.vtx_version_list[vtx_version](self.vtx_reader)
         else:
-            raise NotImplementedError('Unsupported vtx v{} version'.format(vtx_version))
+            raise NotImplementedError(
+                'Unsupported vtx v{} version'.format(vtx_version))
 
 
 if __name__ == '__main__':
-    a = SourceModel(r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\lewd_models\fnaf\foxy.mdl")
+    a = SourceModel(
+        r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\lewd_models\fnaf\foxy.mdl")
     a.read()
     ...
