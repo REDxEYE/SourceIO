@@ -240,7 +240,7 @@ class SourceBoneWeight:
     def __init__(self):
         self.weight = []
         self.bone = []
-        self.boneCount = b"\x00"
+        self.boneCount = 0
 
     def read(self, reader: ByteIO):
         self.weight = reader.read_fmt('fff')

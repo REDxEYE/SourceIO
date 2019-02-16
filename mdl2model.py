@@ -229,7 +229,7 @@ class Source2Blender:
                 for group_index, strip_group in enumerate(
                         vtx_mesh.vtx_strip_groups):  # type: vtx_data.SourceVtxStripGroup
                     if strip_group.vtx_strips and strip_group.vtx_indexes and strip_group.vtx_vertexes:
-                        field = progressbar.ProgressBar('Converting mesh_data', len(strip_group.vtx_indexes), 20)
+                        field = progressbar.ProgressBar('Converting mesh', len(strip_group.vtx_indexes), 20)
                         for vtx_index in range(0, len(strip_group.vtx_indexes), 3):
                             if not vtx_index % 3 * 10:
                                 field.increment(3)
@@ -251,86 +251,6 @@ class Source2Blender:
     @staticmethod
     def convert_vertex(vertex: source_shared.SourceVertex):
         return vertex.position.as_list, (vertex.texCoordX, 1 - vertex.texCoordY)
-
-    @staticmethod
-    def convert_vertex2(vertex: source_shared.SourceVertex):
-        return vertex.position.as_list, (
-            vertex.texCoordX, 1 - vertex.texCoordY), vertex.normal.as_list, vertex.boneWeight
-
-    def create_model2(self, model: mdl_data.SourceMdlModel, vtx_model: vtx_data.SourceVtxModel):
-        name = model.name.replace('.smd', '').replace('.dmx', '')
-        if '/' in name or '\\' in name:
-            name = os.path.basename(name)
-        if len(vtx_model.vtx_model_lods[0].vtx_meshes) < 1:
-            print('No meshes in vtx model_path')
-            return
-        self.mesh_obj = bpy.data.objects.new(name, bpy.data.meshes.new(name))
-        self.mesh_obj.parent = self.armature_obj
-        bpy.context.scene.objects.link(self.mesh_obj)
-
-        modifier = self.mesh_obj.modifiers.new(type="ARMATURE", name="Armature")
-        modifier.object = self.armature_obj
-
-        self.mesh_data = self.mesh_obj.data
-        [self.get_material(mat.path_file_name, self.mesh_obj) for mat in self.mdl.file_data.textures]
-        weight_groups = {bone.name: self.mesh_obj.vertex_groups.new(bone.name) for bone in self.mdl.file_data.bones}
-
-        vtx_model_lod = vtx_model.vtx_model_lods[0]
-        vvd_verts = self.vvd.file_data.vertexes
-        indices = []
-        vertex_global_ids = []
-        vtx_vertexes = []
-        vertexes = []
-        normals = []
-        weights = []  # type: List[source_shared.SourceBoneWeight]
-        uvs = []
-        for vtx_mesh, mdl_mesh in zip(vtx_model_lod.vtx_meshes, model.meshes):
-            # mdl_mesh.vertex_index_start
-            for strip_group in vtx_mesh.vtx_strip_groups:
-                # indices.extend(split(strip_group.vtx_indexes, 3))
-                # vertex_offset = self.vertex_offset
-                # vtx_vertexes.extend(strip_group.vtx_vertexes)
-                # vertexes.extend(vvd_verts[vertex_offset:vertex_offset + strip_group.vertex_count])
-
-                for i, vertex_id in enumerate(strip_group.vtx_indexes):  # type: int
-                    vertex = strip_group.vtx_vertexes[vertex_id]
-                    vertex_global_ids.append(
-                        vertex.original_mesh_vertex_index + self.vertex_offset + mdl_mesh.vertex_index_start)
-                    # indices.append(vertex_id)
-                    vtx_vertexes.append(vertex)
-                    # field.increment(1000)
-                indices.extend(list(map(lambda a: a[::-1], split(strip_group.vtx_indexes, 3))))
-
-                # self.index_offset+=strip_group.index_count
-
-        self.vertex_offset += model.vertex_count
-        field = progressbar.ProgressBar('Converting mesh_data', len(vertex_global_ids), 20)
-        for i, vertex_id in enumerate(set(vertex_global_ids)):
-            v, uv, n, w = self.convert_vertex2(
-                vvd_verts[vertex_id])
-            vertexes.append(v)
-            normals.append(n)
-            uvs.append(uv)
-            weights.append(w)
-            if not i % 1000:
-                field.increment(1000)
-        field.is_done = True
-        field.draw()
-        self.mesh_data.from_pydata(vertexes, [], indices)
-        self.mesh_data.update()
-        bpy.ops.object.shade_smooth()
-        self.mesh_data.use_auto_smooth = True
-        # self.mesh_data.normals_split_custom_set(normals)
-        # self.mesh_data.uv_textures.new()
-        # uv_data = self.mesh_data.uv_layers[0].data
-        # for i in range(len(uv_data)):
-        #     u = uvs[self.mesh_data.loops[i].vertex_index]
-        #     uv_data[i].uv = u
-        for n, vertex_weight in enumerate(weights):
-            for bone_index, weight in zip(vertex_weight.bone, vertex_weight.weight):
-                if weight == 0.0:
-                    continue
-                weight_groups[self.mdl.file_data.bones[bone_index].name].add([n], weight, 'REPLACE')
 
     @staticmethod
     def remap_materials(used_materials, all_materials):
@@ -445,11 +365,11 @@ class Source2Blender:
                         continue
                     vtx_model = self.vtx.vtx.vtx_body_parts[bodypart_index].vtx_models[model_index]
                     to_join.append(self.create_model(model, vtx_model))
+            # print(bodyparts,to_join)
             if self.join_clamped:
                 for ob in to_join:
                     if not ob:
                         continue
-                    print(ob)
                     if ob.type == 'MESH':
                         ob.select_set(True)
                         # ob.select = True

@@ -39,7 +39,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
         for file in self.files:
             importer = mdl2model.Source2Blender(str(directory / file.name),
                                                 normal_bones=self.normal_bones,
-                                                join_clamped=False,
+                                                join_clamped=self.join_clamped,
                                                 )
             importer.sort_bodygroups = self.organize_bodygroups
             importer.load()

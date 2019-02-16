@@ -51,8 +51,7 @@ class SourceVvdFileData:
                 self.fixups.append(SourceVvdFixup().read(reader))
         if self.lod_count > 0:
             for lod_index in range(self.lod_count):
-                for fixup_index in range(len(self.fixups)):
-                    fixup = self.fixups[fixup_index]
+                for fixup in self.fixups:
                     if fixup.lod_index >= lod_index:
                         for j in range(fixup.vertex_count):
                             vertex = self.vertexes[fixup.vertex_index + j]

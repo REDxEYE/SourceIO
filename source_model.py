@@ -92,6 +92,6 @@ class SourceModel:
 
 
 if __name__ == '__main__':
-    a = SourceModel(r"H:\games\Titanfall 2\extr\models\titans\heavy\sp_titan_heavy_ogre.mdl")
+    a = SourceModel(r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\lewd_models\fnaf\foxy.mdl")
     a.read()
     ...
