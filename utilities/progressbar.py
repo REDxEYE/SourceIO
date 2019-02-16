@@ -58,7 +58,7 @@ class ProgressBar:
             bar = '{name}  [{progress}] {curr}/{max} Done    '.format(name=self.desc, progress='#' * round(
                 self.len * self.as_float) + ' ' * round(self.len * (1 - self.as_float)), curr=self.curr, max=self.max)
             sys.stdout.write(bar)
-            sys.stdout.write('\n')
+            # sys.stdout.write('\n')
 
         else:
             sys.stdout.write('\r')

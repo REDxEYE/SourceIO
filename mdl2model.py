@@ -1,15 +1,15 @@
 import io
 import os.path
 import random
+import sys
 import time
 from contextlib import redirect_stdout
 from pathlib import Path
 from typing import List
 
-import sys
 sys.path.append(r'E:\PYTHON_STUFF\SourceIO')
 
-from data_structures import mdl_data, vtx_data,source_shared
+from data_structures import mdl_data, vtx_data, source_shared
 from mdl_readers.mdl_v49 import SourceMdlFile49
 from source_model import SourceModel
 from vtx_readers.vtx_v7 import SourceVtxFile7
@@ -41,24 +41,39 @@ class Source2Blender:
         # TODO: make working_directory to do something useful
         self.filepath = Path(path)
         self.working_directory = Path(working_directory if working_directory is not None else '')
-        self.collection = None
+        self.main_collection = None
+
+        self.current_collection = None
         self.join_clamped = join_clamped
+        self.normal_bones = normal_bones
+        self.custom_name = custom_name
 
         self.name = self.filepath.stem
         self.co = co
         self.rot = rot
         self.vertex_offset = 0
-        self.model = SourceModel(path)
+        self.sort_bodygroups = True
+
+        self.model = SourceModel(self.filepath)
+        self.mdl = None
+        self.vvd = None
+        self.vtx = None
+
+    def load(self):
+
         self.model.read()
         self.mdl = self.model.mdl  # type: SourceMdlFile49
         self.vvd = self.model.vvd  # type: SourceVvdFile4
         self.vtx = self.model.vtx  # type: SourceVtxFile7
 
+        self.main_collection = bpy.data.collections.new(os.path.basename(self.mdl.file_data.name))
+        bpy.context.scene.collection.children.link(self.main_collection)
+
         self.armature_obj = None
         self.armature = None
-        self.create_skeleton(normal_bones)
-        if custom_name:
-            self.armature_obj.name = custom_name
+        self.create_skeleton(self.normal_bones)
+        if self.custom_name:
+            self.armature_obj.name = self.custom_name
 
         # just a temp containers
         self.mesh_obj = None
@@ -73,12 +88,18 @@ class Source2Blender:
         bpy.ops.object.armature_add(enter_editmode=True)
 
         self.armature_obj = bpy.context.object
+        bpy.context.scene.collection.objects.unlink(self.armature_obj)
+        self.main_collection.objects.link(self.armature_obj)
         # self.armature_obj.show_x_ray = True
         self.armature_obj.name = self.name + '_ARM'
 
         self.armature = self.armature_obj.data
         self.armature.name = self.name + "_ARM_DATA"
         self.armature.edit_bones.remove(self.armature.edit_bones[0])
+
+        bpy.ops.object.select_all(action="DESELECT")
+        self.armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = self.armature_obj
 
         bpy.ops.object.mode_set(mode='EDIT')
         bones = []
@@ -98,7 +119,7 @@ class Source2Blender:
             bl_bone = self.armature_obj.pose.bones.get(se_bone.name)
             pos = Vector([se_bone.position.x, se_bone.position.y, se_bone.position.z])
             rot = Euler([se_bone.rotation.x, se_bone.rotation.y, se_bone.rotation.z])
-            if bpy.app.version[1]>79:
+            if bpy.app.version[1] > 79:
                 mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
             else:
                 mat = Matrix.Translation(pos) * rot.to_matrix().to_4x4()
@@ -180,7 +201,7 @@ class Source2Blender:
             vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: int
             vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]  # type: vtx_data.SourceVtxVertex
             vertex_index = vtx_vertex.original_mesh_vertex_index + offset
-            if vertex_index > self.vvd.file_data.lod_vertex_count[0]:
+            if vertex_index > self.vvd.max_verts:
                 print('vertex index out of bounds, skipping this mesh_data')
                 return False, False
             try:
@@ -191,13 +212,13 @@ class Source2Blender:
             vn_s.append(vn)
         return vertex_indices, vn_s
 
-    def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel, lod_index, model: mdl_data.SourceMdlModel,
-                     material_indexes):
+    def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel, lod_index, model: mdl_data.SourceMdlModel):
         vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes  # type: List[vtx_data.SourceVtxMesh]
         indexes = []
         vertex_normals = []
         # small speedup
         i_ex = indexes.append
+        material_indexes = []
         m_ex = material_indexes.append
         vn_ex = vertex_normals.extend
 
@@ -311,7 +332,8 @@ class Source2Blender:
                     continue
                 weight_groups[self.mdl.file_data.bones[bone_index].name].add([n], weight, 'REPLACE')
 
-    def remap_materials(self, used_materials, all_materials):
+    @staticmethod
+    def remap_materials(used_materials, all_materials):
         remap = {}
         for n, used_material in enumerate(used_materials):
             remap[all_materials.index(used_material)] = n
@@ -323,85 +345,78 @@ class Source2Blender:
         if '/' in name or '\\' in name:
             name = os.path.basename(name)
         if len(vtx_model.vtx_model_lods[0].vtx_meshes) < 1:
-            print('No meshes in vtx model_path')
+            print('No meshes in vtx model')
             return
-        self.mesh_obj = bpy.data.objects.new(name, bpy.data.meshes.new(name))
+        self.mesh_obj = bpy.data.objects.new(name, bpy.data.meshes.new('{}_MESH'.format(name)))
         self.mesh_obj.parent = self.armature_obj
 
-        # bpy.context.scene_collection.objects.link(self.mesh_obj)
-        self.collection.objects.link(self.mesh_obj)
-        # bpy.context.scene.objects.link(self.mesh_obj)
+        self.current_collection.objects.link(self.mesh_obj)
 
         modifier = self.mesh_obj.modifiers.new(type="ARMATURE", name="Armature")
         modifier.object = self.armature_obj
 
         self.mesh_data = self.mesh_obj.data
 
-        # [self.get_material(mat.path_file_name, self.mesh_obj) for mat in self.MDL.file_data.textures]
         used_materials = {m_id: False for m_id in range(len(self.mdl.file_data.textures))}
-        material_indexes = []
         weight_groups = {bone.name: self.mesh_obj.vertex_groups.new(name=bone.name) for bone in
                          self.mdl.file_data.bones}
         vtx_model_lod = vtx_model.vtx_model_lods[0]  # type: vtx_data.SourceVtxModelLod
-        print('Converting {} mesh_data'.format(name))
+        print('Converting {} model'.format(name))
         if vtx_model_lod.meshCount > 0:
             t = time.time()
-            polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model,
-                                                                            material_indexes)
-            print('Mesh convertation took {} sec'.format(round(time.time() - t), 3))
+            polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model)
+            print('Mesh conversion took {} sec'.format(round(time.time() - t), 3))
         else:
             return
         self.vertex_offset += model.vertex_count
-        vertexes = []
-        uvs = []
-        for mat_index in polygon_material_indexes:
+
+        for mat_index in set(polygon_material_indexes):
             used_materials[mat_index] = True
 
-        mat_remap = self.remap_materials(
-            [self.mdl.file_data.textures[mat_id] for mat_id, used in used_materials.items() if used],
-            self.mdl.file_data.textures)
-        for old_mat_id, new_mat_id in mat_remap.items():
+        used_materials_names = [self.mdl.file_data.textures[mat_id] for mat_id, used in used_materials.items() if used]
+        mat_remap = self.remap_materials(used_materials_names, self.mdl.file_data.textures)
+        mats = sorted(mat_remap.items(), key=lambda a: a[1])
+        for old_mat_id, new_mat_id in mats:
             mat_name = self.mdl.file_data.textures[old_mat_id].path_file_name
             self.get_material(mat_name, self.mesh_obj)
-        # print('Preparing vertexes')
-        for n, vertex in enumerate(self.vvd.file_data.vertexes):
+
+        vertexes = []
+        uvs = []
+        for vertex in self.vvd.file_data.vertexes:
             vert_co, uv = self.convert_vertex(vertex)
             vertexes.append(vert_co)
             uvs.append(uv)
 
         self.mesh_data.from_pydata(vertexes, [], polygons)
         self.mesh_data.update()
+
+        self.mesh_data.uv_layers.new()
+        uv_data = self.mesh_data.uv_layers[0].data
+        for i in range(len(uv_data)):
+            u = uvs[self.mesh_data.loops[i].vertex_index]
+            uv_data[i].uv = u
+
+        for polygon, mat_index in zip(self.mesh_data.polygons, polygon_material_indexes):
+            polygon.material_index = mat_remap[mat_index]
+
         if self.mdl.file_data.flex_descs:
-            # print('Adding flexes')
             self.add_flexes(model)
+
         for n, vertex in enumerate(self.vvd.file_data.vertexes):
             for bone_index, weight in zip(vertex.boneWeight.bone, vertex.boneWeight.weight):
                 if weight == 0.0:
                     continue
                 weight_groups[self.mdl.file_data.bones[bone_index].name].add([n], weight, 'REPLACE')
-        # self.mesh_data.uv_textures.new()
-        self.mesh_data.uv_layers.new()
-        uv_data = self.mesh_data.uv_layers[0].data
-        # print('Applying UV')
-        for i in range(len(uv_data)):
-            u = uvs[self.mesh_data.loops[i].vertex_index]
-            uv_data[i].uv = u
-        for polygon, mat_index in zip(self.mesh_data.polygons, polygon_material_indexes):
-            polygon.material_index = mat_remap[mat_index]
 
         bpy.ops.object.select_all(action="DESELECT")
-        # self.mesh_obj.select = True
         self.mesh_obj.select_set(True)
         bpy.context.view_layer.objects.active = self.mesh_obj
-        # bpy.context.scene.objects.active = self.mesh_obj
 
         with redirect_stdout(stdout):
             bpy.ops.object.mode_set(mode='EDIT')
             self.mesh_data.validate()
             self.mesh_data.validate()
             bpy.ops.object.mode_set(mode='OBJECT')
-            # self.mesh_data.validate()
-            # self.mesh_data.validate()
             bpy.ops.object.shade_smooth()
             self.mesh_data.normals_split_custom_set(normals)
             self.mesh_data.use_auto_smooth = True
@@ -412,28 +427,36 @@ class Source2Blender:
         return self.mesh_obj
 
     def create_models(self):
-        self.collection = bpy.data.collections.new(self.mdl.file_data.name)
-        bpy.context.scene.collection.children.link(self.collection)
+
         self.mdl.file_data = self.mdl.file_data  # type: mdl_data.SourceMdlFileData
         for bodyparts in self.mdl.file_data.bodypart_frames:
             to_join = []
             for bodypart_index, bodypart in bodyparts:
-
+                if self.sort_bodygroups:
+                    if bodypart.model_count > 1:
+                        self.current_collection = bpy.data.collections.new(bodypart.name)
+                        self.main_collection.children.link(self.current_collection)
+                    else:
+                        self.current_collection = self.main_collection
+                else:
+                    self.current_collection = self.main_collection
                 for model_index, model in enumerate(bodypart.models):
+                    if model.mesh_count == 0:
+                        continue
                     vtx_model = self.vtx.vtx.vtx_body_parts[bodypart_index].vtx_models[model_index]
                     to_join.append(self.create_model(model, vtx_model))
-            # print(self.join_clamped,to_join)
-            # bpy.ops.object.mode_set(mode='OBJECT')
             if self.join_clamped:
                 for ob in to_join:
                     if not ob:
                         continue
+                    print(ob)
                     if ob.type == 'MESH':
-                        ob.select = True
-                        bpy.context.scene.objects.active = ob
+                        ob.select_set(True)
+                        # ob.select = True
+                        bpy.context.view_layer.objects.active = ob
                     else:
-                        ob.select = False
-                bpy.context.scene.objects.active = to_join[0]
+                        ob.select_set(False)
+                        bpy.context.view_layer.objects.active = to_join[0]
                 if len(bpy.context.selected_objects) < 2:
                     continue
                 with redirect_stdout(stdout):
@@ -442,29 +465,24 @@ class Source2Blender:
                     bpy.ops.mesh.remove_doubles(threshold=0.00001)
                     bpy.ops.object.mode_set(mode='OBJECT')
 
-    def add_flexes(self, mdlmodel: mdl_data.SourceMdlModel):
-        # Creating base shape key
+    def add_flexes(self, mdl_model: mdl_data.SourceMdlModel):
         self.mesh_obj.shape_key_add(name='base')
 
-        # Going through all flex frames in SourceMdlModel
-        for flex_frame in mdlmodel.flex_frames:
-
-            # Now for every flex and vertex_offset(bodyAndMeshVertexIndexStarts)
+        for flex_frame in mdl_model.flex_frames:
             for flex, vertex_offset in zip(flex_frame.flexes, flex_frame.vertex_offsets):
 
                 flex_desc = self.mdl.file_data.flex_descs[flex.flex_desc_index]
                 flex_name = flex_desc.name
-                # if blender mesh_data does not have FLEX_NAME - create it,
-                # otherwise work with existing
+
                 if not self.mesh_obj.data.shape_keys.key_blocks.get(flex_name):
                     self.mesh_obj.shape_key_add(name=flex_name)
 
-                # iterating over all VertAnims
                 for flex_vert in flex.the_vert_anims:  # type: mdl_data.SourceMdlVertAnim
-                    vertex_index = flex_vert.index + vertex_offset  # <- bodyAndMeshVertexIndexStarts
-                    vx = self.mesh_obj.data.vertices[vertex_index].co.x
-                    vy = self.mesh_obj.data.vertices[vertex_index].co.y
-                    vz = self.mesh_obj.data.vertices[vertex_index].co.z
+                    vertex_index = flex_vert.index + vertex_offset
+                    vertex = self.mesh_obj.data.vertices[vertex_index]
+                    vx = vertex.co.x
+                    vy = vertex.co.y
+                    vz = vertex.co.z
                     fx, fy, fz = flex_vert.the_delta
                     self.mesh_obj.data.shape_keys.key_blocks[flex_name].data[vertex_index].co = (
                         fx + vx, fy + vy, fz + vz)
@@ -475,6 +493,7 @@ class Source2Blender:
 
             empty = bpy.data.objects.new("empty", None)
             # bpy.context.scene.objects.link(empty)
+            self.main_collection.objects.link(empty)
             empty.name = attachment.name
             pos = Vector([attachment.pos.x, attachment.pos.y, attachment.pos.z])
             rot = Euler([attachment.rot.x, attachment.rot.y, attachment.rot.z])
@@ -486,20 +505,20 @@ class Source2Blender:
             empty.rotation_euler = rot
 
         # illumination_position
-        empty = bpy.data.objects.new("empty", None)
-        self.collection.objects.link(empty)
-        empty.name = 'illum position'
-        empty.parent = self.armature_obj
-        empty.location = Vector(self.mdl.file_data.illumination_position.as_list)
-        empty.empty_display_type = 'SPHERE'
+        # empty = bpy.data.objects.new("empty", None)
+        # self.collection.objects.link(empty)
+        # empty.name = 'illum position'
+        # empty.parent = self.armature_obj
+        # empty.location = Vector(self.mdl.file_data.illumination_position.as_list)
+        # empty.empty_display_type = 'SPHERE'
 
 
 if __name__ == '__main__':
     # model_path = r'G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\tf_movies\models\player\hwm\spy'
-    model_path = r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\workshop\models\jawsfm\quake champions\characters\sorlag.mdl"
+    model_path = r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\dragon-v0942\mathew_kelly\mathew_kelly.mdl"
     # model_path = r'G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\usermod\models\red_eye\tyranno\raptor.mdl'
     # model_path = r'./test_data/hl/box01a.mdl'
     # model_path = r'G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\usermod\models\red_eye\rick-and-morty\pink_raptor.mdl'
-    a = Source2Blender(model_path, join_bones=False, join_clamped=False)
+    a = Source2Blender(model_path, normal_bones=True, join_clamped=False)
     # a = Source2Blender(r'test_data\titan_buddy.mdl', normal_bones=False)
     # a = IO_MDL(r'E:\PYTHON\MDL_reader\test_data\nick_hwm.mdl', normal_bones=True)

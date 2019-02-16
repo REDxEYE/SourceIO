@@ -243,8 +243,8 @@ class SourceBoneWeight:
         self.boneCount = b"\x00"
 
     def read(self, reader: ByteIO):
-        self.weight = [reader.read_float() for _ in range(3)]
-        self.bone = [reader.read_uint8() for _ in range(3)]
+        self.weight = reader.read_fmt('fff')
+        self.bone = reader.read_fmt('BBB')
         self.boneCount = reader.read_uint8()
         return self
 

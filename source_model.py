@@ -92,5 +92,6 @@ class SourceModel:
 
 
 if __name__ == '__main__':
-    a = SourceModel(r"H:\games\Titanfall 2\extr\models\creatures\prowler\r2_prowler.mdl")
+    a = SourceModel(r"H:\games\Titanfall 2\extr\models\titans\heavy\sp_titan_heavy_ogre.mdl")
     a.read()
+    ...

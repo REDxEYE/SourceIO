@@ -28,7 +28,8 @@ class MDLImporter_OT_operator(bpy.types.Operator):
     )
     files = CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     normal_bones = BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
-    # join_clamped = BoolProperty(name="Join clamped meshes?", default=False, subtype='UNSIGNED')
+    join_clamped = BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
+    organize_bodygroups = BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
     write_qc = BoolProperty(name="Write QC file", default=True, subtype='UNSIGNED')
     filter_glob = StringProperty(default="*.mdl", options={'HIDDEN'})
 
@@ -37,7 +38,11 @@ class MDLImporter_OT_operator(bpy.types.Operator):
         directory = Path(self.filepath).parent.absolute()
         for file in self.files:
             importer = mdl2model.Source2Blender(str(directory / file.name),
-                                                normal_bones=self.normal_bones, join_clamped=False)
+                                                normal_bones=self.normal_bones,
+                                                join_clamped=False,
+                                                )
+            importer.sort_bodygroups = self.organize_bodygroups
+            importer.load()
             if self.write_qc:
                 import qc_renerator
                 qc = qc_renerator.QC(importer.model)

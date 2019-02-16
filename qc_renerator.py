@@ -87,7 +87,8 @@ class QC:
                         "//WARNING: this {} have flexes! Additional VTA will be written, you can import them manually\n"
                         "//If you want to compile it back correctly - export as DMX\n".format(model.name)
                     )
-                    self.vta.write_vta(model)
+                    if self.vta:
+                        self.vta.write_vta(model)
         fileh.write('}\n\n')
 
     def write_skins(self, fileh):
