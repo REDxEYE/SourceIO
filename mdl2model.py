@@ -1,20 +1,21 @@
+import sys
+
+sys.path.append(r'E:\PYTHON_STUFF')
+
+import io
+import os.path
+import random
+
+import time
+from contextlib import redirect_stdout
+from pathlib import Path
+
 from SourceIO.utilities import progressbar
 from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
 from SourceIO.source_model import SourceModel
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
 from SourceIO.data_structures import mdl_data, vtx_data, source_shared
-import io
-import os.path
-import random
-import sys
-import time
-from contextlib import redirect_stdout
-from pathlib import Path
-from typing import List
-
-sys.path.append(r'E:\PYTHON_STUFF\SourceIO')
-
 
 # Blender imports
 try:
@@ -59,6 +60,11 @@ class Source2Blender:
         self.mdl = None
         self.vvd = None
         self.vtx = None
+
+        self.mesh_obj = None
+        self.armature_obj = None
+        self.armature = None
+        self.mesh_data = None
 
     def load(self):
 
@@ -201,10 +207,8 @@ class Source2Blender:
         vertex_indices = []
         vn_s = []
         offset = self.vertex_offset + mesh_vertex_offset
-        for i in [0, 2, 1]:
-            # type: int
-            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]
-            # type: vtx_data.SourceVtxVertex
+        for i in [0, 2, 1]:  # type: int
+            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: vtx_data.SourceVtxVertex
             vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]
             vertex_index = vtx_vertex.original_mesh_vertex_index + offset
             if vertex_index > self.vvd.max_verts:
@@ -218,9 +222,7 @@ class Source2Blender:
             vn_s.append(vn)
         return vertex_indices, vn_s
 
-    def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel,
-                     lod_index, model: mdl_data.SourceMdlModel):
-        # type: List[vtx_data.SourceVtxMesh]
+    def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel, lod_index, model: mdl_data.SourceMdlModel):
         vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes
         indexes = []
         vertex_normals = []
@@ -230,22 +232,20 @@ class Source2Blender:
         m_ex = material_indexes.append
         vn_ex = vertex_normals.extend
 
-        for mesh_index, vtx_mesh in enumerate(
-                vtx_meshes):  # type: int,vtx_data.SourceVtxMesh
+        for mesh_index, vtx_mesh in enumerate(vtx_meshes):  # type: int,vtx_data.SourceVtxMesh
             material_index = model.meshes[mesh_index].material_index
             mesh_vertex_start = model.meshes[mesh_index].vertex_index_start
             if vtx_mesh.vtx_strip_groups:
+
                 for group_index, strip_group in enumerate(
                         vtx_mesh.vtx_strip_groups):  # type: vtx_data.SourceVtxStripGroup
+
                     if strip_group.vtx_strips and strip_group.vtx_indexes and strip_group.vtx_vertexes:
-                        field = progressbar.ProgressBar(
-                            'Converting mesh', len(strip_group.vtx_indexes), 20)
-                        for vtx_index in range(
-                                0, len(strip_group.vtx_indexes), 3):
+                        field = progressbar.ProgressBar('Converting mesh', len(strip_group.vtx_indexes), 20)
+                        for vtx_index in range(0, len(strip_group.vtx_indexes), 3):
                             if not vtx_index % 3 * 10:
                                 field.increment(3)
-                            f, vn = self.get_polygon(
-                                strip_group, vtx_index, lod_index, mesh_vertex_start)
+                            f, vn = self.get_polygon(strip_group, vtx_index, lod_index, mesh_vertex_start)
                             if not f and not vn:
                                 break
                             i_ex(f)
@@ -262,8 +262,7 @@ class Source2Blender:
 
     @staticmethod
     def convert_vertex(vertex: source_shared.SourceVertex):
-        return vertex.position.as_list, (vertex.texCoordX,
-                                         1 - vertex.texCoordY)
+        return vertex.position.as_list, (vertex.texCoordX, 1 - vertex.texCoordY)
 
     @staticmethod
     def remap_materials(used_materials, all_materials):
@@ -273,17 +272,14 @@ class Source2Blender:
 
         return remap
 
-    def create_model(self, model: mdl_data.SourceMdlModel,
-                     vtx_model: vtx_data.SourceVtxModel):
+    def create_model(self, model: mdl_data.SourceMdlModel, vtx_model: vtx_data.SourceVtxModel):
         name = model.name.replace('.smd', '').replace('.dmx', '')
         if '/' in name or '\\' in name:
             name = os.path.basename(name)
         if len(vtx_model.vtx_model_lods[0].vtx_meshes) < 1:
             print('No meshes in vtx model')
             return
-        self.mesh_obj = bpy.data.objects.new(
-            name, bpy.data.meshes.new(
-                '{}_MESH'.format(name)))
+        self.mesh_obj = bpy.data.objects.new(name, bpy.data.meshes.new('{}_MESH'.format(name)))
         self.mesh_obj.parent = self.armature_obj
 
         self.current_collection.objects.link(self.mesh_obj)
@@ -297,20 +293,13 @@ class Source2Blender:
         used_materials = {m_id: False for m_id in range(
             len(self.mdl.file_data.textures))}
         weight_groups = {bone.name: self.mesh_obj.vertex_groups.new(name=bone.name) for bone in
-                         self.mdl.file_data.bones}
-        # type: vtx_data.SourceVtxModelLod
+                         self.mdl.file_data.bones}  # type: vtx_data.SourceVtxModelLod
         vtx_model_lod = vtx_model.vtx_model_lods[0]
         print('Converting {} model'.format(name))
         if vtx_model_lod.meshCount > 0:
             t = time.time()
-            polygons, polygon_material_indexes, normals = self.convert_mesh(
-                vtx_model, 0, model)
-            print(
-                'Mesh conversion took {} sec'.format(
-                    round(
-                        time.time() -
-                        t),
-                    3))
+            polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model)
+            print('Mesh conversion took {} sec'.format(round(time.time() - t), 3))
         else:
             return
         self.vertex_offset += model.vertex_count
@@ -318,11 +307,8 @@ class Source2Blender:
         for mat_index in set(polygon_material_indexes):
             used_materials[mat_index] = True
 
-        used_materials_names = [
-            self.mdl.file_data.textures[mat_id] for mat_id,
-            used in used_materials.items() if used]
-        mat_remap = self.remap_materials(
-            used_materials_names, self.mdl.file_data.textures)
+        used_materials_names = [self.mdl.file_data.textures[mat_id] for mat_id,used in used_materials.items() if used]
+        mat_remap = self.remap_materials(used_materials_names, self.mdl.file_data.textures)
         mats = sorted(mat_remap.items(), key=lambda a: a[1])
         for old_mat_id, new_mat_id in mats:
             mat_name = self.mdl.file_data.textures[old_mat_id].path_file_name
