@@ -1,6 +1,5 @@
 from typing import List
 
-
 from SourceIO.byte_io_mdl import ByteIO
 from SourceIO.data_structures.source_shared import SourceVertex
 
@@ -39,7 +38,7 @@ class SourceVvdFileData:
         self.fixup_table_offset = reader.read_uint32()
         self.vertex_data_offset = reader.read_uint32()
         self.tangent_data_offset = reader.read_uint32()
-        self.fixed_vertexes_by_lod = [[]] * self.lod_count
+        self.fixed_vertexes_by_lod = [{}] * self.lod_count
         if self.lod_count <= 0:
             return
 
@@ -57,8 +56,7 @@ class SourceVvdFileData:
                     if fixup.lod_index >= lod_index:
                         for j in range(fixup.vertex_count):
                             vertex = self.vertexes[fixup.vertex_index + j]
-                            self.fixed_vertexes_by_lod[lod_index].append(
-                                vertex)
+                            self.fixed_vertexes_by_lod[lod_index][fixup.vertex_index] = vertex
 
     def __str__(self):
         return "<FileData id:{} version:{} lod count:{} fixup count:{}>".format(self.id, self.version, self.lod_count,

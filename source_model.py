@@ -2,6 +2,7 @@ from pathlib import Path
 
 from SourceIO.byte_io_mdl import ByteIO
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
+from SourceIO.mdl_readers.mdl_v48 import SourceMdlFile48
 from SourceIO.mdl_readers.mdl_v53 import SourceMdlFile53
 from SourceIO.utilities.path_utilities import case_insensitive_file_resolution
 from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
@@ -11,6 +12,7 @@ from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 class SourceModel:
     mdl_version_list = {
         49: SourceMdlFile49,
+        48: SourceMdlFile48,
         53: SourceMdlFile53
     }
     vvd_version_list = {

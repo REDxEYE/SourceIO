@@ -57,7 +57,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
             importer.sort_bodygroups = self.organize_bodygroups
             importer.load()
             if self.write_qc:
-                import qc_renerator
+                from . import qc_renerator
                 qc = qc_renerator.QC(importer.model)
                 qc_file = bpy.data.texts.new(
                     '{}.qc'.format(Path(file.name).stem))

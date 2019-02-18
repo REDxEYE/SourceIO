@@ -2,7 +2,7 @@ from SourceIO.data_structures.mdl_data import *
 from SourceIO.utilities.progressbar import ProgressBar
 
 
-class SourceMdlFile49:
+class SourceMdlFile48:
 
     def __init__(self, reader: ByteIO):
         self.reader = reader

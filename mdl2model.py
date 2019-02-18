@@ -96,7 +96,10 @@ class Source2Blender:
         bpy.ops.object.armature_add(enter_editmode=True)
 
         self.armature_obj = bpy.context.object
-        bpy.context.scene.collection.objects.unlink(self.armature_obj)
+        try:
+            bpy.context.scene.collection.objects.unlink(self.armature_obj)
+        except:
+            pass
         self.main_collection.objects.link(self.armature_obj)
         # self.armature_obj.show_x_ray = True
         self.armature_obj.name = self.name + '_ARM'
@@ -338,12 +341,10 @@ class Source2Blender:
             self.add_flexes(model)
 
         for n, vertex in enumerate(self.vvd.file_data.vertexes):
-            for bone_index, weight in zip(
-                    vertex.boneWeight.bone, vertex.boneWeight.weight):
+            for bone_index, weight in zip(vertex.boneWeight.bone, vertex.boneWeight.weight):
                 if weight == 0.0:
                     continue
-                weight_groups[self.mdl.file_data.bones[bone_index].name].add(
-                    [n], weight, 'REPLACE')
+                weight_groups[self.mdl.file_data.bones[bone_index].name].add([n], weight, 'REPLACE')
 
         bpy.ops.object.select_all(action="DESELECT")
         self.mesh_obj.select_set(True)
@@ -384,14 +385,12 @@ class Source2Blender:
                         continue
                     vtx_model = self.vtx.vtx.vtx_body_parts[bodypart_index].vtx_models[model_index]
                     to_join.append(self.create_model(model, vtx_model))
-            # print(bodyparts,to_join)
             if self.join_clamped:
                 for ob in to_join:
                     if not ob:
                         continue
                     if ob.type == 'MESH':
                         ob.select_set(True)
-                        # ob.select = True
                         bpy.context.view_layer.objects.active = ob
                     else:
                         ob.select_set(False)
