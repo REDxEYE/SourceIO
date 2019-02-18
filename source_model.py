@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from SourceIO.byte_io_mdl import ByteIO
+from SourceIO.mdl_readers.mdl_v10 import SourceMdlFile10
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
 from SourceIO.mdl_readers.mdl_v48 import SourceMdlFile48
 from SourceIO.mdl_readers.mdl_v53 import SourceMdlFile53
@@ -11,6 +12,7 @@ from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 
 class SourceModel:
     mdl_version_list = {
+        10: SourceMdlFile10,
         49: SourceMdlFile49,
         48: SourceMdlFile48,
         53: SourceMdlFile53
@@ -102,6 +104,6 @@ class SourceModel:
 
 if __name__ == '__main__':
     a = SourceModel(
-        r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\lewd_models\fnaf\foxy.mdl")
+        r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
     a.read()
     ...

@@ -4,7 +4,10 @@ from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
 
 
 class SourceMdlFile10(SourceMdlFile49):
-    pass
+    def __init__(self, reader: ByteIO):
+        super().__init__(reader)
+        self.reader = reader
+        self.file_data = SourceMdlFileDataV10()
 
 
 class SourceMdlFileDataV10(SourceMdlFileData):
@@ -37,3 +40,6 @@ class SourceMdlFileDataV10(SourceMdlFileData):
 
         self.local_sequence_count = reader.read_int32()
         self.local_sequence_offset = reader.read_int32()
+
+        self.sequence_group_count = reader.read_int32()
+        self.sequence_group_offset = reader.read_int32()
