@@ -106,8 +106,10 @@ class Source2Blender:
 
         self.armature = self.armature_obj.data
         self.armature.name = self.name + "_ARM_DATA"
+        bpy.ops.object.mode_set(mode='EDIT')
         self.armature.edit_bones.remove(self.armature.edit_bones[0])
 
+        bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action="DESELECT")
         self.armature_obj.select_set(True)
         bpy.context.view_layer.objects.active = self.armature_obj
