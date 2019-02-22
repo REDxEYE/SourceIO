@@ -16,7 +16,6 @@ from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
 from SourceIO.source_model import SourceModel
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
 from SourceIO.data_structures import mdl_data, vtx_data, source_shared
-
 # Blender imports
 try:
     import bpy

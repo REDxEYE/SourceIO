@@ -992,7 +992,7 @@ class SourceMdlAttachment(SourceBase):
     def __init__(self):
         self.name = ""
         self.type = 0
-        self.attachmentPoint = SourceVector
+        self.attachmentPoint = SourceVector()
         self.vectors = []
         self.nameOffset = 0
         self.flags = 0

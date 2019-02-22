@@ -305,21 +305,21 @@ class SourceMdlFile49:
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
             model = body_part.models[0]
-            print('Scanning,', body_part.name)
+            # print('Scanning,', body_part.name)
             if 'clamped' not in body_part.name:
-                print(
-                    'Skipping',
-                    model.name,
-                    'cuz it\'s not a clamped mesh_data')
+                # print(
+                #     'Skipping',
+                #     model.name,
+                #     'cuz it\'s not a clamped mesh_data')
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
             added = False
             for body_part_frames in self.file_data.bodypart_frames:
                 for _, _model in body_part_frames:
-                    print('Comparing', model.name, 'to', _model)
+                    # print('Comparing', model.name, 'to', _model)
                     if self.comp_flex_frames(
                             model.flex_frames, _model.models[0].flex_frames):
-                        print('Adding', model.name, 'to', body_part_frames)
+                        # print('Adding', model.name, 'to', body_part_frames)
                         body_part_frames.append((n, body_part))
                         added = True
                         break

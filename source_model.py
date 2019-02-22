@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from SourceIO import qc_renerator
 from SourceIO.byte_io_mdl import ByteIO
 from SourceIO.mdl_readers.mdl_v10 import SourceMdlFile10
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
@@ -104,6 +105,17 @@ class SourceModel:
 
 if __name__ == '__main__':
     a = SourceModel(
-        r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
+        r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\Dragon-V0942\Mathew_Kelly\mathew_kelly.mdl")
+        # r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
     a.read()
+
+    qc = qc_renerator.QC(a)
+    qc_path = Path(a.filepath).with_suffix('.qc')
+    with qc_path.open('w') as qc_file:
+        qc.write_header(qc_file)
+        qc.write_models(qc_file)
+        qc.write_skins(qc_file)
+        qc.write_misc(qc_file)
+        qc.write_sequences(qc_file)
+
     ...

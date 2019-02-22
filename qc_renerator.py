@@ -7,13 +7,14 @@ from SourceIO.data_structures.source_shared import SourceVector
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49, SourceMdlModel
 from SourceIO.smd_generator import SMD
 from SourceIO.source_model import SourceModel
-from SourceIO.utilities.math_utilities import convert_rotation_matrix_to_degrees
+from SourceIO.utilities.math_utilities import convert_rotation_matrix_to_degrees, vector_i_transform
 from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
 from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class QC:
-    version = '0.5'
+    version = '0.6'
+
     def __init__(self, source_model: SourceModel):
         self.source_model = source_model
         self.mdl = source_model.mdl  # type:SourceMdlFile49
@@ -65,6 +66,39 @@ class QC:
         if model.flex_frames and self.vvd:
             fileh.write('$model "{0}" "{0}"'.format(model_name))
             fileh.write('{\n')
+            fileh.write('\n')
+
+            if model.eyeball_count:
+                # eyeball "eye_right" "ValveBiped.Bip01_Head1" -1.950001 -4.359995 80.729991 "eyeball_r" 1 4 "iris_unused" 1
+                for n, eyeball in enumerate(model.eyeballs):
+                    fileh.write('\t')
+                    fileh.write('eyeball')
+                    diameter = eyeball.radius * 2
+                    angle = round(math.degrees(math.atan(eyeball.z_offset)), 6)
+
+                    iris_scale = 1 / eyeball.iris_scale
+                    if n == 0 and angle > 0:
+                        fileh.write(' "eye_right"')
+                    elif n == 1 and angle < 0:
+                        fileh.write(' "eye_left"')
+                    else:
+                        fileh.write(' "eye_{}"'.format(n))
+                    bone = self.mdl.file_data.bones[eyeball.bone_index]
+                    fileh.write(' "{}"'.format(bone.name))
+                    fileh.write(' {}'.format(vector_i_transform(eyeball.org,
+                                                                bone.poseToBoneColumn0,
+                                                                bone.poseToBoneColumn1,
+                                                                bone.poseToBoneColumn2,
+                                                                bone.poseToBoneColumn3,
+                                                                ).as_rounded(4)))
+                    fileh.write(' "{}"'.format(self.mdl.file_data.textures[eyeball.texture_index].path_file_name))
+                    fileh.write(' {}'.format(diameter))
+                    fileh.write(' {}'.format(angle))
+                    fileh.write(' "iris_unused"')
+                    fileh.write(' {}'.format(int(iris_scale)))
+                    fileh.write('\n')
+                fileh.write('\n')
+
             fileh.write('\tflexfile "{}" \n'.format(name + '.vta'))
             # fileh.write('\tflexfile "{}" \n'.format(self.vta.write_vta(model)))
             fileh.write('\t{\n')
@@ -79,6 +113,8 @@ class QC:
             fileh.write('\t}\n')
 
             fileh.write('}\n\n')
+
+
         else:
             fileh.write('$model "{0}" "{0}"\n\n'.format(model_name))
 
@@ -122,6 +158,18 @@ class QC:
         deflection = math.degrees(deflection)
         fileh.write('$maxeyedeflection {:.1f}\n\n'.format(deflection))
         fileh.write('$eyeposition {}\n\n'.format(self.mdl.file_data.eye_position.as_string_smd))
+
+        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_AMBIENT_BOOST:
+            fileh.write('$ambientboost\n')
+        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_TRANSLUCENT_TWOPASS:
+            fileh.write('$MostlyOpaque\n')
+        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_STATIC_PROP:
+            fileh.write('$staticprop\n')
+        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_SUBDIVISION_SURFACE:
+            fileh.write('$subd\n')
+
+        fileh.write('\n')
+
         self.write_texture_paths(fileh)
         self.write_attachment(fileh)
         fileh.write('$cbox {} {}\n\n'.format(self.mdl.file_data.view_bounding_box_min_position.as_rounded(3),
@@ -154,8 +202,7 @@ class QC:
         fileh.write('\n')
 
     def write_sequences(self, fileh):
-        for sequence in self.mdl.file_data.sequence_descs:  # type: SourceMdlSequenceDesc
-
+        for sequence in self.mdl.file_data.sequence_descs:
             fileh.write(
                 '$sequence "{}" '.format(
                     sequence.theName.replace(
