@@ -13,7 +13,7 @@ from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class QC:
-    version = '0.6'
+    version = '0.6.3'
 
     def __init__(self, source_model: SourceModel):
         self.source_model = source_model
@@ -33,8 +33,6 @@ class QC:
             '.qc',
             'w')
         self.smd = SMD(self.mdl, self.vvd, self.vtx)
-        # self.vta = VTA(self.mdl, self.vvd)
-        # self.smd.write_meshes()
         self.write_header(fileh)
         self.write_models(fileh)
         self.write_skins(fileh)
@@ -57,19 +55,17 @@ class QC:
                 print('No models in bodygpoup!!!!')
 
     def write_model(self, fileh, bp_index, m_index, model: SourceMdlModel):
-        to_skip = 0
         name = model.name if model.name else "mesh_{}-{}".format(
             bp_index, m_index)
         if not self.fst_model:
             self.fst_model = name
         model_name = str(Path(model.name).with_suffix('').with_suffix(''))
-        if model.flex_frames and self.vvd:
-            fileh.write('$model "{0}" "{0}"'.format(model_name))
+        if model.flex_frames or model.eyeball_count:
+            fileh.write('$model "{0}" "{0}" '.format(model_name))
             fileh.write('{\n')
             fileh.write('\n')
 
             if model.eyeball_count:
-                # eyeball "eye_right" "ValveBiped.Bip01_Head1" -1.950001 -4.359995 80.729991 "eyeball_r" 1 4 "iris_unused" 1
                 for n, eyeball in enumerate(model.eyeballs):
                     fileh.write('\t')
                     fileh.write('eyeball')
@@ -98,22 +94,16 @@ class QC:
                     fileh.write(' {}'.format(int(iris_scale)))
                     fileh.write('\n')
                 fileh.write('\n')
-
-            fileh.write('\tflexfile "{}" \n'.format(name + '.vta'))
-            # fileh.write('\tflexfile "{}" \n'.format(self.vta.write_vta(model)))
-            fileh.write('\t{\n')
-            fileh.write("\t\tdefaultflex frame 0\n")
-            for n, flex_frame in enumerate(model.flex_frames):
-                if flex_frame.has_partner:
-                    fileh.write(
-                        '\t\tflexpair "{}" 1 frame {}\n'.format(
-                            flex_frame.flex_name, n + 1 + to_skip))
-                    to_skip += 1
-                pass
+            if model.flex_frames:
+                fileh.write('\t//FLEXES:\n')
+                for flex in model.flex_frames:
+                    fileh.write('\t\t//{} {} {}\n'.format('stereo' if flex.has_partner else 'mono',
+                                                          flex.flex_name,
+                                                          self.mdl.file_data.flex_descs[
+                                                              flex.partner].name if flex.has_partner else ''))
+                fileh.write('\n')
             fileh.write('\t}\n')
-
             fileh.write('}\n\n')
-
 
         else:
             fileh.write('$model "{0}" "{0}"\n\n'.format(model_name))
@@ -171,6 +161,7 @@ class QC:
         fileh.write('\n')
 
         self.write_texture_paths(fileh)
+        self.write_used_materials(fileh)
         self.write_attachment(fileh)
         fileh.write('$cbox {} {}\n\n'.format(self.mdl.file_data.view_bounding_box_min_position.as_rounded(3),
                                              self.mdl.file_data.view_bounding_box_max_position.as_rounded(3)))
@@ -185,9 +176,15 @@ class QC:
                 fileh.write('$cdmaterials "{}"\n'.format(texture_path))
         fileh.write('\n')
 
+    def write_used_materials(self, fileh):
+        fileh.write('//USED MATERISLS:\n')
+        for texture in self.mdl.file_data.textures:
+            fileh.write('\t//{}\n'.format(texture.path_file_name))
+        fileh.write('\n')
+
     def write_attachment(self, fileh):
         for attachment in self.mdl.file_data.attachments:  # type: SourceMdlAttachment
-            # $attachment "eyes" "bip_head" 4.63 - 8.34 - 0.51 rotate 0.12 - 3.73 89.99
+
             bone = self.mdl.file_data.bones[attachment.localBoneIndex]
             fileh.write('$attachment "{}" "{}" {} rotate {}\n'.format(attachment.name, bone.name,
                                                                       SourceVector([attachment.localM14,
@@ -202,16 +199,12 @@ class QC:
         fileh.write('\n')
 
     def write_sequences(self, fileh):
-        for sequence in self.mdl.file_data.sequence_descs:
-            fileh.write(
-                '$sequence "{}" '.format(
-                    sequence.theName.replace(
-                        "@", '')))
-            fileh.write('{\n')
-            fileh.write('\t"{}"\n'.format(self.fst_model))
-            fileh.write('\tactivity "{}" 1\n'.format(
-                sequence.theActivityName if sequence.theActivityName else "ACT_DIERAGDOLL"))
-            fileh.write('\tfadein {:.2f}\n'.format(sequence.fadeInTime))
-            fileh.write('\tfadeout {:.2f}\n'.format(sequence.fadeOutTime))
-            fileh.write('\tfps {}\n'.format(30))
-            fileh.write('}')
+        fileh.write(
+            '$sequence "{}" '.format('idle'))
+        fileh.write('{\n')
+        fileh.write('\t"{}"\n'.format(self.fst_model))
+        fileh.write('\tactivity "{}" 1\n'.format("ACT_DIERAGDOLL"))
+        fileh.write('\tfadein {:.2f}\n'.format(0.2))
+        fileh.write('\tfadeout {:.2f}\n'.format(0.2))
+        fileh.write('\tfps {}\n'.format(30))
+        fileh.write('}')
