@@ -304,6 +304,8 @@ class SourceMdlFile49:
             if body_part.model_count > 1:
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
+            if body_part.model_count ==0:
+                continue
             model = body_part.models[0]
             # print('Scanning,', body_part.name)
             if 'clamped' not in body_part.name:
