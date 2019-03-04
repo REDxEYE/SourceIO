@@ -6,7 +6,7 @@ from SourceIO.data_structures.mdl_data import SourceMdlBodyPart, SourceMdlAttach
 from SourceIO.data_structures.source_shared import SourceVector
 from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49, SourceMdlModel
 from SourceIO.smd_generator import SMD
-from SourceIO.source_model import SourceModel
+
 from SourceIO.utilities.math_utilities import convert_rotation_matrix_to_degrees, vector_i_transform
 from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
 from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
@@ -14,8 +14,7 @@ from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 
 class QC:
     version = '0.6.3'
-
-    def __init__(self, source_model: SourceModel):
+    def __init__(self, source_model):
         self.source_model = source_model
         self.mdl = source_model.mdl  # type:SourceMdlFile49
         self.vvd = source_model.vvd  # type:SourceVvdFile4
