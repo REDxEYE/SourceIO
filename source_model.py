@@ -48,6 +48,8 @@ class SourceModel:
         version = self.version
         if version == 53:
             self.handle_v53()
+        elif version == 10:
+            pass
         else:
             self.find_vtx_vvd()
         if self.vvd:
@@ -105,8 +107,8 @@ class SourceModel:
 
 if __name__ == '__main__':
     a = SourceModel(
-        r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\Dragon-V0942\Mathew_Kelly\mathew_kelly.mdl")
-        # r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
+        # r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\Dragon-V0942\Mathew_Kelly\mathew_kelly.mdl")
+        r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
     a.read()
 
     qc = qc_renerator.QC(a)
