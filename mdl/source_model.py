@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from SourceIO import qc_renerator
 from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.mdl_readers.mdl_v10 import SourceMdlFile10
-from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.mdl_readers.mdl_v48 import SourceMdlFile48
-from SourceIO.mdl_readers.mdl_v53 import SourceMdlFile53
+from SourceIO.mdl import qc_renerator
+from SourceIO.mdl.mdl_readers.mdl_v10 import SourceMdlFile10
+from SourceIO.mdl.mdl_readers.mdl_v48 import SourceMdlFile48
+from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from SourceIO.mdl.mdl_readers.mdl_v53 import SourceMdlFile53
+from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
+from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from SourceIO.utilities.path_utilities import case_insensitive_file_resolution
-from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
-from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class SourceModel:
@@ -58,7 +58,7 @@ class SourceModel:
             self.vtx.read()
 
     def handle_v53(self):
-        self.vvd_reader = self.mdl.vvd
+        self.vvd_reader = self.mdl.vvd  # type: ByteIO
         vvd_magic, vvd_version = self.vvd_reader.peek_fmt('II')
         if vvd_magic != 1448297545:
             raise TypeError('Not a VVD file')
@@ -69,7 +69,7 @@ class SourceModel:
             raise NotImplementedError(
                 'Unsupported vvd v{} version'.format(vvd_version))
 
-        self.vtx_reader = self.mdl.vtx
+        self.vtx_reader = self.mdl.vtx  # type: ByteIO
         vtx_version = self.vtx_reader.peek_int32()
 
         if vtx_version in self.vtx_version_list:
@@ -108,7 +108,8 @@ class SourceModel:
 if __name__ == '__main__':
     a = SourceModel(
         # r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\Dragon-V0942\Mathew_Kelly\mathew_kelly.mdl")
-        r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
+        # r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
+        r"E:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
     a.read()
 
     qc = qc_renerator.QC(a)

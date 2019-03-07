@@ -1,11 +1,12 @@
-from bpy.props import StringProperty, BoolProperty, CollectionProperty
 import bpy
 from pathlib import Path
+
+from bpy.props import StringProperty, BoolProperty, CollectionProperty
 
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 3, 6),
+    "version": (3, 3, 8),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
     "description": "Addon allows to import Source Engine models",
@@ -22,32 +23,16 @@ class MDLImporter_OT_operator(bpy.types.Operator):
     bl_label = "Import Source MDL file"
     bl_options = {'UNDO'}
 
-    filepath = StringProperty(
-        subtype='FILE_PATH',
-    )
-    files = CollectionProperty(
-        name='File paths',
-        type=bpy.types.OperatorFileListElement)
-    normal_bones = BoolProperty(
-        name="Normalize bones",
-        default=False,
-        subtype='UNSIGNED')
-    join_clamped = BoolProperty(
-        name="Join clamped meshes",
-        default=False,
-        subtype='UNSIGNED')
-    organize_bodygroups = BoolProperty(
-        name="Organize bodygroups",
-        default=True,
-        subtype='UNSIGNED')
-    write_qc = BoolProperty(
-        name="Write QC file",
-        default=True,
-        subtype='UNSIGNED')
-    filter_glob = StringProperty(default="*.mdl", options={'HIDDEN'})
+    filepath: StringProperty(subtype="FILE_PATH")
+    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
+    join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
+    organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
+    write_qc: BoolProperty(name="Write QC file", default=True, subtype='UNSIGNED')
+    filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
     def execute(self, context):
-        from . import mdl2model
+        from SourceIO.mdl import mdl2model
         directory = Path(self.filepath).parent.absolute()
         for file in self.files:
             importer = mdl2model.Source2Blender(str(directory / file.name),
@@ -57,7 +42,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
             importer.sort_bodygroups = self.organize_bodygroups
             importer.load()
             if self.write_qc:
-                from . import qc_renerator
+                from SourceIO.mdl import qc_renerator
                 qc = qc_renerator.QC(importer.model)
                 qc_file = bpy.data.texts.new(
                     '{}.qc'.format(Path(file.name).stem))
@@ -82,18 +67,14 @@ def menu_import(self, context):
     self.layout.operator(
         MDLImporter_OT_operator.bl_idname,
         text="Source model (.mdl)")
-    # self.layout.operator(VmeshImporter_OT_operator.bl_idname, text="Source2 mesh (.vmesh_c)")
-    # self.layout.operator(VmdlImporter_OT_operator.bl_idname, text="Source2 model (.vmdl_c)")
 
 
 def register():
     register_()
-    # bpy.utils.register_module(__name__)
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
 
 def unregister():
-    # bpy.utils.unregister_module(__name__)
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
     unregister_()
 

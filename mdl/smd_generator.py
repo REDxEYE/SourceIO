@@ -1,15 +1,13 @@
-import time
-
-
 import os.path
+import time
 from typing import List
 
 from SourceIO.data_structures import vtx_data, mdl_data
 from SourceIO.data_structures.mdl_data import SourceMdlModel, SourceMdlBone
 from SourceIO.data_structures.vtx_data import SourceVtxBodyPart, SourceVtxModel, SourceVtxModelLod
-from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
-from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
+from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
+from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from SourceIO.utilities import progressbar
 
 
@@ -26,12 +24,11 @@ class SMD:
         vertex_indices = []
         vn_s = []
         for i in [0, 2, 1]:
-            # type: int
-            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]
-            # type: vtx_data.SourceVtxVertex
-            vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]
+
+            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: int
+            vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]  # type: vtx_data.SourceVtxVertex
             vertex_index = vtx_vertex.original_mesh_vertex_index + \
-                self.vertex_offset + mesh_vertex_offset
+                           self.vertex_offset + mesh_vertex_offset
             if vertex_index > self.vvd.file_data.lod_vertex_count[0]:
                 print('vertex index out of bounds, skipping this mesh_data')
                 return False, False
@@ -46,8 +43,8 @@ class SMD:
 
     def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel, lod_index, model: mdl_data.SourceMdlModel,
                      material_indexes):
-        # type: List[vtx_data.SourceVtxMesh]
-        vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes
+
+        vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes  # type: List[vtx_data.SourceVtxMesh]
         indexes = []
         vertex_normals = []
         # small speedup
@@ -158,8 +155,10 @@ class SMD:
                                 weight = ' '.join(["{} {}".format(bone, round(weight, 4)) for weight, bone in zip(
                                     v.boneWeight.weight, v.boneWeight.bone)])
                                 fileh.write(
-                                    "{} {} {} {:.6f} {:.6f} {} {}\n".format(v.boneWeight.bone[0], v.position.as_string_smd,
-                                                                            v.normal.as_string_smd, v.texCoordX, v.texCoordY,
+                                    "{} {} {} {:.6f} {:.6f} {} {}\n".format(v.boneWeight.bone[0],
+                                                                            v.position.as_string_smd,
+                                                                            v.normal.as_string_smd, v.texCoordX,
+                                                                            v.texCoordY,
                                                                             v.boneWeight.boneCount, weight))
 
                         self.vertex_offset += model.vertex_count

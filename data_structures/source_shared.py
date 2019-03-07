@@ -2,10 +2,7 @@ import math
 import random
 import struct
 
-try:
-    from SourceIO.byte_io_mdl import ByteIO
-except Exception:
-    from SourceIO.byte_io_mdl import ByteIO
+from SourceIO.byte_io_mdl import ByteIO
 
 
 class SourceVector:

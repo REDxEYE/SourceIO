@@ -11,10 +11,10 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from SourceIO.utilities import progressbar
-from SourceIO.vvd_readers.vvd_v4 import SourceVvdFile4
-from SourceIO.vtx_readers.vtx_v7 import SourceVtxFile7
-from SourceIO.source_model import SourceModel
-from SourceIO.mdl_readers.mdl_v49 import SourceMdlFile49
+from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
+from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
+from SourceIO.mdl.source_model import SourceModel
+from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
 from SourceIO.data_structures import mdl_data, vtx_data, source_shared
 # Blender imports
 try:
@@ -105,13 +105,13 @@ class Source2Blender:
 
         self.armature = self.armature_obj.data
         self.armature.name = self.name + "_ARM_DATA"
+        self.armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = self.armature_obj
         bpy.ops.object.mode_set(mode='EDIT')
         self.armature.edit_bones.remove(self.armature.edit_bones[0])
 
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action="DESELECT")
-        self.armature_obj.select_set(True)
-        bpy.context.view_layer.objects.active = self.armature_obj
 
         bpy.ops.object.mode_set(mode='EDIT')
         bones = []

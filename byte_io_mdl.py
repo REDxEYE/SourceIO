@@ -1,3 +1,4 @@
+import binascii
 import contextlib
 import io
 import struct
@@ -8,6 +9,8 @@ from io import BytesIO
 class OffsetOutOfBounds(Exception):
     pass
 
+def split(array, n=3):
+    return [array[i:i + n] for i in range(0, len(array), n)]
 
 class ByteIO:
     @contextlib.contextmanager
@@ -53,11 +56,7 @@ class ByteIO:
     def preview_f(self):
         with self.save_current_pos():
             block = self.read_bytes(64)
-            hex_values = split(
-                split(
-                    binascii.hexlify(block).decode().upper(),
-                    2),
-                4)
+            hex_values = split(split(binascii.hexlify(block).decode().upper(),2),4)
             return [' '.join(b) for b in hex_values]
 
     def __repr__(self):

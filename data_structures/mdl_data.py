@@ -8,7 +8,7 @@ from typing import List, Tuple
 try:
     from SourceIO.byte_io_mdl import ByteIO, OffsetOutOfBounds
     from SourceIO.data_structures.source_shared import SourceVector, SourceQuaternion, SourceFloat16bits
-    from SourceIO.mdl_readers import math_utilities
+    from SourceIO.mdl.mdl_readers import math_utilities
     from SourceIO.utilities.flags import Flags
     from SourceIO.utilities.path_utilities import get_class_var_name
 
