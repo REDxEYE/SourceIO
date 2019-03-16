@@ -1,0 +1,45 @@
+from ctypes import create_string_buffer
+from pathlib import Path
+
+import numpy as np
+
+from SourceIO.vtf.VTFWrapper import VTFLib
+from SourceIO.vtf.VTFWrapper import VTFLibEnums
+
+vtf_lib = VTFLib.VTFLib()
+
+
+def export_texture(blender_texture, path, image_format=None):
+    path = Path(path)
+    if path.suffix == '':
+        path = path.with_suffix('.vtf')
+    image_data = np.array(blender_texture.pixels, np.float16) * 255
+    image_data = image_data.astype(np.uint8, copy=False)
+    def_options = vtf_lib.create_default_params_structure()
+    if image_format.startswith('RGBA8888'):
+        def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatRGBA8888
+        def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
+        if image_format == 'RGBA8888Normal':
+            def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
+    elif image_format.startswith('DXT1'):
+        def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatDXT1
+        if image_format == 'DXT1Normal':
+            def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
+    elif image_format.startswith('DXT5'):
+        def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatDXT5
+        def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
+        if image_format == 'DXT5Normal':
+            def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
+    else:
+        def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatRGBA8888
+        def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
+
+    print('cur format:' + def_options.ImageFormat.name)
+
+    def_options.Resize = 1
+    w, h = blender_texture.size
+    image_data = create_string_buffer(image_data.tobytes())
+    image_data = vtf_lib.flip_image_external(image_data, w, h)
+    vtf_lib.image_create_single(w, h, image_data, def_options)
+    vtf_lib.image_save(path)
+    vtf_lib.image_destroy()
