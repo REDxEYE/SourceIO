@@ -40,3 +40,4 @@ def get_materials_path(path):
     path = Path(path)
     root_path = resolve_root_directory_from_file(path)
     material_path = root_path / 'materials'
+    return material_path

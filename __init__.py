@@ -14,7 +14,7 @@ from SourceIO.vtf.vmt import VMT
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 4, 0),
+    "version": (3, 4, 1),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
     "description": "Addon allows to import Source Engine models",
@@ -73,16 +73,12 @@ class VTFImporter_OT_operator(bpy.types.Operator):
     bl_label = "Import VTF"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(
-        subtype='FILE_PATH',
-    )
-    files: CollectionProperty(
-        name='File paths',
-        type=bpy.types.OperatorFileListElement)
+    filepath: StringProperty(subtype='FILE_PATH',)
+    files: CollectionProperty(name='File paths',type=bpy.types.OperatorFileListElement)
 
-    load_alpha: BoolProperty(default=True,
-                             name='Load alpha into separate image')
+    load_alpha: BoolProperty(default=True,name='Load alpha into separate image')
     only_alpha: BoolProperty(default=False, name='Only load alpha')
+
     filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
 
     def execute(self, context):
@@ -193,8 +189,7 @@ class VTFExport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator)
-register_, unregister_ = bpy.utils.register_classes_factory(classes)
+
 
 
 def export(self, context):
@@ -225,4 +220,6 @@ def unregister():
 
 
 if __name__ == "__main__":
+    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator)
+    register_, unregister_ = bpy.utils.register_classes_factory(classes)
     register()

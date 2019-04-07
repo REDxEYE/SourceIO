@@ -14,8 +14,8 @@ class BlenderMaterial:
     def load_textures(self):
         for key, texture in self.vmt.textures.items():
             name = Path(texture).stem
-            if bpy.data.images.get(name,False):
-                self.textures[key] = bpy.data.images.get(name,False)
+            if bpy.data.images.get(name, False):
+                self.textures[key] = bpy.data.images.get(name, False)
             else:
                 image = import_texture(texture, True, False)
                 if image:
@@ -34,7 +34,7 @@ class BlenderMaterial:
             nodes.remove(diff)
         out = nodes.get('ShaderNodeOutputMaterial', None)
         if not out:
-            out = nodes.get('Material Output',None)
+            out = nodes.get('Material Output', None)
             if not out:
                 out = nodes.new('ShaderNodeOutputMaterial')
         out.location = (0, 0)

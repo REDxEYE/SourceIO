@@ -12,36 +12,14 @@ def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
         angle_x = (math.atan2(translate_y, translate_x))
         translate_x = m0 / c
         translate_y = -m1 / c
-        angleZ = (math.atan2(translate_y, translate_x))
+        angle_z = (math.atan2(translate_y, translate_x))
     else:
         angle_x = 0
         translate_x = m4
         translate_y = m3
-        angleZ = (math.atan2(translate_y, translate_x))
-    return angle_x, angle_y, angleZ
+        angle_z = (math.atan2(translate_y, translate_x))
+    return angle_x, angle_y, angle_z
 
-
-#	Public Function VectorITransform(ByVal input As SourceVector,
-#  ByVal matrixColumn0 As SourceVector,
-#  ByVal matrixColumn1 As SourceVector,
-#  ByVal matrixColumn2 As SourceVector,
-#  ByVal matrixColumn3 As SourceVector) As SourceVector
-#		Dim output As SourceVector
-#		Dim temp As SourceVector
-#
-#		output = New SourceVector()
-#		temp = New SourceVector()
-#
-#		temp.x = input.x - matrixColumn3.x
-#		temp.y = input.y - matrixColumn3.y
-#		temp.z = input.z - matrixColumn3.z
-#
-#		output.x = temp.x * matrixColumn0.x + temp.y * matrixColumn0.y + temp.z * matrixColumn0.z
-#		output.y = temp.x * matrixColumn1.x + temp.y * matrixColumn1.y + temp.z * matrixColumn1.z
-#		output.z = temp.x * matrixColumn2.x + temp.y * matrixColumn2.y + temp.z * matrixColumn2.z
-#
-#		Return output
-#	End Function
 def vector_i_transform(input: SourceVector,
                        matrix_c0: SourceVector, 
                        matrix_c1: SourceVector,

@@ -33,7 +33,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
             ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
         print('Image has alpha channel, splitting and saving it!')
         alpha_view = pixels[3::4]
-        has_alpha = alpha_view.any()
+        has_alpha = int(alpha_view.sum()) != int(alpha_view.shape[1] * alpha_view.shape[0])
         if load_alpha and has_alpha:
             alpha = alpha_view.copy()
             alpha = np.repeat(alpha, 4)

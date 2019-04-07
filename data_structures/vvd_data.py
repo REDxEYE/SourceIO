@@ -1,3 +1,4 @@
+import traceback
 from typing import List
 
 from SourceIO.byte_io_mdl import ByteIO
@@ -16,7 +17,7 @@ class SourceVvdFileData:
         self.vertex_data_offset = 0
         self.tangent_data_offset = 0
         self.vertexes_by_lod = {}
-        self.fixed_vertexes_by_lod = []
+        self.fixed_vertexes_by_lod = {}
         self.vertexes = []  # type: List[SourceVertex]
         self.fixups = []  # type: List[SourceVvdFixup]
 
@@ -38,7 +39,7 @@ class SourceVvdFileData:
         self.fixup_table_offset = reader.read_uint32()
         self.vertex_data_offset = reader.read_uint32()
         self.tangent_data_offset = reader.read_uint32()
-        self.fixed_vertexes_by_lod = [{}] * self.lod_count
+
         if self.lod_count <= 0:
             return
 
@@ -50,13 +51,27 @@ class SourceVvdFileData:
         if self.fixup_count > 0:
             for _ in range(self.fixup_count):
                 self.fixups.append(SourceVvdFixup().read(reader))
-        if self.lod_count > 0:
-            for lod_index in range(self.lod_count):
-                for fixup in self.fixups:
-                    if fixup.lod_index >= lod_index:
-                        for j in range(fixup.vertex_count):
-                            vertex = self.vertexes[fixup.vertex_index + j]
-                            self.fixed_vertexes_by_lod[lod_index][fixup.vertex_index] = vertex
+        # if self.lod_count > 0:
+        #     for lod_index in range(self.lod_count):
+        #         for fixup in self.fixups:
+        #             if fixup.lod_index >= lod_index:
+        #                 for j in range(fixup.vertex_count):
+        #                     vertex = self.vertexes[fixup.vertex_index + j]
+        #                     self.fixed_vertexes_by_lod[lod_index][fixup.vertex_index] = vertex
+
+    def setup_fixed_vertexes(self, lod_index: int):
+        self.fixed_vertexes_by_lod[lod_index] = []
+        try:
+            for fixup_index in range(len(self.fixups)):
+                fixup = self.fixups[fixup_index]
+                if fixup.lod_index >= lod_index:
+                    for j in range(fixup.vertex_count):
+                        studio_vertex = self.vertexes[fixup.vertex_index + j]
+                        self.fixed_vertexes_by_lod[lod_index].append(studio_vertex)
+        except Exception as ex:
+            traceback.print_exc()
+            print('exception', ex)
+            pass
 
     def __str__(self):
         return "<FileData id:{} version:{} lod count:{} fixup count:{}>".format(self.id, self.version, self.lod_count,
@@ -84,3 +99,8 @@ class SourceVvdFixup:
 
     def __repr__(self):
         return self.__str__()
+
+
+if __name__ == '__main__':
+    model_path = r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\tf\models\player\demo.mdl"
+    SourceVvdFileData()

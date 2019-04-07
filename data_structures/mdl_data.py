@@ -1278,8 +1278,7 @@ class SourceMdlMesh(SourceBase):
         if self.flex_count > 0 and self.flex_offset != 0:
             reader.seek(entry + self.flex_offset, 0)
             for _ in range(self.flex_count):
-                t = time.time()
-                temp = SourceMdlFlex().read(reader, self)
+                SourceMdlFlex().read(reader, self)
         reader.seek(entry2, 0)
         model.meshes.append(self)
 

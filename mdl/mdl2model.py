@@ -56,9 +56,9 @@ class Source2Blender:
         self.sort_bodygroups = True
 
         self.model = SourceModel(self.filepath)
-        self.mdl = None
-        self.vvd = None
-        self.vtx = None
+        self.mdl = None #type: SourceMdlFile49
+        self.vvd = None #type: SourceVvdFile4
+        self.vtx = None #type: SourceVtxFile7
 
         self.mesh_obj = None
         self.armature_obj = None
@@ -212,7 +212,7 @@ class Source2Blender:
         vn_s = []
         offset = self.vertex_offset + mesh_vertex_offset
         for i in [0, 2, 1]:  # type: int
-            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: vtx_data.SourceVtxVertex
+            vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: int
             vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]
             vertex_index = vtx_vertex.original_mesh_vertex_index + offset
             if vertex_index > self.vvd.max_verts:

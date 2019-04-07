@@ -731,12 +731,12 @@ class GameInfoFile(KeyValueFile):
         """
         Return a list of addon root names in the SearchPaths
         """
-        addonNames = []
+        addon_names = []
         for chunk in self.FileSystem.SearchPaths:
             if 'addonroot' in chunk.key.lower():
-                if chunk.value not in addonNames:
-                    addonNames.append(chunk.value)
-        return addonNames
+                if chunk.value not in addon_names:
+                    addon_names.append(chunk.value)
+        return addon_names
 
     def find_file(self, filepath: str, additional_dir=None,
                   extention=None, use_recursive=False):
@@ -778,7 +778,7 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             try:
                 return self[0].game.value
-            except BaseException:
+            except (KeyError, ValueError):
                 return None
 
     @property
@@ -788,7 +788,7 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             try:
                 return self[0].engine.value
-            except BaseException:
+            except (KeyError, ValueError):
                 return None
 
     def tool_dirs(self):
@@ -797,7 +797,7 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             try:
                 return self[0].ToolsDir.value
-            except BaseException:
+            except (KeyError, ValueError):
                 return None
 
     def write_default_file(self):
@@ -818,11 +818,59 @@ class GameInfoFile(KeyValueFile):
         except AttributeError:
             raise GameInfoException('Not a valid gameinfo file.')
 
-        # Read the current gameinfo
-
 
 class GameInfoException(Exception):
     def __init__(self, message, errno=None):
         Exception.__init__(self, message)
-        self.errno = None
+        self.errno = errno
         self.strerror = message
+
+
+class MaterialPathResolver:
+    """
+    "Best Effort" material resolver for use when
+    no Source games are installed, or files are
+    not installed in a Source mod directory
+    """
+
+    def __init__(self, filepath):
+        self._filepath = filepath
+
+    @property
+    def filepath(self):
+        return self._filepath
+
+    @filepath.setter
+    def filepath(self, new_filepath):
+        """
+        this wrapper is here so to ensure the _filepath attribute is a ValvePath instance
+        """
+        if not isinstance(new_filepath, Path):
+            self._filepath = Path(new_filepath)
+        else:
+            self._filepath = new_filepath
+
+    def find_texture(self, filepath, use_recursive=False):
+        return self.find_file(filepath, 'materials',
+                              extention='.vtf', use_recursive=use_recursive)
+
+    def find_material(self, filepath, use_recursive=False):
+        return self.find_file(filepath, 'materials',
+                              extention='.vmt', use_recursive=use_recursive)
+
+    # noinspection PyUnusedLocal
+    def find_file(self, filepath: str, additional_dir=None,
+                  extention=None, use_recursive=False):
+        filepath = filepath.replace('\\', '/')
+        if additional_dir:
+            new_filepath = self.filepath / additional_dir / filepath
+        else:
+            new_filepath = self.filepath / filepath
+
+        if extention:
+            new_filepath = new_filepath.with_suffix(extention)
+
+        if new_filepath.exists():
+            return new_filepath
+
+        return None

@@ -4,7 +4,7 @@ import sys
 from ctypes import *
 
 try:
-    from VTFWrapper.VTFLibEnums import ImageFlag
+    from VTFLibEnums import ImageFlag
     import VTFLibEnums
     import VTFLibConstants
     import VTFLibStructures
@@ -30,18 +30,20 @@ elif platform_name == "Linux":
 else:
     raise NotImplementedError()
 
-# TODO: move to util?
 
+# TODO: move to util?
 
 def pointer_to_array(poiter, size, type=c_ubyte):
     return cast(poiter, POINTER(type * size))
 
 
 class VTFLib:
-    if platform.system() == "Windows":
+    if platform_name == "Windows":
         vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
-    elif platform.system() == "Linux":
+    elif platform_name == "Linux":
         vtflib_cdll = cdll.LoadLibrary(vtf_lib_name)
+    else:
+        raise NotImplementedError("Platform {} isn't supported".format(platform_name))
 
     def __init__(self):
         self.initialize()

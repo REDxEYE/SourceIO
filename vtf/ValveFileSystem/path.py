@@ -1003,9 +1003,9 @@ class ValvePath(Path):
         Returns a ValvePath instance that is relative to the mod.
         If the path doesn't match the game or content, the original filepath is returned.
         """
-        relPath = self.as_relative()
-        if not relPath: return self
-        return relPath[1:]
+        rel_path = self.as_relative()
+        if not rel_path: return self
+        return rel_path[1:]
 
     def as_content_mod_relative(self):
         """

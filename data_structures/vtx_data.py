@@ -1,7 +1,6 @@
 import struct
 from typing import List
 
-
 from SourceIO.byte_io_mdl import ByteIO
 from SourceIO.utilities.flags import Flags
 
@@ -17,10 +16,10 @@ class SourceVtxFileData:
         self.max_bones_per_tri = 3
         self.max_bones_per_vertex = 3
         self.checksum = 0
-        self.lodCount = 0
+        self.lod_count = 0
         self.material_replacement_list_offset = 0
-        self.bodyPartCount = 0
-        self.bodyPartOffset = 0
+        self.body_part_count = 0
+        self.body_part_offset = 0
 
         self.vtx_body_parts = []  # type: List[SourceVtxBodyPart]
         self.material_replacement_lists = []  # type: List[MaterialReplacementList]
@@ -41,38 +40,38 @@ class SourceVtxFileData:
         self.max_bones_per_tri = reader.read_uint16()
         self.max_bones_per_vertex = reader.read_uint32()
         self.checksum = reader.read_uint32()
-        self.lodCount = reader.read_uint32()
+        self.lod_count = reader.read_uint32()
         self.material_replacement_list_offset = reader.read_uint32()
-        self.bodyPartCount = reader.read_uint32()
-        self.bodyPartOffset = reader.read_uint32()
+        self.body_part_count = reader.read_uint32()
+        self.body_part_offset = reader.read_uint32()
         global max_bones_per_vertex
         max_bones_per_vertex = self.max_bones_per_vertex
-        if self.bodyPartOffset > 0:
+        if self.body_part_offset > 0:
 
-            reader.seek(self.bodyPartOffset)
+            reader.seek(self.body_part_offset)
             try:
-                for _ in range(self.bodyPartCount):
+                for _ in range(self.body_part_count):
                     self.vtx_body_parts.append(
                         SourceVtxBodyPart().read(reader))
             except struct.error:
                 global extra_8
                 extra_8 = False
                 self.vtx_body_parts.clear()
-                reader.seek(self.bodyPartOffset)
-                for _ in range(self.bodyPartCount):
+                reader.seek(self.body_part_offset)
+                for _ in range(self.body_part_count):
                     self.vtx_body_parts.append(
                         SourceVtxBodyPart().read(reader))
         if self.material_replacement_list_offset > 0:
             reader.seek(self.material_replacement_list_offset)
-            for _ in range(self.lodCount):
+            for _ in range(self.lod_count):
                 self.material_replacement_lists.append(
                     MaterialReplacementList().read(reader))
         # print(self.max_bones_per_vertex)
 
     def __repr__(self):
         return "<FileData version:{} lod count:{} body part count:{}".format(self.version,
-                                                                             self.lodCount,
-                                                                             self.bodyPartCount,
+                                                                             self.lod_count,
+                                                                             self.body_part_count,
                                                                              self.vtx_body_parts)
 
 
@@ -341,7 +340,8 @@ class SourceVtxStrip:
         stripgroup.vtx_strips.append(self)
 
     def __repr__(self):
-        return '<SourceVtxStrip index count:{} vertex count:{} flags:{} topology:{} topo offset: {}-{} offset into indices list:{}>'.format(
+        return '<SourceVtxStrip index count:{} vertex count:{} flags:{} topology:{}' \
+               ' topo offset: {}-{} offset into indices list:{}>'.format(
             self.index_count, self.vertex_count, self.flags, self.topology_indices_count, self.topology_offset,
             self.topology_offset + self.topology_indices_count * 2,
             self.index_mesh_index)
