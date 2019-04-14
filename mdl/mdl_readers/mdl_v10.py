@@ -1,3 +1,5 @@
+from typing import List
+
 from SourceIO.byte_io_mdl import ByteIO
 from SourceIO.data_structures.mdl_data import SourceMdlFileData, SourceMdlBone, SourceMdlAttachment, SourceMdlBodyPart, \
     SourceMdlTexture, SourceMdlModel, StudioHDRFlags, SourceMdlMesh, SourceBase

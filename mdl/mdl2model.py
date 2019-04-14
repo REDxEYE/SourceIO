@@ -1,14 +1,10 @@
-import sys
-
-sys.path.append(r'E:\PYTHON_STUFF')
-
 import io
 import os.path
 import random
-
 import time
 from contextlib import redirect_stdout
 from pathlib import Path
+
 
 from SourceIO.utilities import progressbar
 from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
@@ -16,6 +12,7 @@ from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
 from SourceIO.mdl.source_model import SourceModel
 from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
 from SourceIO.data_structures import mdl_data, vtx_data, source_shared
+
 # Blender imports
 try:
     import bpy
@@ -56,9 +53,9 @@ class Source2Blender:
         self.sort_bodygroups = True
 
         self.model = SourceModel(self.filepath)
-        self.mdl = None #type: SourceMdlFile49
-        self.vvd = None #type: SourceVvdFile4
-        self.vtx = None #type: SourceVtxFile7
+        self.mdl = None  # type: SourceMdlFile49
+        self.vvd = None  # type: SourceVvdFile4
+        self.vtx = None  # type: SourceVtxFile7
 
         self.mesh_obj = None
         self.armature_obj = None
@@ -208,6 +205,7 @@ class Source2Blender:
 
     def get_polygon(self, strip_group: vtx_data.SourceVtxStripGroup, vtx_index_index: int, lod_index,
                     mesh_vertex_offset):
+        del lod_index
         vertex_indices = []
         vn_s = []
         offset = self.vertex_offset + mesh_vertex_offset
@@ -297,8 +295,8 @@ class Source2Blender:
         used_materials = {m_id: False for m_id in range(
             len(self.mdl.file_data.textures))}
         weight_groups = {bone.name: self.mesh_obj.vertex_groups.new(name=bone.name) for bone in
-                         self.mdl.file_data.bones}  # type: vtx_data.SourceVtxModelLod
-        vtx_model_lod = vtx_model.vtx_model_lods[0]
+                         self.mdl.file_data.bones}
+        vtx_model_lod = vtx_model.vtx_model_lods[0]  # type: vtx_data.SourceVtxModelLod
         print('Converting {} model'.format(name))
         if vtx_model_lod.meshCount > 0:
             t = time.time()
@@ -311,9 +309,9 @@ class Source2Blender:
         for mat_index in set(polygon_material_indexes):
             used_materials[mat_index] = True
 
-        used_materials_names = [self.mdl.file_data.textures[mat_id] for mat_id,used in used_materials.items() if used]
+        used_materials_names = [self.mdl.file_data.textures[mat_id] for mat_id, used in used_materials.items() if used]
         mat_remap = self.remap_materials(used_materials_names, self.mdl.file_data.textures)
-        mats = sorted(mat_remap.items(), key=lambda a: a[1])
+        mats = sorted(mat_remap.items(), key=lambda m: m[1])
         for old_mat_id, new_mat_id in mats:
             mat_name = self.mdl.file_data.textures[old_mat_id].path_file_name
             self.get_material(mat_name, self.mesh_obj)
@@ -373,10 +371,8 @@ class Source2Blender:
             for bodypart_index, bodypart in bodyparts:
                 if self.sort_bodygroups:
                     if bodypart.model_count > 1:
-                        self.current_collection = bpy.data.collections.new(
-                            bodypart.name)
-                        self.main_collection.children.link(
-                            self.current_collection)
+                        self.current_collection = bpy.data.collections.new(bodypart.name)
+                        self.main_collection.children.link(self.current_collection)
                     else:
                         self.current_collection = self.main_collection
                 else:
@@ -428,23 +424,27 @@ class Source2Blender:
                         fx + vx, fy + vy, fz + vz)
 
     def create_attachments(self):
-        for attachment in self.mdl.file_data.attachments:
-            bone = self.armature.bones.get(
-                self.mdl.file_data.bones[attachment.localBoneIndex].name)
+        if self.mdl.file_data.attachments:
 
-            empty = bpy.data.objects.new("empty", None)
-            # bpy.context.scene.objects.link(empty)
-            self.main_collection.objects.link(empty)
-            empty.name = attachment.name
-            pos = Vector(
-                [attachment.pos.x, attachment.pos.y, attachment.pos.z])
-            rot = Euler([attachment.rot.x, attachment.rot.y, attachment.rot.z])
-            empty.matrix_basis.identity()
-            empty.parent = self.armature_obj
-            empty.parent_type = 'BONE'
-            empty.parent_bone = bone.name
-            empty.location = pos
-            empty.rotation_euler = rot
+            attachment_collection = bpy.data.collections.new('attachments')
+
+            for attachment in self.mdl.file_data.attachments:
+                bone = self.armature.bones.get(
+                    self.mdl.file_data.bones[attachment.localBoneIndex].name)
+
+                empty = bpy.data.objects.new("empty", None)
+                # bpy.context.scene.objects.link(empty)
+                attachment_collection.objects.link(empty)
+                empty.name = attachment.name
+                pos = Vector(
+                    [attachment.pos.x, attachment.pos.y, attachment.pos.z])
+                rot = Euler([attachment.rot.x, attachment.rot.y, attachment.rot.z])
+                empty.matrix_basis.identity()
+                empty.parent = self.armature_obj
+                empty.parent_type = 'BONE'
+                empty.parent_bone = bone.name
+                empty.location = pos
+                empty.rotation_euler = rot
 
         # illumination_position
         # empty = bpy.data.objects.new("empty", None)

@@ -73,10 +73,10 @@ class VTFImporter_OT_operator(bpy.types.Operator):
     bl_label = "Import VTF"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype='FILE_PATH',)
-    files: CollectionProperty(name='File paths',type=bpy.types.OperatorFileListElement)
+    filepath: StringProperty(subtype='FILE_PATH', )
+    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
-    load_alpha: BoolProperty(default=True,name='Load alpha into separate image')
+    load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
     only_alpha: BoolProperty(default=False, name='Only load alpha')
 
     filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
@@ -189,9 +189,6 @@ class VTFExport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-
-
-
 def export(self, context):
     cur_img = context.space_data.image
     if cur_img is None:
@@ -207,6 +204,14 @@ def menu_import(self, context):
     self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
 
 
+classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator)
+try:
+    register_, unregister_ = bpy.utils.register_classes_factory(classes)
+except:
+    register_ = lambda: 0
+    unregister_ = lambda: 0
+
+
 def register():
     register_()
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
@@ -220,6 +225,4 @@ def unregister():
 
 
 if __name__ == "__main__":
-    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator)
-    register_, unregister_ = bpy.utils.register_classes_factory(classes)
     register()

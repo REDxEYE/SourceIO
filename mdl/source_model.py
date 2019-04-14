@@ -107,9 +107,9 @@ class SourceModel:
 
 if __name__ == '__main__':
     a = SourceModel(
-        # r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\Dragon-V0942\Mathew_Kelly\mathew_kelly.mdl")
-        # r"E:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
-        r"E:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
+        r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\male_snake\male_snake.mdl")
+        # r"F:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
+        # r"F:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
     a.read()
 
     qc = qc_renerator.QC(a)
