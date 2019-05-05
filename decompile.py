@@ -1,4 +1,4 @@
-import sys, os
+import sys
 from pathlib import Path
 
 from SourceIO.mdl.source_model import SourceModel

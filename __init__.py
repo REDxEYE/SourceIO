@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 no_bpy = False
 try:
     import bpy
@@ -9,12 +10,12 @@ except ImportError:
     print('No BPY')
 
 if not no_bpy:
-    from SourceIO.mdl import mdl2model
-    from SourceIO.vtf.blender_material import BlenderMaterial
-    from SourceIO.vtf.export_vtf import export_texture
-    from SourceIO.vtf.import_vtf import import_texture
-from SourceIO.mdl import qc_generator
-from SourceIO.vtf.vmt import VMT
+    from .mdl import mdl2model
+    from .vtf.blender_material import BlenderMaterial
+    from .vtf.export_vtf import export_texture
+    from .vtf.import_vtf import import_texture
+from .mdl import qc_generator
+from .vtf.vmt import VMT
 
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
@@ -159,7 +160,8 @@ if not no_bpy:
                     "DXT5 format, format-specific Eight Bit Alpha flag only"),
                    ('DXT1Normal', "DXT1 Normal Map",
                     "DXT1 format, Normal Map flag only"),
-                   ('DXT5Normal', "DXT5 Normal Map", "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
+                   ('DXT5Normal', "DXT5 Normal Map",
+                    "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
             default='RGBA8888Simple',
         )
 
@@ -227,7 +229,6 @@ if not no_bpy:
         bpy.types.TOPBAR_MT_file_import.remove(menu_import)
         bpy.types.IMAGE_MT_image.remove(export)
         unregister_()
-
 
 if __name__ == "__main__":
     if not no_bpy:
