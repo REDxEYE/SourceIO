@@ -33,12 +33,9 @@ def split(array, n=3):
 class Source2Blender:
     def __init__(self, path: str = None, import_textures=False, working_directory=None, co=None, rot=False,
                  custom_name=None, normal_bones=False, join_clamped=False):
-        # TODO: make import_textures to do stuff
         self.import_textures = import_textures
-        # TODO: make working_directory to do something useful
         self.filepath = Path(path)
-        self.working_directory = Path(
-            working_directory if working_directory is not None else '')
+        self.working_directory = Path(working_directory if working_directory is not None else '')
         self.main_collection = None
 
         self.current_collection = None
@@ -457,10 +454,12 @@ class Source2Blender:
 
 if __name__ == '__main__':
     # model_path = r'G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\tf_movies\models\player\hwm\spy'
-    model_path = r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\dragon-v0942\mathew_kelly\mathew_kelly.mdl"
+    model_path = r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\red_eye\lewd_models\daxzor.mdl"
     # model_path = r'G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\usermod\models\red_eye\tyranno\raptor.mdl'
     # model_path = r'./test_data/hl/box01a.mdl'
     # model_path = r'G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\usermod\models\red_eye\rick-and-morty\pink_raptor.mdl'
     a = Source2Blender(model_path, normal_bones=True, join_clamped=False)
+    a.load()
+    a.create_models()
     # a = Source2Blender(r'test_data\titan_buddy.mdl', normal_bones=False)
     # a = IO_MDL(r'E:\PYTHON\MDL_reader\test_data\nick_hwm.mdl', normal_bones=True)

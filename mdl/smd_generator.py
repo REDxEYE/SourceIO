@@ -1,5 +1,6 @@
 import os.path
 import time
+from pathlib import Path
 from typing import List
 
 from SourceIO.data_structures import vtx_data, mdl_data
@@ -12,11 +13,12 @@ from SourceIO.utilities import progressbar
 
 
 class SMD:
-    def __init__(self, mdl, vvd, vtx):
-        self.mdl = mdl  # type: SourceMdlFile49
-        self.vvd = vvd  # type: SourceVvdFile4
-        self.vtx = vtx  # type: SourceVtxFile7
+    def __init__(self, source_model):
+        self.mdl = source_model.mdl  # type:SourceMdlFile49
+        self.vvd = source_model.vvd  # type:SourceVvdFile4
+        self.vtx = source_model.vtx  # type:SourceVtxFile7
         self.filemap = {}
+        self.w_files = []
         self.vertex_offset = 0
 
     def get_polygon(self, strip_group: vtx_data.SourceVtxStripGroup,
@@ -110,58 +112,59 @@ class SMD:
                                 model_index, bodypart_index, len(self.mdl.file_data.body_parts)))
                         # type: SourceMdlModel
                         model = self.mdl.file_data.body_parts[bodypart_index].models[model_index]
-                        name = model.name if model.name else "mesh_{}-{}".format(
-                            bodypart_index, model_index)
-                        if os.path.split(name)[0] != '':
-                            os.makedirs(
-                                os.path.join(
-                                    output_dir,
-                                    'decompiled',
-                                    os.path.dirname(name)),
-                                exist_ok=True)
-                        fileh = open(
-                            os.path.join(
-                                output_dir,
-                                'decompiled',
-                                name) + '.smd',
-                            'w')
-                        self.filemap[name] = name + '.smd'
-                        self.write_header(fileh)
-                        self.write_nodes(fileh)
-                        self.write_skeleton(fileh)
-                        material_indexes = []
-                        # type: SourceVtxModelLod
-                        vtx_model_lod = vtx_model.vtx_model_lods[0]
-                        print('Converting {} mesh_data'.format(name))
-                        print('Converting {} mesh_data'.format(name))
-                        if vtx_model_lod.meshCount > 0:
-                            t = time.time()
-                            polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model,
-                                                                                            material_indexes)
-                            print(
-                                'Mesh convertation took {} sec'.format(
-                                    round(
-                                        time.time() - t), 3))
+                        bp = self.mdl.file_data.body_parts[bodypart_index]
+                        name = model.name if (model.name and model.name != 'blank') else "mesh_{}-{}".format(
+                            bp.name, model.name)
+                        if model.mesh_count==0:
+                            continue
+                        if name in self.w_files:
+                            oname = name
+                            name += '_{}'.format(self.w_files.count(name))
+                            self.w_files.append(oname)
                         else:
-                            return
-                        for polygon, material_index in zip(
-                                polygons, polygon_material_indexes):
-                            fileh.write(
-                                self.mdl.file_data.textures[material_index].path_file_name)
-                            fileh.write('\n')
-                            for vertex_id in polygon:
-                                v = self.vvd.file_data.vertexes[vertex_id]
+                            self.w_files.append(name)
 
-                                weight = ' '.join(["{} {}".format(bone, round(weight, 4)) for weight, bone in zip(
-                                    v.boneWeight.weight, v.boneWeight.bone)])
+                        file_path = Path(output_dir) / name
+                        file_path.parent.mkdir(exist_ok=True, parents=True)
+                        file_path = file_path.with_suffix('.smd')
+                        with file_path.open('w') as fileh:
+                            self.filemap[name] = name + '.smd'
+                            self.write_header(fileh)
+                            self.write_nodes(fileh)
+                            self.write_skeleton(fileh)
+                            material_indexes = []
+                            # type: SourceVtxModelLod
+                            vtx_model_lod = vtx_model.vtx_model_lods[0]
+                            print('Converting {} mesh_data'.format(name))
+                            print('Converting {} mesh_data'.format(name))
+                            if vtx_model_lod.meshCount > 0:
+                                t = time.time()
+                                polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model,
+                                                                                                material_indexes)
+                                print(
+                                    'Mesh convertation took {} sec'.format(
+                                        round(
+                                            time.time() - t), 3))
+                            else:
+                                return
+                            for polygon, material_index in zip(
+                                    polygons, polygon_material_indexes):
                                 fileh.write(
-                                    "{} {} {} {:.6f} {:.6f} {} {}\n".format(v.boneWeight.bone[0],
-                                                                            v.position.as_string_smd,
-                                                                            v.normal.as_string_smd, v.texCoordX,
-                                                                            v.texCoordY,
-                                                                            v.boneWeight.boneCount, weight))
+                                    self.mdl.file_data.textures[material_index].path_file_name)
+                                fileh.write('\n')
+                                for vertex_id in polygon:
+                                    v = self.vvd.file_data.vertexes[vertex_id]
 
-                        self.vertex_offset += model.vertex_count
+                                    weight = ' '.join(["{} {}".format(bone, round(weight, 4)) for weight, bone in zip(
+                                        v.boneWeight.weight, v.boneWeight.bone)])
+                                    fileh.write(
+                                        "{} {} {} {:.6f} {:.6f} {} {}\n".format(v.boneWeight.bone[0],
+                                                                                v.position.as_string_smd,
+                                                                                v.normal.as_string_smd, v.texCoordX,
+                                                                                v.texCoordY,
+                                                                                v.boneWeight.boneCount, weight))
+
+                            self.vertex_offset += model.vertex_count
 
     def write_header(self, fileh):
         fileh.write('// Created by SourceIO\n')

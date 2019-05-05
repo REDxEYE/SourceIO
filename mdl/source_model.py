@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.mdl import qc_renerator
+from SourceIO.mdl import qc_generator
 from SourceIO.mdl.mdl_readers.mdl_v10 import SourceMdlFile10
 from SourceIO.mdl.mdl_readers.mdl_v48 import SourceMdlFile48
 from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
@@ -112,7 +112,7 @@ if __name__ == '__main__':
         # r"F:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
     a.read()
 
-    qc = qc_renerator.QC(a)
+    qc = qc_generator.QC(a)
     qc_path = Path(a.filepath).with_suffix('.qc')
     with qc_path.open('w') as qc_file:
         qc.write_header(qc_file)

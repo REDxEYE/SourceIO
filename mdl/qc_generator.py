@@ -24,19 +24,16 @@ class QC:
         self.fst_model = None
 
     def write_qc(self, output_dir=os.path.dirname(__file__)):
-        fileh = open(
-            os.path.join(
-                output_dir,
-                'decompiled',
-                self.source_model.filepath) +
-            '.qc',
-            'w')
-        self.smd = SMD(self.mdl, self.vvd, self.vtx)
-        self.write_header(fileh)
-        self.write_models(fileh)
-        self.write_skins(fileh)
-        self.write_misc(fileh)
-        self.write_sequences(fileh)
+        file_path = Path(output_dir)
+        file_path.mkdir(parents=True,exist_ok=True)
+        file_path = file_path/self.source_model.filepath.stem
+        with file_path.with_suffix('.qc').open('w') as fileh:
+            self.smd = SMD(self.source_model)
+            self.write_header(fileh)
+            self.write_models(fileh)
+            self.write_skins(fileh)
+            self.write_misc(fileh)
+            self.write_sequences(fileh)
 
     def write_header(self, fileh):
         fileh.write('// Created by SourceIO {}\n\n'.format(self.version))
@@ -48,17 +45,17 @@ class QC:
             if bp.model_count > 1:
                 self.write_bodygroup(fileh, bp)
             if bp.model_count == 1:
-                self.write_model(fileh, n, 0, bp.models[0])
+                self.write_model(fileh, bp, bp.models[0])
                 pass  # write model
             if bp.model_count == 0:
                 print('No models in bodygpoup!!!!')
 
-    def write_model(self, fileh, bp_index, m_index, model: SourceMdlModel):
-        name = model.name if model.name else "mesh_{}-{}".format(
-            bp_index, m_index)
+    def write_model(self, fileh, bp, model: SourceMdlModel):
+        name = model.name if (model.name and model.name!='blank') else "mesh_{}-{}".format(
+            bp.name, model.name)
         if not self.fst_model:
             self.fst_model = name
-        model_name = str(Path(model.name).with_suffix('').with_suffix(''))
+        model_name = str(Path(name).with_suffix('').with_suffix(''))
         if model.flex_frames or model.eyeball_count:
             fileh.write('$model "{0}" "{0}" '.format(model_name))
             fileh.write('{\n')
