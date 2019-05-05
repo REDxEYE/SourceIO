@@ -1,6 +1,6 @@
-from SourceIO.data_structures.mdl_data import *
-from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.utilities.progressbar import ProgressBar
+from ...data_structures.mdl_data import *
+from ...mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from ...utilities.progressbar import ProgressBar
 
 
 class SourceMdlFile48(SourceMdlFile49):

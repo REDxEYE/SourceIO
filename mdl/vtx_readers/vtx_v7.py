@@ -1,6 +1,6 @@
 import sys
 
-from SourceIO.data_structures.vtx_data import *
+from ...data_structures.vtx_data import *
 
 
 def split(array, n=3):

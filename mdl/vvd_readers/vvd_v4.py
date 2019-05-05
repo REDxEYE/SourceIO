@@ -1,7 +1,7 @@
 import sys
 
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.data_structures.vvd_data import SourceVvdFileData
+from ...byte_io_mdl import ByteIO
+from ...data_structures.vvd_data import SourceVvdFileData
 
 
 class SourceVvdFile4:

@@ -1,8 +1,8 @@
 import traceback
 from typing import List
 
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.data_structures.source_shared import SourceVertex
+from ..byte_io_mdl import ByteIO
+from ..data_structures.source_shared import SourceVertex
 
 
 class SourceVvdFileData:

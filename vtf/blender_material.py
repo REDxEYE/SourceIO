@@ -1,8 +1,8 @@
 import bpy
 from pathlib import Path
 
-from SourceIO.vtf.vmt import VMT
-from SourceIO.vtf.import_vtf import import_texture
+from ..vtf.vmt import VMT
+from ..vtf.import_vtf import import_texture
 
 
 class BlenderMaterial:

@@ -1,5 +1,5 @@
-from SourceIO.data_structures.mdl_data import *
-from SourceIO.utilities.progressbar import ProgressBar
+from ...data_structures.mdl_data import *
+from ...utilities.progressbar import ProgressBar
 
 
 class SourceMdlFile49:

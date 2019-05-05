@@ -1,14 +1,14 @@
 from pathlib import Path
 
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.mdl import qc_generator
-from SourceIO.mdl.mdl_readers.mdl_v10 import SourceMdlFile10
-from SourceIO.mdl.mdl_readers.mdl_v48 import SourceMdlFile48
-from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.mdl.mdl_readers.mdl_v53 import SourceMdlFile53
-from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
-from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
-from SourceIO.utilities.path_utilities import case_insensitive_file_resolution
+from ..byte_io_mdl import ByteIO
+from ..mdl import qc_generator
+from ..mdl.mdl_readers.mdl_v10 import SourceMdlFile10
+from ..mdl.mdl_readers.mdl_v48 import SourceMdlFile48
+from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from ..mdl.mdl_readers.mdl_v53 import SourceMdlFile53
+from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
+from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
+from ..utilities.path_utilities import case_insensitive_file_resolution
 
 
 class SourceModel:

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import numpy as np
 
-from SourceIO.vtf.VTFWrapper import VTFLib
-from SourceIO.vtf.VTFWrapper import VTFLibEnums
+from ..vtf.VTFWrapper import VTFLib
+from ..vtf.VTFWrapper import VTFLibEnums
 
 vtf_lib = VTFLib.VTFLib()
 

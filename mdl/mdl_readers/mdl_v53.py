@@ -1,6 +1,6 @@
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.data_structures.mdl_data import SourceMdlFileData
-from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from ...byte_io_mdl import ByteIO
+from ...data_structures.mdl_data import SourceMdlFileData
+from ...mdl.mdl_readers.mdl_v49 import SourceMdlFile49
 
 
 class SourceMdlFile53(SourceMdlFile49):

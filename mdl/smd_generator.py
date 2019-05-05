@@ -3,13 +3,13 @@ import time
 from pathlib import Path
 from typing import List
 
-from SourceIO.data_structures import vtx_data, mdl_data
-from SourceIO.data_structures.mdl_data import SourceMdlModel, SourceMdlBone
-from SourceIO.data_structures.vtx_data import SourceVtxBodyPart, SourceVtxModel, SourceVtxModelLod
-from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
-from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
-from SourceIO.utilities import progressbar
+from ..data_structures import vtx_data, mdl_data
+from ..data_structures.mdl_data import SourceMdlModel, SourceMdlBone
+from ..data_structures.vtx_data import SourceVtxBodyPart, SourceVtxModel, SourceVtxModelLod
+from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
+from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
+from ..utilities import progressbar
 
 
 class SMD:

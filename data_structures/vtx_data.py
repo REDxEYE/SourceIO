@@ -1,8 +1,8 @@
 import struct
 from typing import List
 
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.utilities.flags import Flags
+from ..byte_io_mdl import ByteIO
+from ..utilities.flags import Flags
 
 max_bones_per_vertex = 3
 extra_8 = True

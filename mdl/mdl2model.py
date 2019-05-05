@@ -6,12 +6,12 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 
-from SourceIO.utilities import progressbar
-from SourceIO.mdl.vvd_readers.vvd_v4 import SourceVvdFile4
-from SourceIO.mdl.vtx_readers.vtx_v7 import SourceVtxFile7
-from SourceIO.mdl.source_model import SourceModel
-from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.data_structures import mdl_data, vtx_data, source_shared
+from ..utilities import progressbar
+from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
+from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
+from ..mdl.source_model import SourceModel
+from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from ..data_structures import mdl_data, vtx_data, source_shared
 
 # Blender imports
 try:

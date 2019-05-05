@@ -1,11 +1,11 @@
 from typing import List
 
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.data_structures.mdl_data import SourceMdlFileData, SourceMdlBone, SourceMdlAttachment, SourceMdlBodyPart, \
+from ...byte_io_mdl import ByteIO
+from ...data_structures.mdl_data import SourceMdlFileData, SourceMdlBone, SourceMdlAttachment, SourceMdlBodyPart, \
     SourceMdlTexture, SourceMdlModel, StudioHDRFlags, SourceMdlMesh, SourceBase
-from SourceIO.data_structures.source_shared import SourceVector
-from SourceIO.mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from SourceIO.utilities.progressbar import ProgressBar
+from ...data_structures.source_shared import SourceVector
+from ...mdl.mdl_readers.mdl_v49 import SourceMdlFile49
+from ...utilities.progressbar import ProgressBar
 
 
 class SourceMdlFile10(SourceMdlFile49):
