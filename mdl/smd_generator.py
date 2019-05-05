@@ -147,6 +147,7 @@ class SMD:
                                             time.time() - t), 3))
                             else:
                                 return
+                            fileh.write('triangles\n')
                             for polygon, material_index in zip(
                                     polygons, polygon_material_indexes):
                                 fileh.write(
@@ -165,6 +166,7 @@ class SMD:
                                                                                 v.boneWeight.boneCount, weight))
 
                             self.vertex_offset += model.vertex_count
+                            fileh.write('end\n')
 
     def write_header(self, fileh):
         fileh.write('// Created by SourceIO\n')
