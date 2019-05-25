@@ -45,7 +45,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
                         name + '_A', width=vtf_lib.width(), height=vtf_lib.height())
                     alpha = np.divide(alpha, 255)
                     alpha_im.pixels = alpha
-                    alpha_im.pack(as_png=True)
+                    alpha_im.pack()
                 except Exception as ex:
                     print('Caught exception "{}" '.format(ex))
         alpha_view[:] = 255
@@ -59,7 +59,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
                 height=vtf_lib.height())
             pixels = np.divide(pixels, 255)
             image.pixels = pixels
-            image.pack(as_png=True)
+            image.pack()
             return image
         except Exception as ex:
             print('Caught exception "{}" '.format(ex))
