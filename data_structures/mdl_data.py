@@ -578,32 +578,32 @@ class SourceMdlBone(SourceBase):
 
         self.boneOffset = 0
         self.name = ""
-        self.boneControllerIndex = []
-        self.nameOffset = 0
-        self.parentBoneIndex = 0
+        self.bone_controller_index = []
+        self.name_offset = 0
+        self.parent_bone_index = 0
         self.scale = 0
         self.position = SourceVector()
         self.quat = SourceQuaternion()
-        self.animChannels = 0
+        self.anim_channels = 0
         self.rotation = SourceVector()
-        self.positionScale = SourceVector()
-        self.rotationScale = SourceVector()
-        self.poseToBoneColumn0 = SourceVector()
-        self.poseToBoneColumn1 = SourceVector()
-        self.poseToBoneColumn2 = SourceVector()
-        self.poseToBoneColumn3 = SourceVector()
-        self.qAlignment = SourceQuaternion()
+        self.position_scale = SourceVector()
+        self.rotation_scale = SourceVector()
+        self.pose_to_bone_column0 = SourceVector()
+        self.pose_to_bone_column1 = SourceVector()
+        self.pose_to_bone_column2 = SourceVector()
+        self.pose_to_bone_column3 = SourceVector()
+        self.q_alignment = SourceQuaternion()
         self.flags = SourceMdlBoneFlags()
-        self.proceduralRuleType = 0
+        self.procedural_rule_type = 0
         self.proceduralRuleOffset = 0
-        self.physicsBoneIndex = 0
-        self.surfacePropNameOffset = 0
+        self.physics_bone_index = 0
+        self.surface_prop_name_offset = 0
         self.contents = SourceContents()
         self.unused = []
         self.axis_interp_bone = None  # type: SourceMdlAxisInterpBone
         self.quat_interp_bone = None  # type: SourceMdlQuatInterpBone
         self.jiggle_bone = None  # type: SourceMdlJiggleBone
-        self.theSurfacePropName = ''
+        self.the_surface_prop_name = ''
         self.STUDIO_PROC_AXISINTERP = 1
         self.STUDIO_PROC_QUATINTERP = 2
         self.STUDIO_PROC_AIMATBONE = 3
@@ -620,54 +620,52 @@ class SourceMdlBone(SourceBase):
 
     def read(self, reader: ByteIO, mdl: SourceMdlFileData):
         self.boneOffset = reader.tell()
-        self.nameOffset = reader.read_uint32()
-        self.parentBoneIndex = reader.read_int32()
-        self.boneControllerIndex = [reader.read_int32() for _ in range(6)]
+        self.name_offset = reader.read_uint32()
+        self.parent_bone_index = reader.read_int32()
+        self.bone_controller_index = [reader.read_int32() for _ in range(6)]
         self.position.read(reader)
         self.quat.read(reader)
         self.rotation.read(reader)
-        self.positionScale.read(reader)
-        self.rotationScale.read(reader)
+        self.position_scale.read(reader)
+        self.rotation_scale.read(reader)
 
-        self.poseToBoneColumn0.x, self.poseToBoneColumn1.x, self.poseToBoneColumn2.x, self.poseToBoneColumn3.x = \
+        self.pose_to_bone_column0.x, self.pose_to_bone_column1.x, self.pose_to_bone_column2.x, self.pose_to_bone_column3.x = \
             reader.read_float(), reader.read_float(), reader.read_float(), reader.read_float()
-        self.poseToBoneColumn0.y, self.poseToBoneColumn1.y, self.poseToBoneColumn2.y, self.poseToBoneColumn3.y = \
+        self.pose_to_bone_column0.y, self.pose_to_bone_column1.y, self.pose_to_bone_column2.y, self.pose_to_bone_column3.y = \
             reader.read_float(), reader.read_float(), reader.read_float(), reader.read_float()
-        self.poseToBoneColumn0.z, self.poseToBoneColumn1.z, self.poseToBoneColumn2.z, self.poseToBoneColumn3.z = \
+        self.pose_to_bone_column0.z, self.pose_to_bone_column1.z, self.pose_to_bone_column2.z, self.pose_to_bone_column3.z = \
             reader.read_float(), reader.read_float(), reader.read_float(), reader.read_float()
 
-        self.qAlignment.read(reader)
+        self.q_alignment.read(reader)
         self.flags = SourceMdlBoneFlags(reader.read_uint32())
-        self.proceduralRuleType = reader.read_uint32()
+        self.procedural_rule_type = reader.read_uint32()
         self.proceduralRuleOffset = reader.read_uint32()
-        self.physicsBoneIndex = reader.read_uint32()
-        self.surfacePropNameOffset = reader.read_uint32()
+        self.physics_bone_index = reader.read_uint32()
+        self.surface_prop_name_offset = reader.read_uint32()
         self.contents = SourceContents(reader.read_uint32())
         if mdl.version >= 48:
             _ = [reader.read_uint32() for _ in range(8)]
         if mdl.version >= 53:
             reader.skip(4 * 7)
-        if self.nameOffset != 0:
-            self.name = reader.read_from_offset(self.boneOffset + self.nameOffset, reader.read_ascii_string).encode(
+        if self.name_offset != 0:
+            self.name = reader.read_from_offset(self.boneOffset + self.name_offset, reader.read_ascii_string).encode(
                 "ascii", 'ignore').decode('ascii')
-        # print(self.boneOffset, self)
-        # print(self.proceduralRuleType, self.proceduralRuleOffset)
-        if self.proceduralRuleType != 0 and self.proceduralRuleOffset != 0:
-            if self.proceduralRuleType == self.STUDIO_PROC_AXISINTERP:
+        if self.procedural_rule_type != 0 and self.proceduralRuleOffset != 0:
+            if self.procedural_rule_type == self.STUDIO_PROC_AXISINTERP:
                 with reader.save_current_pos():
                     reader.seek(self.boneOffset + self.proceduralRuleOffset)
                     self.axis_interp_bone = SourceMdlAxisInterpBone().read(reader)
-            if self.proceduralRuleType == self.STUDIO_PROC_QUATINTERP:
+            if self.procedural_rule_type == self.STUDIO_PROC_QUATINTERP:
                 with reader.save_current_pos():
                     reader.seek(self.boneOffset + self.proceduralRuleOffset)
                     self.quat_interp_bone = SourceMdlQuatInterpBone().read(reader)
-            if self.proceduralRuleType == self.STUDIO_PROC_JIGGLE:
+            if self.procedural_rule_type == self.STUDIO_PROC_JIGGLE:
                 with reader.save_current_pos():
                     reader.seek(self.boneOffset + self.proceduralRuleOffset)
                     self.jiggle_bone = SourceMdlJiggleBone().read(reader)
-        if self.surfacePropNameOffset != 0:
-            self.theSurfacePropName = reader.read_from_offset(self.boneOffset + self.surfacePropNameOffset,
-                                                              reader.read_ascii_string)
+        if self.surface_prop_name_offset != 0:
+            self.the_surface_prop_name = reader.read_from_offset(self.boneOffset + self.surface_prop_name_offset,
+                                                                 reader.read_ascii_string)
 
         mdl.bones.append(self)
 

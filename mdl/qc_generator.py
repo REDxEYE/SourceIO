@@ -12,7 +12,7 @@ from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class QC:
-    version = '0.6.4'
+    version = '3.4.1'
 
     def __init__(self, source_model):
         self.source_model = source_model

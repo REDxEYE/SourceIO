@@ -115,7 +115,7 @@ class SMD:
                         bp = self.mdl.file_data.body_parts[bodypart_index]
                         name = model.name if (model.name and model.name != 'blank') else "mesh_{}-{}".format(
                             bp.name, model.name)
-                        if model.mesh_count==0:
+                        if model.mesh_count == 0:
                             continue
                         if name in self.w_files:
                             oname = name
@@ -169,7 +169,7 @@ class SMD:
                             fileh.write('end\n')
 
     def write_header(self, fileh):
-        fileh.write('// Created by SourceIO\n')
+        fileh.write('// Created by SourceIO v{}\n')
         fileh.write('version 1\n')
 
     def write_nodes(self, fileh):
@@ -180,7 +180,7 @@ class SMD:
                 '{} "{}" {}\n'.format(
                     num,
                     bone.name,
-                    bone.parentBoneIndex))
+                    bone.parent_bone_index))
         fileh.write('end\n')
 
     def write_skeleton(self, fileh):

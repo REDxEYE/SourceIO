@@ -113,8 +113,8 @@ class Source2Blender:
             bones.append((self.armature.edit_bones.new(se_bone.name), se_bone))
 
         for bl_bone, se_bone in bones:  # type: bpy.types.EditBone, mdl_data.SourceMdlBone
-            if se_bone.parentBoneIndex != -1:
-                bl_parent, parent = bones[se_bone.parentBoneIndex]
+            if se_bone.parent_bone_index != -1:
+                bl_parent, parent = bones[se_bone.parent_bone_index]
                 bl_bone.parent = bl_parent
             else:
                 pass

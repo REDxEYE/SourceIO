@@ -137,8 +137,8 @@ class SourceMdlBoneV10(SourceMdlBone):
 
         self.position.read(reader)
         self.rotation.read(reader)
-        self.positionScale.read(reader)
-        self.rotationScale.read(reader)
+        self.position_scale.read(reader)
+        self.rotation_scale.read(reader)
         mdl.bones.append(self)
 
 
