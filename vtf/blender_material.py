@@ -50,7 +50,7 @@ class BlenderMaterial:
             tex = nodes.new('ShaderNodeTexImage')
             tex.image = self.textures.get('$bumpmap')
             tex.location = (200, -50)
-            tex.color_space = 'NONE'
+            tex.image.colorspace_settings.is_data = True
             normal = nodes.new("ShaderNodeNormalMap")
             normal.location = (150, -50)
             mat.node_tree.links.new(tex.outputs["Color"], normal.inputs['Color'])
