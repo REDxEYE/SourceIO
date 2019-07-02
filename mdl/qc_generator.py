@@ -2,6 +2,7 @@ import math
 import os.path
 from pathlib import Path
 
+from SourceIO.data_structures.mdl_data import SourceMdlBone
 from ..data_structures.mdl_data import SourceMdlBodyPart, SourceMdlAttachment
 from ..data_structures.source_shared import SourceVector
 from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49, SourceMdlModel
@@ -25,8 +26,8 @@ class QC:
 
     def write_qc(self, output_dir=os.path.dirname(__file__)):
         file_path = Path(output_dir)
-        file_path.mkdir(parents=True,exist_ok=True)
-        file_path = file_path/self.source_model.filepath.stem
+        file_path.mkdir(parents=True, exist_ok=True)
+        file_path = file_path / self.source_model.filepath.stem
         with file_path.with_suffix('.qc').open('w') as fileh:
             self.smd = SMD(self.source_model)
             self.write_header(fileh)
@@ -51,7 +52,7 @@ class QC:
                 print('No models in bodygpoup!!!!')
 
     def write_model(self, fileh, bp, model: SourceMdlModel):
-        name = model.name if (model.name and model.name!='blank') else "mesh_{}-{}".format(
+        name = model.name if (model.name and model.name != 'blank') else "mesh_{}-{}".format(
             bp.name, model.name)
         if not self.fst_model:
             self.fst_model = name
@@ -75,13 +76,13 @@ class QC:
                         fileh.write(' "eye_left"')
                     else:
                         fileh.write(' "eye_{}"'.format(n))
-                    bone = self.mdl.file_data.bones[eyeball.bone_index]
+                    bone = self.mdl.file_data.bones[eyeball.bone_index]  # type:SourceMdlBone
                     fileh.write(' "{}"'.format(bone.name))
                     fileh.write(' {}'.format(vector_i_transform(eyeball.org,
-                                                                bone.poseToBoneColumn0,
-                                                                bone.poseToBoneColumn1,
-                                                                bone.poseToBoneColumn2,
-                                                                bone.poseToBoneColumn3,
+                                                                bone.pose_to_bone_column0,
+                                                                bone.pose_to_bone_column1,
+                                                                bone.pose_to_bone_column2,
+                                                                bone.pose_to_bone_column3,
                                                                 ).as_rounded(4)))
                     fileh.write(' "{}"'.format(self.mdl.file_data.textures[eyeball.texture_index].path_file_name))
                     fileh.write(' {}'.format(diameter))
