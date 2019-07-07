@@ -16,6 +16,7 @@ class SourceModel:
         10: SourceMdlFile10,
         49: SourceMdlFile49,
         48: SourceMdlFile48,
+        44: SourceMdlFile48,
         53: SourceMdlFile53
     }
     vvd_version_list = {
@@ -108,7 +109,7 @@ class SourceModel:
 if __name__ == '__main__':
     a = SourceModel(
         # r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\male_snake\male_snake.mdl")
-        r"F:\PYTHON\io_mesh_SourceMDL\test_data\goldSrc\leet.mdl")
+        r"F:\PYTHON_STUFF\SourceIO_addon\test_data\V44\bridge_railings001.mdl")
         # r"F:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
     a.read()
 
