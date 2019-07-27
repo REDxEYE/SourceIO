@@ -4,12 +4,11 @@ import sys
 from ctypes import *
 
 try:
-    from VTFLibEnums import ImageFlag
     import VTFLibEnums
     import VTFLibConstants
     import VTFLibStructures
 except Exception:
-    from .VTFLibEnums import ImageFlag
+    from . import  VTFLibEnums
     from . import (VTFLibEnums,
                    VTFLibStructures,
                    VTFLibConstants)
@@ -26,6 +25,7 @@ elif platform_name == "Linux":
     # On linux we assume this lib is in a predictable location
     # VTFLib Linux: https://github.com/panzi/VTFLib
     # requires: libtxc_dxtn
+    full_path = os.path.dirname(__file__)
     vtf_lib_name = "libVTFLib13.so"
 else:
     raise NotImplementedError()
@@ -41,7 +41,7 @@ class VTFLib:
     if platform_name == "Windows":
         vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
     elif platform_name == "Linux":
-        vtflib_cdll = cdll.LoadLibrary(vtf_lib_name)
+        vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
     else:
         raise NotImplementedError("Platform {} isn't supported".format(platform_name))
 
@@ -285,7 +285,7 @@ class VTFLib:
     ImageGetFlags.restype = c_int32
 
     def get_image_flags(self):
-        return ImageFlag(self.ImageGetFlags())
+        return VTFLibEnums.ImageFlag(self.ImageGetFlags())
 
     ImageSetFlags = vtflib_cdll.vlImageSetFlags
     ImageSetFlags.argtypes = [c_float]
