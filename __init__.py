@@ -1,21 +1,24 @@
 import os
 from pathlib import Path
 
-no_bpy = False
+bpy_available = True
 try:
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 except ImportError:
-    no_bpy = True
+    bpy_available = False
     print('No BPY')
 
-if not no_bpy:
+if bpy_available:
     from .mdl import mdl2model
+    from .mdl import qc_generator
     from .vtf.blender_material import BlenderMaterial
     from .vtf.export_vtf import export_texture
     from .vtf.import_vtf import import_texture
-from .mdl import qc_generator
-from .vtf.vmt import VMT
+    try:
+        from .vtf.vmt import VMT
+    except OSError:
+        VMT = None
 
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
@@ -30,7 +33,7 @@ bl_info = {
     "category": "Import-Export"
 }
 
-if not no_bpy:
+if bpy_available:
     # noinspection PyUnresolvedReferences
     class MDLImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine MDL models"""
@@ -100,117 +103,119 @@ if not no_bpy:
             return {'RUNNING_MODAL'}
 
 
-    class VMTImporter_OT_operator(bpy.types.Operator):
-        """Load Source Engine VMT material"""
-        bl_idname = "import_texture.vmt"
-        bl_label = "Import VMT"
-        bl_options = {'UNDO'}
+    if VMT is not None:
+        class VMTImporter_OT_operator(bpy.types.Operator):
+            """Load Source Engine VMT material"""
+            bl_idname = "import_texture.vmt"
+            bl_label = "Import VMT"
+            bl_options = {'UNDO'}
 
-        filepath: StringProperty(
-            subtype='FILE_PATH',
-        )
+            filepath: StringProperty(
+                subtype='FILE_PATH',
+            )
 
-        filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
-        game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
-        override: BoolProperty(default=False, name='Override existing?')
+            filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
+            game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
+            override: BoolProperty(default=False, name='Override existing?')
 
-        def execute(self, context):
-            vmt = VMT(self.filepath, self.game)
-            mat = BlenderMaterial(vmt)
-            mat.load_textures()
-            if mat.create_material(
-                    self.override) == 'EXISTS' and not self.override:
-                self.report({'INFO'}, '{} material already exists')
-            return {'FINISHED'}
+            def execute(self, context):
+                vmt = VMT(self.filepath, self.game)
+                mat = BlenderMaterial(vmt)
+                mat.load_textures()
+                if mat.create_material(
+                        self.override) == 'EXISTS' and not self.override:
+                    self.report({'INFO'}, '{} material already exists')
+                return {'FINISHED'}
 
-        def invoke(self, context, event):
-            wm = context.window_manager
-            wm.fileselect_add(self)
-            return {'RUNNING_MODAL'}
+            def invoke(self, context, event):
+                wm = context.window_manager
+                wm.fileselect_add(self)
+                return {'RUNNING_MODAL'}
 
 
-    class VTFExport_OT_operator(bpy.types.Operator):
-        """Export VTF texture"""
-        bl_idname = "export_texture.vtf"
-        bl_label = "Export VTF"
+        class VTFExport_OT_operator(bpy.types.Operator):
+            """Export VTF texture"""
+            bl_idname = "export_texture.vtf"
+            bl_label = "Export VTF"
 
-        filename_ext = ".vtf"
+            filename_ext = ".vtf"
 
-        filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
+            filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
 
-        filepath: StringProperty(
-            subtype='FILE_PATH',
-        )
+            filepath: StringProperty(
+                subtype='FILE_PATH',
+            )
 
-        filename: StringProperty(
-            name="File Name",
-            description="Name used by the exported file",
-            maxlen=255,
-            subtype='FILE_NAME',
-        )
+            filename: StringProperty(
+                name="File Name",
+                description="Name used by the exported file",
+                maxlen=255,
+                subtype='FILE_NAME',
+            )
 
-        imgFormat: EnumProperty(
-            name="VTF Type Preset",
-            description="Choose a preset. It will affect the result's format and flags.",
-            items=(('RGBA8888Simple', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
-                   ('RGBA8888Normal', "RGBA8888 Normal Map",
-                    "RGBA8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
-                   ('DXT1Simple', "DXT1 Simple", "DXT1 format, no flags"),
-                   ('DXT5Simple', "DXT5 Simple",
-                    "DXT5 format, format-specific Eight Bit Alpha flag only"),
-                   ('DXT1Normal', "DXT1 Normal Map",
-                    "DXT1 format, Normal Map flag only"),
-                   ('DXT5Normal', "DXT5 Normal Map",
-                    "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
-            default='RGBA8888Simple',
-        )
+            imgFormat: EnumProperty(
+                name="VTF Type Preset",
+                description="Choose a preset. It will affect the result's format and flags.",
+                items=(
+                    ('RGBA8888Simple', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
+                    ('RGBA8888Normal', "RGBA8888 Normal Map",
+                     "RGBA8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
+                    ('DXT1Simple', "DXT1 Simple", "DXT1 format, no flags"),
+                    ('DXT5Simple', "DXT5 Simple",
+                     "DXT5 format, format-specific Eight Bit Alpha flag only"),
+                    ('DXT1Normal', "DXT1 Normal Map",
+                     "DXT1 format, Normal Map flag only"),
+                    ('DXT5Normal', "DXT5 Normal Map",
+                     "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
+                default='RGBA8888Simple',
+            )
 
-        def execute(self, context):
-            sima = context.space_data
-            ima = sima.image
-            if ima is None:
-                self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
-            else:
-                print(context)
-                export_texture(ima, self.filepath, self.imgFormat)
-            return {'FINISHED'}
-
-        def invoke(self, context, event):
-            if not self.filepath:
-                blend_filepath = context.blend_data.filepath
-                if not blend_filepath:
-                    blend_filepath = "untitled"
+            def execute(self, context):
+                sima = context.space_data
+                ima = sima.image
+                if ima is None:
+                    self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
                 else:
-                    blend_filepath = os.path.splitext(blend_filepath)[0]
+                    print(context)
+                    export_texture(ima, self.filepath, self.imgFormat)
+                return {'FINISHED'}
+
+            def invoke(self, context, event):
+                if not self.filepath:
+                    blend_filepath = context.blend_data.filepath
+                    if not blend_filepath:
+                        blend_filepath = "untitled"
+                    else:
+                        blend_filepath = os.path.splitext(blend_filepath)[0]
+                        self.filepath = os.path.join(
+                            os.path.dirname(blend_filepath),
+                            self.filename + self.filename_ext)
+                else:
                     self.filepath = os.path.join(
-                        os.path.dirname(blend_filepath),
-                        self.filename + self.filename_ext)
+                        os.path.dirname(
+                            self.filepath),
+                        self.filename +
+                        self.filename_ext)
+
+                context.window_manager.fileselect_add(self)
+                return {'RUNNING_MODAL'}
+
+
+        def export(self, context):
+            cur_img = context.space_data.image
+            if cur_img is None:
+                self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF')
             else:
-                self.filepath = os.path.join(
-                    os.path.dirname(
-                        self.filepath),
-                    self.filename +
-                    self.filename_ext)
-
-            context.window_manager.fileselect_add(self)
-            return {'RUNNING_MODAL'}
+                self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF').filename = \
+                    os.path.splitext(cur_img.name)[0]
 
 
-    def export(self, context):
-        cur_img = context.space_data.image
-        if cur_img is None:
-            self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF')
-        else:
-            self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF').filename = \
-                os.path.splitext(cur_img.name)[0]
+        def menu_import(self, context):
+            self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
+            self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
+            self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
 
-
-    def menu_import(self, context):
-        self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
-        self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
-        self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
-
-if not no_bpy:
+if bpy_available:
     classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
@@ -218,7 +223,7 @@ if not no_bpy:
         register_ = lambda: 0
         unregister_ = lambda: 0
 
-if not no_bpy:
+if bpy_available:
     def register():
         register_()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
@@ -229,7 +234,13 @@ if not no_bpy:
         bpy.types.TOPBAR_MT_file_import.remove(menu_import)
         bpy.types.IMAGE_MT_image.remove(export)
         unregister_()
+else:
+    def register():
+        pass
+
+
+    def unregister():
+        pass
 
 if __name__ == "__main__":
-    if not no_bpy:
-        register()
+    register()
