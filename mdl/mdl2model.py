@@ -5,7 +5,6 @@ import time
 from contextlib import redirect_stdout
 from pathlib import Path
 
-
 from ..utilities import progressbar
 from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
@@ -148,8 +147,7 @@ class Source2Blender:
                 parent = bl_bone.parent
                 if len(parent.children) > 1:
                     bl_bone.use_connect = False
-                    parent.tail = sum([ch.head for ch in parent.children],
-                                      mathutils.Vector()) / len(parent.children)
+                    parent.tail = sum([ch.head for ch in parent.children], mathutils.Vector()) / len(parent.children)
                 else:
                     parent.tail = bl_bone.head
                     bl_bone.use_connect = True
@@ -162,6 +160,9 @@ class Source2Blender:
                 if not bl_bone.children:
                     vec = bl_bone.parent.head - bl_bone.head
                     bl_bone.tail = bl_bone.head - vec / 2
+                bone_size = bl_bone.tail - bl_bone.head
+                if bone_size.x < 0.0001 or bone_size.y < 0.0001 or bone_size.z < 0.0001:
+                    bl_bone.tail = bl_bone.head + Vector([1, 0, 0])
             bpy.ops.armature.calculate_roll(type='GLOBAL_POS_Z')
         bpy.ops.object.mode_set(mode='OBJECT')
 
