@@ -1,8 +1,8 @@
 import struct
+from enum import IntFlag
 from typing import List
 
 from ..byte_io_mdl import ByteIO
-from ..utilities.flags import Flags
 
 max_bones_per_vertex = 3
 extra_8 = True
@@ -213,7 +213,7 @@ class SourceVtxMesh:
                                                                          )
 
 
-class StripGroupFlags(Flags):
+class StripGroupFlags(IntFlag):
     STRIPGROUP_IS_FLEXED = 0x01
     STRIPGROUP_IS_HWSKINNED = 0x02
     STRIPGROUP_IS_DELTA_FLEXED = 0x04
@@ -302,7 +302,7 @@ class SourceVtxVertex:
             self.bone_id, self.bone_count)
 
 
-class StripHeaderFlags(Flags):
+class StripHeaderFlags(IntFlag):
     STRIP_IS_TRILIST = 0x01
     STRIP_IS_QUADLIST_REG = 0x02  # Regular
     STRIP_IS_QUADLIST_EXTRA = 0x04  # Extraordinary
