@@ -36,7 +36,9 @@ class SourceMdlFile49:
             self.reader.seek(self.file_data.bone_offset, 0)
             for i in range(self.file_data.bone_count):
                 pb.draw()
-                SourceMdlBone().read(self.reader, self.file_data)
+                bone = SourceMdlBone()
+                self.file_data.register(bone)
+                bone.read(self.reader, self.file_data)
                 pb.increment(1)
                 pb.draw()
 

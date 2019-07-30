@@ -665,6 +665,8 @@ class SourceMdlBone(SourceBase):
         if self.surface_prop_name_offset != 0:
             self.the_surface_prop_name = reader.read_from_offset(self.boneOffset + self.surface_prop_name_offset,
                                                                  reader.read_ascii_string)
+        if self.parent.version==44:
+            reader.read_bytes(32)
 
         mdl.bones.append(self)
 

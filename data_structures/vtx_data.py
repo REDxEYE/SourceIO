@@ -110,7 +110,7 @@ class MaterialReplacement:
         entry = reader.tell()
         self.material_id = reader.read_int16()
         self.replacement_material_name_offset = reader.read_int32()
-        self.replacement_material_name = reader.read_from_offset(self.replacement_material_name_offset,
+        self.replacement_material_name = reader.read_from_offset(entry+self.replacement_material_name_offset,
                                                                  reader.read_ascii_string)
         return self
 
