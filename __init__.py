@@ -23,7 +23,7 @@ if bpy_available:
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 5, 0),
+    "version": (3, 5, 1),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
     "description": "Addon allows to import Source Engine models",
