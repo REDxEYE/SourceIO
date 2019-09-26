@@ -113,18 +113,21 @@ if bpy_available:
             filepath: StringProperty(
                 subtype='FILE_PATH',
             )
+            files: CollectionProperty(type=bpy.types.PropertyGroup)
 
             filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
             game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
             override: BoolProperty(default=False, name='Override existing?')
 
             def execute(self, context):
-                vmt = VMT(self.filepath, self.game)
-                mat = BlenderMaterial(vmt)
-                mat.load_textures()
-                if mat.create_material(
-                        self.override) == 'EXISTS' and not self.override:
-                    self.report({'INFO'}, '{} material already exists')
+                directory = Path(self.filepath).parent.absolute()
+                for file in self.files:
+                    vmt = VMT(str(directory / file.name), self.game)
+                    mat = BlenderMaterial(vmt)
+                    mat.load_textures()
+                    if mat.create_material(
+                            self.override) == 'EXISTS' and not self.override:
+                        self.report({'INFO'}, '{} material already exists')
                 return {'FINISHED'}
 
             def invoke(self, context, event):
