@@ -51,7 +51,10 @@ if bpy_available:
 
         def execute(self, context):
 
-            directory = Path(self.filepath).parent.absolute()
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
             for file in self.files:
                 importer = mdl2model.Source2Blender(str(directory / file.name),
                                                     normal_bones=self.normal_bones,
@@ -91,7 +94,10 @@ if bpy_available:
         filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
 
         def execute(self, context):
-            directory = Path(self.filepath).parent.absolute()
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
             for file in self.files:
                 import_texture(str(directory / file.name),
                                self.load_alpha, self.only_alpha)
@@ -120,7 +126,10 @@ if bpy_available:
             override: BoolProperty(default=False, name='Override existing?')
 
             def execute(self, context):
-                directory = Path(self.filepath).parent.absolute()
+                if Path(self.filepath).is_file():
+                    directory = Path(self.filepath).parent.absolute()
+                else:
+                    directory = Path(self.filepath).absolute()
                 for file in self.files:
                     vmt = VMT(str(directory / file.name), self.game)
                     mat = BlenderMaterial(vmt)
