@@ -120,6 +120,7 @@ if bpy_available:
                 subtype='FILE_PATH',
             )
             files: CollectionProperty(type=bpy.types.PropertyGroup)
+            load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
 
             filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
             game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
@@ -133,7 +134,7 @@ if bpy_available:
                 for file in self.files:
                     vmt = VMT(str(directory / file.name), self.game)
                     mat = BlenderMaterial(vmt)
-                    mat.load_textures()
+                    mat.load_textures(self.load_alpha)
                     if mat.create_material(
                             self.override) == 'EXISTS' and not self.override:
                         self.report({'INFO'}, '{} material already exists')
