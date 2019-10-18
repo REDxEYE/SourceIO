@@ -10,6 +10,8 @@ vtf_lib = VTFLib.VTFLib()
 
 
 def import_texture(path, load_alpha=True, alpha_only=False):
+    alpha_im = None
+    image = None
     path = Path(path).absolute()
     name = path.stem
     print('Loading {}'.format(name))
@@ -22,10 +24,10 @@ def import_texture(path, load_alpha=True, alpha_only=False):
             "Failed to load texture :{}".format(
                 vtf_lib.get_last_error()))
     rgba_data = vtf_lib.convert_to_rgba8888()
-    print('Converted')
+    # print('Converted')
     rgba_data = vtf_lib.flip_image_external(
         rgba_data, vtf_lib.width(), vtf_lib.height())
-    print('Flipped')
+    # print('Flipped')
     pixels = np.array(rgba_data.contents, np.uint8)
     pixels = pixels.astype(np.float16, copy=False)
     has_alpha = False
@@ -33,7 +35,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
             ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
         print('Image has alpha channel, splitting and saving it!')
         alpha_view = pixels[3::4]
-        has_alpha = int(alpha_view.sum(dtype=np.double)) != int(alpha_view.shape[0] * 255)
+        has_alpha = int(alpha_view.sum(dtype=np.float64)) != int(alpha_view.shape[0] * 255)
         if load_alpha and has_alpha:
             alpha = alpha_view.copy()
             alpha = np.repeat(alpha, 4)
@@ -60,7 +62,6 @@ def import_texture(path, load_alpha=True, alpha_only=False):
             pixels = np.divide(pixels, 255)
             image.pixels = pixels
             image.pack()
-            return image
         except Exception as ex:
             print('Caught exception "{}" '.format(ex))
     vtf_lib.image_destroy()

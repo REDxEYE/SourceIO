@@ -30,6 +30,8 @@ def case_insensitive_file_resolution(path):
 
 
 def resolve_root_directory_from_file(path):
+    if type(path) is not Path:
+        path = Path(path)
     if path.parts[-1] == 'models':
         return path.parent
     else:

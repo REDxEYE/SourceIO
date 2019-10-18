@@ -35,7 +35,7 @@ class VMT:
             self.gameinfo = MaterialPathResolver(game_dir)
 
     def parse(self):
-        print(self.shader)
+        # print(self.shader)
         for key, value in self.material_data.items():
             if isinstance(value, str):
                 texture = self.gameinfo.find_texture(value)

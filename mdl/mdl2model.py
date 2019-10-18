@@ -5,12 +5,16 @@ import time
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from ..utilities import progressbar
+from ..utilities import progressbar, valve_utils
 from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
 from ..mdl.source_model import SourceModel
 from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49
 from ..data_structures import mdl_data, vtx_data, source_shared
+from ..vtf.vmt import VMT
+from ..vtf.blender_material import BlenderMaterial
+from ..vtf.import_vtf import import_texture
+from ..utilities.path_utilities import resolve_root_directory_from_file
 
 # Blender imports
 try:
@@ -34,7 +38,8 @@ class Source2Blender:
                  custom_name=None, normal_bones=False, join_clamped=False):
         self.import_textures = import_textures
         self.filepath = Path(path)
-        self.working_directory = Path(working_directory if working_directory is not None else '')
+        self.working_directory = Path(
+            working_directory if working_directory is not None else resolve_root_directory_from_file(path))
         self.main_collection = None
 
         self.current_collection = None
@@ -58,30 +63,36 @@ class Source2Blender:
         self.armature = None
         self.mesh_data = None
 
-    def load(self):
+    def load(self, dont_build_mesh=False):
 
         self.model.read()
         self.mdl = self.model.mdl  # type: SourceMdlFile49
         self.vvd = self.model.vvd  # type: SourceVvdFile4
         self.vtx = self.model.vtx  # type: SourceVtxFile7
 
-        self.main_collection = bpy.data.collections.new(
-            os.path.basename(self.mdl.file_data.name))
-        bpy.context.scene.collection.children.link(self.main_collection)
+        if not dont_build_mesh:
+            print("Building mesh")
+            self.main_collection = bpy.data.collections.new(os.path.basename(self.mdl.file_data.name))
+            bpy.context.scene.collection.children.link(self.main_collection)
+            self.armature_obj = None
+            self.armature = None
+            self.create_skeleton(self.normal_bones)
+            if self.custom_name:
+                self.armature_obj.name = self.custom_name
 
-        self.armature_obj = None
-        self.armature = None
-        self.create_skeleton(self.normal_bones)
-        if self.custom_name:
-            self.armature_obj.name = self.custom_name
+            # just a temp containers
+            self.mesh_obj = None
+            self.mesh_data = None
 
-        # just a temp containers
-        self.mesh_obj = None
-        self.mesh_data = None
+            self.create_models()
+            self.create_attachments()
+            if self.co:
+                self.armature_obj.location = self.co
+                self.armature_obj.rotation_euler = self.rot
+            bpy.ops.object.mode_set(mode='OBJECT')
 
-        self.create_models()
-        self.create_attachments()
-        bpy.ops.object.mode_set(mode='OBJECT')
+        if self.import_textures:
+            self.load_textures()
 
     def create_skeleton(self, normal_bones=False):
 
@@ -93,7 +104,6 @@ class Source2Blender:
         except:
             pass
         self.main_collection.objects.link(self.armature_obj)
-        # self.armature_obj.show_x_ray = True
         self.armature_obj.name = self.name + '_ARM'
 
         self.armature = self.armature_obj.data
@@ -359,6 +369,7 @@ class Source2Blender:
             bpy.ops.mesh.delete_loose()
             bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='OBJECT')
+
         return self.mesh_obj
 
     def create_models(self):
@@ -444,13 +455,39 @@ class Source2Blender:
                 empty.location = pos
                 empty.rotation_euler = rot
 
-        # illumination_position
-        # empty = bpy.data.objects.new("empty", None)
-        # self.collection.objects.link(empty)
-        # empty.name = 'illum position'
-        # empty.parent = self.armature_obj
-        # empty.location = Vector(self.mdl.file_data.illumination_position.as_list)
-        # empty.empty_display_type = 'SPHERE'
+    def load_textures(self):
+        mod_path = valve_utils.get_mod_path(self.filepath)
+        game_info_path = mod_path / 'gameinfo.txt'
+        if not game_info_path.exists():
+            return
+        else:
+            print('Found gameinfo.txt file')
+        gi = valve_utils.GameInfoFile(game_info_path)
+        materials = []
+        used_textures = []
+        textures = []
+        for texture in self.mdl.file_data.textures:
+            for tex_path in self.mdl.file_data.texture_paths:
+                if tex_path and (tex_path[0] == '/' or tex_path[0] == '\\'):
+                    tex_path = tex_path[1:]
+                if tex_path:
+                    mat = gi.find_material(Path(tex_path) / texture.path_file_name, use_recursive=True)
+                    if mat:
+                        temp = valve_utils.get_mod_path(mat)
+                        materials.append((Path(mat), Path(mat).relative_to(temp)))
+        for mat in materials:
+            bmat = BlenderMaterial(VMT(mat[0], mod_path))
+            print(f"Importing {mat[0].stem}")
+            bmat.load_textures()
+            bmat.create_material(True)
+            # kv = valve_utils.KeyValueFile(mat[0])
+            # for v in list(kv.as_dict.values())[0].values():
+            #     if '/' in v or '\\' in v:
+            #         used_textures.append(Path(v))
+            #         tex = gi.find_texture(v, True)
+            #         if tex:
+            #             temp = valve_utils.get_mod_path(tex)
+            #             textures.append((Path(tex), Path(tex).relative_to(temp)))
 
 
 if __name__ == '__main__':

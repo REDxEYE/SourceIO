@@ -1,13 +1,14 @@
 import os
+import sys
 from pathlib import Path
 
 bpy_available = True
-try:
+NO_BPY = int(os.environ.get('NO_BPY','0'))
+if not NO_BPY:
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
-except ImportError:
+else:
     bpy_available = False
-    print('No BPY')
 
 if bpy_available:
     from .mdl import mdl2model
@@ -15,25 +16,25 @@ if bpy_available:
     from .vtf.blender_material import BlenderMaterial
     from .vtf.export_vtf import export_texture
     from .vtf.import_vtf import import_texture
+    from .dmx.dmx import DMX
     try:
         from .vtf.vmt import VMT
     except OSError:
         VMT = None
 
-bl_info = {
-    "name": "Source Engine model(.mdl, .vvd, .vtx)",
-    "author": "RED_EYE",
-    "version": (3, 5, 1),
-    "blender": (2, 80, 0),
-    "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
-    "description": "Addon allows to import Source Engine models",
-    # 'warning': 'May crash blender',
-    # "wiki_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
-    # "tracker_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
-    "category": "Import-Export"
-}
+    bl_info = {
+        "name": "Source Engine model(.mdl, .vvd, .vtx)",
+        "author": "RED_EYE",
+        "version": (3, 5, 1),
+        "blender": (2, 80, 0),
+        "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
+        "description": "Addon allows to import Source Engine models",
+        # 'warning': 'May crash blender',
+        # "wiki_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
+        # "tracker_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
+        "category": "Import-Export"
+    }
 
-if bpy_available:
     # noinspection PyUnresolvedReferences
     class MDLImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine MDL models"""
@@ -43,10 +44,17 @@ if bpy_available:
 
         filepath: StringProperty(subtype="FILE_PATH")
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+
         normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
+
         join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
+
         organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
+
         write_qc: BoolProperty(name="Write QC file", default=True, subtype='UNSIGNED')
+
+        import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
+
         filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
         def execute(self, context):
@@ -56,9 +64,10 @@ if bpy_available:
                 importer = mdl2model.Source2Blender(str(directory / file.name),
                                                     normal_bones=self.normal_bones,
                                                     join_clamped=self.join_clamped,
+                                                    import_textures=self.import_textures
                                                     )
                 importer.sort_bodygroups = self.organize_bodygroups
-                importer.load()
+                importer.load(dont_build_mesh=False)
                 if self.write_qc:
                     qc = qc_generator.QC(importer.model)
                     qc_file = bpy.data.texts.new(
@@ -68,6 +77,31 @@ if bpy_available:
                     qc.write_skins(qc_file)
                     qc.write_misc(qc_file)
                     qc.write_sequences(qc_file)
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+    class DMXImporter_OT_operator(bpy.types.Operator):
+        """Load Source Engine MDL models"""
+        bl_idname = "source_io.dmx"
+        bl_label = "Import Source DMX file"
+        bl_options = {'UNDO'}
+
+        filepath: StringProperty(subtype="FILE_PATH")
+        files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+        project_dir: StringProperty(default='', name='SFM project folder (usermod)')
+        filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
+
+        def execute(self, context):
+            directory = Path(self.filepath).parent.absolute()
+            for file in self.files:
+                importer = DMX(str(directory / file.name),self.project_dir)
+                importer.load_models()
+                importer.load_lights()
+                importer.create_cameras()
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -214,16 +248,15 @@ if bpy_available:
             self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
             self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
             self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
+            self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
 
-if bpy_available:
-    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator)
+    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,DMXImporter_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
         register_ = lambda: 0
         unregister_ = lambda: 0
 
-if bpy_available:
     def register():
         register_()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)

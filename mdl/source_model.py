@@ -34,16 +34,20 @@ class SourceModel:
         self.vtx_reader = None
         magic, self.version = self.mdl_reader.peek_fmt('II')
         if self.version in self.mdl_version_list:
-            self.mdl = self.mdl_version_list[self.version]
+            self.mdl_version = self.mdl_version_list[self.version]
         else:
             raise NotImplementedError(
                 'Unsupported mdl v{} version'.format(
                     self.version))
         self.vvd = None
         self.vtx = None
+        self.mdl:SourceMdlFile49 = None
+
+    def get_mdl_container(self):
+        return self.mdl_version(self.mdl_reader)
 
     def read(self):
-        self.mdl = self.mdl(self.mdl_reader)
+        self.mdl = self.mdl_version(self.mdl_reader)
         self.mdl.read()
 
         version = self.version
