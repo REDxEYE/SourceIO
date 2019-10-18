@@ -11,13 +11,13 @@ class BlenderMaterial:
         self.vmt = vmt
         self.textures = {}
 
-    def load_textures(self):
+    def load_textures(self, split_alpha=True):
         for key, texture in self.vmt.textures.items():
             name = Path(texture).stem
             if bpy.data.images.get(name, False):
                 self.textures[key] = bpy.data.images.get(name, False)
             else:
-                image = import_texture(texture, True, False)
+                image = import_texture(texture, split_alpha, False)
                 if image:
                     self.textures[key] = bpy.data.images.get(image[0])
                     if image[1] is not None:

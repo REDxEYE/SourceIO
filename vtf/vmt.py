@@ -26,7 +26,7 @@ class VMT:
         self.kv = KeyValueFile(filepath=filepath)
         self.shader = self.kv.root_chunk.key
         self.material_data = self.kv.as_dict[self.shader]
-        gameinfo_path = game_dir / 'gameinfo.txt'
+        gameinfo_path = Path(game_dir, 'gameinfo.txt')
         if gameinfo_path.is_file():
             self.gameinfo = GameInfoFile(gameinfo_path)
         else:
