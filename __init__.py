@@ -2,15 +2,13 @@ import os
 import sys
 from pathlib import Path
 
-bpy_available = True
 NO_BPY = int(os.environ.get('NO_BPY','0'))
+
 if not NO_BPY:
+
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
-else:
-    bpy_available = False
 
-if bpy_available:
     from .mdl import mdl2model
     from .mdl import qc_generator
     from .vtf.blender_material import BlenderMaterial
