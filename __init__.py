@@ -4,6 +4,19 @@ from pathlib import Path
 
 NO_BPY = int(os.environ.get('NO_BPY','0'))
 
+bl_info = {
+    "name": "Source Engine model(.mdl, .vvd, .vtx)",
+    "author": "RED_EYE",
+    "version": (3, 5, 5),
+    "blender": (2, 80, 0),
+    "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
+    "description": "Addon allows to import Source Engine models",
+    # 'warning': 'May crash blender',
+    # "wiki_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
+    # "tracker_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
+    "category": "Import-Export"
+}
+
 if not NO_BPY:
 
     import bpy
@@ -20,18 +33,7 @@ if not NO_BPY:
     except OSError:
         VMT = None
 
-    bl_info = {
-        "name": "Source Engine model(.mdl, .vvd, .vtx)",
-        "author": "RED_EYE",
-        "version": (3, 5, 4),
-        "blender": (2, 80, 0),
-        "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
-        "description": "Addon allows to import Source Engine models",
-        # 'warning': 'May crash blender',
-        # "wiki_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
-        # "tracker_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
-        "category": "Import-Export"
-    }
+
 
     # noinspection PyUnresolvedReferences
     class MDLImporter_OT_operator(bpy.types.Operator):
