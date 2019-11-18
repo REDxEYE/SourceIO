@@ -19,21 +19,24 @@ def export_texture(blender_texture, path, image_format=None):
     if image_format.startswith('RGBA8888'):
         def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatRGBA8888
         def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
-        if image_format == 'RGBA8888Normal':
-            def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
+
+    if image_format.startswith('RGB888'):
+        def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatRGB888
+        def_options.Flags &= ~VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
+
     elif image_format.startswith('DXT1'):
         def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatDXT1
-        if image_format == 'DXT1Normal':
-            def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
+
     elif image_format.startswith('DXT5'):
         def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatDXT5
         def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
-        if image_format == 'DXT5Normal':
-            def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
+
     else:
         def_options.ImageFormat = VTFLibEnums.ImageFormat.ImageFormatRGBA8888
         def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagEightBitAlpha
 
+    if "normal" in image_format.lower():
+        def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
     print('cur format:' + def_options.ImageFormat.name)
 
     def_options.Resize = 1

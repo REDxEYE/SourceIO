@@ -2,12 +2,12 @@ import os
 import sys
 from pathlib import Path
 
-NO_BPY = int(os.environ.get('NO_BPY','0'))
+NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 5, 5),
+    "version": (3, 5, 6),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
     "description": "Addon allows to import Source Engine models",
@@ -28,11 +28,11 @@ if not NO_BPY:
     from .vtf.export_vtf import export_texture
     from .vtf.import_vtf import import_texture
     from .dmx.dmx import DMX
+
     try:
         from .vtf.vmt import VMT
     except OSError:
         VMT = None
-
 
 
     # noinspection PyUnresolvedReferences
@@ -87,6 +87,7 @@ if not NO_BPY:
             wm.fileselect_add(self)
             return {'RUNNING_MODAL'}
 
+
     class DMXImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine MDL models"""
         bl_idname = "source_io.dmx"
@@ -101,7 +102,7 @@ if not NO_BPY:
         def execute(self, context):
             directory = Path(self.filepath).parent.absolute()
             for file in self.files:
-                importer = DMX(str(directory / file.name),self.project_dir)
+                importer = DMX(str(directory / file.name), self.project_dir)
                 importer.load_models()
                 importer.load_lights()
                 importer.create_cameras()
@@ -200,21 +201,23 @@ if not NO_BPY:
                 subtype='FILE_NAME',
             )
 
-            imgFormat: EnumProperty(
+            img_format: EnumProperty(
                 name="VTF Type Preset",
                 description="Choose a preset. It will affect the result's format and flags.",
                 items=(
-                    ('RGBA8888Simple', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
+                    ('RGBA8888', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
                     ('RGBA8888Normal', "RGBA8888 Normal Map",
                      "RGBA8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
-                    ('DXT1Simple', "DXT1 Simple", "DXT1 format, no flags"),
-                    ('DXT5Simple', "DXT5 Simple",
+                    ('RGB888', "RGBA888 Simple", "RGB888 format, no alpha"),
+                    ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
+                    ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
+                    ('DXT5', "DXT5 Simple",
                      "DXT5 format, format-specific Eight Bit Alpha flag only"),
                     ('DXT1Normal', "DXT1 Normal Map",
                      "DXT1 format, Normal Map flag only"),
                     ('DXT5Normal', "DXT5 Normal Map",
                      "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
-                default='RGBA8888Simple',
+                default='RGBA8888',
             )
 
             def execute(self, context):
@@ -224,7 +227,7 @@ if not NO_BPY:
                     self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
                 else:
                     print(context)
-                    export_texture(ima, self.filepath, self.imgFormat)
+                    export_texture(ima, self.filepath, self.img_format)
                 return {'FINISHED'}
 
             def invoke(self, context, event):
@@ -263,12 +266,14 @@ if not NO_BPY:
             self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
             self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
 
-    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,DMXImporter_OT_operator)
+    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
+               DMXImporter_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
         register_ = lambda: 0
         unregister_ = lambda: 0
+
 
     def register():
         register_()
