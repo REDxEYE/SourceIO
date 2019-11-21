@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 from typing import List
 
+from .. import bl_info
 from ..data_structures import vtx_data, mdl_data
 from ..data_structures.mdl_data import SourceMdlModel, SourceMdlBone
 from ..data_structures.vtx_data import SourceVtxBodyPart, SourceVtxModel, SourceVtxModelLod
@@ -12,7 +13,9 @@ from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from ..utilities import progressbar
 
 
+
 class SMD:
+    version = '.'.join(map(str, bl_info['version']))
     def __init__(self, source_model):
         self.mdl = source_model.mdl  # type:SourceMdlFile49
         self.vvd = source_model.vvd  # type:SourceVvdFile4
@@ -169,7 +172,7 @@ class SMD:
                             fileh.write('end\n')
 
     def write_header(self, fileh):
-        fileh.write('// Created by SourceIO v{}\n')
+        fileh.write('// Created by SourceIO v{}\n'.format(self.version))
         fileh.write('version 1\n')
 
     def write_nodes(self, fileh):
