@@ -117,6 +117,7 @@ class SourceMdlFileData(SourceBase):
         self.version = 0
         self.checksum = 0
         self.name = ''
+        self.second_name = ''
         self.file_size = 0
         self.eye_position = SourceVector()
         self.illumination_position = SourceVector()
@@ -409,13 +410,14 @@ class SourceMdlFileData(SourceBase):
 
     def read_header02(self, reader: ByteIO):
 
+        entry = reader.tell()
         self.source_bone_transform_count = reader.read_uint32()
         self.source_bone_transform_offset = reader.read_uint32()
         self.illum_position_attachment_index = reader.read_uint32()
         self.max_eye_deflection = reader.read_float()
         self.linear_bone_offset = reader.read_uint32()
-
         self.name_offset = reader.read_uint32()
+        self.second_name = reader.read_from_offset(entry+self.name_offset,reader.read_ascii_string)
         if self.version > 47:
             self.bone_flex_driver_count = reader.read_uint32()
             self.bone_flex_driver_offset = reader.read_uint32()
@@ -594,7 +596,7 @@ class SourceMdlBone(SourceBase):
         self.q_alignment = SourceQuaternion()
         self.flags = SourceMdlBoneFlags(0)
         self.procedural_rule_type = 0
-        self.proceduralRuleOffset = 0
+        self.procedural_rule_offset = 0
         self.physics_bone_index = 0
         self.surface_prop_name_offset = 0
         self.contents = SourceContents(0)
@@ -638,7 +640,7 @@ class SourceMdlBone(SourceBase):
         self.q_alignment.read(reader)
         self.flags = SourceMdlBoneFlags(reader.read_uint32())
         self.procedural_rule_type = reader.read_uint32()
-        self.proceduralRuleOffset = reader.read_uint32()
+        self.procedural_rule_offset = reader.read_uint32()
         self.physics_bone_index = reader.read_uint32()
         self.surface_prop_name_offset = reader.read_uint32()
         self.contents = SourceContents(reader.read_uint32())
@@ -649,18 +651,18 @@ class SourceMdlBone(SourceBase):
         if self.name_offset != 0:
             self.name = reader.read_from_offset(self.boneOffset + self.name_offset, reader.read_ascii_string).encode(
                 "ascii", 'ignore').decode('ascii')
-        if self.procedural_rule_type != 0 and self.proceduralRuleOffset != 0:
+        if self.procedural_rule_type != 0 and self.procedural_rule_offset != 0:
             if self.procedural_rule_type == self.STUDIO_PROC_AXISINTERP:
                 with reader.save_current_pos():
-                    reader.seek(self.boneOffset + self.proceduralRuleOffset)
+                    reader.seek(self.boneOffset + self.procedural_rule_offset)
                     self.axis_interp_bone = SourceMdlAxisInterpBone().read(reader)
             if self.procedural_rule_type == self.STUDIO_PROC_QUATINTERP:
                 with reader.save_current_pos():
-                    reader.seek(self.boneOffset + self.proceduralRuleOffset)
+                    reader.seek(self.boneOffset + self.procedural_rule_offset)
                     self.quat_interp_bone = SourceMdlQuatInterpBone().read(reader)
             if self.procedural_rule_type == self.STUDIO_PROC_JIGGLE:
                 with reader.save_current_pos():
-                    reader.seek(self.boneOffset + self.proceduralRuleOffset)
+                    reader.seek(self.boneOffset + self.procedural_rule_offset)
                     self.jiggle_bone = SourceMdlJiggleBone().read(reader)
         if self.surface_prop_name_offset != 0:
             self.the_surface_prop_name = reader.read_from_offset(self.boneOffset + self.surface_prop_name_offset,
@@ -695,64 +697,64 @@ class SourceMdlJiggleBone(SourceBase):
     def __init__(self):
         self.flags = JiggleBoneFlags(0)
         self.length = 0.0
-        self.tipMass = 0.0
-        self.yawStiffness = 0.0
-        self.yawDamping = 0.0
-        self.pitchStiffness = 0.0
-        self.pitchDamping = 0.0
-        self.alongStiffness = 0.0
-        self.alongDamping = 0.0
-        self.angleLimit = 0.0
-        self.minYaw = 0.0
-        self.maxYaw = 0.0
-        self.yawFriction = 0.0
-        self.yawBounce = 0.0
-        self.minPitch = 0.0
-        self.maxPitch = 0.0
-        self.pitchBounce = 0.0
-        self.pitchFriction = 0.0
-        self.baseMass = 0.0
-        self.baseStiffness = 0.0
-        self.baseDamping = 0.0
-        self.baseMinLeft = 0.0
-        self.baseMaxLeft = 0.0
-        self.baseLeftFriction = 0.0
-        self.baseMinUp = 0.0
-        self.baseMaxUp = 0.0
-        self.baseUpFriction = 0.0
-        self.baseMinForward = 0.0
-        self.baseMaxForward = 0.0
-        self.baseForwardFriction = 0.0
+        self.tip_mass = 0.0
+        self.yaw_stiffness = 0.0
+        self.yaw_damping = 0.0
+        self.pitch_stiffness = 0.0
+        self.pitch_damping = 0.0
+        self.along_stiffness = 0.0
+        self.along_damping = 0.0
+        self.angle_limit = 0.0
+        self.min_yaw = 0.0
+        self.max_yaw = 0.0
+        self.yaw_friction = 0.0
+        self.yaw_bounce = 0.0
+        self.min_pitch = 0.0
+        self.max_pitch = 0.0
+        self.pitch_bounce = 0.0
+        self.pitch_friction = 0.0
+        self.base_mass = 0.0
+        self.base_stiffness = 0.0
+        self.base_damping = 0.0
+        self.base_min_left = 0.0
+        self.base_max_left = 0.0
+        self.base_left_friction = 0.0
+        self.base_min_up = 0.0
+        self.base_max_up = 0.0
+        self.base_up_friction = 0.0
+        self.base_min_forward = 0.0
+        self.base_max_forward = 0.0
+        self.base_forward_friction = 0.0
 
     def read(self, reader: ByteIO):
         self.flags = JiggleBoneFlags(reader.read_int32())
         self.length = reader.read_float()
-        self.tipMass = reader.read_float()
-        self.yawStiffness = reader.read_float()
-        self.yawDamping = reader.read_float()
-        self.pitchStiffness = reader.read_float()
-        self.pitchDamping = reader.read_float()
-        self.alongStiffness = reader.read_float()
-        self.alongDamping = reader.read_float()
-        self.angleLimit = reader.read_float()
-        self.minYaw = reader.read_float()
-        self.maxYaw = reader.read_float()
-        self.yawFriction = reader.read_float()
-        self.yawBounce = reader.read_float()
-        self.minPitch = reader.read_float()
-        self.maxPitch = reader.read_float()
-        self.pitchFriction = reader.read_float()
-        self.pitchBounce = reader.read_float()
-        self.baseMass = reader.read_float()
-        self.baseMinLeft = reader.read_float()
-        self.baseMaxLeft = reader.read_float()
-        self.baseLeftFriction = reader.read_float()
-        self.baseMinUp = reader.read_float()
-        self.baseMaxUp = reader.read_float()
-        self.baseUpFriction = reader.read_float()
-        self.baseMinForward = reader.read_float()
-        self.baseMaxForward = reader.read_float()
-        self.baseForwardFriction = reader.read_float()
+        self.tip_mass = reader.read_float()
+        self.yaw_stiffness = reader.read_float()
+        self.yaw_damping = reader.read_float()
+        self.pitch_stiffness = reader.read_float()
+        self.pitch_damping = reader.read_float()
+        self.along_stiffness = reader.read_float()
+        self.along_damping = reader.read_float()
+        self.angle_limit = reader.read_float()
+        self.min_yaw = reader.read_float()
+        self.max_yaw = reader.read_float()
+        self.yaw_friction = reader.read_float()
+        self.yaw_bounce = reader.read_float()
+        self.min_pitch = reader.read_float()
+        self.max_pitch = reader.read_float()
+        self.pitch_friction = reader.read_float()
+        self.pitch_bounce = reader.read_float()
+        self.base_mass = reader.read_float()
+        self.base_min_left = reader.read_float()
+        self.base_max_left = reader.read_float()
+        self.base_left_friction = reader.read_float()
+        self.base_min_up = reader.read_float()
+        self.base_max_up = reader.read_float()
+        self.base_up_friction = reader.read_float()
+        self.base_min_forward = reader.read_float()
+        self.base_max_forward = reader.read_float()
+        self.base_forward_friction = reader.read_float()
         return self
 
     def __repr__(self):
