@@ -1,4 +1,6 @@
 import sys
+import os
+os.environ['NO_BPY']='1'
 from pathlib import Path
 
 from SourceIO.mdl.source_model import SourceModel
