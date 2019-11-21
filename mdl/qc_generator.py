@@ -2,6 +2,7 @@ import math
 import os.path
 from pathlib import Path
 
+from .. import bl_info
 from ..data_structures.mdl_data import SourceMdlBone
 from ..data_structures.mdl_data import SourceMdlBodyPart, SourceMdlAttachment
 from ..data_structures.source_shared import SourceVector
@@ -13,7 +14,7 @@ from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class QC:
-    version = '3.4.1'
+    version = '.'.join(map(str,bl_info['version']))
 
     def __init__(self, source_model):
         self.source_model = source_model
@@ -34,11 +35,12 @@ class QC:
             self.write_models(fileh)
             self.write_skins(fileh)
             self.write_misc(fileh)
+            self.write_jiggle_bones(fileh)
             self.write_sequences(fileh)
 
     def write_header(self, fileh):
-        fileh.write('// Created by SourceIO {}\n\n'.format(self.version))
-        fileh.write('$modelname "{}"\n\n'.format(self.mdl.file_data.name[:-4]))
+        fileh.write('// Created by SourceIO v{}\n\n'.format(self.version))
+        fileh.write('$modelname "{}"\n\n'.format(Path(self.mdl.file_data.name).parent/Path(self.mdl.file_data.name).stem))
 
     def write_models(self, fileh):
         for n, bp in enumerate(
@@ -128,7 +130,7 @@ class QC:
         fileh.write('}\n\n')
 
     def write_skins(self, fileh):
-        fileh.write('$texturegroup "skinfamilies"\n{\n')
+        fileh.write('$texturegroup "skinfamilies"{\n')
         for skin_fam in self.mdl.file_data.skin_families:
             fileh.write('{')
             for mat in skin_fam:
@@ -137,7 +139,7 @@ class QC:
                 pass
             fileh.write('}\n')
 
-        fileh.write('\n}\n\n')
+        fileh.write('}\n\n')
 
     def write_misc(self, fileh):
         fileh.write('$surfaceprop "{}"\n\n'.format(self.mdl.file_data.surface_prop_name))
@@ -146,13 +148,13 @@ class QC:
         fileh.write('$maxeyedeflection {:.1f}\n\n'.format(deflection))
         fileh.write('$eyeposition {}\n\n'.format(self.mdl.file_data.eye_position.as_string_smd))
 
-        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_AMBIENT_BOOST:
+        if self.mdl.file_data.flags & self.mdl.file_data.flags.STUDIOHDR_FLAGS_AMBIENT_BOOST:
             fileh.write('$ambientboost\n')
-        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_TRANSLUCENT_TWOPASS:
-            fileh.write('$MostlyOpaque\n')
-        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_STATIC_PROP:
+        if self.mdl.file_data.flags & self.mdl.file_data.flags.STUDIOHDR_FLAGS_TRANSLUCENT_TWOPASS:
+            fileh.write('$mostlyopaque\n')
+        if self.mdl.file_data.flags & self.mdl.file_data.flags.STUDIOHDR_FLAGS_STATIC_PROP:
             fileh.write('$staticprop\n')
-        if self.mdl.file_data.flags.STUDIOHDR_FLAGS_SUBDIVISION_SURFACE:
+        if self.mdl.file_data.flags & self.mdl.file_data.flags.STUDIOHDR_FLAGS_SUBDIVISION_SURFACE:
             fileh.write('$subd\n')
 
         fileh.write('\n')
@@ -194,6 +196,39 @@ class QC:
                                                                           attachment.localM33)).to_degrees().as_rounded(
                                                                           2)))
         fileh.write('\n')
+
+    def write_jiggle_bones(self, fileh):
+        for bone in self.mdl.file_data.bones:
+            if bone.jiggle_bone is not None:
+                jbone = bone.jiggle_bone
+                fileh.write('$jigglebone {} '.format(bone.name))
+                fileh.write('{\n')
+                if jbone.flags & jbone.flags.IS_FLEXIBLE:
+                    fileh.write("\tis_flexible {\n")
+                    fileh.write('\t\tlength {}\n'.format(jbone.length))
+                    fileh.write('\t\ttip_mass {}\n'.format(jbone.tip_mass))
+                    fileh.write('\t\tpitch_stiffness {}\n'.format(jbone.pitch_stiffness))
+                    fileh.write('\t\tpitch_damping {}\n'.format(jbone.pitch_damping))
+                    fileh.write('\t\tyaw_stiffness {}\n'.format(jbone.yaw_stiffness))
+                    fileh.write('\t\tyaw_damping {}\n'.format(jbone.yaw_damping))
+                    if jbone.flags & jbone.flags.HAS_LENGTH_CONSTRAINT:
+                        fileh.write('\t\talong_stiffness {}\n'.format(jbone.along_stiffness))
+                        fileh.write('\t\talong_damping {}\n'.format(jbone.along_damping))
+                    if jbone.flags & jbone.flags.HAS_ANGLE_CONSTRAINT:
+                        fileh.write('\t\tangle_constraint {}\n'.format(round(jbone.angle_limit * 180 / 3.1415, 3)))
+                    if jbone.flags & jbone.flags.HAS_PITCH_CONSTRAINT:
+                        fileh.write('\t\tpitch_constraint {} {}\n'.format(jbone.min_pitch, jbone.max_pitch))
+                        fileh.write('\t\tpitch_friction {}\n'.format(jbone.pitch_friction))
+                    if jbone.flags & jbone.flags.HAS_YAW_CONSTRAINT:
+                        fileh.write('\t\tyaw_constraint {} {}\n'.format(jbone.min_yaw, jbone.max_yaw))
+                        fileh.write('\t\tyaw_friction  {}\n'.format(jbone.yaw_friction))
+                    fileh.write('\t}\n')
+
+                if jbone.flags & jbone.flags.IS_RIGID:
+                    fileh.write('is_rigid {\n')
+                    fileh.write('}\n')
+                fileh.write('}\n\n')
+        pass
 
     def write_sequences(self, fileh):
         fileh.write(
