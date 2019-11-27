@@ -1,3 +1,4 @@
+from ...data_structures.mdl_anim_data import *
 from ...data_structures.mdl_data import *
 from ...utilities.progressbar import ProgressBar
 
@@ -16,6 +17,8 @@ class SourceMdlFile49:
         self.read_flex_descs()
         self.read_flex_controllers()
         self.read_flex_rules()
+
+        self.read_local_animation_descs()
 
         self.read_attachments()
         self.read_mouths()
@@ -143,7 +146,13 @@ class SourceMdlFile49:
                     self.file_data.texture_paths.append("")
                 self.reader.seek(entry)
 
-    # def read_local_animation_descs(self):
+    def read_local_animation_descs(self):
+        self.reader.seek(self.file_data.local_animation_offset)
+        for i in range(self.file_data.local_animation_count):
+            anim_desc = SourceAnimDesc()
+            anim_desc.read(self.reader)
+            self.file_data.register(anim_desc)
+
     #     self.reader.seek(self.file_data.local_animation_offset)
     #     with self.reader.save_current_pos():
     #         for _ in range(self.file_data.local_animation_count):
@@ -274,7 +283,6 @@ class SourceMdlFile49:
                             flex_desc_partner_index = mesh.flexes[flex_index].flex_desc_partner_index
 
                             if flex_desc_partner_index > 0:
-
                                 flex_frame.has_partner = True
                                 flex_frame.partner = flex_desc_partner_index
 
@@ -306,7 +314,7 @@ class SourceMdlFile49:
             if body_part.model_count > 1:
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
-            if body_part.model_count ==0:
+            if body_part.model_count == 0:
                 continue
             model = body_part.models[0]
             # print('Scanning,', body_part.name)

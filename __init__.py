@@ -35,6 +35,18 @@ if not NO_BPY:
         VMT = None
 
 
+    class SourceIOPreferences(bpy.types.AddonPreferences):
+        bl_idname = __package__
+
+        sfm_path: StringProperty(default='', name='SFM path')
+
+        def draw(self, context):
+            layout = self.layout
+            layout.label(text='Enter SFM instalation path:')
+            row = layout.row()
+            row.prop(self, 'sfm_path', expand=True)
+
+
     # noinspection PyUnresolvedReferences
     class MDLImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine MDL models"""
@@ -101,8 +113,9 @@ if not NO_BPY:
 
         def execute(self, context):
             directory = Path(self.filepath).parent.absolute()
+            sfm_path = self.project_dir if self.project_dir else bpy.context.preferences.addons[bl_info['name']].preferences.sfm_path
             for file in self.files:
-                importer = DMX(str(directory / file.name), self.project_dir)
+                importer = DMX(str(directory / file.name), sfm_path)
                 importer.load_models()
                 importer.load_lights()
                 importer.create_cameras()
@@ -267,7 +280,7 @@ if not NO_BPY:
             self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
 
     classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
-               DMXImporter_OT_operator)
+               DMXImporter_OT_operator,SourceIOPreferences)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
