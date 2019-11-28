@@ -26,6 +26,7 @@ import collections
 import io
 import struct
 import uuid
+from functools import lru_cache
 from struct import unpack, calcsize
 from typing import List, Union
 
@@ -402,8 +403,9 @@ class Element(collections.OrderedDict):
 
         super().__init__()
 
+    # noinspection PyProtectedMember
     def __eq__(self, other):
-        return isinstance(other, Element) and self.id == other.id
+        return self._id.int == other._id.int
 
     def __bool__(self):
         return True
@@ -546,17 +548,17 @@ attr_list_v2 = [
 attr_list_v3 = [None, Element, int, float, bool, str, Binary, Time, Color, Vector2, Vector3, Vector4, Angle, Quaternion,
                 Matrix, int, int]  # last two are meant to be uint64, uint8
 
-
+@lru_cache()
 def _get_type_from_string(type_str):
     return _dmxtypes[_dmxtypes_str.index(type_str)]
 
-
+@lru_cache()
 def _get_array_type(single_type):
     if single_type in _dmxtypes_array:
         raise ValueError("Argument is already an array type")
     return _dmxtypes_array[_dmxtypes.index(single_type)]
 
-
+@lru_cache()
 def _get_single_type(array_type):
     if array_type in _dmxtypes:
         raise ValueError("Argument is already a single type")
@@ -730,14 +732,14 @@ class DataModel:
         return "<Datamodel 0x{}{}>".format(id(self), " (root == \"{}\")".format(self.root.name) if self.root else "")
 
     def validate_element(self, elem):
-        try:
+        if elem in self.elements:
             collision = self.elements[self.elements.index(elem)]
-        except ValueError:
-            return  # no match
-        # noinspection PyProtectedMember
-        if not collision._is_placeholder:
-            raise IDCollisionError(
-                "{} invalid for {}: ID collision with {}. ID is {}.".format(elem, self, collision, elem.id))
+            # noinspection PyProtectedMember
+            if not collision._is_placeholder:
+                raise IDCollisionError(
+                    "{} invalid for {}: ID collision with {}. ID is {}.".format(elem, self, collision, elem.id))
+        else:
+            return
 
     def add_element(self, name, elemtype="DmElement", uid=None, _is_placeholder=False):
         if uid is None and not self.allow_random_ids:

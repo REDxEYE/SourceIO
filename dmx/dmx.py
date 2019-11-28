@@ -112,7 +112,8 @@ class Light(Entity):
         return r, g, b
 
     def __repr__(self):
-        return '{}<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f} color: R:{:.2f} G:{:.2f} B:{:.2f}>'.format(
+        return '{}<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f} ' \
+               'color: R:{:.2f} G:{:.2f} B:{:.2f}>'.format(
             self.__class__.__name__, self.animset.name,
             *self.position,
             *self.orientation,
