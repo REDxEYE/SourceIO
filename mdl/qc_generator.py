@@ -122,7 +122,7 @@ class QC:
                 if model.flex_frames and self.vvd:
                     fileh.write(
                         "//WARNING: this {} have flexes! Additional VTA will be written, you can import them manually\n"
-                        "//If you want to compile it back correctly - use DMX format\n".format(
+                        "//If you want to compile it back correctly - use Session format\n".format(
                             model.name)
                     )
                     if self.vta:

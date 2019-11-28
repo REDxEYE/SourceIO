@@ -20,7 +20,19 @@ def find_by_name_n_type(array, name, elem_type):
     return None
 
 
+class DmeChannel:
+    def __init__(self, transform: datamodel.Element):
+        self.__trans = transform
+        print(self.__trans)
+
+
 class Entity:
+    root = None  # type: Session
+
+    @classmethod
+    def set_root(cls, root):
+        cls.root = root
+
     def __init__(self, animset: datamodel.Element, channel_set: datamodel.Element):
         self.animset: datamodel.Element = animset
         self.channel_set: datamodel.Element = channel_set
@@ -68,11 +80,46 @@ class Entity:
         return nx, ny, nz
 
     def __repr__(self):
-        return 'Entity<name:{} at X:{} Y:{} Z:{} rot: X:{} Y:{} Z:{}>'.format(self.animset.name, *self.position,
-                                                                              *self.orientation)
+        return '{}<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f}>'.format(
+            self.__class__.__name__, self.animset.name,
+            *self.position,
+            *self.orientation)
 
 
-class DMX:
+class Camera(Entity):
+    pass
+
+
+class Model(Entity):
+
+    @property
+    def model_path(self):
+        return self.animset.gameModel.modelName
+
+    @property
+    def __transform(self):
+        return find_by_name_n_type(self.animset.controls, 'rootTransform', 'DmeTransformControl')
+
+
+class Light(Entity):
+    pass
+
+    @property
+    def color(self):
+        r = find_by_name_n_type(self.animset.controls, 'color_red', 'DmElement').value
+        g = find_by_name_n_type(self.animset.controls, 'color_green', 'DmElement').value
+        b = find_by_name_n_type(self.animset.controls, 'color_blue', 'DmElement').value
+        return r, g, b
+
+    def __repr__(self):
+        return '{}<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f} color: R:{:.2f} G:{:.2f} B:{:.2f}>'.format(
+            self.__class__.__name__, self.animset.name,
+            *self.position,
+            *self.orientation,
+            *self.color)
+
+
+class Session:
 
     def _get_proj_root(self, path: Path):
         if path.parts[-1] == 'game':
@@ -95,7 +142,7 @@ class DMX:
         return self.gameinfo.find_file(model, extention='.mdl', use_recursive=True)
 
     def __init__(self, filepath, game_dir=None):
-
+        Entity.set_root(self)
         self.sfm_path = game_dir
 
         self.dmx = datamodel.load(filepath)
@@ -120,7 +167,14 @@ class DMX:
         animation_sets = film_clip.animationSets
         for aset in animation_sets:  # type: datamodel.Element
             cset = list(filter(lambda a: a.type == 'DmeChannelsClip', self.dmx.find_elements(name=aset.name)))[0]
-            entity = Entity(aset, cset)
+            if aset.get('gameModel', False):
+                entity = Model(aset, cset)
+            elif aset.get('camera', False):
+                entity = Camera(aset, cset)
+            elif aset.get('light', False):
+                entity = Light(aset, cset)
+            else:
+                entity = Entity(aset, cset)
             self.entities.append(entity)
 
     # def load_map(self):
@@ -268,11 +322,3 @@ class DMX:
     #         cam_ob.scale = [100, 100, 100]
     #
     #         # print(focalDistance)
-
-
-if __name__ == '__main__':
-    a = DMX(r'E:\PYTHON\DMX_reader\test_data\some_tests6.dmx', r'H:\SteamLibrary\SteamApps\common\SourceFilmmaker')
-    a.parse()
-    # a.load_models()
-    # a.load_lights()
-    # a.create_cameras()

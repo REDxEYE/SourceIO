@@ -27,7 +27,7 @@ if not NO_BPY:
     from .vtf.blender_material import BlenderMaterial
     from .vtf.export_vtf import export_texture
     from .vtf.import_vtf import import_texture
-    from .dmx.dmx import DMX
+    from .dmx.dmx import Session
 
     try:
         from .vtf.vmt import VMT
@@ -103,7 +103,7 @@ if not NO_BPY:
     class DMXImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine MDL models"""
         bl_idname = "source_io.dmx"
-        bl_label = "Import Source DMX file"
+        bl_label = "Import Source Session file"
         bl_options = {'UNDO'}
 
         filepath: StringProperty(subtype="FILE_PATH")
@@ -115,7 +115,7 @@ if not NO_BPY:
             directory = Path(self.filepath).parent.absolute()
             sfm_path = self.project_dir if self.project_dir else bpy.context.preferences.addons[bl_info['name']].preferences.sfm_path
             for file in self.files:
-                importer = DMX(str(directory / file.name), sfm_path)
+                importer = Session(str(directory / file.name), sfm_path)
                 importer.load_models()
                 importer.load_lights()
                 importer.create_cameras()
