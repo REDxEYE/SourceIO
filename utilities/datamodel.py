@@ -22,6 +22,7 @@
 
 import array
 import binascii
+import bisect
 import collections
 import io
 import struct
@@ -42,6 +43,7 @@ def bi_contains(lst, item):
     # find `len(lst)` as the index to insert, so check that first. Else, if the
     # item is in the list then it has to be at index bisect_left(lst, item)
     return (item._id <= lst[-1]._id) and (lst[bisect_left(lst, item)]._id == item._id)
+
 
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")
@@ -89,7 +91,7 @@ def _validate_array_list(iterable, array_type):
     if not iterable:
         return None
     try:
-        return list([array_type(i) if type(i) != array_type else i for i in iterable])
+        return [array_type(i) for i in iterable]
     except Exception as e:
         raise TypeError("Could not convert all values to {}: {}".format(array_type, e)) from e
 
@@ -423,8 +425,8 @@ class Element(collections.OrderedDict):
     def __bool__(self):
         return True
 
-    def __lt__(self, other:'Element'):
-        return self._id.int<other._id.int
+    def __lt__(self, other: 'Element'):
+        return self._id.int < other._id.int
 
     def __repr__(self):
         return "<Datamodel element \"{}\" ({})>".format(self._name, self.type)
@@ -441,7 +443,7 @@ class Element(collections.OrderedDict):
         try:
             return super().__getitem__(item)
         except KeyError as e:
-            raise DmeAttributeError("No attribute \"{}\" on {}".format(item, self)) from e
+            raise AttributeError("No attribute \"{}\" on {}".format(item, self)) from e
 
     def __setitem__(self, key, item):
         key = str(key)
@@ -532,7 +534,7 @@ class Element(collections.OrderedDict):
             if self.encoding_ver < 5:
                 return b'-1'
             else:
-                return b'-2' + self.id.bytes
+                return bytes.join(b'', b'-2', bytes.decode(self.id, encoding='ASCII'))
         else:
             return struct.pack("i", self._index)
 
@@ -641,7 +643,7 @@ class _StringDictionary(list):
         elif encoding == "binary_proto":
             self.dummy = True
             return
-
+        self.indice_type = "H" if self.indice_size == short_size else "i"
         if in_file:
             num_strings = get_short(in_file) if self.length_size == short_size else get_int(in_file)
             for i in range(num_strings):
@@ -675,14 +677,15 @@ class _StringDictionary(list):
         if self.dummy:
             return get_str(in_file)
         else:
-            return self[get_short(in_file) if self.indice_size == short_size else get_int(in_file)]
+            ind = get_short(in_file) if self.indice_size == short_size else get_int(in_file)
+            return self[ind]
 
     def write_string(self, out_file, string):
         if self.dummy:
             out_file.write(_encode_binary_string(string))
         else:
-            assert (string in self)
-            out_file.write(struct.pack("H" if self.indice_size == short_size else "i", self.index(string)))
+            assert (bisect.bisect(self, string) != -1)
+            out_file.write(struct.pack(self.indice_type, bisect.bisect(self, string) - 1))
 
     def write_dictionary(self, out_file):
         if not self.dummy:
@@ -730,12 +733,12 @@ class DataModel:
     def prefix_attributes(self):
         return self.__prefix_attributes
 
-    def __init__(self, encoding_format, format_ver):
-        self.format = encoding_format
-        self.format_ver = format_ver
+    def __init__(self, fmt, fmt_ver, encoding='binary', encoding_version=9):
+        self.format = fmt
+        self.format_ver = fmt_ver
 
-        self.encoding = ''
-        self.encoding_ver = 0
+        self.encoding = encoding
+        self.encoding_ver = encoding_version
 
         self.element_chain = []
 
@@ -751,14 +754,15 @@ class DataModel:
         return "<Datamodel 0x{}{}>".format(id(self), " (root == \"{}\")".format(self.root._name) if self.root else "")
 
     def validate_element(self, elem):
-        if bi_contains(self.__elements,elem):
+        if bi_contains(self.__elements, elem):
             # noinspection PyProtectedMember
             if not elem._is_placeholder:
                 collision = self.elements[self.elements.index(elem)]
                 raise IDCollisionError(
                     "{} invalid for {}: ID collision with {}. ID is {}.".format(elem, self, collision, elem.id))
 
-    def add_element(self, name, elemtype="DmElement", uid=None, _is_placeholder=False):
+    def add_element(self, name, elemtype="DmElement", id=None, _is_placeholder=False):
+        uid = id
         if uid is None and not self.allow_random_ids:
             raise ValueError("{} does not allow random IDs.".format(self))
         elem = Element(self, name, elemtype, uid, _is_placeholder)
@@ -987,7 +991,7 @@ def load(path=None, in_file=None, element_path=None):
             raise IOError("Could not read Session header") from e
 
         check_support(encoding, encoding_ver)
-        dm = DataModel(fmt, fmt_ver)
+        dm = DataModel(fmt, fmt_ver,encoding,encoding_ver)
 
         max_elem_path = len(element_path) + 1 if element_path else 0
 
@@ -1016,7 +1020,7 @@ def load(path=None, in_file=None, element_path=None):
                             return None
                         else:
                             element_users[kv2_value].append(AttributeReference(element_chain[-1], name, index))
-                            return dm.add_element("Missing element", uid=uuid.UUID(hex=kv2_value), _is_placeholder=True)
+                            return dm.add_element("Missing element", id=uuid.UUID(hex=kv2_value), _is_placeholder=True)
 
                     elif type_str == 'string':
                         return kv2_value
@@ -1038,19 +1042,19 @@ def load(path=None, in_file=None, element_path=None):
                 new_elem = None
                 for line_raw in in_file:
                     if line_raw.strip("\n\t, ").endswith("}"):
-                        # print("{}- {}".fmt('\t' * (len(element_chain)-1),element_chain[-1].element_name))
+                        # print("{}- {}".format('\t' * (len(element_chain)-1),element_chain[-1].element_name))
                         return element_chain.pop()
 
                     line_parsed = parse_line(line_raw)
                     if len(line_parsed) == 0:
                         continue
 
-                    if line_parsed[0] == 'uid':
+                    if line_parsed[0] == 'id':
                         if not prefix:
                             new_elem = dm.add_element(elem_name, elem_type, uuid.UUID(hex=line_parsed[2]))
                             element_chain.append(new_elem)
                         continue
-                    elif line_parsed[0] == 'element_name':
+                    elif line_parsed[0] == 'name':
                         if new_elem:
                             new_elem.name = line_parsed[2]
                         else:
@@ -1177,7 +1181,7 @@ def load(path=None, in_file=None, element_path=None):
                     if element_index == -1:
                         return None
                     elif element_index == -2:
-                        return dm.add_element("Missing element", uid=uuid.UUID(hex=get_str(in_file)),
+                        return dm.add_element("Missing element", id=uuid.UUID(hex=get_str(in_file)),
                                               _is_placeholder=True)
                     else:
                         return dm.elements[element_index]
