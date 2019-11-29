@@ -30,6 +30,19 @@ from functools import lru_cache
 from struct import unpack, calcsize
 from typing import List, Union
 
+from bisect import bisect_left
+
+
+# noinspection PyProtectedMember
+def bi_contains(lst, item):
+    if not lst:
+        return False
+    """ efficient `item in lst` for sorted lists """
+    # if item is larger than the last its not in the list, but the bisect would
+    # find `len(lst)` as the index to insert, so check that first. Else, if the
+    # item is in the list then it has to be at index bisect_left(lst, item)
+    return (item._id <= lst[-1]._id) and (lst[bisect_left(lst, item)]._id == item._id)
+
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")
 
@@ -90,7 +103,7 @@ def get_bool(file):
 
 
 def get_byte(file):
-    return unpack("B", file.read(1))[0]
+    return int.from_bytes(file.read(1), 'little', signed=False)
 
 
 def get_char(file):
@@ -101,11 +114,11 @@ def get_char(file):
 
 
 def get_int(file):
-    return unpack("i", file.read(int_size))[0]
+    return int.from_bytes(file.read(4), 'little', signed=True)
 
 
 def get_short(file):
-    return unpack("H", file.read(short_size))[0]
+    return int.from_bytes(file.read(2), 'little', signed=False)
 
 
 def get_float(file):
@@ -117,7 +130,7 @@ def get_vec(file, dim):
 
 
 def get_color(file):
-    return Color(list(unpack("4B", file.read(4))))
+    return Color(unpack("4B", file.read(4)))
 
 
 def get_str(file):
@@ -410,11 +423,14 @@ class Element(collections.OrderedDict):
     def __bool__(self):
         return True
 
+    def __lt__(self, other:'Element'):
+        return self._id.int<other._id.int
+
     def __repr__(self):
-        return "<Datamodel element \"{}\" ({})>".format(self.name, self.type)
+        return "<Datamodel element \"{}\" ({})>".format(self._name, self.type)
 
     def __hash__(self):
-        return hash(self.id)
+        return self._id.int
 
     def __getattr__(self, item):
         return self.__getitem__(item)
@@ -481,7 +497,7 @@ class Element(collections.OrderedDict):
                 return "{}\"{}\" {}\n".format(_kv2_indent, attr_name, dm_type)
 
         out += _make_attr_str("id", "elementid", self.id)
-        out += _make_attr_str("name", "string", self.name)
+        out += _make_attr_str("name", "string", self._name)
 
         for name in self:
             attr = self[name]
@@ -548,15 +564,18 @@ attr_list_v2 = [
 attr_list_v3 = [None, Element, int, float, bool, str, Binary, Time, Color, Vector2, Vector3, Vector4, Angle, Quaternion,
                 Matrix, int, int]  # last two are meant to be uint64, uint8
 
+
 @lru_cache()
 def _get_type_from_string(type_str):
     return _dmxtypes[_dmxtypes_str.index(type_str)]
+
 
 @lru_cache()
 def _get_array_type(single_type):
     if single_type in _dmxtypes_array:
         raise ValueError("Argument is already an array type")
     return _dmxtypes_array[_dmxtypes.index(single_type)]
+
 
 @lru_cache()
 def _get_single_type(array_type):
@@ -722,24 +741,22 @@ class DataModel:
 
         self._string_dict = None
 
-        self.__elements = []
+        self.__elements = []  # type: List[Element]
         self.__prefix_attributes = Element(self, "")
         self.root = None
         self.allow_random_ids = True
         self.out = None  # type:Union[io.BytesIO,io.StringIO]
 
     def __repr__(self):
-        return "<Datamodel 0x{}{}>".format(id(self), " (root == \"{}\")".format(self.root.name) if self.root else "")
+        return "<Datamodel 0x{}{}>".format(id(self), " (root == \"{}\")".format(self.root._name) if self.root else "")
 
     def validate_element(self, elem):
-        if elem in self.elements:
-            collision = self.elements[self.elements.index(elem)]
+        if bi_contains(self.__elements,elem):
             # noinspection PyProtectedMember
-            if not collision._is_placeholder:
+            if not elem._is_placeholder:
+                collision = self.elements[self.elements.index(elem)]
                 raise IDCollisionError(
                     "{} invalid for {}: ID collision with {}. ID is {}.".format(elem, self, collision, elem.id))
-        else:
-            return
 
     def add_element(self, name, elemtype="DmElement", uid=None, _is_placeholder=False):
         if uid is None and not self.allow_random_ids:
@@ -757,11 +774,11 @@ class DataModel:
         if isinstance(uid, str):
             uid = uuid.UUID(uid)
         for elem in self.elements:
-            if elem.id == uid:
+            if uid and elem.id == uid:
                 return [elem]
-            if elem.name == name:
+            if name and elem._name == name:
                 out.append(elem)
-            if elem.type == elemtype:
+            if elemtype and elem.type == elemtype:
                 out.append(elem)
         if len(out):
             return out
@@ -986,7 +1003,7 @@ def load(path=None, in_file=None, element_path=None):
                 return re.findall("\"(.*?)\"", string.strip("\n\t "))
 
             def read_element(elem_type):
-                # id = None
+                # uid = None
                 elem_name = None
                 prefix = elem_type == "$prefix_element$"
                 if prefix:
@@ -1028,7 +1045,7 @@ def load(path=None, in_file=None, element_path=None):
                     if len(line_parsed) == 0:
                         continue
 
-                    if line_parsed[0] == 'id':
+                    if line_parsed[0] == 'uid':
                         if not prefix:
                             new_elem = dm.add_element(elem_name, elem_type, uuid.UUID(hex=line_parsed[2]))
                             element_chain.append(new_elem)
@@ -1228,8 +1245,8 @@ def load(path=None, in_file=None, element_path=None):
             for i in range(num_elements):
                 elemtype = dm._string_dict.read_string(in_file)
                 name = dm._string_dict.read_string(in_file) if encoding_ver >= 4 else get_str(in_file)
-                id = uuid.UUID(bytes_le=in_file.read(16))  # little-endian
-                dm.add_element(name, elemtype, id)
+                uid = uuid.UUID(bytes_le=in_file.read(16))  # little-endian
+                dm.add_element(name, elemtype, uid)
 
             # element bodies
             # noinspection PyProtectedMember
@@ -1239,4 +1256,5 @@ def load(path=None, in_file=None, element_path=None):
         dm._string_dict = None
         return dm
     finally:
-        if in_file: in_file.close()
+        if in_file:
+            in_file.close()
