@@ -192,7 +192,7 @@ class _Array(list):
         else:
             return "[{}]".format(", ".join([_quote(_get_kv2_repr(item)) for item in self]))
 
-    def frombytes(self, file):
+    def from_bytes(self, file):
         length = get_int(file)
         self.extend(unpack(self.type_str * length, file.read(calcsize(self.type_str) * length)))
 
@@ -231,7 +231,7 @@ class _Vector(list):
     def __hash__(self):
         return hash(tuple(self))
 
-    def tobytes(self):
+    def to_bytes(self):
         return struct.pack(self.type_str, *self)
 
 
@@ -308,7 +308,7 @@ class Matrix(list):
     def to_kv2(self):
         return " ".join([str(f) for row in self for f in row])
 
-    def tobytes(self):
+    def to_bytes(self):
         return struct.pack("f" * 16, *[f for row in self for f in row])
 
 
@@ -329,10 +329,11 @@ class Color(Vector4):
     type = int
     type_str = "iiii"
 
-    def tobytes(self):
+    def to_bytes(self):
         out = bytes()
         for i in self:
-            out += bytes(int(self[i]))
+            out += int(i).to_bytes(4,'little')
+            
         return out
 
 
@@ -345,7 +346,7 @@ class Time(float):
     def from_int(cls, int_value):
         return cls(int_value / 10000)
 
-    def tobytes(self):
+    def to_bytes(self):
         return struct.pack("i", int(self * 10000))
 
 
@@ -529,7 +530,7 @@ class Element(collections.OrderedDict):
         return out
 
     # noinspection PyUnusedLocal
-    def tobytes(self, dm):
+    def to_bytes(self, dm):
         if self._is_placeholder:
             if self.encoding_ver < 5:
                 return b'-1'
@@ -815,9 +816,9 @@ class DataModel:
                 self._string_dict.write_string(self.out, value[0])
 
         elif t == Element:
-            self.out.write(bytes.join(b'', [item.tobytes(self) if item else struct.pack("i", -1) for item in value]))
+            self.out.write(bytes.join(b'', [item.to_bytes(self) if item else struct.pack("i", -1) for item in value]))
         elif issubclass(t, (_Vector, Matrix, Time)):
-            self.out.write(bytes.join(b'', [item.tobytes() for item in value]))
+            self.out.write(bytes.join(b'', [item.to_bytes() for item in value]))
 
         elif t == bool:
             self.out.write(struct.pack("b" * len(value), *value))

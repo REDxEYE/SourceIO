@@ -26,6 +26,24 @@ class DmeChannel:
         print(self.__trans)
 
 
+def _quaternion_to_euler(x, y, z, w):
+    import math
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    nx = math.degrees(math.atan2(t0, t1))
+
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    ny = math.degrees(math.asin(t2))
+
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    nz = math.degrees(math.atan2(t3, t4))
+
+    return nx, ny, nz
+
+
 class Entity:
     root = None  # type: Session
 
@@ -58,26 +76,7 @@ class Entity:
     @property
     def orientation(self):
         if self.orientation_q[0] != float('nan'):
-            return self.__quaternion_to_euler(*self.orientation_q)
-
-    @staticmethod
-    def __quaternion_to_euler(x, y, z, w):
-
-        import math
-        t0 = +2.0 * (w * x + y * z)
-        t1 = +1.0 - 2.0 * (x * x + y * y)
-        nx = math.degrees(math.atan2(t0, t1))
-
-        t2 = +2.0 * (w * y - z * x)
-        t2 = +1.0 if t2 > +1.0 else t2
-        t2 = -1.0 if t2 < -1.0 else t2
-        ny = math.degrees(math.asin(t2))
-
-        t3 = +2.0 * (w * z + x * y)
-        t4 = +1.0 - 2.0 * (y * y + z * z)
-        nz = math.degrees(math.atan2(t3, t4))
-
-        return nx, ny, nz
+            return _quaternion_to_euler(*self.orientation_q)
 
     def __repr__(self):
         return '{}<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f}>'.format(
@@ -90,11 +89,52 @@ class Camera(Entity):
     pass
 
 
+class Bone:
+    @property
+    def name(self):
+        return self._element.name
+
+    @property
+    def position(self):
+        return getattr(self._element.positionChannel.toElement, self._element.positionChannel.toAttribute)
+
+    @property
+    def rotation(self):
+        return _quaternion_to_euler(
+            *getattr(self._element.orientationChannel.toElement, self._element.orientationChannel.toAttribute))
+
+    def __init__(self, bone_element: datamodel.Element):
+        self._element = bone_element
+
+    def __repr__(self):
+        return 'Bone<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f}>'.format(self.name,
+                                                                                                    *self.position,
+                                                                                                    *self.rotation)
+
+
 class Model(Entity):
+
+    def __init__(self, animset: datamodel.Element, channel_set: datamodel.Element):
+        super().__init__(animset, channel_set)
+        self.bones = []
+        self.flexes = {}
+        self.parse()
+
+    def parse(self):
+        for bone_elem in self.animset.controls:
+            if bone_elem.type == 'DmeTransformControl':
+                bone = Bone(bone_elem)
+                print(bone)
+                self.bones.append(bone)
+        self.flexes = {a: b for (a, b) in zip(self.animset.gameModel.flexnames, self.animset.gameModel.flexWeights)}
 
     @property
     def model_path(self):
         return self.animset.gameModel.modelName
+
+    @property
+    def model_file(self):
+        return self.root.find_model(self.model_path)
 
     @property
     def __transform(self):
@@ -113,11 +153,10 @@ class Light(Entity):
 
     def __repr__(self):
         return '{}<name:{} at X:{:.2f} Y:{:.2f} Z:{:.2f} rot: X:{:.2f} Y:{:.2f} Z:{:.2f} ' \
-               'color: R:{:.2f} G:{:.2f} B:{:.2f}>'.format(
-            self.__class__.__name__, self.animset.name,
-            *self.position,
-            *self.orientation,
-            *self.color)
+               'color: R:{:.2f} G:{:.2f} B:{:.2f}>'.format(self.__class__.__name__, self.animset.name,
+                                                           *self.position,
+                                                           *self.orientation,
+                                                           *self.color)
 
 
 class Session:
