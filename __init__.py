@@ -42,7 +42,7 @@ if not NO_BPY:
 
         def draw(self, context):
             layout = self.layout
-            layout.label(text='Enter SFM instalation path:')
+            layout.label(text='Enter SFM install path:')
             row = layout.row()
             row.prop(self, 'sfm_path', expand=True)
 
