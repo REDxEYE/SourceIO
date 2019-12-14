@@ -15,6 +15,7 @@ from ..vtf.vmt import VMT
 from ..vtf.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..utilities.path_utilities import resolve_root_directory_from_file
+from .. import bl_info
 
 # Blender imports
 try:
@@ -34,12 +35,18 @@ def split(array, n=3):
 
 
 class Source2Blender:
-    def __init__(self, path: str = None, import_textures=False, working_directory=None, co=None, rot=False,
+    def __init__(self, path: str = None, import_textures=False, work_directory=None, co=None, rot=False,
                  custom_name=None, normal_bones=False, join_clamped=False):
         self.import_textures = import_textures
         self.filepath = Path(path)
-        self.working_directory = Path(
-            working_directory if working_directory is not None else resolve_root_directory_from_file(path))
+        if work_directory:
+            self.work_directory = work_directory
+        else:
+            self.work_directory = resolve_root_directory_from_file(path)
+        if self.work_directory is None:
+            self.work_directory = bpy.context.preferences.addons[bl_info['name']].preferences.sfm_path
+        else:
+            self.work_directory = ''
         self.main_collection = None
 
         self.current_collection = None

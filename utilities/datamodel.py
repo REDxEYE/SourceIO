@@ -28,6 +28,7 @@ import io
 import struct
 import uuid
 from functools import lru_cache
+from pprint import pprint
 from struct import unpack, calcsize
 from typing import List, Union
 
@@ -116,11 +117,11 @@ def get_char(file):
 
 
 def get_int(file):
-    return int.from_bytes(file.read(4), 'little', signed=True)
+    return unpack('i', file.read(4))[0]
 
 
 def get_short(file):
-    return int.from_bytes(file.read(2), 'little', signed=False)
+    return unpack('H', file.read(2))[0]
 
 
 def get_float(file):
@@ -128,7 +129,7 @@ def get_float(file):
 
 
 def get_vec(file, dim):
-    return list(unpack("{}f".format(dim), file.read(float_size * dim)))
+    return unpack("{}f".format(dim), file.read(float_size * dim))
 
 
 def get_color(file):
@@ -219,10 +220,11 @@ class _StrArray(_Array):
 class _Vector(list):
     type_str = ""
 
-    def __init__(self, value_list):
-        if len(value_list) != len(self.type_str):
-            raise TypeError("Expected {} values".format(len(self.type_str)))
-        value_list = _validate_array_list(value_list, float)
+    def __init__(self, value_list, validate=True):
+        if validate:
+            if len(value_list) != len(self.type_str):
+                raise TypeError("Expected {} values".format(len(self.type_str)))
+            value_list = _validate_array_list(value_list, float)
         super().__init__(value_list)
 
     def __repr__(self):
@@ -332,8 +334,8 @@ class Color(Vector4):
     def to_bytes(self):
         out = bytes()
         for i in self:
-            out += int(i).to_bytes(4,'little')
-            
+            out += int(i).to_bytes(4, 'little')
+
         return out
 
 
@@ -992,7 +994,7 @@ def load(path=None, in_file=None, element_path=None):
             raise IOError("Could not read Session header") from e
 
         check_support(encoding, encoding_ver)
-        dm = DataModel(fmt, fmt_ver,encoding,encoding_ver)
+        dm = DataModel(fmt, fmt_ver, encoding, encoding_ver)
 
         max_elem_path = len(element_path) + 1 if element_path else 0
 
@@ -1175,41 +1177,44 @@ def load(path=None, in_file=None, element_path=None):
 
         elif encoding in ['binary', 'binary_proto']:
             in_file.seek(2, 1)  # skip header's line_parsed break and null terminator
-
+            # counter = []
             def get_value(attr_type, from_array=False):
-                if attr_type == Element:
+                # counter.append(attr_type)
+                if attr_type == int:
+                    return get_int(in_file)
+                elif attr_type == Element:
+
                     element_index = get_int(in_file)
-                    if element_index == -1:
+                    if element_index >= 0:
+                        return dm.elements[element_index]
+                    elif element_index == -1:
                         return None
                     elif element_index == -2:
                         return dm.add_element("Missing element", id=uuid.UUID(hex=get_str(in_file)),
                                               _is_placeholder=True)
-                    else:
-                        return dm.elements[element_index]
 
                 elif attr_type == str:
                     return get_str(in_file) if encoding_ver < 4 or from_array else dm._string_dict.read_string(in_file)
-                elif attr_type == int:
-                    return get_int(in_file)
+
                 elif attr_type == float:
                     return get_float(in_file)
                 elif attr_type == bool:
                     return get_bool(in_file)
 
                 elif attr_type == Vector2:
-                    return Vector2(get_vec(in_file, 2))
+                    return Vector2(get_vec(in_file, 2), False)
                 elif attr_type == Vector3:
-                    return Vector3(get_vec(in_file, 3))
+                    return Vector3(get_vec(in_file, 3), False)
                 elif attr_type == Angle:
-                    return Angle(get_vec(in_file, 3))
+                    return Angle(get_vec(in_file, 3), False)
                 elif attr_type == Vector4:
-                    return Vector4(get_vec(in_file, 4))
+                    return Vector4(get_vec(in_file, 4), False)
                 elif attr_type == Quaternion:
-                    return Quaternion(get_vec(in_file, 4))
+                    return Quaternion(get_vec(in_file, 4), False)
                 elif attr_type == Matrix:
                     out = []
                     for _ in range(4):
-                        out.append(get_vec(in_file, 4))
+                        out.append(get_vec(in_file, 4), False)
                     return Matrix(out)
 
                 elif attr_type == Color:
@@ -1257,7 +1262,7 @@ def load(path=None, in_file=None, element_path=None):
             # noinspection PyProtectedMember
             for elem in [elem for elem in dm.elements if not elem._is_placeholder]:
                 read_element(elem)
-
+            # pprint(collections.Counter(counter))
         dm._string_dict = None
         return dm
     finally:
