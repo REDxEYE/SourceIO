@@ -36,7 +36,7 @@ def split(array, n=3):
 
 class Source2Blender:
     def __init__(self, path: str = None, import_textures=False, work_directory=None, co=None, rot=False,
-                 custom_name=None, normal_bones=False, join_clamped=False,context=None):
+                 custom_name=None, normal_bones=False, join_clamped=False, context=None):
         self.import_textures = import_textures
         self.filepath = Path(path)
         if work_directory:
@@ -44,9 +44,12 @@ class Source2Blender:
         else:
             self.work_directory = resolve_root_directory_from_file(path)
         if self.work_directory is None:
-            preferences = context.preferences
-            addon_prefs = preferences.addons['SourceIO.prefs'].preferences
-            self.work_directory = addon_prefs.sfm_path
+            try:
+                preferences = context.preferences
+                addon_prefs = preferences.addons['SourceIO.prefs'].preferences
+                self.work_directory = addon_prefs.sfm_path
+            except:
+                self.work_directory = ''
         else:
             self.work_directory = ''
         self.main_collection = None
