@@ -79,7 +79,8 @@ if not NO_BPY:
                 importer = mdl2model.Source2Blender(str(directory / file.name),
                                                     normal_bones=self.normal_bones,
                                                     join_clamped=self.join_clamped,
-                                                    import_textures=self.import_textures
+                                                    import_textures=self.import_textures,
+                                                    context=context
                                                     )
                 importer.sort_bodygroups = self.organize_bodygroups
                 importer.load(dont_build_mesh=False)
@@ -113,7 +114,9 @@ if not NO_BPY:
 
         def execute(self, context):
             directory = Path(self.filepath).parent.absolute()
-            sfm_path = self.project_dir if self.project_dir else bpy.context.preferences.addons['SourceIO.prefs'].preferences.sfm_path
+            preferences = context.preferences
+            addon_prefs = preferences.addons['SourceIO.prefs'].preferences
+            sfm_path = self.project_dir if self.project_dir else addon_prefs.sfm_path
             for file in self.files:
                 importer = Session(str(directory / file.name), sfm_path)
                 importer.load_models()
@@ -280,7 +283,7 @@ if not NO_BPY:
             self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
 
     classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
-               DMXImporter_OT_operator,SourceIOPreferences)
+               DMXImporter_OT_operator, SourceIOPreferences)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
