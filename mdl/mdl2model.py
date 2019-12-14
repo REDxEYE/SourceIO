@@ -44,7 +44,7 @@ class Source2Blender:
         else:
             self.work_directory = resolve_root_directory_from_file(path)
         if self.work_directory is None:
-            self.work_directory = bpy.context.preferences.addons[bl_info['name']].preferences.sfm_path
+            self.work_directory = bpy.context.preferences.addons['SourceIO.prefs'].preferences.sfm_path
         else:
             self.work_directory = ''
         self.main_collection = None

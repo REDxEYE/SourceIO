@@ -36,7 +36,7 @@ if not NO_BPY:
 
 
     class SourceIOPreferences(bpy.types.AddonPreferences):
-        bl_idname = __package__
+        bl_idname = "SourceIO.prefs"
 
         sfm_path: StringProperty(default='', name='SFM path')
 
@@ -113,7 +113,7 @@ if not NO_BPY:
 
         def execute(self, context):
             directory = Path(self.filepath).parent.absolute()
-            sfm_path = self.project_dir if self.project_dir else bpy.context.preferences.addons[bl_info['name']].preferences.sfm_path
+            sfm_path = self.project_dir if self.project_dir else bpy.context.preferences.addons['SourceIO.prefs'].preferences.sfm_path
             for file in self.files:
                 importer = Session(str(directory / file.name), sfm_path)
                 importer.load_models()
