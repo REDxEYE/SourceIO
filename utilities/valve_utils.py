@@ -834,7 +834,7 @@ class MaterialPathResolver:
     """
 
     def __init__(self, filepath):
-        self._filepath = filepath
+        self._filepath = Path(filepath)
 
     @property
     def filepath(self):
@@ -858,19 +858,21 @@ class MaterialPathResolver:
         return self.find_file(filepath, 'materials',
                               extention='.vmt', use_recursive=use_recursive)
 
-    # noinspection PyUnusedLocal
     def find_file(self, filepath: str, additional_dir=None,
                   extention=None, use_recursive=False):
-        filepath = filepath.replace('\\', '/')
-        if additional_dir:
-            new_filepath = self.filepath / additional_dir / filepath
-        else:
-            new_filepath = self.filepath / filepath
+        filepath = Path(filepath)
+        if use_recursive:
+            while len(filepath.parts)>1:
+                if additional_dir:
+                    new_filepath = self.filepath / Path(additional_dir) / Path(filepath)
+                else:
+                    new_filepath = self.filepath / Path(filepath)
 
-        if extention:
-            new_filepath = new_filepath.with_suffix(extention)
+                if extention:
+                    new_filepath = new_filepath.with_suffix(extention)
 
-        if new_filepath.exists():
-            return new_filepath
+                if new_filepath.exists():
+                    return new_filepath
+                filepath = filepath.parent
 
         return None

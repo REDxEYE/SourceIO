@@ -1,10 +1,9 @@
 import os
 
-
-from ..utilities.valve_utils import GameInfoFile,KeyValueFile,MaterialPathResolver
-
+from ..utilities.valve_utils import GameInfoFile, KeyValueFile, MaterialPathResolver
 
 from pathlib import Path
+
 if os.environ.get('VProject', None):
     del os.environ['VProject']
 
@@ -12,6 +11,8 @@ if os.environ.get('VProject', None):
 class VMT:
 
     def _get_proj_root(self, path: Path):
+        if len(path.parts) < 2:
+            return path.parent
         if path.parts[-1] == 'materials':
             return path.parent
         else:
@@ -32,7 +33,7 @@ class VMT:
         else:
             # We might not be dealing with a Source installation.
             # Use material path instead
-            self.gameinfo = MaterialPathResolver(game_dir)
+            self.gameinfo = MaterialPathResolver(self.filepath.parent)
 
     def parse(self):
         # print(self.shader)
