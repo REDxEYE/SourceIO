@@ -24,12 +24,12 @@ class Vmesh:
                     self.valve_file.vbib.index_buffer)):  # type: int,VertexBuffer,IndexBuffer
             name = self.mesh_name + str(n)
             mesh_obj = bpy.data.objects.new(name, bpy.data.meshes.new(name))
-            self.current_collection.objects.link(mesh_obj)
+            collection.objects.link(mesh_obj)
             # bones = [bone_list[i] for i in remap_list]
             mesh = mesh_obj.data
             if bone_list:
                 print('Bone list available, creating vertex groups')
-                weight_groups = {bone: mesh_obj.vertex_groups.new(bone) for bone in
+                weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in
                                  bone_list}
             vertexes = []
             uvs = []
@@ -45,7 +45,8 @@ class Vmesh:
 
             mesh.from_pydata(vertexes, [], indexes.indexes)
             mesh.update()
-            mesh.uv_textures.new()
+            mesh.uv_layers.new()
+
             uv_data = mesh.uv_layers[0].data
             for i in range(len(uv_data)):
                 u = uvs[mesh.loops[i].vertex_index]

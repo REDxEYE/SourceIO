@@ -180,7 +180,6 @@ class BinaryKeyValue(Dummy):
 
         data_type, flag_info = self.read_type(reader)
         self.read_value(name, reader, data_type, flag_info, parent, in_array)
-        
 
     def read_value(self, name, reader: ByteIO, data_type: KVType, flag: KVFlag, parent, is_array=False):
         add = lambda v: parent.update({name: v}) if not is_array else parent.append(v)
@@ -246,19 +245,19 @@ class BinaryKeyValue(Dummy):
         elif data_type == KVType.ARRAY:
             size = reader.read_uint32()
             arr = []
-            
+
             for _ in range(size):
                 self.parse(reader, arr, True)
-            
+
             add(arr)
             return
         elif data_type == KVType.OBJECT:
             size = reader.read_uint32()
             tmp = {}
-            
+
             for _ in range(size):
                 self.parse(reader, tmp, False)
-            
+
             add(tmp)
             if not parent:
                 parent = tmp
@@ -266,18 +265,17 @@ class BinaryKeyValue(Dummy):
             t_array_size = reader.read_uint32()
             sub_type, sub_flag = self.read_type(reader)
             tmp = []
-            
+
             for _ in range(t_array_size):
                 self.read_value(name, reader, sub_type, sub_flag, tmp, True)
 
-            
-            if sub_type == KVType.DOUBLE and t_array_size == 3:
+            if sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 3:
                 tmp = SourceVector(*tmp)
-            elif sub_type == KVType.DOUBLE and t_array_size == 4:
+            elif sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 4:
                 tmp = SourceVector4D(*tmp)
-            elif sub_type == KVType.DOUBLE and t_array_size == 2:
+            elif sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 2:
                 tmp = SourceVector2D(*tmp)
             add(tmp)
         else:
-            a = 1
+            raise NotImplementedError("Unknown KVType.{}".format(data_type.name))
         return parent

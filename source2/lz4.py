@@ -1,7 +1,7 @@
 from io import BytesIO
-from six.moves import xrange  # pylint: disable=redefined-builtin
-from six import byte2int
 
+def byte2int(a):
+    return a[0]
 
 class CorruptError(Exception):
     pass
@@ -76,7 +76,7 @@ def uncompress(src):
         match_len += min_match_len
 
         # append the sliding window of the previous literals
-        for _ in xrange(match_len):
+        for _ in range(match_len):
             dst.append(dst[-offset])
 
     return dst

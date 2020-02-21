@@ -49,33 +49,22 @@ class ValveFile:
                 with self.reader.save_current_pos():
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.rerl.read(self.reader, block_info)
-                    # print(self.rerl)
             elif block_info.block_name == 'NTRO':
                 with self.reader.save_current_pos():
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.nrto.read(self.reader, block_info)
-
             elif block_info.block_name == 'REDI':
                 with self.reader.save_current_pos():
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.redi.read(self.reader, block_info)
-                    # print(self.redi)
             elif block_info.block_name == 'VBIB':
                 with self.reader.save_current_pos():
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.vbib.read(self.reader, block_info)
-                    # print(self.vbib)
             elif block_info.block_name == 'DATA':
-                # if self.nrto.empty:
-                #     cwd = Path(__file__).absolute().parent
-                #     path = cwd / Path('block_backups/{}.NTRO'.format(self.filepath.suffix[1:]))
-                #     file = ByteIO(path=path)
-                #     self.nrto.from_file(file, None)
-
                 with self.reader.save_current_pos():
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.data.read(self.reader, block_info)
-                    pprint(self.data.data)
 
     def dump_ntro_block(self, file: BinaryIO):
         for block in self.blocks_info:
@@ -107,13 +96,13 @@ struct RGB
 }
 ''')
         for struct in self.nrto.structs:
-            print(struct)
+            # print(struct)
             for mem in struct.fields:
                 print('\t', mem)
             file.write(struct.as_c_struct())
             # print(struct.as_c_struct())
         for enum in self.nrto.enums:
-            print(enum)
+            # print(enum)
             for mem in enum.fields:
                 print('\t', mem)
             file.write(enum.as_c_enum())
