@@ -266,7 +266,7 @@ class Source2Blender:
                         field = progressbar.ProgressBar('Converting mesh', len(strip_group.vtx_indexes), 20)
                         for vtx_index in range(0, len(strip_group.vtx_indexes), 3):
                             if not vtx_index % 3 * 10:
-                                field.increment(3)
+                                field.increment(30)
                             f, vn = self.get_polygon(strip_group, vtx_index, lod_index, mesh_vertex_start)
                             if not f and not vn:
                                 break

@@ -39,6 +39,7 @@ from bisect import bisect_left
 def bi_contains(lst, item):
     if not lst:
         return False
+    lst = list(lst)
     """ efficient `item in lst` for sorted lists """
     # if item is larger than the last its not in the list, but the bisect would
     # find `len(lst)` as the index to insert, so check that first. Else, if the
@@ -356,11 +357,11 @@ class _TimeArray(_Array):
     type = Time
 
 
-def make_array(l, t):
-    if t not in _dmxtypes_all:
-        raise TypeError("{} is not a valid datamodel attribute type".format(t))
-    at = _get_array_type(t)
-    return at(l)
+def make_array(data_array, data_type):
+    if data_type not in _dmxtypes_all:
+        raise TypeError("{} is not a valid datamodel attribute type".format(data_type))
+    data_array_type = _get_array_type(data_type)
+    return data_array_type(data_array)
 
 
 class DmeAttributeError(KeyError):
@@ -909,18 +910,18 @@ class DataModel:
 
         # noinspection PyProtectedMember
         def _count_child_elements(element):
-            if element in out_elements:
+            if bi_contains(out_elements, element):
                 return
 
             out_elements.add(element)
             for elem_name in element:
                 attr = element[elem_name]
                 t = type(attr)
-                if t == Element:
+                if isinstance(attr, Element):
                     if attr not in out_elements:
                         _count_child_elements(attr)
                     attr._users += 1
-                elif t == _ElementArray:
+                elif isinstance(attr, _ElementArray):
                     for item in [item for item in attr if item]:
                         if item not in out_elements:
                             _count_child_elements(item)
@@ -1177,13 +1178,9 @@ def load(path=None, in_file=None, element_path=None):
 
         elif encoding in ['binary', 'binary_proto']:
             in_file.seek(2, 1)  # skip header's line_parsed break and null terminator
-            # counter = []
-            def get_value(attr_type, from_array=False):
-                # counter.append(attr_type)
-                if attr_type == int:
-                    return get_int(in_file)
-                elif attr_type == Element:
 
+            def get_value(attr_type, from_array=False):
+                if attr_type == Element:
                     element_index = get_int(in_file)
                     if element_index >= 0:
                         return dm.elements[element_index]
@@ -1195,7 +1192,8 @@ def load(path=None, in_file=None, element_path=None):
 
                 elif attr_type == str:
                     return get_str(in_file) if encoding_ver < 4 or from_array else dm._string_dict.read_string(in_file)
-
+                elif attr_type == int:
+                    return get_int(in_file)
                 elif attr_type == float:
                     return get_float(in_file)
                 elif attr_type == bool:
@@ -1228,6 +1226,7 @@ def load(path=None, in_file=None, element_path=None):
                     raise TypeError("Cannot read attributes of type {}".format(attr_type))
 
             def read_element(r_element, use_string_dict=True):
+                r_element = r_element #type: Element
                 # print(elem.element_name,"@",in_file.tell())
                 num_attributes = get_int(in_file)
                 for _ in range(num_attributes):
@@ -1262,7 +1261,7 @@ def load(path=None, in_file=None, element_path=None):
             # noinspection PyProtectedMember
             for elem in [elem for elem in dm.elements if not elem._is_placeholder]:
                 read_element(elem)
-            # pprint(collections.Counter(counter))
+
         dm._string_dict = None
         return dm
     finally:

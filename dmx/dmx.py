@@ -3,12 +3,8 @@ import os.path
 from pathlib import Path
 from typing import List
 
-import math
-
 from ..utilities.valve_utils import GameInfoFile
 from ..utilities import datamodel
-
-# from ..mdl.mdl2model import Source2Blender
 
 import re
 
@@ -124,7 +120,7 @@ class Model(Entity):
         for bone_elem in self.animset.controls:
             if bone_elem.type == 'DmeTransformControl':
                 bone = Bone(bone_elem)
-                print(bone)
+                # print(bone)
                 self.bones.append(bone)
         self.flexes = {a: b for (a, b) in zip(self.animset.gameModel.flexnames, self.animset.gameModel.flexWeights)}
 
