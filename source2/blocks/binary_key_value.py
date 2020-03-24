@@ -33,6 +33,7 @@ class KVType(IntEnum):
     INT64_ONE = 16
     DOUBLE_ZERO = 17
     DOUBLE_ONE = 18
+    UNK = 21
 
 
 class BinaryKeyValue(Dummy):
@@ -66,7 +67,8 @@ class BinaryKeyValue(Dummy):
         if tuple(fourcc) == self.SIG2:
             self.read_v2(reader)
         else:
-            self.read_v1(reader)
+            raise NotImplementedError("KV3 V1 currently is not supported")
+            # self.read_v1(reader)
 
     def read_v1(self, reader):
         encoding = reader.read_bytes(16)
@@ -139,11 +141,14 @@ class BinaryKeyValue(Dummy):
         string_count = self.buffer.read_uint32()
         kv_data_offset = self.buffer.tell()
         self.int_offset = self.buffer.tell()
+
         self.buffer.seek(self.buffer.tell() + (self.int_count - 1) * 4)
-        self.double_offset = self.buffer.tell()
-        self.buffer.seek(self.buffer.tell() + self.double_count * 8)
         if self.buffer.tell() % 8 != 0:
             self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
+
+        self.double_offset = self.buffer.tell()
+        self.buffer.seek(self.buffer.tell() + self.double_count * 8)
+
         for _ in range(string_count):
             self.strings.append(self.buffer.read_ascii_string())
         types_len = self.buffer.size() - self.buffer.tell() - 4
@@ -289,6 +294,14 @@ class BinaryKeyValue(Dummy):
             elif sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 2:
                 tmp = SourceVector2D(*tmp)
             add(tmp)
+        elif data_type == KVType.BINARY_BLOB:
+            size = reader.read_uint32()
+            with reader.save_current_pos():
+                if self.bin_blob_offset > -1:
+                    reader.seek(self.bin_blob_offset)
+                    self.bin_blob_offset += size
+                add(reader.read_bytes(size))
+            return
         else:
             raise NotImplementedError("Unknown KVType.{}".format(data_type.name))
         return parent

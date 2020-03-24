@@ -1,4 +1,5 @@
 import os.path
+import random
 import sys
 
 from .source2 import ValveFile
@@ -26,11 +27,7 @@ class Vmdl:
         self.main_collection = bpy.data.collections.new(os.path.basename(self.name))
         bpy.context.scene.collection.children.link(self.main_collection)
 
-        # for res, path in self.valve_file.available_resources.items():
-        #     if 'vmesh' in res and import_meshes:
-        #         vmesh = Vmesh(path)
-        #         vmesh.build_meshes(self.main_collection, self.bone_names, self.remap_table)
-        self.build_meshes(self.main_collection)
+        self.build_meshes(self.main_collection, self.bone_names, self.remap_table)
         self.build_armature()
 
     def build_meshes(self, collection, bone_list=None, remap_list=None, ):
@@ -51,6 +48,7 @@ class Vmdl:
                     mesh_name = draw_call['m_material'].split("/")[0].split(".")[0]
 
                     mesh_obj = bpy.data.objects.new(mesh_name, bpy.data.meshes.new(mesh_name))
+                    self.get_material(mesh_name, mesh_obj)
                     collection.objects.link(mesh_obj)
                     # bones = [bone_list[i] for i in remap_list]
                     mesh = mesh_obj.data
@@ -66,10 +64,8 @@ class Vmdl:
                     for vertex in vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]:
                         vertexes.append(vertex.position.as_list)
                         uvs.append([vertex.uv.x, vertex.uv.y])
-                        # vertex.normal.convert()
-                    for poly in index_buffer.indexes[start_index:start_index + index_count]:
-                        for v in poly:
-                            normals.append(vertex_buffer.vertexes[v].normal.as_list)
+                        vertex.normal.convert()
+                        normals.append(vertex.normal.as_list)
 
                     mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
                     mesh.update()
@@ -86,7 +82,7 @@ class Vmdl:
                                     bone_name = bone_list[remap_list[bone_index]]
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
                     bpy.ops.object.shade_smooth()
-                    mesh.normals_split_custom_set(normals)
+                    mesh.normals_split_custom_set_from_vertices(normals)
                     mesh.use_auto_smooth = True
 
     def build_armature(self):
@@ -119,6 +115,41 @@ class Vmdl:
                 bl_bone.head = Vector(bone_pos.as_list)  # + bl_bone.head
                 bl_bone.tail = bl_bone.head + Vector([0, 0, 1])
         bpy.ops.object.mode_set(mode='OBJECT')
+
+    @staticmethod
+    def get_material(mat_name, model_ob):
+        if mat_name:
+            mat_name = mat_name
+        else:
+            mat_name = "Material"
+        mat_ind = 0
+        md = model_ob.data
+        mat = None
+        for candidate in bpy.data.materials:  # Do we have this material already?
+            if candidate.name == mat_name:
+                mat = candidate
+        if mat:
+            if md.materials.get(mat.name):  # Look for it on this mesh_data
+                for i in range(len(md.materials)):
+                    if md.materials[i].name == mat.name:
+                        mat_ind = i
+                        break
+            else:  # material exists, but not on this mesh_data
+                md.materials.append(mat)
+                mat_ind = len(md.materials) - 1
+        else:  # material does not exist
+            mat = bpy.data.materials.new(mat_name)
+            md.materials.append(mat)
+            # Give it a random colour
+            rand_col = []
+            for i in range(3):
+                rand_col.append(random.uniform(.4, 1))
+            rand_col.append(1.0)
+            mat.diffuse_color = rand_col
+
+            mat_ind = len(md.materials) - 1
+
+        return mat_ind
 
 
 if __name__ == '__main__':

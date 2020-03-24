@@ -7,7 +7,7 @@ NO_BPY = int(os.environ.get('NO_BPY', '0'))
 bl_info = {
     "name": "Source Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 5, 8),
+    "version": (3, 6, 0),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
     "description": "Addon allows to import Source Engine models",
@@ -112,14 +112,6 @@ if not NO_BPY:
 
         filepath: StringProperty(subtype="FILE_PATH")
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-
-        # normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
-
-        # join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
-
-        # organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
-
-        # import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
 
         filter_glob: StringProperty(default="*.vmdl_c", options={'HIDDEN'})
 
@@ -324,7 +316,7 @@ if not NO_BPY:
             self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
 
     classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
-               DMXImporter_OT_operator, SourceIOPreferences,VMDLImporter_OT_operator)
+               DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:

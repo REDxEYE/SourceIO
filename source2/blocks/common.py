@@ -74,6 +74,12 @@ class SourceVector:
         self.z = z
         self.w = w
 
+    def __len__(self):
+        return 3
+
+    def __iter__(self):
+        return iter(self.as_list)
+
     def read(self, reader: ByteIO):
         self.x, self.y, self.z = reader.read_fmt('fff')
 
