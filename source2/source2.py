@@ -66,9 +66,9 @@ class ValveFile:
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.data.read(self.reader, block_info)
 
-    def dump_ntro_block(self, file: BinaryIO):
+    def dump_block(self, file: BinaryIO, name: str):
         for block in self.blocks_info:
-            if block.block_name == 'NTRO':
+            if block.block_name == name:
                 with self.reader.save_current_pos():
                     self.reader.seek(block.entry + block.block_offset)
                     file.write(self.reader.read_bytes(block.block_size))
@@ -123,7 +123,7 @@ struct RGB
     def check_external_resources(self):
         for block in self.rerl.resources:
             path = Path(block.resource_name)
-            asset = self.filepath.parent/path.with_suffix(path.suffix + '_c').name
+            asset = self.filepath.parent / path.with_suffix(path.suffix + '_c').name
             if asset.exists():
                 self.available_resources[block.resource_name] = asset.absolute()
                 print('Found', path)

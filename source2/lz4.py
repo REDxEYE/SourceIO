@@ -1,7 +1,9 @@
 from io import BytesIO
 
+
 def byte2int(a):
     return a[0]
+
 
 class CorruptError(Exception):
     pass
@@ -61,7 +63,7 @@ def uncompress(src):
         read_buf = src.read(2)
         if len(read_buf) == 0:
             if token & 0x0f != 0:
-                raise CorruptError("EOF, but match-len > 0: %u" % (token % 0x0f, ))
+                raise CorruptError("EOF, but match-len > 0: %u" % (token % 0x0f,))
             break
 
         if len(read_buf) != 2:

@@ -137,7 +137,7 @@ class BinaryKeyValue(Dummy):
         string_count = self.buffer.read_uint32()
         kv_data_offset = self.buffer.tell()
         self.int_offset = self.buffer.tell()
-        self.buffer.seek(self.buffer.tell() + self.int_count * 4)
+        self.buffer.seek(self.buffer.tell() + (self.int_count-1) * 4)
         self.double_offset = self.buffer.tell()
         self.buffer.seek(self.buffer.tell() + self.double_count * 8)
         for _ in range(string_count):
