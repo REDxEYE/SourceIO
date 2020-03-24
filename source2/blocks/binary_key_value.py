@@ -133,16 +133,19 @@ class BinaryKeyValue(Dummy):
 
         self.buffer.seek(self.bin_blob_count)
         if self.bin_blob_count:
+            self.buffer.seek(self.buffer.tell())  # + (4 - (self.buffer.tell() % 4)))
+        if self.buffer.tell() % 4 != 0:
             self.buffer.seek(self.buffer.tell() + (4 - (self.buffer.tell() % 4)))
         string_count = self.buffer.read_uint32()
         kv_data_offset = self.buffer.tell()
         self.int_offset = self.buffer.tell()
-        self.buffer.seek(self.buffer.tell() + (self.int_count-1) * 4)
+        self.buffer.seek(self.buffer.tell() + (self.int_count - 1) * 4)
         self.double_offset = self.buffer.tell()
         self.buffer.seek(self.buffer.tell() + self.double_count * 8)
+        if self.buffer.tell() % 8 != 0:
+            self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
         for _ in range(string_count):
             self.strings.append(self.buffer.read_ascii_string())
-
         types_len = self.buffer.size() - self.buffer.tell() - 4
         for _ in range(types_len):
             self.types.append(self.buffer.read_uint8())
@@ -150,7 +153,7 @@ class BinaryKeyValue(Dummy):
         self.buffer.seek(kv_data_offset)
         self.parse(self.buffer, self.kv, True)
         self.buffer.close()
-        self.kv = {"PermModelData_t": self.kv[0]}
+        self.kv = self.kv[0]
         del self.buffer
 
     def read_type(self, reader: ByteIO):
@@ -177,7 +180,6 @@ class BinaryKeyValue(Dummy):
         if not in_array:
             string_id = reader.read_uint32()
             name = "ERROR" if string_id == -1 else self.strings[string_id]
-
         data_type, flag_info = self.read_type(reader)
         self.read_value(name, reader, data_type, flag_info, parent, in_array)
 
@@ -192,10 +194,15 @@ class BinaryKeyValue(Dummy):
                     reader.seek(self.bin_blob_offset)
                     self.bin_blob_offset += 1
                 add(reader.read_int8() > 0)
-            if self.bin_blob_offset == -1:
+            if self.bin_blob_offset == 0:
                 reader.skip(1)
             return
-
+        elif data_type == KVType.BOOLEAN_TRUE:
+            add(True)
+            return
+        elif data_type == KVType.BOOLEAN_FALSE:
+            add(False)
+            return
         elif data_type == KVType.INT64:
             with reader.save_current_pos():
                 if self.double_offset > 0:
@@ -228,6 +235,12 @@ class BinaryKeyValue(Dummy):
 
         elif data_type == KVType.DOUBLE_ZERO:
             add(0.0)
+            return
+        elif data_type == KVType.INT64_ZERO:
+            add(0)
+            return
+        elif data_type == KVType.INT64_ONE:
+            add(1)
             return
         elif data_type == KVType.DOUBLE_ONE:
             add(1.0)

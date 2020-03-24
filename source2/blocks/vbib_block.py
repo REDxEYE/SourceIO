@@ -4,7 +4,7 @@ from typing import List
 from ..source2 import ValveFile
 from ...byte_io_mdl import ByteIO
 
-from .common import SourceVertex, SourceVector, short_to_float, SourceVector4D
+from .common import SourceVertex, SourceVector, short_to_float, SourceVector4D, SourceVector2D
 from .header_block import InfoBlock
 from .dummy import Dummy
 
@@ -170,7 +170,7 @@ class VertexBuffer(Dummy):
         self.total_size = reader.read_uint32()
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
-            assert self.total_size == self.size * self.count
+            # assert self.total_size == self.size * self.count
             self.buffer = ByteIO(byte_object=reader.read_bytes(self.count * self.size))
         self.read_buffer()
         self.empty = False
@@ -183,16 +183,20 @@ class VertexBuffer(Dummy):
                 if attrib.name == 'POSITION':
                     vertex.position = SourceVector(*attrib.read_from_buffer(self.buffer))
                 elif attrib.name == 'TEXCOORD':
-                    vertex.texCoordX, vertex.texCoordY = attrib.read_from_buffer(self.buffer)
+                    vertex.uv = SourceVector2D(*attrib.read_from_buffer(self.buffer))
                 elif attrib.name == 'NORMAL':
                     vertex.normal = SourceVector(*attrib.read_from_buffer(self.buffer))
+                elif attrib.name == 'TANGENT':
+                    vertex.tangent = attrib.read_from_buffer(self.buffer)
+                elif attrib.name == 'texcoord':
+                    vertex.lightmap = attrib.read_from_buffer(self.buffer)
                 elif attrib.name == "BLENDINDICES":
                     vertex.boneWeight.bone = attrib.read_from_buffer(self.buffer)
                     vertex.boneWeight.boneCount = len(vertex.boneWeight.bone)
                 elif attrib.name == "BLENDWEIGHT":
                     vertex.boneWeight.weight = SourceVector4D(*attrib.read_from_buffer(self.buffer)).to_floats.as_list
                 else:
-                    print("UNKNOWN ATTRIBUTE!!!!")
+                    print(f"UNKNOWN ATTRIBUTE {attrib.name}!!!!")
             self.vertexes.append(vertex)
             self.buffer.seek(entry + self.size)
 
@@ -218,29 +222,36 @@ class VertexAttribute(Dummy):
     def read_from_buffer(self, reader: ByteIO):
         if self.format == DxgiFormat.R32G32B32_FLOAT:
             return [reader.read_float() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32G32B32_UINT:
-            return [reader.read_uint32() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32G32B32_SINT:
-            return [reader.read_int32() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32G32B32A32_FLOAT:
+        if self.format == DxgiFormat.R32G32_FLOAT:
             return [reader.read_float() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32G32B32A32_UINT:
+        if self.format == DxgiFormat.R32_FLOAT:
+            return [reader.read_float() for _ in range(self.format.name.count('32'))]
+        elif self.format == DxgiFormat.R32G32B32_UINT:
             return [reader.read_uint32() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32G32B32A32_SINT:
+        elif self.format == DxgiFormat.R32G32B32_SINT:
             return [reader.read_int32() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R16G16_FLOAT:
+        elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
+            return [reader.read_float() for _ in range(self.format.name.count('32'))]
+        elif self.format == DxgiFormat.R32G32B32A32_UINT:
+            return [reader.read_uint32() for _ in range(self.format.name.count('32'))]
+        elif self.format == DxgiFormat.R32G32B32A32_SINT:
+            return [reader.read_int32() for _ in range(self.format.name.count('32'))]
+        elif self.format == DxgiFormat.R16G16_FLOAT:
             return [short_to_float(reader.read_int16()) for _ in range(self.format.name.count('16'))]
-            # return [reader.read_float16() for _ in range(self.format.name.count('16'))]
-        if self.format == DxgiFormat.R16G16_SINT:
+        elif self.format == DxgiFormat.R16G16_SINT:
             return [reader.read_int16() for _ in range(self.format.name.count('16'))]
-        if self.format == DxgiFormat.R16G16_UINT:
+        elif self.format == DxgiFormat.R16G16B16A16_SINT:
+            return [reader.read_int16() for _ in range(self.format.name.count('16'))]
+        elif self.format == DxgiFormat.R16G16_UINT:
             return [reader.read_uint16() for _ in range(self.format.name.count('16'))]
-        if self.format == DxgiFormat.R8G8B8A8_SNORM:
+        elif self.format == DxgiFormat.R8G8B8A8_SNORM:
             return [reader.read_int8() for _ in range(self.format.name.count('8'))]
-        if self.format == DxgiFormat.R8G8B8A8_UNORM:
+        elif self.format == DxgiFormat.R8G8B8A8_UNORM:
             return [reader.read_uint8() for _ in range(self.format.name.count('8'))]
-        if self.format == DxgiFormat.R8G8B8A8_UINT:
+        elif self.format == DxgiFormat.R8G8B8A8_UINT:
             return [reader.read_uint8() for _ in range(self.format.name.count('8'))]
+        else:
+            raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 
 
 class IndexBuffer(Dummy):
@@ -267,7 +278,7 @@ class IndexBuffer(Dummy):
         self.total_size = reader.read_uint32()
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
-            assert self.total_size == self.size * self.count
+            # assert self.total_size == self.size * self.count
             self.buffer = ByteIO(byte_object=reader.read_bytes(self.count * self.size))
         self.read_buffer()
 
@@ -285,8 +296,8 @@ class VBIB(Dummy):
         self.vertex_count = 0
         self.index_offset = 0
         self.index_count = 0
-        self.vertex_buffer = []  # type: List[VertexBuffer]
-        self.index_buffer = []  # type: List[IndexBuffer]
+        self.vertex_buffer:List[VertexBuffer] = []
+        self.index_buffer:List[IndexBuffer] = []
         self.info_block = None
 
     def __repr__(self):

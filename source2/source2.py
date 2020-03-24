@@ -2,7 +2,7 @@ import math
 import sys
 from pathlib import Path
 from pprint import pprint
-from typing import List, TextIO, Dict
+from typing import List, TextIO, Dict, Tuple
 
 from typing.io import BinaryIO
 
@@ -22,6 +22,7 @@ class ValveFile:
         from .blocks.rerl_block import RERL
         from .blocks.vbib_block import VBIB
         from .blocks.data_block import DATA
+        from .blocks.kv3_block import KV3
 
         print('Reading {}'.format(filepath))
         self.reader = ByteIO(path=filepath, copy_data_from_handle=False, )
@@ -36,6 +37,7 @@ class ValveFile:
         self.redi = REDI(self)
         self.vbib = VBIB(self)
         self.data = DATA(self)
+        self.mdat: List[Tuple[KV3, VBIB]] = []
         self.available_resources = {}
 
     def read_block_info(self):
@@ -44,6 +46,9 @@ class ValveFile:
             block_info.read(self.reader)
             self.blocks_info.append(block_info)
             self.blocks[block_info.block_name] = block_info
+
+        while self.blocks_info:
+            block_info = self.blocks_info.pop(0)
             print(block_info)
             if block_info.block_name == 'RERL':
                 with self.reader.save_current_pos():
@@ -65,6 +70,21 @@ class ValveFile:
                 with self.reader.save_current_pos():
                     self.reader.seek(block_info.entry + block_info.block_offset)
                     self.data.read(self.reader, block_info)
+            elif block_info.block_name == 'MDAT':
+                with self.reader.save_current_pos():
+                    self.reader.seek(block_info.entry + block_info.block_offset)
+                    from .blocks.kv3_block import KV3
+                    from .blocks.vbib_block import VBIB
+                    mdat = KV3(self)
+                    mdat.read(self.reader, block_info)
+                    block_info = self.blocks_info.pop(0)
+                    self.reader.seek(block_info.entry + block_info.block_offset)
+                    vbib = VBIB(self)
+                    vbib.read(self.reader, block_info)
+                    self.mdat.append((mdat, vbib))
+            else:
+                print(f"Unknown block {block_info}")
+                # raise NotImplementedError(f"Unknown block {block_info}")
 
     def dump_block(self, file: BinaryIO, name: str):
         for block in self.blocks_info:

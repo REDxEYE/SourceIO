@@ -210,15 +210,15 @@ class SourceVertex:
     def __init__(self):
         self.position = SourceVector()
         self.normal = SourceVector()
-        self.texCoordX = 0
-        self.texCoordY = 0
+        self.uv = SourceVector2D()
         self.boneWeight = SourceBoneWeight()
+        self.tangent = []
+        self.lightmap = []
 
     def read(self, reader: ByteIO):
         self.position.read(reader)
         self.normal.read(reader)
-        self.texCoordX = reader.read_float()
-        self.texCoordY = reader.read_float()
+        self.uv.read(reader)
         return self
 
     def __str__(self):
