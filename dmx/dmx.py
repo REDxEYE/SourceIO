@@ -3,8 +3,6 @@ import os.path
 from pathlib import Path
 from typing import List
 
-import math
-
 from ..utilities.valve_utils import GameInfoFile
 from ..utilities import datamodel
 

@@ -29,6 +29,8 @@ if not NO_BPY:
     from .vtf.import_vtf import import_texture
     from .dmx.dmx import Session
 
+    from .source2.vmdl import Vmdl
+
     try:
         from .vtf.vmt import VMT
     except OSError:
@@ -93,6 +95,42 @@ if not NO_BPY:
                     qc.write_skins(qc_file)
                     qc.write_misc(qc_file)
                     qc.write_sequences(qc_file)
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    # noinspection PyUnresolvedReferences
+    class VMDLImporter_OT_operator(bpy.types.Operator):
+        """Load Source Engine MDL models"""
+        bl_idname = "source_io.vmdl"
+        bl_label = "Import Source VMDL file"
+        bl_options = {'UNDO'}
+
+        filepath: StringProperty(subtype="FILE_PATH")
+        files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+
+        # normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
+
+        # join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
+
+        # organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
+
+        # import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
+
+        filter_glob: StringProperty(default="*.vmdl_c", options={'HIDDEN'})
+
+        def execute(self, context):
+
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
+            for file in self.files:
+                importer = Vmdl(str(directory / file.name), True)
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -283,9 +321,10 @@ if not NO_BPY:
             self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
             self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
             self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
+            self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
 
     classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
-               DMXImporter_OT_operator, SourceIOPreferences)
+               DMXImporter_OT_operator, SourceIOPreferences,VMDLImporter_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
