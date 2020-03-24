@@ -36,7 +36,7 @@ if not NO_BPY:
 
 
     class SourceIOPreferences(bpy.types.AddonPreferences):
-        bl_idname = "SourceIO.prefs"
+        bl_idname = __package__
 
         sfm_path: StringProperty(default='', name='SFM path')
 
@@ -44,7 +44,7 @@ if not NO_BPY:
             layout = self.layout
             layout.label(text='Enter SFM install path:')
             row = layout.row()
-            row.prop(self, 'sfm_path', expand=True)
+            row.prop(self, 'sfm_path')
 
 
     # noinspection PyUnresolvedReferences
@@ -115,13 +115,15 @@ if not NO_BPY:
         def execute(self, context):
             directory = Path(self.filepath).parent.absolute()
             preferences = context.preferences
-            addon_prefs = preferences.addons['SourceIO.prefs'].preferences
+            addon_prefs = preferences.addons['SourceIO'].preferences
+            print(addon_prefs)
             sfm_path = self.project_dir if self.project_dir else addon_prefs.sfm_path
             for file in self.files:
                 importer = Session(str(directory / file.name), sfm_path)
-                importer.load_models()
-                importer.load_lights()
-                importer.create_cameras()
+                importer.parse()
+                importer.load_scene()
+                # importer.load_lights()
+                # importer.create_cameras()
             return {'FINISHED'}
 
         def invoke(self, context, event):

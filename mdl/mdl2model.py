@@ -35,8 +35,8 @@ def split(array, n=3):
 
 
 class Source2Blender:
-    def __init__(self, path: str = None, import_textures=False, work_directory=None, co=None, rot=False,
-                 custom_name=None, normal_bones=False, join_clamped=False, context=None):
+    def __init__(self, path: str = None, import_textures=False, work_directory=None, custom_name=None,
+                 normal_bones=False, join_clamped=False, context=None):
         self.import_textures = import_textures
         self.filepath = Path(path)
         if work_directory:
@@ -60,8 +60,6 @@ class Source2Blender:
         self.custom_name = custom_name
 
         self.name = self.filepath.stem
-        self.co = co
-        self.rot = rot
         self.vertex_offset = 0
         self.sort_bodygroups = True
 
@@ -98,9 +96,7 @@ class Source2Blender:
 
             self.create_models()
             self.create_attachments()
-            if self.co:
-                self.armature_obj.location = self.co
-                self.armature_obj.rotation_euler = self.rot
+
             bpy.ops.object.mode_set(mode='OBJECT')
 
         if self.import_textures:
@@ -148,18 +144,14 @@ class Source2Blender:
                 [se_bone.position.x, se_bone.position.y, se_bone.position.z])
             rot = Euler(
                 [se_bone.rotation.x, se_bone.rotation.y, se_bone.rotation.z])
-            if bpy.app.version[1] > 79:
-                mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-            else:
-                mat = Matrix.Translation(pos) * rot.to_matrix().to_4x4()
+            mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
             bl_bone.matrix_basis.identity()
+
             if bl_bone.parent:
-                if bpy.app.version[1] > 79:
-                    bl_bone.matrix = bl_bone.parent.matrix @ mat
-                else:
-                    bl_bone.matrix = bl_bone.parent.matrix * mat
+                bl_bone.matrix = bl_bone.parent.matrix @ mat
             else:
                 bl_bone.matrix = mat
+
         bpy.ops.pose.armature_apply()
         bpy.ops.object.mode_set(mode='EDIT')
         if normal_bones:
@@ -487,7 +479,7 @@ class Source2Blender:
                     if mat:
                         temp = valve_utils.get_mod_path(mat)
                         materials.append((Path(mat), Path(mat).relative_to(temp)))
-        for mat in materials:
+        for mat in set(materials):
             bmat = BlenderMaterial(VMT(mat[0], mod_path))
             print(f"Importing {mat[0].stem}")
             bmat.load_textures()

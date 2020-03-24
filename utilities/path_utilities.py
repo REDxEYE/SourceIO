@@ -37,7 +37,11 @@ def resolve_root_directory_from_file(path):
     if path.parts[-1] == 'models':
         return path.parent
     else:
-        return resolve_root_directory_from_file(path.parent)
+        try:
+            return resolve_root_directory_from_file(path.parent)
+        except RecursionError:
+            return None
+
 
 
 def get_materials_path(path):
