@@ -4,15 +4,14 @@ from ...byte_io_mdl import ByteIO
 from .common import KeyValueDataType, kv_type_to_c_type, SourceVector2D, SourceVector, SourceVector4D, \
     Matrix, CTransform
 
-from .dummy import Dummy
+from .dummy import DataBlock
 from .header_block import InfoBlock
 from ..source2 import ValveFile
 
 
-class NTRO(Dummy):
-    def __init__(self, valve_file: ValveFile):
-        super().__init__()
-        self.valve_file = valve_file
+class NTRO(DataBlock):
+    def __init__(self, valve_file: ValveFile, info_block: InfoBlock):
+        super().__init__(valve_file, info_block)
         self.introspection_version = 0
         self.struct_offset = 0
         self.struct_count = 0
@@ -20,7 +19,6 @@ class NTRO(Dummy):
         self.enum_count = 0
         self.structs = []  # type: List[NTROStruct]
         self.enums = []  # type: List[NTROEnum]
-        self.info_block = None
 
     def from_file(self, file: ByteIO, block_info: InfoBlock = None):
         self.read(file, block_info)
@@ -58,7 +56,7 @@ class NTRO(Dummy):
         return None
 
 
-class NTROStruct(Dummy):
+class NTROStruct:
     def __init__(self, ntro_block: NTRO):
         self.ntro_block = ntro_block
         self.introspection_version = 0
@@ -125,7 +123,7 @@ class NTROStruct(Dummy):
         return buff
 
 
-class NTROStructField(Dummy):
+class NTROStructField:
     def __init__(self, struct: NTROStruct):
         self.struct = struct
         self.name_offset = 0
@@ -147,8 +145,7 @@ class NTROStructField(Dummy):
             "array of" if self.indirection_bytes[0] == 0x04 else (
                 "pointer to" if self.indirection_bytes[0] == 0x03 else "")), c_type, self.indirection_level)
 
-    def read(self, reader: ByteIO, block_info: InfoBlock = None):
-        self.info_block = block_info
+    def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name_offset = reader.read_int32()
         self.name = reader.read_from_offset(entry + self.name_offset, reader.read_ascii_string)
@@ -288,7 +285,7 @@ class NTROStructField(Dummy):
                                       self.count)
 
 
-class NTROEnum(Dummy):
+class NTROEnum(DataBlock):
 
     def __init__(self, ntro_block):
         self.ntro_block = ntro_block
@@ -338,7 +335,7 @@ class NTROEnum(Dummy):
                     self.fields.append(field)
 
 
-class NTROEnumField(Dummy):
+class NTROEnumField(DataBlock):
     def __init__(self, ntro_enum):
         self.ntro_enum = ntro_enum
         self.name_offset = 0

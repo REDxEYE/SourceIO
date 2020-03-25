@@ -2,7 +2,7 @@ from typing import List
 
 from .header_block import InfoBlock
 from .redi_block_types import *
-from .dummy import Dummy
+from .dummy import DataBlock
 from ..source2 import ValveFile
 
 redi_blocks = [InputDependencies,
@@ -18,16 +18,13 @@ redi_blocks = [InputDependencies,
                ]
 
 
-class REDI(Dummy):
+class REDI(DataBlock):
 
-    def __init__(self, valve_file: ValveFile):
-        super().__init__()
-        self.valve_file = valve_file
+    def __init__(self, valve_file: ValveFile, info_block):
+        super().__init__(valve_file, info_block)
         self.blocks = []  # type:List[Dependencies]
-        self.info_block = None
 
-    def read(self, reader: ByteIO, block_info: InfoBlock = None):
-        self.info_block = block_info
+    def read(self, reader: ByteIO):
         for redi_block in redi_blocks:
             block = redi_block()
             entry = reader.tell()

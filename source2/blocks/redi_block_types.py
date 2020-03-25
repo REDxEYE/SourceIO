@@ -1,11 +1,11 @@
 from typing import List
 
 from ...byte_io_mdl import ByteIO
-from .dummy import Dummy
+from .dummy import DataBlock
 
 
-class Dependencies(Dummy):
-    dependency = Dummy
+class Dependencies(DataBlock):
+    dependency = DataBlock
 
     def __init__(self):
         self.offset = 0
@@ -26,7 +26,7 @@ class Dependencies(Dummy):
             print('\t' * indent, inp_dep)
 
 
-class InputDependency(Dummy):
+class InputDependency(DataBlock):
     def __init__(self):
         self.content_relative_name_offset = 0
         self.content_relative_name = ""
@@ -59,7 +59,7 @@ class AdditionalInputDependencies(InputDependencies):
     pass
 
 
-class ArgumentDependency(Dummy):
+class ArgumentDependency(DataBlock):
     def __init__(self):
         self.parameter_name_offset = 0
         self.parameter_name = ''
@@ -88,7 +88,7 @@ class ArgumentDependencies(Dependencies):
     dependency = ArgumentDependency
 
 
-class SpecialDependency(Dummy):
+class SpecialDependency(DataBlock):
     def __init__(self):
         self.string_offset = 0
         self.string = ''
@@ -116,7 +116,7 @@ class SpecialDependencies(Dependencies):
     dependency = SpecialDependency
 
 
-class CustomDependency(Dummy):
+class CustomDependency(DataBlock):
     def __init__(self):
         pass
 
@@ -135,7 +135,7 @@ class CustomDependencies(Dependencies):
             raise NotImplementedError("This block can't be handles yet")
 
 
-class AdditionalRelatedFile(Dummy):
+class AdditionalRelatedFile(DataBlock):
     def __init__(self):
         self.content_relative_filename_offset = 0
         self.content_relative_filename = ''
@@ -161,7 +161,7 @@ class AdditionalRelatedFiles(Dependencies):
     dependency = AdditionalRelatedFile
 
 
-class ChildResource(Dummy):
+class ChildResource(DataBlock):
     def __init__(self):
         self.id = 0
         self.resource_name_offset = 0
@@ -185,7 +185,7 @@ class ChildResourceList(Dependencies):
     dependency = ChildResource
 
 
-class ExtraInt(Dummy):
+class ExtraInt(DataBlock):
     def __init__(self):
         self.name_offset = 0
         self.name = ''
@@ -206,7 +206,7 @@ class ExtraIntData(Dependencies):
     dependency = ExtraInt
 
 
-class ExtraFloat(Dummy):
+class ExtraFloat(DataBlock):
     def __init__(self):
         self.name_offset = 0
         self.name = ''
@@ -227,7 +227,7 @@ class ExtraFloatData(Dependencies):
     dependency = ExtraFloat
 
 
-class ExtraString(Dummy):
+class ExtraString(DataBlock):
     def __init__(self):
         self.name_offset = 0
         self.name = ''

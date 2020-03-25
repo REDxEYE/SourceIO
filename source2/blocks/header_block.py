@@ -1,8 +1,8 @@
 from ...byte_io_mdl import ByteIO
-from .dummy import Dummy
+from .dummy import DataBlock
 
 
-class CompiledHeader(Dummy):
+class CompiledHeader:
     def __init__(self):
         super().__init__()
         self.file_size = 0
@@ -18,7 +18,7 @@ class CompiledHeader(Dummy):
         self.block_count = reader.read_int32()
 
 
-class InfoBlock(Dummy):
+class InfoBlock:
     def __init__(self):
         super().__init__()
         self.entry = 0

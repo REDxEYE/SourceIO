@@ -3,26 +3,18 @@ import sys
 from pathlib import Path
 from pprint import pprint
 from typing import List, TextIO, Dict, Tuple
-
 from typing.io import BinaryIO
-
-from ..byte_io_mdl import ByteIO
 import os.path
 
+from ..byte_io_mdl import ByteIO
 from .blocks.common import SourceVector
 from .blocks.header_block import CompiledHeader, InfoBlock
+from .blocks.dummy import DataBlock
 
 
 class ValveFile:
 
     def __init__(self, filepath):
-
-        from .blocks.ntro_block import NTRO
-        from .blocks.redi_block import REDI
-        from .blocks.rerl_block import RERL
-        from .blocks.vbib_block import VBIB
-        from .blocks.data_block import DATA
-        from .blocks.kv3_block import KV3
 
         print('Reading {}'.format(filepath))
         self.reader = ByteIO(path=filepath, copy_data_from_handle=False, )
@@ -30,118 +22,89 @@ class ValveFile:
         self.filename = self.filepath.name
         self.header = CompiledHeader()
         self.header.read(self.reader)
-        self.blocks_info = []  # type: List[InfoBlock]
-        self.blocks = {}  # type:Dict[str,InfoBlock]
-        self.rerl = RERL(self)
-        self.nrto = NTRO(self)
-        self.redi = REDI(self)
-        self.vbib = VBIB(self)
-        self.data = DATA(self)
-        self.mdat: List[Tuple[KV3, VBIB]] = []
+        self.info_blocks = []  # type: List[InfoBlock]
+        self.data_blocks = []  # type: List[DataBlock]
         self.available_resources = {}
 
     def read_block_info(self):
+
         for n in range(self.header.block_count):
             block_info = InfoBlock()
             block_info.read(self.reader)
-            self.blocks_info.append(block_info)
-            self.blocks[block_info.block_name] = block_info
+            self.info_blocks.append(block_info)
 
-        while self.blocks_info:
-            block_info = self.blocks_info.pop(0)
+        while self.info_blocks:
+            block_info = self.info_blocks.pop(0)
             print(block_info)
-            if block_info.block_name == 'RERL':
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    self.rerl.read(self.reader, block_info)
-            elif block_info.block_name == 'NTRO':
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    self.nrto.read(self.reader, block_info)
-            elif block_info.block_name == 'REDI':
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    self.redi.read(self.reader, block_info)
-            elif block_info.block_name == 'VBIB':
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    self.vbib.read(self.reader, block_info)
-            elif block_info.block_name == 'DATA':
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    self.data.read(self.reader, block_info)
-            elif block_info.block_name == 'MDAT':
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    from .blocks.kv3_block import KV3
-                    from .blocks.vbib_block import VBIB
-                    mdat = KV3(self)
-                    mdat.read(self.reader, block_info)
-                    block_info = self.blocks_info.pop(0)
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    vbib = VBIB(self)
-                    vbib.read(self.reader, block_info)
-                    self.mdat.append((mdat, vbib))
-            else:
-                print(f"Unknown block {block_info}")
-                # raise NotImplementedError(f"Unknown block {block_info}")
+            with self.reader.save_current_pos():
+                self.reader.seek(block_info.entry + block_info.block_offset)
+                block_class = self.get_data_block_class(block_info.block_name)
+                if block_class is None:
+                    print(f"Unknown block {block_info}")
+                    self.data_blocks.append(None)
+                    continue
+                block = block_class(self, block_info)
+                block.read(self.reader)
+                self.data_blocks.append(block)
+
+    def get_data_block(self, *, block_id=None, block_name=None):
+        if block_id is None and block_name is None:
+            raise Exception(f"Empty parameters block_id={block_id} block_name={block_name}")
+        elif block_id is not None and block_name is not None:
+            raise Exception(f"Both parameters filled block_id={block_id} block_name={block_name}")
+        if block_id is not None:
+            if block_id == -1:
+                return None
+            return self.data_blocks[block_id]
+        if block_name is not None:
+            blocks = []
+            for block in self.data_blocks:
+                if block is not None:
+                    if block.info_block.block_name == block_name:
+                        blocks.append(block)
+            return blocks
+
+    def get_data_block_class(self, block_name):
+        from .blocks.ntro_block import NTRO
+        from .blocks.redi_block import REDI
+        from .blocks.rerl_block import RERL
+        from .blocks.vbib_block import VBIB
+        from .blocks.data_block import DATA
+        from .blocks.kv3_block import KV3
+        data_classes = {
+            "NTRO": NTRO,
+            "REDI": REDI,
+            "RERL": RERL,
+            "VBIB": VBIB,
+            "DATA": DATA,
+            "CTRL": KV3,
+            "MBUF": VBIB,
+            "MDAT": KV3,
+            "PHYS": KV3,
+            "ASEQ": KV3,
+            "AGRP": KV3,
+            "ANIM": KV3,
+            "MRPH": KV3,
+        }
+        return data_classes.get(block_name, None)
 
     def dump_block(self, file: BinaryIO, name: str):
-        for block in self.blocks_info:
+        for block in self.info_blocks:
             if block.block_name == name:
                 with self.reader.save_current_pos():
                     self.reader.seek(block.entry + block.block_offset)
                     file.write(self.reader.read_bytes(block.block_size))
 
-    def dump_structs(self, file: TextIO):
-        file.write('''struct vector2
-{
-    float x,y
-}
-struct vector3
-{
-    float x,y,z
-}
-struct vector4
-{
-    float x,y,z,w
-}
-struct quaternion
-{
-    float x,y,z,w
-}
-struct RGB
-{
-    byte r,g,b
-}
-''')
-        for struct in self.nrto.structs:
-            # print(struct)
-            for mem in struct.fields:
-                print('\t', mem)
-            file.write(struct.as_c_struct())
-            # print(struct.as_c_struct())
-        for enum in self.nrto.enums:
-            # print(enum)
-            for mem in enum.fields:
-                print('\t', mem)
-            file.write(enum.as_c_enum())
-            # print(struct.as_c_struct())
-
+    # noinspection PyTypeChecker
     def dump_resources(self):
-        for block in self.rerl.resources:
+        from .blocks.rerl_block import RERL
+        relr_block: RERL = self.get_data_block(block_name="RERL")[0]
+        for block in relr_block.resources:
             print(block)
-            # for block in self.redi.blocks:
-            #     print(block)
-            #     for dep in block.container:
-            #         print('\t',dep)
-            # print(block)
-            # for block in self.vbib.vertex_buffer:
-            #     for vert in block.vertexes:
-            #         print(vert.boneWeight)
 
     def check_external_resources(self):
-        for block in self.rerl.resources:
+        relr_block = self.get_data_block(block_name="RERL")[0]
+        for block in relr_block.resources:
             path = Path(block.resource_name)
             asset = self.filepath.parent / path.with_suffix(path.suffix + '_c').name
             if asset.exists():

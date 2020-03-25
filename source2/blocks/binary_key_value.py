@@ -1,7 +1,7 @@
 from enum import IntEnum
 
 from ...byte_io_mdl import ByteIO
-from .dummy import Dummy
+from .dummy import DataBlock
 from .header_block import InfoBlock
 from ..lz4 import uncompress
 from .common import SourceVector, SourceVector4D, SourceVector2D
@@ -36,7 +36,7 @@ class KVType(IntEnum):
     UNK = 21
 
 
-class BinaryKeyValue(Dummy):
+class BinaryKeyValue:
     ENCODING = (0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2)
     FORMAT = (0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
     SIG = (0x56, 0x4B, 0x56, 0x03)
@@ -49,7 +49,7 @@ class BinaryKeyValue(Dummy):
         self.strings = []
         self.types = []
         self.current_type = 0
-        self.info_block = block_info
+        self.block_info = block_info
         self.kv = []
         self.flags = 0
         self.buffer = ByteIO()  # type: ByteIO
@@ -78,7 +78,7 @@ class BinaryKeyValue(Dummy):
         self.flags = reader.read_bytes(4)
         if self.flags[3] & 0x80:
             self.buffer.write_bytes(
-                reader.read_bytes(self.info_block.block_size - (reader.tell() - self.info_block.absolute_offset)))
+                reader.read_bytes(self.block_info.block_size - (reader.tell() - self.block_info.absolute_offset)))
         working = True
         while reader.tell() != reader.size() and working:
             block_mask = reader.read_uint16()
@@ -123,7 +123,7 @@ class BinaryKeyValue(Dummy):
             self.buffer.write_bytes(reader.read_bytes(length))
         elif compression_method == 1:
             uncompressed_size = reader.read_uint32()
-            compressed_size = self.info_block.block_size - (reader.tell() - self.info_block.absolute_offset)
+            compressed_size = self.block_info.block_size - (reader.tell() - self.block_info.absolute_offset)
             data = reader.read_bytes(compressed_size)
             u_data = uncompress(data)
             # with open("TEST.BIN",'wb') as f:

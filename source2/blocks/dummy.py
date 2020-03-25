@@ -1,9 +1,14 @@
 from ...byte_io_mdl import ByteIO
 
 
-class Dummy:
+class DataBlock:
 
-    def __init__(self):
+    def __init__(self, valve_file, info_block):
+        from ..source2 import ValveFile
+        from .header_block import InfoBlock
+
+        self._valve_file: ValveFile = valve_file
+        self.info_block: InfoBlock = info_block
         self.empty = True
 
     def read(self, reader: ByteIO):
@@ -11,8 +16,4 @@ class Dummy:
 
     def __repr__(self):
         template = '<{} {}>'
-        member_template = '{}:{}'
-        members = []
-        for key, item in self.__dict__.items():
-            members.append(member_template.format(key, item))
-        return template.format(type(self).__name__, ' '.join(members))
+        return template.format(type(self).__name__, self.info_block.block_name)

@@ -3,7 +3,7 @@ import math
 from enum import IntEnum
 
 from ...byte_io_mdl import ByteIO
-from .dummy import Dummy
+from .dummy import DataBlock
 
 
 class KeyValueDataType(IntEnum):
@@ -234,7 +234,7 @@ class SourceVertex:
         return self.__str__()
 
 
-class Matrix(Dummy):
+class Matrix(DataBlock):
     mat_rows = 0
     mat_cols = 0
 
@@ -257,7 +257,7 @@ class Matrix(Dummy):
         return '<Matrix{}x{}>'.format(self.mat_cols, self.mat_rows)
 
 
-class CTransform(Dummy):
+class CTransform(DataBlock):
 
     def __init__(self):
         self.quat = SourceVector4D()

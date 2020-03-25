@@ -18,8 +18,9 @@ class Vmdl:
 
         self.name = str(os.path.basename(vmdl_path).split('.')[0])
         # print(self.valve_file.data.data.keys())
-        self.remap_table = self.valve_file.data.data['m_remappingTable']
-        self.model_skeleton = self.valve_file.data.data['m_modelSkeleton']
+        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+        self.remap_table = data_block.data['m_remappingTable']
+        self.model_skeleton = data_block.data['m_modelSkeleton']
         self.bone_names = self.model_skeleton['m_boneName']
         self.bone_positions = self.model_skeleton['m_bonePosParent']
         self.bone_rotations = self.model_skeleton['m_boneRotParent']
@@ -31,23 +32,35 @@ class Vmdl:
         self.build_armature()
 
     def build_meshes(self, collection, bone_list=None, remap_list=None, ):
-        for mdat, mbuf in self.valve_file.mdat:
-            for scene in mdat.data["m_sceneObjects"]:
+        control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
+        e_meshes = control_block.data['embedded_meshes']
+        for e_mesh in e_meshes:
+            name = e_mesh['name']
+            data_block_index = e_mesh['data_block']
+            buffer_block_index = e_mesh['vbib_block']
+            morph_block_index = e_mesh['morph_block']
+            morph_texture = e_mesh['morph_texture']
+            data_block = self.valve_file.get_data_block(block_id=data_block_index)
+            buffer_block = self.valve_file.get_data_block(block_id=buffer_block_index)
+            morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
+            for scene in data_block.data["m_sceneObjects"]:
                 draw_calls = scene["m_drawCalls"]
                 for draw_call in draw_calls:
                     base_vertex = draw_call['m_nBaseVertex']
                     vertex_count = draw_call['m_nVertexCount']
                     start_index = draw_call['m_nStartIndex']
                     index_count = draw_call['m_nIndexCount']
-                    index_buffer = mbuf.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
+                    index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
                     assert len(draw_call['m_vertexBuffers']) == 1
-                    # assert draw_call['m_vertexBuffers'][0]['m_bBindOffsetBytes'] == 0
+                    assert draw_call['m_vertexBuffers'][0]['m_nBindOffsetBytes'] == 0
                     assert draw_call['m_nStartInstance'] == 0
                     assert draw_call['m_nInstanceCount'] == 0
-                    vertex_buffer = mbuf.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
-                    mesh_name = draw_call['m_material'].split("/")[0].split(".")[0]
+                    vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
+                    mesh_name = draw_call['m_material'].split("/")[-1].split(".")[0]
 
-                    mesh_obj = bpy.data.objects.new(mesh_name, bpy.data.meshes.new(mesh_name))
+                    mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
+                                                    bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
+                    print("Building mesh", name, mesh_name)
                     self.get_material(mesh_name, mesh_obj)
                     collection.objects.link(mesh_obj)
                     # bones = [bone_list[i] for i in remap_list]
@@ -67,7 +80,8 @@ class Vmdl:
                         vertex.normal.convert()
                         normals.append(vertex.normal.as_list)
 
-                    mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
+                    index_buffer.indexes[start_index:start_index + index_count]
+                    mesh.from_pydata(vertexes, [], [])
                     mesh.update()
                     mesh.uv_layers.new()
 
@@ -84,6 +98,7 @@ class Vmdl:
                     bpy.ops.object.shade_smooth()
                     mesh.normals_split_custom_set_from_vertices(normals)
                     mesh.use_auto_smooth = True
+                    mesh.validate(verbose=False)
 
     def build_armature(self):
 

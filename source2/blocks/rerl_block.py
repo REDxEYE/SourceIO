@@ -3,17 +3,15 @@ from typing import List
 from .header_block import InfoBlock
 from ..source2 import ValveFile
 from ...byte_io_mdl import ByteIO
-from .dummy import Dummy
+from .dummy import DataBlock
 
 
-class RERL(Dummy):
-    def __init__(self, valve_file: ValveFile):
-        super().__init__()
-        self.valve_file = valve_file
+class RERL(DataBlock):
+    def __init__(self, valve_file: ValveFile, info_block):
+        super().__init__(valve_file, info_block)
         self.resource_entry_offset = 0
         self.resource_count = 0
         self.resources = []  # type: List[RERLResource]
-        self.info_block = None
 
     def __repr__(self):
         return '<External resources list count:{}>'.format(self.resource_count)
@@ -22,8 +20,7 @@ class RERL(Dummy):
         for res in self.resources:
             print('\t', res)
 
-    def read(self, reader: ByteIO, block_info: InfoBlock = None):
-        self.info_block = block_info
+    def read(self, reader: ByteIO):
         entry = reader.tell()
         self.resource_entry_offset = reader.read_int32()
         self.resource_count = reader.read_int32()
@@ -36,10 +33,9 @@ class RERL(Dummy):
         self.empty = False
 
 
-class RERLResource(Dummy):
+class RERLResource:
 
     def __init__(self):
-        super().__init__()
         self.r_id = 0
         self.resource_name_offset = 0
         self.resource_name = ''
@@ -53,4 +49,3 @@ class RERLResource(Dummy):
         self.resource_name_offset = reader.read_int64()
         if self.resource_name_offset:
             self.resource_name = reader.read_from_offset(entry + self.resource_name_offset, reader.read_ascii_string)
-        self.empty = False

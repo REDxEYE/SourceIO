@@ -6,7 +6,7 @@ from ...byte_io_mdl import ByteIO
 
 from .common import SourceVertex, SourceVector, short_to_float, SourceVector4D, SourceVector2D
 from .header_block import InfoBlock
-from .dummy import Dummy
+from .dummy import DataBlock
 
 
 class DxgiFormat(IntEnum):
@@ -132,7 +132,7 @@ class DxgiFormat(IntEnum):
     V408 = 132,
 
 
-class VertexBuffer(Dummy):
+class VertexBuffer:
     def __init__(self):
         super().__init__()
         self.count = 0
@@ -201,7 +201,7 @@ class VertexBuffer(Dummy):
             self.buffer.seek(entry + self.size)
 
 
-class VertexAttribute(Dummy):
+class VertexAttribute:
     def __init__(self):
         self.name = ''
         self.format = DxgiFormat(0)  # type:DxgiFormat
@@ -254,7 +254,7 @@ class VertexAttribute(Dummy):
             raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 
 
-class IndexBuffer(Dummy):
+class IndexBuffer:
     def __init__(self):
         self.count = 0
         self.size = 0
@@ -288,23 +288,21 @@ class IndexBuffer(Dummy):
             self.indexes.append(polygon)
 
 
-class VBIB(Dummy):
+class VBIB(DataBlock):
 
-    def __init__(self, valve_file: ValveFile):
-        self.valve_file = valve_file
+    def __init__(self, valve_file: ValveFile, info_block):
+        super().__init__(valve_file, info_block)
         self.vertex_offset = 0
         self.vertex_count = 0
         self.index_offset = 0
         self.index_count = 0
-        self.vertex_buffer:List[VertexBuffer] = []
-        self.index_buffer:List[IndexBuffer] = []
-        self.info_block = None
+        self.vertex_buffer: List[VertexBuffer] = []
+        self.index_buffer: List[IndexBuffer] = []
 
     def __repr__(self):
         return '<VBIB vertex buffers:{} index buffers:{}>'.format(self.vertex_count, self.index_count)
 
-    def read(self, reader: ByteIO, block_info: InfoBlock = None):
-        self.info_block = block_info
+    def read(self, reader: ByteIO):
         entry = reader.tell()
         self.vertex_offset = reader.read_uint32()
         self.vertex_count = reader.read_uint32()
