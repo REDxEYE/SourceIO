@@ -24,7 +24,8 @@ class REDI(DataBlock):
         super().__init__(valve_file, info_block)
         self.blocks = []  # type:List[Dependencies]
 
-    def read(self, reader: ByteIO):
+    def read(self):
+        reader = self.reader
         for redi_block in redi_blocks:
             block = redi_block()
             entry = reader.tell()

@@ -9,6 +9,8 @@ from mathutils import Vector, Matrix, Euler, Quaternion
 from .blocks.vbib_block import VBIB
 
 
+
+
 class Vmdl:
 
     def __init__(self, vmdl_path, import_meshes):
@@ -74,14 +76,15 @@ class Vmdl:
                     normals = []
                     # Extracting vertex coordinates,UVs and normals
 
-                    for vertex in vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]:
+                    used_vertices = vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]
+
+                    for vertex in used_vertices:
                         vertexes.append(vertex.position.as_list)
                         uvs.append([vertex.uv.x, vertex.uv.y])
                         vertex.normal.convert()
                         normals.append(vertex.normal.as_list)
 
-                    index_buffer.indexes[start_index:start_index + index_count]
-                    mesh.from_pydata(vertexes, [], [])
+                    mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
                     mesh.update()
                     mesh.uv_layers.new()
 
@@ -90,7 +93,7 @@ class Vmdl:
                         u = uvs[mesh.loops[i].vertex_index]
                         uv_data[i].uv = u
                     if bone_list:
-                        for n, vertex in enumerate(vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]):
+                        for n, vertex in enumerate(used_vertices):
                             for bone_index, weight in zip(vertex.boneWeight.bone, vertex.boneWeight.weight):
                                 if weight > 0:
                                     bone_name = bone_list[remap_list[bone_index]]

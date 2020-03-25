@@ -10,7 +10,8 @@ class DATA(DataBlock):
         super().__init__(valve_file, info_block)
         self.data = {}
 
-    def read(self, reader: ByteIO):
+    def read(self):
+        reader = self.reader
         with reader.save_current_pos():
             fourcc = reader.read_bytes(4)
         if tuple(fourcc) == (0x56, 0x4B, 0x56, 0x03) or tuple(fourcc) == (0x01, 0x33, 0x56, 0x4B):

@@ -116,7 +116,6 @@ class DxgiFormat(IntEnum):
     NV12 = 103,
     P010 = 104,
     P016 = 105,
-    # 420
     _OPAQUE = 106,
     YUY2 = 107,
     Y210 = 108,
@@ -142,7 +141,7 @@ class VertexBuffer:
         self.offset = 0
         self.total_size = 0
         self.attributes = []  # type:List[VertexAttribute]
-        self.buffer = None  # type: ByteIO
+        self.buffer = ByteIO()  # type: ByteIO
         self.vertexes = []  # type: List[SourceVertex]
 
     def __repr__(self):
@@ -153,7 +152,7 @@ class VertexBuffer:
                'attributes:{} vertex size:{} ' \
                'vertex attributes: {} >'.format(self.count, self.attributes_count, self.size, buff, )
 
-    def read(self, reader: ByteIO):
+    def read(self,reader:ByteIO):
         self.count = reader.read_uint32()
         self.size = reader.read_uint32()
         entry = reader.tell()
@@ -170,10 +169,10 @@ class VertexBuffer:
         self.total_size = reader.read_uint32()
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
-            # assert self.total_size == self.size * self.count
-            self.buffer = ByteIO(byte_object=reader.read_bytes(self.count * self.size))
+            assert self.total_size == self.size * self.count #TODO: https://github.com/Silverlan/util_source2/blob/25cb557d19e48a34fe7dfd74d8e96f670a62f171/src/mesh_optimizer.cpp
+            self.buffer.write_bytes(reader.read_bytes(self.count * self.size))
+            self.buffer.seek(0)
         self.read_buffer()
-        self.empty = False
 
     def read_buffer(self):
         for n in range(self.count):
@@ -302,19 +301,21 @@ class VBIB(DataBlock):
     def __repr__(self):
         return '<VBIB vertex buffers:{} index buffers:{}>'.format(self.vertex_count, self.index_count)
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
+    def read(self):
+        reader = self.reader
         self.vertex_offset = reader.read_uint32()
         self.vertex_count = reader.read_uint32()
+        entry = reader.tell()
+        self.index_offset = reader.read_uint32()
+        self.index_count = reader.read_uint32()
         with reader.save_current_pos():
-            reader.seek(entry + self.vertex_offset)
+            reader.seek(self.vertex_offset)
             for _ in range(self.vertex_count):
                 v_buffer = VertexBuffer()
                 v_buffer.read(reader)
                 self.vertex_buffer.append(v_buffer)
-        entry = reader.tell()
-        self.index_offset = reader.read_uint32()
-        self.index_count = reader.read_uint32()
+
+
         with reader.save_current_pos():
             reader.seek(entry + self.index_offset)
             for _ in range(self.index_count):

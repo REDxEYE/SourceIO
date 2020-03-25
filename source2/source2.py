@@ -44,7 +44,7 @@ class ValveFile:
                     self.data_blocks.append(None)
                     continue
                 block = block_class(self, block_info)
-                block.read(self.reader)
+                block.read()
                 self.data_blocks.append(block)
 
     def get_data_block(self, *, block_id=None, block_name=None):

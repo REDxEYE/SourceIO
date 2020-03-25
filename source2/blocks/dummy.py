@@ -9,9 +9,12 @@ class DataBlock:
 
         self._valve_file: ValveFile = valve_file
         self.info_block: InfoBlock = info_block
+        with self._valve_file.reader.save_current_pos():
+            self._valve_file.reader.seek(self.info_block.absolute_offset)
+            self.reader = ByteIO(byte_object=self._valve_file.reader.read_bytes(self.info_block.block_size))
         self.empty = True
 
-    def read(self, reader: ByteIO):
+    def read(self):
         raise NotImplementedError()
 
     def __repr__(self):

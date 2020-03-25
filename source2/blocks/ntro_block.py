@@ -20,11 +20,8 @@ class NTRO(DataBlock):
         self.structs = []  # type: List[NTROStruct]
         self.enums = []  # type: List[NTROEnum]
 
-    def from_file(self, file: ByteIO, block_info: InfoBlock = None):
-        self.read(file, block_info)
-
-    def read(self, reader: ByteIO, block_info: InfoBlock = None):
-        self.info_block = block_info
+    def read(self):
+        reader = self.reader
         self.introspection_version = reader.read_int32()
         entry = reader.tell()
         self.struct_offset = reader.read_int32()
@@ -285,7 +282,7 @@ class NTROStructField:
                                       self.count)
 
 
-class NTROEnum(DataBlock):
+class NTROEnum:
 
     def __init__(self, ntro_block):
         self.ntro_block = ntro_block

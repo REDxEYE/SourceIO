@@ -20,7 +20,8 @@ class RERL(DataBlock):
         for res in self.resources:
             print('\t', res)
 
-    def read(self, reader: ByteIO):
+    def read(self):
+        reader = self.reader
         entry = reader.tell()
         self.resource_entry_offset = reader.read_int32()
         self.resource_count = reader.read_int32()

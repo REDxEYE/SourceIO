@@ -61,6 +61,10 @@ class BinaryKeyValue:
         self.double_count = 0
         self.double_offset = -1
 
+        self.byte_buffer = ByteIO()
+        self.int_buffer = ByteIO()
+        self.double_buffer = ByteIO()
+
     def read(self, reader: ByteIO):
         fourcc = reader.read_bytes(4)
         assert tuple(fourcc) == self.SIG or tuple(fourcc) == self.SIG2, 'Invalid KV Signature'
@@ -133,31 +137,39 @@ class BinaryKeyValue:
         else:
             raise NotImplementedError("Unknown KV3 compression method")
 
-        self.buffer.seek(self.bin_blob_count)
-        if self.bin_blob_count:
-            self.buffer.seek(self.buffer.tell())  # + (4 - (self.buffer.tell() % 4)))
+        self.buffer.seek(0)
+
+        self.byte_buffer.write_bytes(self.buffer.read_bytes(self.bin_blob_count))
+        self.byte_buffer.seek(0)
+
         if self.buffer.tell() % 4 != 0:
             self.buffer.seek(self.buffer.tell() + (4 - (self.buffer.tell() % 4)))
-        string_count = self.buffer.read_uint32()
-        kv_data_offset = self.buffer.tell()
-        self.int_offset = self.buffer.tell()
 
-        self.buffer.seek(self.buffer.tell() + (self.int_count - 1) * 4)
+        self.int_buffer.write_bytes(self.buffer.read_bytes(self.int_count * 4))
+        self.int_buffer.seek(0)
+
         if self.buffer.tell() % 8 != 0:
             self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
 
-        self.double_offset = self.buffer.tell()
-        self.buffer.seek(self.buffer.tell() + self.double_count * 8)
+        self.double_buffer.write_bytes(self.buffer.read_bytes(self.double_count * 8))
+        self.double_buffer.seek(0)
+
+        string_count = self.int_buffer.read_uint32()
 
         for _ in range(string_count):
             self.strings.append(self.buffer.read_ascii_string())
+
         types_len = self.buffer.size() - self.buffer.tell() - 4
+
         for _ in range(types_len):
             self.types.append(self.buffer.read_uint8())
-
-        self.buffer.seek(kv_data_offset)
         self.parse(self.buffer, self.kv, True)
+
         self.buffer.close()
+        self.byte_buffer.close()
+        self.int_buffer.close()
+        self.double_buffer.close()
+
         self.kv = self.kv[0]
         del self.buffer
 
@@ -166,7 +178,7 @@ class BinaryKeyValue:
             data_type = self.types[self.current_type]
             self.current_type += 1
         else:
-            data_type = reader.read_int8()
+            data_type = self.byte_buffer.read_int8()
 
         flag_info = KVFlag.Nothing
         if data_type & 0x80:
@@ -179,12 +191,10 @@ class BinaryKeyValue:
         return KVType(data_type), flag_info
 
     def parse(self, reader: ByteIO, parent=None, in_array=False):
-        name = None
-        parent = parent
-
-        if not in_array:
-            string_id = reader.read_uint32()
-            name = "ERROR" if string_id == -1 else self.strings[string_id]
+        if in_array:
+            name = None
+        else:
+            name = self.strings[self.int_buffer.read_uint32()]
         data_type, flag_info = self.read_type(reader)
         self.read_value(name, reader, data_type, flag_info, parent, in_array)
 
@@ -194,13 +204,7 @@ class BinaryKeyValue:
             add(None)
             return
         elif data_type == KVType.BOOLEAN:
-            with reader.save_current_pos():
-                if self.bin_blob_offset > -1:
-                    reader.seek(self.bin_blob_offset)
-                    self.bin_blob_offset += 1
-                add(reader.read_int8() > 0)
-            if self.bin_blob_offset == 0:
-                reader.skip(1)
+            add(self.byte_buffer.read_int8() > 0)
             return
         elif data_type == KVType.BOOLEAN_TRUE:
             add(True)
@@ -209,35 +213,14 @@ class BinaryKeyValue:
             add(False)
             return
         elif data_type == KVType.INT64:
-            with reader.save_current_pos():
-                if self.double_offset > 0:
-                    reader.seek(self.double_offset)
-                    self.double_offset += 8
-                add(reader.read_int64())
-            if self.double_offset == 0:
-                reader.skip(8)
+            add(self.double_buffer.read_int64())
             return
-
         elif data_type == KVType.UINT64:
-            with reader.save_current_pos():
-                if self.double_offset > -1:
-                    reader.seek(self.double_offset)
-                    self.double_offset += 8
-                add(reader.read_uint64())
-            if self.double_offset == -1:
-                reader.skip(8)
+            add(self.double_buffer.read_uint64())
             return
-
         elif data_type == KVType.DOUBLE:
-            with reader.save_current_pos():
-                if self.double_offset > -1:
-                    reader.seek(self.double_offset)
-                    self.double_offset += 8
-                add(reader.read_double())
-            if self.double_offset == -1:
-                reader.skip(8)
+            add(self.double_buffer.read_double())
             return
-
         elif data_type == KVType.DOUBLE_ZERO:
             add(0.0)
             return
@@ -251,39 +234,34 @@ class BinaryKeyValue:
             add(1.0)
             return
         elif data_type == KVType.INT32:
-            add(reader.read_int32())
+            add(self.int_buffer.read_int32())
             return
         elif data_type == KVType.STRING:
-            string_id = reader.read_int32()
+            string_id = self.int_buffer.read_int32()
             if string_id == -1:
                 add(None)
                 return
             add(self.strings[string_id])
             return
         elif data_type == KVType.ARRAY:
-            size = reader.read_uint32()
+            size = self.int_buffer.read_uint32()
             arr = []
-
             for _ in range(size):
                 self.parse(reader, arr, True)
-
             add(arr)
             return
         elif data_type == KVType.OBJECT:
-            size = reader.read_uint32()
+            size = self.int_buffer.read_uint32()
             tmp = {}
-
             for _ in range(size):
                 self.parse(reader, tmp, False)
-
             add(tmp)
             if not parent:
                 parent = tmp
         elif data_type == KVType.ARRAY_TYPED:
-            t_array_size = reader.read_uint32()
+            t_array_size = self.int_buffer.read_uint32()
             sub_type, sub_flag = self.read_type(reader)
             tmp = []
-
             for _ in range(t_array_size):
                 self.read_value(name, reader, sub_type, sub_flag, tmp, True)
 
@@ -295,12 +273,8 @@ class BinaryKeyValue:
                 tmp = SourceVector2D(*tmp)
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
-            size = reader.read_uint32()
-            with reader.save_current_pos():
-                if self.bin_blob_offset > -1:
-                    reader.seek(self.bin_blob_offset)
-                    self.bin_blob_offset += size
-                add(reader.read_bytes(size))
+            size = self.int_buffer.read_uint32()
+            add(self.byte_buffer.read_bytes(size))
             return
         else:
             raise NotImplementedError("Unknown KVType.{}".format(data_type.name))
