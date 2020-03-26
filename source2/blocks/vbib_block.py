@@ -1,5 +1,7 @@
+from copy import copy
 from enum import IntEnum
 from typing import List
+import numpy as np
 
 from ..source2 import ValveFile
 from ...byte_io_mdl import ByteIO
@@ -7,6 +9,16 @@ from ...byte_io_mdl import ByteIO
 from .common import SourceVertex, SourceVector, short_to_float, SourceVector4D, SourceVector2D
 from .header_block import InfoBlock
 from .dummy import DataBlock
+
+
+def unzigzag8(v):
+    return (-(v & 1) ^ (v >> 1)) & 0xFF
+
+
+def slice(data: np.ndarray, start, len=None):
+    if len is None:
+        len = data.size - start
+    return data[start:start + len]
 
 
 class DxgiFormat(IntEnum):
@@ -131,11 +143,19 @@ class DxgiFormat(IntEnum):
     V408 = 132,
 
 
+class CompressedVertexConstants:
+    vertex_header = 0xa0
+    vertex_block_size_bytes = 8192
+    vertex_block_max_size = 256
+    byte_group_size = 16
+    tail_max_size = 32
+
+
 class VertexBuffer:
     def __init__(self):
         super().__init__()
-        self.count = 0
-        self.size = 0
+        self.vertex_count = 0
+        self.vertex_size = 0
         self.attributes_offset = 0
         self.attributes_count = 0
         self.offset = 0
@@ -150,11 +170,11 @@ class VertexBuffer:
             buff += attrib.name + ' ' + attrib.format.name + '; '
         return '<VertexBuffer vertexes:{} ' \
                'attributes:{} vertex size:{} ' \
-               'vertex attributes: {} >'.format(self.count, self.attributes_count, self.size, buff, )
+               'vertex attributes: {} >'.format(self.vertex_count, self.attributes_count, self.vertex_size, buff, )
 
-    def read(self,reader:ByteIO):
-        self.count = reader.read_uint32()
-        self.size = reader.read_uint32()
+    def read(self, reader: ByteIO):
+        self.vertex_count = reader.read_uint32()
+        self.vertex_size = reader.read_uint32()
         entry = reader.tell()
         self.attributes_offset = reader.read_uint32()
         self.attributes_count = reader.read_uint32()
@@ -169,13 +189,15 @@ class VertexBuffer:
         self.total_size = reader.read_uint32()
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
-            assert self.total_size == self.size * self.count #TODO: https://github.com/Silverlan/util_source2/blob/25cb557d19e48a34fe7dfd74d8e96f670a62f171/src/mesh_optimizer.cpp
-            self.buffer.write_bytes(reader.read_bytes(self.count * self.size))
+            if self.total_size != self.vertex_size * self.vertex_count:
+                self.buffer.write_bytes(self.decode_vertex_buffer(reader.read_bytes(self.total_size)))
+            else:
+                self.buffer.write_bytes(reader.read_bytes(self.vertex_count * self.vertex_size))
             self.buffer.seek(0)
         self.read_buffer()
 
     def read_buffer(self):
-        for n in range(self.count):
+        for n in range(self.vertex_count):
             entry = self.buffer.tell()
             vertex = SourceVertex()
             for attrib in self.attributes:
@@ -197,7 +219,157 @@ class VertexBuffer:
                 else:
                     print(f"UNKNOWN ATTRIBUTE {attrib.name}!!!!")
             self.vertexes.append(vertex)
-            self.buffer.seek(entry + self.size)
+            self.buffer.seek(entry + self.vertex_size)
+
+    def decode_bytes_group(self, data, destination, bitslog2):
+        data_offset = 0
+        data_var = 0
+        b = 0
+
+        def next(bits, encv):
+            enc = b >> (8 - bits)
+            is_same = enc == (1 << bits) - 1
+
+            return b << bits, data_var + is_same, encv if is_same else enc
+
+        if bitslog2 == 0:
+            for k in range(CompressedVertexConstants.byte_group_size):
+                destination[k] = 0
+            return data
+        elif bitslog2 == 1:
+            data_var = 4
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[0] = next(2, data[data_var])
+            b, data_var, destination[1] = next(2, data[data_var])
+            b, data_var, destination[2] = next(2, data[data_var])
+            b, data_var, destination[3] = next(2, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[4] = next(2, data[data_var])
+            b, data_var, destination[5] = next(2, data[data_var])
+            b, data_var, destination[6] = next(2, data[data_var])
+            b, data_var, destination[7] = next(2, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[8] = next(2, data[data_var])
+            b, data_var, destination[9] = next(2, data[data_var])
+            b, data_var, destination[10] = next(2, data[data_var])
+            b, data_var, destination[11] = next(2, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[12] = next(2, data[data_var])
+            b, data_var, destination[13] = next(2, data[data_var])
+            b, data_var, destination[14] = next(2, data[data_var])
+            b, data_var, destination[15] = next(2, data[data_var])
+
+            return slice(data, data_var)
+        elif bitslog2 == 2:
+            data_var = 8
+
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[0] = next(4, data[data_var])
+            b, data_var, destination[1] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[2] = next(4, data[data_var])
+            b, data_var, destination[3] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[4] = next(4, data[data_var])
+            b, data_var, destination[5] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[6] = next(4, data[data_var])
+            b, data_var, destination[7] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[8] = next(4, data[data_var])
+            b, data_var, destination[9] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[10] = next(4, data[data_var])
+            b, data_var, destination[11] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[12] = next(4, data[data_var])
+            b, data_var, destination[13] = next(4, data[data_var])
+            b = data[data_offset]
+            data_offset += 1
+            b, data_var, destination[14] = next(4, data[data_var])
+            b, data_var, destination[15] = next(4, data[data_var])
+            return slice(data, data_var)
+
+        elif bitslog2 == 3:
+            destination[:CompressedVertexConstants.byte_group_size] = data[0:CompressedVertexConstants.byte_group_size]
+            return slice(data, CompressedVertexConstants.byte_group_size)
+        else:
+            raise Exception("Unexpected bit length")
+
+    def decode_bytes(self, data: np.ndarray, destination: np.ndarray):
+        assert destination.size % CompressedVertexConstants.byte_group_size == 0, "Expected data length to be a multiple of ByteGroupSize."
+        header_size = ((destination.size // CompressedVertexConstants.byte_group_size) + 3) // 4
+        header = slice(data, 0)
+        data: np.ndarray = slice(data, header_size)
+        for i in range(0, destination.size, CompressedVertexConstants.byte_group_size):
+            assert data.size > CompressedVertexConstants.tail_max_size, "Cannot decode"
+            header_offset = i // CompressedVertexConstants.byte_group_size
+            bitslog2 = (header[header_offset // 4] >> ((header_offset % 4) * 2)) & 3
+            data = self.decode_bytes_group(data, slice(destination, i), bitslog2)
+        return data
+
+    def get_vertex_block_size(self):
+        result = CompressedVertexConstants.vertex_block_size_bytes // self.vertex_size
+        result &= ~(CompressedVertexConstants.byte_group_size - 1)
+        return result if result < CompressedVertexConstants.vertex_block_max_size \
+            else CompressedVertexConstants.vertex_block_max_size
+
+    def decode_vertex_block(self, data: np.ndarray, vertex_data: np.ndarray, vertex_count, last_vertex: np.ndarray):
+        assert vertex_count > 0 and vertex_count <= CompressedVertexConstants.vertex_block_max_size, \
+            "Expected vertexCount to be between 0 and VertexMaxBlockSize"
+        buffer = np.zeros((CompressedVertexConstants.vertex_block_max_size,), dtype=np.uint8)
+        transposed = np.zeros((CompressedVertexConstants.vertex_block_size_bytes,), dtype=np.uint8)
+        vertex_count_aligned = (vertex_count + CompressedVertexConstants.byte_group_size - 1) & ~(
+                CompressedVertexConstants.byte_group_size - 1)
+        for k in range(self.vertex_size):
+            data = self.decode_bytes(data, slice(buffer, 0, vertex_count_aligned))
+            vertex_offset = k
+            p = last_vertex[k]
+            for i in range(vertex_count):
+                v = unzigzag8(buffer[i]) + p
+                transposed[vertex_offset] = v
+                p = v
+                vertex_offset += self.vertex_size
+        vertex_data[:vertex_count * self.vertex_size] = slice(transposed, 0, vertex_count * self.vertex_size)
+        last_vertex[:self.vertex_size] = slice(transposed, self.vertex_size * (vertex_count - 1), self.vertex_size)
+        return data
+
+    def decode_vertex_buffer(self, buffer: bytes):
+        buffer: np.ndarray = np.array(list(buffer), dtype=np.uint8)
+        assert 0 < self.vertex_size < 256, f"Vertex size is expected to be between 1 and 256 = {self.vertex_size}"
+        assert self.vertex_size % 4 == 0, "Vertex size is expected to be a multiple of 4."
+        assert len(buffer) > 1 + self.vertex_size, "Vertex buffer is too short."
+        vertex_span = buffer.copy()
+        header = vertex_span[0]
+        assert header == CompressedVertexConstants.vertex_header, \
+            f"Invalid vertex buffer header, expected {CompressedVertexConstants.vertex_header} but got {header}."
+        vertex_span: np.ndarray = slice(vertex_span, 1)
+        last_vertex: np.ndarray = slice(vertex_span, buffer.size - 1 - self.vertex_size, self.vertex_size)
+        vertex_block_size = self.get_vertex_block_size()
+        vertex_offset = 0
+        result = np.zeros((self.vertex_count * self.vertex_size,), dtype=np.uint8)
+
+        while vertex_offset < self.vertex_count:
+            block_size = vertex_offset + vertex_block_size if vertex_block_size < self.vertex_count else \
+                self.vertex_count - vertex_offset
+            vertex_to_decode = vertex_block_size if vertex_block_size < self.vertex_count else \
+                self.vertex_count - vertex_offset
+            vertex_span = self.decode_vertex_block(vertex_span, slice(result, vertex_offset * self.vertex_size),
+                                                   vertex_to_decode,
+                                                   last_vertex)
+            vertex_offset += block_size
+        return bytes(result)
 
 
 class VertexAttribute:
@@ -277,7 +449,7 @@ class IndexBuffer:
         self.total_size = reader.read_uint32()
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
-            # assert self.total_size == self.size * self.count
+            assert self.total_size == self.size * self.count  # TODO: https://github.com/Silverlan/util_source2/blob/25cb557d19e48a34fe7dfd74d8e96f670a62f171/src/mesh_optimizer.cpp#L331
             self.buffer = ByteIO(byte_object=reader.read_bytes(self.count * self.size))
         self.read_buffer()
 
@@ -314,7 +486,6 @@ class VBIB(DataBlock):
                 v_buffer = VertexBuffer()
                 v_buffer.read(reader)
                 self.vertex_buffer.append(v_buffer)
-
 
         with reader.save_current_pos():
             reader.seek(entry + self.index_offset)
