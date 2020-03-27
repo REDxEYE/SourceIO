@@ -164,6 +164,7 @@ class VertexBuffer:
         self.attributes = []  # type:List[VertexAttribute]
         self.buffer = ByteIO()  # type: ByteIO
         self.vertexes = []  # type: List[SourceVertex]
+        self.vertex_struct = ''
 
     def __repr__(self):
         buff = ''
@@ -184,6 +185,7 @@ class VertexBuffer:
             for _ in range(self.attributes_count):
                 v_attrib = VertexAttribute()
                 v_attrib.read(reader)
+                self.vertex_struct += v_attrib.get_struct()
                 self.attributes.append(v_attrib)
         entry = reader.tell()
         self.offset = reader.read_uint32()
@@ -199,30 +201,33 @@ class VertexBuffer:
 
     def read_buffer(self):
         for n in range(self.vertex_count):
-            entry = self.buffer.tell()
             vertex = SourceVertex()
+            vertex_data = self.buffer.read_fmt(self.vertex_struct)
+            offset = 0
             for attrib in self.attributes:
+                attrib_len = attrib.element_count
                 if attrib.name == 'POSITION':
-                    vertex.position = SourceVector(*attrib.read_from_buffer(self.buffer))
+                    vertex.position = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'TEXCOORD':
-                    vertex.uv = SourceVector2D(*attrib.read_from_buffer(self.buffer))
+                    vertex.uv = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'NORMAL':
-                    vertex.normal = SourceVector(*attrib.read_from_buffer(self.buffer))
+                    vertex.normal = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'TANGENT':
-                    vertex.tangent = attrib.read_from_buffer(self.buffer)
+                    vertex.tangent = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'texcoord':
-                    vertex.lightmap = attrib.read_from_buffer(self.buffer)
+                    vertex.lightmap = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == "BLENDINDICES":
-                    vertex.boneWeight.bone = attrib.read_from_buffer(self.buffer)
-                    vertex.boneWeight.boneCount = len(vertex.boneWeight.bone)
+                    vertex.bone_weight.bone = slice(vertex_data, offset, attrib_len)
+                    vertex.bone_weight.boneCount = len(vertex.bone_weight.bone)
                 elif attrib.name == "BLENDWEIGHT":
-                    vertex.boneWeight.weight = SourceVector4D(*attrib.read_from_buffer(self.buffer)).to_floats.as_list
+                    vertex.bone_weight.weight = np.divide(slice(vertex_data, offset, attrib_len), 255)
                 else:
                     print(f"UNKNOWN ATTRIBUTE {attrib.name}!!!!")
+                offset += attrib_len
             self.vertexes.append(vertex)
-            self.buffer.seek(entry + self.vertex_size)
 
-    def decode_bytes_group(self, data, destination, bitslog2):
+    @staticmethod
+    def decode_bytes_group(data, destination, bitslog2):
         data_offset = 0
         data_var = 0
         b = 0
@@ -230,8 +235,7 @@ class VertexBuffer:
         def next(bits, encv):
             enc = b >> (8 - bits)
             is_same = enc == (1 << bits) - 1
-
-            return b << bits, data_var + is_same, encv if is_same else enc
+            return b << bits, data_var + is_same, encv if is_same else enc & 0xFF
 
         if bitslog2 == 0:
             for k in range(byte_group_size):
@@ -327,8 +331,8 @@ class VertexBuffer:
             else vertex_block_max_size
 
     def decode_vertex_block(self, data: np.ndarray, vertex_data: np.ndarray, vertex_count, last_vertex: np.ndarray):
-        assert vertex_count > 0 and vertex_count <= vertex_block_max_size, \
-            "Expected vertexCount to be between 0 and VertexMaxBlockSize"
+        assert 0 < vertex_count <= vertex_block_max_size, \
+            f"Expected vertexCount({vertex_count}) to be between 0 and VertexMaxBlockSize"
         buffer = np.zeros((vertex_block_max_size,), dtype=np.uint8)
         transposed = np.zeros((vertex_block_size_bytes,), dtype=np.uint8)
         vertex_count_aligned = (vertex_count + byte_group_size - 1) & ~(
@@ -338,7 +342,7 @@ class VertexBuffer:
             vertex_offset = k
             p = last_vertex[k]
             for i in range(vertex_count):
-                v = unzigzag8(buffer[i]) + p
+                v = (((-(buffer[i] & 1) ^ (buffer[i] >> 1)) & 0xFF) + p) & 0xFF
                 transposed[vertex_offset] = v
                 p = v
                 vertex_offset += self.vertex_size
@@ -362,12 +366,10 @@ class VertexBuffer:
         result = np.zeros((self.vertex_count * self.vertex_size,), dtype=np.uint8)
 
         while vertex_offset < self.vertex_count:
-            block_size = vertex_offset + vertex_block_size if vertex_block_size < self.vertex_count else \
-                self.vertex_count - vertex_offset
-            vertex_to_decode = vertex_block_size if vertex_block_size < self.vertex_count else \
+            block_size = vertex_block_size if vertex_offset + vertex_block_size < self.vertex_count else \
                 self.vertex_count - vertex_offset
             vertex_span = self.decode_vertex_block(vertex_span, slice(result, vertex_offset * self.vertex_size),
-                                                   vertex_to_decode,
+                                                   block_size,
                                                    last_vertex)
             vertex_offset += block_size
         return bytes(result)
@@ -379,6 +381,7 @@ class VertexAttribute:
         self.format = DxgiFormat(0)  # type:DxgiFormat
         self.offset = 0
         self.abs_offset = 0
+        self.element_count = 0
 
     def __repr__(self):
         return '<VertexAttribute "{}" format:{} offset:{}>'.format(self.name, self.format.name, self.offset)
@@ -389,39 +392,108 @@ class VertexAttribute:
         reader.seek(entry + 36)
         self.format = DxgiFormat(reader.read_int32())
         self.offset = reader.read_uint32()
+        self.element_count = self.get_element_count()
         reader.skip(12)
+
+    def get_struct(self):
+        if self.format == DxgiFormat.R32G32B32_FLOAT:
+            return '3f'
+        elif self.format == DxgiFormat.R32G32_FLOAT:
+            return '2f'
+        elif self.format == DxgiFormat.R32_FLOAT:
+            return '1f'
+        elif self.format == DxgiFormat.R32G32B32_UINT:
+            return '3I'
+        elif self.format == DxgiFormat.R32G32B32_SINT:
+            return '3i'
+        elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
+            return '4f'
+        elif self.format == DxgiFormat.R32G32B32A32_UINT:
+            return '4I'
+        elif self.format == DxgiFormat.R32G32B32A32_SINT:
+            return '4i'
+        elif self.format == DxgiFormat.R16G16_FLOAT:
+            return '2e'
+        elif self.format == DxgiFormat.R16G16_SINT:
+            return '2h'
+        elif self.format == DxgiFormat.R16G16_UINT:
+            return '2H'
+        elif self.format == DxgiFormat.R16G16B16A16_SINT:
+            return '4h'
+        elif self.format == DxgiFormat.R8G8B8A8_SNORM:
+            return '4b'
+        elif self.format == DxgiFormat.R8G8B8A8_UNORM:
+            return '4B'
+        elif self.format == DxgiFormat.R8G8B8A8_UINT:
+            return '4B'
+        else:
+            raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
+
+    def get_element_count(self):
+        if self.format == DxgiFormat.R32G32B32_FLOAT:
+            return 3
+        elif self.format == DxgiFormat.R32G32_FLOAT:
+            return 2
+        elif self.format == DxgiFormat.R32_FLOAT:
+            return 1
+        elif self.format == DxgiFormat.R32G32B32_UINT:
+            return 3
+        elif self.format == DxgiFormat.R32G32B32_SINT:
+            return 3
+        elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
+            return 4
+        elif self.format == DxgiFormat.R32G32B32A32_UINT:
+            return 4
+        elif self.format == DxgiFormat.R32G32B32A32_SINT:
+            return 4
+        elif self.format == DxgiFormat.R16G16_FLOAT:
+            return 2
+        elif self.format == DxgiFormat.R16G16_SINT:
+            return 2
+        elif self.format == DxgiFormat.R16G16_UINT:
+            return 2
+        elif self.format == DxgiFormat.R16G16B16A16_SINT:
+            return 4
+        elif self.format == DxgiFormat.R8G8B8A8_SNORM:
+            return 4
+        elif self.format == DxgiFormat.R8G8B8A8_UNORM:
+            return 4
+        elif self.format == DxgiFormat.R8G8B8A8_UINT:
+            return 4
+        else:
+            raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 
     def read_from_buffer(self, reader: ByteIO):
         if self.format == DxgiFormat.R32G32B32_FLOAT:
-            return [reader.read_float() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32G32_FLOAT:
-            return [reader.read_float() for _ in range(self.format.name.count('32'))]
-        if self.format == DxgiFormat.R32_FLOAT:
-            return [reader.read_float() for _ in range(self.format.name.count('32'))]
+            return reader.read_fmt(f'3f')
+        elif self.format == DxgiFormat.R32G32_FLOAT:
+            return reader.read_fmt(f'2f')
+        elif self.format == DxgiFormat.R32_FLOAT:
+            return reader.read_fmt(f'f')
         elif self.format == DxgiFormat.R32G32B32_UINT:
-            return [reader.read_uint32() for _ in range(self.format.name.count('32'))]
+            return reader.read_fmt(f'3I')
         elif self.format == DxgiFormat.R32G32B32_SINT:
-            return [reader.read_int32() for _ in range(self.format.name.count('32'))]
+            return reader.read_fmt(f'3i')
         elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
-            return [reader.read_float() for _ in range(self.format.name.count('32'))]
+            return reader.read_fmt(f'4f')
         elif self.format == DxgiFormat.R32G32B32A32_UINT:
-            return [reader.read_uint32() for _ in range(self.format.name.count('32'))]
+            return reader.read_fmt(f'4I')
         elif self.format == DxgiFormat.R32G32B32A32_SINT:
-            return [reader.read_int32() for _ in range(self.format.name.count('32'))]
+            return reader.read_fmt(f'4i')
         elif self.format == DxgiFormat.R16G16_FLOAT:
             return [short_to_float(reader.read_int16()) for _ in range(self.format.name.count('16'))]
         elif self.format == DxgiFormat.R16G16_SINT:
-            return [reader.read_int16() for _ in range(self.format.name.count('16'))]
-        elif self.format == DxgiFormat.R16G16B16A16_SINT:
-            return [reader.read_int16() for _ in range(self.format.name.count('16'))]
+            return reader.read_fmt(f'2h')
         elif self.format == DxgiFormat.R16G16_UINT:
-            return [reader.read_uint16() for _ in range(self.format.name.count('16'))]
+            return reader.read_fmt(f'2H')
+        elif self.format == DxgiFormat.R16G16B16A16_SINT:
+            return reader.read_fmt(f'4h')
         elif self.format == DxgiFormat.R8G8B8A8_SNORM:
-            return [reader.read_int8() for _ in range(self.format.name.count('8'))]
+            return reader.read_fmt(f'4b')
         elif self.format == DxgiFormat.R8G8B8A8_UNORM:
-            return [reader.read_uint8() for _ in range(self.format.name.count('8'))]
+            return reader.read_fmt(f'4B')
         elif self.format == DxgiFormat.R8G8B8A8_UINT:
-            return [reader.read_uint8() for _ in range(self.format.name.count('8'))]
+            return reader.read_fmt(f'4B')
         else:
             raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 
@@ -464,10 +536,8 @@ class IndexBuffer:
         data_offset = 1 + (self.index_count // 3)
         assert buffer.size > data_offset + 16, "Index buffer is too short."
         assert buffer[0] == index_header, "Incorrect index buffer header."
-        vertex_fifo = np.array([], dtype=np.uint32)
-        vertex_fifo.resize((16,))
-        edge_fifo = np.array([], dtype=np.uint32)
-        edge_fifo.resize((16, 2))
+        vertex_fifo = np.zeros((16,), dtype=np.uint32)
+        edge_fifo = np.zeros((16, 2), dtype=np.uint32)
         edge_fifo_offset = 0
         vertex_fifo_offset = 0
 

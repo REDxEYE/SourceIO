@@ -68,7 +68,6 @@ def lerp(a, b, f):
 
 class SourceVector:
     def __init__(self, x=0.0, y=0.0, z=0.0, w=0.0):
-
         self.x = x
         self.y = y
         self.z = z
@@ -112,28 +111,24 @@ class SourceVector:
     def as_string(self):
         return " X:{} Y:{} Z:{}".format(self.x, self.y, self.z)
 
-    def convert(self):
+    @staticmethod
+    def convert(x, y):
         # print('before',self)
         out_normal = SourceVector()
-        z_sing = -math.floor((self.x - 128) / 128)
-        t_sing = -math.floor((self.y - 128) / 128)
-        x_abs = abs(self.x - 128) - z_sing
-        y_abs = abs(self.y - 128) - t_sing
+        z_sing = -math.floor((x - 128) / 128)
+        t_sing = -math.floor((y - 128) / 128)
+        x_abs = abs(x - 128) - z_sing
+        y_abs = abs(y - 128) - t_sing
         x_sing = -math.floor((x_abs - 64) / 64)
         y_sing = -math.floor((y_abs - 64) / 64)
         out_normal.x = (abs(x_abs - 64) - x_sing) / 64
         out_normal.y = (abs(y_abs - 64) - y_sing) / 64
         out_normal.z = 1 - out_normal.x - out_normal.y
         out_normal.normalize()
-        # print('sings',x_sing,y_sing,z_sing)
         out_normal.x *= lerp(1, -1, x_sing)
         out_normal.y *= lerp(1, -1, y_sing)
         out_normal.z *= lerp(1, -1, z_sing)
-        # return out_normal
-        self.x = out_normal.x
-        self.y = out_normal.y
-        self.z = out_normal.z
-        self.w = 0
+        return out_normal
 
     def magnitude(self):
         magn = math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
@@ -214,21 +209,15 @@ class SourceBoneWeight:
 
 class SourceVertex:
     def __init__(self):
-        self.position = SourceVector()
-        self.normal = SourceVector()
-        self.uv = SourceVector2D()
-        self.boneWeight = SourceBoneWeight()
+        self.position = []
+        self.normal = []
+        self.uv = []
+        self.bone_weight = SourceBoneWeight()
         self.tangent = []
         self.lightmap = []
 
-    def read(self, reader: ByteIO):
-        self.position.read(reader)
-        self.normal.read(reader)
-        self.uv.read(reader)
-        return self
-
     def __str__(self):
-        return "<Vertex pos:{}>".format(self.position.as_string)
+        return "<Vertex pos:{}>".format(self.position)
 
     def __repr__(self):
         return self.__str__()

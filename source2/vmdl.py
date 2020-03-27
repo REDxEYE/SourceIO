@@ -1,14 +1,14 @@
 import os.path
 import random
 import sys
+from typing import List
 
+from SourceIO.source2.blocks.common import SourceVector, SourceVertex
 from .source2 import ValveFile
 from .vmesh import Vmesh
 import bpy, mathutils
 from mathutils import Vector, Matrix, Euler, Quaternion
 from .blocks.vbib_block import VBIB
-
-
 
 
 class Vmdl:
@@ -66,23 +66,20 @@ class Vmdl:
                     self.get_material(mesh_name, mesh_obj)
                     collection.objects.link(mesh_obj)
                     # bones = [bone_list[i] for i in remap_list]
-                    mesh = mesh_obj.data
-                    if bone_list:
-                        print('Bone list available, creating vertex groups')
-                        weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in
-                                         bone_list}
+                    mesh = mesh_obj.data  # type:bpy.types.Mesh
+
                     vertexes = []
                     uvs = []
                     normals = []
                     # Extracting vertex coordinates,UVs and normals
 
-                    used_vertices = vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]
+                    used_vertices = vertex_buffer.vertexes[
+                                    base_vertex:base_vertex + vertex_count]  # type:List[SourceVertex]
 
                     for vertex in used_vertices:
-                        vertexes.append(vertex.position.as_list)
-                        uvs.append([vertex.uv.x, vertex.uv.y])
-                        vertex.normal.convert()
-                        normals.append(vertex.normal.as_list)
+                        vertexes.append(vertex.position)
+                        uvs.append(vertex.uv)
+                        normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
 
                     mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
                     mesh.update()
@@ -93,8 +90,10 @@ class Vmdl:
                         u = uvs[mesh.loops[i].vertex_index]
                         uv_data[i].uv = u
                     if bone_list:
+                        weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in
+                                         bone_list}
                         for n, vertex in enumerate(used_vertices):
-                            for bone_index, weight in zip(vertex.boneWeight.bone, vertex.boneWeight.weight):
+                            for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
                                 if weight > 0:
                                     bone_name = bone_list[remap_list[bone_index]]
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
@@ -102,7 +101,7 @@ class Vmdl:
                     mesh.normals_split_custom_set_from_vertices(normals)
                     mesh.use_auto_smooth = True
                     mesh.validate(verbose=False)
-
+            return
     def build_armature(self):
 
         bpy.ops.object.armature_add(enter_editmode=True)
