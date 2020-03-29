@@ -182,9 +182,16 @@ class VertexBuffer:
         self.attributes_count = reader.read_uint32()
         with reader.save_current_pos():
             reader.seek(entry + self.attributes_offset)
+            used_names = []
             for _ in range(self.attributes_count):
                 v_attrib = VertexAttribute()
                 v_attrib.read(reader)
+                if v_attrib.name in used_names:
+                    tmp = v_attrib.name
+                    v_attrib.name += f"_{used_names.count(v_attrib.name)}"
+                    used_names.append(tmp)
+                else:
+                    used_names.append(v_attrib.name)
                 self.vertex_struct += v_attrib.get_struct()
                 self.attributes.append(v_attrib)
         entry = reader.tell()
@@ -208,10 +215,17 @@ class VertexBuffer:
                 attrib_len = attrib.element_count
                 if attrib.name == 'POSITION':
                     vertex.position = slice(vertex_data, offset, attrib_len)
-                elif attrib.name == 'TEXCOORD':
-                    vertex.uv = slice(vertex_data, offset, attrib_len)
+                elif 'TEXCOORD' in attrib.name:
+                    if "_" in attrib.name:
+                        t_id = int(attrib.name.split("_")[-1])
+                    else:
+                        t_id = 0
+                    if vertex.uvs.get(t_id, None) is None:
+                        vertex.uvs[t_id] = []
+
+                    vertex.uvs[t_id] = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'COLOR':
-                    vertex.color=  slice(vertex_data, offset, attrib_len)
+                    vertex.color = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'NORMAL':
                     vertex.normal = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'TANGENT':
@@ -542,7 +556,7 @@ class IndexBuffer:
         assert self.index_count % 3 == 0, "Expected indexCount to be a multiple of 3."
         assert self.index_size in [2, 4], "Expected indexSize to be either 2 or 4"
         data_offset = 1 + (self.index_count // 3)
-        assert buffer.size > data_offset + 16, "Index buffer is too short."
+        assert buffer.size >= data_offset + 16, "Index buffer is too short."
         assert buffer[0] == index_header, "Incorrect index buffer header."
         vertex_fifo = np.zeros((16,), dtype=np.uint32)
         edge_fifo = np.zeros((16, 2), dtype=np.uint32)

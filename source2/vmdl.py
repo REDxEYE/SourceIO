@@ -69,7 +69,7 @@ class Vmdl:
                     mesh = mesh_obj.data  # type:bpy.types.Mesh
 
                     vertexes = []
-                    uvs = []
+                    uv_layers = {}
                     normals = []
                     # Extracting vertex coordinates,UVs and normals
 
@@ -78,7 +78,12 @@ class Vmdl:
 
                     for vertex in used_vertices:
                         vertexes.append(vertex.position)
-                        uvs.append(vertex.uv)
+                        for uv_layer_id, uv_data in vertex.uvs.items():
+                            if len(uv_data) != 2:
+                                continue
+                            if uv_layers.get(uv_layer_id, None) is None:
+                                uv_layers[uv_layer_id] = []
+                            uv_layers[uv_layer_id].append(uv_data)
                         if type(vertex.normal[0]) is int:
                             normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
                         else:
@@ -86,12 +91,13 @@ class Vmdl:
 
                     mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
                     mesh.update()
-                    mesh.uv_layers.new()
 
-                    uv_data = mesh.uv_layers[0].data
-                    for i in range(len(uv_data)):
-                        u = uvs[mesh.loops[i].vertex_index]
-                        uv_data[i].uv = u
+                    for n, uv_layer in enumerate(uv_layers.values()):
+                        mesh.uv_layers.new()
+                        uv_data = mesh.uv_layers[n].data
+                        for i in range(len(uv_data)):
+                            u = uv_layer[mesh.loops[i].vertex_index]
+                            uv_data[i].uv = u
                     if bone_list:
                         weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in
                                          bone_list}
@@ -139,7 +145,7 @@ class Vmdl:
         for n, (bl_bone, bone_name) in enumerate(bones):
             pose_bone = self.armature_obj.pose.bones.get(bone_name)
             if pose_bone is None:
-                print("Missing",bone_name,'bone')
+                print("Missing", bone_name, 'bone')
             parent_id = self.bone_parents[n]
             bone_pos = self.bone_positions[n]
             bone_rot = self.bone_rotations[n]

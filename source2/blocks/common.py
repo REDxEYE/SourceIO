@@ -211,7 +211,7 @@ class SourceVertex:
     def __init__(self):
         self.position = []
         self.normal = []
-        self.uv = []
+        self.uvs = {}
         self.bone_weight = SourceBoneWeight()
         self.tangent = []
         self.lightmap = []

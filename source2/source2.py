@@ -71,12 +71,17 @@ class ValveFile:
         from .blocks.vbib_block import VBIB
         from .blocks.data_block import DATA
         from .blocks.kv3_block import KV3
+        from .blocks.texture_data_block import TextureData
+        if self.filepath.suffix=='.vtex_c':
+            data_block_class = TextureData
+        else:
+            data_block_class = DATA
         data_classes = {
             "NTRO": NTRO,
             "REDI": REDI,
             "RERL": RERL,
             "VBIB": VBIB,
-            "DATA": DATA,
+            "DATA": data_block_class,
             "CTRL": KV3,
             "MBUF": VBIB,
             "MDAT": KV3,
