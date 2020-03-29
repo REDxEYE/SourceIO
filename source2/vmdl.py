@@ -79,7 +79,10 @@ class Vmdl:
                     for vertex in used_vertices:
                         vertexes.append(vertex.position)
                         uvs.append(vertex.uv)
-                        normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
+                        if type(vertex.normal[0]) is int:
+                            normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
+                        else:
+                            normals.append(vertex.normal)
 
                     mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
                     mesh.update()
@@ -97,11 +100,15 @@ class Vmdl:
                                 if weight > 0:
                                     bone_name = bone_list[remap_list[bone_index]]
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
+
+                    bpy.ops.object.select_all(action="DESELECT")
+                    mesh_obj.select_set(True)
+                    bpy.context.view_layer.objects.active = mesh_obj
                     bpy.ops.object.shade_smooth()
                     mesh.normals_split_custom_set_from_vertices(normals)
                     mesh.use_auto_smooth = True
                     mesh.validate(verbose=False)
-            return
+
     def build_armature(self):
 
         bpy.ops.object.armature_add(enter_editmode=True)
@@ -115,22 +122,38 @@ class Vmdl:
 
         bpy.ops.object.mode_set(mode='EDIT')
         bones = []
-        for se_bone in self.bone_names:  # type:
-            bones.append((self.armature.edit_bones.new(se_bone), se_bone))
+        for bone_name in self.bone_names:
+            print("Creating bone", bone_name.replace("$", 'PHYS_'))
+            bl_bone = self.armature.edit_bones.new(name=bone_name.replace("$", 'PHYS_'))
+            bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
+            bones.append((bl_bone, bone_name.replace("$", 'PHYS_')))
 
-        for n, (bl_bone, se_bone) in enumerate(bones):
-            bone_pos = self.bone_positions[n]
-            if self.bone_parents[n] != -1:
-                bl_parent, parent = bones[self.bone_parents[n]]
+        for n, bone_name in enumerate(self.bone_names):
+            bl_bone = self.armature.edit_bones.get(bone_name)
+            parent_id = self.bone_parents[n]
+            if parent_id != -1:
+                bl_parent, parent = bones[parent_id]
                 bl_bone.parent = bl_parent
-                bl_bone.tail = Vector([0, 0, 0]) + bl_bone.head
-                bl_bone.head = Vector(bone_pos.as_list) - bl_parent.head  # + bl_bone.head
-                bl_bone.tail = bl_bone.head + Vector([0, 0, 1])
+
+        bpy.ops.object.mode_set(mode='POSE')
+        for n, (bl_bone, bone_name) in enumerate(bones):
+            pose_bone = self.armature_obj.pose.bones.get(bone_name)
+            if pose_bone is None:
+                print("Missing",bone_name,'bone')
+            parent_id = self.bone_parents[n]
+            bone_pos = self.bone_positions[n]
+            bone_rot = self.bone_rotations[n]
+            bone_pos = Vector([bone_pos.y, bone_pos.x, -bone_pos.z])
+            bone_rot = Quaternion([-bone_rot.w, -bone_rot.y, -bone_rot.x, bone_rot.z])
+            mat = Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4()
+            pose_bone.matrix_basis.identity()
+
+            if parent_id != -1:
+                parent_bone = self.armature_obj.pose.bones.get(self.bone_names[parent_id])
+                pose_bone.matrix = parent_bone.matrix @ mat
             else:
-                pass
-                bl_bone.tail = Vector([0, 0, 0]) + bl_bone.head
-                bl_bone.head = Vector(bone_pos.as_list)  # + bl_bone.head
-                bl_bone.tail = bl_bone.head + Vector([0, 0, 1])
+                pose_bone.matrix = mat
+        bpy.ops.pose.armature_apply()
         bpy.ops.object.mode_set(mode='OBJECT')
 
     @staticmethod

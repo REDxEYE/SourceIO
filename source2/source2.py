@@ -80,10 +80,10 @@ class ValveFile:
             "CTRL": KV3,
             "MBUF": VBIB,
             "MDAT": KV3,
-            "PHYS": KV3,
-            "ASEQ": KV3,
-            "AGRP": KV3,
-            "ANIM": KV3,
+            # "PHYS": KV3,
+            # "ASEQ": KV3,
+            # "AGRP": KV3,
+            # "ANIM": KV3,
             "MRPH": KV3,
         }
         return data_classes.get(block_name, None)

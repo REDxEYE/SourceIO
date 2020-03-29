@@ -210,6 +210,8 @@ class VertexBuffer:
                     vertex.position = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'TEXCOORD':
                     vertex.uv = slice(vertex_data, offset, attrib_len)
+                elif attrib.name == 'COLOR':
+                    vertex.color=  slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'NORMAL':
                     vertex.normal = slice(vertex_data, offset, attrib_len)
                 elif attrib.name == 'TANGENT':
@@ -235,7 +237,7 @@ class VertexBuffer:
         def next(bits, encv):
             enc = b >> (8 - bits)
             is_same = enc == (1 << bits) - 1
-            return b << bits, data_var + is_same, encv if is_same else enc & 0xFF
+            return (b << bits) & 0xFF, data_var + is_same, encv if is_same else enc & 0xFF
 
         if bitslog2 == 0:
             for k in range(byte_group_size):
@@ -318,7 +320,7 @@ class VertexBuffer:
         header = slice(data, 0)
         data: np.ndarray = slice(data, header_size)
         for i in range(0, destination.size, byte_group_size):
-            assert data.size > tail_max_size, "Cannot decode"
+            assert data.size >= tail_max_size, "Cannot decode"
             header_offset = i // byte_group_size
             bitslog2 = (header[header_offset // 4] >> ((header_offset % 4) * 2)) & 3
             data = self.decode_bytes_group(data, slice(destination, i), bitslog2)
@@ -342,7 +344,8 @@ class VertexBuffer:
             vertex_offset = k
             p = last_vertex[k]
             for i in range(vertex_count):
-                v = (((-(buffer[i] & 1) ^ (buffer[i] >> 1)) & 0xFF) + p) & 0xFF
+                a = buffer[i]
+                v = (((-(a & 1) ^ (a >> 1)) & 0xFF) + p) & 0xFF
                 transposed[vertex_offset] = v
                 p = v
                 vertex_offset += self.vertex_size
@@ -366,6 +369,7 @@ class VertexBuffer:
         result = np.zeros((self.vertex_count * self.vertex_size,), dtype=np.uint8)
 
         while vertex_offset < self.vertex_count:
+            print(f"BLOCK {vertex_offset}/{self.vertex_count}")
             block_size = vertex_block_size if vertex_offset + vertex_block_size < self.vertex_count else \
                 self.vertex_count - vertex_offset
             vertex_span = self.decode_vertex_block(vertex_span, slice(result, vertex_offset * self.vertex_size),
@@ -527,6 +531,10 @@ class IndexBuffer:
             else:
                 self.buffer.write_bytes(reader.read_bytes(self.index_count * self.index_size))
             self.buffer.seek(0)
+        with open("test.bin", 'wb') as f:
+            f.write(self.buffer.read_bytes(-1))
+        self.buffer.seek(0)
+
         self.read_buffer()
 
     def decode_index_buffer(self, buffer: bytes):
@@ -547,8 +555,8 @@ class IndexBuffer:
         buffer_index = 1
         data = slice(buffer, data_offset, buffer.size - 16 - data_offset)
         codeaux_table = slice(buffer, buffer.size - 16)
-
-        destination = np.zeros((self.index_count * self.index_size))
+        destination = np.zeros((self.index_count * self.index_size),
+                               dtype=np.uint8)
         ds = ByteIO(byte_object=bytes(data))
         for i in range(0, self.index_count, 3):
             code_tri = buffer[buffer_index]
@@ -556,23 +564,24 @@ class IndexBuffer:
 
             if code_tri < 0xF0:
                 fe = code_tri >> 4
-                ab = edge_fifo[((edge_fifo_offset - 1 - fe) & 15)]
+                a, b = edge_fifo[((edge_fifo_offset - 1 - fe) & 15)]
                 fec = code_tri & 15
                 if fec != 15:
                     c = next if fec == 0 else vertex_fifo[(vertex_fifo_offset - 1 - fec) & 15]
                     fec0 = fec == 0
                     next += fec0
-                    self.write_triangle(destination, i, ab[0], ab[1], c)
+                    self.write_triangle(destination, i, a, b, c)
                     vertex_fifo_offset = self.push_vertex_fifo(vertex_fifo, vertex_fifo_offset, c, fec0)
-                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, c, ab[1])
-                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, ab[0], c)
+                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, c, b)
+                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, a, c)
                 else:
                     c = last = self.decode_index(ds, next, last)
-                    self.write_triangle(destination, i, ab[0], ab[1], c)
+                    self.write_triangle(destination, i, a, b, c)
+
                     vertex_fifo_offset = self.push_vertex_fifo(vertex_fifo, vertex_fifo_offset, c)
 
-                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, c, ab[1])
-                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, ab[0], c)
+                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, c, b)
+                    edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, a, c)
             else:
                 if code_tri < 0xfe:
                     codeaux = codeaux_table[code_tri & 15]
@@ -583,11 +592,11 @@ class IndexBuffer:
                     next += 1
 
                     b = next if feb == 0 else vertex_fifo[(vertex_fifo_offset - feb) & 15]
-                    feb0 = int(feb)
+                    feb0 = feb == 0
                     next += feb0
 
-                    c = next if feb == 0 else vertex_fifo[(vertex_fifo_offset - feb) & 15]
-                    fec0 = int(fec)
+                    c = next if fec == 0 else vertex_fifo[(vertex_fifo_offset - fec) & 15]
+                    fec0 = 1 if not fec else 0
                     next += fec0
 
                     self.write_triangle(destination, i, a, b, c)
@@ -611,7 +620,7 @@ class IndexBuffer:
                     else:
                         a = 0
 
-                    if fea == 0:
+                    if feb == 0:
                         b = next
                         next += 1
                     else:
@@ -641,7 +650,6 @@ class IndexBuffer:
                     edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, c, b)
                     edge_fifo_offset = self.push_edge_fifo(edge_fifo, edge_fifo_offset, a, c)
         assert ds.size() == ds.tell(), "we didn't read all data bytes and stopped before the boundary between data and codeaux table"
-
         return bytes(destination)
 
     def write_triangle(self, destination: np.ndarray, offset, a, b, c):
@@ -667,8 +675,9 @@ class IndexBuffer:
 
     def decode_index(self, data: ByteIO, next, last):
         v = self.decode_vbyte(data)
-        d = ((v >> 1) ^ -(v & 1))
-        return last + d
+        mm = 0xFF_FF_FF_FF if self.index_size == 4 else 0xFF_FF
+        d = ((v >> 1) ^ -(v & 1)) & mm
+        return (last + d) & mm
 
     def decode_vbyte(self, data: ByteIO):
         lead = data.read_uint8()
@@ -685,8 +694,9 @@ class IndexBuffer:
         return result
 
     def read_buffer(self):
+        reader = self.buffer.read_uint32 if self.index_size == 4 else self.buffer.read_uint16
         for n in range(0, self.index_count, 3):
-            polygon = [self.buffer.read_uint16(), self.buffer.read_uint16(), self.buffer.read_uint16()]
+            polygon = [reader(), reader(), reader()]
             self.indexes.append(polygon)
 
 

@@ -215,6 +215,7 @@ class SourceVertex:
         self.bone_weight = SourceBoneWeight()
         self.tangent = []
         self.lightmap = []
+        self.color = []
 
     def __str__(self):
         return "<Vertex pos:{}>".format(self.position)
