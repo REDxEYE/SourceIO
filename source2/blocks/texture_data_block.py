@@ -10,6 +10,8 @@ from ...byte_io_mdl import ByteIO
 
 from .header_block import InfoBlock
 from .dummy import DataBlock
+from ..lz4 import uncompress
+from .PySourceIOTextureUtils import read_r8g8b8a8, read_bc7
 
 
 class VTexFlags(IntFlag):
@@ -20,6 +22,31 @@ class VTexFlags(IntFlag):
     CUBE_TEXTURE = 0x00000010
     VOLUME_TEXTURE = 0x00000020
     TEXTURE_ARRAY = 0x00000040
+
+
+def block_size(fmt):
+    return {
+        VTexFormat.DXT1: 8,
+        VTexFormat.DXT5: 16,
+        VTexFormat.RGBA8888: 4,
+        VTexFormat.R16: 2,
+        VTexFormat.RG1616: 4,
+        VTexFormat.RGBA16161616: 8,
+        VTexFormat.R16F: 2,
+        VTexFormat.RG1616F: 4,
+        VTexFormat.RGBA16161616F: 8,
+        VTexFormat.R32F: 4,
+        VTexFormat.RG3232F: 8,
+        VTexFormat.RGB323232F: 12,
+        VTexFormat.RGBA32323232F: 16,
+        VTexFormat.BC6H: 16,
+        VTexFormat.BC7: 16,
+        VTexFormat.IA88: 2,
+        VTexFormat.ETC2: 8,
+        VTexFormat.ETC2_EAC: 16,
+        VTexFormat.BGRA8888: 4,
+        VTexFormat.ATI1N: 8,
+    }[fmt]
 
 
 class VTexFormat(IntEnum):
@@ -76,6 +103,8 @@ class TextureData(DataBlock):
         self.mipmap_count = 0
         self.picmip_res = 0
         self.extra_data = []
+        self.compressed_mips = []
+        self.compressed = False
 
     def read(self):
         reader = self.reader
@@ -97,15 +126,87 @@ class TextureData(DataBlock):
         if extra_data_count > 0:
             reader.seek(extra_data_entry + extra_data_offset)
             for i in range(extra_data_count):
-                extra_type = reader.read_uint32()
-                offset = reader.read_uint32()
+                extra_type = VTexExtraData(reader.read_uint32())
+                offset = reader.read_uint32() - 8
                 size = reader.read_uint32()
                 with reader.save_current_pos():
-                    reader.seek(extra_data_entry + offset)
-                    self.extra_data.append((VTexExtraData(extra_type), reader.read_bytes(size)))
+                    reader.seek(offset, 1)
+                    if extra_type == VTexExtraData.COMPRESSED_MIP_SIZE:
+                        int1 = reader.read_uint32()
+                        int2 = reader.read_uint32()
+                        mips = reader.read_uint32()
+                        assert int1 in [0, 1], "Unknown compressed mips values"
+                        assert int2 == 8, f"int2 expected 8 but got: {int2}"
+                        self.compressed = int1 == 1
+                        for _ in range(mips):
+                            self.compressed_mips.append(reader.read_uint32())
+                    else:
+                        self.extra_data.append((extra_type, reader.read_bytes(size)))
+        print(self.format)
         self.read_image()
 
+    def calculate_buffer_size_for_mip(self, mip_level):
+        bytes_per_pixel = block_size(self.format)
+        width = self.width >> mip_level
+        height = self.height >> mip_level
+        depth = self.depth >> mip_level
+        if depth < 1:
+            depth = 1
+        if self.format == VTexFormat.DXT1 \
+                or self.format == VTexFormat.DXT5 \
+                or self.format == VTexFormat.BC6H \
+                or self.format == VTexFormat.BC7 \
+                or self.format == VTexFormat.ETC2 \
+                or self.format == VTexFormat.ETC2_EAC \
+                or self.format == VTexFormat.ATI1N:
+
+            misalign = width % 4
+
+            if (misalign > 0):
+                width += 4 - misalign
+
+            misalign = height % 4
+
+            if (misalign > 0):
+                height += 4 - misalign;
+
+            if (width < 4 and width > 0):
+                width = 4;
+
+            if (height < 4 and height > 0):
+                height = 4;
+
+            if (depth < 4 and depth > 1):
+                depth = 4;
+
+            numBlocks = (width * height) >> 4;
+            numBlocks *= depth
+
+            return numBlocks * bytes_per_pixel
+
+        return width * height * depth * bytes_per_pixel
+
+    def get_decompressed_at_mip(self, reader: ByteIO, mip_level):
+        uncompressed_size = self.calculate_buffer_size_for_mip(mip_level)
+        if not self.compressed:
+            return reader.read_bytes(uncompressed_size)
+        compressed_size = self.compressed_mips[mip_level]
+        for size in reversed(self.compressed_mips[mip_level + 1:]):
+            reader.skip(size)
+        if compressed_size >= uncompressed_size:
+            return reader.read_bytes(uncompressed_size)
+        data = uncompress(reader.read_bytes(compressed_size))
+        assert len(data) == uncompressed_size, "Uncompressed data size != expected uncompressed size"
+        return data
+
+    def get_decompressed_buffer(self, reader: ByteIO, mip_level):
+        if self.compressed:
+            return ByteIO(byte_object=self.get_decompressed_at_mip(reader, mip_level))
+        else:
+            return self.reader
+
     def read_image(self):
+        from PIL import Image
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
@@ -115,14 +216,32 @@ class TextureData(DataBlock):
                         break
                     for k in range(self.height // (2 ** (j - 1))):
                         reader.seek((4 * self.width) // (2 ** (j - 1)), 1)
-            from PIL import Image
+
             # for y in range(self.height):
             #     for x in range(self.width):
             data = reader.read_bytes(self.width * self.height * 3)
-            assert len(data) == self.width * self.height * 3, \
-                f"Read less than expected ({len(data)})!=({self.width * self.height * 3})"
-            Image.frombytes("RGB", (self.width, self.height), data).save(
-                'TEST.png')
+            buffer = read_r8g8b8a8(data, len(data), self.width, self.height)
+            if buffer:
+                Image.frombytes("RGB", (self.width, self.height), data).save(
+                    'TEST.png')
 
             # image_data = reader.read_bytes(self.width * self.height * 4)
             # print(image_data)
+        elif self.format == VTexFormat.BC7:
+            from .redi_block_types import SpecialDependency, SpecialDependencies
+            redi = self._valve_file.get_data_block(block_name='REDI')[0]
+            hemi_oct_rb = False
+            for block in redi.blocks:
+                if type(block) is SpecialDependencies:
+                    for container in block.container:
+                        if container.compiler_identifier == "CompileTexture" and container.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
+                            hemi_oct_rb = True
+                            break
+
+            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            # with open('test.bin', 'wb') as f:
+            #     f.write(data)
+            print(self.width, self.height, hemi_oct_rb)
+            data = read_bc7(data, len(data), self.width, self.height, hemi_oct_rb)
+            Image.frombytes("RGBA", (self.width, self.height), data).save(
+                'TEST.png')
