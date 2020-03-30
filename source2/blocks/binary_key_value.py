@@ -38,6 +38,7 @@ class KVType(IntEnum):
 
 class BinaryKeyValue:
     ENCODING = (0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2)
+    ENCODING2 = (138, 52, 71, 104, 161, 99, 92, 79, 161, 151, 83, 128, 111, 217, 177, 25)
     FORMAT = (0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
     SIG = (0x56, 0x4B, 0x56, 0x03)
     SIG2 = (0x01, 0x33, 0x56, 0x4B)
@@ -71,12 +72,12 @@ class BinaryKeyValue:
         if tuple(fourcc) == self.SIG2:
             self.read_v2(reader)
         else:
-            raise NotImplementedError("KV3 V1 currently is not supported")
             # self.read_v1(reader)
+            raise NotImplementedError("KV3 V1 currently is not supported")
 
     def read_v1(self, reader):
         encoding = reader.read_bytes(16)
-        assert tuple(encoding) == self.ENCODING, 'Unrecognized KV3 Encoding'
+        assert (tuple(encoding) == self.ENCODING or tuple(encoding) == self.ENCODING2), 'Unrecognized KV3 Encoding'
         fmt = reader.read_bytes(16)
         assert tuple(fmt) == self.FORMAT, 'Unrecognised KV3 Format'
         self.flags = reader.read_bytes(4)
@@ -93,7 +94,7 @@ class BinaryKeyValue:
                     size = (offset_and_size & 0x000F) + 3
                     lookup_size = offset if offset < size else size
                     entry = self.buffer.tell()
-                    self.buffer.seek(entry - offset)
+                    self.buffer.seek(offset)
                     data = self.buffer.read_bytes(lookup_size)
                     self.buffer.seek(entry)
                     while size > 0:

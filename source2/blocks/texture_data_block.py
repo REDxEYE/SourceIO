@@ -210,23 +210,20 @@ class TextureData(DataBlock):
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
-            for i in range(self.depth):
-                for j in range(self.mipmap_count, 0, -1):
-                    if j == 1:
-                        break
-                    for k in range(self.height // (2 ** (j - 1))):
-                        reader.seek((4 * self.width) // (2 ** (j - 1)), 1)
+            # for i in range(self.depth):
+            #     for j in range(self.mipmap_count, 0, -1):
+            #         if j == 1:
+            #             break
+            #         for k in range(self.height // (2 ** (j - 1))):
+            #             reader.seek((4 * self.width) // (2 ** (j - 1)), 1)
 
             # for y in range(self.height):
             #     for x in range(self.width):
-            data = reader.read_bytes(self.width * self.height * 3)
-            buffer = read_r8g8b8a8(data, len(data), self.width, self.height)
-            if buffer:
-                Image.frombytes("RGB", (self.width, self.height), data).save(
-                    'TEST.png')
+            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            if data:
+                Image.frombytes("RGBA", (self.width, self.height), data).save(
+                    'TEST.tga')
 
-            # image_data = reader.read_bytes(self.width * self.height * 4)
-            # print(image_data)
         elif self.format == VTexFormat.BC7:
             from .redi_block_types import SpecialDependency, SpecialDependencies
             redi = self._valve_file.get_data_block(block_name='REDI')[0]
