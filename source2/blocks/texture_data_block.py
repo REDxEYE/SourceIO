@@ -10,8 +10,13 @@ from ...byte_io_mdl import ByteIO
 
 from .header_block import InfoBlock
 from .dummy import DataBlock
-from ..lz4 import uncompress
-from .PySourceIOTextureUtils import read_r8g8b8a8, read_bc7
+import sys
+
+# sys.path.append(r"D:\CPP\SourceIOTextureUtils\cmake-build-debug")
+try:
+    from PySourceIOTextureUtils import *
+except:
+    from .PySourceIOTextureUtils import *
 
 
 class VTexFlags(IntFlag):
@@ -46,6 +51,7 @@ def block_size(fmt):
         VTexFormat.ETC2_EAC: 16,
         VTexFormat.BGRA8888: 4,
         VTexFormat.ATI1N: 8,
+        VTexFormat.ATI2N: 16,
     }[fmt]
 
 
@@ -105,6 +111,7 @@ class TextureData(DataBlock):
         self.extra_data = []
         self.compressed_mips = []
         self.compressed = False
+        self.image_data = b""
 
     def read(self):
         reader = self.reader
@@ -158,7 +165,8 @@ class TextureData(DataBlock):
                 or self.format == VTexFormat.BC7 \
                 or self.format == VTexFormat.ETC2 \
                 or self.format == VTexFormat.ETC2_EAC \
-                or self.format == VTexFormat.ATI1N:
+                or self.format == VTexFormat.ATI1N\
+                or self.format == VTexFormat.ATI2N:
 
             misalign = width % 4
 
@@ -188,14 +196,17 @@ class TextureData(DataBlock):
 
     def get_decompressed_at_mip(self, reader: ByteIO, mip_level):
         uncompressed_size = self.calculate_buffer_size_for_mip(mip_level)
-        if not self.compressed:
-            return reader.read_bytes(uncompressed_size)
-        compressed_size = self.compressed_mips[mip_level]
-        for size in reversed(self.compressed_mips[mip_level + 1:]):
-            reader.skip(size)
+        if self.compressed:
+            compressed_size = self.compressed_mips[mip_level]
+            for size in reversed(self.compressed_mips[mip_level + 1:]):
+                reader.skip(size)
+        else:
+            compressed_size = self.calculate_buffer_size_for_mip(mip_level)
+            for i in range(self.mipmap_count - 1, mip_level, -1):
+                reader.skip(self.calculate_buffer_size_for_mip(i))
         if compressed_size >= uncompressed_size:
             return reader.read_bytes(uncompressed_size)
-        data = uncompress(reader.read_bytes(compressed_size))
+        data = lz4_decompress(reader.read_bytes(compressed_size), compressed_size, uncompressed_size)
         assert len(data) == uncompressed_size, "Uncompressed data size != expected uncompressed size"
         return data
 
@@ -203,29 +214,21 @@ class TextureData(DataBlock):
         if self.compressed:
             return ByteIO(byte_object=self.get_decompressed_at_mip(reader, mip_level))
         else:
-            return self.reader
+            compressed_size = self.calculate_buffer_size_for_mip(mip_level)
+            for i in range(self.mipmap_count - 1, mip_level, -1):
+                reader.skip(self.calculate_buffer_size_for_mip(i))
+            return reader
 
     def read_image(self):
         from PIL import Image
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
-            # for i in range(self.depth):
-            #     for j in range(self.mipmap_count, 0, -1):
-            #         if j == 1:
-            #             break
-            #         for k in range(self.height // (2 ** (j - 1))):
-            #             reader.seek((4 * self.width) // (2 ** (j - 1)), 1)
-
-            # for y in range(self.height):
-            #     for x in range(self.width):
             data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
-            if data:
-                Image.frombytes("RGBA", (self.width, self.height), data).save(
-                    'TEST.tga')
+            self.image_data = data
 
         elif self.format == VTexFormat.BC7:
-            from .redi_block_types import SpecialDependency, SpecialDependencies
+            from .redi_block_types import SpecialDependencies
             redi = self._valve_file.get_data_block(block_name='REDI')[0]
             hemi_oct_rb = False
             for block in redi.blocks:
@@ -234,11 +237,22 @@ class TextureData(DataBlock):
                         if container.compiler_identifier == "CompileTexture" and container.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
                             hemi_oct_rb = True
                             break
-
             data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
-            # with open('test.bin', 'wb') as f:
-            #     f.write(data)
-            print(self.width, self.height, hemi_oct_rb)
             data = read_bc7(data, len(data), self.width, self.height, hemi_oct_rb)
-            Image.frombytes("RGBA", (self.width, self.height), data).save(
-                'TEST.png')
+            self.image_data = data
+        elif self.format == VTexFormat.ATI1N:
+            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = read_ati1n(data, len(data), self.width, self.height)
+            self.image_data = data
+        elif self.format == VTexFormat.ATI2N:
+            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = read_ati2n(data, len(data), self.width, self.height)
+            self.image_data = data
+        elif self.format == VTexFormat.DXT1:
+            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = read_dxt1(data, len(data), self.width, self.height)
+            self.image_data = data
+        elif self.format == VTexFormat.DXT5:
+            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = read_dxt5(data, len(data), self.width, self.height)
+            self.image_data = data
