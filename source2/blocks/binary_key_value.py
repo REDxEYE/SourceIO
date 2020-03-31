@@ -3,7 +3,13 @@ from enum import IntEnum
 from ...byte_io_mdl import ByteIO
 from .dummy import DataBlock
 from .header_block import InfoBlock
-from ..lz4 import uncompress
+
+try:
+    from .PySourceIOTextureUtils import lz4_decompress as uncompress
+except ImportError:
+    print("PySourceIOTextureUtils import error")
+    from ..lz4 import uncompress as uncompress_tmp
+    uncompress = lambda a, b, c: uncompress_tmp(a)
 from .common import SourceVector, SourceVector4D, SourceVector2D
 
 
@@ -128,9 +134,9 @@ class BinaryKeyValue:
             self.buffer.write_bytes(reader.read_bytes(length))
         elif compression_method == 1:
             uncompressed_size = reader.read_uint32()
-            compressed_size = self.block_info.block_size - (reader.tell() - self.block_info.absolute_offset)
+            compressed_size = self.block_info.block_size - reader.tell()
             data = reader.read_bytes(compressed_size)
-            u_data = uncompress(data)
+            u_data = uncompress(data,compressed_size,uncompressed_size)
             # with open("TEST.BIN",'wb') as f:
             #     f.write(u_data)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
