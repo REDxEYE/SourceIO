@@ -6,13 +6,13 @@ class CompiledHeader:
     def __init__(self):
         super().__init__()
         self.file_size = 0
-        self.unk = 0
+        self.version = 0
         self.block_info_offset = 0
         self.block_count = 0
 
     def read(self, reader: ByteIO):
         self.file_size = reader.read_int32()
-        self.unk = reader.read_int32()
+        self.version = reader.read_int32()
         # assert self.unk == 0x0000000c
         self.block_info_offset = reader.read_int32()
         self.block_count = reader.read_int32()
