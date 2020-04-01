@@ -5,15 +5,12 @@ from pathlib import Path
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
 bl_info = {
-    "name": "Source Engine model(.mdl, .vvd, .vtx)",
+    "name": "Source1/Source2 Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 6, 0),
+    "version": (3, 7, 0),
     "blender": (2, 80, 0),
-    "location": "File > Import-Export > SourceEngine MDL (.mdl, .vvd, .vtx) ",
+    "location": "File > Import-Export > SourceEngine MDL (.mdl, .vmdl_c) ",
     "description": "Addon allows to import Source Engine models",
-    # 'warning': 'May crash blender',
-    # "wiki_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
-    # "tracker_url": "http://www.barneyparker.com/blender-json-import-export-plugin",
     "category": "Import-Export"
 }
 
