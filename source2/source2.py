@@ -16,7 +16,7 @@ class ValveFile:
 
     def __init__(self, filepath):
 
-        print('Reading {}'.format(filepath))
+        # print('Reading {}'.format(filepath))
         self.reader = ByteIO(path=filepath, copy_data_from_handle=False, )
         self.filepath = Path(filepath)
         self.filename = self.filepath.name
@@ -35,12 +35,12 @@ class ValveFile:
 
         while self.info_blocks:
             block_info = self.info_blocks.pop(0)
-            print(block_info)
+            # print(block_info)
             with self.reader.save_current_pos():
                 self.reader.seek(block_info.entry + block_info.block_offset)
                 block_class = self.get_data_block_class(block_info.block_name)
                 if block_class is None:
-                    print(f"Unknown block {block_info}")
+                    # print(f"Unknown block {block_info}")
                     self.data_blocks.append(None)
                     continue
                 block = block_class(self, block_info)

@@ -22,6 +22,7 @@ class Vmdl:
         # print(self.valve_file.data.data.keys())
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         self.remap_table = data_block.data['m_remappingTable']
+        self.remap_table_starts = data_block.data['m_remappingTableStarts']
         self.model_skeleton = data_block.data['m_modelSkeleton']
         self.bone_names = self.model_skeleton['m_boneName']
         self.bone_positions = self.model_skeleton['m_bonePosParent']
@@ -30,15 +31,17 @@ class Vmdl:
         self.main_collection = bpy.data.collections.new(os.path.basename(self.name))
         bpy.context.scene.collection.children.link(self.main_collection)
 
-        self.build_meshes(self.main_collection, self.bone_names, self.remap_table)
-        self.build_armature()
+        armature = self.build_armature()
+        self.build_meshes(self.main_collection, armature)
 
-    def build_meshes(self, collection, bone_list=None, remap_list=None, ):
+    def build_meshes(self, collection, armature):
         control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
         e_meshes = control_block.data['embedded_meshes']
         for e_mesh in e_meshes:
             name = e_mesh['name']
             data_block_index = e_mesh['data_block']
+            mesh_index = e_mesh['mesh_index']
+            remaps_start = self.remap_table_starts[mesh_index]
             buffer_block_index = e_mesh['vbib_block']
             morph_block_index = e_mesh['morph_block']
             morph_texture = e_mesh['morph_texture']
@@ -62,6 +65,11 @@ class Vmdl:
 
                     mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
                                                     bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
+
+                    modifier = mesh_obj.modifiers.new(
+                        type="ARMATURE", name="Armature")
+                    modifier.object = armature
+
                     print("Building mesh", name, mesh_name)
                     self.get_material(mesh_name, mesh_obj)
                     collection.objects.link(mesh_obj)
@@ -98,13 +106,13 @@ class Vmdl:
                         for i in range(len(uv_data)):
                             u = uv_layer[mesh.loops[i].vertex_index]
                             uv_data[i].uv = u
-                    if bone_list:
+                    if self.bone_names:
                         weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in
-                                         bone_list}
+                                         self.bone_names}
                         for n, vertex in enumerate(used_vertices):
                             for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
                                 if weight > 0:
-                                    bone_name = bone_list[remap_list[bone_index]]
+                                    bone_name = self.bone_names[self.remap_table[remaps_start:][bone_index]]
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
 
                     bpy.ops.object.select_all(action="DESELECT")
@@ -119,23 +127,23 @@ class Vmdl:
 
         bpy.ops.object.armature_add(enter_editmode=True)
 
-        self.armature_obj = bpy.context.object
+        armature_obj = bpy.context.object
         # bpy.context.scene.collection.objects.unlink(self.armature_obj)
-        self.main_collection.objects.link(self.armature_obj)
-        self.armature = self.armature_obj.data
-        self.armature.name = self.name + "_ARM"
-        self.armature.edit_bones.remove(self.armature.edit_bones[0])
+        self.main_collection.objects.link(armature_obj)
+        armature = armature_obj.data
+        armature.name = self.name + "_ARM"
+        armature.edit_bones.remove(armature.edit_bones[0])
 
         bpy.ops.object.mode_set(mode='EDIT')
         bones = []
         for bone_name in self.bone_names:
             print("Creating bone", bone_name.replace("$", 'PHYS_'))
-            bl_bone = self.armature.edit_bones.new(name=bone_name.replace("$", 'PHYS_'))
+            bl_bone = armature.edit_bones.new(name=bone_name.replace("$", 'PHYS_'))
             bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
             bones.append((bl_bone, bone_name.replace("$", 'PHYS_')))
 
         for n, bone_name in enumerate(self.bone_names):
-            bl_bone = self.armature.edit_bones.get(bone_name)
+            bl_bone = armature.edit_bones.get(bone_name)
             parent_id = self.bone_parents[n]
             if parent_id != -1:
                 bl_parent, parent = bones[parent_id]
@@ -143,7 +151,7 @@ class Vmdl:
 
         bpy.ops.object.mode_set(mode='POSE')
         for n, (bl_bone, bone_name) in enumerate(bones):
-            pose_bone = self.armature_obj.pose.bones.get(bone_name)
+            pose_bone = armature_obj.pose.bones.get(bone_name)
             if pose_bone is None:
                 print("Missing", bone_name, 'bone')
             parent_id = self.bone_parents[n]
@@ -155,12 +163,13 @@ class Vmdl:
             pose_bone.matrix_basis.identity()
 
             if parent_id != -1:
-                parent_bone = self.armature_obj.pose.bones.get(self.bone_names[parent_id])
+                parent_bone = armature_obj.pose.bones.get(self.bone_names[parent_id])
                 pose_bone.matrix = parent_bone.matrix @ mat
             else:
                 pose_bone.matrix = mat
         bpy.ops.pose.armature_apply()
         bpy.ops.object.mode_set(mode='OBJECT')
+        return armature_obj
 
     @staticmethod
     def get_material(mat_name, model_ob):

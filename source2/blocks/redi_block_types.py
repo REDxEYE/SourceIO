@@ -169,7 +169,7 @@ class ChildResource(DataBlock):
         self.unk = 0
 
     def __repr__(self):
-        return '<ChildResource ID:{} "{}" unk:{}>'.format(self.id, self.resource_name, self.unk)
+        return '<ChildResource ID:{} "{}" header_version:{}>'.format(self.id, self.resource_name, self.unk)
 
     def read(self, reader: ByteIO):
         self.id = reader.read_uint64()
