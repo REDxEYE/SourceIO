@@ -20,7 +20,7 @@ class Vmdl:
 
         self.name = str(os.path.basename(vmdl_path).split('.')[0])
         # print(self.valve_file.data.data.keys())
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+        self.data_block = data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         self.remap_table = data_block.data['m_remappingTable']
         self.remap_table_starts = data_block.data['m_remappingTableStarts']
         self.model_skeleton = data_block.data['m_modelSkeleton']
@@ -29,8 +29,14 @@ class Vmdl:
         self.bone_rotations = self.model_skeleton['m_boneRotParent']
         self.bone_parents = self.model_skeleton['m_nParent']
         self.main_collection = bpy.data.collections.new(os.path.basename(self.name))
-        bpy.context.scene.collection.children.link(self.main_collection)
 
+        bpy.context.scene.collection.children.link(self.main_collection)
+        self.lod_collections = {}
+        for group in set(self.data_block.data.get('m_refLODGroupMasks', [])):
+            print(f"creating LOD{group} group")
+            lod_collection = bpy.data.collections.new(name=f"LOD{group}")
+            self.main_collection.children.link(lod_collection)
+            self.lod_collections[group] = lod_collection
         armature = self.build_armature()
         self.build_meshes(self.main_collection, armature)
 
@@ -66,13 +72,22 @@ class Vmdl:
                     mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
                                                     bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
 
+                    if self.lod_collections:
+                        lod_collection = self.lod_collections.get(
+                            self.data_block.data['m_refLODGroupMasks'][mesh_index])
+                        print(f"Assigning \"{name + '_' + mesh_name}\" to {lod_collection} group")
+                        lod_collection.objects.link(mesh_obj)
+
+                    else:
+                        collection.objects.link(mesh_obj)
+
                     modifier = mesh_obj.modifiers.new(
                         type="ARMATURE", name="Armature")
                     modifier.object = armature
 
                     print("Building mesh", name, mesh_name)
                     self.get_material(mesh_name, mesh_obj)
-                    collection.objects.link(mesh_obj)
+
                     # bones = [bone_list[i] for i in remap_list]
                     mesh = mesh_obj.data  # type:bpy.types.Mesh
 
