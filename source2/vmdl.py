@@ -1,14 +1,13 @@
 import os.path
 import random
-import sys
 from typing import List
+
+import bpy
+import math
+from mathutils import Vector, Matrix, Quaternion,Euler
 
 from SourceIO.source2.blocks.common import SourceVector, SourceVertex
 from .source2 import ValveFile
-from .vmesh import Vmesh
-import bpy, mathutils
-from mathutils import Vector, Matrix, Euler, Quaternion
-from .blocks.vbib_block import VBIB
 
 
 class Vmdl:
@@ -143,6 +142,8 @@ class Vmdl:
         bpy.ops.object.armature_add(enter_editmode=True)
 
         armature_obj = bpy.context.object
+        armature_obj.rotation_euler = Euler([math.radians(180), 0, math.radians(90)])
+
         # bpy.context.scene.collection.objects.unlink(self.armature_obj)
         self.main_collection.objects.link(armature_obj)
         armature = armature_obj.data
@@ -174,7 +175,7 @@ class Vmdl:
             bone_rot = self.bone_rotations[n]
             bone_pos = Vector([bone_pos.y, bone_pos.x, -bone_pos.z])
             bone_rot = Quaternion([-bone_rot.w, -bone_rot.y, -bone_rot.x, bone_rot.z])
-            mat = Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4()
+            mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
             pose_bone.matrix_basis.identity()
 
             if parent_id != -1:
@@ -184,6 +185,10 @@ class Vmdl:
                 pose_bone.matrix = mat
         bpy.ops.pose.armature_apply()
         bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action="DESELECT")
+        armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature_obj
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
         return armature_obj
 
     @staticmethod
