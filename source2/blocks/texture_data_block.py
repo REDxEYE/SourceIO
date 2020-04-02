@@ -165,32 +165,32 @@ class TextureData(DataBlock):
                 or self.format == VTexFormat.BC7 \
                 or self.format == VTexFormat.ETC2 \
                 or self.format == VTexFormat.ETC2_EAC \
-                or self.format == VTexFormat.ATI1N\
+                or self.format == VTexFormat.ATI1N \
                 or self.format == VTexFormat.ATI2N:
 
             misalign = width % 4
 
-            if (misalign > 0):
+            if misalign > 0:
                 width += 4 - misalign
 
             misalign = height % 4
 
-            if (misalign > 0):
-                height += 4 - misalign;
+            if misalign > 0:
+                height += 4 - misalign
 
-            if (width < 4 and width > 0):
-                width = 4;
+            if 4 > width > 0:
+                width = 4
 
-            if (height < 4 and height > 0):
-                height = 4;
+            if 4 > height > 0:
+                height = 4
 
-            if (depth < 4 and depth > 1):
-                depth = 4;
+            if 4 > depth > 1:
+                depth = 4
 
-            numBlocks = (width * height) >> 4;
-            numBlocks *= depth
+            num_blocks = (width * height) >> 4
+            num_blocks *= depth
 
-            return numBlocks * bytes_per_pixel
+            return num_blocks * bytes_per_pixel
 
         return width * height * depth * bytes_per_pixel
 
@@ -220,7 +220,6 @@ class TextureData(DataBlock):
             return reader
 
     def read_image(self):
-        from PIL import Image
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
@@ -256,3 +255,6 @@ class TextureData(DataBlock):
             data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
             data = read_dxt5(data, len(data), self.width, self.height)
             self.image_data = data
+
+    def get_rgb_and_alpha(self):
+        return extract_alpha(self.image_data, len(self.image_data))

@@ -4,7 +4,7 @@ from typing import List
 
 import bpy
 import math
-from mathutils import Vector, Matrix, Quaternion,Euler
+from mathutils import Vector, Matrix, Quaternion, Euler
 
 from SourceIO.source2.blocks.common import SourceVector, SourceVertex
 from .source2 import ValveFile
@@ -121,12 +121,14 @@ class Vmdl:
                             u = uv_layer[mesh.loops[i].vertex_index]
                             uv_data[i].uv = u
                     if self.bone_names:
-                        weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in
-                                         self.bone_names}
+                        weight_groups = {
+                            bone.replace("$", 'PHYS_'):
+                                mesh_obj.vertex_groups.new(name=bone.replace("$", 'PHYS_')) for bone in self.bone_names}
                         for n, vertex in enumerate(used_vertices):
                             for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
                                 if weight > 0:
-                                    bone_name = self.bone_names[self.remap_table[remaps_start:][bone_index]]
+                                    bone_name = self.bone_names[self.remap_table[remaps_start:][bone_index]].replace(
+                                        "$", 'PHYS_')
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
 
                     bpy.ops.object.select_all(action="DESELECT")
