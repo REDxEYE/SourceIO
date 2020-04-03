@@ -6,7 +6,7 @@ import bpy
 import math
 from mathutils import Vector, Matrix, Quaternion, Euler
 
-from SourceIO.source2.blocks.common import SourceVector, SourceVertex
+from ..source2.blocks.common import SourceVector, SourceVertex
 from .source2 import ValveFile
 
 

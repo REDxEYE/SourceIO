@@ -1,6 +1,8 @@
 import sys
 
-from ...data_structures.vtx_data import *
+from ...data_structures.vtx_data import (SourceVtxFileData,
+                                         StripHeaderFlags)
+from ....byte_io_mdl import ByteIO
 
 
 def split(array, n=3):

@@ -3,7 +3,7 @@ from typing import List
 
 from ..data_structures.mdl_data import SourceBase
 from ..data_structures.source_shared import SourceVector
-from ..byte_io_mdl import ByteIO
+from ...byte_io_mdl import ByteIO
 
 
 class SourceAnimFlags(Flag):

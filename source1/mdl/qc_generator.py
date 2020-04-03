@@ -2,11 +2,11 @@ import math
 import os.path
 from pathlib import Path
 
-from .. import bl_info
+from ... import bl_info
 from ..data_structures.mdl_data import SourceMdlBone
 from ..data_structures.mdl_data import SourceMdlBodyPart, SourceMdlAttachment
 from ..data_structures.source_shared import SourceVector
-from ..utilities.math_utilities import convert_rotation_matrix_to_degrees, vector_i_transform
+from ...utilities.math_utilities import convert_rotation_matrix_to_degrees, vector_i_transform
 from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49, SourceMdlModel
 from ..mdl.smd_generator import SMD
 from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7

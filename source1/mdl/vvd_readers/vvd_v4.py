@@ -1,6 +1,6 @@
 import sys
 
-from ...byte_io_mdl import ByteIO
+from ....byte_io_mdl import ByteIO
 from ...data_structures.vvd_data import SourceVvdFileData
 
 

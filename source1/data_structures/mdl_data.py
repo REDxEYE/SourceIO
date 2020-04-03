@@ -1,21 +1,15 @@
 import random
-import time
 from enum import Enum, IntEnum,IntFlag
 
 from pprint import pformat
 
 from typing import List, Tuple
-try:
-    from ..byte_io_mdl import ByteIO, OffsetOutOfBounds
-    from ..data_structures.source_shared import SourceVector, SourceQuaternion, SourceFloat16bits
-    from ..mdl.mdl_readers import math_utilities
-    from ..utilities.path_utilities import get_class_var_name
 
-except Exception:
-    from ..byte_io_mdl import ByteIO, OffsetOutOfBounds
-    from ..data_structures.source_shared import SourceVector, SourceQuaternion, SourceFloat16bits
-    from ..utilities import math_utilities
-    from ..utilities.path_utilities import get_class_var_name
+from ...byte_io_mdl import ByteIO, OffsetOutOfBounds
+from ..data_structures.source_shared import SourceVector, SourceQuaternion, SourceFloat16bits
+from ...utilities import math_utilities
+
+
 
 
 class SourceBase:

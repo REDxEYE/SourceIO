@@ -3,14 +3,14 @@ import time
 from pathlib import Path
 from typing import List
 
-from .. import bl_info
-from ..data_structures import vtx_data, mdl_data
+from ... import bl_info
+from ..data_structures import mdl_data, vtx_data
 from ..data_structures.mdl_data import SourceMdlModel, SourceMdlBone
 from ..data_structures.vtx_data import SourceVtxBodyPart, SourceVtxModel, SourceVtxModelLod
 from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49
 from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
 from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
-from ..utilities import progressbar
+from ...utilities import progressbar
 
 
 

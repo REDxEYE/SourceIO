@@ -3,10 +3,8 @@ import os.path
 from pathlib import Path
 from typing import List
 
-from ..utilities.valve_utils import GameInfoFile
-from ..utilities import datamodel
-
-import re
+from ...utilities.valve_utils import GameInfoFile
+from ...utilities import datamodel
 
 
 def find_by_name_n_type(array, name, elem_type):
@@ -259,7 +257,7 @@ class Session:
                 self.load_model(entity)
 
     def load_model(self, entity: Model):
-        from ..mdl.mdl2model import Source2Blender
+        from SourceIO.source1.mdl.mdl2model import Source2Blender
         import bpy, mathutils
         model = entity.model_file
         # rot = mathutils.Quaternion(entity.orientation_q)

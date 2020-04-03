@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
@@ -19,20 +18,16 @@ if not NO_BPY:
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 
-    from .mdl import mdl2model
-    from .mdl import qc_generator
-    from .vtf.blender_material import BlenderMaterial
-    from .vtf.export_vtf import export_texture
-    from .vtf.import_vtf import import_texture
-    from .dmx.dmx import Session
+    from .source1.mdl import mdl2model, qc_generator
+    from .source1.vtf.blender_material import BlenderMaterial
+    from .source1.vtf.export_vtf import export_texture
+    from .source1.vtf.import_vtf import import_texture
+    from .source1.dmx.dmx import Session
 
     from .source2.vmdl import Vmdl
     from .source2.vtex import Vtex
 
-    try:
-        from .vtf.vmt import VMT
-    except OSError:
-        VMT = None
+    from .source1.vtf.vmt import VMT
 
 
     class SourceIOPreferences(bpy.types.AddonPreferences):
@@ -120,7 +115,7 @@ if not NO_BPY:
             else:
                 directory = Path(self.filepath).absolute()
             for file in self.files:
-                importer = Vmdl(str(directory / file.name), True)
+                Vmdl(str(directory / file.name), True)
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -212,7 +207,6 @@ if not NO_BPY:
             wm = context.window_manager
             wm.fileselect_add(self)
             return {'RUNNING_MODAL'}
-
 
 
     class VMTImporter_OT_operator(bpy.types.Operator):
@@ -337,6 +331,7 @@ if not NO_BPY:
         self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
         self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
         self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
+
 
     classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
                DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator, VTEXImporter_OT_operator)

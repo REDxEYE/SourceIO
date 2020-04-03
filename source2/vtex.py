@@ -24,14 +24,14 @@ class Vtex:
         rgb, alpha = data_block.get_rgb_and_alpha()
 
         image = bpy.data.images.new(
-            name + '_RGB',
+            name + '_RGB.tga',
             width=data_block.width,
             height=data_block.height)
-        image.pixels = np.divide(list(rgb), 255)
+        image.pixels = rgb
         image.pack()
         image = bpy.data.images.new(
-            name + '_A',
+            name + '_A.tga',
             width=data_block.width,
             height=data_block.height)
-        image.pixels = np.divide(list(alpha), 255)
+        image.pixels = alpha
         image.pack()

@@ -1,9 +1,9 @@
+from ...data_structures.mdl_anim_data import *
 from ...data_structures.mdl_data import *
-from ...mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from ...utilities.progressbar import ProgressBar
+from ....utilities.progressbar import ProgressBar
 
 
-class SourceMdlFile48(SourceMdlFile49):
+class SourceMdlFile49:
 
     def __init__(self, reader: ByteIO):
         self.reader = reader
@@ -18,9 +18,11 @@ class SourceMdlFile48(SourceMdlFile49):
         self.read_flex_controllers()
         self.read_flex_rules()
 
+        self.read_local_animation_descs()
+
         self.read_attachments()
         self.read_mouths()
-        # self.read_bone_flex_drivers()
+        self.read_bone_flex_drivers()
         self.read_flex_controllers_ui()
         self.read_body_parts()
         self.read_textures()
@@ -144,7 +146,13 @@ class SourceMdlFile48(SourceMdlFile49):
                     self.file_data.texture_paths.append("")
                 self.reader.seek(entry)
 
-    # def read_local_animation_descs(self):
+    def read_local_animation_descs(self):
+        self.reader.seek(self.file_data.local_animation_offset)
+        for i in range(self.file_data.local_animation_count):
+            anim_desc = SourceAnimDesc()
+            anim_desc.read(self.reader)
+            self.file_data.register(anim_desc)
+
     #     self.reader.seek(self.file_data.local_animation_offset)
     #     with self.reader.save_current_pos():
     #         for _ in range(self.file_data.local_animation_count):
@@ -175,13 +183,13 @@ class SourceMdlFile48(SourceMdlFile49):
                 flex_controller_ui.read(self.reader)
                 self.file_data.flex_controllers_ui.append(flex_controller_ui)
 
-    # def read_bone_flex_drivers(self):
-    #     if self.file_data.bone_flex_driver_count and self.file_data.bone_flex_driver_offset:
-    #         self.reader.seek(self.file_data.bone_flex_driver_count)
-    #         for _ in range(self.file_data.bone_flex_driver_count):
-    #             mouth = SourceMdlMouth()
-    #             mouth.read(self.reader)
-    #             self.file_data.mouths.append(mouth)
+    def read_bone_flex_drivers(self):
+        if self.file_data.bone_flex_driver_count and self.file_data.bone_flex_driver_offset:
+            self.reader.seek(self.file_data.bone_flex_driver_count)
+            for _ in range(self.file_data.bone_flex_driver_count):
+                mouth = SourceMdlMouth()
+                mouth.read(self.reader)
+                self.file_data.mouths.append(mouth)
 
     # def read_animations(self):
     #     for i in range(self.file_data.local_animation_count):
@@ -275,7 +283,6 @@ class SourceMdlFile48(SourceMdlFile49):
                             flex_desc_partner_index = mesh.flexes[flex_index].flex_desc_partner_index
 
                             if flex_desc_partner_index > 0:
-
                                 flex_frame.has_partner = True
                                 flex_frame.partner = flex_desc_partner_index
 
@@ -307,22 +314,24 @@ class SourceMdlFile48(SourceMdlFile49):
             if body_part.model_count > 1:
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
+            if body_part.model_count == 0:
+                continue
             model = body_part.models[0]
-            print('Scanning,', body_part.name)
+            # print('Scanning,', body_part.name)
             if 'clamped' not in body_part.name:
-                print(
-                    'Skipping',
-                    model.name,
-                    'cuz it\'s not a clamped mesh_data')
+                # print(
+                #     'Skipping',
+                #     model.name,
+                #     'cuz it\'s not a clamped mesh_data')
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
             added = False
             for body_part_frames in self.file_data.bodypart_frames:
                 for _, _model in body_part_frames:
-                    print('Comparing', model.name, 'to', _model)
+                    # print('Comparing', model.name, 'to', _model)
                     if self.comp_flex_frames(
                             model.flex_frames, _model.models[0].flex_frames):
-                        print('Adding', model.name, 'to', body_part_frames)
+                        # print('Adding', model.name, 'to', body_part_frames)
                         body_part_frames.append((n, body_part))
                         added = True
                         break

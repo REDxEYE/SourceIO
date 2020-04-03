@@ -5,17 +5,15 @@ import time
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from ..utilities import progressbar, valve_utils
+from ...utilities import progressbar, valve_utils
 from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
 from ..mdl.source_model import SourceModel
 from ..mdl.mdl_readers.mdl_v49 import SourceMdlFile49
-from ..data_structures import mdl_data, vtx_data, source_shared
+from ..data_structures import source_shared, mdl_data, vtx_data
 from ..vtf.vmt import VMT
 from ..vtf.blender_material import BlenderMaterial
-from ..vtf.import_vtf import import_texture
-from ..utilities.path_utilities import resolve_root_directory_from_file
-from .. import bl_info
+from ...utilities.path_utilities import resolve_root_directory_from_file
 
 # Blender imports
 try:

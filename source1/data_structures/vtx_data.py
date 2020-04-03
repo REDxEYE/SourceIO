@@ -2,7 +2,7 @@ import struct
 from enum import IntFlag
 from typing import List
 
-from ..byte_io_mdl import ByteIO
+from ...byte_io_mdl import ByteIO
 
 max_bones_per_vertex = 3
 extra_8 = True
