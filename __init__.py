@@ -6,7 +6,7 @@ NO_BPY = int(os.environ.get('NO_BPY', '0'))
 bl_info = {
     "name": "Source1/Source2 Engine model(.mdl, .vvd, .vtx)",
     "author": "RED_EYE",
-    "version": (3, 7, 0),
+    "version": (3, 7, 1),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vmdl_c) ",
     "description": "Addon allows to import Source Engine models",
@@ -209,40 +209,40 @@ if not NO_BPY:
             return {'RUNNING_MODAL'}
 
 
-    class VMTImporter_OT_operator(bpy.types.Operator):
-        """Load Source Engine VMT material"""
-        bl_idname = "import_texture.vmt"
-        bl_label = "Import VMT"
-        bl_options = {'UNDO'}
-
-        filepath: StringProperty(
-            subtype='FILE_PATH',
-        )
-        files: CollectionProperty(type=bpy.types.PropertyGroup)
-        load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
-
-        filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
-        game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
-        override: BoolProperty(default=False, name='Override existing?')
-
-        def execute(self, context):
-            if Path(self.filepath).is_file():
-                directory = Path(self.filepath).parent.absolute()
-            else:
-                directory = Path(self.filepath).absolute()
-            for file in self.files:
-                vmt = VMT(str(directory / file.name), self.game)
-                mat = BlenderMaterial(vmt)
-                mat.load_textures(self.load_alpha)
-                if mat.create_material(
-                        self.override) == 'EXISTS' and not self.override:
-                    self.report({'INFO'}, '{} material already exists')
-            return {'FINISHED'}
-
-        def invoke(self, context, event):
-            wm = context.window_manager
-            wm.fileselect_add(self)
-            return {'RUNNING_MODAL'}
+    # class VMTImporter_OT_operator(bpy.types.Operator):
+    #     """Load Source Engine VMT material"""
+    #     bl_idname = "import_texture.vmt"
+    #     bl_label = "Import VMT"
+    #     bl_options = {'UNDO'}
+    #
+    #     filepath: StringProperty(
+    #         subtype='FILE_PATH',
+    #     )
+    #     files: CollectionProperty(type=bpy.types.PropertyGroup)
+    #     load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
+    #
+    #     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
+    #     game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
+    #     override: BoolProperty(default=False, name='Override existing?')
+    #
+    #     def execute(self, context):
+    #         if Path(self.filepath).is_file():
+    #             directory = Path(self.filepath).parent.absolute()
+    #         else:
+    #             directory = Path(self.filepath).absolute()
+    #         for file in self.files:
+    #             vmt = VMT(str(directory / file.name), self.game)
+    #             mat = BlenderMaterial(vmt)
+    #             mat.load_textures(self.load_alpha)
+    #             if mat.create_material(
+    #                     self.override) == 'EXISTS' and not self.override:
+    #                 self.report({'INFO'}, '{} material already exists')
+    #         return {'FINISHED'}
+    #
+    #     def invoke(self, context, event):
+    #         wm = context.window_manager
+    #         wm.fileselect_add(self)
+    #         return {'RUNNING_MODAL'}
 
 
     class VTFExport_OT_operator(bpy.types.Operator):
@@ -275,8 +275,7 @@ if not NO_BPY:
                 ('RGB888', "RGBA888 Simple", "RGB888 format, no alpha"),
                 ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
                 ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
-                ('DXT5', "DXT5 Simple",
-                 "DXT5 format, format-specific Eight Bit Alpha flag only"),
+                ('DXT5', "DXT5 Simple","DXT5 format, format-specific Eight Bit Alpha flag only"),
                 ('DXT1Normal', "DXT1 Normal Map",
                  "DXT1 format, Normal Map flag only"),
                 ('DXT5Normal', "DXT5 Normal Map",
@@ -327,13 +326,13 @@ if not NO_BPY:
     def menu_import(self, context):
         self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
         self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
-        self.layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
-        self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
+        # self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
         self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
         self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
+        self.layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
 
-
-    classes = (MDLImporter_OT_operator, VMTImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
+    #VMTImporter_OT_operator,
+    classes = (MDLImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
                DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator, VTEXImporter_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
