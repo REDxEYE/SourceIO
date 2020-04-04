@@ -1,6 +1,6 @@
 import math
 
-from ..data_structures.source_shared import SourceVector
+from SourceIO.source1.data_structures.source_shared import SourceVector
 
 
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):

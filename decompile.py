@@ -3,9 +3,9 @@ import os
 os.environ['NO_BPY']='1'
 from pathlib import Path
 
-from SourceIO.mdl.source_model import SourceModel
+from SourceIO.source1.mdl import SourceModel
 
-from SourceIO.mdl.qc_generator import QC
+from SourceIO.source1.mdl.qc_generator import QC
 
 if __name__ == '__main__':
     mdl_name = Path(sys.argv[1]).absolute()
