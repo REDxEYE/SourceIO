@@ -131,17 +131,13 @@ class Source2Blender:
             if se_bone.parent_bone_index != -1:
                 bl_parent, parent = bones[se_bone.parent_bone_index]
                 bl_bone.parent = bl_parent
-            else:
-                pass
             bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
 
         bpy.ops.object.mode_set(mode='POSE')
         for se_bone in self.mdl.file_data.bones:  # type: mdl_data.SourceMdlBone
             bl_bone = self.armature_obj.pose.bones.get(se_bone.name)
-            pos = Vector(
-                [se_bone.position.x, se_bone.position.y, se_bone.position.z])
-            rot = Euler(
-                [se_bone.rotation.x, se_bone.rotation.y, se_bone.rotation.z])
+            pos = Vector(se_bone.position.as_list)
+            rot = Euler(se_bone.rotation.as_list)
             mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
             bl_bone.matrix_basis.identity()
 
@@ -162,7 +158,8 @@ class Source2Blender:
                     parent.tail = sum([ch.head for ch in parent.children], mathutils.Vector()) / len(parent.children)
                 else:
                     parent.tail = bl_bone.head
-                    bl_bone.use_connect = True
+                    if bl_bone.parent:
+                        bl_bone.use_connect = True
                     if bl_bone.children == 0:
                         par = bl_bone.parent
                         if par.children > 1:
