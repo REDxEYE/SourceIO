@@ -58,8 +58,10 @@ class Vmdl:
                 for draw_call in draw_calls:
                     base_vertex = draw_call['m_nBaseVertex']
                     vertex_count = draw_call['m_nVertexCount']
-                    start_index = draw_call['m_nStartIndex']
-                    index_count = draw_call['m_nIndexCount']
+                    assert draw_call['m_nStartIndex'] % 3 == 0
+                    assert draw_call['m_nIndexCount'] % 3 == 0
+                    start_index = draw_call['m_nStartIndex']//3
+                    index_count = draw_call['m_nIndexCount']//3
                     index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
                     assert len(draw_call['m_vertexBuffers']) == 1
                     assert draw_call['m_vertexBuffers'][0]['m_nBindOffsetBytes'] == 0
