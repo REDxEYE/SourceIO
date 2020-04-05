@@ -9,6 +9,7 @@ try:
 except ImportError:
     print("PySourceIOTextureUtils import error")
     from ..lz4 import uncompress as uncompress_tmp
+
     uncompress = lambda a, b, c: uncompress_tmp(a)
 from .common import SourceVector, SourceVector4D, SourceVector2D
 
@@ -43,9 +44,14 @@ class KVType(IntEnum):
 
 
 class BinaryKeyValue:
-    ENCODING = (0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2)
-    ENCODING2 = (138, 52, 71, 104, 161, 99, 92, 79, 161, 151, 83, 128, 111, 217, 177, 25)
-    FORMAT = (0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
+    KV3_ENCODING_BINARY_BLOCK_COMPRESSED = (
+        0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2)
+    KV3_ENCODING_BINARY_UNCOMPRESSED = (
+        0x00, 0x05, 0x86, 0x1B, 0xD8, 0xF7, 0xC1, 0x40, 0xAD, 0x82, 0x75, 0xA4, 0x82, 0x67, 0xE7, 0x14)
+    KV3_ENCODING_BINARY_BLOCK_LZ4 = (
+        0x8A, 0x34, 0x47, 0x68, 0xA1, 0x63, 0x5C, 0x4F, 0xA1, 0x97, 0x53, 0x80, 0x6F, 0xD9, 0xB1, 0x19)
+    KV3_FORMAT_GENERIC = (
+        0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
     SIG = (0x56, 0x4B, 0x56, 0x03)
     SIG2 = (0x01, 0x33, 0x56, 0x4B)
     indent = 0
@@ -77,19 +83,14 @@ class BinaryKeyValue:
         assert tuple(fourcc) == self.SIG or tuple(fourcc) == self.SIG2, 'Invalid KV Signature'
         if tuple(fourcc) == self.SIG2:
             self.read_v2(reader)
-        else:
-            # self.read_v1(reader)
-            raise NotImplementedError("KV3 V1 currently is not supported")
+        elif tuple(fourcc) == self.SIG:
+            self.read_v1(reader)
+            # raise NotImplementedError("KV3 V1 currently is not supported")
 
-    def read_v1(self, reader):
-        encoding = reader.read_bytes(16)
-        assert (tuple(encoding) == self.ENCODING or tuple(encoding) == self.ENCODING2), 'Unrecognized KV3 Encoding'
-        fmt = reader.read_bytes(16)
-        assert tuple(fmt) == self.FORMAT, 'Unrecognised KV3 Format'
+    def block_decompress(self, reader):
         self.flags = reader.read_bytes(4)
         if self.flags[3] & 0x80:
-            self.buffer.write_bytes(
-                reader.read_bytes(self.block_info.block_size - (reader.tell() - self.block_info.absolute_offset)))
+            self.buffer.write_bytes(reader.read_bytes(-1))
         working = True
         while reader.tell() != reader.size() and working:
             block_mask = reader.read_uint16()
@@ -99,6 +100,7 @@ class BinaryKeyValue:
                     offset = ((offset_and_size & 0xFFF0) >> 4) + 1
                     size = (offset_and_size & 0x000F) + 3
                     lookup_size = offset if offset < size else size
+
                     entry = self.buffer.tell()
                     self.buffer.seek(offset)
                     data = self.buffer.read_bytes(lookup_size)
@@ -113,17 +115,42 @@ class BinaryKeyValue:
                     working = False
                     break
         self.buffer.seek(0)
+
+    def decompress_lz4(self, reader):
+        decompressed_size = reader.read_uint32()
+        compressed_size = reader.size() - reader.tell()
+        data = reader.read_bytes(-1)
+        data = uncompress(data, compressed_size, decompressed_size)
+        self.buffer.write_bytes(data)
+        self.buffer.seek(0)
+
+    def read_v1(self, reader):
+        encoding = reader.read_bytes(16)
+        assert (tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED or
+                tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4), 'Unrecognized KV3 Encoding'
+        fmt = reader.read_bytes(16)
+
+        assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+        if tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
+            self.block_decompress(reader)
+        elif tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4:
+            self.decompress_lz4(reader)
         string_count = self.buffer.read_uint32()
         for i in range(string_count):
             self.strings.append(self.buffer.read_ascii_string())
+        self.int_buffer = self.buffer
+        self.double_buffer = self.buffer
+        self.byte_buffer = self.buffer
         self.parse(self.buffer, self.kv, True)
+        assert len(self.kv) == 1, "Never seen state of vkv3 v1"
+        self.kv = self.kv[0]
         self.buffer.close()
         del self.buffer
         self.empty = False
 
     def read_v2(self, reader: ByteIO):
         fmt = reader.read_bytes(16)
-        assert tuple(fmt) == self.FORMAT, 'Unrecognised KV3 Format'
+        assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
         self.bin_blob_count = reader.read_uint32()
@@ -136,7 +163,7 @@ class BinaryKeyValue:
             uncompressed_size = reader.read_uint32()
             compressed_size = self.block_info.block_size - reader.tell()
             data = reader.read_bytes(compressed_size)
-            u_data = uncompress(data,compressed_size,uncompressed_size)
+            u_data = uncompress(data, compressed_size, uncompressed_size)
             # with open("TEST.BIN",'wb') as f:
             #     f.write(u_data)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
@@ -185,7 +212,7 @@ class BinaryKeyValue:
             data_type = self.types[self.current_type]
             self.current_type += 1
         else:
-            data_type = self.byte_buffer.read_int8()
+            data_type = reader.read_int8()
 
         flag_info = KVFlag.Nothing
         if data_type & 0x80:

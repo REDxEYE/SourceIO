@@ -52,6 +52,12 @@ class NTRO(DataBlock):
                 return enum
         return None
 
+    def get_struct_by_name(self, name):
+        for struct in self.structs:
+            if struct.name == name:
+                return struct
+        return None
+
 
 class NTROStruct:
     def __init__(self, ntro_block: NTRO):

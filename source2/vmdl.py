@@ -20,23 +20,31 @@ class Vmdl:
         self.name = str(os.path.basename(vmdl_path).split('.')[0])
         # print(self.valve_file.data.data.keys())
         self.data_block = data_block = self.valve_file.get_data_block(block_name='DATA')[0]
-        self.remap_table = data_block.data['m_remappingTable']
-        self.remap_table_starts = data_block.data['m_remappingTableStarts']
+
+        self.main_collection = bpy.data.collections.new(os.path.basename(self.name))
+        bpy.context.scene.collection.children.link(self.main_collection)
+
         self.model_skeleton = data_block.data['m_modelSkeleton']
         self.bone_names = self.model_skeleton['m_boneName']
-        self.bone_positions = self.model_skeleton['m_bonePosParent']
-        self.bone_rotations = self.model_skeleton['m_boneRotParent']
-        self.bone_parents = self.model_skeleton['m_nParent']
-        self.main_collection = bpy.data.collections.new(os.path.basename(self.name))
+        if self.bone_names:
+            self.remap_table = data_block.data['m_remappingTable']
+            self.remap_table_starts = data_block.data['m_remappingTableStarts']
+            self.bone_positions = self.model_skeleton['m_bonePosParent']
+            self.bone_rotations = self.model_skeleton['m_boneRotParent']
+            self.bone_parents = self.model_skeleton['m_nParent']
+            armature = self.build_armature()
+        else:
+            armature = None
 
-        bpy.context.scene.collection.children.link(self.main_collection)
+
+
         self.lod_collections = {}
         for group in set(self.data_block.data.get('m_refLODGroupMasks', [])):
             print(f"creating LOD{group} group")
             lod_collection = bpy.data.collections.new(name=f"LOD{group}")
             self.main_collection.children.link(lod_collection)
             self.lod_collections[group] = lod_collection
-        armature = self.build_armature()
+
         self.build_meshes(self.main_collection, armature)
 
     def build_meshes(self, collection, armature):
@@ -46,7 +54,7 @@ class Vmdl:
             name = e_mesh['name']
             data_block_index = e_mesh['data_block']
             mesh_index = e_mesh['mesh_index']
-            remaps_start = self.remap_table_starts[mesh_index]
+
             buffer_block_index = e_mesh['vbib_block']
             morph_block_index = e_mesh['morph_block']
             morph_texture = e_mesh['morph_texture']
@@ -81,10 +89,10 @@ class Vmdl:
 
                     else:
                         collection.objects.link(mesh_obj)
-
-                    modifier = mesh_obj.modifiers.new(
-                        type="ARMATURE", name="Armature")
-                    modifier.object = armature
+                    if armature:
+                        modifier = mesh_obj.modifiers.new(
+                            type="ARMATURE", name="Armature")
+                        modifier.object = armature
 
                     print("Building mesh", name, mesh_name)
                     self.get_material(mesh_name, mesh_obj)
@@ -122,7 +130,8 @@ class Vmdl:
                         for i in range(len(uv_data)):
                             u = uv_layer[mesh.loops[i].vertex_index]
                             uv_data[i].uv = u
-                    if self.bone_names:
+                    if armature:
+                        remaps_start = self.remap_table_starts[mesh_index]
                         weight_groups = {
                             bone.replace("$", 'PHYS_'):
                                 mesh_obj.vertex_groups.new(name=bone.replace("$", 'PHYS_')) for bone in self.bone_names}

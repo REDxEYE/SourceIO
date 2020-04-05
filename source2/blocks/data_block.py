@@ -19,6 +19,13 @@ class DATA(DataBlock):
             kv.read(reader)
             self.data = kv.kv
         else:
-            for struct in self._valve_file.nrto.structs[:1]:
-                self.data[struct.name] = struct.read_struct(reader)
+            reader.rewind(4)
+            ntro = self._valve_file.get_data_block(block_name="NTRO")[0]
+            struct_name = {
+                "DATA": "PermModelData_t",
+                "PHYS": "VPhysXAggregateData_t",
+            }
+
+            struct = ntro.get_struct_by_name(struct_name[self.info_block.block_name])
+            self.data = struct.read_struct(reader)
         self.empty = False

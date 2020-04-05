@@ -32,7 +32,17 @@ class ValveFile:
             block_info = InfoBlock()
             block_info.read(self.reader)
             self.info_blocks.append(block_info)
+            self.data_blocks.append(None)
 
+        for block_info in self.info_blocks:
+            if block_info.block_name == 'NTRO':
+                block_class = self.get_data_block_class(block_info.block_name)
+                block = block_class(self, block_info)
+                block.read()
+
+                self.data_blocks[self.info_blocks.index(block_info)] = block
+                self.info_blocks.pop(self.info_blocks.index(block_info))
+        i = 0
         while self.info_blocks:
             block_info = self.info_blocks.pop(0)
             # print(block_info)
@@ -41,11 +51,12 @@ class ValveFile:
                 block_class = self.get_data_block_class(block_info.block_name)
                 if block_class is None:
                     # print(f"Unknown block {block_info}")
-                    self.data_blocks.append(None)
+                    self.data_blocks[i] = None
                     continue
                 block = block_class(self, block_info)
                 block.read()
-                self.data_blocks.append(block)
+                self.data_blocks[i] = block
+            i += 1
 
     def get_data_block(self, *, block_id=None, block_name=None):
         if block_id is None and block_name is None:
@@ -70,9 +81,8 @@ class ValveFile:
         from .blocks.rerl_block import RERL
         from .blocks.vbib_block import VBIB
         from .blocks.data_block import DATA
-        from .blocks.kv3_block import KV3
         from .blocks.texture_data_block import TextureData
-        if self.filepath.suffix=='.vtex_c':
+        if self.filepath.suffix == '.vtex_c':
             data_block_class = TextureData
         else:
             data_block_class = DATA
@@ -82,14 +92,14 @@ class ValveFile:
             "RERL": RERL,
             "VBIB": VBIB,
             "DATA": data_block_class,
-            "CTRL": KV3,
+            "CTRL": DATA,
             "MBUF": VBIB,
-            "MDAT": KV3,
-            "PHYS": KV3,
-            # "ASEQ": KV3,
-            # "AGRP": KV3,
-            # "ANIM": KV3,
-            "MRPH": KV3,
+            "MDAT": DATA,
+            "PHYS": DATA,
+            # "ASEQ": DATA,
+            # "AGRP": DATA,
+            # "ANIM": DATA,
+            "MRPH": DATA,
         }
         return data_classes.get(block_name, None)
 
