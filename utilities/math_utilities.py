@@ -1,7 +1,5 @@
 import math
 
-from SourceIO.source1.data_structures.source_shared import SourceVector
-
 
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
     angle_y = -math.asin(round(m2, 6))
@@ -20,11 +18,13 @@ def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
         angle_z = (math.atan2(translate_y, translate_x))
     return angle_x, angle_y, angle_z
 
-def vector_i_transform(input: SourceVector,
-                       matrix_c0: SourceVector, 
-                       matrix_c1: SourceVector,
-                       matrix_c2: SourceVector,
-                       matrix_c3: SourceVector):
+
+def vector_i_transform(input: 'SourceVector',
+                       matrix_c0: 'SourceVector',
+                       matrix_c1: 'SourceVector',
+                       matrix_c2: 'SourceVector',
+                       matrix_c3: 'SourceVector'):
+    from SourceIO.source1.data_structures.source_shared import SourceVector
     temp = SourceVector()
     output = SourceVector()
 
