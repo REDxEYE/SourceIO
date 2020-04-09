@@ -13,11 +13,7 @@ from .header_block import InfoBlock
 from .dummy import DataBlock
 import sys
 
-# sys.path.append(r"D:\CPP\SourceIOTextureUtils\cmake-build-debug")
-try:
-    from PySourceIOTextureUtils import *
-except:
-    from .PySourceIOTextureUtils import *
+from ..utils.PySourceIOUtils import *
 
 
 class VTexFlags(IntFlag):

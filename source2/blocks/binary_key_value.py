@@ -5,7 +5,7 @@ from .dummy import DataBlock
 from .header_block import InfoBlock
 
 try:
-    from .PySourceIOTextureUtils import lz4_decompress as uncompress
+    from ..utils.PySourceIOUtils import lz4_decompress as uncompress
 except ImportError:
     print("PySourceIOTextureUtils import error")
     from ..lz4 import uncompress as uncompress_tmp
