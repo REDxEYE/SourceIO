@@ -37,9 +37,9 @@ class SourceVtxFile7:
                             print('\t' * 4, strip_group)
                             # pprint(split(strip_group.vtx_indexes))
                             topo_shit = split(list(strip_group.topology), 176)
-                            print(len(topo_shit))
-                            for topo in topo_shit:
-                                print(topo)
+                            # print(len(topo_shit))
+                            # for topo in topo_shit:
+                            #     print(topo)
                             # print(split(topo_shit, 176))
                             # with open('topology.bin', 'wb+') as fp:
                             #     fp.write(strip_group.topology)

@@ -22,7 +22,7 @@ class DATA(DataBlock):
             reader.rewind(4)
             ntro = self._valve_file.get_data_block(block_name="NTRO")[0]
             struct_name = {
-                "DATA": "PermModelData_t",
+                "DATA": "PermModelData_t" if self._valve_file.filepath.suffix == ".vmdl_c" else "MaterialResourceData_t",
                 "PHYS": "VPhysXAggregateData_t",
             }
 

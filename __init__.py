@@ -104,6 +104,7 @@ if not NO_BPY:
         bl_options = {'UNDO'}
 
         filepath: StringProperty(subtype="FILE_PATH")
+        invert_uv: BoolProperty(name="invert UV?", default=True)
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
         filter_glob: StringProperty(default="*.vmdl_c", options={'HIDDEN'})
@@ -115,7 +116,8 @@ if not NO_BPY:
             else:
                 directory = Path(self.filepath).absolute()
             for file in self.files:
-                Vmdl(str(directory / file.name), True)
+                model = Vmdl(str(directory / file.name))
+                model.load_mesh(self.invert_uv)
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -191,6 +193,7 @@ if not NO_BPY:
         bl_options = {'UNDO'}
 
         filepath: StringProperty(subtype='FILE_PATH', )
+        flip: BoolProperty(name="Flip texture", default=True)
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
         filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
@@ -200,7 +203,8 @@ if not NO_BPY:
             else:
                 directory = Path(self.filepath).absolute()
             for file in self.files:
-                Vtex(str(directory / file.name)).load()
+                texture = Vtex(str(directory / file.name))
+                texture.load(self.flip)
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -244,7 +248,6 @@ if not NO_BPY:
     #         wm.fileselect_add(self)
     #         return {'RUNNING_MODAL'}
 
-
     class VTFExport_OT_operator(bpy.types.Operator):
         """Export VTF texture"""
         bl_idname = "export_texture.vtf"
@@ -275,7 +278,7 @@ if not NO_BPY:
                 ('RGB888', "RGBA888 Simple", "RGB888 format, no alpha"),
                 ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
                 ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
-                ('DXT5', "DXT5 Simple","DXT5 format, format-specific Eight Bit Alpha flag only"),
+                ('DXT5', "DXT5 Simple", "DXT5 format, format-specific Eight Bit Alpha flag only"),
                 ('DXT1Normal', "DXT1 Normal Map",
                  "DXT1 format, Normal Map flag only"),
                 ('DXT5Normal', "DXT5 Normal Map",
@@ -331,7 +334,8 @@ if not NO_BPY:
         self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
         self.layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
 
-    #VMTImporter_OT_operator,
+
+    # VMTImporter_OT_operator,
     classes = (MDLImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
                DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator, VTEXImporter_OT_operator)
     try:

@@ -18,9 +18,10 @@ class Vtex:
         self.valve_file = ValveFile(vtex_path)
         self.valve_file.read_block_info()
 
-    def load(self):
+    def load(self, flip: bool):
         name = Path(self.valve_file.filename).stem
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+        data_block.read_image(flip)
         rgb, alpha = data_block.get_rgb_and_alpha()
 
         image = bpy.data.images.new(
@@ -29,9 +30,10 @@ class Vtex:
             height=data_block.height)
         image.pixels = rgb
         image.pack()
-        image = bpy.data.images.new(
-            name + '_A.tga',
-            width=data_block.width,
-            height=data_block.height)
-        image.pixels = alpha
-        image.pack()
+        if alpha is not None:
+            image = bpy.data.images.new(
+                name + '_A.tga',
+                width=data_block.width,
+                height=data_block.height)
+            image.pixels = alpha
+            image.pack()

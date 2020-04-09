@@ -39,24 +39,22 @@ class ValveFile:
                 block_class = self.get_data_block_class(block_info.block_name)
                 block = block_class(self, block_info)
                 block.read()
-
                 self.data_blocks[self.info_blocks.index(block_info)] = block
-                self.info_blocks.pop(self.info_blocks.index(block_info))
-        i = 0
-        while self.info_blocks:
-            block_info = self.info_blocks.pop(0)
+        for i in range(len(self.info_blocks)):
+            block_info = self.info_blocks[i]
+            if self.data_blocks[i] is not None:
+                continue
             # print(block_info)
             with self.reader.save_current_pos():
                 self.reader.seek(block_info.entry + block_info.block_offset)
                 block_class = self.get_data_block_class(block_info.block_name)
                 if block_class is None:
                     # print(f"Unknown block {block_info}")
-                    self.data_blocks[i] = None
+                    self.data_blocks[self.info_blocks.index(block_info)] = None
                     continue
                 block = block_class(self, block_info)
                 block.read()
-                self.data_blocks[i] = block
-            i += 1
+                self.data_blocks[self.info_blocks.index(block_info)] = block
 
     def get_data_block(self, *, block_id=None, block_name=None):
         if block_id is None and block_name is None:

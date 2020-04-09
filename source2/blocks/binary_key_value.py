@@ -52,8 +52,8 @@ class BinaryKeyValue:
         0x8A, 0x34, 0x47, 0x68, 0xA1, 0x63, 0x5C, 0x4F, 0xA1, 0x97, 0x53, 0x80, 0x6F, 0xD9, 0xB1, 0x19)
     KV3_FORMAT_GENERIC = (
         0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
-    SIG = (0x56, 0x4B, 0x56, 0x03)
-    SIG2 = (0x01, 0x33, 0x56, 0x4B)
+    KV3_SIG = (0x56, 0x4B, 0x56, 0x03)
+    VKV3_SIG = (0x01, 0x33, 0x56, 0x4B)
     indent = 0
 
     def __init__(self, block_info: InfoBlock = None):
@@ -80,12 +80,11 @@ class BinaryKeyValue:
 
     def read(self, reader: ByteIO):
         fourcc = reader.read_bytes(4)
-        assert tuple(fourcc) == self.SIG or tuple(fourcc) == self.SIG2, 'Invalid KV Signature'
-        if tuple(fourcc) == self.SIG2:
+        assert tuple(fourcc) == self.KV3_SIG or tuple(fourcc) == self.VKV3_SIG, 'Invalid KV Signature'
+        if tuple(fourcc) == self.VKV3_SIG:
             self.read_v2(reader)
-        elif tuple(fourcc) == self.SIG:
+        elif tuple(fourcc) == self.KV3_SIG:
             self.read_v1(reader)
-            # raise NotImplementedError("KV3 V1 currently is not supported")
 
     def block_decompress(self, reader):
         self.flags = reader.read_bytes(4)
@@ -146,7 +145,6 @@ class BinaryKeyValue:
         self.kv = self.kv[0]
         self.buffer.close()
         del self.buffer
-        self.empty = False
 
     def read_v2(self, reader: ByteIO):
         fmt = reader.read_bytes(16)
@@ -164,8 +162,6 @@ class BinaryKeyValue:
             compressed_size = self.block_info.block_size - reader.tell()
             data = reader.read_bytes(compressed_size)
             u_data = uncompress(data, compressed_size, uncompressed_size)
-            # with open("TEST.BIN",'wb') as f:
-            #     f.write(u_data)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
             self.buffer.write_bytes(u_data)
         else:
@@ -188,24 +184,26 @@ class BinaryKeyValue:
         self.double_buffer.write_bytes(self.buffer.read_bytes(self.double_count * 8))
         self.double_buffer.seek(0)
 
-        string_count = self.int_buffer.read_uint32()
-
-        for _ in range(string_count):
+        for _ in range(self.int_buffer.read_uint32()):
             self.strings.append(self.buffer.read_ascii_string())
 
         types_len = self.buffer.size() - self.buffer.tell() - 4
 
         for _ in range(types_len):
             self.types.append(self.buffer.read_uint8())
+
         self.parse(self.buffer, self.kv, True)
+        self.kv = self.kv[0]
 
         self.buffer.close()
-        self.byte_buffer.close()
-        self.int_buffer.close()
-        self.double_buffer.close()
-
-        self.kv = self.kv[0]
         del self.buffer
+        self.byte_buffer.close()
+        del self.byte_buffer
+        self.int_buffer.close()
+        del self.int_buffer
+        self.double_buffer.close()
+        del self.double_buffer
+
 
     def read_type(self, reader: ByteIO):
         if self.types:
