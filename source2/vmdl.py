@@ -136,10 +136,15 @@ class Vmdl:
                         new_bone_names = [bone.replace("$", 'PHYS_') for bone in bone_names]
                         weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
                         for n, vertex in enumerate(used_vertices):
-                            for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
-                                if weight > 0:
+                            if len(vertex.bone_weight.weight) == 0:
+                                for bone_index in vertex.bone_weight.bone:
                                     bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
-                                    weight_groups[bone_name].add([n], weight, 'REPLACE')
+                                    weight_groups[bone_name].add([n], 1.0, 'REPLACE')
+                            else:
+                                for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
+                                    if weight > 0:
+                                        bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
+                                        weight_groups[bone_name].add([n], weight, 'REPLACE')
 
                     bpy.ops.object.select_all(action="DESELECT")
                     mesh_obj.select_set(True)

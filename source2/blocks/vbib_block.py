@@ -395,8 +395,8 @@ class IndexBuffer:
             else:
                 self.buffer.write_bytes(reader.read_bytes(self.index_count * self.index_size))
             self.buffer.seek(0)
-        with open("test.bin", 'wb') as f:
-            f.write(self.buffer.read_bytes(-1))
+        # with open("test.bin", 'wb') as f:
+        #     f.write(self.buffer.read_bytes(-1))
         self.buffer.seek(0)
 
         self.read_buffer()
