@@ -1,14 +1,8 @@
-import os.path
-import random
 from pathlib import Path
-from typing import List
 
 import bpy
-import math
-import numpy as np
-from mathutils import Vector, Matrix, Quaternion, Euler
 
-from SourceIO.source2.blocks.common import SourceVector, SourceVertex
+
 from .source2 import ValveFile
 
 
