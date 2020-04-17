@@ -14,7 +14,7 @@ from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 
 
 class QC:
-    version = '.'.join(map(str,bl_info['version']))
+    version = '.'.join(map(str, bl_info['version']))
 
     def __init__(self, source_model):
         self.source_model = source_model
@@ -40,17 +40,18 @@ class QC:
 
     def write_header(self, fileh):
         fileh.write('// Created by SourceIO v{}\n\n'.format(self.version))
-        fileh.write('$modelname "{}"\n\n'.format(Path(self.mdl.file_data.name).parent/Path(self.mdl.file_data.name).stem))
+        fileh.write(
+            '$modelname "{}"\n\n'.format(Path(self.mdl.file_data.name).parent / Path(self.mdl.file_data.name).stem))
 
     def write_models(self, fileh):
         for n, bp in enumerate(
                 self.mdl.file_data.body_parts):  # type: SourceMdlBodyPart
-            if bp.model_count > 1:
+            if len(bp.models) > 1:
                 self.write_bodygroup(fileh, bp)
-            if bp.model_count == 1:
+            if len(bp.models) == 1:
                 self.write_model(fileh, bp, bp.models[0])
                 pass  # write model
-            if bp.model_count == 0:
+            if len(bp.models) == 0:
                 print('No models in bodygpoup!!!!')
 
     def write_model(self, fileh, bp, model: SourceMdlModel):
@@ -111,7 +112,7 @@ class QC:
         fileh.write('$bodygroup "{}"\n'.format(bp.name))
         fileh.write('{\n')
         for model in bp.models:  # type: SourceMdlModel
-            if model.mesh_count == 0:
+            if len(model.meshes) == 0:
                 fileh.write("\tblank\n")
             else:
                 if not self.fst_model:

@@ -56,9 +56,13 @@ class Vmdl:
             mesh_data_block = self.valve_file.get_data_block(block_id=data_block_index)
             buffer_block = self.valve_file.get_data_block(block_id=buffer_block_index)
             morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
+            morphs_available = morph_block is not None and morph_block.read_morphs()
+
             for scene in mesh_data_block.data["m_sceneObjects"]:
                 draw_calls = scene["m_drawCalls"]
+                global_vertex_offset = 0
                 for draw_call in draw_calls:
+                    print(draw_call)
                     base_vertex = draw_call['m_nBaseVertex']
                     vertex_count = draw_call['m_nVertexCount']
                     assert draw_call['m_nStartIndex'] % 3 == 0
@@ -152,7 +156,26 @@ class Vmdl:
                     bpy.ops.object.shade_smooth()
                     mesh.normals_split_custom_set_from_vertices(normals)
                     mesh.use_auto_smooth = True
-                    mesh.validate(verbose=False)
+                    if morphs_available:
+                        mesh_obj.shape_key_add(name='base')
+                        bunlde_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                        for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
+                            print(f"Importing {flex_name} {n}/{len(morph_block.flex_data)}")
+                            shape = mesh_obj.shape_key_add(name=flex_name[:63])
+                            for vert_id, flex_vert in enumerate(
+                                    flex_data[bunlde_id][global_vertex_offset:global_vertex_offset + vertex_count]):
+                                # abs_vert_id = global_vertex_offset + vert_id
+
+                                vertex = mesh_obj.data.vertices[vert_id]
+                                fx, fy, fz, speed = flex_vert
+
+                                shape.data[vert_id].co = (
+                                    fx + vertex.co[0],
+                                    fy + vertex.co[1],
+                                    fz + vertex.co[2]
+                                )
+                            pass
+                    global_vertex_offset += vertex_count
 
     def build_armature(self, top_collection: bpy.types.Collection):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]

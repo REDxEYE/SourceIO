@@ -14,6 +14,10 @@ from .blocks.dummy import DataBlock
 
 class ValveFile:
 
+    @classmethod
+    def parse_new(cls, filepath):
+        return cls(filepath)
+
     def __init__(self, filepath):
 
         # print('Reading {}'.format(filepath))
@@ -79,6 +83,7 @@ class ValveFile:
         from .blocks.rerl_block import RERL
         from .blocks.vbib_block import VBIB
         from .blocks.data_block import DATA
+        from .blocks.mrph_block import MRPH
         from .blocks.texture_data_block import TextureData
         if self.filepath.suffix == '.vtex_c':
             data_block_class = TextureData
@@ -93,11 +98,11 @@ class ValveFile:
             "CTRL": DATA,
             "MBUF": VBIB,
             "MDAT": DATA,
-            "PHYS": DATA,
+            # "PHYS": DATA,
             # "ASEQ": DATA,
             # "AGRP": DATA,
             # "ANIM": DATA,
-            "MRPH": DATA,
+            "MRPH": MRPH,
         }
         return data_classes.get(block_name, None)
 
@@ -115,16 +120,34 @@ class ValveFile:
         for block in relr_block.resources:
             print(block)
 
+    @staticmethod
+    def get_base_dir(full_path: Path, relative_path: Path):
+        addon_path = Path(full_path)
+        for p1, p2 in zip(reversed(addon_path.parts), reversed(relative_path.parts)):
+            if p1 == p2:
+                addon_path = addon_path.parent
+            else:
+                break
+        return addon_path
+
+    # noinspection PyTypeChecker
     def check_external_resources(self):
-        relr_block = self.get_data_block(block_name="RERL")[0]
+        from .blocks.rerl_block import RERL
+        from .blocks.data_block import DATA
+        relr_block: RERL = self.get_data_block(block_name="RERL")[0]
+        data_block: DATA = self.get_data_block(block_name="DATA")[0]
+        file_path = Path(data_block.data['m_name'])
+        file_path = file_path.with_suffix(file_path.suffix + "_c")
+        addon_path = self.get_base_dir(Path(self.filepath), file_path)
         for block in relr_block.resources:
             path = Path(block.resource_name)
-            asset = self.filepath.parent / path.with_suffix(path.suffix + '_c').name
+            asset = addon_path / path.with_suffix(path.suffix + '_c')
             if asset.exists():
                 self.available_resources[block.resource_name] = asset.absolute()
-                print('Found', path)
+                # print('Found', path)
             else:
-                print('Can\'t find', path)
+                pass
+                # print('Can\'t find', path)
 
 
 def quaternion_to_euler_angle(w, x, y, z):

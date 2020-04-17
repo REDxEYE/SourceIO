@@ -13,10 +13,10 @@ class SourceVvdFile4:
     def read(self):
         self.file_data.read(self.reader)
         self.max_verts = self.file_data.lod_vertex_count[0]
-        self.file_data.setup_fixed_vertexes(0)
+        # self.file_data.setup_fixed_vertexes(0)
 
     def test(self):
-        for lod_index,vertexes in self.file_data.fixed_vertexes_by_lod.items():
+        for lod_index, vertexes in self.file_data.fixed_vertexes_by_lod.items():
             for vertex in vertexes:
                 print(vertex)
 

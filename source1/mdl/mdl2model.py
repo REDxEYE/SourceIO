@@ -2,9 +2,13 @@ import io
 import os.path
 import random
 import time
+import typing
 from contextlib import redirect_stdout
 from pathlib import Path
 
+import numpy as np
+
+from ..data_structures.vtx_data import StripGroupFlags
 from ...utilities import progressbar, valve_utils
 from ..mdl.vvd_readers.vvd_v4 import SourceVvdFile4
 from ..mdl.vtx_readers.vtx_v7 import SourceVtxFile7
@@ -30,6 +34,12 @@ stdout = io.StringIO()
 
 def split(array, n=3):
     return [array[i:i + n] for i in range(0, len(array), n)]
+
+
+def slice(data: typing.List, start, count=None):
+    if count is None:
+        count = len(data) - start
+    return data[start:start + count]
 
 
 class Source2Blender:
@@ -71,7 +81,7 @@ class Source2Blender:
         self.armature = None
         self.mesh_data = None
 
-    def load(self, dont_build_mesh=False):
+    def load(self, dont_build_mesh=False, experemental=False):
 
         self.model.read()
         self.mdl = self.model.mdl  # type: SourceMdlFile49
@@ -91,14 +101,104 @@ class Source2Blender:
             # just a temp containers
             self.mesh_obj = None
             self.mesh_data = None
-
-            self.create_models()
+            if experemental:
+                self.create_models2()
+            else:
+                self.create_models()
             self.create_attachments()
 
             bpy.ops.object.mode_set(mode='OBJECT')
 
         if self.import_textures:
             self.load_textures()
+
+    def create_models2(self):
+        all_vertices = self.vvd.file_data.vertices
+        all_normals = self.vvd.file_data.normals
+        all_uvs = self.vvd.file_data.uvs
+        all_weights = self.vvd.file_data.weights
+
+        for vtx_body_part, body_part in zip(self.vtx.vtx.vtx_body_parts, self.mdl.file_data.body_parts):
+            for vtx_model, model in zip(vtx_body_part.vtx_models, body_part.models):
+                model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
+                model_normals = slice(all_normals, model.vertex_offset, model.vertex_count)
+                model_uvs = slice(all_uvs, model.vertex_offset, model.vertex_count)
+                model_weights = slice(all_weights, model.vertex_offset, model.vertex_count)
+                vtx_meshes = vtx_model.vtx_model_lods[0].vtx_meshes
+
+                for n, (vtx_mesh, mesh) in enumerate(zip(vtx_meshes, model.meshes)):
+                    mesh_vertices = slice(model_vertices, mesh.vertex_index_start, mesh.vertex_count)
+                    mesh_normals = slice(model_normals, mesh.vertex_index_start, mesh.vertex_count)
+                    mesh_uvs = slice(model_uvs, mesh.vertex_index_start, mesh.vertex_count)
+                    mesh_weights = slice(model_weights, mesh.vertex_index_start, mesh.vertex_count)
+                    vert_offset = 0
+                    for i, strip_group in enumerate(vtx_mesh.vtx_strip_groups):
+                        tmp_map = {b.original_mesh_vertex_index: n for n, b in enumerate(strip_group.vtx_vertexes)}
+                        # TODO: попробовать преобразовывать strip_group.vtx_indexes, а не mesh_vertices
+                        vtx_vertices = [mesh_vertices[v.original_mesh_vertex_index] for v in strip_group.vtx_vertexes]
+                        vtx_normals = [mesh_normals[v.original_mesh_vertex_index] for v in strip_group.vtx_vertexes]
+                        vtx_uvs = [mesh_uvs[v.original_mesh_vertex_index] for v in strip_group.vtx_vertexes]
+                        vtx_weights = [mesh_weights[v.original_mesh_vertex_index] for v in strip_group.vtx_vertexes]
+
+                        mesh_obj = bpy.data.objects.new(f"{model.name}_mesh{n}_strip{i}",
+                                                        bpy.data.meshes.new(
+                                                            f'{model.name}_mesh{n}_stripgroup{i}_MESH'))
+                        self.main_collection.objects.link(mesh_obj)
+
+                        modifier = mesh_obj.modifiers.new(
+                            type="ARMATURE", name="Armature")
+                        modifier.object = self.armature_obj
+
+                        mesh_data = mesh_obj.data
+                        mesh_data.from_pydata(vtx_vertices, [], split(strip_group.vtx_indexes[::-1], 3))
+
+                        if strip_group.flags & StripGroupFlags.STRIPGROUP_IS_DELTA_FLEXED:
+                            mesh_obj.shape_key_add(name='base')
+
+                            for flex in mesh.flexes:
+                                name = self.mdl.file_data.flex_descs[flex.flex_desc_index].name
+                                if not mesh_obj.data.shape_keys.key_blocks.get(name):
+                                    mesh_obj.shape_key_add(name=name)
+                                for flex_vert in flex.the_vert_anims:
+                                    vertex_index = tmp_map[flex_vert.index]
+                                    vertex = mesh_obj.data.vertices[vertex_index]
+                                    vx = vertex.co.x
+                                    vy = vertex.co.y
+                                    vz = vertex.co.z
+                                    fx, fy, fz = flex_vert.the_delta
+                                    mesh_obj.data.shape_keys.key_blocks[name].data[vertex_index].co = (
+                                        fx + vx,
+                                        fy + vy,
+                                        fz + vz
+                                    )
+
+                        weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in
+                                         self.mdl.file_data.bones}
+
+                        for vert_ind, vertex in enumerate(vtx_weights):
+                            for weight, bone_index in zip(vertex[0], vertex[1]):
+                                if weight == 0.0:
+                                    continue
+                                weight_groups[self.mdl.file_data.bones[bone_index].name].add([vert_ind], weight,
+                                                                                             'REPLACE')
+
+                        mesh_data.uv_layers.new()
+                        uv_data = mesh_data.uv_layers[0].data
+                        for uv_id in range(len(uv_data)):
+                            u = vtx_uvs[mesh_data.loops[uv_id].vertex_index]
+                            u = [u[0], 1 - u[1]]
+                            uv_data[uv_id].uv = u
+
+                        mat_name = self.mdl.file_data.textures[mesh.material_index].path_file_name
+                        self.get_material(mat_name, mesh_obj)
+
+                        bpy.ops.object.select_all(action="DESELECT")
+                        mesh_obj.select_set(True)
+                        bpy.context.view_layer.objects.active = mesh_obj
+                        bpy.ops.object.shade_smooth()
+                        mesh_data.normals_split_custom_set_from_vertices(vtx_normals)
+                        mesh_data.use_auto_smooth = True
+                        vert_offset += len(strip_group.vtx_vertexes)
 
     def create_skeleton(self, normal_bones=False):
 
@@ -210,36 +310,27 @@ class Source2Blender:
 
         return mat_ind
 
-    def get_polygon(self, strip_group: vtx_data.SourceVtxStripGroup, vtx_index_index: int, lod_index,
-                    mesh_vertex_offset):
+    def get_polygon(self, strip_group: vtx_data.SourceVtxStripGroup, vtx_index_index, lod_index, mesh_vertex_offset):
         del lod_index
         vertex_indices = []
-        vn_s = []
         offset = self.vertex_offset + mesh_vertex_offset
         for i in [0, 2, 1]:  # type: int
             vtx_vertex_index = strip_group.vtx_indexes[vtx_index_index + i]  # type: int
             vtx_vertex = strip_group.vtx_vertexes[vtx_vertex_index]
             vertex_index = vtx_vertex.original_mesh_vertex_index + offset
             if vertex_index > self.vvd.max_verts:
-                print('vertex index out of bounds, skipping this mesh_data')
+                print('vertex index out of bounds, skipping this model')
                 return False, False
-            try:
-                vn = self.vvd.file_data.vertexes[vertex_index].normal.as_list
-            except IndexError:
-                vn = [0, 1, 0]
             vertex_indices.append(vertex_index)
-            vn_s.append(vn)
-        return vertex_indices, vn_s
+        return vertex_indices
 
     def convert_mesh(self, vtx_model: vtx_data.SourceVtxModel, lod_index, model: mdl_data.SourceMdlModel):
         vtx_meshes = vtx_model.vtx_model_lods[lod_index].vtx_meshes
         indexes = []
-        vertex_normals = []
+        material_indexes = []
         # small speedup
         i_ex = indexes.append
-        material_indexes = []
         m_ex = material_indexes.append
-        vn_ex = vertex_normals.extend
 
         for mesh_index, vtx_mesh in enumerate(vtx_meshes):  # type: int,vtx_data.SourceVtxMesh
             material_index = model.meshes[mesh_index].material_index
@@ -253,12 +344,11 @@ class Source2Blender:
                         field = progressbar.ProgressBar('Converting mesh', len(strip_group.vtx_indexes), 20)
                         for vtx_index in range(0, len(strip_group.vtx_indexes), 3):
                             if not vtx_index % 3 * 10:
-                                field.increment(30)
-                            f, vn = self.get_polygon(strip_group, vtx_index, lod_index, mesh_vertex_start)
-                            if not f and not vn:
+                                field.increment(3)
+                            f = self.get_polygon(strip_group, vtx_index, lod_index, mesh_vertex_start)
+                            if not f:
                                 break
                             i_ex(f)
-                            vn_ex(vn)
                             m_ex(material_index)
                         field.is_done = True
                         field.draw()
@@ -267,11 +357,7 @@ class Source2Blender:
 
             else:
                 pass
-        return indexes, material_indexes, vertex_normals
-
-    @staticmethod
-    def convert_vertex(vertex: source_shared.SourceVertex):
-        return vertex.position.as_list, (vertex.texCoordX, 1 - vertex.texCoordY)
+        return indexes, material_indexes
 
     @staticmethod
     def remap_materials(used_materials, all_materials):
@@ -305,12 +391,13 @@ class Source2Blender:
                          self.mdl.file_data.bones}
         vtx_model_lod = vtx_model.vtx_model_lods[0]  # type: vtx_data.SourceVtxModelLod
         print('Converting {} model'.format(name))
-        if vtx_model_lod.meshCount > 0:
+        if vtx_model_lod.vtx_meshes:
             t = time.time()
-            polygons, polygon_material_indexes, normals = self.convert_mesh(vtx_model, 0, model)
+            polygons, polygon_material_indexes = self.convert_mesh(vtx_model, 0, model)
             print('Mesh conversion took {} sec'.format(round(time.time() - t), 3))
         else:
             return
+
         self.vertex_offset += model.vertex_count
 
         for mat_index in set(polygon_material_indexes):
@@ -322,21 +409,18 @@ class Source2Blender:
         for old_mat_id, new_mat_id in mats:
             mat_name = self.mdl.file_data.textures[old_mat_id].path_file_name
             self.get_material(mat_name, self.mesh_obj)
+        normals = []
+        for poly in polygons:
+            normals.extend([self.vvd.file_data.normals[v] for v in poly])
 
-        vertexes = []
-        uvs = []
-        for vertex in self.vvd.file_data.vertexes:
-            vert_co, uv = self.convert_vertex(vertex)
-            vertexes.append(vert_co)
-            uvs.append(uv)
-
-        self.mesh_data.from_pydata(vertexes, [], polygons)
+        self.mesh_data.from_pydata(self.vvd.file_data.vertices, [], polygons)
         self.mesh_data.update()
 
         self.mesh_data.uv_layers.new()
         uv_data = self.mesh_data.uv_layers[0].data
         for i in range(len(uv_data)):
-            u = uvs[self.mesh_data.loops[i].vertex_index]
+            u = self.vvd.file_data.uvs[self.mesh_data.loops[i].vertex_index]
+            u = [u[0], 1 - u[1]]
             uv_data[i].uv = u
 
         for polygon, mat_index in zip(
@@ -346,11 +430,12 @@ class Source2Blender:
         if self.mdl.file_data.flex_descs:
             self.add_flexes(model)
 
-        for n, vertex in enumerate(self.vvd.file_data.vertexes):
-            for bone_index, weight in zip(vertex.boneWeight.bone, vertex.boneWeight.weight):
+        for vert_ind, vertex in enumerate(self.vvd.file_data.weights):
+            for weight, bone_index in zip(vertex[0], vertex[1]):
                 if weight == 0.0:
                     continue
-                weight_groups[self.mdl.file_data.bones[bone_index].name].add([n], weight, 'REPLACE')
+                weight_groups[self.mdl.file_data.bones[bone_index].name].add([vert_ind], weight,
+                                                                             'REPLACE')
 
         bpy.ops.object.select_all(action="DESELECT")
         self.mesh_obj.select_set(True)
@@ -378,7 +463,7 @@ class Source2Blender:
             to_join = []
             for bodypart_index, bodypart in bodyparts:
                 if self.sort_bodygroups:
-                    if bodypart.model_count > 1:
+                    if len(bodypart.models) > 1:
                         self.current_collection = bpy.data.collections.new(bodypart.name)
                         self.main_collection.children.link(self.current_collection)
                     else:
@@ -386,7 +471,7 @@ class Source2Blender:
                 else:
                     self.current_collection = self.main_collection
                 for model_index, model in enumerate(bodypart.models):
-                    if model.mesh_count == 0:
+                    if len(bodypart.models) == 0:
                         continue
                     vtx_model = self.vtx.vtx.vtx_body_parts[bodypart_index].vtx_models[model_index]
                     to_join.append(self.create_model(model, vtx_model))

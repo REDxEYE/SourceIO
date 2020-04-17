@@ -39,9 +39,9 @@ class SourceModel:
             raise NotImplementedError(
                 'Unsupported mdl v{} version'.format(
                     self.version))
-        self.vvd = None
-        self.vtx = None
-        self.mdl:SourceMdlFile49 = None
+        self.vvd: SourceVvdFile4 = None
+        self.vtx: SourceVtxFile7 = None
+        self.mdl: SourceMdlFile49 = None
 
     def get_mdl_container(self):
         return self.mdl_version(self.mdl_reader)
@@ -98,7 +98,7 @@ class SourceModel:
             self.vvd = self.vvd_version_list[vvd_version](self.vvd_reader)
         else:
             raise NotImplementedError(
-                'Unsupported vvd v{} version'.format(vvd_version))
+                'Unsupported VVD v{} version'.format(vvd_version))
 
         self.vtx_reader = ByteIO(path=vtx)
         vtx_version = self.vtx_reader.peek_int32()
@@ -107,14 +107,14 @@ class SourceModel:
             self.vtx = self.vtx_version_list[vtx_version](self.vtx_reader)
         else:
             raise NotImplementedError(
-                'Unsupported vtx v{} version'.format(vtx_version))
+                'Unsupported VTX v{} version'.format(vtx_version))
 
 
 if __name__ == '__main__':
     a = SourceModel(
         # r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\models\male_snake\male_snake.mdl")
         r"F:\PYTHON_STUFF\SourceIO_addon\test_data\V44\bridge_railings001.mdl")
-        # r"F:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
+    # r"F:\PYTHON_STUFF\SourceIO_addon\test_data\postal_babe.mdl")
     a.read()
 
     qc = qc_generator.QC(a)

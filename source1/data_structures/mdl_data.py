@@ -1,5 +1,5 @@
 import random
-from enum import Enum, IntEnum,IntFlag
+from enum import Enum, IntEnum, IntFlag
 
 from pprint import pformat
 
@@ -10,14 +10,11 @@ from ..data_structures.source_shared import SourceVector, SourceQuaternion, Sour
 from ...utilities import math_utilities
 
 
-
-
 class SourceBase:
     parent = None
 
     def register(self, child: 'SourceBase'):
         child.parent = self
-
 
 
 class StudioHDRFlags(IntFlag):
@@ -244,14 +241,8 @@ class SourceMdlFileData(SourceBase):
 
     def read_header00(self, reader: ByteIO):
         self.id = reader.read_fourcc()
-        if self.id != 'IDST':
-            if self.id[:-1] == 'DST':
-                reader.insert_begin(b'I')
-                self.id = reader.read_fourcc()
-            else:
-                raise NotImplementedError(
-                    'SourceModel format {} is not supported!'.format(
-                        self.id))
+        assert self.id == 'IDST', f"Invalid MDL header ({self.id})"
+
         self.version = reader.read_uint32()
         # print('Found SourceModel version', self.version)
         self.checksum = reader.read_uint32()
@@ -406,7 +397,7 @@ class SourceMdlFileData(SourceBase):
         self.max_eye_deflection = reader.read_float()
         self.linear_bone_offset = reader.read_uint32()
         self.name_offset = reader.read_uint32()
-        self.second_name = reader.read_from_offset(entry+self.name_offset,reader.read_ascii_string)
+        self.second_name = reader.read_from_offset(entry + self.name_offset, reader.read_ascii_string)
         if self.version > 47:
             self.bone_flex_driver_count = reader.read_uint32()
             self.bone_flex_driver_offset = reader.read_uint32()
@@ -580,9 +571,9 @@ class SourceMdlBone(SourceBase):
     def size(self):
         if self.parent.version >= 53:
             return 4 + 4 + (4 * 6) + 12 + (4 * 4) + (3 * 4) + (3 * 6) + \
-                (4 * 3 * 4) + 4 * 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 * 7
+                   (4 * 3 * 4) + 4 * 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 * 7
         return 4 + 4 + (4 * 6) + 12 + (4 * 4) + (3 * 4) + (3 * 6) + \
-            (4 * 3 * 4) + 4 * 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 * 8
+               (4 * 3 * 4) + 4 * 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 * 8
 
     def read(self, reader: ByteIO, mdl: SourceMdlFileData):
         self.boneOffset = reader.tell()
@@ -632,7 +623,7 @@ class SourceMdlBone(SourceBase):
         if self.surface_prop_name_offset != 0:
             self.the_surface_prop_name = reader.read_from_offset(self.boneOffset + self.surface_prop_name_offset,
                                                                  reader.read_ascii_string)
-        if self.parent.version==44:
+        if self.parent.version == 44:
             reader.read_bytes(32)
 
         mdl.bones.append(self)
@@ -1028,10 +1019,7 @@ class SourceMdlAttachment(SourceBase):
 
 class SourceMdlBodyPart(SourceBase):
     def __init__(self):
-        self.name_offset = 0
-        self.model_count = 0
         self.base = 0
-        self.model_offset = 0
         self.name = ""
         self.models = []  # type: List[SourceMdlModel]
         self.flex_frames = []  # type: List[FlexFrame]
@@ -1040,24 +1028,24 @@ class SourceMdlBodyPart(SourceBase):
     def read(self, reader: ByteIO, mdl: SourceMdlFileData):
         self.mdl = mdl
         entry = reader.tell()
-        self.name_offset = reader.read_uint32()
-        self.name = reader.read_from_offset(entry + self.name_offset,
-                                            reader.read_ascii_string) if self.name_offset != 0 else "no-name{}".format(
+        name_offset = reader.read_uint32()
+        self.name = reader.read_from_offset(entry + name_offset,
+                                            reader.read_ascii_string) if name_offset != 0 else "no-name{}".format(
             len(mdl.body_parts))
-        self.model_count = reader.read_uint32()
+        model_count = reader.read_uint32()
         self.base = reader.read_uint32()
-        self.model_offset = reader.read_uint32()
+        model_offset = reader.read_uint32()
         entry2 = reader.tell()
-        if self.model_count > 0:
-            reader.seek(entry + self.model_offset)
-            for _ in range(self.model_count):
+        if model_count > 0:
+            reader.seek(entry + model_offset)
+            for _ in range(model_count):
                 SourceMdlModel().read(reader, self)
         reader.seek(entry2)
         mdl.body_parts.append(self)
 
     def __repr__(self):
         return '<BodyPart name:"{}" model_path count:{} >'.format(
-            self.name, self.model_count)
+            self.name, len(self.models))
 
 
 class SourceMdlModel(SourceBase):
@@ -1065,8 +1053,6 @@ class SourceMdlModel(SourceBase):
         self.name = ''
         self.type = 0
         self.bounding_radius = 0.0
-        self.mesh_count = 0
-        self.mesh_offset = 0
         self.vertex_count = 0
         self.vertex_offset = 0
         self.tangent_offset = 0
@@ -1085,7 +1071,7 @@ class SourceMdlModel(SourceBase):
     def flex_count(self):
         acc = 0
         for mesh in self.meshes:
-            acc += mesh.flex_count
+            acc += len(mesh.flexes)
         return acc
 
     def read(self, reader: ByteIO, body_part: SourceMdlBodyPart):
@@ -1097,23 +1083,25 @@ class SourceMdlModel(SourceBase):
 
         self.type = reader.read_uint32()
         self.bounding_radius = reader.read_float()
-        self.mesh_count = reader.read_uint32()
-        self.mesh_offset = reader.read_uint32()
+        mesh_count = reader.read_uint32()
+        mesh_offset = reader.read_uint32()
         self.vertex_count = reader.read_uint32()
         self.vertex_offset = reader.read_uint32()
+        assert self.vertex_offset % 48 == 0, "Invalid vertex offset"
+        self.vertex_offset //= 48
         self.tangent_offset = reader.read_uint32()
         self.attachment_count = reader.read_uint32()
         self.attachment_offset = reader.read_uint32()
-        self.eyeball_count = reader.read_uint32()
-        self.eyeball_offset = reader.read_uint32()
+        eyeball_count = reader.read_uint32()
+        eyeball_offset = reader.read_uint32()
         self.vertex_data.read(reader)
         self.unused = [reader.read_uint32() for _ in range(8)]
         entry2 = reader.tell()
-        reader.seek(entry + self.eyeball_offset, 0)
-        for _ in range(self.eyeball_count):
+        reader.seek(entry + eyeball_offset, 0)
+        for _ in range(eyeball_count):
             SourceMdlEyeball().read(reader, self)
-        reader.seek(entry + self.mesh_offset, 0)
-        for _ in range(self.mesh_count):
+        reader.seek(entry + mesh_offset, 0)
+        for _ in range(mesh_count):
             SourceMdlMesh().read(reader, self)
 
         reader.seek(entry2, 0)
@@ -1121,7 +1109,7 @@ class SourceMdlModel(SourceBase):
 
     def __repr__(self):
         return '<Model name:"{}" type:{} mesh_data count:{}>'.format(self.name, self.type,
-                                                                     self.mesh_count,
+                                                                     len(self.meshes),
                                                                      self.meshes,
                                                                      self.eyeballs)
 
@@ -1215,8 +1203,6 @@ class SourceMdlMesh(SourceBase):
         self.model_offset = 0
         self.vertex_count = 0
         self.vertex_index_start = 0
-        self.flex_count = 0
-        self.flex_offset = 0
         self.material_type = 0
         self.material_param = 0
         self.id = 0
@@ -1233,7 +1219,7 @@ class SourceMdlMesh(SourceBase):
 
         self.material_index, self.model_offset, self.vertex_count, self.vertex_index_start = reader.read_fmt(
             '4I')
-        self.flex_count, self.flex_offset, self.material_type, self.material_param, self.id = reader.read_fmt(
+        flex_count, flex_offset, self.material_type, self.material_param, self.id = reader.read_fmt(
             '5I')
         self.center.read(reader)
         self.vertexData.read(reader)
@@ -1241,9 +1227,9 @@ class SourceMdlMesh(SourceBase):
         if self.material_type == 1:
             model.eyeballs[self.material_param].texture_index = self.material_index
         entry2 = reader.tell()
-        if self.flex_count > 0 and self.flex_offset != 0:
-            reader.seek(entry + self.flex_offset, 0)
-            for _ in range(self.flex_count):
+        if flex_count > 0 and flex_offset != 0:
+            reader.seek(entry + flex_offset, 0)
+            for _ in range(flex_count):
                 SourceMdlFlex().read(reader, self)
         reader.seek(entry2, 0)
         model.meshes.append(self)
@@ -1280,13 +1266,11 @@ class SourceMdlFlex(SourceBase):
         self.target1 = 0.0
         self.target2 = 0.0
         self.target3 = 0.0
-        self.vert_count = 0
-        self.vert_offset = 0
         self.flex_desc_partner_index = 0
         self.vert_anim_type = 0
         self.unused_char = []  # 3
         self.unused = []  # 6
-        self.the_vert_anims = []
+        self.the_vert_anims = [] #type:List[SourceMdlVertAnim]
         self.STUDIO_VERT_ANIM_NORMAL = 0
         self.STUDIO_VERT_ANIM_WRINKLE = 1
 
@@ -1294,21 +1278,20 @@ class SourceMdlFlex(SourceBase):
         entry = reader.tell()
         self.flex_desc_index, self.target0, self.target1, self.target2, self.target3 = reader.read_fmt(
             'I4f')
-        self.vert_count, self.vert_offset, self.flex_desc_partner_index = reader.read_fmt(
+        vert_count, vert_offset, self.flex_desc_partner_index = reader.read_fmt(
             '3I')
-        # print('Reading', mesh.model.body_part.mdl.flex_descs[self.flex_desc_index].name, 'flex')
         self.vert_anim_type = reader.read_uint8()
         self.unused_char = reader.read_fmt('3B')
         self.unused = reader.read_fmt('6I')
 
-        if self.vert_count > 0 and self.vert_offset != 0:
+        if vert_count > 0 and vert_offset != 0:
             with reader.save_current_pos():
-                reader.seek(entry + self.vert_offset)
+                reader.seek(entry + vert_offset)
                 if self.vert_anim_type == self.STUDIO_VERT_ANIM_WRINKLE:
                     vert_anim_type = SourceMdlVertAnimWrinkle
                 else:
                     vert_anim_type = SourceMdlVertAnim
-                for _ in range(self.vert_count):
+                for _ in range(vert_count):
                     self.the_vert_anims.append(
                         vert_anim_type().read(reader, self))
 
@@ -1316,10 +1299,10 @@ class SourceMdlFlex(SourceBase):
         return self
 
     def __repr__(self):
-        return '<Flex Desc index:{} anim type:{}, vertex count:{} vertex offset:{}>'.format(self.flex_desc_index,
-                                                                                            self.vert_anim_type,
-                                                                                            self.vert_count,
-                                                                                            self.vert_offset)
+        return '<Flex Desc index:{} anim type:{}, vertex count:{}>'.format(self.flex_desc_index,
+                                                                           self.vert_anim_type,
+                                                                           len(self.the_vert_anims),
+                                                                           )
 
 
 class SourceMdlVertAnim(SourceBase):
@@ -1531,4 +1514,3 @@ class FlexFrame:
     def __repr__(self):
         return '<FlexFrame {} flexes:{} mesh_data inds:{}>'.format(
             self.flex_name, self.flexes, self.vertex_offsets)
-

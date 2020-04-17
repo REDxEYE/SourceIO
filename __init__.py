@@ -53,6 +53,7 @@ if not NO_BPY:
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
         normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
+        new_mode: BoolProperty(name="Use experimental import mode", default=False, subtype='UNSIGNED')
 
         join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
 
@@ -78,7 +79,7 @@ if not NO_BPY:
                                                     context=context
                                                     )
                 importer.sort_bodygroups = self.organize_bodygroups
-                importer.load(dont_build_mesh=False)
+                importer.load(dont_build_mesh=False,experemental=self.new_mode)
                 if self.write_qc:
                     qc = qc_generator.QC(importer.model)
                     qc_file = bpy.data.texts.new(

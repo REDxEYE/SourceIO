@@ -311,27 +311,20 @@ class SourceMdlFile49:
 
     def prepare_models(self):
         for n, body_part in enumerate(self.file_data.body_parts):
-            if body_part.model_count > 1:
+            if len(body_part.models) > 1:
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
-            if body_part.model_count == 0:
+            if len(body_part.models) == 0:
                 continue
             model = body_part.models[0]
-            # print('Scanning,', body_part.name)
             if 'clamped' not in body_part.name:
-                # print(
-                #     'Skipping',
-                #     model.name,
-                #     'cuz it\'s not a clamped mesh_data')
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
             added = False
             for body_part_frames in self.file_data.bodypart_frames:
                 for _, _model in body_part_frames:
-                    # print('Comparing', model.name, 'to', _model)
                     if self.comp_flex_frames(
                             model.flex_frames, _model.models[0].flex_frames):
-                        # print('Adding', model.name, 'to', body_part_frames)
                         body_part_frames.append((n, body_part))
                         added = True
                         break
