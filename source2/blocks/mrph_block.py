@@ -26,9 +26,9 @@ class MRPH(DATA):
 
             for morph_datas in self.data['m_morphDatas']:
                 self.flex_data[morph_datas['m_name']] = np.zeros((len(bundle_types),
-                                                                    width, height,
-                                                                    4),
-                                                                   dtype=np.float32)
+                                                                  height, width,
+                                                                  4),
+                                                                 dtype=np.float32)
                 for n, rect in enumerate(morph_datas['m_morphRectDatas']):
                     rect_width = round(rect['m_flUWidthSrc'] * morph_atlas_data.width)
                     rect_height = round(rect['m_flVHeightSrc'] * morph_atlas_data.height)
@@ -44,7 +44,7 @@ class MRPH(DATA):
                         transformed_data = np.divide(morph_data_rect, 255)
                         transformed_data = np.multiply(transformed_data, vec_range)
                         transformed_data = np.add(transformed_data, vec_offset)
-                        transformed_data = np.round(transformed_data,6)
+                        transformed_data = np.round(transformed_data, 6)
 
                         self.flex_data[morph_datas['m_name']][c, dst_y: dst_y + rect_height, dst_x: dst_x + rect_width,
                         :] = transformed_data
