@@ -1,5 +1,3 @@
-import struct
-from copy import copy
 from enum import IntEnum
 from typing import List
 import numpy as np
@@ -21,10 +19,9 @@ except ImportError:
     from ..utils.compressed_buffers import decode_vertex_buffer, decode_index_buffer, slice
 
 from ..utils.compressed_buffers import slice
-from ..source2 import ValveFile
 from ...byte_io_mdl import ByteIO
 
-from .common import SourceVertex, short_to_float
+from SourceIO.source2.common import SourceVertex, short_to_float
 from .dummy import DataBlock
 
 
@@ -410,7 +407,7 @@ class IndexBuffer:
 
 class VBIB(DataBlock):
 
-    def __init__(self, valve_file: ValveFile, info_block):
+    def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
         self.vertex_offset = 0
         self.vertex_count = 0

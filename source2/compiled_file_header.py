@@ -1,5 +1,4 @@
-from ...byte_io_mdl import ByteIO
-from .dummy import DataBlock
+from ..byte_io_mdl import ByteIO
 
 
 class CompiledHeader:

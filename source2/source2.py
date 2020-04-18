@@ -1,15 +1,13 @@
 import math
 import sys
 from pathlib import Path
-from pprint import pprint
-from typing import List, TextIO, Dict, Tuple, BinaryIO
-import os.path
+from typing import List, BinaryIO, Union
 
 from ..byte_io_mdl import ByteIO
-from .blocks.common import SourceVector
-from .blocks.header_block import CompiledHeader, InfoBlock
-from .blocks.dummy import DataBlock
+from .common import SourceVector
+from .compiled_file_header import CompiledHeader, InfoBlock
 from ..utilities.path_utilities import backwalk_file_resolver
+from .blocks import DataBlock
 
 
 class ValveFile:
@@ -27,7 +25,7 @@ class ValveFile:
         self.header = CompiledHeader()
         self.header.read(self.reader)
         self.info_blocks = []  # type: List[InfoBlock]
-        self.data_blocks = []  # type: List[DataBlock]
+        self.data_blocks = []  # type: List[Union[DataBlock,None]]
         self.available_resources = {}
 
     def read_block_info(self):
@@ -42,7 +40,6 @@ class ValveFile:
             if block_info.block_name == 'NTRO':
                 block_class = self.get_data_block_class(block_info.block_name)
                 block = block_class(self, block_info)
-                block.read()
                 self.data_blocks[self.info_blocks.index(block_info)] = block
         for i in range(len(self.info_blocks)):
             block_info = self.info_blocks[i]
@@ -53,11 +50,9 @@ class ValveFile:
                 self.reader.seek(block_info.entry + block_info.block_offset)
                 block_class = self.get_data_block_class(block_info.block_name)
                 if block_class is None:
-                    # print(f"Unknown block {block_info}")
                     self.data_blocks[self.info_blocks.index(block_info)] = None
                     continue
                 block = block_class(self, block_info)
-                block.read()
                 self.data_blocks[self.info_blocks.index(block_info)] = block
 
     def get_data_block(self, *, block_id=None, block_name=None):
@@ -68,25 +63,26 @@ class ValveFile:
         if block_id is not None:
             if block_id == -1:
                 return None
-            return self.data_blocks[block_id]
+            block = self.data_blocks[block_id]
+            if not block.parsed:
+                block.read()
+                block.parsed = True
+            return block
         if block_name is not None:
             blocks = []
             for block in self.data_blocks:
                 if block is not None:
                     if block.info_block.block_name == block_name:
+                        if not block.parsed:
+                            block.read()
+                            block.parsed = True
                         blocks.append(block)
             return blocks
 
     def get_data_block_class(self, block_name):
-        from .blocks.ntro_block import NTRO
-        from .blocks.redi_block import REDI
-        from .blocks.rerl_block import RERL
-        from .blocks.vbib_block import VBIB
-        from .blocks.data_block import DATA
-        from .blocks.mrph_block import MRPH
-        from .blocks.texture_data_block import TextureData
+        from .blocks import TextureBlock, DATA, NTRO, REDI, RERL, VBIB, MRPH
         if self.filepath.suffix == '.vtex_c':
-            data_block_class = TextureData
+            data_block_class = TextureBlock
         else:
             data_block_class = DATA
         data_classes = {
@@ -133,7 +129,6 @@ class ValveFile:
     # noinspection PyTypeChecker
     def check_external_resources(self):
         from .blocks.rerl_block import RERL
-        from .blocks.data_block import DATA
         relr_block: RERL = self.get_data_block(block_name="RERL")[0]
 
         for block in relr_block.resources:
@@ -142,10 +137,10 @@ class ValveFile:
             asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
             if asset and asset.exists():
                 self.available_resources[block.resource_name] = asset.absolute()
-                print('Found', path)
+                # print('Found', path)
             else:
                 pass
-                print('Can\'t find', path)
+                # print('Can\'t find', path)
 
 
 def quaternion_to_euler_angle(w, x, y, z):

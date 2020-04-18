@@ -6,8 +6,8 @@ import bpy
 import math
 from mathutils import Vector, Matrix, Quaternion, Euler
 
-from ..source2.blocks.common import SourceVector, SourceVertex
-from .source2 import ValveFile
+from SourceIO.source2.common import SourceVector, SourceVertex
+from SourceIO.source2.source2 import ValveFile
 
 
 class Vmdl:

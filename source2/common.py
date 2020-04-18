@@ -2,8 +2,7 @@ import importlib
 import math
 from enum import IntEnum
 
-from ...byte_io_mdl import ByteIO
-from .dummy import DataBlock
+from ..byte_io_mdl import ByteIO
 
 
 class KeyValueDataType(IntEnum):
@@ -224,7 +223,7 @@ class SourceVertex:
         return self.__str__()
 
 
-class Matrix(DataBlock):
+class Matrix:
     mat_rows = 0
     mat_cols = 0
 
@@ -247,7 +246,7 @@ class Matrix(DataBlock):
         return '<Matrix{}x{}>'.format(self.mat_cols, self.mat_rows)
 
 
-class CTransform(DataBlock):
+class CTransform:
 
     def __init__(self):
         self.quat = SourceVector4D()

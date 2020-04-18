@@ -1,16 +1,14 @@
 from typing import List
 
 from ...byte_io_mdl import ByteIO
-from .common import KeyValueDataType, kv_type_to_c_type, SourceVector2D, SourceVector, SourceVector4D, \
+from SourceIO.source2.common import KeyValueDataType, kv_type_to_c_type, SourceVector2D, SourceVector, SourceVector4D, \
     Matrix, CTransform
 
 from .dummy import DataBlock
-from .header_block import InfoBlock
-from ..source2 import ValveFile
 
 
 class NTRO(DataBlock):
-    def __init__(self, valve_file: ValveFile, info_block: InfoBlock):
+    def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
         self.introspection_version = 0
         self.struct_offset = 0

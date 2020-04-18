@@ -1,13 +1,11 @@
 from typing import List
 
-from .header_block import InfoBlock
-from ..source2 import ValveFile
 from ...byte_io_mdl import ByteIO
 from .dummy import DataBlock
 
 
 class RERL(DataBlock):
-    def __init__(self, valve_file: ValveFile, info_block):
+    def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
         self.resource_entry_offset = 0
         self.resource_count = 0

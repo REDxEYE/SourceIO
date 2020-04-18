@@ -1,7 +1,7 @@
 import sys
 
-from .source2 import ValveFile
-from .blocks.vbib_block import *
+from SourceIO.source2.source2 import ValveFile
+from SourceIO.source2.blocks.vbib_block import *
 import os.path
 import bpy, mathutils
 

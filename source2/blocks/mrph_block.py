@@ -19,11 +19,13 @@ class MRPH(DATA):
             height = self.data['m_nHeight']
             encoding_type = self.data['m_nEncodingType']
             lookup_type = self.data['m_nLookupType']
+            assert lookup_type == 'LOOKUP_TYPE_VERTEX_ID', "Unknown lookup type"
+            assert encoding_type == 'ENCODING_TYPE_OBJECT_SPACE', "Unknown encoding type"
             bundle_types = self.data['m_bundleTypes']
             raw_flex_data = raw_flex_data.reshape((morph_atlas_data.width, morph_atlas_data.height, 4))
 
             for morph_datas in self.data['m_morphDatas']:
-                self.flex_data[morph_datas['m_name']] = np.ndarray((len(bundle_types),
+                self.flex_data[morph_datas['m_name']] = np.zeros((len(bundle_types),
                                                                     width, height,
                                                                     4),
                                                                    dtype=np.float32)
@@ -42,6 +44,7 @@ class MRPH(DATA):
                         transformed_data = np.divide(morph_data_rect, 255)
                         transformed_data = np.multiply(transformed_data, vec_range)
                         transformed_data = np.add(transformed_data, vec_offset)
+                        transformed_data = np.round(transformed_data,6)
 
                         self.flex_data[morph_datas['m_name']][c, dst_y: dst_y + rect_height, dst_x: dst_x + rect_width,
                         :] = transformed_data

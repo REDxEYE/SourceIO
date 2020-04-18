@@ -24,8 +24,8 @@ if not NO_BPY:
     from .source1.vtf.import_vtf import import_texture
     from .source1.dmx.dmx import Session
 
-    from .source2.vmdl import Vmdl
-    from .source2.vtex import Vtex
+    from SourceIO.source2.resouce_types.vmdl import Vmdl
+    from SourceIO.source2.resouce_types.vtex import Vtex
 
     from .source1.vtf.vmt import VMT
 

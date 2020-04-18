@@ -1,9 +1,5 @@
-from typing import List
-
-from .header_block import InfoBlock
 from .redi_block_types import *
 from .dummy import DataBlock
-from ..source2 import ValveFile
 
 redi_blocks = [InputDependencies,
                AdditionalInputDependencies,
@@ -20,7 +16,7 @@ redi_blocks = [InputDependencies,
 
 class REDI(DataBlock):
 
-    def __init__(self, valve_file: ValveFile, info_block):
+    def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
         self.blocks = []  # type:List[Dependencies]
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import bpy
 
 
-from .source2 import ValveFile
+from SourceIO.source2.source2 import ValveFile
 
 
 class Vtex:

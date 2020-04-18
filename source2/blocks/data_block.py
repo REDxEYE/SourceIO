@@ -1,12 +1,9 @@
-from ...byte_io_mdl import ByteIO
 from .dummy import DataBlock
-from .header_block import InfoBlock
 from .binary_key_value import BinaryKeyValue
-from ..source2 import ValveFile
 
 
 class DATA(DataBlock):
-    def __init__(self, valve_file: ValveFile, info_block: InfoBlock):
+    def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
         self.data = {}
 

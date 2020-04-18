@@ -1,17 +1,9 @@
-import io
-import struct
-import time
-from copy import copy
 from enum import IntEnum, IntFlag
-from typing import List
 import numpy as np
 
-from ..source2 import ValveFile
 from ...byte_io_mdl import ByteIO
 
-from .header_block import InfoBlock
 from .dummy import DataBlock
-import sys
 
 from ..utils.PySourceIOUtils import *
 
@@ -92,9 +84,9 @@ class VTexExtraData(IntEnum):
     COMPRESSED_MIP_SIZE = 4
 
 
-class TextureData(DataBlock):
+class TextureBlock(DataBlock):
 
-    def __init__(self, valve_file: ValveFile, info_block):
+    def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
         self.version = 0
         self.flags = VTexFlags(0)
