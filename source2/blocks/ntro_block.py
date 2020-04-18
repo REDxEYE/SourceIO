@@ -1,7 +1,7 @@
 from typing import List
 
 from ...byte_io_mdl import ByteIO
-from SourceIO.source2.common import KeyValueDataType, kv_type_to_c_type, SourceVector2D, SourceVector, SourceVector4D, \
+from ..common import KeyValueDataType, kv_type_to_c_type, SourceVector2D, SourceVector, SourceVector4D, \
     Matrix, CTransform
 
 from .dummy import DataBlock
