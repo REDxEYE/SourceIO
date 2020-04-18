@@ -1,7 +1,7 @@
 from enum import IntEnum
 
 from ...byte_io_mdl import ByteIO
-from SourceIO.source2.compiled_file_header import InfoBlock
+from ..compiled_file_header import InfoBlock
 
 try:
     from ..utils.PySourceIOUtils import lz4_decompress as uncompress
