@@ -2,14 +2,14 @@ import math
 import sys
 from pathlib import Path
 from pprint import pprint
-from typing import List, TextIO, Dict, Tuple
-from typing.io import BinaryIO
+from typing import List, TextIO, Dict, Tuple, BinaryIO
 import os.path
 
 from ..byte_io_mdl import ByteIO
 from .blocks.common import SourceVector
 from .blocks.header_block import CompiledHeader, InfoBlock
 from .blocks.dummy import DataBlock
+from ..utilities.path_utilities import backwalk_file_resolver
 
 
 class ValveFile:
@@ -135,19 +135,17 @@ class ValveFile:
         from .blocks.rerl_block import RERL
         from .blocks.data_block import DATA
         relr_block: RERL = self.get_data_block(block_name="RERL")[0]
-        data_block: DATA = self.get_data_block(block_name="DATA")[0]
-        file_path = Path(data_block.data['m_name'])
-        file_path = file_path.with_suffix(file_path.suffix + "_c")
-        addon_path = self.get_base_dir(Path(self.filepath), file_path)
+
         for block in relr_block.resources:
             path = Path(block.resource_name)
-            asset = addon_path / path.with_suffix(path.suffix + '_c')
-            if asset.exists():
+            asset = path.with_suffix(path.suffix + '_c')
+            asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
+            if asset and asset.exists():
                 self.available_resources[block.resource_name] = asset.absolute()
-                # print('Found', path)
+                print('Found', path)
             else:
                 pass
-                # print('Can\'t find', path)
+                print('Can\'t find', path)
 
 
 def quaternion_to_euler_angle(w, x, y, z):

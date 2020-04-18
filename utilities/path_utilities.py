@@ -9,6 +9,36 @@ def get_class_var_name(class_, var):
             return k
 
 
+def pop_path_back(path: Path):
+    if len(path.parts) > 1:
+        return Path().joinpath(*path.parts[1:])
+    else:
+        return path
+
+
+def pop_path_front(path: Path):
+    if len(path.parts) > 1:
+        return Path().joinpath(*path.parts[:-1])
+    else:
+        return path
+
+
+def backwalk_file_resolver(current_path, file_to_find):
+    current_path = Path(current_path).absolute()
+    file_to_find = Path(file_to_find)
+
+    for _ in range(len(current_path.parts) - 1):
+        # print(current_path)
+        current_path = pop_path_front(current_path)
+        second_part = file_to_find
+        for _ in range(len(file_to_find.parts)):
+            new_path = current_path / second_part
+            if new_path.is_file():
+                return new_path
+
+            second_part = pop_path_back(second_part)
+
+
 def case_insensitive_file_resolution(path):
     """
     There are a lot of cases where the .mdl file is lowercase whereas
@@ -41,7 +71,6 @@ def resolve_root_directory_from_file(path):
             return resolve_root_directory_from_file(path.parent)
         except RecursionError:
             return None
-
 
 
 def get_materials_path(path):
