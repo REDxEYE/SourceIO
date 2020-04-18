@@ -5,7 +5,7 @@ class DataBlock:
 
     def __init__(self, valve_file, info_block):
         from ..source2 import ValveFile
-        from SourceIO.source2.compiled_file_header import InfoBlock
+        from ..compiled_file_header import InfoBlock
 
         self._valve_file: ValveFile = valve_file
         self.info_block: InfoBlock = info_block
