@@ -4,9 +4,9 @@ from pathlib import Path
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
 bl_info = {
-    "name": "Source1/Source2 Engine model(.mdl, .vvd, .vtx)",
+    "name": "Source1/Source2 Engine model(.mdl, .vmdl_c)",
     "author": "RED_EYE",
-    "version": (3, 7, 1),
+    "version": (3, 7, 3),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vmdl_c) ",
     "description": "Addon allows to import Source Engine models",
@@ -24,8 +24,8 @@ if not NO_BPY:
     from .source1.vtf.import_vtf import import_texture
     from .source1.dmx.dmx import Session
 
-    from SourceIO.source2.resouce_types.vmdl import Vmdl
-    from SourceIO.source2.resouce_types.vtex import Vtex
+    from .source2.resouce_types.vmdl import Vmdl
+    from .source2.resouce_types.vtex import Vtex
 
     from .source1.vtf.vmt import VMT
 
