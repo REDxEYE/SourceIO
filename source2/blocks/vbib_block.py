@@ -21,7 +21,7 @@ except ImportError:
 from ..utils.compressed_buffers import slice
 from ...byte_io_mdl import ByteIO
 
-from SourceIO.source2.common import SourceVertex, short_to_float
+from ..common import SourceVertex, short_to_float
 from .dummy import DataBlock
 
 
