@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from SourceIO.source2.source2 import ValveFile
+from ..source2 import ValveFile
 
 
 class Vmat:
