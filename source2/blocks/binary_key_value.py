@@ -10,7 +10,7 @@ except ImportError:
     from ..lz4 import uncompress as uncompress_tmp
 
     uncompress = lambda a, b, c: uncompress_tmp(a)
-from SourceIO.source2.common import SourceVector, SourceVector4D, SourceVector2D
+from ..common import SourceVector, SourceVector4D, SourceVector2D
 
 
 class KVFlag(IntEnum):
@@ -202,7 +202,6 @@ class BinaryKeyValue:
         del self.int_buffer
         self.double_buffer.close()
         del self.double_buffer
-
 
     def read_type(self, reader: ByteIO):
         if self.types:
