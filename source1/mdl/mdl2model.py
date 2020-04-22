@@ -352,11 +352,7 @@ class Source2Blender:
                             m_ex(material_index)
                         field.is_done = True
                         field.draw()
-                    else:
-                        pass
 
-            else:
-                pass
         return indexes, material_indexes
 
     @staticmethod

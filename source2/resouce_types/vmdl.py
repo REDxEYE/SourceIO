@@ -56,6 +56,10 @@ class Vmdl:
             mesh_data_block = self.valve_file.get_data_block(block_id=data_block_index)
             buffer_block = self.valve_file.get_data_block(block_id=buffer_block_index)
             morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
+            flex_trunc = bpy.data.texts.get(f"{name}_flexes", None) or bpy.data.texts.new(f"{name}_flexes")
+            for flex in morph_block.data['m_morphDatas']:
+                if len(flex['m_name']) > 63:
+                    flex_trunc.write(f"{flex['m_name'][:63]}->{flex['m_name']}\n")
             morphs_available = morph_block is not None and morph_block.read_morphs()
 
             for scene in mesh_data_block.data["m_sceneObjects"]:
@@ -158,23 +162,23 @@ class Vmdl:
                     mesh.use_auto_smooth = True
                     if morphs_available:
                         mesh_obj.shape_key_add(name='base')
-                        bunlde_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
-                        for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
-                            print(f"Importing {flex_name} {n}/{len(morph_block.flex_data)}")
-                            shape = mesh_obj.shape_key_add(name=flex_name[:63])
-                            for vert_id, flex_vert in enumerate(
-                                    flex_data[bunlde_id][global_vertex_offset:global_vertex_offset + vertex_count]):
-                                # abs_vert_id = global_vertex_offset + vert_id
+                        bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                        if bundle_id != -1:
+                            for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
+                                print(f"Importing {flex_name} {n}/{len(morph_block.flex_data)}")
 
-                                vertex = mesh_obj.data.vertices[vert_id]
-                                fx, fy, fz, speed = flex_vert
+                                shape = mesh_obj.shape_key_add(name=flex_name[:63])
+                                for vert_id, flex_vert in enumerate(
+                                        flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
+                                    vertex = mesh_obj.data.vertices[vert_id]
+                                    fx, fy, fz, speed = flex_vert
 
-                                shape.data[vert_id].co = (
-                                    fx + vertex.co[0],
-                                    fy + vertex.co[1],
-                                    fz + vertex.co[2]
-                                )
-                            pass
+                                    shape.data[vert_id].co = (
+                                        fx + vertex.co[0],
+                                        fy + vertex.co[1],
+                                        fz + vertex.co[2]
+                                    )
+                                pass
                     global_vertex_offset += vertex_count
 
     def build_armature(self, top_collection: bpy.types.Collection):

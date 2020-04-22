@@ -6,8 +6,6 @@ import os.path
 import bpy, mathutils
 
 
-# model_path = r'E:\PYTHON\io_mesh_SourceMDL/test_data/source2/bad_ancient_destruction_pitrim_model.vmesh_c'
-
 
 class Vmesh:
 
