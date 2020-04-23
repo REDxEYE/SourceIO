@@ -58,7 +58,7 @@ class Vmdl:
             morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
             flex_trunc = bpy.data.texts.get(f"{name}_flexes", None) or bpy.data.texts.new(f"{name}_flexes")
             for flex in morph_block.data['m_morphDatas']:
-                if len(flex['m_name']) > 63:
+                # if len(flex['m_name']) > 63:
                     flex_trunc.write(f"{flex['m_name'][:63]}->{flex['m_name']}\n")
             morphs_available = morph_block is not None and morph_block.read_morphs()
 
