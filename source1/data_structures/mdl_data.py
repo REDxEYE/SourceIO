@@ -397,7 +397,7 @@ class SourceMdlFileData(SourceBase):
         self.max_eye_deflection = reader.read_float()
         self.linear_bone_offset = reader.read_uint32()
         self.name_offset = reader.read_uint32()
-        self.second_name = reader.read_from_offset(entry + self.name_offset, reader.read_ascii_string)
+        #self.second_name = reader.read_from_offset(entry + self.name_offset, reader.read_ascii_string)
         if self.version > 47:
             self.bone_flex_driver_count = reader.read_uint32()
             self.bone_flex_driver_offset = reader.read_uint32()
