@@ -304,7 +304,7 @@ class SourceMdlFile48(SourceMdlFile49):
 
     def prepare_models(self):
         for n, body_part in enumerate(self.file_data.body_parts):
-            if body_part.model_count > 1:
+            if len(body_part.models) > 1:
                 self.file_data.bodypart_frames.append([(n, body_part)])
                 continue
             model = body_part.models[0]
