@@ -79,7 +79,7 @@ if not NO_BPY:
                                                     context=context
                                                     )
                 importer.sort_bodygroups = self.organize_bodygroups
-                importer.load(dont_build_mesh=False,experemental=self.new_mode)
+                importer.load(dont_build_mesh=False, experemental=self.new_mode)
                 if self.write_qc:
                     qc = qc_generator.QC(importer.model)
                     qc_file = bpy.data.texts.new(
@@ -327,18 +327,35 @@ if not NO_BPY:
                 os.path.splitext(cur_img.name)[0]
 
 
+    # noinspection PyPep8Naming
+    class SourceIO_MT_Menu(bpy.types.Menu):
+        bl_label = "Source engine"
+        bl_idname = "IMPORT_MT_sourceio"
+
+        def draw(self, context):
+            layout = self.layout
+            layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
+            layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
+            # self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
+            layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
+            layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
+            layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
+
+
     def menu_import(self, context):
-        self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
-        self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
-        # self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
-        self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
-        self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
-        self.layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
+        self.layout.menu(SourceIO_MT_Menu.bl_idname)
+        # self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
+        # self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
+        # # self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
+        # self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
+        # self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
+        # self.layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
 
 
     # VMTImporter_OT_operator,
     classes = (MDLImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
-               DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator, VTEXImporter_OT_operator)
+               DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator,
+               VTEXImporter_OT_operator, SourceIO_MT_Menu)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
