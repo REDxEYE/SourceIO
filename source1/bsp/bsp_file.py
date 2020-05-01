@@ -45,4 +45,6 @@ class BSPFile:
 
     def parse_lump(self, lump_class: Type[Lump]):
         if self.lumps_info[lump_class.lump_id].size != 0:
+            lump =  self.lumps_info[lump_class.lump_id]
+            print(f"Loading {lump_class.lump_id.name} lump.\n\tOffset: {lump.offset}\n\tSize:{lump.size}")
             self.lumps[lump_class.lump_id] = lump_class(self).parse()
