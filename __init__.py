@@ -23,6 +23,7 @@ if not NO_BPY:
     from .source1.vtf.export_vtf import export_texture
     from .source1.vtf.import_vtf import import_texture
     from .source1.dmx.dmx import Session
+    from .source1.bsp.import_bsp import BSP
 
     from .source2.resouce_types.vmdl import Vmdl
     from .source2.resouce_types.vtex import Vtex
@@ -98,10 +99,34 @@ if not NO_BPY:
 
 
     # noinspection PyUnresolvedReferences
+    class BSPImporter_OT_operator(bpy.types.Operator):
+        """Load Source Engine BSP models"""
+        bl_idname = "source_io.bsp"
+        bl_label = "Import Source BSP file"
+        bl_options = {'UNDO'}
+
+        filepath: StringProperty(subtype="FILE_PATH")
+        # files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+
+        filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
+
+        def execute(self, context):
+            model = BSP(self.filepath)
+            model.load_map_mesh()
+            model.load_lights()
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    # noinspection PyUnresolvedReferences
     class VMDLImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine MDL models"""
         bl_idname = "source_io.vmdl"
-        bl_label = "Import Source VMDL file"
+        bl_label = "Import Source2 VMDL file"
         bl_options = {'UNDO'}
 
         filepath: StringProperty(subtype="FILE_PATH")
@@ -335,6 +360,7 @@ if not NO_BPY:
         def draw(self, context):
             layout = self.layout
             layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
+            layout.operator(BSPImporter_OT_operator.bl_idname, text="Source map (.bsp)")
             layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
             # self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
             layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
@@ -344,18 +370,13 @@ if not NO_BPY:
 
     def menu_import(self, context):
         self.layout.menu(SourceIO_MT_Menu.bl_idname)
-        # self.layout.operator(MDLImporter_OT_operator.bl_idname, text="Source model (.mdl)")
-        # self.layout.operator(VTFImporter_OT_operator.bl_idname, text="Source texture (.vtf)")
-        # # self.layout.operator(VMTImporter_OT_operator.bl_idname, text="Source material (.vmt)")
-        # self.layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
-        # self.layout.operator(VMDLImporter_OT_operator.bl_idname, text="Source2 model (.vmdl)")
-        # self.layout.operator(VTEXImporter_OT_operator.bl_idname, text="Source2 texture (.vtex)")
 
 
     # VMTImporter_OT_operator,
-    classes = (MDLImporter_OT_operator, VTFExport_OT_operator, VTFImporter_OT_operator,
-               DMXImporter_OT_operator, SourceIOPreferences, VMDLImporter_OT_operator,
-               VTEXImporter_OT_operator, SourceIO_MT_Menu)
+    classes = (MDLImporter_OT_operator, BSPImporter_OT_operator, DMXImporter_OT_operator,
+               VTFExport_OT_operator, VTFImporter_OT_operator,
+               VMDLImporter_OT_operator, VTEXImporter_OT_operator,
+               SourceIOPreferences, SourceIO_MT_Menu)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
