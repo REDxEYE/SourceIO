@@ -64,7 +64,7 @@ class BSP:
         model_lump: ModelLump = self.map_file.lumps.get(LumpTypes.LUMP_MODELS, False)
         vertex_lump: VertexLump = self.map_file.lumps.get(LumpTypes.LUMP_VERTICES, False)
         edge_lump: EdgeLump = self.map_file.lumps.get(LumpTypes.LUMP_EDGES, False)
-        suef_edge_lump: SurfEdgeLump = self.map_file.lumps.get(LumpTypes.LUMP_SURFEDGES, False)
+        surf_edge_lump: SurfEdgeLump = self.map_file.lumps.get(LumpTypes.LUMP_SURFEDGES, False)
         face_lump: FaceLump = self.map_file.lumps.get(LumpTypes.LUMP_FACES, False)
         texture_info_lump: TextureInfoLump = self.map_file.lumps.get(LumpTypes.LUMP_TEXINFO, False)
         texture_data_lump: TextureDataLump = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, False)
@@ -91,6 +91,8 @@ class BSP:
 
                 faces = []
                 material_indices = []
+                vertices = []
+                uvs = []
                 for map_face in face_lump.faces[model.first_face:model.first_face + model.face_count]:
                     face = []
                     first_edge = map_face.first_edge
@@ -98,41 +100,70 @@ class BSP:
 
                     texture_info = texture_info_lump.texture_info[map_face.tex_info_id]
                     texture_data = texture_data_lump.texture_data[texture_info.texture_data_id]
-                    for surf_edge in suef_edge_lump.surf_edges[first_edge:first_edge + edge_count]:
+                    for surf_edge in surf_edge_lump.surf_edges[first_edge:first_edge + edge_count]:
+                        reverse = surf_edge >= 0
                         edge = edge_lump.edges[abs(surf_edge)]
-                        if surf_edge < 0:
-                            face.append(edge[1])
+                        vertex_id = edge[0] if reverse else edge[1]
+
+                        vert = tuple(vertex_lump.vertices[vertex_id])
+                        if vert in vertices:
+                            face.append(vertices.index(vert))
                         else:
-                            face.append(edge[0])
-                    material_indices.append(material_lookup_table[texture_data.name_id])
+                            face.append(len(vertices))
+                            vertices.append(vert)
 
-                    faces.append(face[::-1])
-                mesh_data.from_pydata(vertex_lump.vertices, [], faces)
+                        tv1, tv2 = texture_info.texture_vectors
+                        uco = np.array(tv1[:3])
+                        vco = np.array(tv2[:3])
+                        u = np.dot(np.array(vert), uco) + tv1[3]
+                        v = np.dot(np.array(vert), vco) + tv2[3]
+                        uvs.append([u / texture_data.width, v / texture_data.height])
+                    faces.append(face)
+                mesh_data.from_pydata(vertices, [], faces)
+                mesh_data.uv_layers.new()
+                uv_data = mesh_data.uv_layers[0].data
+                for poly in mesh_data.polygons:
+                    print("Polygon index: %d, length: %d" % (poly.index, poly.loop_total))
 
-                for m, mat_id in enumerate(material_indices):
-                    mesh_data.polygons[m].material_index = mat_id
+                    for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+                        print("    Vertex: %d/%d" % (mesh_data.loops[loop_index].vertex_index,len(uvs)))
+                        uv_data[loop_index].uv = uvs[mesh_data.loops[loop_index].vertex_index]
+                # for i in range(len(uv_data)):
+                #     u = uvs[mesh_data.loops[i].vertex_index]
+                #     u = [u[0], u[1]]
+                #     uv_data[i].uv = u
 
+                #     material_indices.append(material_lookup_table[texture_data.name_id])
+                #
+                #     faces.append(face[::-1])
+                # mesh_data.from_pydata(vertex_lump.vertices, [], faces)
+                #
+                # for m, mat_id in enumerate(material_indices):
+                #     mesh_data.polygons[m].material_index = mat_id
+                #
                 # mesh_data.uv_layers.new()
                 # uv_data = mesh_data.uv_layers[0].data
-                # for n, map_face in enumerate(face_lump.faces[model.first_face:model.first_face + model.face_count]):
-                #     if map_face.tex_info_id == -1:
-                #         continue
-                #
-                #     mesh_data.polygons[n].material_index = get_material(material_name, mesh_obj)
-
+                # uvs = np.zeros((len(vertex_lump.vertices), 2), dtype=np.float32)
+                # for map_face in face_lump.faces[model.first_face:model.first_face + model.face_count]:
                 #     first_edge = map_face.first_edge
                 #     edge_count = map_face.edge_count
-
-                # for surf_edge in suef_edge_lump.surf_edges[first_edge:first_edge + edge_count]:
-                #     edges = edge_lump.edges[abs(surf_edge)]
-                #     vertex_id = edges[1] if surf_edge < 0 else edges[0]
-                #     co = np.array(vertex_lump.vertices[vertex_id])
-                #     tv1, tv2 = texture_info.texture_vectors
-                #     uco = np.array(tv1[:-1])
-                #     vco = np.array(tv2[:-1])
-                #     u = np.dot(co, uco) + tv1[3]
-                #     v = np.dot(co, vco) + tv2[3]
-                #     uv_data[vertex_id].uv = [u / texture_data.width, v / texture_data.height]
+                #     texture_info = texture_info_lump.texture_info[map_face.tex_info_id]
+                #     texture_data = texture_data_lump.texture_data[texture_info.texture_data_id]
+                #     for n, surf_edge in enumerate(surf_edge_lump.surf_edges[first_edge:first_edge + edge_count]):
+                #         reverse = surf_edge >= 0
+                #         edges = edge_lump.edges[abs(surf_edge)]
+                #         vertex_id = edges[0] if reverse else edges[1]
+                #         co = np.array(vertex_lump.vertices[vertex_id])
+                #         tv1, tv2 = texture_info.texture_vectors
+                #         uco = np.array(tv1[:3])
+                #         vco = np.array(tv2[:3])
+                #         u = np.dot(co, uco) + tv1[3]
+                #         v = np.dot(co, vco) + tv2[3]
+                #         uvs[vertex_id] = [u / texture_data.width, v / texture_data.height]
+                # for i in range(len(uv_data)):
+                #     u = uvs[mesh_data.loops[i].vertex_index]
+                #     u = [u[0], u[1]]
+                #     uv_data[i].uv = u
 
     def load_lights(self):
         lights_lump: WorldLightLump = self.map_file.lumps.get(LumpTypes.LUMP_WORLDLIGHTS, False)
@@ -154,6 +185,6 @@ class BSP:
             lamp_data = lamp.data
             lamp_data.energy = light.intensity.magnitude() * self.scale
             lamp_data.color = light.intensity.normalized().rgb
-            lamp.rotation_euler = (360 * light.normal[0], 360 * light.normal[1], 360 * light.normal[2])
+            lamp.rotation_euler = (light.normal[0], light.normal[1], light.normal[2])
 
             print(light)

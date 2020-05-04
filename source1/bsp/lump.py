@@ -1,6 +1,9 @@
+import lzma
 from enum import IntEnum
 import numpy as np
 from typing import List
+
+from lzma import decompress as lzma_decompress
 
 from .datatypes.model import Model
 from .datatypes.world_light import WorldLight
@@ -64,11 +67,15 @@ class LumpInfo:
         self.version = 0
         self.magic = 0
 
+    @property
+    def compressed(self):
+        return self.magic != 0
+
     def parse(self, reader: ByteIO):
         self.offset = reader.read_int32()
         self.size = reader.read_int32()
         self.version = reader.read_int32()
-        self.magic = reader.read_fourcc()
+        self.magic = reader.read_uint32()
 
     def __repr__(self):
         return f"<{self.id.name if self.id in list(LumpTypes) else self.id} o:{self.offset} s:{self.size}>"
@@ -82,7 +89,26 @@ class Lump:
         self._bsp: BSPFile = bsp
         self._lump: LumpInfo = bsp.lumps_info[self.lump_id]
         self._bsp.reader.seek(self._lump.offset)
-        self.reader = ByteIO(byte_object=self._bsp.reader.read_bytes(self._lump.size))
+        if self._lump.compressed:
+            reader = self._bsp.reader
+            lzma_id = reader.read_fourcc()
+            assert lzma_id == "LZMA", f"Unknown compressed header({lzma_id})"
+            decompressed_size = reader.read_uint32()
+            compressed_size = reader.read_uint32()
+            prob_byte = reader.read_int8()
+            dict_size = reader.read_uint32()
+
+            pb = prob_byte // (9 * 5)
+            prob_byte -= pb * 9 * 5
+            lp = prob_byte // 9
+            lc = prob_byte - lp * 9
+            my_filters = [
+                {"id": lzma.FILTER_LZMA2, "dict_size": dict_size,"pb": pb, "lp": lp, "lc": lc},
+            ]
+            self.reader = ByteIO(
+                byte_object=lzma_decompress(reader.read_bytes(compressed_size), lzma.FORMAT_RAW, filters=my_filters))
+        else:
+            self.reader = ByteIO(byte_object=self._bsp.reader.read_bytes(self._lump.size))
 
     def parse(self):
         return self
@@ -278,5 +304,5 @@ class WorldLightLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.lights.append(WorldLight().parse(reader,self._bsp.version))
+            self.lights.append(WorldLight().parse(reader, self._bsp.version))
         return self

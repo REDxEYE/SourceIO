@@ -95,9 +95,9 @@ class ValveFile:
             "MBUF": VBIB,
             "MDAT": DATA,
             # "PHYS": DATA,
-            # "ASEQ": DATA,
-            # "AGRP": DATA,
-            # "ANIM": DATA,
+            "ASEQ": DATA,
+            "AGRP": DATA,
+            "ANIM": DATA,
             "MRPH": MRPH,
         }
         return data_classes.get(block_name, None)
