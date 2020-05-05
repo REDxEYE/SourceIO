@@ -141,7 +141,8 @@ if not NO_BPY:
                 directory = Path(self.filepath).parent.absolute()
             else:
                 directory = Path(self.filepath).absolute()
-            for file in self.files:
+            for n, file in enumerate(self.files):
+                print(f"Loading {n}/{len(self.files)}")
                 model = Vmdl(str(directory / file.name))
                 model.load_mesh(self.invert_uv)
             return {'FINISHED'}
