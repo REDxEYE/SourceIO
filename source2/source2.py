@@ -93,6 +93,7 @@ class ValveFile:
             "REDI": REDI,
             "RERL": RERL,
             "VBIB": VBIB,
+            "VXVS": VBIB,
             "DATA": data_block_class,
             "CTRL": DATA,
             "MBUF": VBIB,
@@ -132,18 +133,19 @@ class ValveFile:
     # noinspection PyTypeChecker
     def check_external_resources(self):
         from .blocks.rerl_block import RERL
-        relr_block: RERL = self.get_data_block(block_name="RERL")[0]
+        if self.get_data_block(block_name="RERL"):
+            relr_block: RERL = self.get_data_block(block_name="RERL")[0]
 
-        for block in relr_block.resources:
-            path = Path(block.resource_name)
-            asset = path.with_suffix(path.suffix + '_c')
-            asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
-            if asset and asset.exists():
-                self.available_resources[block.resource_name] = asset.absolute()
-                # print('Found', path)
-            else:
-                pass
-                # print('Can\'t find', path)
+            for block in relr_block.resources:
+                path = Path(block.resource_name)
+                asset = path.with_suffix(path.suffix + '_c')
+                asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
+                if asset and asset.exists():
+                    self.available_resources[block.resource_name] = asset.absolute()
+                    # print('Found', path)
+                else:
+                    pass
+                    # print('Can\'t find', path)
 
 
 def quaternion_to_euler_angle(w, x, y, z):

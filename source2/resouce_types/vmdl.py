@@ -27,8 +27,6 @@ class Vmdl:
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
-
-
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
         if bone_names:
@@ -36,21 +34,23 @@ class Vmdl:
         else:
             armature = None
 
-        self.lod_collections = {}
-        for group in set(data_block.data.get('m_refLODGroupMasks', [])):
-            print(f"creating LOD{group} group")
-            lod_collection = bpy.data.collections.new(name=f"LOD{group}")
-            main_collection.children.link(lod_collection)
-            self.lod_collections[group] = lod_collection
+        # self.lod_collections = {}
+        # for group in set(data_block.data.get('m_refLODGroupMasks', [])):
+        #     print(f"creating LOD{group} group")
+        #     lod_collection = bpy.data.collections.new(name=f"LOD{group}")
+        #     main_collection.children.link(lod_collection)
+        #     self.lod_collections[group] = lod_collection
 
         self.build_meshes(main_collection, armature, invert_uv)
 
     def build_meshes(self, collection, armature, invert_uv: bool = True):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
-        is_dota2_branch = len(self.valve_file.get_data_block(block_name='CTRL'))==0
+        is_dota2_branch = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
         if is_dota2_branch:
-            for mesh_index,mesh_ref in enumerate(data_block.data['m_refMeshes']):
+            for mesh_index, mesh_ref in enumerate(data_block.data['m_refMeshes']):
+                if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
+                    continue
                 mesh_ref_path = self.valve_file.available_resources.get(mesh_ref, None)  # type:Path
                 if mesh_ref_path is not None:
                     mesh = ValveFile(mesh_ref_path)
@@ -59,7 +59,8 @@ class Vmdl:
                     mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
                     buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                     name = mesh_ref_path.stem
-                    vmorf_path = self.valve_file.available_resources.get(mesh_data_block.data['m_morphSet'], None)  # type:Path
+                    vmorf_path = self.valve_file.available_resources.get(mesh_data_block.data['m_morphSet'],
+                                                                         None)  # type:Path
                     morph_block = None
                     if vmorf_path is not None:
                         morph = ValveFile(vmorf_path)
@@ -77,6 +78,8 @@ class Vmdl:
                 name = e_mesh['name']
                 data_block_index = e_mesh['data_block']
                 mesh_index = e_mesh['mesh_index']
+                if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
+                    continue
 
                 buffer_block_index = e_mesh['vbib_block']
                 morph_block_index = e_mesh['morph_block']
@@ -125,14 +128,14 @@ class Vmdl:
                 mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
                                                 bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
 
-                if self.lod_collections:
-                    lod_collection = self.lod_collections.get(
-                        data_block.data['m_refLODGroupMasks'][mesh_index])
-                    print(f"Assigning \"{name + '_' + mesh_name}\" to {lod_collection} group")
-                    lod_collection.objects.link(mesh_obj)
+                # if self.lod_collections:
+                #     lod_collection = self.lod_collections.get(
+                #         data_block.data['m_refLODGroupMasks'][mesh_index])
+                #     print(f"Assigning \"{name + '_' + mesh_name}\" to {lod_collection} group")
+                #     lod_collection.objects.link(mesh_obj)
 
-                else:
-                    collection.objects.link(mesh_obj)
+                # else:
+                collection.objects.link(mesh_obj)
                 if armature:
                     modifier = mesh_obj.modifiers.new(
                         type="ARMATURE", name="Armature")
