@@ -16,11 +16,12 @@ class ValveFile:
     def parse_new(cls, filepath):
         return cls(filepath)
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, data_block_handler=None):
 
         # print('Reading {}'.format(filepath))
-        self.reader = ByteIO(path=filepath, copy_data_from_handle=False, )
+        self.reader = ByteIO(path=filepath, copy_data_from_handle=False)
         self.filepath = Path(filepath)
+        self.data_block_handler = data_block_handler
         self.filename = self.filepath.name
         self.header = CompiledHeader()
         self.header.read(self.reader)
@@ -83,6 +84,8 @@ class ValveFile:
         from .blocks import TextureBlock, DATA, NTRO, REDI, RERL, VBIB, MRPH
         if self.filepath.suffix == '.vtex_c':
             data_block_class = TextureBlock
+        elif self.filepath.suffix == '.vmorf_c':
+            data_block_class = MRPH
         else:
             data_block_class = DATA
         data_classes = {

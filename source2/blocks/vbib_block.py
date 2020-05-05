@@ -290,6 +290,8 @@ class VertexAttribute:
             return '4B'
         elif self.format == DxgiFormat.R8G8B8A8_UINT:
             return '4B'
+        elif self.format == DxgiFormat.R16G16_UNORM:
+            return '2H'
         else:
             raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 
@@ -324,6 +326,10 @@ class VertexAttribute:
             return 4
         elif self.format == DxgiFormat.R8G8B8A8_UINT:
             return 4
+        elif self.format == DxgiFormat.R16G16_UNORM:
+            return 4
+        elif self.format == DxgiFormat.R16G16_UNORM:
+            return 2
         else:
             raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 
@@ -358,6 +364,8 @@ class VertexAttribute:
             return reader.read_fmt(f'4B')
         elif self.format == DxgiFormat.R8G8B8A8_UINT:
             return reader.read_fmt(f'4B')
+        elif self.format == DxgiFormat.R16G16_UNORM:
+            return reader.read_fmt(f'2H')
         else:
             raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 

@@ -20,11 +20,15 @@ class Vmdl:
         self.name = str(os.path.basename(vmdl_path).split('.')[0])
         self.lod_collections = {}
 
+    # noinspection PyUnresolvedReferences
     def load_mesh(self, invert_uv):
         main_collection = bpy.data.collections.new(os.path.basename(self.name))
         bpy.context.scene.collection.children.link(main_collection)
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+
+
+
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
         if bone_names:
@@ -43,148 +47,183 @@ class Vmdl:
 
     def build_meshes(self, collection, armature, invert_uv: bool = True):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
-        control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
-        e_meshes = control_block.data['embedded_meshes']
-        for e_mesh in e_meshes:
-            name = e_mesh['name']
-            data_block_index = e_mesh['data_block']
-            mesh_index = e_mesh['mesh_index']
 
-            buffer_block_index = e_mesh['vbib_block']
-            morph_block_index = e_mesh['morph_block']
-            morph_texture = e_mesh['morph_texture']
-            mesh_data_block = self.valve_file.get_data_block(block_id=data_block_index)
-            buffer_block = self.valve_file.get_data_block(block_id=buffer_block_index)
-            morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
+        is_dota2_branch = len(self.valve_file.get_data_block(block_name='CTRL'))==0
+        if is_dota2_branch:
+            for mesh_index,mesh_ref in enumerate(data_block.data['m_refMeshes']):
+                mesh_ref_path = self.valve_file.available_resources.get(mesh_ref, None)  # type:Path
+                if mesh_ref_path is not None:
+                    mesh = ValveFile(mesh_ref_path)
+                    mesh.read_block_info()
+                    mesh.check_external_resources()
+                    mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
+                    buffer_block = mesh.get_data_block(block_name="VBIB")[0]
+                    name = mesh_ref_path.stem
+                    vmorf_path = self.valve_file.available_resources.get(mesh_data_block.data['m_morphSet'], None)  # type:Path
+                    morph_block = None
+                    if vmorf_path is not None:
+                        morph = ValveFile(vmorf_path)
+                        morph.read_block_info()
+                        morph.check_external_resources()
+                        morph_block = morph.get_data_block(block_name="DATA")[0]
+                    self.build_mesh(name, armature, collection,
+                                    mesh_data_block, buffer_block, data_block, morph_block,
+                                    invert_uv, mesh_index)
+            pass
+        else:
+            control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
+            e_meshes = control_block.data['embedded_meshes']
+            for e_mesh in e_meshes:
+                name = e_mesh['name']
+                data_block_index = e_mesh['data_block']
+                mesh_index = e_mesh['mesh_index']
 
-            morphs_available = morph_block is not None and morph_block.read_morphs()
-            if morphs_available:
-                flex_trunc = bpy.data.texts.get(f"{name}_flexes", None) or bpy.data.texts.new(f"{name}_flexes")
-                for flex in morph_block.data['m_morphDatas']:
-                    if flex['m_name']:
-                        # if len(flex['m_name']) > 63:
-                        flex_trunc.write(f"{flex['m_name'][:63]}->{flex['m_name']}\n")
+                buffer_block_index = e_mesh['vbib_block']
+                morph_block_index = e_mesh['morph_block']
 
-            for scene in mesh_data_block.data["m_sceneObjects"]:
-                draw_calls = scene["m_drawCalls"]
-                global_vertex_offset = 0
-                for draw_call in draw_calls:
-                    print(draw_call)
-                    base_vertex = draw_call['m_nBaseVertex']
-                    vertex_count = draw_call['m_nVertexCount']
-                    assert draw_call['m_nStartIndex'] % 3 == 0
-                    assert draw_call['m_nIndexCount'] % 3 == 0
-                    start_index = draw_call['m_nStartIndex'] // 3
-                    index_count = draw_call['m_nIndexCount'] // 3
-                    index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
-                    assert len(draw_call['m_vertexBuffers']) == 1
-                    assert draw_call['m_vertexBuffers'][0]['m_nBindOffsetBytes'] == 0
-                    assert draw_call['m_nStartInstance'] == 0
-                    assert draw_call['m_nInstanceCount'] == 0
-                    vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
-                    mesh_name = draw_call['m_material'].split("/")[-1].split(".")[0]
+                mesh_data_block = self.valve_file.get_data_block(block_id=data_block_index)
+                buffer_block = self.valve_file.get_data_block(block_id=buffer_block_index)
+                morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
 
-                    mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
-                                                    bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
+                self.build_mesh(name, armature, collection,
+                                mesh_data_block, buffer_block, data_block, morph_block,
+                                invert_uv, mesh_index)
 
-                    if self.lod_collections:
-                        lod_collection = self.lod_collections.get(
-                            data_block.data['m_refLODGroupMasks'][mesh_index])
-                        print(f"Assigning \"{name + '_' + mesh_name}\" to {lod_collection} group")
-                        lod_collection.objects.link(mesh_obj)
+    # noinspection PyTypeChecker,PyUnresolvedReferences
+    def build_mesh(self, name, armature, collection,
+                   mesh_data_block, buffer_block, data_block, morph_block,
+                   invert_uv,
+                   mesh_index):
 
+        morphs_available = morph_block is not None and morph_block.read_morphs()
+        if morphs_available:
+            flex_trunc = bpy.data.texts.get(f"{name}_flexes", None) or bpy.data.texts.new(f"{name}_flexes")
+            for flex in morph_block.data['m_morphDatas']:
+                if flex['m_name']:
+                    # if len(flex['m_name']) > 63:
+                    flex_trunc.write(f"{flex['m_name'][:63]}->{flex['m_name']}\n")
+
+        for scene in mesh_data_block.data["m_sceneObjects"]:
+            draw_calls = scene["m_drawCalls"]
+            global_vertex_offset = 0
+            for draw_call in draw_calls:
+                # print(draw_call)
+                base_vertex = draw_call['m_nBaseVertex']
+                vertex_count = draw_call['m_nVertexCount']
+                assert draw_call['m_nStartIndex'] % 3 == 0
+                assert draw_call['m_nIndexCount'] % 3 == 0
+                start_index = draw_call['m_nStartIndex'] // 3
+                index_count = draw_call['m_nIndexCount'] // 3
+                index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
+                assert len(draw_call['m_vertexBuffers']) == 1
+                assert draw_call['m_vertexBuffers'][0]['m_nBindOffsetBytes'] == 0
+                assert draw_call['m_nStartInstance'] == 0
+                assert draw_call['m_nInstanceCount'] == 0
+                vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
+                mesh_name = draw_call['m_material'].split("/")[-1].split(".")[0]
+
+                mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
+                                                bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
+
+                if self.lod_collections:
+                    lod_collection = self.lod_collections.get(
+                        data_block.data['m_refLODGroupMasks'][mesh_index])
+                    print(f"Assigning \"{name + '_' + mesh_name}\" to {lod_collection} group")
+                    lod_collection.objects.link(mesh_obj)
+
+                else:
+                    collection.objects.link(mesh_obj)
+                if armature:
+                    modifier = mesh_obj.modifiers.new(
+                        type="ARMATURE", name="Armature")
+                    modifier.object = armature
+
+                print("Building mesh", name, mesh_name)
+                self.get_material(mesh_name, mesh_obj)
+
+                # bones = [bone_list[i] for i in remap_list]
+                mesh = mesh_obj.data  # type:bpy.types.Mesh
+
+                vertexes = []
+                uv_layers = {}
+                normals = []
+
+                used_vertices = vertex_buffer.vertexes[
+                                base_vertex:base_vertex + vertex_count]  # type:List[SourceVertex]
+
+                for vertex in used_vertices:
+                    vertexes.append(vertex.position)
+                    for uv_layer_id, uv_data in vertex.uvs.items():
+                        if len(uv_data) != 2:
+                            continue
+                        if uv_layers.get(uv_layer_id, None) is None:
+                            uv_layers[uv_layer_id] = []
+                        uv_layers[uv_layer_id].append(uv_data)
+                    if type(vertex.normal[0]) is int:
+                        normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
                     else:
-                        collection.objects.link(mesh_obj)
-                    if armature:
-                        modifier = mesh_obj.modifiers.new(
-                            type="ARMATURE", name="Armature")
-                        modifier.object = armature
+                        normals.append(vertex.normal)
 
-                    print("Building mesh", name, mesh_name)
-                    self.get_material(mesh_name, mesh_obj)
+                mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
+                mesh.update()
 
-                    # bones = [bone_list[i] for i in remap_list]
-                    mesh = mesh_obj.data  # type:bpy.types.Mesh
-
-                    vertexes = []
-                    uv_layers = {}
-                    normals = []
-
-                    used_vertices = vertex_buffer.vertexes[
-                                    base_vertex:base_vertex + vertex_count]  # type:List[SourceVertex]
-
-                    for vertex in used_vertices:
-                        vertexes.append(vertex.position)
-                        for uv_layer_id, uv_data in vertex.uvs.items():
-                            if len(uv_data) != 2:
-                                continue
-                            if uv_layers.get(uv_layer_id, None) is None:
-                                uv_layers[uv_layer_id] = []
-                            uv_layers[uv_layer_id].append(uv_data)
-                        if type(vertex.normal[0]) is int:
-                            normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
+                for n, uv_layer in enumerate(uv_layers.values()):
+                    mesh.uv_layers.new()
+                    uv_data = mesh.uv_layers[n].data
+                    for i in range(len(uv_data)):
+                        u = uv_layer[mesh.loops[i].vertex_index]
+                        if invert_uv:
+                            uv_data[i].uv = [u[0], 1 - u[1]]
                         else:
-                            normals.append(vertex.normal)
-
-                    mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
-                    mesh.update()
-
-                    for n, uv_layer in enumerate(uv_layers.values()):
-                        mesh.uv_layers.new()
-                        uv_data = mesh.uv_layers[n].data
-                        for i in range(len(uv_data)):
-                            u = uv_layer[mesh.loops[i].vertex_index]
-                            if invert_uv:
-                                uv_data[i].uv = [u[0], 1 - u[1]]
-                            else:
-                                uv_data[i].uv = u
-                    if armature:
-                        model_skeleton = data_block.data['m_modelSkeleton']
-                        bone_names = model_skeleton['m_boneName']
-                        remap_table = data_block.data['m_remappingTable']
-                        remap_table_starts = data_block.data['m_remappingTableStarts']
-                        remaps_start = remap_table_starts[mesh_index]
-                        new_bone_names = [bone.replace("$", 'PHYS_') for bone in bone_names]
-                        weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
-                        for n, vertex in enumerate(used_vertices):
-                            if len(vertex.bone_weight.weight) == 0:
-                                for bone_index in vertex.bone_weight.bone:
+                            uv_data[i].uv = u
+                if armature:
+                    model_skeleton = data_block.data['m_modelSkeleton']
+                    bone_names = model_skeleton['m_boneName']
+                    remap_table = data_block.data['m_remappingTable']
+                    remap_table_starts = data_block.data['m_remappingTableStarts']
+                    remaps_start = remap_table_starts[mesh_index]
+                    new_bone_names = [bone.replace("$", 'PHYS_') for bone in bone_names]
+                    weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
+                    for n, vertex in enumerate(used_vertices):
+                        if len(vertex.bone_weight.weight) == 0:
+                            for bone_index in vertex.bone_weight.bone:
+                                bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
+                                weight_groups[bone_name].add([n], 1.0, 'REPLACE')
+                        else:
+                            for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
+                                if weight > 0:
                                     bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
-                                    weight_groups[bone_name].add([n], 1.0, 'REPLACE')
-                            else:
-                                for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
-                                    if weight > 0:
-                                        bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
-                                        weight_groups[bone_name].add([n], weight, 'REPLACE')
+                                    weight_groups[bone_name].add([n], weight, 'REPLACE')
 
-                    bpy.ops.object.select_all(action="DESELECT")
-                    mesh_obj.select_set(True)
-                    bpy.context.view_layer.objects.active = mesh_obj
-                    bpy.ops.object.shade_smooth()
-                    mesh.normals_split_custom_set_from_vertices(normals)
-                    mesh.use_auto_smooth = True
-                    if morphs_available:
-                        mesh_obj.shape_key_add(name='base')
-                        bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
-                        if bundle_id != -1:
-                            for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
-                                print(f"Importing {flex_name} {n}/{len(morph_block.flex_data)}")
-                                if flex_name is None:
-                                    continue
-                                shape = mesh_obj.shape_key_add(name=flex_name[:63])
-                                for vert_id, flex_vert in enumerate(
-                                        flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
-                                    vertex = mesh_obj.data.vertices[vert_id]
-                                    fx, fy, fz, speed = flex_vert
+                bpy.ops.object.select_all(action="DESELECT")
+                mesh_obj.select_set(True)
+                bpy.context.view_layer.objects.active = mesh_obj
+                bpy.ops.object.shade_smooth()
+                mesh.normals_split_custom_set_from_vertices(normals)
+                mesh.use_auto_smooth = True
+                if morphs_available:
+                    mesh_obj.shape_key_add(name='base')
+                    bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                    if bundle_id != -1:
+                        for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
+                            print(f"Importing {flex_name} {n}/{len(morph_block.flex_data)}")
+                            if flex_name is None:
+                                continue
+                            shape = mesh_obj.shape_key_add(name=flex_name[:63])
+                            for vert_id, flex_vert in enumerate(
+                                    flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
+                                vertex = mesh_obj.data.vertices[vert_id]
+                                fx, fy, fz, speed = flex_vert
 
-                                    shape.data[vert_id].co = (
-                                        fx + vertex.co[0],
-                                        fy + vertex.co[1],
-                                        fz + vertex.co[2]
-                                    )
-                                pass
-                    global_vertex_offset += vertex_count
+                                shape.data[vert_id].co = (
+                                    fx + vertex.co[0],
+                                    fy + vertex.co[1],
+                                    fz + vertex.co[2]
+                                )
+                            pass
+                global_vertex_offset += vertex_count
 
+    # noinspection PyUnresolvedReferences
     def build_armature(self, top_collection: bpy.types.Collection):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         model_skeleton = data_block.data['m_modelSkeleton']
@@ -245,6 +284,7 @@ class Vmdl:
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
         return armature_obj
 
+    # noinspection PyUnresolvedReferences
     @staticmethod
     def get_material(mat_name, model_ob):
         if mat_name:
@@ -279,7 +319,3 @@ class Vmdl:
             mat_ind = len(md.materials) - 1
 
         return mat_ind
-
-
-if __name__ == '__main__':
-    a = Vmdl(r'E:\PYTHON\io_mesh_SourceMDL/test_data/source2/sniper.vmdl_c', True)
