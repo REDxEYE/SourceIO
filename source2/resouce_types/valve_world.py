@@ -35,8 +35,9 @@ class ValveWorld:
                         print(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_file.filepath.stem} mesh")
                         model = ValveModel("", model_file)
                         to_remove = Path(node_path)
-                        model.load_mesh(invert_uv, True, to_remove.stem+"_")
+                        model.load_mesh(invert_uv, True, to_remove.stem + "_")
                         mat_rows = static_object['m_vTransform']  # type:List[SourceVector4D]
-                        transform_mat = Matrix([mat_rows[0].as_list, mat_rows[1].as_list, mat_rows[2].as_list]).to_4x4()
+                        transform_mat = Matrix(
+                            [mat_rows[0].as_list, mat_rows[1].as_list, mat_rows[2].as_list, [0, 0, 0, 1]])
                         for obj in model.objects:
                             obj.matrix_world = transform_mat
