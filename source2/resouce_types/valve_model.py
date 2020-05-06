@@ -10,19 +10,30 @@ from ..common import SourceVector, SourceVertex
 from ..source2 import ValveFile
 
 
-class Vmdl:
+class ValveModel:
 
-    def __init__(self, vmdl_path):
-        self.valve_file = ValveFile(vmdl_path)
-        self.valve_file.read_block_info()
-        self.valve_file.check_external_resources()
+    def __init__(self, vmdl_path, valve_file=None):
+        if valve_file:
+            self.valve_file = valve_file
+        else:
+            self.valve_file = ValveFile(vmdl_path)
+            self.valve_file.read_block_info()
+            self.valve_file.check_external_resources()
 
-        self.name = str(os.path.basename(vmdl_path).split('.')[0])
+        self.name = self.valve_file.filepath.stem
+        self.reuse_content = False
+        self.strip_from_name = ''
         self.lod_collections = {}
+        self.objects = []
 
     # noinspection PyUnresolvedReferences
-    def load_mesh(self, invert_uv):
-        main_collection = bpy.data.collections.new(os.path.basename(self.name))
+    def load_mesh(self, invert_uv, reuse_data=False, strip_from_name=''):
+        self.strip_from_name = strip_from_name
+        self.reuse_content = reuse_data
+        if bpy.data.collections.get(os.path.basename(self.name)):
+            main_collection = bpy.data.collections.get(os.path.basename(self.name))
+        else:
+            main_collection = bpy.data.collections.new(os.path.basename(self.name))
         bpy.context.scene.collection.children.link(main_collection)
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
@@ -31,6 +42,7 @@ class Vmdl:
         bone_names = model_skeleton['m_boneName']
         if bone_names:
             armature = self.build_armature(main_collection)
+            self.objects.append(armature)
         else:
             armature = None
 
@@ -46,8 +58,8 @@ class Vmdl:
     def build_meshes(self, collection, armature, invert_uv: bool = True):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
-        is_dota2_branch = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
-        if is_dota2_branch:
+        use_external_meshes = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
+        if use_external_meshes:
             for mesh_index, mesh_ref in enumerate(data_block.data['m_refMeshes']):
                 if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
                     continue
@@ -76,6 +88,7 @@ class Vmdl:
             e_meshes = control_block.data['embedded_meshes']
             for e_mesh in e_meshes:
                 name = e_mesh['name']
+                name = name.replace(self.strip_from_name, "")
                 data_block_index = e_mesh['data_block']
                 mesh_index = e_mesh['mesh_index']
                 if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
@@ -110,24 +123,27 @@ class Vmdl:
             draw_calls = scene["m_drawCalls"]
             global_vertex_offset = 0
             for draw_call in draw_calls:
-                # print(draw_call)
                 base_vertex = draw_call['m_nBaseVertex']
                 vertex_count = draw_call['m_nVertexCount']
-                assert draw_call['m_nStartIndex'] % 3 == 0
-                assert draw_call['m_nIndexCount'] % 3 == 0
                 start_index = draw_call['m_nStartIndex'] // 3
                 index_count = draw_call['m_nIndexCount'] // 3
                 index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
-                assert len(draw_call['m_vertexBuffers']) == 1
-                assert draw_call['m_vertexBuffers'][0]['m_nBindOffsetBytes'] == 0
-                assert draw_call['m_nStartInstance'] == 0
-                assert draw_call['m_nInstanceCount'] == 0
                 vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
                 mesh_name = draw_call['m_material'].split("/")[-1].split(".")[0]
 
+                if self.reuse_content and bpy.data.meshes.get(name + "_" + mesh_name + "_DATA"):
+                    mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
+                                                    bpy.data.meshes.get(name + "_" + mesh_name + "_DATA"))
+                    if armature:
+                        modifier = mesh_obj.modifiers.new(
+                            type="ARMATURE", name="Armature")
+                        modifier.object = armature
+                    self.objects.append(mesh_obj)
+                    return
+
                 mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
                                                 bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
-
+                self.objects.append(mesh_obj)
                 # if self.lod_collections:
                 #     lod_collection = self.lod_collections.get(
                 #         data_block.data['m_refLODGroupMasks'][mesh_index])
@@ -144,15 +160,15 @@ class Vmdl:
                 print("Building mesh", name, mesh_name)
                 self.get_material(mesh_name, mesh_obj)
 
-                # bones = [bone_list[i] for i in remap_list]
                 mesh = mesh_obj.data  # type:bpy.types.Mesh
 
                 vertexes = []
                 uv_layers = {}
                 normals = []
 
-                used_vertices = vertex_buffer.vertexes[
-                                base_vertex:base_vertex + vertex_count]  # type:List[SourceVertex]
+                used_vertices = vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]
+
+                need_to_convert_normals = type(used_vertices[0].normal[0]) is int
 
                 for vertex in used_vertices:
                     vertexes.append(vertex.position)
@@ -162,7 +178,7 @@ class Vmdl:
                         if uv_layers.get(uv_layer_id, None) is None:
                             uv_layers[uv_layer_id] = []
                         uv_layers[uv_layer_id].append(uv_data)
-                    if type(vertex.normal[0]) is int:
+                    if need_to_convert_normals:
                         normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
                     else:
                         normals.append(vertex.normal)
@@ -173,6 +189,8 @@ class Vmdl:
                 for n, uv_layer in enumerate(uv_layers.values()):
                     mesh.uv_layers.new()
                     uv_data = mesh.uv_layers[n].data
+                    # print(f"Layer {n} len: {len(uv_layer)}")
+                    # if uv_layer:
                     for i in range(len(uv_data)):
                         u = uv_layer[mesh.loops[i].vertex_index]
                         if invert_uv:
@@ -228,6 +246,18 @@ class Vmdl:
 
     # noinspection PyUnresolvedReferences
     def build_armature(self, top_collection: bpy.types.Collection):
+        if self.reuse_content and bpy.data.armatures.get(self.name + "_ARM_DATA"):
+            armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.get(self.name + "_ARM_DATA"))
+
+            top_collection.objects.link(armature_obj)
+            bpy.ops.object.select_all(action="DESELECT")
+            armature_obj.select_set(True)
+            bpy.context.view_layer.objects.active = armature_obj
+
+            armature_obj.rotation_euler = Euler([math.radians(180), 0, math.radians(90)])
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return armature_obj
+
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
@@ -235,18 +265,17 @@ class Vmdl:
         bone_rotations = model_skeleton['m_boneRotParent']
         bone_parents = model_skeleton['m_nParent']
 
-        bpy.ops.object.armature_add(enter_editmode=True)
-
-        armature_obj = bpy.context.object
-        armature_obj.rotation_euler = Euler([math.radians(180), 0, math.radians(90)])
-
-        # bpy.context.scene.collection.objects.unlink(self.armature_obj)
+        armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.new(self.name + "_ARM_DATA"))
         top_collection.objects.link(armature_obj)
+        bpy.ops.object.select_all(action="DESELECT")
+        armature_obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature_obj
+
+        armature_obj.rotation_euler = Euler([math.radians(180), 0, math.radians(90)])
         armature = armature_obj.data
-        armature.name = self.name + "_ARM"
-        armature.edit_bones.remove(armature.edit_bones[0])
 
         bpy.ops.object.mode_set(mode='EDIT')
+
         bones = []
         for bone_name in bone_names:
             print("Creating bone", bone_name.replace("$", 'PHYS_'))
@@ -255,7 +284,7 @@ class Vmdl:
             bones.append((bl_bone, bone_name.replace("$", 'PHYS_')))
 
         for n, bone_name in enumerate(bone_names):
-            bl_bone = armature.edit_bones.get(bone_name)
+            bl_bone = armature.edit_bones.get(bone_name.replace("$", 'PHYS_'))
             parent_id = bone_parents[n]
             if parent_id != -1:
                 bl_parent, parent = bones[parent_id]

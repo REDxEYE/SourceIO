@@ -30,7 +30,9 @@ class ValveFile:
         self.available_resources = {}
 
     def read_block_info(self):
-
+        self.info_blocks.clear()
+        self.data_blocks.clear()
+        self.reader.seek(4*4)
         for n in range(self.header.block_count):
             block_info = InfoBlock()
             block_info.read(self.reader)
@@ -146,6 +148,14 @@ class ValveFile:
                 else:
                     pass
                     # print('Can\'t find', path)
+
+    def get_child_resource(self, name):
+        if self.available_resources.get(name, None) is not None:
+            res = ValveFile(self.available_resources.get(name))
+            res.read_block_info()
+            res.check_external_resources()
+            return res
+        return None
 
 
 def quaternion_to_euler_angle(w, x, y, z):
