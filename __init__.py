@@ -16,7 +16,7 @@ bl_info = {
 if not NO_BPY:
 
     import bpy
-    from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
+    from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
     from .source1.mdl import mdl2model, qc_generator
     from .source1.vtf.blender_material import BlenderMaterial
@@ -164,6 +164,7 @@ if not NO_BPY:
 
         filepath: StringProperty(subtype="FILE_PATH")
         invert_uv: BoolProperty(name="invert UV?", default=True)
+        scale: FloatProperty(name="Scale", default=0.042)
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
         filter_glob: StringProperty(default="*.vwrld_c", options={'HIDDEN'})
@@ -177,7 +178,7 @@ if not NO_BPY:
             for n, file in enumerate(self.files):
                 print(f"Loading {n}/{len(self.files)}")
                 model = ValveWorld(str(directory / file.name))
-                model.load(self.invert_uv)
+                model.load(self.invert_uv,self.scale)
             return {'FINISHED'}
 
         def invoke(self, context, event):

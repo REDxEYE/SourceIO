@@ -19,7 +19,7 @@ class ValveWorld:
         self.valve_file.read_block_info()
         self.valve_file.check_external_resources()
 
-    def load(self, invert_uv=False):
+    def load(self, invert_uv=False, scale=0.042):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         if data_block:
             for world_node_t in data_block.data['m_worldNodes']:
@@ -41,3 +41,5 @@ class ValveWorld:
                             [mat_rows[0].as_list, mat_rows[1].as_list, mat_rows[2].as_list, [0, 0, 0, 1]])
                         for obj in model.objects:
                             obj.matrix_world = transform_mat
+                            obj.scale = Vector([scale, scale, scale])
+                            obj.location *=scale

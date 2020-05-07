@@ -57,11 +57,11 @@ class BinaryKeyValue:
 
     def __init__(self, block_info: InfoBlock = None):
         super().__init__()
+        self.block_info = block_info
         self.mode = 0
         self.strings = []
         self.types = []
         self.current_type = 0
-        self.block_info = block_info
         self.kv = []
         self.flags = 0
         self.buffer = ByteIO()  # type: ByteIO
@@ -125,7 +125,10 @@ class BinaryKeyValue:
     def read_v1(self, reader):
         encoding = reader.read_bytes(16)
         assert (tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED or
-                tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4), 'Unrecognized KV3 Encoding'
+                tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4 or
+                tuple(encoding) == self.KV3_ENCODING_BINARY_UNCOMPRESSED
+
+                ), 'Unrecognized KV3 Encoding'
         fmt = reader.read_bytes(16)
 
         assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
@@ -133,6 +136,9 @@ class BinaryKeyValue:
             self.block_decompress(reader)
         elif tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4:
             self.decompress_lz4(reader)
+        elif tuple(encoding) == self.KV3_ENCODING_BINARY_UNCOMPRESSED:
+            self.buffer.write_bytes(reader.read_bytes(-1))
+            self.buffer.seek(0)
         string_count = self.buffer.read_uint32()
         for i in range(string_count):
             self.strings.append(self.buffer.read_ascii_string())
@@ -140,7 +146,7 @@ class BinaryKeyValue:
         self.double_buffer = self.buffer
         self.byte_buffer = self.buffer
         self.parse(self.buffer, self.kv, True)
-        assert len(self.kv) == 1, "Never seen state of vkv3 v1"
+        assert len(self.kv) == 1, "Never yet seen that state of vkv3 v1"
         self.kv = self.kv[0]
         self.buffer.close()
         del self.buffer

@@ -34,7 +34,7 @@ class ValveModel:
             main_collection = bpy.data.collections.get(os.path.basename(self.name))
         else:
             main_collection = bpy.data.collections.new(os.path.basename(self.name))
-        bpy.context.scene.collection.children.link(main_collection)
+            bpy.context.scene.collection.children.link(main_collection)
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
