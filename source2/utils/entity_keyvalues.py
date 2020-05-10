@@ -1,5 +1,5 @@
-from SourceIO.byte_io_mdl import ByteIO
-from SourceIO.source2.utils.entity_keyvalues_keys import EntityKeyValuesKeys
+from ...byte_io_mdl import ByteIO
+from .entity_keyvalues_keys import EntityKeyValuesKeys
 
 
 class EntityKeyValues:
