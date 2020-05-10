@@ -163,11 +163,15 @@ if not NO_BPY:
         bl_options = {'UNDO'}
 
         filepath: StringProperty(subtype="FILE_PATH")
-        invert_uv: BoolProperty(name="invert UV?", default=True)
-        scale: FloatProperty(name="Scale", default=0.042)
         files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-
         filter_glob: StringProperty(default="*.vwrld_c", options={'HIDDEN'})
+
+        invert_uv: BoolProperty(name="invert UV?", default=True)
+        scale: FloatProperty(name="World scale", default=0.0328083989501312)  # LifeForLife suggestion
+
+        use_placeholders: BoolProperty(name="Use placeholders instead of objects", default=False)
+        load_static: BoolProperty(name="Load static meshes", default=True)
+        load_dynamic: BoolProperty(name="Load entities", default=True)
 
         def execute(self, context):
 
@@ -177,8 +181,11 @@ if not NO_BPY:
                 directory = Path(self.filepath).absolute()
             for n, file in enumerate(self.files):
                 print(f"Loading {n}/{len(self.files)}")
-                model = ValveWorld(str(directory / file.name))
-                model.load(self.invert_uv,self.scale)
+                world = ValveWorld(str(directory / file.name), self.invert_uv, self.scale)
+                if self.load_static:
+                    world.load_static()
+                if self.load_dynamic:
+                    world.load_entities(self.use_placeholders)
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -209,6 +216,33 @@ if not NO_BPY:
                 print(f"Loading {n}/{len(self.files)}")
                 material = ValveMaterial(str(directory / file.name))
                 material.load(self.flip)
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    class VTEXImporter_OT_operator(bpy.types.Operator):
+        """Load Source Engine VTF texture"""
+        bl_idname = "import_texture.vtex"
+        bl_label = "Import VTEX"
+        bl_options = {'UNDO'}
+
+        filepath: StringProperty(subtype='FILE_PATH', )
+        flip: BoolProperty(name="Flip texture", default=True)
+        files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+        filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
+
+        def execute(self, context):
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
+            for file in self.files:
+                texture = ValveTexture(str(directory / file.name))
+                texture.load(self.flip)
             return {'FINISHED'}
 
         def invoke(self, context, event):
@@ -269,33 +303,6 @@ if not NO_BPY:
                 directory = Path(self.filepath).absolute()
             for file in self.files:
                 import_texture(str(directory / file.name), self.load_alpha, self.only_alpha)
-            return {'FINISHED'}
-
-        def invoke(self, context, event):
-            wm = context.window_manager
-            wm.fileselect_add(self)
-            return {'RUNNING_MODAL'}
-
-
-    class VTEXImporter_OT_operator(bpy.types.Operator):
-        """Load Source Engine VTF texture"""
-        bl_idname = "import_texture.vtex"
-        bl_label = "Import VTEX"
-        bl_options = {'UNDO'}
-
-        filepath: StringProperty(subtype='FILE_PATH', )
-        flip: BoolProperty(name="Flip texture", default=True)
-        files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-        filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
-
-        def execute(self, context):
-            if Path(self.filepath).is_file():
-                directory = Path(self.filepath).parent.absolute()
-            else:
-                directory = Path(self.filepath).absolute()
-            for file in self.files:
-                texture = ValveTexture(str(directory / file.name))
-                texture.load(self.flip)
             return {'FINISHED'}
 
         def invoke(self, context, event):

@@ -7,10 +7,11 @@ try:
     from ..utils.PySourceIOUtils import lz4_decompress as uncompress
 except ImportError:
     print("PySourceIOTextureUtils import error")
-    from ..lz4 import uncompress as uncompress_tmp
+    from SourceIO.source2.lz4 import uncompress as uncompress_tmp
 
-    uncompress = lambda a, b, c: uncompress_tmp(a)
-from ..common import SourceVector, SourceVector4D, SourceVector2D
+    def uncompress(a, _b, _c):
+        return uncompress_tmp(a)
+from SourceIO.source2.common import SourceVector, SourceVector4D, SourceVector2D
 
 
 class KVFlag(IntEnum):

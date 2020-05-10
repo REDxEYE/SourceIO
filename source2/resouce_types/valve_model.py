@@ -21,20 +21,22 @@ class ValveModel:
             self.valve_file.check_external_resources()
 
         self.name = self.valve_file.filepath.stem
-        self.reuse_content = False
         self.strip_from_name = ''
         self.lod_collections = {}
         self.objects = []
 
     # noinspection PyUnresolvedReferences
-    def load_mesh(self, invert_uv, reuse_data=False, strip_from_name=''):
+    def load_mesh(self, invert_uv, strip_from_name='', parent_collection: bpy.types.Collection = None):
         self.strip_from_name = strip_from_name
-        self.reuse_content = reuse_data
-        if bpy.data.collections.get(os.path.basename(self.name)):
-            main_collection = bpy.data.collections.get(os.path.basename(self.name))
+        name = self.name.replace(self.strip_from_name, "")
+        if bpy.data.collections.get(name):
+            main_collection = bpy.data.collections.get(name)
         else:
-            main_collection = bpy.data.collections.new(os.path.basename(self.name))
-            bpy.context.scene.collection.children.link(main_collection)
+            main_collection = bpy.data.collections.new(name)
+            if parent_collection is not None:
+                parent_collection.children.link(main_collection)
+            else:
+                bpy.context.scene.collection.children.link(main_collection)
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
@@ -45,13 +47,6 @@ class ValveModel:
             self.objects.append(armature)
         else:
             armature = None
-
-        # self.lod_collections = {}
-        # for group in set(data_block.data.get('m_refLODGroupMasks', [])):
-        #     print(f"creating LOD{group} group")
-        #     lod_collection = bpy.data.collections.new(name=f"LOD{group}")
-        #     main_collection.children.link(lod_collection)
-        #     self.lod_collections[group] = lod_collection
 
         self.build_meshes(main_collection, armature, invert_uv)
 
@@ -131,27 +126,11 @@ class ValveModel:
                 vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
                 mesh_name = draw_call['m_material'].split("/")[-1].split(".")[0]
 
-                if self.reuse_content and bpy.data.meshes.get(name + "_" + mesh_name + "_DATA"):
-                    mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
-                                                    bpy.data.meshes.get(name + "_" + mesh_name + "_DATA"))
-                    if armature:
-                        modifier = mesh_obj.modifiers.new(
-                            type="ARMATURE", name="Armature")
-                        modifier.object = armature
-                    self.objects.append(mesh_obj)
-                    return
-
                 mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
                                                 bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
                 self.objects.append(mesh_obj)
-                # if self.lod_collections:
-                #     lod_collection = self.lod_collections.get(
-                #         data_block.data['m_refLODGroupMasks'][mesh_index])
-                #     print(f"Assigning \"{name + '_' + mesh_name}\" to {lod_collection} group")
-                #     lod_collection.objects.link(mesh_obj)
-
-                # else:
                 collection.objects.link(mesh_obj)
+
                 if armature:
                     modifier = mesh_obj.modifiers.new(
                         type="ARMATURE", name="Armature")
@@ -189,8 +168,6 @@ class ValveModel:
                 for n, uv_layer in enumerate(uv_layers.values()):
                     mesh.uv_layers.new()
                     uv_data = mesh.uv_layers[n].data
-                    # print(f"Layer {n} len: {len(uv_layer)}")
-                    # if uv_layer:
                     for i in range(len(uv_data)):
                         u = uv_layer[mesh.loops[i].vertex_index]
                         if invert_uv:
@@ -227,7 +204,7 @@ class ValveModel:
                     bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
                     if bundle_id != -1:
                         for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
-                            print(f"Importing {flex_name} {n}/{len(morph_block.flex_data)}")
+                            print(f"Importing {flex_name} {n+1}/{len(morph_block.flex_data)}")
                             if flex_name is None:
                                 continue
                             shape = mesh_obj.shape_key_add(name=flex_name[:63])
@@ -246,18 +223,6 @@ class ValveModel:
 
     # noinspection PyUnresolvedReferences
     def build_armature(self, top_collection: bpy.types.Collection):
-        if self.reuse_content and bpy.data.armatures.get(self.name + "_ARM_DATA"):
-            armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.get(self.name + "_ARM_DATA"))
-
-            top_collection.objects.link(armature_obj)
-            bpy.ops.object.select_all(action="DESELECT")
-            armature_obj.select_set(True)
-            bpy.context.view_layer.objects.active = armature_obj
-
-            armature_obj.rotation_euler = Euler([math.radians(180), 0, math.radians(90)])
-            bpy.ops.object.mode_set(mode='OBJECT')
-            return armature_obj
-
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']

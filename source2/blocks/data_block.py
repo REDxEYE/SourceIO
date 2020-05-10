@@ -1,5 +1,5 @@
 from .dummy import DataBlock
-from .binary_key_value import BinaryKeyValue
+from ..utils.binary_key_value import BinaryKeyValue
 
 
 class DATA(DataBlock):

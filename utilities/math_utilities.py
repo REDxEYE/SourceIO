@@ -1,4 +1,7 @@
 import math
+from typing import List, Union
+
+import numpy as np
 
 
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
@@ -17,6 +20,15 @@ def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
         translate_y = m3
         angle_z = (math.atan2(translate_y, translate_x))
     return angle_x, angle_y, angle_z
+
+
+def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
+    # XYZ -> ZXY
+    return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]), math.radians(source2_rotation[1])]
+
+
+def parse_source2_hammer_vector(string: str) -> np.ndarray:
+    return np.array([float(x) for x in string.split(" ")])
 
 
 def vector_i_transform(input: 'SourceVector',

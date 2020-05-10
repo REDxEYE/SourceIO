@@ -32,7 +32,7 @@ class ValveFile:
     def read_block_info(self):
         self.info_blocks.clear()
         self.data_blocks.clear()
-        self.reader.seek(4*4)
+        self.reader.seek(4 * 4)
         for n in range(self.header.block_count):
             block_info = InfoBlock()
             block_info.read(self.reader)
@@ -68,6 +68,7 @@ class ValveFile:
                 return None
             block = self.data_blocks[block_id]
             if not block.parsed:
+                block.reader.seek(block.info_block.absolute_offset)
                 block.read()
                 block.parsed = True
             return block
