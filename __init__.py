@@ -187,6 +187,7 @@ if not NO_BPY:
                     world.load_static()
                 if self.load_dynamic:
                     world.load_entities(self.use_placeholders)
+            print("Hey @LifeForLife, everything is imported as you wanted!!")
             return {'FINISHED'}
 
         def invoke(self, context, event):
