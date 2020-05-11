@@ -39,11 +39,6 @@ class ValveFile:
             self.info_blocks.append(block_info)
             self.data_blocks.append(None)
 
-        for block_info in self.info_blocks:
-            if block_info.block_name == 'NTRO':
-                block_class = self.get_data_block_class(block_info.block_name)
-                block = block_class(self, block_info)
-                self.data_blocks[self.info_blocks.index(block_info)] = block
         for i in range(len(self.info_blocks)):
             block_info = self.info_blocks[i]
             if self.data_blocks[i] is not None:
@@ -68,7 +63,7 @@ class ValveFile:
                 return None
             block = self.data_blocks[block_id]
             if not block.parsed:
-                block.reader.seek(block.info_block.absolute_offset)
+                block.reader.seek(0)
                 block.read()
                 block.parsed = True
             return block
@@ -101,7 +96,7 @@ class ValveFile:
             "CTRL": DATA,
             "MBUF": VBIB,
             "MDAT": DATA,
-            # "PHYS": DATA,
+            "PHYS": DATA,
             "ASEQ": DATA,
             "AGRP": DATA,
             "ANIM": DATA,

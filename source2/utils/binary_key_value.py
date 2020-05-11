@@ -2,6 +2,7 @@ from enum import IntEnum
 
 from ...byte_io_mdl import ByteIO
 from ..compiled_file_header import InfoBlock
+from ..common import SourceVector, SourceVector4D, SourceVector2D
 
 try:
     from ..utils.PySourceIOUtils import lz4_decompress as uncompress
@@ -11,7 +12,6 @@ except ImportError:
 
     def uncompress(a, _b, _c):
         return uncompress_tmp(a)
-from SourceIO.source2.common import SourceVector, SourceVector4D, SourceVector2D
 
 
 class KVFlag(IntEnum):

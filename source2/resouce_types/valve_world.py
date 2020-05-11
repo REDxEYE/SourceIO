@@ -111,7 +111,9 @@ class ValveWorld:
                 obj.rotation_euler = prop_rotation
                 obj.scale = prop_scale * self.scale
         elif use_placeholders:
-            prop_custom_data = {'prop_path': prop_data['model']}
+            prop_custom_data = {'prop_path': prop_data['model'],
+                                'parent_path': str(parent_file.filepath.parent),
+                                'type': collection_name}
 
             self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
                                     prop_custom_data,
@@ -119,7 +121,9 @@ class ValveWorld:
         else:
             print("Missing", prop_data['model'], "model")
             print("\tCreating placeholder!")
-            prop_custom_data = {'prop_path': prop_data['model']}
+            prop_custom_data = {'prop_path': prop_data['model'],
+                                'parent_path': str(parent_file.filepath.parent),
+                                'type': collection_name}
 
             self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
                                     prop_custom_data,

@@ -45,6 +45,9 @@ class MRPH(DATA):
                         transformed_data = np.multiply(transformed_data, vec_range)
                         transformed_data = np.add(transformed_data, vec_offset)
                         transformed_data = np.round(transformed_data, 6)
+                        if np.sum(transformed_data) == 0:
+                            print(f"Skipping {morph_datas['m_name']}")
+                            continue
 
                         self.flex_data[morph_datas['m_name']][c, dst_y: dst_y + rect_height, dst_x: dst_x + rect_width,
                         :] = transformed_data

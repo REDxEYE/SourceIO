@@ -60,6 +60,7 @@ class ValveMaterial:
 
                     else:
                         link(tex.outputs["Color"], shader_node.inputs['Base Color'])
+
                 if textures.get("g_tNormal", False):
                     tex = nodes.new('ShaderNodeTexImage')
                     tex.image = bpy.data.images.get(textures.get('g_tNormal')[1], "NONE")

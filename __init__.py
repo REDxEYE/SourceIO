@@ -24,13 +24,14 @@ if not NO_BPY:
     from .source1.vtf.import_vtf import import_texture
     from .source1.dmx.dmx import Session
     from .source1.bsp.import_bsp import BSP
+    from .source1.vtf.vmt import VMT
+
+    from .utilities.path_utilities import backwalk_file_resolver
 
     from .source2.resouce_types.valve_model import ValveModel
     from .source2.resouce_types.valve_texture import ValveTexture
     from .source2.resouce_types.valve_material import ValveMaterial
     from .source2.resouce_types.valve_world import ValveWorld
-
-    from .source1.vtf.vmt import VMT
 
 
     class SourceIOPreferences(bpy.types.AddonPreferences):
@@ -226,7 +227,7 @@ if not NO_BPY:
 
     class VTEXImporter_OT_operator(bpy.types.Operator):
         """Load Source Engine VTF texture"""
-        bl_idname = "import_texture.vtex"
+        bl_idname = "source_io.vtex"
         bl_label = "Import VTEX"
         bl_options = {'UNDO'}
 
@@ -249,6 +250,63 @@ if not NO_BPY:
             wm = context.window_manager
             wm.fileselect_add(self)
             return {'RUNNING_MODAL'}
+
+
+    class LoadPlaceholder_OT_operator(bpy.types.Operator):
+        bl_idname = "source_io.load_placeholder"
+        bl_label = "Load placeholder"
+        bl_options = {'UNDO'}
+
+        def execute(self, context):
+            for obj in context.selected_objects:
+
+                if obj.get("entity_data", None):
+                    custom_prop_data = obj['entity_data']
+
+                    model_path = backwalk_file_resolver(custom_prop_data['parent_path'],
+                                                        Path(custom_prop_data['prop_path'] + "_c"))
+                    if model_path:
+
+                        collection = bpy.data.collections.get(custom_prop_data['type'],
+                                                              None) or bpy.data.collections.new(
+                            name=custom_prop_data['type'])
+                        try:
+                            bpy.context.scene.collection.children.link(collection)
+                        except:
+                            pass
+
+                        model = ValveModel(model_path)
+                        model.load_mesh(True, parent_collection=collection)
+                        for ob in model.objects:  # type:bpy.types.Object
+                            ob.location = obj.location
+                            ob.rotation_mode = "XYZ"
+                            ob.rotation_euler = obj.rotation_euler
+                            ob.scale = obj.scale
+                        bpy.data.objects.remove(obj)
+                    else:
+                        self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}_c' not found!")
+            return {'FINISHED'}
+
+
+    class SourceIOUtils_PT_panel(bpy.types.Panel):
+        bl_label = "SourceIO utils"
+        bl_idname = "source_io.utils"
+        bl_space_type = "VIEW_3D"
+        bl_region_type = "UI"
+        bl_category = "SourceIO"
+
+        @classmethod
+        def poll(cls, context):
+            obj = context.active_object  # type:bpy.types.Object
+            if obj.type == "EMPTY" or obj.type == 'MESH':
+                return True
+            return False
+
+        def draw(self, context):
+            self.layout.label(text="SourceIO stuff")
+            obj = context.active_object  # type:bpy.types.Object
+            if obj.get("entity_data", None):
+                self.layout.operator('source_io.load_placeholder')
 
 
     class DMXImporter_OT_operator(bpy.types.Operator):
@@ -450,7 +508,7 @@ if not NO_BPY:
     classes = (MDLImporter_OT_operator, BSPImporter_OT_operator, DMXImporter_OT_operator,
                VTFExport_OT_operator, VTFImporter_OT_operator,
                VMDLImporter_OT_operator, VTEXImporter_OT_operator, VMATImporter_OT_operator, VWRLDImporter_OT_operator,
-               SourceIOPreferences, SourceIO_MT_Menu)
+               SourceIOPreferences, SourceIO_MT_Menu, SourceIOUtils_PT_panel, LoadPlaceholder_OT_operator)
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
