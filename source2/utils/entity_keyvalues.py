@@ -22,7 +22,7 @@ class EntityKeyValues:
         key = self.key_lookup.get(key)
         if use_string:
             tmp = reader.read_ascii_string()
-            assert key == tmp, f"Add this string ->{tmp} to entitykeyvalues_list.txt"
+            # assert key == tmp, f"Add this string ->{tmp} to entitykeyvalues_list.txt"
             key = tmp
         value_type = reader.read_uint32()
 
