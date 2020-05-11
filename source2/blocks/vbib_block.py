@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import List
+from typing import List, Dict
 import numpy as np
 
 try:
@@ -158,7 +158,8 @@ class VertexBuffer:
         self.total_size = 0
         self.attributes = []  # type:List[VertexAttribute]
         self.buffer = ByteIO()  # type: ByteIO
-        self.vertexes = []  # type: List[SourceVertex]
+        # self.vertexes = []  # type: List[SourceVertex]
+        self.vertexes = {}  # type: Dict[str,List]
         self.vertex_struct = ''
 
     def __repr__(self):
@@ -203,40 +204,32 @@ class VertexBuffer:
         self.read_buffer()
 
     def read_buffer(self):
-        for n in range(self.vertex_count):
-            vertex = SourceVertex()
+        for attrib in self.attributes:
+            self.vertexes[attrib.name] = []
+        for _ in range(self.vertex_count):
             vertex_data = self.buffer.read_fmt(self.vertex_struct)
             offset = 0
             for attrib in self.attributes:
                 attrib_len = attrib.element_count
                 if attrib.name == 'POSITION':
-                    vertex.position = slice(vertex_data, offset, attrib_len)
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif 'TEXCOORD' in attrib.name:
-                    if "_" in attrib.name:
-                        t_id = int(attrib.name.split("_")[-1])
-                    else:
-                        t_id = 0
-                    if vertex.uvs.get(t_id, None) is None:
-                        vertex.uvs[t_id] = []
-
-                    vertex.uvs[t_id] = slice(vertex_data, offset, attrib_len)
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif attrib.name == 'COLOR':
-                    vertex.color = slice(vertex_data, offset, attrib_len)
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif attrib.name == 'NORMAL':
-                    vertex.normal = slice(vertex_data, offset, attrib_len)
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif attrib.name == 'TANGENT':
-                    vertex.tangent = slice(vertex_data, offset, attrib_len)
-                elif attrib.name == 'texcoord':
-                    vertex.lightmap = slice(vertex_data, offset, attrib_len)
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
+                elif 'texcoord' in attrib.name:
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif attrib.name == "BLENDINDICES":
-                    vertex.bone_weight.bone = slice(vertex_data, offset, attrib_len)
-                    vertex.bone_weight.boneCount = len(vertex.bone_weight.bone)
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif attrib.name == "BLENDWEIGHT":
-                    vertex.bone_weight.weight = np.divide(slice(vertex_data, offset, attrib_len), 255)
+                    self.vertexes[attrib.name].append(np.divide(slice(vertex_data, offset, attrib_len), 255))
                 else:
                     print(f"UNKNOWN ATTRIBUTE {attrib.name}!!!!")
                 offset += attrib_len
-            self.vertexes.append(vertex)
 
 
 class VertexAttribute:

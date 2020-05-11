@@ -152,6 +152,7 @@ class ValveWorld:
 
         origin = parse_source2_hammer_vector(light_data['origin'])
         orientation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(light_data['angles']))
+        orientation[1]=orientation[1]-math.radians(90)
         scale_vec = parse_source2_hammer_vector(light_data['scales'])
 
         color = np.divide(light_data['color'], 255.0)

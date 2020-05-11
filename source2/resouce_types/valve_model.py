@@ -8,6 +8,7 @@ from mathutils import Vector, Matrix, Quaternion, Euler
 
 from ..common import SourceVector, SourceVertex
 from ..source2 import ValveFile
+import numpy as np
 
 
 class ValveModel:
@@ -141,39 +142,33 @@ class ValveModel:
 
                 mesh = mesh_obj.data  # type:bpy.types.Mesh
 
-                vertexes = []
-                uv_layers = {}
-                normals = []
+                used_range = slice(base_vertex, base_vertex + vertex_count)
+                used_vertices = vertex_buffer.vertexes['POSITION'][used_range]
+                normals = vertex_buffer.vertexes['NORMAL'][used_range]
 
-                used_vertices = vertex_buffer.vertexes[base_vertex:base_vertex + vertex_count]
+                need_to_convert_normals = type(normals[0][0]) is int
+                if need_to_convert_normals:
+                    normals = [SourceVector.convert(*x[:2]).as_list for x in normals]
 
-                need_to_convert_normals = type(used_vertices[0].normal[0]) is int
-
-                for vertex in used_vertices:
-                    vertexes.append(vertex.position)
-                    for uv_layer_id, uv_data in vertex.uvs.items():
-                        if len(uv_data) != 2:
-                            continue
-                        if uv_layers.get(uv_layer_id, None) is None:
-                            uv_layers[uv_layer_id] = []
-                        uv_layers[uv_layer_id].append(uv_data)
-                    if need_to_convert_normals:
-                        normals.append(SourceVector.convert(*vertex.normal[:2]).as_list)
-                    else:
-                        normals.append(vertex.normal)
-
-                mesh.from_pydata(vertexes, [], index_buffer.indexes[start_index:start_index + index_count])
+                mesh.from_pydata(used_vertices, [], index_buffer.indexes[start_index:start_index + index_count])
                 mesh.update()
-
-                for n, uv_layer in enumerate(uv_layers.values()):
-                    mesh.uv_layers.new()
-                    uv_data = mesh.uv_layers[n].data
-                    for i in range(len(uv_data)):
-                        u = uv_layer[mesh.loops[i].vertex_index]
+                n = 0
+                for attrib_name, attrib_data in vertex_buffer.vertexes.items():
+                    if 'TEXCOORD' in attrib_name.upper():
+                        if len(attrib_data[0]) != 2:
+                            continue
+                        uv_layer = np.array(attrib_data)
                         if invert_uv:
-                            uv_data[i].uv = [u[0], 1 - u[1]]
-                        else:
-                            uv_data[i].uv = u
+                            tmp1 = uv_layer.reshape((-1))
+                            v = tmp1[1::2]
+                            tmp1[1::2] = np.subtract(np.ones_like(v), v)
+                            uv_layer = tmp1.reshape((-1, 2))
+                        mesh.uv_layers.new()
+                        uv_data = mesh.uv_layers[n].data
+                        mesh.uv_layers[n].name = attrib_name
+                        for i in range(len(uv_data)):
+                            uv_data[i].uv = uv_layer[used_range][mesh.loops[i].vertex_index]
+                        n += 1
                 if armature:
                     model_skeleton = data_block.data['m_modelSkeleton']
                     bone_names = model_skeleton['m_boneName']
@@ -182,16 +177,22 @@ class ValveModel:
                     remaps_start = remap_table_starts[mesh_index]
                     new_bone_names = [bone.replace("$", 'PHYS_') for bone in bone_names]
                     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
-                    for n, vertex in enumerate(used_vertices):
-                        if len(vertex.bone_weight.weight) == 0:
-                            for bone_index in vertex.bone_weight.bone:
-                                bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
-                                weight_groups[bone_name].add([n], 1.0, 'REPLACE')
-                        else:
-                            for bone_index, weight in zip(vertex.bone_weight.bone, vertex.bone_weight.weight):
+
+                    weights_array = vertex_buffer.vertexes.get("BLENDWEIGHT", [])
+                    indices_array = vertex_buffer.vertexes.get("BLENDINDICES", [])
+
+                    for n, bone_indices in enumerate(indices_array):
+                        if len(weights_array) > 0:
+                            weights = weights_array[n]
+                            for bone_index, weight in zip(bone_indices, weights):
                                 if weight > 0:
                                     bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
+
+                        else:
+                            for bone_index in bone_indices:
+                                bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
+                                weight_groups[bone_name].add([n], 1.0, 'REPLACE')
 
                 bpy.ops.object.select_all(action="DESELECT")
                 mesh_obj.select_set(True)
@@ -204,7 +205,7 @@ class ValveModel:
                     bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
                     if bundle_id != -1:
                         for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
-                            print(f"Importing {flex_name} {n+1}/{len(morph_block.flex_data)}")
+                            print(f"Importing {flex_name} {n + 1}/{len(morph_block.flex_data)}")
                             if flex_name is None:
                                 continue
                             shape = mesh_obj.shape_key_add(name=flex_name[:63])
