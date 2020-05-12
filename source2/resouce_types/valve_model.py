@@ -6,7 +6,7 @@ import bpy
 import math
 from mathutils import Vector, Matrix, Quaternion, Euler
 
-from ..common import SourceVector, SourceVertex
+from ..common import SourceVector
 from ..source2 import ValveFile
 import numpy as np
 
@@ -112,7 +112,6 @@ class ValveModel:
             flex_trunc = bpy.data.texts.get(f"{name}_flexes", None) or bpy.data.texts.new(f"{name}_flexes")
             for flex in morph_block.data['m_morphDatas']:
                 if flex['m_name']:
-                    # if len(flex['m_name']) > 63:
                     flex_trunc.write(f"{flex['m_name'][:63]}->{flex['m_name']}\n")
 
         for scene in mesh_data_block.data["m_sceneObjects"]:
@@ -208,17 +207,12 @@ class ValveModel:
                             print(f"Importing {flex_name} {n + 1}/{len(morph_block.flex_data)}")
                             if flex_name is None:
                                 continue
-                            shape = mesh_obj.shape_key_add(name=flex_name[:63])
+                            shape = mesh_obj.shape_key_add(name=flex_name)
                             for vert_id, flex_vert in enumerate(
                                     flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
                                 vertex = mesh_obj.data.vertices[vert_id]
-                                fx, fy, fz, speed = flex_vert
 
-                                shape.data[vert_id].co = (
-                                    fx + vertex.co[0],
-                                    fy + vertex.co[1],
-                                    fz + vertex.co[2]
-                                )
+                                shape.data[vert_id].co = np.add(flex_vert[:3], vertex.co)
                             pass
                 global_vertex_offset += vertex_count
 
@@ -232,6 +226,8 @@ class ValveModel:
         bone_parents = model_skeleton['m_nParent']
 
         armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.new(self.name + "_ARM_DATA"))
+        armature_obj.show_in_front = True
+
         top_collection.objects.link(armature_obj)
         bpy.ops.object.select_all(action="DESELECT")
         armature_obj.select_set(True)

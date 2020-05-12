@@ -1,6 +1,7 @@
 import importlib
 import math
 from enum import IntEnum
+import numpy as np
 
 from ..byte_io_mdl import ByteIO
 
@@ -112,7 +113,6 @@ class SourceVector:
 
     @staticmethod
     def convert(x, y):
-        # print('before',self)
         out_normal = SourceVector()
         z_sing = -math.floor((x - 128) / 128)
         t_sing = -math.floor((y - 128) / 128)
