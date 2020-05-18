@@ -58,13 +58,18 @@ class ValveWorld:
         world_node_file.read_block_info()
         world_node_file.check_external_resources()
         world_data = world_node_file.get_data_block(block_name="DATA")[0]
+        collection = bpy.data.collections.get("STATIC", None) or bpy.data.collections.new(name="STATIC")
+        try:
+            bpy.context.scene.collection.children.link(collection)
+        except:
+            pass
         for n, static_object in enumerate(world_data.data['m_sceneObjects']):
             model_file = world_node_file.get_child_resource(static_object['m_renderableModel'])
             if model_file is not None:
                 print(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_file.filepath.stem} mesh")
                 model = ValveModel("", model_file)
                 to_remove = Path(node_path)
-                model.load_mesh(self.invert_uv, to_remove.stem + "_")
+                model.load_mesh(self.invert_uv, to_remove.stem + "_", collection)
                 mat_rows = static_object['m_vTransform']  # type:List[SourceVector4D]
                 transform_mat = Matrix(
                     [mat_rows[0].as_list, mat_rows[1].as_list, mat_rows[2].as_list, [0, 0, 0, 1]])
@@ -104,7 +109,7 @@ class ValveWorld:
             pass
         if model_path and not use_placeholders:
             model = ValveModel(model_path)
-            model.load_mesh(self.invert_uv, parent_collection=collection)
+            model.load_mesh(self.invert_uv, parent_collection=collection, skin_name=prop_data.get("skin", "default"))
             for obj in model.objects:
                 obj.location = prop_location * self.scale
                 obj.rotation_mode = 'XYZ'
@@ -113,6 +118,7 @@ class ValveWorld:
         elif use_placeholders:
             prop_custom_data = {'prop_path': prop_data['model'],
                                 'parent_path': str(parent_file.filepath.parent),
+                                'skin_group_name': prop_data.get("skin", "default"),
                                 'type': collection_name}
 
             self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
@@ -123,6 +129,7 @@ class ValveWorld:
             print("\tCreating placeholder!")
             prop_custom_data = {'prop_path': prop_data['model'],
                                 'parent_path': str(parent_file.filepath.parent),
+                                'skin_group_name': prop_data.get("skin", "default"),
                                 'type': collection_name}
 
             self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
@@ -152,7 +159,7 @@ class ValveWorld:
 
         origin = parse_source2_hammer_vector(light_data['origin'])
         orientation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(light_data['angles']))
-        orientation[1]=orientation[1]-math.radians(90)
+        #orientation[1] = orientation[1] - math.radians(90)
         scale_vec = parse_source2_hammer_vector(light_data['scales'])
 
         color = np.divide(light_data['color'], 255.0)
@@ -160,10 +167,14 @@ class ValveWorld:
         loc = np.multiply(origin, self.scale)
         lamp = bpy.data.objects.new(name or "LAMP", bpy.data.lights.new((name or "LAMP") + "_DATA", lamp_type))
         lamp_data = lamp.data
-        lamp_data.energy = brightness * 1000 * scale_vec[0] * self.scale
+        lamp_data.energy = brightness * 10000 * scale_vec[0] * self.scale
         lamp_data.color = color[:3]
         lamp.rotation_mode = 'XYZ'
         lamp.rotation_euler = orientation
         lamp.location = loc
+        if lamp_type == "POINT":
+            lamp_data.shadow_soft_size = light_data.get("lightsourceradius", 0.25)
+        if lamp_type == "SPOT":
+            lamp_data.spot_size = math.radians(light_data.get("outerconeangle", 45))
 
         light_collection.objects.link(lamp)

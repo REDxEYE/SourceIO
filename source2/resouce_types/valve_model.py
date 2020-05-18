@@ -1,6 +1,7 @@
 import os.path
 import random
 from typing import List
+from pathlib import Path
 
 import bpy
 import math
@@ -27,7 +28,9 @@ class ValveModel:
         self.objects = []
 
     # noinspection PyUnresolvedReferences
-    def load_mesh(self, invert_uv, strip_from_name='', parent_collection: bpy.types.Collection = None):
+    def load_mesh(self, invert_uv, strip_from_name='',
+                  parent_collection: bpy.types.Collection = None,
+                  skin_name="default"):
         self.strip_from_name = strip_from_name
         name = self.name.replace(self.strip_from_name, "")
         if bpy.data.collections.get(name):
@@ -49,9 +52,9 @@ class ValveModel:
         else:
             armature = None
 
-        self.build_meshes(main_collection, armature, invert_uv)
+        self.build_meshes(main_collection, armature, invert_uv, skin_name)
 
-    def build_meshes(self, collection, armature, invert_uv: bool = True):
+    def build_meshes(self, collection, armature, invert_uv: bool = True, skin_name="default"):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
         use_external_meshes = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
@@ -77,7 +80,7 @@ class ValveModel:
                         morph_block = morph.get_data_block(block_name="DATA")[0]
                     self.build_mesh(name, armature, collection,
                                     mesh_data_block, buffer_block, data_block, morph_block,
-                                    invert_uv, mesh_index)
+                                    invert_uv, mesh_index, skin_name=skin_name)
             pass
         else:
             control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
@@ -99,13 +102,13 @@ class ValveModel:
 
                 self.build_mesh(name, armature, collection,
                                 mesh_data_block, buffer_block, data_block, morph_block,
-                                invert_uv, mesh_index)
+                                invert_uv, mesh_index, skin_name=skin_name)
 
     # noinspection PyTypeChecker,PyUnresolvedReferences
     def build_mesh(self, name, armature, collection,
                    mesh_data_block, buffer_block, data_block, morph_block,
                    invert_uv,
-                   mesh_index):
+                   mesh_index, skin_name="default"):
 
         morphs_available = morph_block is not None and morph_block.read_morphs()
         if morphs_available:
@@ -124,10 +127,24 @@ class ValveModel:
                 index_count = draw_call['m_nIndexCount'] // 3
                 index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
                 vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
-                mesh_name = draw_call['m_material'].split("/")[-1].split(".")[0]
+                material_name = Path(draw_call['m_material']).stem
 
-                mesh_obj = bpy.data.objects.new(name + "_" + mesh_name,
-                                                bpy.data.meshes.new(name + "_" + mesh_name + "_DATA"))
+                mesh_obj = bpy.data.objects.new(name + "_" + material_name,
+                                                bpy.data.meshes.new(name + "_" + material_name + "_DATA"))
+                if data_block.data['m_materialGroups']:
+                    default_skin = data_block.data['m_materialGroups'][0]
+                    mat_id = default_skin['m_materials'].index(draw_call['m_material'])
+                    if mat_id != -1:
+                        mat_groups = {}
+                        for skin_group in data_block.data['m_materialGroups']:
+                            mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
+
+                        mesh_obj['active_skin'] = skin_name
+                        mesh_obj['skin_groups'] = mat_groups
+
+                        material_name = Path(mat_groups[skin_name]).stem
+                mesh = mesh_obj.data  # type:bpy.types.Mesh
+
                 self.objects.append(mesh_obj)
                 collection.objects.link(mesh_obj)
 
@@ -136,17 +153,14 @@ class ValveModel:
                         type="ARMATURE", name="Armature")
                     modifier.object = armature
 
-                print("Building mesh", name, mesh_name)
-                self.get_material(mesh_name, mesh_obj)
-
-                mesh = mesh_obj.data  # type:bpy.types.Mesh
+                self.get_material(material_name, mesh_obj)
 
                 used_range = slice(base_vertex, base_vertex + vertex_count)
                 used_vertices = vertex_buffer.vertexes['POSITION'][used_range]
                 normals = vertex_buffer.vertexes['NORMAL'][used_range]
 
-                need_to_convert_normals = type(normals[0][0]) is int
-                if need_to_convert_normals:
+                if type(normals[0][0]) is int:
+                    # normals = SourceVector.convert_array(normals)
                     normals = [SourceVector.convert(*x[:2]).as_list for x in normals]
 
                 mesh.from_pydata(used_vertices, [], index_buffer.indexes[start_index:start_index + index_count])
@@ -199,7 +213,7 @@ class ValveModel:
                 bpy.ops.object.shade_smooth()
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
-                if morphs_available:
+                if morphs_available and 1:
                     mesh_obj.shape_key_add(name='base')
                     bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
                     if bundle_id != -1:

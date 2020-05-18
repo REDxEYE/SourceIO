@@ -207,7 +207,7 @@ class VertexBuffer:
         for attrib in self.attributes:
             self.vertexes[attrib.name] = []
         for _ in range(self.vertex_count):
-            vertex_data = self.buffer.read_fmt(self.vertex_struct)
+            vertex_data = list(self.buffer.read_fmt(self.vertex_struct))
             offset = 0
             for attrib in self.attributes:
                 attrib_len = attrib.element_count
@@ -226,10 +226,20 @@ class VertexBuffer:
                 elif attrib.name == "BLENDINDICES":
                     self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 elif attrib.name == "BLENDWEIGHT":
-                    self.vertexes[attrib.name].append(np.divide(slice(vertex_data, offset, attrib_len), 255))
+                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
                 else:
                     print(f"UNKNOWN ATTRIBUTE {attrib.name}!!!!")
                 offset += attrib_len
+        for attrib in self.attributes:
+            attrib_array = self.vertexes[attrib.name]
+            # if "UNORM" in attrib.format.name:
+            #     attrib_array = list(np.array(attrib_array) / 255.0)
+            # elif "SNORM" in attrib.format.name:
+            #     attrib_array = list(
+            #         np.array(attrib_array) / 128.0)
+            if attrib.name=="BLENDWEIGHT":
+                attrib_array = list(np.array(attrib_array) / 255.0)
+            self.vertexes[attrib.name] = attrib_array
 
 
 class VertexAttribute:

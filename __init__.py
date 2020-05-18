@@ -184,7 +184,11 @@ if not NO_BPY:
                 print(f"Loading {n}/{len(self.files)}")
                 world = ValveWorld(str(directory / file.name), self.invert_uv, self.scale)
                 if self.load_static:
-                    world.load_static()
+                    try:
+                        world.load_static()
+                    except KeyboardInterrupt:
+                        print("Skipped static assets")
+                        pass
                 if self.load_dynamic:
                     world.load_entities(self.use_placeholders)
             print("Hey @LifeForLife, everything is imported as you wanted!!")
@@ -215,7 +219,7 @@ if not NO_BPY:
             else:
                 directory = Path(self.filepath).absolute()
             for n, file in enumerate(self.files):
-                print(f"Loading {n}/{len(self.files)}")
+                print(f"Loading {n + 1}/{len(self.files)}")
                 material = ValveMaterial(str(directory / file.name))
                 material.load(self.flip)
             return {'FINISHED'}
@@ -277,7 +281,8 @@ if not NO_BPY:
                             pass
 
                         model = ValveModel(model_path)
-                        model.load_mesh(True, parent_collection=collection)
+                        model.load_mesh(True, parent_collection=collection,
+                                        skin_name=custom_prop_data.get("skin_id", 'default'))
                         for ob in model.objects:  # type:bpy.types.Object
                             ob.location = obj.location
                             ob.rotation_mode = "XYZ"
@@ -286,6 +291,33 @@ if not NO_BPY:
                         bpy.data.objects.remove(obj)
                     else:
                         self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}_c' not found!")
+            return {'FINISHED'}
+
+
+    class ChangeSkin_OT_operator(bpy.types.Operator):
+        bl_idname = "source_io.select_skin"
+        bl_label = "Change skin"
+        bl_options = {'UNDO'}
+
+        skin_name: bpy.props.StringProperty(name="skin_name", default="default")
+
+        def execute(self, context):
+            obj = context.active_object
+            skin_material = obj['skin_groups'][self.skin_name]
+            current_material = obj['skin_groups'][obj['active_skin']]
+
+            mat_name = Path(skin_material).stem
+            current_mat_name = Path(current_material).stem
+            mat = bpy.data.materials.get(mat_name, None) or bpy.data.materials.new(name=mat_name)
+
+            for n, obj_mat in enumerate(obj.data.materials):
+                if obj_mat.name == current_mat_name:
+                    print(obj_mat.name, "->", mat.name)
+                    obj.data.materials[n] = mat
+                    break
+
+            obj['active_skin'] = self.skin_name
+
             return {'FINISHED'}
 
 
@@ -308,6 +340,15 @@ if not NO_BPY:
             obj = context.active_object  # type:bpy.types.Object
             if obj.get("entity_data", None):
                 self.layout.operator('source_io.load_placeholder')
+            if obj.get("skin_groups", None):
+                self.layout.label(text="Skins")
+                box = self.layout.box()
+                for skin, _ in obj['skin_groups'].items():
+                    row = box.row()
+                    op = row.operator('source_io.select_skin', text=skin)
+                    op.skin_name = skin
+                    if skin == obj['active_skin']:
+                        row.enabled = False
 
 
     class DMXImporter_OT_operator(bpy.types.Operator):
@@ -509,7 +550,9 @@ if not NO_BPY:
     classes = (MDLImporter_OT_operator, BSPImporter_OT_operator, DMXImporter_OT_operator,
                VTFExport_OT_operator, VTFImporter_OT_operator,
                VMDLImporter_OT_operator, VTEXImporter_OT_operator, VMATImporter_OT_operator, VWRLDImporter_OT_operator,
-               SourceIOPreferences, SourceIO_MT_Menu, SourceIOUtils_PT_panel, LoadPlaceholder_OT_operator)
+               SourceIOPreferences, SourceIO_MT_Menu, SourceIOUtils_PT_panel, LoadPlaceholder_OT_operator,
+               ChangeSkin_OT_operator)
+
     try:
         register_, unregister_ = bpy.utils.register_classes_factory(classes)
     except:
