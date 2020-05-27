@@ -211,12 +211,17 @@ class ByteIO:
     def read_from_offset(self, offset, reader, **reader_args):
         if offset > self.size():
             raise OffsetOutOfBounds()
-        # curr_offset = self.tell()
         with self.save_current_pos():
             self.seek(offset, io.SEEK_SET)
             ret = reader(**reader_args)
-        # self.seek(curr_offset, io.SEEK_SET)
         return ret
+
+    def read_source2_string(self):
+        entry = self.tell()
+        offset = self.read_int32()
+        with self.save_current_pos():
+            self.seek(entry + offset)
+            return self.read_ascii_string()
 
     # ------------ WRITE SECTION ------------ #
 

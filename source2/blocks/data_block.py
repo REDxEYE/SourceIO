@@ -26,4 +26,3 @@ class DATA(DataBlock):
 
                 struct = ntro.get_struct_by_name(struct_name[self.info_block.block_name])
                 self.data = struct.read_struct(reader)
-        self.empty = False

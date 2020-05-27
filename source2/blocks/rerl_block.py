@@ -7,8 +7,6 @@ from .dummy import DataBlock
 class RERL(DataBlock):
     def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)
-        self.resource_entry_offset = 0
-        self.resource_count = 0
         self.resources = []  # type: List[RERLResource]
 
     def __repr__(self):
@@ -21,15 +19,14 @@ class RERL(DataBlock):
     def read(self):
         reader = self.reader
         entry = reader.tell()
-        self.resource_entry_offset = reader.read_int32()
-        self.resource_count = reader.read_int32()
+        resource_entry_offset = reader.read_int32()
+        resource_count = reader.read_int32()
         with reader.save_current_pos():
-            reader.seek(entry + self.resource_entry_offset)
-            for n in range(self.resource_count):
+            reader.seek(entry + resource_entry_offset)
+            for n in range(resource_count):
                 resource = RERLResource()
                 resource.read(reader)
                 self.resources.append(resource)
-        self.empty = False
 
 
 class RERLResource:

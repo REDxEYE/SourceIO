@@ -24,11 +24,5 @@ class REDI(DataBlock):
         reader = self.reader
         for redi_block in redi_blocks:
             block = redi_block()
-            entry = reader.tell()
-            block.offset = reader.read_int32()
-            block.size = reader.read_int32()
-            with reader.save_current_pos():
-                reader.seek(entry + block.offset)
-                block.read(reader)
-                self.blocks.append(block)
-        self.empty = False
+            block.read(reader)
+            self.blocks.append(block)

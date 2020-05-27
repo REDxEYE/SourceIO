@@ -152,8 +152,6 @@ class VertexBuffer:
         super().__init__()
         self.vertex_count = 0
         self.vertex_size = 0
-        self.attributes_offset = 0
-        self.attributes_count = 0
         self.offset = 0
         self.total_size = 0
         self.attributes = []  # type:List[VertexAttribute]
@@ -168,18 +166,18 @@ class VertexBuffer:
             buff += attrib.name + ' ' + attrib.format.name + '; '
         return '<VertexBuffer vertexes:{} ' \
                'attributes:{} vertex size:{} ' \
-               'vertex attributes: {} >'.format(self.vertex_count, self.attributes_count, self.vertex_size, buff, )
+               'vertex attributes: {} >'.format(self.vertex_count, len(self.attributes), self.vertex_size, buff, )
 
     def read(self, reader: ByteIO):
         self.vertex_count = reader.read_uint32()
         self.vertex_size = reader.read_uint32()
         entry = reader.tell()
-        self.attributes_offset = reader.read_uint32()
-        self.attributes_count = reader.read_uint32()
+        attributes_offset = reader.read_uint32()
+        attributes_count = reader.read_uint32()
         with reader.save_current_pos():
-            reader.seek(entry + self.attributes_offset)
+            reader.seek(entry + attributes_offset)
             used_names = []
-            for _ in range(self.attributes_count):
+            for _ in range(attributes_count):
                 v_attrib = VertexAttribute()
                 v_attrib.read(reader)
                 if v_attrib.name in used_names:
@@ -237,7 +235,7 @@ class VertexBuffer:
             # elif "SNORM" in attrib.format.name:
             #     attrib_array = list(
             #         np.array(attrib_array) / 128.0)
-            if attrib.name=="BLENDWEIGHT":
+            if attrib.name == "BLENDWEIGHT":
                 attrib_array = list(np.array(attrib_array) / 255.0)
             self.vertexes[attrib.name] = attrib_array
 
