@@ -27,32 +27,32 @@ class ValveModel:
         self.lod_collections = {}
         self.objects = []
 
+        self.main_collection = None
+        self.armature = None
+
     # noinspection PyUnresolvedReferences
     def load_mesh(self, invert_uv, strip_from_name='',
                   parent_collection: bpy.types.Collection = None,
                   skin_name="default"):
         self.strip_from_name = strip_from_name
         name = self.name.replace(self.strip_from_name, "")
-        if bpy.data.collections.get(name):
-            main_collection = bpy.data.collections.get(name)
+        self.main_collection = bpy.data.collections.get(name, None) or bpy.data.collections.new(name)
+        if parent_collection is not None:
+            parent_collection.children.link(main_collection)
         else:
-            main_collection = bpy.data.collections.new(name)
-            if parent_collection is not None:
-                parent_collection.children.link(main_collection)
-            else:
-                bpy.context.scene.collection.children.link(main_collection)
+            bpy.context.scene.collection.children.link(self.main_collection)
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
         if bone_names:
-            armature = self.build_armature(main_collection)
-            self.objects.append(armature)
+            self.armature = self.build_armature()
+            self.objects.append(self.armature)
         else:
             armature = None
 
-        self.build_meshes(main_collection, armature, invert_uv, skin_name)
+        self.build_meshes(self.main_collection, self.armature, invert_uv, skin_name)
 
     def build_meshes(self, collection, armature, invert_uv: bool = True, skin_name="default"):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
@@ -221,6 +221,7 @@ class ValveModel:
                             print(f"Importing {flex_name} {n + 1}/{len(morph_block.flex_data)}")
                             if flex_name is None:
                                 continue
+
                             shape = mesh_obj.shape_key_add(name=flex_name)
                             vertices = np.zeros((len(mesh.vertices) * 3,), dtype=np.float32)
                             mesh.vertices.foreach_get('co', vertices)
@@ -229,14 +230,11 @@ class ValveModel:
                                 flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:, :3],
                                 vertices)
                             shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
-                            # for bv, fv in zip(shape.data, pre_computed_data):
-                            #     bv.co = fv
 
-                            pass
                 global_vertex_offset += vertex_count
 
     # noinspection PyUnresolvedReferences
-    def build_armature(self, top_collection: bpy.types.Collection):
+    def build_armature(self):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
@@ -247,7 +245,7 @@ class ValveModel:
         armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.new(self.name + "_ARM_DATA"))
         armature_obj.show_in_front = True
 
-        top_collection.objects.link(armature_obj)
+        self.main_collection.objects.link(armature_obj)
         bpy.ops.object.select_all(action="DESELECT")
         armature_obj.select_set(True)
         bpy.context.view_layer.objects.active = armature_obj
@@ -332,3 +330,29 @@ class ValveModel:
             mat_ind = len(md.materials) - 1
 
         return mat_ind
+
+    def load_attachments(self):
+        all_attachment = {}
+        for block in self.valve_file.get_data_block(block_name="MDAT"):
+            for attachment in block.data['m_attachments']:
+                if attachment['key'] not in all_attachment:
+                    all_attachment[attachment['key']] = attachment['value']
+
+        attachment_collection = bpy.data.collections.get('ATTACHMENTS', None) or bpy.data.collections.new('ATTACHMENTS')
+        if attachment_collection.name not in self.main_collection.children:
+            self.main_collection.children.link(attachment_collection)
+        for name, attachment in all_attachment.items():
+            empty = bpy.data.objects.new(name, None)
+            attachment_collection.objects.link(empty)
+            pos = attachment['m_vInfluenceOffsets'][0].as_list
+            rot = Quaternion(attachment['m_vInfluenceRotations'][0].as_list)
+            empty.matrix_basis.identity()
+
+            if attachment['m_influenceNames'][0]:
+                empty.parent = self.armature
+                empty.parent_type = 'BONE'
+                empty.parent_bone = attachment['m_influenceNames'][0]
+            empty.location = Vector([pos[1], pos[0], pos[2]])
+            empty.rotation_quaternion = rot
+
+        pass

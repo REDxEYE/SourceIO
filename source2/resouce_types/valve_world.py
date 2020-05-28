@@ -77,6 +77,7 @@ class ValveWorld:
                     obj.matrix_world = transform_mat
                     obj.scale = Vector([self.scale, self.scale, self.scale])
                     obj.location *= self.scale
+            bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=3)
 
     def load_entity_lump(self, entity_lump, use_placeholders):
         entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]

@@ -33,6 +33,7 @@ class VMDLImporter_OT_operator(bpy.types.Operator):
             print(f"Loading {n}/{len(self.files)}")
             model = ValveModel(str(directory / file.name))
             model.load_mesh(self.invert_uv)
+            model.load_attachments()
         return {'FINISHED'}
 
     def invoke(self, context, event):

@@ -3,7 +3,7 @@ import os
 os.environ['NO_BPY']='1'
 from pathlib import Path
 
-from SourceIO.source1.mdl import SourceModel
+from SourceIO.source1.mdl.source_model import SourceModel
 
 from SourceIO.source1.mdl.qc_generator import QC
 

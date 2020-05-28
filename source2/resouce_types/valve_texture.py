@@ -25,15 +25,19 @@ class ValveTexture:
             name + '_RGB.tga',
             width=data_block.width,
             height=data_block.height)
+        image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
         image.pixels = rgb
-        image.pack()
+        image.save()
+        # image.pack()
         if alpha is not None:
-            if (np.sum(alpha[0::4])+np.sum(alpha[1::4])+np.sum(alpha[2::4])) > 10:
+            if (np.sum(alpha[0::4]) + np.sum(alpha[1::4]) + np.sum(alpha[2::4])) > 10:
                 image = bpy.data.images.new(
                     name + '_A.tga',
                     width=data_block.width,
                     height=data_block.height)
+                image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
                 image.pixels = alpha
-                image.pack()
+                image.save()
+                # image.pack()
 
         return name + '_RGB.tga', name + '_A.tga' if alpha is not None else None
