@@ -222,11 +222,20 @@ class ValveModel:
                             if flex_name is None:
                                 continue
                             shape = mesh_obj.shape_key_add(name=flex_name)
-                            for vert_id, flex_vert in enumerate(
-                                    flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
-                                vertex = mesh_obj.data.vertices[vert_id]
+                            vertices = np.zeros((len(mesh.vertices) * 3,), dtype=np.float32)
+                            mesh.vertices.foreach_get('co', vertices)
+                            vertices = vertices.reshape((-1, 3))
+                            pre_computed_data = np.add(
+                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:, :3],
+                                vertices)
+                            for bv, fv in zip(shape.data, pre_computed_data):
+                                bv.co = fv
+                            # for vert_id, flex_vert in enumerate(
+                            #         flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
+                            #     vertex = mesh_obj.data.vertices[vert_id]
+                            #
+                            #     shape.data[vert_id].co = [a + b for a, b in zip(flex_vert[:3], vertex.co)]
 
-                                shape.data[vert_id].co = np.add(flex_vert[:3], vertex.co)
                             pass
                 global_vertex_offset += vertex_count
 
