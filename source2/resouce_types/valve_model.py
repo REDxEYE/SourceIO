@@ -228,13 +228,9 @@ class ValveModel:
                             pre_computed_data = np.add(
                                 flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:, :3],
                                 vertices)
-                            for bv, fv in zip(shape.data, pre_computed_data):
-                                bv.co = fv
-                            # for vert_id, flex_vert in enumerate(
-                            #         flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count]):
-                            #     vertex = mesh_obj.data.vertices[vert_id]
-                            #
-                            #     shape.data[vert_id].co = [a + b for a, b in zip(flex_vert[:3], vertex.co)]
+                            shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
+                            # for bv, fv in zip(shape.data, pre_computed_data):
+                            #     bv.co = fv
 
                             pass
                 global_vertex_offset += vertex_count
