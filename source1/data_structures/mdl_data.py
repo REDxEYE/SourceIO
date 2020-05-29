@@ -559,7 +559,7 @@ class SourceMdlBone(SourceBase):
         self.unused = []
         self.axis_interp_bone = None  # type: SourceMdlAxisInterpBone
         self.quat_interp_bone = None  # type: SourceMdlQuatInterpBone
-        self.jiggle_bone = None  # type: SourceMdlJiggleBone
+        self.jiggle_bone = None  # type: SourceJiggleBone
         self.the_surface_prop_name = ''
         self.STUDIO_PROC_AXISINTERP = 1
         self.STUDIO_PROC_QUATINTERP = 2
@@ -619,7 +619,7 @@ class SourceMdlBone(SourceBase):
             if self.procedural_rule_type == self.STUDIO_PROC_JIGGLE:
                 with reader.save_current_pos():
                     reader.seek(self.boneOffset + self.procedural_rule_offset)
-                    self.jiggle_bone = SourceMdlJiggleBone().read(reader)
+                    self.jiggle_bone = SourceJiggleBone().read(reader)
         if self.surface_prop_name_offset != 0:
             self.the_surface_prop_name = reader.read_from_offset(self.boneOffset + self.surface_prop_name_offset,
                                                                  reader.read_ascii_string)
@@ -648,7 +648,7 @@ class JiggleBoneFlags(IntFlag):
     HAS_BASE_SPRING = 0x40
 
 
-class SourceMdlJiggleBone(SourceBase):
+class SourceJiggleBone(SourceBase):
 
     def __init__(self):
         self.flags = JiggleBoneFlags(0)

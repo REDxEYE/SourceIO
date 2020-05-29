@@ -216,6 +216,15 @@ class ByteIO:
             ret = reader(**reader_args)
         return ret
 
+    def read_source1_string(self, entry):
+        offset = self.read_int32()
+        if offset:
+            with self.save_current_pos():
+                self.seek(entry + offset)
+                return self.read_ascii_string()
+        else:
+            return ""
+
     def read_source2_string(self):
         entry = self.tell()
         offset = self.read_int32()
