@@ -29,7 +29,7 @@ def backwalk_file_resolver(current_path, file_to_find):
 
     for _ in range(len(current_path.parts) - 1):
         # print(current_path)
-        current_path = pop_path_front(current_path)
+
         second_part = file_to_find
         for _ in range(len(file_to_find.parts)):
             new_path = current_path / second_part
@@ -37,6 +37,7 @@ def backwalk_file_resolver(current_path, file_to_find):
                 return new_path
 
             second_part = pop_path_back(second_part)
+        current_path = pop_path_front(current_path)
 
 
 def case_insensitive_file_resolution(path):
@@ -55,7 +56,7 @@ def case_insensitive_file_resolution(path):
     for root, dirs, files in os.walk(directory, topdown=False):
         for name in files:
             if filename.lower() == name.lower():
-                # print(os.path.join(root, name))
+                print(os.path.join(root, name))
                 return os.path.join(root, name)
 
 

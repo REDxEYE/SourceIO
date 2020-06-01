@@ -26,14 +26,14 @@ class MDLImporter_OT_operator(bpy.types.Operator):
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
     normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
-    new_mode: BoolProperty(name="Use experimental import mode", default=False, subtype='UNSIGNED')
-    wip_mode: BoolProperty(name="Use WIP import mode", default=False, subtype='UNSIGNED')
+    #new_mode: BoolProperty(name="Use experimental import mode", default=False, subtype='UNSIGNED')
+    wip_mode: BoolProperty(name="Use new import mode", default=True, subtype='UNSIGNED')
 
     join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
 
     organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
 
-    write_qc: BoolProperty(name="Write QC file", default=True, subtype='UNSIGNED')
+    write_qc: BoolProperty(name="Write QC file WORK ONLY WITH OLD IMPORT MODE!", default=True, subtype='UNSIGNED')
 
     import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
 
@@ -47,12 +47,11 @@ class MDLImporter_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for file in self.files:
             if self.wip_mode:
-                from .source1.new_model_import import import_model as wip
-                vvd = case_insensitive_file_resolution(
-                    (directory / file.name).with_suffix('.vvd').absolute())
-                vtx = case_insensitive_file_resolution(
-                    Path(directory / (Path(file.name).stem + '.dx90.vtx')).absolute())
-                wip(directory / file.name, vvd, vtx)
+                from .source1.new_model_import import import_model
+                mdl_path = directory / file.name
+                vvd = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.vvd'))
+                vtx = backwalk_file_resolver(mdl_path.parent, Path(mdl_path.stem + '.dx90.vtx'))
+                import_model(directory / file.name, vvd, vtx)
             else:
                 importer = mdl2model.Source2Blender(str(directory / file.name),
                                                     normal_bones=self.normal_bones,
