@@ -1,9 +1,13 @@
+import struct
 from enum import IntFlag, IntEnum
 
 import numpy as np
+from typing import List
 
 from ....byte_io_mdl import ByteIO
 from ..base import Base
+from .float16 import int16_to_float
+
 
 class FlexController(Base):
     def __init__(self):
@@ -78,6 +82,7 @@ class FlexOp(Base):
         else:
             self.index = reader.read_uint32()
 
+
 class FlexControllerRemapType(IntEnum):
     ASSTHRU = 0
     # Control 0 -> ramps from 1-0 from 0->0.5. Control 1 -> ramps from 0-1
@@ -107,3 +112,83 @@ class FlexControllerUI(Base):
         self.stereo = reader.read_uint8()
         self.remap_type = FlexControllerRemapType(reader.read_uint8())
         reader.skip(2)
+
+
+class VertexAminationType(IntEnum):
+    NORMAL = 0
+    WRINKLE = 1
+
+
+class Flex(Base):
+    def __init__(self):
+        self.flex_desc_index = 0
+        self.target0 = 0.0
+        self.target1 = 0.0
+        self.target2 = 0.0
+        self.target3 = 0.0
+        self.flex_desc_partner_index = 0
+        self.vert_anim_type = 0
+        self.vertex_animations = []  # type:List[SourceMdlVertAnim]
+
+    def read(self, reader: ByteIO):
+        entry = reader.tell()
+        self.flex_desc_index, self.target0, self.target1, self.target2, self.target3 = reader.read_fmt('I4f')
+        vert_count, vert_offset, self.flex_desc_partner_index = reader.read_fmt(
+            '3I')
+        self.vert_anim_type = reader.read_uint8()
+        reader.skip(3)
+        reader.skip(6 * 4)
+
+        if vert_count > 0 and vert_offset != 0:
+            with reader.save_current_pos():
+                reader.seek(entry + vert_offset)
+                if self.vert_anim_type == VertexAminationType.WRINKLE:
+                    vert_anim_class = VertAnimWrinkle
+                else:
+                    vert_anim_class = VertAnim
+                for _ in range(vert_count):
+                    vert_anim = vert_anim_class()
+                    vert_anim.read(reader)
+                    self.vertex_animations.append(vert_anim)
+
+
+# noinspection PyBroadException
+try:
+    struct.calcsize('e')
+
+
+    def _float16(reader):
+        return reader.read_fmt("3e")
+except Exception:
+    def _float16(reader):
+        return (int16_to_float(reader.read_uint16()),
+                int16_to_float(reader.read_uint16()),
+                int16_to_float(reader.read_uint16()))
+
+
+class VertAnim(Base):
+    vert_anim_fixed_point_scale = 1 / 4096
+
+    def __init__(self):
+        self.index = 0
+        self.speed = 0
+        self.side = 0
+        self.vertex_delta = []  # 3
+        self.normal_delta = []  # 3
+
+    def read(self, reader: ByteIO):
+        self.index, self.speed, self.side = reader.read_fmt('hBB')
+        self.vertex_delta = _float16(reader)
+        self.normal_delta = _float16(reader)
+        return self
+
+
+class VertAnimWrinkle(VertAnim):
+    def __init__(self):
+        super().__init__()
+        self.wrinkle_delta = 0
+
+    def read(self, reader: ByteIO):
+        super().read(reader)
+        self.wrinkle_delta = reader.read_uint16()
+        return self

@@ -15,7 +15,7 @@ class ValveTexture:
             self.valve_file = ValveFile(vtex_path)
             self.valve_file.read_block_info()
 
-    def load(self, flip: bool):
+    def load(self, flip: bool, split_alpha: bool):
         name = Path(self.valve_file.filename).stem
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
         data_block.read_image(flip)
@@ -29,7 +29,7 @@ class ValveTexture:
         image.pixels = rgb
         image.save()
         # image.pack()
-        if alpha is not None:
+        if alpha is not None and split_alpha:
             if (np.sum(alpha[0::4]) + np.sum(alpha[1::4]) + np.sum(alpha[2::4])) > 10:
                 image = bpy.data.images.new(
                     name + '_A.tga',
@@ -40,4 +40,4 @@ class ValveTexture:
                 image.save()
                 # image.pack()
 
-        return name + '_RGB.tga', name + '_A.tga' if alpha is not None else None
+        return name + '_RGB.tga', name + '_A.tga' if (alpha is not None and not split_alpha) else None

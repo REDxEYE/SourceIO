@@ -34,16 +34,16 @@ if not NO_BPY:
                                     )
 
 
-    class SourceIOPreferences(bpy.types.AddonPreferences):
-        bl_idname = __package__
-
-        sfm_path: StringProperty(default='', name='SFM path')
-
-        def draw(self, context):
-            layout = self.layout
-            layout.label(text='Enter SFM install path:')
-            row = layout.row()
-            row.prop(self, 'sfm_path')
+    # class SourceIOPreferences(bpy.types.AddonPreferences):
+    #     bl_idname = __package__
+    #
+    #     sfm_path: StringProperty(default='', name='SFM path')
+    #
+    #     def draw(self, context):
+    #         layout = self.layout
+    #         layout.label(text='Enter SFM install path:')
+    #         row = layout.row()
+    #         row.prop(self, 'sfm_path')
 
 
     # noinspection PyPep8Naming
@@ -72,7 +72,8 @@ if not NO_BPY:
     classes = (MDLImporter_OT_operator, BSPImporter_OT_operator, DMXImporter_OT_operator,
                VTFExport_OT_operator, VTFImporter_OT_operator,
                VMDLImporter_OT_operator, VTEXImporter_OT_operator, VMATImporter_OT_operator, VWRLDImporter_OT_operator,
-               SourceIOPreferences, SourceIO_MT_Menu, SourceIOUtils_PT_panel, LoadPlaceholder_OT_operator,
+               # SourceIOPreferences,
+               SourceIO_MT_Menu, SourceIOUtils_PT_panel, LoadPlaceholder_OT_operator,
                ChangeSkin_OT_operator)
 
     try:

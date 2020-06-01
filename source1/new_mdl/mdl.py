@@ -6,8 +6,9 @@ from .base import Base
 from .structs.header import Header
 from .structs.bone import Bone
 from .structs.texture import Material
-from .structs.flex import FlexOp, FlexController, FlexRule,FlexControllerUI
+from .structs.flex import FlexController, FlexRule, FlexControllerUI
 from .structs.attachment import Attachment
+from .structs.bodygroup import BodyPart
 
 
 class Mdl(Base):
@@ -24,6 +25,8 @@ class Mdl(Base):
         self.flex_controllers = []  # type:List[FlexController]
         self.flex_ui_controllers = []  # type:List[FlexControllerUI]
         self.flex_rules = []  # type:List[FlexRule]
+
+        self.body_parts = []  # type:List[BodyPart]
 
         self.attachments = []  # type:List[Attachment]
 
@@ -76,9 +79,14 @@ class Mdl(Base):
             attachment.read(self.reader)
             self.attachments.append(attachment)
 
-
         self.reader.seek(self.header.flex_controller_ui_offset)
         for _ in range(self.header.flex_controller_ui_count):
             flex_controller = FlexControllerUI()
             flex_controller.read(self.reader)
             self.flex_ui_controllers.append(flex_controller)
+
+        self.reader.seek(self.header.body_part_offset)
+        for _ in range(self.header.body_part_count):
+            body_part = BodyPart()
+            body_part.read(self.reader)
+            self.body_parts.append(body_part)

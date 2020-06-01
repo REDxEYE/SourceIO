@@ -184,6 +184,7 @@ class Bone(Base):
                     self.procedural_rule = QuatInterpRule()
                 if self.procedural_rule_type == ProceduralBoneType.JIGGLE:
                     self.procedural_rule = JiggleRule()
-                self.procedural_rule.read(reader)
+                if self.procedural_rule:
+                    self.procedural_rule.read(reader)
         if self.get_value('mdl_version') == 44:
             reader.read_bytes(32)
