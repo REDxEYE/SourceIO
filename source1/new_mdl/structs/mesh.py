@@ -1,10 +1,7 @@
-from enum import IntFlag, IntEnum
-
-import numpy as np
 from typing import List
 
 from ....byte_io_mdl import ByteIO
-from ..base import Base
+from SourceIO.source1.new_shared.base import Base
 from .flex import Flex
 
 
@@ -29,7 +26,7 @@ class Mesh(Base):
         self.id = 0
         self.center = []
 
-        self.vertexData = MeshVertexData()
+        self.vertex_data = MeshVertexData()
         self.flexes = []  # type: List[Flex]
 
     def read(self, reader: ByteIO):
@@ -38,7 +35,7 @@ class Mesh(Base):
         self.material_index, self.model_offset, self.vertex_count, self.vertex_index_start = reader.read_fmt('4I')
         flex_count, flex_offset, self.material_type, self.material_param, self.id = reader.read_fmt('5I')
         self.center = reader.read_fmt('3f')
-        self.vertexData.read(reader)
+        self.vertex_data.read(reader)
         reader.skip(4 * 8)
         with reader.save_current_pos():
             if flex_count > 0 and flex_offset != 0:

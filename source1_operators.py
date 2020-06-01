@@ -13,6 +13,7 @@ from .source1.bsp.import_bsp import BSP
 from .source1.vtf.vmt import VMT
 
 from .utilities.path_utilities import backwalk_file_resolver
+from .utilities.path_utilities import case_insensitive_file_resolution
 
 # noinspection PyUnresolvedReferences
 class MDLImporter_OT_operator(bpy.types.Operator):
@@ -26,6 +27,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
 
     normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
     new_mode: BoolProperty(name="Use experimental import mode", default=False, subtype='UNSIGNED')
+    wip_mode: BoolProperty(name="Use WIP import mode", default=False, subtype='UNSIGNED')
 
     join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
 
@@ -44,23 +46,31 @@ class MDLImporter_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            importer = mdl2model.Source2Blender(str(directory / file.name),
-                                                normal_bones=self.normal_bones,
-                                                join_clamped=self.join_clamped,
-                                                import_textures=self.import_textures,
-                                                context=context
-                                                )
-            importer.sort_bodygroups = self.organize_bodygroups
-            importer.load(dont_build_mesh=False, experemental=self.new_mode)
-            if self.write_qc:
-                qc = qc_generator.QC(importer.model)
-                qc_file = bpy.data.texts.new(
-                    '{}.qc'.format(Path(file.name).stem))
-                qc.write_header(qc_file)
-                qc.write_models(qc_file)
-                qc.write_skins(qc_file)
-                qc.write_misc(qc_file)
-                qc.write_sequences(qc_file)
+            if self.wip_mode:
+                from .source1.new_model_import import import_model as wip
+                vvd = case_insensitive_file_resolution(
+                    (directory / file.name).with_suffix('.vvd').absolute())
+                vtx = case_insensitive_file_resolution(
+                    Path(directory / (Path(file.name).stem + '.dx90.vtx')).absolute())
+                wip(directory / file.name, vvd, vtx)
+            else:
+                importer = mdl2model.Source2Blender(str(directory / file.name),
+                                                    normal_bones=self.normal_bones,
+                                                    join_clamped=self.join_clamped,
+                                                    import_textures=self.import_textures,
+                                                    context=context
+                                                    )
+                importer.sort_bodygroups = self.organize_bodygroups
+                importer.load(dont_build_mesh=False, experemental=self.new_mode)
+                if self.write_qc:
+                    qc = qc_generator.QC(importer.model)
+                    qc_file = bpy.data.texts.new(
+                        '{}.qc'.format(Path(file.name).stem))
+                    qc.write_header(qc_file)
+                    qc.write_models(qc_file)
+                    qc.write_skins(qc_file)
+                    qc.write_misc(qc_file)
+                    qc.write_sequences(qc_file)
         return {'FINISHED'}
 
     def invoke(self, context, event):

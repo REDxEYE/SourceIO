@@ -1,10 +1,7 @@
-from enum import IntFlag, IntEnum
-
-import numpy as np
 from typing import List
 
 from ....byte_io_mdl import ByteIO
-from ..base import Base
+from SourceIO.source1.new_shared.base import Base
 from .model import Model
 
 

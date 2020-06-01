@@ -1,11 +1,10 @@
 import struct
-from enum import IntFlag, IntEnum
+from enum import IntEnum
 
-import numpy as np
 from typing import List
 
 from ....byte_io_mdl import ByteIO
-from ..base import Base
+from SourceIO.source1.new_shared.base import Base
 from .float16 import int16_to_float
 
 
@@ -128,7 +127,7 @@ class Flex(Base):
         self.target3 = 0.0
         self.flex_desc_partner_index = 0
         self.vert_anim_type = 0
-        self.vertex_animations = []  # type:List[SourceMdlVertAnim]
+        self.vertex_animations = []  # type:List[VertAnim]
 
     def read(self, reader: ByteIO):
         entry = reader.tell()

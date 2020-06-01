@@ -1,7 +1,7 @@
 from typing import List
 
 from ...byte_io_mdl import ByteIO
-from .base import Base
+from SourceIO.source1.new_shared.base import Base
 
 from .structs.header import Header
 from .structs.bone import Bone
