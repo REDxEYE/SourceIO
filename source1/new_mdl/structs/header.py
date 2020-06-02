@@ -122,7 +122,7 @@ class Header(Base):
         self.mouth_offset = 0
         self.local_pose_paramater_count = 0
         self.local_pose_parameter_offset = 0
-        self.surface_prop_offset = 0
+        self.surface_prop = ''
         self.key_value_offset = 0
         self.key_value_size = 0
         self.local_ik_auto_play_lock_count = 0
@@ -215,7 +215,7 @@ class Header(Base):
         self.mouth_count, self.mouth_offset = reader.read_fmt('2I')
         self.local_pose_paramater_count, self.local_pose_parameter_offset = reader.read_fmt('2I')
 
-        self.surface_prop_offset = reader.read_uint32()
+        self.surface_prop = reader.read_source1_string(0)
 
         self.key_value_offset, self.key_value_size = reader.read_fmt('2I')
         self.local_ik_auto_play_lock_count, self.local_ik_auto_play_lock_offset = reader.read_fmt('2I')
@@ -236,12 +236,10 @@ class Header(Base):
         self.studio_header2_offset, self.unused2 = reader.read_fmt('2I')
 
         self.source_bone_transform_count, self.source_bone_transform_offset = reader.read_fmt('2I')
-        self.illum_position_attachment_index, self.max_eye_deflection = reader.read_fmt('fI')
+        self.illum_position_attachment_index, self.max_eye_deflection = reader.read_fmt('If')
         self.linear_bone_offset, self.name_offset = reader.read_fmt('2I')
 
         if self.version > 47:
             self.bone_flex_driver_count, self.bone_flex_driver_offset = reader.read_fmt('2I')
 
         self.reserved = reader.read_fmt('56i')
-
-

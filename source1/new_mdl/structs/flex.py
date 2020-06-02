@@ -121,27 +121,32 @@ class VertexAminationType(IntEnum):
 class Flex(Base):
     def __init__(self):
         self.flex_desc_index = 0
-        self.target0 = 0.0
-        self.target1 = 0.0
-        self.target2 = 0.0
-        self.target3 = 0.0
-        self.flex_desc_partner_index = 0
-        self.vert_anim_type = 0
+        self.targets = 0.0
+
+        self.partner_index = 0
+        self.vertex_anim_type = 0
         self.vertex_animations = []  # type:List[VertAnim]
+
+    def __eq__(self, other: 'Flex'):
+        return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
+
+    def __hash__(self):
+        return hash(self.flex_desc_index) + hash(self.targets)
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
-        self.flex_desc_index, self.target0, self.target1, self.target2, self.target3 = reader.read_fmt('I4f')
-        vert_count, vert_offset, self.flex_desc_partner_index = reader.read_fmt(
+        self.flex_desc_index = reader.read_uint32()
+        self.targets = reader.read_fmt('4f')
+        vert_count, vert_offset, self.partner_index = reader.read_fmt(
             '3I')
-        self.vert_anim_type = reader.read_uint8()
+        self.vertex_anim_type = reader.read_uint8()
         reader.skip(3)
         reader.skip(6 * 4)
 
         if vert_count > 0 and vert_offset != 0:
             with reader.save_current_pos():
                 reader.seek(entry + vert_offset)
-                if self.vert_anim_type == VertexAminationType.WRINKLE:
+                if self.vertex_anim_type == VertexAminationType.WRINKLE:
                     vert_anim_class = VertAnimWrinkle
                 else:
                     vert_anim_class = VertAnim

@@ -30,10 +30,7 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
 
 
 def get_material(mat_name, model_ob):
-    if mat_name:
-        mat_name = mat_name
-    else:
-        mat_name = "Material"
+    mat_name = mat_name if mat_name else 'Material'
     mat_ind = 0
     md = model_ob.data
     mat = None
@@ -53,9 +50,7 @@ def get_material(mat_name, model_ob):
         mat = bpy.data.materials.new(mat_name)
         md.materials.append(mat)
         # Give it a random colour
-        rand_col = []
-        for i in range(3):
-            rand_col.append(random.uniform(.4, 1))
+        rand_col = [random.uniform(.4, 1) for _ in range(3)]
         rand_col.append(1.0)
         mat.diffuse_color = rand_col
 
@@ -99,11 +94,7 @@ def create_armature(mdl: Mdl):
         mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
         bl_bone.matrix_basis.identity()
 
-        if bl_bone.parent:
-            bl_bone.matrix = bl_bone.parent.matrix @ mat
-        else:
-            bl_bone.matrix = mat
-
+        bl_bone.matrix = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
     bpy.ops.pose.armature_apply()
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -177,3 +168,5 @@ def import_model(mdl_path, vvd_path, vtx_path):
                                 vertex = vertices[vertex_index]['vertex']
                                 mesh_obj.data.shape_keys.key_blocks[name].data[vertex_index].co = np.add(vertex,
                                                                                                          flex_vertex.vertex_delta)
+
+    return mdl,vvd,vtx

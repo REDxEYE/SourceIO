@@ -20,6 +20,14 @@ class Model(Base):
         self.meshes = []  # type: List[Mesh]
         self.eyeballs = []  # type: List[Eyeball]
 
+    @property
+    def has_flexes(self):
+        return any(len(mesh.flexes) > 0 for mesh in self.meshes)
+
+    @property
+    def has_eyebals(self):
+        return len(self.eyeballs) > 0
+
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name = reader.read_ascii_string(64)

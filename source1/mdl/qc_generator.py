@@ -137,7 +137,6 @@ class QC:
             for mat in skin_fam:
                 mat_name = self.mdl.file_data.textures[mat].path_file_name
                 fileh.write('"{}" '.format(mat_name))
-                pass
             fileh.write('}\n')
 
         fileh.write('}\n\n')
@@ -229,7 +228,6 @@ class QC:
                     fileh.write('is_rigid {\n')
                     fileh.write('}\n')
                 fileh.write('}\n\n')
-        pass
 
     def write_sequences(self, fileh):
         fileh.write(

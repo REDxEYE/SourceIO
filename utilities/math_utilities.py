@@ -13,12 +13,11 @@ def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
         angle_x = (math.atan2(translate_y, translate_x))
         translate_x = m0 / c
         translate_y = -m1 / c
-        angle_z = (math.atan2(translate_y, translate_x))
     else:
         angle_x = 0
         translate_x = m4
         translate_y = m3
-        angle_z = (math.atan2(translate_y, translate_x))
+    angle_z = (math.atan2(translate_y, translate_x))
     return angle_x, angle_y, angle_z
 
 

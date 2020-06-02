@@ -241,11 +241,7 @@ class Source2Blender:
             mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
             bl_bone.matrix_basis.identity()
 
-            if bl_bone.parent:
-                bl_bone.matrix = bl_bone.parent.matrix @ mat
-            else:
-                bl_bone.matrix = mat
-
+            bl_bone.matrix = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
         bpy.ops.pose.armature_apply()
         bpy.ops.object.mode_set(mode='EDIT')
         if normal_bones:
@@ -255,7 +251,10 @@ class Source2Blender:
                 parent = bl_bone.parent
                 if len(parent.children) > 1:
                     bl_bone.use_connect = False
-                    parent.tail = sum([ch.head for ch in parent.children], mathutils.Vector()) / len(parent.children)
+                    parent.tail = sum(
+                        (ch.head for ch in parent.children), mathutils.Vector()
+                    ) / len(parent.children)
+
                 else:
                     parent.tail = bl_bone.head
                     if bl_bone.parent:
@@ -277,10 +276,7 @@ class Source2Blender:
 
     @staticmethod
     def get_material(mat_name, model_ob):
-        if mat_name:
-            mat_name = mat_name
-        else:
-            mat_name = "Material"
+        mat_name = mat_name if mat_name else 'Material'
         mat_ind = 0
         md = model_ob.data
         mat = None
@@ -300,9 +296,7 @@ class Source2Blender:
             mat = bpy.data.materials.new(mat_name)
             md.materials.append(mat)
             # Give it a random colour
-            rand_col = []
-            for i in range(3):
-                rand_col.append(random.uniform(.4, 1))
+            rand_col = [random.uniform(.4, 1) for _ in range(3)]
             rand_col.append(1.0)
             mat.diffuse_color = rand_col
 
@@ -333,10 +327,10 @@ class Source2Blender:
         m_ex = material_indexes.append
 
         for mesh_index, vtx_mesh in enumerate(vtx_meshes):  # type: int,vtx_data.SourceVtxMesh
-            material_index = model.meshes[mesh_index].material_index
-            mesh_vertex_start = model.meshes[mesh_index].vertex_index_start
             if vtx_mesh.vtx_strip_groups:
 
+                material_index = model.meshes[mesh_index].material_index
+                mesh_vertex_start = model.meshes[mesh_index].vertex_index_start
                 for group_index, strip_group in enumerate(
                         vtx_mesh.vtx_strip_groups):  # type: vtx_data.SourceVtxStripGroup
 
@@ -458,12 +452,9 @@ class Source2Blender:
         for bodyparts in self.mdl.file_data.bodypart_frames:
             to_join = []
             for bodypart_index, bodypart in bodyparts:
-                if self.sort_bodygroups:
-                    if len(bodypart.models) > 1:
-                        self.current_collection = bpy.data.collections.new(bodypart.name)
-                        self.main_collection.children.link(self.current_collection)
-                    else:
-                        self.current_collection = self.main_collection
+                if self.sort_bodygroups and len(bodypart.models) > 1:
+                    self.current_collection = bpy.data.collections.new(bodypart.name)
+                    self.main_collection.children.link(self.current_collection)
                 else:
                     self.current_collection = self.main_collection
                 for model_index, model in enumerate(bodypart.models):
@@ -548,7 +539,7 @@ class Source2Blender:
         textures = []
         for texture in self.mdl.file_data.textures:
             for tex_path in self.mdl.file_data.texture_paths:
-                if tex_path and (tex_path[0] == '/' or tex_path[0] == '\\'):
+                if tex_path and tex_path[0] in ['/', '\\']:
                     tex_path = tex_path[1:]
                 if tex_path:
                     mat = gi.find_material(Path(tex_path) / texture.path_file_name, use_recursive=True)

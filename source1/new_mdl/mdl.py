@@ -34,7 +34,7 @@ class Mdl(Base):
         self.header.read(self.reader)
 
         self.reader.seek(self.header.bone_offset)
-        for i in range(self.header.bone_count):
+        for _ in range(self.header.bone_count):
             bone = Bone()
             bone.read(self.reader)
             self.bones.append(bone)

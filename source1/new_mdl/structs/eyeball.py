@@ -11,7 +11,7 @@ class Eyeball(Base):
         self.radius = 0.0
         self.up = []
         self.forward = []
-        self.texture = 0
+        self.material_id = 0
 
         self.iris_scale = 0.0
         self.upper_flex_desc = []
@@ -23,8 +23,6 @@ class Eyeball(Base):
         self.lower_lid_flex_desc = 0
         self.eyeball_is_non_facs = 0
 
-        self.texture_index = 0
-
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name = reader.read_source1_string(entry)
@@ -34,7 +32,7 @@ class Eyeball(Base):
         self.radius = reader.read_float()
         self.up = reader.read_fmt("3f")
         self.forward = reader.read_fmt("3f")
-        self.texture = reader.read_int32()
+        self.material_id = reader.read_int32()
         reader.read_uint32()
         self.iris_scale = reader.read_float()
         reader.read_uint32()

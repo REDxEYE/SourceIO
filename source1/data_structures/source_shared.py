@@ -51,8 +51,7 @@ class SourceVector:
         return " X:{} Y:{} Z:{}".format(self.x, self.y, self.z)
 
     def magnitude(self):
-        magn = math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
-        return magn
+        return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
     def normalize(self):
         magn = self.magnitude()

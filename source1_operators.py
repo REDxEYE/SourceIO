@@ -15,6 +15,7 @@ from .source1.vtf.vmt import VMT
 from .utilities.path_utilities import backwalk_file_resolver
 from .utilities.path_utilities import case_insensitive_file_resolution
 
+
 # noinspection PyUnresolvedReferences
 class MDLImporter_OT_operator(bpy.types.Operator):
     """Load Source Engine MDL models"""
@@ -25,17 +26,17 @@ class MDLImporter_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
-    normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
-    #new_mode: BoolProperty(name="Use experimental import mode", default=False, subtype='UNSIGNED')
-    wip_mode: BoolProperty(name="Use new import mode", default=True, subtype='UNSIGNED')
+    #normal_bones: BoolProperty(name="Normalize bones", default=False, subtype='UNSIGNED')
+    # new_mode: BoolProperty(name="Use experimental import mode", default=False, subtype='UNSIGNED')
+    #wip_mode: BoolProperty(name="Use new import mode", default=True, subtype='UNSIGNED')
 
-    join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
+    #join_clamped: BoolProperty(name="Join clamped meshes", default=False, subtype='UNSIGNED')
 
-    organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
+    #organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
 
-    write_qc: BoolProperty(name="Write QC file WORK ONLY WITH OLD IMPORT MODE!", default=True, subtype='UNSIGNED')
+    write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
 
-    import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
+    #import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
@@ -46,30 +47,38 @@ class MDLImporter_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            if self.wip_mode:
+            # if self.wip_mode:
                 from .source1.new_model_import import import_model
+                from .source1.new_qc.qc import generate_qc
+                from . import bl_info
                 mdl_path = directory / file.name
                 vvd = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.vvd'))
                 vtx = backwalk_file_resolver(mdl_path.parent, Path(mdl_path.stem + '.dx90.vtx'))
-                import_model(directory / file.name, vvd, vtx)
-            else:
-                importer = mdl2model.Source2Blender(str(directory / file.name),
-                                                    normal_bones=self.normal_bones,
-                                                    join_clamped=self.join_clamped,
-                                                    import_textures=self.import_textures,
-                                                    context=context
-                                                    )
-                importer.sort_bodygroups = self.organize_bodygroups
-                importer.load(dont_build_mesh=False, experemental=self.new_mode)
+                mdl,vvd,vtx = import_model(directory / file.name, vvd, vtx)
                 if self.write_qc:
-                    qc = qc_generator.QC(importer.model)
                     qc_file = bpy.data.texts.new(
                         '{}.qc'.format(Path(file.name).stem))
-                    qc.write_header(qc_file)
-                    qc.write_models(qc_file)
-                    qc.write_skins(qc_file)
-                    qc.write_misc(qc_file)
-                    qc.write_sequences(qc_file)
+                    text = generate_qc(mdl, ".".join(map(str,bl_info['version'])))
+                    qc_file.write(text)
+
+            # else:
+            #     importer = mdl2model.Source2Blender(str(directory / file.name),
+            #                                         normal_bones=self.normal_bones,
+            #                                         join_clamped=self.join_clamped,
+            #                                         import_textures=self.import_textures,
+            #                                         context=context
+            #                                         )
+            #     importer.sort_bodygroups = self.organize_bodygroups
+            #     importer.load(dont_build_mesh=False, experemental=self.new_mode)
+            #     if self.write_qc:
+            #         qc = qc_generator.QC(importer.model)
+            #         qc_file = bpy.data.texts.new(
+            #             '{}.qc'.format(Path(file.name).stem))
+            #         qc.write_header(qc_file)
+            #         qc.write_models(qc_file)
+            #         qc.write_skins(qc_file)
+            #         qc.write_misc(qc_file)
+            #         qc.write_sequences(qc_file)
         return {'FINISHED'}
 
     def invoke(self, context, event):

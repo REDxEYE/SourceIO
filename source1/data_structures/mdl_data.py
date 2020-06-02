@@ -821,7 +821,6 @@ class SourceMdlFlexDesc(SourceBase):
         if self.name_offset != 0:
             self.name = reader.read_from_offset(
                 entry + self.name_offset, reader.read_ascii_string)
-        pass
 
     def __repr__(self):
         return '<FlexDesc name:"{}">'.format(self.name)
@@ -1069,10 +1068,7 @@ class SourceMdlModel(SourceBase):
 
     @property
     def flex_count(self):
-        acc = 0
-        for mesh in self.meshes:
-            acc += len(mesh.flexes)
-        return acc
+        return sum(len(mesh.flexes) for mesh in self.meshes)
 
     def read(self, reader: ByteIO, body_part: SourceMdlBodyPart):
         self.body_part = body_part
