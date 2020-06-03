@@ -49,17 +49,13 @@ def short_to_float(value):
         # either zero or a subnormal number
         if m != 0:
             return (1 - s) * pow(2, -14) * (m / 1024)
-        elif s == 0:
-            return -0
         else:
             return 0
     elif e != 31:
         # normal number
         return (1 - s) * pow(2, e - 15) * (1 + m / 1024)
-    elif (value & 1023) != 0:
+    elif value & 1023 != 0:
         return -float('Inf')
-    elif value < 0:
-        return float('Inf')
     else:
         return float('Inf')
 
@@ -162,8 +158,7 @@ class SourceVector:
         return out_normal
 
     def magnitude(self):
-        magn = math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
-        return magn
+        return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
 
     def normalize(self):
         magn = self.magnitude()

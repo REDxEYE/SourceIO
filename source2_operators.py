@@ -74,7 +74,6 @@ class VWRLDImporter_OT_operator(bpy.types.Operator):
                     world.load_static()
                 except KeyboardInterrupt:
                     print("Skipped static assets")
-                    pass
             if self.load_dynamic:
                 world.load_entities(self.use_placeholders)
         print("Hey @LifeForLife, everything is imported as you wanted!!")
@@ -217,9 +216,10 @@ class SourceIOUtils_PT_panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         obj = context.active_object  # type:bpy.types.Object
-        if obj.type == "EMPTY" or obj.type == 'MESH':
-            return True
-        return False
+        if obj:
+            return obj.type in ["EMPTY", 'MESH']
+        else:
+            return False
 
     def draw(self, context):
         self.layout.label(text="SourceIO stuff")

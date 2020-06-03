@@ -1,7 +1,7 @@
 from enum import IntFlag
 
 from ....byte_io_mdl import ByteIO
-from SourceIO.source1.new_shared.base import Base
+from ...new_shared.base import Base
 
 
 class StudioHDRFlags(IntFlag):

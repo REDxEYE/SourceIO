@@ -156,12 +156,10 @@ class ByteIO:
         return self.file.read(size)
 
     def read(self, t):
-        size = struct.calcsize(t)
-        return struct.unpack(t, self._read(size))[0]
+        return struct.unpack(t, self._read(struct.calcsize(t)))[0]
 
     def read_fmt(self, fmt):
-        size = struct.calcsize(fmt)
-        return struct.unpack(fmt, self._read(size))
+        return struct.unpack(fmt, self._read(struct.calcsize(fmt)))
 
     def read_uint64(self):
         return self.read('Q')

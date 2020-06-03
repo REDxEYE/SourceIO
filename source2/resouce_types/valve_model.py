@@ -81,7 +81,6 @@ class ValveModel:
                     self.build_mesh(name, armature, collection,
                                     mesh_data_block, buffer_block, data_block, morph_block,
                                     invert_uv, mesh_index, skin_name=skin_name)
-            pass
         else:
             control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
             e_meshes = control_block.data['embedded_meshes']
@@ -213,7 +212,7 @@ class ValveModel:
                 bpy.ops.object.shade_smooth()
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
-                if morphs_available and 1:
+                if morphs_available:
                     mesh_obj.shape_key_add(name='base')
                     bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
                     if bundle_id != -1:

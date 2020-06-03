@@ -1,5 +1,6 @@
 from ....byte_io_mdl import ByteIO
 
+
 class Fixup:
     def __init__(self):
         self.lod_index = 0

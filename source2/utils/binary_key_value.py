@@ -10,6 +10,7 @@ except ImportError:
     print("PySourceIOTextureUtils import error")
     from SourceIO.source2.lz4 import uncompress as uncompress_tmp
 
+
     def uncompress(a, _b, _c):
         return uncompress_tmp(a)
 
@@ -80,7 +81,7 @@ class BinaryKeyValue:
 
     def read(self, reader: ByteIO):
         fourcc = reader.read_bytes(4)
-        assert tuple(fourcc) == self.KV3_SIG or tuple(fourcc) == self.VKV3_SIG, 'Invalid KV Signature'
+        assert tuple(fourcc) in [self.KV3_SIG, self.VKV3_SIG], 'Invalid KV Signature'
         if tuple(fourcc) == self.VKV3_SIG:
             self.read_v2(reader)
         elif tuple(fourcc) == self.KV3_SIG:
@@ -125,11 +126,12 @@ class BinaryKeyValue:
 
     def read_v1(self, reader):
         encoding = reader.read_bytes(16)
-        assert (tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED or
-                tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4 or
-                tuple(encoding) == self.KV3_ENCODING_BINARY_UNCOMPRESSED
+        assert tuple(encoding) in [
+            self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED,
+            self.KV3_ENCODING_BINARY_BLOCK_LZ4,
+            self.KV3_ENCODING_BINARY_UNCOMPRESSED,
+        ], 'Unrecognized KV3 Encoding'
 
-                ), 'Unrecognized KV3 Encoding'
         fmt = reader.read_bytes(16)
 
         assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
@@ -141,7 +143,7 @@ class BinaryKeyValue:
             self.buffer.write_bytes(reader.read_bytes(-1))
             self.buffer.seek(0)
         string_count = self.buffer.read_uint32()
-        for i in range(string_count):
+        for _ in range(string_count):
             self.strings.append(self.buffer.read_ascii_string())
         self.int_buffer = self.buffer
         self.double_buffer = self.buffer
@@ -228,20 +230,29 @@ class BinaryKeyValue:
         return KVType(data_type), flag_info
 
     def parse(self, reader: ByteIO, parent=None, in_array=False):
-        if in_array:
-            name = None
-        else:
-            name = self.strings[self.int_buffer.read_uint32()]
-        data_type, flag_info = self.read_type(reader)
-        self.read_value(name, reader, data_type, flag_info, parent, in_array)
+        name = None if in_array else self.strings[self.int_buffer.read_uint32()]
 
-    def read_value(self, name, reader: ByteIO, data_type: KVType, flag: KVFlag, parent, is_array=False):
-        add = lambda v: parent.update({name: v}) if not is_array else parent.append(v)
+        def add(v):
+            if not in_array:
+                parent.update({name: v})
+            else:
+                parent.append(v)
+
+        data_type, flag_info = self.read_type(reader)
+        self.read_value(name, reader, data_type, parent, in_array)
+
+    def read_value(self, name, reader: ByteIO, data_type: KVType, parent, is_array=False):
+        def add(v):
+            if not is_array:
+                parent.update({name: v})
+            else:
+                parent.append(v)
+
         if data_type == KVType.NULL:
             add(None)
             return
         elif data_type == KVType.BOOLEAN:
-            add(self.byte_buffer.read_int8() > 0)
+            add(self.byte_buffer.read_int8() == 1)
             return
         elif data_type == KVType.BOOLEAN_TRUE:
             add(True)
@@ -300,14 +311,15 @@ class BinaryKeyValue:
             sub_type, sub_flag = self.read_type(reader)
             tmp = []
             for _ in range(t_array_size):
-                self.read_value(name, reader, sub_type, sub_flag, tmp, True)
+                self.read_value(name, reader, sub_type, tmp, True)
 
-            if sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 3:
-                tmp = SourceVector(*tmp)
-            elif sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 4:
-                tmp = SourceVector4D(*tmp)
-            elif sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO) and t_array_size == 2:
-                tmp = SourceVector2D(*tmp)
+            if sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO):
+                if t_array_size == 3:
+                    tmp = SourceVector(*tmp)
+                elif t_array_size == 4:
+                    tmp = SourceVector4D(*tmp)
+                elif t_array_size == 2:
+                    tmp = SourceVector2D(*tmp)
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
             size = self.int_buffer.read_uint32()
