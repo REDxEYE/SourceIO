@@ -4,7 +4,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
-from .source1.mdl import mdl2model, qc_generator
+# from .source1.mdl import mdl2model, qc_generator
 from .source1.vtf.blender_material import BlenderMaterial
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
