@@ -10,6 +10,7 @@ from .source2.resouce_types.valve_world import ValveWorld
 
 from .utilities.path_utilities import backwalk_file_resolver
 
+
 # noinspection PyUnresolvedReferences
 class VMDLImporter_OT_operator(bpy.types.Operator):
     """Load Source2 VMDL"""
@@ -95,6 +96,7 @@ class VMATImporter_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     flip: BoolProperty(name="Flip texture", default=True)
+    split_alpha: BoolProperty(name="Extract alpha texture", default=True)
     filter_glob: StringProperty(default="*.vmat_c", options={'HIDDEN'})
 
     def execute(self, context):
@@ -106,7 +108,7 @@ class VMATImporter_OT_operator(bpy.types.Operator):
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             material = ValveMaterial(str(directory / file.name))
-            material.load(self.flip)
+            material.load(self.flip, self.split_alpha)
         return {'FINISHED'}
 
     def invoke(self, context, event):

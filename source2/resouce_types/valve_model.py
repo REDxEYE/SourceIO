@@ -38,9 +38,15 @@ class ValveModel:
         name = self.name.replace(self.strip_from_name, "")
         self.main_collection = bpy.data.collections.get(name, None) or bpy.data.collections.new(name)
         if parent_collection is not None:
-            parent_collection.children.link(main_collection)
+            try:
+                parent_collection.children.link(self.main_collection)
+            except :
+                pass
         else:
-            bpy.context.scene.collection.children.link(self.main_collection)
+            try:
+                bpy.context.scene.collection.children.link(self.main_collection)
+            except :
+                pass
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
@@ -130,18 +136,18 @@ class ValveModel:
 
                 mesh_obj = bpy.data.objects.new(name + "_" + material_name,
                                                 bpy.data.meshes.new(name + "_" + material_name + "_DATA"))
-                if data_block.data['m_materialGroups']:
-                    default_skin = data_block.data['m_materialGroups'][0]
-                    mat_id = default_skin['m_materials'].index(draw_call['m_material'])
-                    if mat_id != -1:
-                        mat_groups = {}
-                        for skin_group in data_block.data['m_materialGroups']:
-                            mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
-
-                        mesh_obj['active_skin'] = skin_name
-                        mesh_obj['skin_groups'] = mat_groups
-
-                        material_name = Path(mat_groups[skin_name]).stem
+                # if data_block.data['m_materialGroups']:
+                #     default_skin = data_block.data['m_materialGroups'][0]
+                #     mat_id = default_skin['m_materials'].index(draw_call['m_material'])
+                #     if mat_id != -1:
+                #         mat_groups = {}
+                #         for skin_group in data_block.data['m_materialGroups']:
+                #             mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
+                #
+                #         mesh_obj['active_skin'] = skin_name
+                #         mesh_obj['skin_groups'] = mat_groups
+                #
+                #         material_name = Path(mat_groups[skin_name]).stem
                 mesh = mesh_obj.data  # type:bpy.types.Mesh
 
                 self.objects.append(mesh_obj)

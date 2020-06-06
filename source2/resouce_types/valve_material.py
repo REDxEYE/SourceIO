@@ -12,7 +12,7 @@ class ValveMaterial:
         self.valve_file.read_block_info()
         self.valve_file.check_external_resources()
 
-    def load(self, flip_textures, override=True):
+    def load(self, flip_textures,split_alpha, override=True):
         textures = {}
         params = {}
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
@@ -24,7 +24,7 @@ class ValveMaterial:
                 if texture is not None:
                     print(f"Loading {texture.filepath.stem} texture")
                     tex_file = ValveTexture('', valve_file=texture)
-                    rgb_tex_name, alpha_tex_name = tex_file.load(flip_textures)
+                    rgb_tex_name, alpha_tex_name = tex_file.load(flip_textures,split_alpha)
                     textures[tex['m_name']] = tex_file, rgb_tex_name, alpha_tex_name
                 else:
                     textures[tex['m_name']] = None
