@@ -1,5 +1,6 @@
 import os.path
 import random
+from pprint import pprint
 from typing import List
 from pathlib import Path
 
@@ -62,7 +63,7 @@ class ValveModel:
 
     def build_meshes(self, collection, armature, invert_uv: bool = True, skin_name="default"):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
-
+        pprint(self.valve_file.available_resources)
         use_external_meshes = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
         if use_external_meshes:
             for mesh_index, mesh_ref in enumerate(data_block.data['m_refMeshes']):
@@ -76,7 +77,8 @@ class ValveModel:
                     mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
                     buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                     name = mesh_ref_path.stem
-                    vmorf_path = self.valve_file.available_resources.get(mesh_data_block.data['m_morphSet'],
+                    pprint(mesh.available_resources)
+                    vmorf_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
                                                                          None)  # type:Path
                     morph_block = None
                     if vmorf_path is not None:

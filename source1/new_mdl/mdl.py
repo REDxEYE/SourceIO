@@ -14,6 +14,7 @@ from .structs.bodygroup import BodyPart
 class Mdl(Base):
 
     def __init__(self, filepath):
+        self.store_value("MDL", self)
         self.reader = ByteIO(path=filepath)
         self.header = Header()
         self.bones = []  # type: List[Bone]

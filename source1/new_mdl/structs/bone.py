@@ -1,5 +1,6 @@
 from enum import IntFlag, IntEnum
 
+import math
 import numpy as np
 
 from ....byte_io_mdl import ByteIO
@@ -149,6 +150,62 @@ class Bone(Base):
         self.surface_prop = ''
 
         self.procedural_rule = None
+
+    @property
+    def children(self):
+        from ..mdl import Mdl
+        mdl: Mdl = self.get_value("MDL")
+        childes = []
+        if mdl.bones:
+            bone_index = mdl.bones.index(self)
+            for bone in mdl.bones:
+                if bone.name == self.name:
+                    continue
+                if bone.parent_bone_index == bone_index:
+                    childes.append(bone)
+        return childes
+
+    @property
+    def matrix(self):
+        from scipy.spatial.transform import Rotation as R
+        r_matrix = R.from_quat(self.quat).as_matrix()
+        tmp = np.identity(4)
+        tmp[0, :3] = r_matrix[0]
+        tmp[1, :3] = r_matrix[1]
+        tmp[2, :3] = r_matrix[2]
+        # qw = self.quat[3]
+        # qx = self.quat[0]
+        # qy = self.quat[1]
+        # qz = self.quat[2]
+        # n = 1.0 / math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw)
+        # qx *= n
+        # qy *= n
+        # qz *= n
+        # qw *= n
+        # r_matrix = np.array(
+        #     [1.0 - 2.0 * qy * qy - 2.0 * qz * qz, 2.0 * qx * qy - 2.0 * qz * qw, 2.0 * qx * qz + 2.0 * qy * qw,
+        #      0.0,
+        #      2.0 * qx * qy + 2.0 * qz * qw, 1.0 - 2.0 * qx * qx - 2.0 * qz * qz, 2.0 * qy * qz - 2.0 * qx * qw,
+        #      0.0,
+        #      2.0 * qx * qz - 2.0 * qy * qw, 2.0 * qy * qz + 2.0 * qx * qw, 1.0 - 2.0 * qx * qx - 2.0 * qy * qy,
+        #      0.0, 0.0, 0.0, 0.0, 1.0]).reshape((4, 4))
+        t_matix = np.array([
+            [1, 0, 0, self.position[0]],
+            [0, 1, 0, self.position[1]],
+            [0, 0, 1, self.position[2]],
+            [0, 0, 0, 1],
+        ], dtype=np.float32)
+
+        return np.identity(4) @ t_matix @ tmp
+
+    @property
+    def parent(self):
+        from ..mdl import Mdl
+        mdl: Mdl = self.get_value("MDL")
+        if mdl.bones:
+            if self.parent_bone_index != -1:
+                return mdl.bones[self.parent_bone_index]
+        return None
 
     def read(self, reader: ByteIO):
         entry = reader.tell()

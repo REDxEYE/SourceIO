@@ -4,6 +4,7 @@ from ...new_shared.base import Base
 from ....byte_io_mdl import ByteIO
 from .strip_group import StripGroup
 
+
 class Mesh:
 
     def __init__(self):

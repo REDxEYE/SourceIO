@@ -740,6 +740,7 @@ class GameInfoFile(KeyValueFile):
 
     def find_file(self, filepath: str, additional_dir=None,
                   extention=None, use_recursive=False):
+        filepath = Path(str(filepath).strip("\\/"))
         if use_recursive:
             if self.path_cache:
                 paths = self.path_cache

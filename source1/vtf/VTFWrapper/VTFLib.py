@@ -208,7 +208,7 @@ class VTFLib:
 
     def image_load(self, filename, header_only=False):
         return self.ImageLoad(create_string_buffer(
-            filename.encode('ascii')), header_only)
+            str(filename).encode('ascii')), header_only)
 
     ImageSave = vtflib_cdll.vlImageSave
     ImageSave.argtypes = [c_char_p]
