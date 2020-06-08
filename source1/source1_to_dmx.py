@@ -50,7 +50,7 @@ def get_dmx_keywords():
 
 def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
     dm1 = datamodel.load(
-        r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\content\hlvr_addons\s2fm\models\red_eye\creepychimera\haydee\haydee.dmx")
+        r"D:\PYTHON\SourceIO_plugin\test_data\dmx\decompile\Alyx.dmx")
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
@@ -87,6 +87,12 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
             dme_model["baseStates"] = datamodel.make_array([dme_model_transforms], datamodel.Element)
             dme_model_transforms["transforms"] = datamodel.make_array([], datamodel.Element)
             dme_model_transforms = dme_model_transforms["transforms"]
+
+            DmeCombinationOperator = dm.add_element("combinationOperator", "DmeCombinationOperator",
+                                                    id=f"{body_part.name}_controllers")
+            root["combinationOperator"] = DmeCombinationOperator
+
+            controls = DmeCombinationOperator["controls"] = datamodel.make_array([], datamodel.Element)
 
             DmeAxisSystem = dme_model["axisSystem"] = dm.add_element("axisSystem", "DmeAxisSystem",
                                                                      "AxisSys" + armature_name)
@@ -232,5 +238,66 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                     face_[:3] = face
                 face_set["faces"] = datamodel.make_array(faces.flatten(), int)
                 dme_mesh["faceSets"] = datamodel.make_array([face_set, ], datamodel.Element)
+
+                delta_states = []
+                delta_states_name = []
+                for flex in mesh.flexes:
+                    flex_name = mdl.flex_names[flex.flex_desc_index]
+                    if flex_name in delta_states_name:
+                        delta_states_name.append(flex_name)
+                        flex_name += str(delta_states_name.count(flex_name) - 1)
+                    else:
+                        delta_states_name.append(flex_name)
+                    DmeVertexDeltaData = dm.add_element(flex_name, "DmeVertexDeltaData", id=f"{mesh_name}_{flex_name}")
+                    delta_states.append(DmeVertexDeltaData)
+                    vertexFormat = DmeVertexDeltaData["vertexFormat"] = datamodel.make_array(
+                        [keywords['pos'], keywords['norm']], str)
+                    shape_pos = []
+                    shape_norms = []
+                    wrinkles = []
+                    indices = []
+                    for vert in flex.vertex_animations:
+                        if vert.index in tmp_map:
+                            vertex_index = tmp_map[vert.index]
+                            indices.append(vertex_index)
+                            vertex = vertices[vertex_index]['vertex']
+                            normal = vertices[vertex_index]['normal']
+                            shape_pos.append(vert.vertex_delta)
+                            shape_norms.append(vert.normal_delta)
+
+                    DmeVertexDeltaData[keywords['pos']] = datamodel.make_array(shape_pos, datamodel.Vector3)
+                    DmeVertexDeltaData[keywords['pos'] + "Indices"] = datamodel.make_array(indices,
+                                                                                           int)
+                    DmeVertexDeltaData[keywords['norm']] = datamodel.make_array(shape_norms, datamodel.Vector3)
+                    DmeVertexDeltaData[keywords['norm'] + "Indices"] = datamodel.make_array(indices, int)
+
+                dme_mesh["deltaStates"] = datamodel.make_array(delta_states, datamodel.Element)
+                dme_mesh["deltaStateWeights"] = dme_mesh["deltaStateWeightsLagged"] = \
+                    datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
+
+            def create_controller(namespace, name, deltas):
+                DmeCombinationInputControl = dm.add_element(name, "DmeCombinationInputControl",
+                                                            id=namespace + name + "inputcontrol")
+                controls.append(DmeCombinationInputControl)
+
+                DmeCombinationInputControl["rawControlNames"] = datamodel.make_array(deltas, str)
+                DmeCombinationInputControl["stereo"] = False
+                DmeCombinationInputControl["eyelid"] = False
+
+                DmeCombinationInputControl["flexMax"] = 1.0
+                DmeCombinationInputControl["flexMin"] = 0.0
+
+                DmeCombinationInputControl["wrinkleScales"] = datamodel.make_array([0.0] * len(deltas), float)
+
+            for flex in mdl.flex_names:
+                create_controller(body_part.name, flex, [flex])
+
+            controlValues = DmeCombinationOperator["controlValues"] = datamodel.make_array(
+                [[0.0, 0.0, 0.5]] * len(controls), datamodel.Vector3)
+            DmeCombinationOperator["controlValuesLagged"] = datamodel.make_array(controlValues, datamodel.Vector3)
+            DmeCombinationOperator["usesLaggedValues"] = False
+
+            DmeCombinationOperator["dominators"] = datamodel.make_array([], datamodel.Element)
+            targets = DmeCombinationOperator["targets"] = datamodel.make_array([], datamodel.Element)
 
             dm.write(f'test_data/DMX/decompile/{model.name}.dmx', 'binary', 9)

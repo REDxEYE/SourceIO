@@ -23,6 +23,8 @@
 import struct, array, io, binascii, collections, uuid
 from struct import unpack, calcsize
 
+import numpy as np
+
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")
 
@@ -65,12 +67,16 @@ def _sub_kv2_indent():
 
 
 def _validate_array_list(iterable, array_type):
-    if type(iterable) in [list, tuple, set, type(None)]:
-        if not iterable: return None
+    if iterable is None:
+        return None
+    if type(iterable) is not np.ndarray:
+        if not iterable:
+            return None
     else:
-        if not iterable.any(): return None
+        if not iterable.any():
+            return None
     try:
-        return list([array_type(i) if type(i) != array_type else i for i in iterable])
+        return [array_type(i) if type(i) != array_type else i for i in iterable]
     except Exception as e:
         raise TypeError("Could not convert all values to {}: {}".format(array_type, e)) from e
 
@@ -145,8 +151,10 @@ class _Array(list):
     type_str = ""
 
     def __init__(self, l=None):
-        tmp = bool(l) if (type(l) in [list,set,tuple] or l is None) else l.any()
-        if tmp :
+        if l is None:
+            return
+        res = bool(l) if type(l) is not np.ndarray else l.any()
+        if res:
             return super().__init__(_validate_array_list(l, self.type))
         else:
             return super().__init__()
