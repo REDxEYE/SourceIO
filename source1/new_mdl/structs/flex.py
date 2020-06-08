@@ -162,7 +162,7 @@ try:
 
 
     def _float16(reader):
-        return reader.read_fmt('e')
+        return reader.read_fmt('e')[0]
 
 
     def _float16_vector3(reader):

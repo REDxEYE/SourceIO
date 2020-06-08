@@ -49,8 +49,8 @@ def get_dmx_keywords():
 
 
 def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
-    # dm1 = datamodel.load(
-    #     r"D:\PYTHON\SourceIO_plugin\test_data\dmx\decompile\Alyx.dmx")
+    dm1 = datamodel.load(
+        r"C:\Users\MED45\Downloads\head_controllers.dmx")
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
@@ -298,5 +298,5 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
             dme_combination_operator["dominators"] = datamodel.make_array([], datamodel.Element)
             targets = dme_combination_operator["targets"] = datamodel.make_array([], datamodel.Element)
-
-            dm.write(f'test_data/DMX/decompile/{model.name}.dmx', 'binary', 9)
+            file_name = Path(model.name).stem
+            dm.write(f'test_data/DMX/decompile/{file_name}.dmx', 'binary', 9)
