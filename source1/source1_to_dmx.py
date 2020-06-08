@@ -49,8 +49,8 @@ def get_dmx_keywords():
 
 
 def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
-    dm1 = datamodel.load(
-        r"D:\PYTHON\SourceIO_plugin\test_data\dmx\decompile\Alyx.dmx")
+    # dm1 = datamodel.load(
+    #     r"D:\PYTHON\SourceIO_plugin\test_data\dmx\decompile\Alyx.dmx")
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
@@ -65,41 +65,39 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
             dm.allow_random_ids = False
 
             def make_transform(name, pos: datamodel.Vector3, rot: datamodel.Quaternion, object_name):
-                trfm = dm.add_element(name, "DmeTransform", id=object_name + "transform")
-                trfm["position"] = pos
-                trfm["orientation"] = rot
-                return trfm
+                new_transform = dm.add_element(name, "DmeTransform", id=object_name + "transform")
+                new_transform["position"] = pos
+                new_transform["orientation"] = rot
+                return new_transform
 
             def make_transform_mat(name, matrix: np.ndarray, object_name):
-                trfm = dm.add_element(name, "DmeTransform", id=object_name + "transform")
+                new_transform = dm.add_element(name, "DmeTransform", id=object_name + "transform")
                 pos = [matrix[0, 3], matrix[1, 3], matrix[2, 3]]
-                trfm["position"] = datamodel.Vector3(list(pos))
-                rot_mat = matrix[:3, :3]
-                r: R = R.from_matrix(rot_mat)
-                trfm["orientation"] = datamodel.Quaternion(list(r.as_quat()))
-                return trfm
+                new_transform["position"] = datamodel.Vector3(list(pos))
+                new_transform["orientation"] = datamodel.Quaternion(R.from_matrix(matrix[:3, :3]).as_quat())
+                return new_transform
 
             root = dm.add_element(model.name, id="Scene SourceIOExport")
             dme_model = dm.add_element(armature_name, "DmeModel", id="Object" + armature_name)
-            dme_model_children = dme_model["children"] = datamodel.make_array([], datamodel.Element)
+            dme_model["children"] = datamodel.make_array([], datamodel.Element)
 
             dme_model_transforms = dm.add_element("base", "DmeTransformList", id="transforms SourceIOExport")
             dme_model["baseStates"] = datamodel.make_array([dme_model_transforms], datamodel.Element)
             dme_model_transforms["transforms"] = datamodel.make_array([], datamodel.Element)
             dme_model_transforms = dme_model_transforms["transforms"]
 
-            DmeCombinationOperator = dm.add_element("combinationOperator", "DmeCombinationOperator",
-                                                    id=f"{body_part.name}_controllers")
-            root["combinationOperator"] = DmeCombinationOperator
+            dme_combination_operator = dm.add_element("combinationOperator", "DmeCombinationOperator",
+                                                      id=f"{body_part.name}_controllers")
+            root["combinationOperator"] = dme_combination_operator
 
-            controls = DmeCombinationOperator["controls"] = datamodel.make_array([], datamodel.Element)
+            controls = dme_combination_operator["controls"] = datamodel.make_array([], datamodel.Element)
 
-            DmeAxisSystem = dme_model["axisSystem"] = dm.add_element("axisSystem", "DmeAxisSystem",
-                                                                     "AxisSys" + armature_name)
+            dme_axis_system = dme_model["axisSystem"] = dm.add_element("axisSystem", "DmeAxisSystem",
+                                                                       "AxisSys" + armature_name)
 
-            DmeAxisSystem["upAxis"] = axes_lookup_source2["Z"]
-            DmeAxisSystem["forwardParity"] = 1  # ??
-            DmeAxisSystem["coordSys"] = 0  # ??
+            dme_axis_system["upAxis"] = axes_lookup_source2["Z"]
+            dme_axis_system["forwardParity"] = 1  # ??
+            dme_axis_system["coordSys"] = 0  # ??
 
             dme_model["transform"] = make_transform("",
                                                     datamodel.Vector3([0, 0, 0]),
@@ -131,8 +129,7 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                         return children
                     bone_name = bone.name
                 bone_elements[bone_name] = bone_elem = dm.add_element(bone_name, "DmeJoint", id=bone_name)
-                if want_jointlist:
-                    joint_list.append(bone_elem)
+                joint_list.append(bone_elem)
                 bone_ids[bone_name] = len(bone_elements)  # in Source 2, index 0 is the DmeModel
 
                 if not bone:
@@ -164,9 +161,8 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                 return [bone_elem]
 
             root_elems = write_bone(mdl.bones[0])
-            # for root_elems in [write_bone(bone) for bone in mdl.bones]:
             if root_elems:
-                dme_model_children.extend(root_elems)
+                dme_model["children"].extend(root_elems)
 
             for n, (vtx_mesh, mesh) in enumerate(zip(vtx_meshes, model.meshes)):
                 if not vtx_mesh.strip_groups:
@@ -182,22 +178,22 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                 root["model"] = dme_model
 
                 vertex_data = dm.add_element("bind", "DmeVertexData",
-                                             id=mesh_name + "_verts")
+                                             id=f"{mesh_name}_verts")
                 dme_mesh = dm.add_element(mesh_name, "DmeMesh", id=mesh_name + "_mesh")
                 dme_mesh["visible"] = True
                 dme_mesh["bindState"] = vertex_data
                 dme_mesh["currentState"] = vertex_data
                 dme_mesh["baseStates"] = datamodel.make_array([vertex_data], datamodel.Element)
 
-                dme_dag = dm.add_element(mesh_name, "DmeDag", id="ob_" + mesh_name + "_dag")
+                dme_dag = dm.add_element(mesh_name, "DmeDag", id=f"ob_{mesh_name}_dag")
                 joint_list.append(dme_dag)
                 dme_dag["shape"] = dme_mesh
-                dme_model_children.append(dme_dag)
+                dme_model["children"].append(dme_dag)
                 trfm_mat = np.identity(4)
 
-                trfm = make_transform_mat(mesh_name, trfm_mat, "ob_" + mesh_name)
+                trfm = make_transform_mat(mesh_name, trfm_mat, f"ob_{mesh_name}")
                 dme_dag["transform"] = trfm
-                dme_model_transforms.append(make_transform_mat(mesh_name, trfm_mat, "ob_base_" + mesh_name))
+                dme_model_transforms.append(make_transform_mat(mesh_name, trfm_mat, f"ob_base_{mesh_name}"))
 
                 vertex_format = vertex_data["vertexFormat"] = datamodel.make_array(
                     [keywords['pos'], keywords['norm'], keywords['texco']], str)
@@ -227,7 +223,7 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
                 material_name = mdl.materials[mesh.material_index].name
 
-                material_elem = dm.add_element(material_name, "DmeMaterial", id=material_name + "_mat")
+                material_elem = dm.add_element(material_name, "DmeMaterial", id=f"{material_name}_mat")
                 material_elem["mtlName"] = material_name
 
                 face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
@@ -248,56 +244,59 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                         flex_name += str(delta_states_name.count(flex_name) - 1)
                     else:
                         delta_states_name.append(flex_name)
-                    DmeVertexDeltaData = dm.add_element(flex_name, "DmeVertexDeltaData", id=f"{mesh_name}_{flex_name}")
-                    delta_states.append(DmeVertexDeltaData)
-                    vertexFormat = DmeVertexDeltaData["vertexFormat"] = datamodel.make_array(
+                    vertex_delta_data = dm.add_element(flex_name, "DmeVertexDeltaData", id=f"{mesh_name}_{flex_name}")
+                    delta_states.append(vertex_delta_data)
+                    vertex_format = vertex_delta_data["vertexFormat"] = datamodel.make_array(
                         [keywords['pos'], keywords['norm']], str)
                     shape_pos = []
                     shape_norms = []
                     wrinkles = []
                     indices = []
-                    for vert in flex.vertex_animations:
-                        if vert.index in tmp_map:
-                            vertex_index = tmp_map[vert.index]
+                    for flex_vert in flex.vertex_animations:
+                        if flex_vert.index in tmp_map:
+                            vertex_index = tmp_map[flex_vert.index]
                             indices.append(vertex_index)
-                            vertex = vertices[vertex_index]['vertex']
-                            normal = vertices[vertex_index]['normal']
-                            shape_pos.append(vert.vertex_delta)
-                            shape_norms.append(vert.normal_delta)
+                            shape_pos.append(flex_vert.vertex_delta)
+                            shape_norms.append(flex_vert.normal_delta)
+                            if flex_vert.is_wrinkle:
+                                wrinkles.append(flex_vert.wrinkle_delta)
 
-                    DmeVertexDeltaData[keywords['pos']] = datamodel.make_array(shape_pos, datamodel.Vector3)
-                    DmeVertexDeltaData[keywords['pos'] + "Indices"] = datamodel.make_array(indices,
-                                                                                           int)
-                    DmeVertexDeltaData[keywords['norm']] = datamodel.make_array(shape_norms, datamodel.Vector3)
-                    DmeVertexDeltaData[keywords['norm'] + "Indices"] = datamodel.make_array(indices, int)
+                    vertex_delta_data[keywords['pos']] = datamodel.make_array(shape_pos, datamodel.Vector3)
+                    vertex_delta_data[keywords['pos'] + "Indices"] = datamodel.make_array(indices, int)
+                    vertex_delta_data[keywords['norm']] = datamodel.make_array(shape_norms, datamodel.Vector3)
+                    vertex_delta_data[keywords['norm'] + "Indices"] = datamodel.make_array(indices, int)
+                    if wrinkles:
+                        vertex_format.append(keywords["wrinkle"])
+                        vertex_delta_data[keywords["wrinkle"]] = datamodel.make_array(wrinkles, float)
+                        vertex_delta_data[keywords["wrinkle"] + "Indices"] = datamodel.make_array(indices, int)
 
                 dme_mesh["deltaStates"] = datamodel.make_array(delta_states, datamodel.Element)
                 dme_mesh["deltaStateWeights"] = dme_mesh["deltaStateWeightsLagged"] = \
                     datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
 
             def create_controller(namespace, name, deltas):
-                DmeCombinationInputControl = dm.add_element(name, "DmeCombinationInputControl",
-                                                            id=namespace + name + "inputcontrol")
-                controls.append(DmeCombinationInputControl)
+                combination_input_control = dm.add_element(name, "DmeCombinationInputControl",
+                                                           id=f"{namespace}_{name}_inputcontrol")
+                controls.append(combination_input_control)
 
-                DmeCombinationInputControl["rawControlNames"] = datamodel.make_array(deltas, str)
-                DmeCombinationInputControl["stereo"] = False
-                DmeCombinationInputControl["eyelid"] = False
+                combination_input_control["rawControlNames"] = datamodel.make_array(deltas, str)
+                combination_input_control["stereo"] = False
+                combination_input_control["eyelid"] = False
 
-                DmeCombinationInputControl["flexMax"] = 1.0
-                DmeCombinationInputControl["flexMin"] = 0.0
+                combination_input_control["flexMax"] = 1.0
+                combination_input_control["flexMin"] = 0.0
 
-                DmeCombinationInputControl["wrinkleScales"] = datamodel.make_array([0.0] * len(deltas), float)
+                combination_input_control["wrinkleScales"] = datamodel.make_array([0.0] * len(deltas), float)
 
             for flex in mdl.flex_names:
                 create_controller(body_part.name, flex, [flex])
 
-            controlValues = DmeCombinationOperator["controlValues"] = datamodel.make_array(
+            control_values = dme_combination_operator["controlValues"] = datamodel.make_array(
                 [[0.0, 0.0, 0.5]] * len(controls), datamodel.Vector3)
-            DmeCombinationOperator["controlValuesLagged"] = datamodel.make_array(controlValues, datamodel.Vector3)
-            DmeCombinationOperator["usesLaggedValues"] = False
+            dme_combination_operator["controlValuesLagged"] = datamodel.make_array(control_values, datamodel.Vector3)
+            dme_combination_operator["usesLaggedValues"] = False
 
-            DmeCombinationOperator["dominators"] = datamodel.make_array([], datamodel.Element)
-            targets = DmeCombinationOperator["targets"] = datamodel.make_array([], datamodel.Element)
+            dme_combination_operator["dominators"] = datamodel.make_array([], datamodel.Element)
+            targets = dme_combination_operator["targets"] = datamodel.make_array([], datamodel.Element)
 
             dm.write(f'test_data/DMX/decompile/{model.name}.dmx', 'binary', 9)

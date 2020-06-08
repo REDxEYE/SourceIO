@@ -1,7 +1,7 @@
 import struct
 from enum import IntEnum
 
-from typing import List
+from typing import List, Union
 
 from ....byte_io_mdl import ByteIO
 from ...new_shared.base import Base
@@ -125,7 +125,7 @@ class Flex(Base):
 
         self.partner_index = 0
         self.vertex_anim_type = 0
-        self.vertex_animations = []  # type:List[VertAnim]
+        self.vertex_animations = []  # type:List[Union[VertAnimWrinkle,VertAnim]]
 
     def __eq__(self, other: 'Flex'):
         return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
@@ -162,9 +162,17 @@ try:
 
 
     def _float16(reader):
+        return reader.read_fmt('e')
+
+
+    def _float16_vector3(reader):
         return reader.read_fmt("3e")
 except Exception:
     def _float16(reader):
+        return int16_to_float(reader.read_uint16())
+
+
+    def _float16_vector3(reader):
         return (int16_to_float(reader.read_uint16()),
                 int16_to_float(reader.read_uint16()),
                 int16_to_float(reader.read_uint16()))
@@ -172,6 +180,7 @@ except Exception:
 
 class VertAnim(Base):
     vert_anim_fixed_point_scale = 1 / 4096
+    is_wrinkle = False
 
     def __init__(self):
         self.index = 0
@@ -182,17 +191,19 @@ class VertAnim(Base):
 
     def read(self, reader: ByteIO):
         self.index, self.speed, self.side = reader.read_fmt('hBB')
-        self.vertex_delta = _float16(reader)
-        self.normal_delta = _float16(reader)
+        self.vertex_delta = _float16_vector3(reader)
+        self.normal_delta = _float16_vector3(reader)
         return self
 
 
 class VertAnimWrinkle(VertAnim):
+    is_wrinkle = True
+
     def __init__(self):
         super().__init__()
         self.wrinkle_delta = 0
 
     def read(self, reader: ByteIO):
         super().read(reader)
-        self.wrinkle_delta = reader.read_uint16()
+        self.wrinkle_delta = _float16(reader)
         return self
