@@ -208,7 +208,7 @@ class Header(Base):
         self.local_node_count, self.local_node_offset, self.local_node_name_offset = reader.read_fmt('3I')
 
         self.flex_desc_count, self.flex_desc_offset = reader.read_fmt('2I')
-        self.flex_rule_count, self.flex_rule_offset = reader.read_fmt('2I')
+        self.flex_controller_count, self.flex_controller_offset = reader.read_fmt('2I')
         self.flex_rule_count, self.flex_rule_offset = reader.read_fmt('2I')
 
         self.ik_chain_count, self.ik_chain_offset = reader.read_fmt('2I')

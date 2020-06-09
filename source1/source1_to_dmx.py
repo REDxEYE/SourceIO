@@ -58,6 +58,8 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
+            if not model.meshes:
+                continue
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
             vtx_meshes = vtx_model.model_lods[desired_lod].meshes
 
@@ -108,12 +110,10 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
             root["skeleton"] = dme_model
 
-            want_jointlist = True
             joint_list = dme_model["jointList"] = datamodel.make_array([], datamodel.Element)
             joint_list.append(dme_model)
 
             bone_elements = {}
-            materials = []
 
             def write_bone(bone: Bone):
 
@@ -143,14 +143,14 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                     else:
                         rel_mat = np.identity(4) @ bone.matrix
 
-                trfm = make_transform_mat(bone_name, rel_mat, "bone" + bone_name)
-                trfm_base = make_transform_mat(bone_name, rel_mat, "bone_base" + bone_name)
+                bone_transform = make_transform_mat(bone_name, rel_mat, "bone" + bone_name)
+                bone_transform_base = make_transform_mat(bone_name, rel_mat, "bone_base" + bone_name)
 
-                trfm_base["position"] = trfm["position"]
+                bone_transform_base["position"] = bone_transform["position"]
 
-                bone_elem["transform"] = trfm
+                bone_elem["transform"] = bone_transform
 
-                dme_model_transforms.append(trfm_base)
+                dme_model_transforms.append(bone_transform_base)
 
                 if bone:
                     children = bone_elem["children"] = datamodel.make_array([], datamodel.Element)
@@ -160,9 +160,9 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
                 return [bone_elem]
 
-            root_elems = write_bone(mdl.bones[0])
-            if root_elems:
-                dme_model["children"].extend(root_elems)
+            bones = write_bone(mdl.bones[0])
+            if bones:
+                dme_model["children"].extend(bones)
 
             for n, (vtx_mesh, mesh) in enumerate(zip(vtx_meshes, model.meshes)):
                 if not vtx_mesh.strip_groups:

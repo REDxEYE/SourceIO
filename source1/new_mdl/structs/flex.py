@@ -27,7 +27,7 @@ class FlexController(Base):
 class FlexRule(Base):
     def __init__(self):
         self.flex_index = 0
-        self.flex_ops = []
+        self.flex_ops = []  # type:List[FlexOp]
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
@@ -80,6 +80,9 @@ class FlexOp(Base):
             self.value = reader.read_float()
         else:
             self.index = reader.read_uint32()
+
+    def __repr__(self):
+        return f"FlexOp({self.op.name} {self.index} {self.value})"
 
 
 class FlexControllerRemapType(IntEnum):
