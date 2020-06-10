@@ -113,6 +113,7 @@ class FlexControllerUI(Base):
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name = reader.read_source1_string(entry)
+        #TODO: https://github.com/Dmillz89/SourceSDK2013/blob/master/mp/src/public/studio.h#L924
         self.index1, self.index2, self.index3 = reader.read_fmt('3i')
         self.stereo = reader.read_uint8()
         self.remap_type = FlexControllerRemapType(reader.read_uint8())
@@ -127,7 +128,7 @@ class VertexAminationType(IntEnum):
 class Flex(Base):
     def __init__(self):
         self.flex_desc_index = 0
-        self.targets = 0.0
+        self.targets = [0.0]
 
         self.partner_index = 0
         self.vertex_anim_type = 0

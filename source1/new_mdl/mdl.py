@@ -105,73 +105,77 @@ class Mdl(Base):
 
         for rule in self.flex_rules:
             stack = []
-            for op in rule.flex_ops:
-                flex_op = op.op
-                if flex_op == FlexOpType.CONST:
-                    stack.append(IntermediateExpr(op.value, 10))
-                elif flex_op == FlexOpType.FETCH1:
-                    stack.append(IntermediateExpr(self.flex_controllers[op.index].name, 10))
-                elif flex_op == FlexOpType.FETCH2:
-                    stack.append(IntermediateExpr(f"{self.flex_names[op.index]}", 10))
-                elif flex_op == FlexOpType.ADD:
-                    right = stack.pop(-1).value
-                    left = stack.pop(-1).value
-                    stack.append(IntermediateExpr(f"{left} + {right}", 1))
-                elif flex_op == FlexOpType.SUB:
-                    right = stack.pop(-1).value
-                    left = stack.pop(-1).value
-                    stack.append(IntermediateExpr(f"{left} - {right}", 1))
-                elif flex_op == FlexOpType.MUL:
-                    right = stack.pop(-1)
-                    left = stack.pop(-1)
-                    stack.append(
-                        IntermediateExpr(f"{left.value if left.precedence > 2 else f'({left.value})'} * "
-                                         f"{right.value if right.precedence > 2 else f'({right.value})'}", 2))
-                elif flex_op == FlexOpType.DIV:
-                    right = stack.pop(-1)
-                    left = stack.pop(-1)
-                    stack.append(
-                        IntermediateExpr(f"{left.value if left.precedence > 2 else f'({left.value})'} / "
-                                         f"{right.value if right.precedence > 2 else f'({right.value})'}", 2))
-                elif flex_op == FlexOpType.NEG:
-                    stack.append(IntermediateExpr(f"-{stack.pop(-1).value}", 10))
-                elif flex_op == FlexOpType.MAX:
-                    right = stack.pop(-1)
-                    left = stack.pop(-1)
-                    stack.append(
-                        IntermediateExpr(f"max({left.value if left.precedence > 5 else f'({left.value})'}, "
-                                         f"{right.value if right.precedence > 5 else f'({right.value})'})", 5))
-                elif flex_op == FlexOpType.MIN:
-                    right = stack.pop(-1)
-                    left = stack.pop(-1)
-                    stack.append(
-                        IntermediateExpr(f"min({left.value if left.precedence > 5 else f'({left.value})'}, "
-                                         f"{right.value if right.precedence > 5 else f'({right.value})'})", 5))
-                elif flex_op == FlexOpType.COMBO:
-                    count = op.index
-                    inter = stack.pop(-1)
-                    result = inter.value
-                    for i in range(2, count):
+            try:
+                for op in rule.flex_ops:
+                    flex_op = op.op
+                    if flex_op == FlexOpType.CONST:
+                        stack.append(IntermediateExpr(op.value, 10))
+                    elif flex_op == FlexOpType.FETCH1:
+                        stack.append(IntermediateExpr(self.flex_controllers[op.index].name, 10))
+                    elif flex_op == FlexOpType.FETCH2:
+                        stack.append(IntermediateExpr(f"%{self.flex_names[op.index]}", 10))
+                    elif flex_op == FlexOpType.ADD:
+                        right = stack.pop(-1).value
+                        left = stack.pop(-1).value
+                        stack.append(IntermediateExpr(f"{left} + {right}", 1))
+                    elif flex_op == FlexOpType.SUB:
+                        right = stack.pop(-1).value
+                        left = stack.pop(-1).value
+                        stack.append(IntermediateExpr(f"{left} - {right}", 1))
+                    elif flex_op == FlexOpType.MUL:
+                        right = stack.pop(-1)
+                        left = stack.pop(-1)
+                        stack.append(
+                            IntermediateExpr(f"{left.value if left.precedence > 2 else f'({left.value})'} * "
+                                             f"{right.value if right.precedence > 2 else f'({right.value})'}", 2))
+                    elif flex_op == FlexOpType.DIV:
+                        right = stack.pop(-1)
+                        left = stack.pop(-1)
+                        stack.append(
+                            IntermediateExpr(f"{left.value if left.precedence > 2 else f'({left.value})'} / "
+                                             f"{right.value if right.precedence > 2 else f'({right.value})'}", 2))
+                    elif flex_op == FlexOpType.NEG:
+                        stack.append(IntermediateExpr(f"-{stack.pop(-1).value}", 10))
+                    elif flex_op == FlexOpType.MAX:
+                        right = stack.pop(-1)
+                        left = stack.pop(-1)
+                        stack.append(
+                            IntermediateExpr(f"max({left.value if left.precedence > 5 else f'({left.value})'}, "
+                                             f"{right.value if right.precedence > 5 else f'({right.value})'})", 5))
+                    elif flex_op == FlexOpType.MIN:
+                        right = stack.pop(-1)
+                        left = stack.pop(-1)
+                        stack.append(
+                            IntermediateExpr(f"min({left.value if left.precedence > 5 else f'({left.value})'}, "
+                                             f"{right.value if right.precedence > 5 else f'({right.value})'})", 5))
+                    elif flex_op == FlexOpType.COMBO:
+                        count = op.index
                         inter = stack.pop(-1)
-                        result += " * " + inter.value
-                    stack.append(IntermediateExpr(f"({result})", 5))
-                elif flex_op == FlexOpType.DOMINATE:
-                    count = op.index
-                    inter = stack.pop(-1)
-                    result = inter.value
-                    for i in range(2, count):
+                        result = str(inter.value)
+                        for i in range(2, count):
+                            inter = stack.pop(-1)
+                            result += f" * {inter.value}"
+                        stack.append(IntermediateExpr(f"({result})", 5))
+                    elif flex_op == FlexOpType.DOMINATE:
+                        count = op.index
                         inter = stack.pop(-1)
-                        result += " * " + inter.value
-                    inter = stack.pop(-1)
-                    result = f"({inter.value} * (1 - {result}))"
-                    stack.append(IntermediateExpr(result, 5))
-                else:
-                    print("Unknown OP", op)
-            if len(stack) > 1 or len(stack) == 0:
+                        result = inter.value
+                        for i in range(2, count):
+                            inter = stack.pop(-1)
+                            result += " * " + inter.value
+                        inter = stack.pop(-1)
+                        result = f"({inter.value} * (1 - {result}))"
+                        stack.append(IntermediateExpr(result, 5))
+                    else:
+                        print("Unknown OP", op)
+                if len(stack) > 1 or len(stack) == 0:
+                    print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
+                    continue
+                final_expr = stack.pop(-1)
+                # print(self.flex_names[rule.flex_index], '=', final_expr)
+                rules[self.flex_names[rule.flex_index]] = final_expr
+            except:
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
-                continue
-            final_expr = stack.pop(-1)
-            # print(self.flex_names[rule.flex_index], '=', final_expr)
-            rules[self.flex_names[rule.flex_index]] = final_expr
+                pass
 
         return rules

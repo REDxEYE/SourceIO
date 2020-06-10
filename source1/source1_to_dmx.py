@@ -9,7 +9,7 @@ from .new_vvd.vvd import Vvd
 from .new_vtx.vtx import Vtx
 from .new_vtx.structs.mesh import Mesh as VtxMesh
 from .new_mdl.structs.bone import Bone
-
+from .new_mdl.structs.flex import FlexController,FlexControllerUI
 from scipy.spatial.transform import Rotation as R
 
 
@@ -101,7 +101,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
             dme_axis_system = dme_model["axisSystem"] = dm.add_element("axisSystem", "DmeAxisSystem",
                                                                        "AxisSys" + armature_name)
 
-            dme_axis_system["upAxis"] = axes_lookup_source2["Z"]
+            dme_axis_system["upAxis"] = axes_lookup_source2["Y"]
             dme_axis_system["forwardParity"] = 1  # ??
             dme_axis_system["coordSys"] = 0  # ??
 
@@ -341,7 +341,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
 
 def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
     # dm1 = datamodel.load(
-    #     r"C:\Users\i.getsman\Downloads\mechanic_model_merged.dmx")
+    #     r"C:\Users\MED45\Downloads\head_controllers.dmx")
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
@@ -388,7 +388,7 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
             dme_axis_system = dme_model["axisSystem"] = dm.add_element("axisSystem", "DmeAxisSystem",
                                                                        "AxisSys" + armature_name)
 
-            dme_axis_system["upAxis"] = axes_lookup_source2["Z"]
+            dme_axis_system["upAxis"] = axes_lookup_source2["Y"]
             dme_axis_system["forwardParity"] = 1  # ??
             dme_axis_system["coordSys"] = 0  # ??
 
@@ -593,13 +593,13 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                 dme_mesh["deltaStateWeights"] = dme_mesh["deltaStateWeightsLagged"] = \
                     datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
 
-            def create_controller(namespace, name, deltas):
-                combination_input_control = dm.add_element(name, "DmeCombinationInputControl",
-                                                           id=f"{namespace}_{name}_inputcontrol")
+            def create_controller(namespace, flex: FlexControllerUI, deltas):
+                combination_input_control = dm.add_element(flex.name, "DmeCombinationInputControl",
+                                                           id=f"{namespace}_{flex.name}_inputcontrol")
                 controls.append(combination_input_control)
 
                 combination_input_control["rawControlNames"] = datamodel.make_array(deltas, str)
-                combination_input_control["stereo"] = False
+                combination_input_control["stereo"] = flex.stereo
                 combination_input_control["eyelid"] = False
 
                 combination_input_control["flexMax"] = 1.0
@@ -607,8 +607,8 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
                 combination_input_control["wrinkleScales"] = datamodel.make_array([0.0] * len(deltas), float)
 
-            for flex in mdl.flex_names:
-                create_controller(body_part.name, flex, [flex])
+            for flex in mdl.flex_ui_controllers:
+                create_controller(body_part.name, flex, [flex.name])
 
             control_values = dme_combination_operator["controlValues"] = datamodel.make_array(
                 [[0.0, 0.0, 0.5]] * len(controls), datamodel.Vector3)
