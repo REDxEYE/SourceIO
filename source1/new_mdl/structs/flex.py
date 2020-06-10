@@ -8,6 +8,7 @@ from ...new_shared.base import Base
 from .float16 import int16_to_float
 
 
+
 class FlexController(Base):
     def __init__(self):
         self.name = ''
@@ -28,6 +29,8 @@ class FlexRule(Base):
     def __init__(self):
         self.flex_index = 0
         self.flex_ops = []  # type:List[FlexOp]
+
+
 
     def read(self, reader: ByteIO):
         entry = reader.tell()

@@ -49,8 +49,8 @@ def get_dmx_keywords():
 
 
 def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
-    dm1 = datamodel.load(
-        r"C:\Users\MED45\Downloads\head_controllers.dmx")
+    # dm1 = datamodel.load(
+    #     r"C:\Users\i.getsman\Downloads\mechanic_model_merged.dmx")
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
@@ -164,6 +164,10 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
             if bones:
                 dme_model["children"].extend(bones)
 
+            rules = []
+            meshes = []
+            mdl_rules = mdl.rebuild_flex_rules()
+
             for n, (vtx_mesh, mesh) in enumerate(zip(vtx_meshes, model.meshes)):
                 if not vtx_mesh.strip_groups:
                     continue
@@ -184,6 +188,8 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                 dme_mesh["bindState"] = vertex_data
                 dme_mesh["currentState"] = vertex_data
                 dme_mesh["baseStates"] = datamodel.make_array([vertex_data], datamodel.Element)
+
+                meshes.append(dme_mesh)
 
                 dme_dag = dm.add_element(mesh_name, "DmeDag", id=f"ob_{mesh_name}_dag")
                 joint_list.append(dme_dag)
@@ -237,6 +243,11 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
                 delta_states = []
                 delta_states_name = []
+                dme_flex_rules = dm.add_element(mesh_name, "DmeFlexRules", id=f"{mesh_name}_{mesh_name}")
+                dme_flex_rules['target'] = dme_mesh
+                flex_rule_delta_state = dme_flex_rules['deltaStates'] = datamodel.make_array([], datamodel.Element)
+                flex_rule_delta_state_weights = dme_flex_rules['deltaStateWeights'] = datamodel.make_array([], datamodel.Vector2)
+                rules.append(dme_flex_rules)
                 for flex in mesh.flexes:
                     flex_name = mdl.flex_names[flex.flex_desc_index]
                     if flex_name in delta_states_name:
@@ -244,6 +255,22 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
                         flex_name += str(delta_states_name.count(flex_name) - 1)
                     else:
                         delta_states_name.append(flex_name)
+
+                    if flex_name in mdl_rules:
+                        flex_expr = mdl_rules[flex_name]
+                        print(flex_name, flex_expr.value)
+                        flex_rule = dm.add_element(flex_name, "DmeFlexRuleExpression",
+                                                   id=f"{mesh_name}_{flex_name}_{flex_expr.value}")
+                        flex_rule['result'] = 0.0
+                        flex_rule['expression'] = flex_expr.value
+                    else:
+                        print(flex_name, "empty")
+                        flex_rule = dm.add_element(flex_name, "DmeFlexRulePassThrough",
+                                                   id=f"{mesh_name}_{flex_name}_empty_rule")
+                        flex_rule['result'] = 0.0
+                    flex_rule_delta_state.append(flex_rule)
+                    flex_rule_delta_state_weights.append(datamodel.Vector2([0.0, 0.0]))
+
                     vertex_delta_data = dm.add_element(flex_name, "DmeVertexDeltaData", id=f"{mesh_name}_{flex_name}")
                     delta_states.append(vertex_delta_data)
                     vertex_format = vertex_delta_data["vertexFormat"] = datamodel.make_array(
@@ -298,5 +325,9 @@ def main(mdl: Mdl, vvd: Vvd, vtx: Vtx):
 
             dme_combination_operator["dominators"] = datamodel.make_array([], datamodel.Element)
             targets = dme_combination_operator["targets"] = datamodel.make_array([], datamodel.Element)
+            for mesh in meshes:
+                targets.append(mesh)
+            for flex_rule in rules:
+                targets.append(flex_rule)
             file_name = Path(model.name).stem
             dm.write(f'test_data/DMX/decompile/{file_name}.dmx', 'binary', 9)

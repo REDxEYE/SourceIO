@@ -112,7 +112,7 @@ class Mdl(Base):
                 elif flex_op == FlexOpType.FETCH1:
                     stack.append(IntermediateExpr(self.flex_controllers[op.index].name, 10))
                 elif flex_op == FlexOpType.FETCH2:
-                    stack.append(IntermediateExpr(f"%{self.flex_names[op.index]}", 10))
+                    stack.append(IntermediateExpr(f"{self.flex_names[op.index]}", 10))
                 elif flex_op == FlexOpType.ADD:
                     right = stack.pop(-1).value
                     left = stack.pop(-1).value
@@ -171,6 +171,7 @@ class Mdl(Base):
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
                 continue
             final_expr = stack.pop(-1)
-            print(self.flex_names[rule.flex_index], '=', final_expr)
-            pass
-            # print(rule)
+            # print(self.flex_names[rule.flex_index], '=', final_expr)
+            rules[self.flex_names[rule.flex_index]] = final_expr
+
+        return rules
