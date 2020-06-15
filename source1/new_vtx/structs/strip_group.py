@@ -17,7 +17,7 @@ class StripGroupFlags(IntFlag):
     SUPPRESS_HW_MORPH = 0x08
 
 
-class StripGroup:
+class StripGroup(Base):
 
     def __init__(self):
         self.flags = StripGroupFlags(0)
@@ -37,9 +37,9 @@ class StripGroup:
         strip_offset = reader.read_uint32()
         self.flags = StripGroupFlags(reader.read_uint8())
         # global extra_8
-        # if extra_8:
-        topology_indices_count = reader.read_uint32()
-        topology_offset = reader.read_uint32()
+        if self.get_value('extra8'):
+            topology_indices_count = reader.read_uint32()
+            topology_offset = reader.read_uint32()
 
         with reader.save_current_pos():
             reader.seek(entry + index_offset)

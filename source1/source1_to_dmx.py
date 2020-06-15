@@ -1,3 +1,4 @@
+import os
 import typing
 from pathlib import Path
 
@@ -12,6 +13,8 @@ from .new_vtx.structs.model import ModelLod as VtxModel
 from .new_mdl.structs.bone import Bone
 from .new_mdl.structs.model import Model
 from .new_mdl.structs.flex import FlexController, FlexControllerUI
+from ..utilities.valve_utils import GameInfoFile
+
 from scipy.spatial.transform import Rotation as R
 
 
@@ -93,15 +96,13 @@ def get_dmx_keywords():
     }
 
 
-def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
+def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFile):
     output_folder = Path(output_folder)
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
-
-    # mdl_rules = mdl.rebuild_flex_rules()
-
+    result_files = {}
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             if not model.meshes:
@@ -268,7 +269,11 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
                 material_name = mdl.materials[face_set['material']].name
 
                 material_elem = dm.add_element(material_name, "DmeMaterial", id=f"{material_name}_mat")
-                material_elem["mtlName"] = material_name
+                for cd_mat in mdl.materials_paths:
+                    full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
+                    if full_path is not None:
+                        material_elem["mtlName"] = str(Path(cd_mat) / material_name)
+                        break
 
                 dme_face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
                 dme_face_set["material"] = material_elem
@@ -354,4 +359,6 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
             #     targets.append(flex_rule)
             file_name = Path(model.name).stem
             output_path = output_folder / f"{file_name}.dmx"
+            os.makedirs(output_path.parent,exist_ok=True)
             dm.write(output_path, 'binary', 9)
+            result_files[body_part.name] = output_path
