@@ -1,40 +1,41 @@
+import io
+import typing
 import uuid
 
 
 class Lexer:
-    def __init__(self, path: str):
-        self.path = path
-        self.buf = open(path, 'r', encoding='utf-8', newline='\n')
-        self.pos = 0
-        self.row = 1
-        self.col = 1
-        self.cur = None
+    def __init__(self, stream: typing.TextIO, filename: str):
+        self.stream = stream
+        self.name = filename
+        self.pos = (0, 1, 1)
+        self.cur = (0, 1, 1)
+        self.val = None
         self.hdr = False
-        self.advance()
+        self._advance()
 
     def next(self):
         while True:
-            val = self.cur[0]
-            pos = self.cur[1:]
+            val = self.val
+            pos = self.cur
 
             if val.isspace():
-                self.advance()
+                self._advance()
                 continue
 
             if val == '<':
-                if self.advance() != '!' or self.advance() != '-' or self.advance() != '-':
-                    self.report(pos, 'Truncated header opening quote')
+                if self._advance() != '!' or self._advance() != '-' or self._advance() != '-':
+                    self._report(pos, 'Truncated header opening quote')
 
-                self.advance()
+                self._advance()
                 self.hdr = True
 
                 return pos, 'lhdr', None
 
             if val == '-' and self.hdr:
-                if self.advance() != '-' or self.advance() != '>':
-                    self.report(pos, 'Truncated header closing quote')
+                if self._advance() != '-' or self._advance() != '>':
+                    self._report(pos, 'Truncated header closing quote')
 
-                self.advance()
+                self._advance()
                 self.hdr = False
 
                 return pos, 'rhdr', None
@@ -42,17 +43,17 @@ class Lexer:
             if val == '{' and self.hdr:
                 buf = ''
 
-                val = self.advance()
-                pos = self.cur[1:]
+                val = self._advance()
+                pos = self.pos
 
                 while val != '}':
                     if not (val.isalnum() or val == '-'):
-                        self.report(pos, 'Non-hex character in UUID identifier')
+                        self._report(pos, 'Non-hex character in UUID identifier')
 
                     buf += val
-                    val = self.advance()
+                    val = self._advance()
 
-                self.advance()
+                self._advance()
 
                 return pos, 'uuid', uuid.UUID(buf)
 
@@ -61,7 +62,7 @@ class Lexer:
 
                 while val.isalpha() or val.isdigit() or val == '_':
                     buf += val
-                    val = self.advance()
+                    val = self._advance()
 
                 return pos, 'symbol', buf
 
@@ -73,13 +74,13 @@ class Lexer:
 
                 while val.isdigit() or val == '.' or val == '-':
                     if val == '.':
-                        val = self.advance()
+                        val = self._advance()
                         dot = True
                         continue
 
                     if val == '-':
                         sig = -1
-                        val = self.advance()
+                        val = self._advance()
                         continue
 
                     num = num * 10 + int(val)
@@ -87,97 +88,98 @@ class Lexer:
                     if dot:
                         mag -= 1
 
-                    val = self.advance()
+                    val = self._advance()
 
                 return pos, 'number', num * 10 ** mag * sig
 
             if val == '"':
                 buf = ''
-                val = self.advance()
+                val = self._advance()
 
                 def read(match_newline=False):
                     nonlocal val, buf, pos
 
                     while val != '"':
                         if val is None or (match_newline and val == '\n'):
-                            self.report(pos, 'Truncated string closing quote')
+                            self._report(pos, 'Truncated string closing quote')
 
                         buf += val
-                        val = self.advance()
-                        pos = self.cur[1:]
+                        val = self._advance()
+                        pos = self.pos
 
                 read(match_newline=True)
 
-                if self.advance() == '"' and len(buf) == 0:
-                    val = self.advance()
+                if self._advance() == '"' and len(buf) == 0:
+                    val = self._advance()
 
                     read(match_newline=False)
 
-                    if self.advance() != '"' or self.advance() != '"':
-                        self.report(pos, 'Truncated multi-line closing quote')
+                    if self._advance() != '"' or self._advance() != '"':
+                        self._report(pos, 'Truncated multi-line closing quote')
 
-                    self.advance()
+                    self._advance()
 
                 return pos, 'string', buf
 
             if val == '{':
-                self.advance()
+                self._advance()
                 return pos, 'lbrace', None
 
             if val == '}':
-                self.advance()
+                self._advance()
                 return pos, 'rbrace', None
 
             if val == '[':
-                self.advance()
+                self._advance()
                 return pos, 'lbracket', None
 
             if val == ']':
-                self.advance()
+                self._advance()
                 return pos, 'rbracket', None
 
             if val == '=':
-                self.advance()
+                self._advance()
                 return pos, 'assign', None
 
             if val == ',':
-                self.advance()
+                self._advance()
                 return pos, 'comma', None
 
             if val == ':':
-                self.advance()
+                self._advance()
                 return pos, 'colon', None
 
             if val == '':
                 return pos, 'eof', None
 
-            self.report(pos, f'Invalid character: \'{val}\'')
+            self._report(pos, f'Invalid character: \'{val}\'')
 
-    def advance(self):
-        pos = self.pos
-        row = self.row
-        col = self.col
-        val = self.buf.read(1)
+    def _advance(self):
+        pos_old, row_old, col_old = self.pos
+        pos_new, row_new, col_new = self.pos
+        val = self.stream.read(1)
 
         if val != '':
-            self.pos += 1
-            self.col += 1
+            pos_new += 1
+            col_new += 1
 
         if val == '\n':
-            self.row += 1
-            self.col = 1
+            row_new += 1
+            col_new = 1
 
-        self.cur = val, pos, row, col
+        self.pos = pos_new, row_new, col_new
+        self.cur = pos_old, row_old, col_old
+        self.val = val
 
         return val
 
-    def report(self, pos, msg: str):
-        raise ValueError(f'{self.path}:{pos[1]}:{pos[2]}: {msg}')
+    def _report(self, pos, msg: str):
+        raise ValueError(f'{self.name}:{pos[1]}:{pos[2]}: {msg}')
 
 
 class Parser(Lexer):
-    def __init__(self, path: str):
-        super().__init__(path)
+    def __init__(self, stream: typing.TextIO, filename: str):
+        super().__init__(stream, filename)
         self.tok = None
         self.next()
 
@@ -212,36 +214,36 @@ class Parser(Lexer):
                 self.next()
                 return False
 
-        self.report(pos, f'Unexpected token \'{tag}\'')
+        self._report(pos, f'Unexpected token \'{tag}\'')
 
     def _parse_header(self):
-        self.expect('lhdr')
-        name = self.expect('symbol')[2]
+        self._expect('lhdr')
+        name = self._expect('symbol')[2]
 
-        assert self.expect('symbol')[2] == 'encoding'
-        self.expect('colon')
-        encoding_name = self.expect('symbol')[2]
-        self.expect('colon')
-        assert self.expect('symbol')[2] == 'version'
-        encoding_version = self.expect('uuid')[2]
+        assert self._expect('symbol')[2] == 'encoding'
+        self._expect('colon')
+        encoding_name = self._expect('symbol')[2]
+        self._expect('colon')
+        assert self._expect('symbol')[2] == 'version'
+        encoding_version = self._expect('uuid')[2]
 
-        assert self.expect('symbol')[2] == 'format'
-        self.expect('colon')
-        format_name = self.expect('symbol')[2]
-        self.expect('colon')
-        assert self.expect('symbol')[2] == 'version'
-        format_version = self.expect('uuid')[2]
+        assert self._expect('symbol')[2] == 'format'
+        self._expect('colon')
+        format_name = self._expect('symbol')[2]
+        self._expect('colon')
+        assert self._expect('symbol')[2] == 'version'
+        format_version = self._expect('uuid')[2]
 
-        self.expect('rhdr')
+        self._expect('rhdr')
 
         return name, (encoding_name, encoding_version), (format_name, format_version)
 
     def _parse_dict(self):
         items = {}
 
-        while not self.match('rbrace'):
-            name = self.expect('symbol')[2]
-            self.expect('assign')
+        while not self._match('rbrace'):
+            name = self._expect('symbol')[2]
+            self._expect('assign')
             data = self._parse()
 
             items[name] = data
@@ -251,13 +253,13 @@ class Parser(Lexer):
     def _parse_list(self):
         items = []
 
-        while not self.match('rbracket'):
+        while not self._match('rbracket'):
             items.append(self._parse())
-            self.match('comma')
+            self._match('comma')
 
         return items
 
-    def match(self, tag: str, consume: bool = True):
+    def _match(self, tag: str, consume: bool = True):
         tok = self.tok
 
         if tok[1] != tag:
@@ -268,11 +270,11 @@ class Parser(Lexer):
 
         return tok
 
-    def expect(self, tag: str, consume: bool = True):
-        tok = self.match(tag, consume)
+    def _expect(self, tag: str, consume: bool = True):
+        tok = self._match(tag, consume)
 
         if not tok:
-            self.report(self.tok[0], f'Expected token of type \'{tag}\', found \'{self.tok[1]}\'')
+            self._report(self.tok[0], f'Expected token of type \'{tag}\', found \'{self.tok[1]}\'')
 
         return tok
 
@@ -281,76 +283,89 @@ class Parser(Lexer):
 
 
 class Writer:
-    def __init__(self, header, data, output):
-        self.output = output
-        self.dump_header(*header)
-        self.dump(data, 0, True)
+    def __init__(self, stream: typing.TextIO):
+        self.stream = stream
 
-    def dump_header(self, name, e, f):
-        self.print(f'<!-- {name} encoding:{e[0]}:version{{{e[1]}}} format:{f[0]}:version{{{f[1]}}} -->', 0, True)
+    def write_header(self, name, enc, fmt):
+        self.print(f'<!-- {name} encoding:{enc[0]}:version{{{enc[1]}}} format:{fmt[0]}:version{{{fmt[1]}}} -->', 0)
 
-    def dump(self, value, indent: int, newline: bool):
+    def write(self, value, indentation: int, append_newline: bool):
         if isinstance(value, dict):
-            self.print('{', indent, True)
-            for k, v in value.items():
-                if isinstance(v, dict) or isinstance(v, list):
-                    self.print(f'{k} = ', indent + 1, True)
-                    self.dump(v, indent + 1, True)
-                else:
-                    self.print(f'{k} = ', indent + 1, False)
-                    self.dump(v, 0, True)
-            self.print('}', indent, newline)
+            self.write_dict(value, indentation, append_newline)
         elif isinstance(value, list):
-            self.print('[', indent, newline)
-            for index, v in enumerate(value):
-                self.dump(v, indent + 1, False)
-                if index < len(value) - 1:
-                    self.print(',', 0, False)
-                self.print('', 0, True)
-            self.print(']', indent, newline)
+            self.write_list(value, indentation, append_newline)
         elif isinstance(value, str):
-            if value.find('\n') < 0:
-                self.print(f'"{value}"', indent, newline)
-            else:
-                self.print(f'"""{value}"""', indent, newline)
+            self.write_string(value, indentation, append_newline)
         elif isinstance(value, bool):
-            self.print(str(value).lower(), indent, newline)
-        elif isinstance(value, int):
-            self.print(str(value), indent, newline)
-        elif isinstance(value, float):
-            self.print(str(round(value, 6)), indent, newline)
+            self.write_bool(value, indentation, append_newline)
+        elif isinstance(value, (int, float)):
+            self.write_number(value, indentation, append_newline)
         else:
             raise TypeError(f'Invalid type: {value.__class__}')
 
-    def print(self, value, indent, newline):
-        self.output.write('    ' * indent + value)
+    def write_dict(self, items: dict, indentation: int, append_newline: bool):
+        self.print('[', indentation, append_newline)
 
-        if newline:
-            self.output.write('\n')
+        for key, value in items.items():
+            if isinstance(value, (dict, list)):
+                self.print(f'{key} = ', indentation + 1, True)
+                self.write(value, indentation + 1, True)
+            else:
+                self.print(f'{key} = ', indentation + 1, False)
+                self.write(value, 0, True)
+
+        self.print('[', indentation, append_newline)
+
+    def write_list(self, items: list, indentation: int, append_newline: bool):
+        self.print('[', indentation, append_newline)
+
+        for index, value in enumerate(items):
+            self.write(value, indentation + 1, False)
+
+            if index < len(items) - 1:
+                self.print(',', 0, False)
+
+            self.print(',', 0, True)
+
+        self.print('[', indentation, append_newline)
+
+    def write_string(self, value: str, indentation: int, append_newline: bool):
+        value = f'"{value}"' if value.find('\n') < 0 else f'"""{value}"""'
+        self.print(value, indentation, append_newline)
+
+    def write_number(self, value: int, indentation: int, append_newline: bool):
+        value = str(value if isinstance(value, int) else round(value, 6))
+        self.print(value, indentation, append_newline)
+
+    def write_bool(self, value: bool, indentation: int, append_newline: bool):
+        self.print('true' if value else 'false', indentation, append_newline)
+
+    def print(self, value, indent: int, append_newline: bool = True):
+        self.stream.write('\t' * indent + value)
+
+        if append_newline:
+            self.stream.write('\n')
 
 
 class KeyValues:
     @staticmethod
-    def read(path: str):
-        return Parser(path).parse_file()
+    def read_file(filename: str):
+        return KeyValues.read_data(open(filename, 'r', encoding='utf-8'), filename)
 
     @staticmethod
-    def dump(header, data, out):
-        return Writer(header, data, out)
+    def read_data(stream: typing.TextIO, filename: str = '<input'):
+        return Parser(stream, filename).parse_file()
 
+    @staticmethod
+    def dump(name: str, enc: tuple, fmt: tuple, data, out: typing.TextIO):
+        writer = Writer(out)
+        writer.write_header(name, enc, fmt)
+        writer.write(data, 0, False)
+        return writer
 
-def main():
-    # path = r'C:/Users/ShadelessFox/Downloads/Telegram Desktop/medic.vmdl'
-    # data = KeyValues.read(path)
-    #
-    # print(data)
-
-    import sys
-
-    path = r'C:\Users\ShadelessFox\Downloads\Telegram Desktop\charizardfemale.vmdl'
-
-    KeyValues.dump(*KeyValues.read(path), sys.stdout)
-
-
-if __name__ == '__main__':
-    main()
+    @staticmethod
+    def dump_str(name: str, enc: tuple, fmt: tuple, data):
+        buf = io.StringIO()
+        KeyValues.dump(name, enc, fmt, data, buf)
+        buf.seek(0)
+        return buf.read()
