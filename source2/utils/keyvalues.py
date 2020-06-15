@@ -353,7 +353,7 @@ class KeyValues:
         return KeyValues.read_data(open(filename, 'r', encoding='utf-8'), filename)
 
     @staticmethod
-    def read_data(stream: typing.TextIO, filename: str = '<input'):
+    def read_data(stream: typing.TextIO, filename: str = '<input>'):
         return Parser(stream, filename).parse_file()
 
     @staticmethod
