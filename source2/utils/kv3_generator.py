@@ -3,7 +3,7 @@ from io import StringIO
 from .keyvalues import KeyValues
 
 
-class K3Vmdl:
+class KV3mdl:
     def __init__(self):
         self.storage = {'rootNode': {'_class': 'RootNode',
                                      'children': [],
@@ -68,10 +68,7 @@ class K3Vmdl:
         bodygroup['children'].append(choice)
 
     def dump(self):
-        string = StringIO()
-        KeyValues.dump(('KV3',
-                        ('text', 'e21c7f3c-8a33-41c5-9977-a76d3a32aa0d'),
-                        ('modeldoc28', 'fb63b6ca-f435-4aa0-a2c7-c66ddc651dca')),
-                       self.storage, string)
-        string.seek(0)
-        return string.read(-1)
+        return KeyValues.dump_str('KV3',
+                                  ('text', 'e21c7f3c-8a33-41c5-9977-a76d3a32aa0d'),
+                                  ('modeldoc28', 'fb63b6ca-f435-4aa0-a2c7-c66ddc651dca'),
+                                  self.storage)

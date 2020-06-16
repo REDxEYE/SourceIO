@@ -73,9 +73,10 @@ def _validate_array_list(iterable, array_type):
         if not iterable:
             return None
     else:
-        if not iterable.any():
+        if not len(iterable) != 0:
             return None
     try:
+
         return [array_type(i) if type(i) != array_type else i for i in iterable]
     except Exception as e:
         raise TypeError("Could not convert all values to {}: {}".format(array_type, e)) from e
@@ -153,7 +154,7 @@ class _Array(list):
     def __init__(self, l=None):
         if l is None:
             return
-        res = bool(l) if type(l) is not np.ndarray else l.any()
+        res = bool(l) if type(l) is not np.ndarray else len(l) > 0
         if res:
             return super().__init__(_validate_array_list(l, self.type))
         else:

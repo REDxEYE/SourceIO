@@ -359,6 +359,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             #     targets.append(flex_rule)
             file_name = Path(model.name).stem
             output_path = output_folder / f"{file_name}.dmx"
-            os.makedirs(output_path.parent,exist_ok=True)
+            os.makedirs(output_path.parent, exist_ok=True)
             dm.write(output_path, 'binary', 9)
             result_files[body_part.name] = output_path
+    return result_files
