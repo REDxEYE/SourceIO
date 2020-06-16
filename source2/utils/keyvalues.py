@@ -304,7 +304,7 @@ class Writer:
             raise TypeError(f'Invalid type: {value.__class__}')
 
     def write_dict(self, items: dict, indentation: int, append_newline: bool):
-        self.print('[', indentation, append_newline)
+        self.print('{', indentation, True)
 
         for key, value in items.items():
             if isinstance(value, (dict, list)):
@@ -314,10 +314,10 @@ class Writer:
                 self.print(f'{key} = ', indentation + 1, False)
                 self.write(value, 0, True)
 
-        self.print('[', indentation, append_newline)
+        self.print('}', indentation, append_newline)
 
     def write_list(self, items: list, indentation: int, append_newline: bool):
-        self.print('[', indentation, append_newline)
+        self.print('[', indentation, True)
 
         for index, value in enumerate(items):
             self.write(value, indentation + 1, False)
@@ -325,9 +325,9 @@ class Writer:
             if index < len(items) - 1:
                 self.print(',', 0, False)
 
-            self.print(',', 0, True)
+            self.print('', 0, True)
 
-        self.print('[', indentation, append_newline)
+        self.print(']', indentation, append_newline)
 
     def write_string(self, value: str, indentation: int, append_newline: bool):
         value = f'"{value}"' if value.find('\n') < 0 else f'"""{value}"""'
