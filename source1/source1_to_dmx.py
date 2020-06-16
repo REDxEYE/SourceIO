@@ -53,7 +53,7 @@ def merge_meshes(model: Model, vtx_model: VtxModel):
         vertex_start = mesh.vertex_index_start
         face_set['material'] = mesh.material_index
         indices, vertices, offset = merge_strip_groups(vtx_mesh)
-        vertices, indices = optimize_indices(vertices, indices)
+        # vertices, indices = optimize_indices(vertices, indices)
         indices = np.add(indices, acc)
 
         vtx_vertices.extend(np.add(vertices, vertex_start))
@@ -144,7 +144,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             dme_axis_system = dme_model["axisSystem"] = dm.add_element("axisSystem", "DmeAxisSystem",
                                                                        "AxisSys" + armature_name)
 
-            dme_axis_system["upAxis"] = axes_lookup_source2["Y"]
+            dme_axis_system["upAxis"] = axes_lookup_source2["Z"]
             dme_axis_system["forwardParity"] = 1  # ??
             dme_axis_system["coordSys"] = 0  # ??
 
@@ -242,7 +242,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             vertex_format = vertex_data["vertexFormat"] = datamodel.make_array(
                 [keywords['pos'], keywords['norm'], keywords['texco']], str)
             vertex_format.extend([keywords['weight'], keywords["weight_indices"]])
-            vertex_data["flipVCoordinates"] = True
+            vertex_data["flipVCoordinates"] = False
             vertex_data["jointCount"] = 3
 
             vertex_data[keywords['pos']] = datamodel.make_array(model_vertices['vertex'], datamodel.Vector3)
@@ -272,7 +272,8 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                 for cd_mat in mdl.materials_paths:
                     full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
                     if full_path is not None:
-                        material_elem["mtlName"] = str(Path(cd_mat) / material_name)
+                        # print(str(Path(cd_mat) / material_name).lower())
+                        material_elem["mtlName"] = str(Path('materials')/Path(cd_mat) / material_name).lower()
                         break
 
                 dme_face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")

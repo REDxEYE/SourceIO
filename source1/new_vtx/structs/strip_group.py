@@ -32,6 +32,7 @@ class StripGroup(Base):
         vertex_count = reader.read_uint32()
         vertex_offset = reader.read_uint32()
         index_count = reader.read_uint32()
+        assert index_count % 3 == 0
         index_offset = reader.read_uint32()
         strip_count = reader.read_uint32()
         strip_offset = reader.read_uint32()

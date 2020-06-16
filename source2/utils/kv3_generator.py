@@ -46,7 +46,7 @@ class KV3mdl:
     def add_render_mesh(self, name, path):
         render_mesh = {'_class': 'RenderMeshFile',
                        'name': name,
-                       'filename': path,
+                       'filename': path.replace("\\","\\\\"),
                        'import_scale': 1.0
                        }
 

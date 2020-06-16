@@ -464,6 +464,7 @@ class KeyValueFile(object):
             else:
                 try:
                     key, value = line_parser(line)
+
                 except (TypeError, ValueError):
                     print(line)
                     raise TypeError(

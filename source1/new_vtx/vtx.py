@@ -25,7 +25,7 @@ class Vtx(Base):
                 body_part = BodyPart()
                 body_part.read(self.reader)
                 self.body_parts.append(body_part)
-        except struct.error:
+        except (struct.error,AssertionError):
             self.reader.seek(self.header.body_part_offset)
             self.body_parts.clear()
             self.store_value('extra8', True)
