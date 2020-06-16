@@ -107,7 +107,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             if not model.meshes:
                 continue
-            print(body_part.name)
+            print(model.name)
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
 
             dm = datamodel.DataModel("model", 22)
@@ -362,5 +362,5 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             output_path = output_folder / f"{file_name}.dmx"
             os.makedirs(output_path.parent, exist_ok=True)
             dm.write(output_path, 'binary', 9)
-            result_files[body_part.name] = output_path
+            result_files[model.name] = output_path
     return result_files
