@@ -97,7 +97,7 @@ def get_dmx_keywords():
 
 
 def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFile):
-    output_folder = Path(output_folder)
+    output_folder = Path(str(output_folder).lower())
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
     desired_lod = 0
