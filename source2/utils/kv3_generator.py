@@ -20,10 +20,13 @@ class KV3mdl:
 
         self.jigglebone_list = {'_class': 'JiggleBoneList', 'children': []}
 
+        self.skin_group_list = {'_class': 'MaterialGroupList', 'children': []}
+
         self.storage['rootNode']['children'].append(self.render_mesh_list)
         self.storage['rootNode']['children'].append(self.animation_list)
         self.storage['rootNode']['children'].append(self.bodygroup_list)
         self.storage['rootNode']['children'].append(self.jigglebone_list)
+        self.storage['rootNode']['children'].append(self.skin_group_list)
         self._add_empty_anim()
 
     # def add_anim(self):
@@ -67,6 +70,21 @@ class KV3mdl:
         jiggle_bone = {'_class': 'JiggleBone'}
         jiggle_bone.update(data)
         self.jigglebone_list['children'].append(jiggle_bone)
+
+    def add_skin(self, skin_name):
+        skin = {
+            '_class': 'MaterialGroup',
+            'name': skin_name,
+            'remaps': []
+        }
+        self.skin_group_list['children'].append(skin)
+
+        return skin
+
+    @staticmethod
+    def add_skin_remap(skin, remap_from, remap_to):
+        remap = {'from': remap_from, 'to': remap_to}
+        skin['remaps'].append(remap)
 
     @staticmethod
     def add_bodygroup_choice(bodygroup, meshes_name):

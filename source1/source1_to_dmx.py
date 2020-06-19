@@ -240,9 +240,30 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
 
             vertex_format = vertex_data["vertexFormat"] = datamodel.make_array(
                 [keywords['pos'], keywords['norm'], keywords['texco']], str)
-            vertex_format.extend([keywords['weight'], keywords["weight_indices"]])
+            vertex_format.extend([keywords['weight'], keywords["weight_indices"], keywords['balance']])
             vertex_data["flipVCoordinates"] = False
             vertex_data["jointCount"] = 3
+
+            # balance_width = baked.dimensions[axis] * (1 - (id.data.vs.flex_stereo_sharpness / 100))
+            # result.balance_vg = baked.vertex_groups.new(name="__dmx_balance__")
+            # zeroes = []
+            # ones = []
+            # for vert in baked.data.vertices:
+            #     if balance_width == 0:
+            #         if vert.co[axis] > 0:
+            #             ones.append(vert.index)
+            #         else:
+            #             zeroes.append(vert.index)
+            #     else:
+            #         balance = min(1, max(0, (-vert.co[axis] / balance_width / 2) + 0.5))
+            v = model_vertices['vertex']
+            dimm = v.max() - v.min()
+            balance_width = dimm * (1 - (99.5 / 100))
+            balance = model_vertices['vertex'][:, 0]
+            balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
+
+            vertex_data[keywords['balance']] = datamodel.make_array(balance, float)
+            vertex_data[keywords['balance'] + 'Indices'] = datamodel.make_array(vtx_vertices, int)
 
             vertex_data[keywords['pos']] = datamodel.make_array(model_vertices['vertex'], datamodel.Vector3)
             vertex_data[keywords['pos'] + 'Indices'] = datamodel.make_array(vtx_vertices, int)
@@ -251,7 +272,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             vertex_data[keywords['texco'] + "Indices"] = datamodel.make_array(vtx_vertices, int)
 
             vertex_data[keywords['norm']] = datamodel.make_array(model_vertices['normal'],
-                                                                 datamodel.Vector3)
+            datamodel.Vector3)
             vertex_data[keywords['norm'] + "Indices"] = datamodel.make_array(vtx_vertices, int)
 
             vertex_data[keywords["weight"]] = datamodel.make_array(model_vertices['weight'].flatten(), float)
@@ -266,13 +287,15 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for face_set in face_sets:
                 indices = face_set['indices']
                 material_name = mdl.materials[face_set['material']].name
-                material_name = material_name.replace(" ", "_").lower()
+                material_name = material_name.lower()
 
-                material_elem = dm.add_element(material_name, "DmeMaterial", id=f"{material_name}_mat")
+                material_elem = dm.add_element(material_name.replace(' ', '_'), "DmeMaterial",
+                                               id=f"{material_name}_mat")
                 for cd_mat in mdl.materials_paths:
                     full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
                     if full_path is not None:
-                        material_elem["mtlName"] = str(Path('materials') / Path(cd_mat) / material_name)
+                        material_elem["mtlName"] = str(
+                            Path('materials') / Path(cd_mat) / material_name.replace(' ', '_'))
                         break
 
                 dme_face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
@@ -296,7 +319,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                         delta_datas[flex_name] = dict(indices=[], shape_pos=[], shape_norms=[], wrinkles=[])
 
                     if flex_name not in mdl_flexes:
-                        mdl_flexes[flex_name] = {'stereo': False}
+                        mdl_flexes[flex_name] = {'stereo': flex.partner_index != -1}
 
                     for flex_vert in flex.vertex_animations:
                         delta_datas[flex_name]['indices'].append(flex_vert.index + mesh.vertex_index_start)
@@ -359,7 +382,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             # for flex_rule in rules:
             #     targets.append(flex_rule)
             file_name = Path(model.name).stem
-            file_name = file_name.replace(' ', '_').replace('-', '_').replace('.','_')
+            file_name = file_name.replace(' ', '_').replace('-', '_').replace('.', '_')
             output_path = output_folder / f"{file_name}.dmx"
             os.makedirs(output_path.parent, exist_ok=True)
             dm.write(output_path, 'binary', 9)
