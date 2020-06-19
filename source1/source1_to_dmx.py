@@ -302,12 +302,14 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for mesh in model.meshes:
                 for flex in mesh.flexes:
                     flex_name = mdl.flex_names[flex.flex_desc_index]
+                    if flex.partner_index != 0 and mdl.flex_names[flex.partner_index]!=flex_name:
+                        flex_name = flex_name[:-1]
                     flex_name = flex_name.replace("+", "_plus").replace('-', "_").replace(".", '_').replace(' ', '_')
                     if flex_name not in delta_datas:
                         delta_datas[flex_name] = dict(indices=[], shape_pos=[], shape_norms=[], wrinkles=[])
 
                     if flex_name not in mdl_flexes:
-                        mdl_flexes[flex_name] = {'stereo': flex.partner_index != -1}
+                        mdl_flexes[flex_name] = {'stereo': flex.partner_index != 0}
 
                     for flex_vert in flex.vertex_animations:
                         delta_datas[flex_name]['indices'].append(flex_vert.index + mesh.vertex_index_start)
@@ -342,10 +344,8 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                 datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
 
             def create_controller(namespace, flex_name, stereo, deltas):
-                if stereo:
-                    flex_name = flex_name[:-1]
                 combination_input_control = dm.add_element(flex_name, "DmeCombinationInputControl",
-                                            id = f"{namespace}_{flex_name}_inputcontrol")
+                                                           id=f"{namespace}_{flex_name}_inputcontrol")
                 controls.append(combination_input_control)
 
                 combination_input_control["rawControlNames"] = datamodel.make_array(deltas, str)
