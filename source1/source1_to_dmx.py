@@ -260,7 +260,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             vertex_data[keywords['texco'] + "Indices"] = datamodel.make_array(vtx_vertices, int)
 
             vertex_data[keywords['norm']] = datamodel.make_array(model_vertices['normal'],
-            datamodel.Vector3)
+                                                                 datamodel.Vector3)
             vertex_data[keywords['norm'] + "Indices"] = datamodel.make_array(vtx_vertices, int)
 
             vertex_data[keywords["weight"]] = datamodel.make_array(model_vertices['weight'].flatten(), float)
@@ -342,8 +342,10 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                 datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
 
             def create_controller(namespace, flex_name, stereo, deltas):
-                combination_input_control = dm.add_element(flex_name[:-1], "DmeCombinationInputControl",
-                                                           id=f"{namespace}_{flex_name}_inputcontrol")
+                if stereo:
+                    flex_name = flex_name[:-1]
+                combination_input_control = dm.add_element(flex_name, "DmeCombinationInputControl",
+                                            id = f"{namespace}_{flex_name}_inputcontrol")
                 controls.append(combination_input_control)
 
                 combination_input_control["rawControlNames"] = datamodel.make_array(deltas, str)
