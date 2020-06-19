@@ -18,9 +18,12 @@ class KV3mdl:
 
         self.bodygroup_list = {'_class': 'BodyGroupList', 'children': []}
 
+        self.jigglebone_list = {'_class': 'JiggleBoneList', 'children': []}
+
         self.storage['rootNode']['children'].append(self.render_mesh_list)
         self.storage['rootNode']['children'].append(self.animation_list)
         self.storage['rootNode']['children'].append(self.bodygroup_list)
+        self.storage['rootNode']['children'].append(self.jigglebone_list)
         self._add_empty_anim()
 
     # def add_anim(self):
@@ -46,7 +49,7 @@ class KV3mdl:
     def add_render_mesh(self, name, path):
         render_mesh = {'_class': 'RenderMeshFile',
                        'name': name,
-                       'filename': path.replace("\\","\\\\"),
+                       'filename': path.replace("\\", "\\\\"),
                        'import_scale': 1.0
                        }
 
@@ -59,6 +62,11 @@ class KV3mdl:
                      'name': name}
         self.bodygroup_list['children'].append(bodygroup)
         return bodygroup
+
+    def add_jiggle_bone(self, data):
+        jiggle_bone = {'_class': 'JiggleBone'}
+        jiggle_bone.update(data)
+        self.jigglebone_list['children'].append(jiggle_bone)
 
     @staticmethod
     def add_bodygroup_choice(bodygroup, meshes_name):

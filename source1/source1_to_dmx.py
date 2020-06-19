@@ -358,8 +358,9 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             # for flex_rule in rules:
             #     targets.append(flex_rule)
             file_name = Path(model.name).stem
+            file_name = file_name.replace(' ', '_').replace('-', '_')
             output_path = output_folder / f"{file_name}.dmx"
             os.makedirs(output_path.parent, exist_ok=True)
             dm.write(output_path, 'binary', 9)
-            result_files[model.name] = output_path
+            result_files[model.name.replace(' ', '_').replace('-', '_')] = output_path
     return result_files
