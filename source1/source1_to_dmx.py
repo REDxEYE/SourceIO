@@ -107,7 +107,6 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             if not model.meshes:
                 continue
-            print(model.name)
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
 
             dm = datamodel.DataModel("model", 22)
@@ -267,13 +266,13 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for face_set in face_sets:
                 indices = face_set['indices']
                 material_name = mdl.materials[face_set['material']].name
+                material_name = material_name.replace(" ", "_").lower()
 
                 material_elem = dm.add_element(material_name, "DmeMaterial", id=f"{material_name}_mat")
                 for cd_mat in mdl.materials_paths:
                     full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
                     if full_path is not None:
-                        # print(str(Path(cd_mat) / material_name).lower())
-                        material_elem["mtlName"] = str(Path('materials')/Path(cd_mat) / material_name).lower()
+                        material_elem["mtlName"] = str(Path('materials') / Path(cd_mat) / material_name)
                         break
 
                 dme_face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
