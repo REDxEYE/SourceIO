@@ -244,21 +244,9 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             vertex_data["flipVCoordinates"] = False
             vertex_data["jointCount"] = 3
 
-            # balance_width = baked.dimensions[axis] * (1 - (id.data.vs.flex_stereo_sharpness / 100))
-            # result.balance_vg = baked.vertex_groups.new(name="__dmx_balance__")
-            # zeroes = []
-            # ones = []
-            # for vert in baked.data.vertices:
-            #     if balance_width == 0:
-            #         if vert.co[axis] > 0:
-            #             ones.append(vert.index)
-            #         else:
-            #             zeroes.append(vert.index)
-            #     else:
-            #         balance = min(1, max(0, (-vert.co[axis] / balance_width / 2) + 0.5))
             v = model_vertices['vertex']
             dimm = v.max() - v.min()
-            balance_width = dimm * (1 - (99.5 / 100))
+            balance_width = dimm * (1 - (99.3 / 100))
             balance = model_vertices['vertex'][:, 0]
             balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
 
@@ -354,7 +342,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                 datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
 
             def create_controller(namespace, flex_name, stereo, deltas):
-                combination_input_control = dm.add_element(flex_name, "DmeCombinationInputControl",
+                combination_input_control = dm.add_element(flex_name[:-1], "DmeCombinationInputControl",
                                                            id=f"{namespace}_{flex_name}_inputcontrol")
                 controls.append(combination_input_control)
 
