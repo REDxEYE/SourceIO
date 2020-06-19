@@ -622,11 +622,16 @@ class KeyValueFile(object):
 
 
 class GameInfoFile(KeyValueFile):
+    visited_mods = []
     """
     Provides an interface to gameinfo relevant operations - querying search paths, game root, game title etc...
     Passing startEmpty=True creates an empty object. Otherwise the current VPROJECT will be used to fetch the gameinfo.
     The parselines method can be passed a list of strings to fill an empty GameInfoFile object.
     """
+
+    @classmethod
+    def add_visited_mod(cls, mod_path):
+        cls.visited_mods.append(mod_path)
 
     def __init__(self, filepath, chunk_class=Chunk,
                  read_callback=None, modname=None):
@@ -649,21 +654,20 @@ class GameInfoFile(KeyValueFile):
         except IndexError:
             raise AttributeError("attribute '%s' not found" % attr)
 
-    def get_search_paths_recursive(self, visited_mods=None):
-        if visited_mods is None:
-            visited_mods = []
-        if self.modname in visited_mods:
+    def get_search_paths_recursive(self):
+        if self.filepath.parent.stem in self.visited_mods:
             return
+        print(f'Visited "{self.filepath.parent.stem}"!')
+        self.add_visited_mod(self.filepath.parent.stem)
         paths = self.get_search_paths()
         for path in self.get_search_paths():
             if path.stem == '*':
                 path = path.parent
             gi_path = path / 'gameinfo.txt'
             if gi_path.exists():
+
                 gi = GameInfoFile(gi_path)
-                visited_mods.append(self.modname)
-                new_paths = gi.get_search_paths_recursive(
-                    list(set(visited_mods)))
+                new_paths = gi.get_search_paths_recursive()
                 del gi
                 if new_paths:
                     for p in new_paths:
@@ -746,6 +750,7 @@ class GameInfoFile(KeyValueFile):
             if self.path_cache:
                 paths = self.path_cache
             else:
+                print("Collecting all possible search paths!")
                 paths = self.get_search_paths_recursive()
                 self.path_cache = paths
 
@@ -864,7 +869,7 @@ class MaterialPathResolver:
                   extention=None, use_recursive=False):
         filepath = Path(filepath)
         if use_recursive:
-            while len(filepath.parts)>1:
+            while len(filepath.parts) > 1:
                 if additional_dir:
                     new_filepath = self.filepath / Path(additional_dir) / Path(filepath)
                 else:
