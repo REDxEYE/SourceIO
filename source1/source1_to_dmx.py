@@ -291,6 +291,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for mesh in model.meshes:
                 for flex in mesh.flexes:
                     flex_name = mdl.flex_names[flex.flex_desc_index]
+                    flex_name = flex_name.replace("+", "_plus").replace('-', "_").replace(".", '_').replace(' ', '_')
                     if flex_name not in delta_datas:
                         delta_datas[flex_name] = dict(indices=[], shape_pos=[], shape_norms=[], wrinkles=[])
 
