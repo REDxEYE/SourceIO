@@ -277,7 +277,6 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for face_set in face_sets:
                 indices = face_set['indices']
                 material_name = mdl.materials[face_set['material']].name
-                material_name = normalize_path(material_name)
 
                 material_elem = dm.add_element(material_name, "DmeMaterial",
                                                id=f"{material_name}_mat")
@@ -285,10 +284,10 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                     full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
                     if full_path is not None:
                         material_elem["mtlName"] = str(
-                            Path('materials') / Path(cd_mat) / material_name)
+                            Path('materials') / Path(cd_mat) / normalize_path(material_name))
                         break
 
-                dme_face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
+                dme_face_set = dm.add_element(normalize_path(material_name), "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
                 dme_face_set["material"] = material_elem
 
                 faces = np.full((len(indices) // 3, 4), -1)
