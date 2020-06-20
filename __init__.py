@@ -2,6 +2,11 @@ import os
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
+try:
+    import bpy
+except ImportError:
+    NO_BPY = 1
+
 bl_info = {
     "name": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)",
     "author": "RED_EYE",
@@ -44,7 +49,6 @@ if not NO_BPY:
     #         layout.label(text='Enter SFM install path:')
     #         row = layout.row()
     #         row.prop(self, 'sfm_path')
-
 
     # noinspection PyPep8Naming
     class SourceIO_MT_Menu(bpy.types.Menu):

@@ -3,19 +3,17 @@ import typing
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
-from ..utilities import datamodel
 from .new_mdl.mdl import Mdl
-from .new_vvd.vvd import Vvd
-from .new_vtx.vtx import Vtx
-from .new_vtx.structs.mesh import Mesh as VtxMesh
-from .new_vtx.structs.model import ModelLod as VtxModel
 from .new_mdl.structs.bone import Bone
 from .new_mdl.structs.model import Model
-from .new_mdl.structs.flex import FlexController, FlexControllerUI
+from .new_vtx.structs.mesh import Mesh as VtxMesh
+from .new_vtx.structs.model import ModelLod as VtxModel
+from .new_vtx.vtx import Vtx
+from .new_vvd.vvd import Vvd
+from ..utilities import datamodel
 from ..utilities.valve_utils import GameInfoFile
-
-from scipy.spatial.transform import Rotation as R
 
 
 def split(array, n=3):
@@ -94,6 +92,10 @@ def get_dmx_keywords():
         'valvesource_vertex_blend1': "VertexPaintBlendParams1$0",
         'valvesource_vertex_paint': "VertexPaintTintColor$0"
     }
+
+
+def normalize_path(path):
+    return str(path).lower().replace(' ', '_').replace('-', '_')
 
 
 def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFile):
@@ -275,15 +277,15 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for face_set in face_sets:
                 indices = face_set['indices']
                 material_name = mdl.materials[face_set['material']].name
-                material_name = material_name.lower()
+                material_name = normalize_path(material_name)
 
-                material_elem = dm.add_element(material_name.replace(' ', '_'), "DmeMaterial",
+                material_elem = dm.add_element(material_name, "DmeMaterial",
                                                id=f"{material_name}_mat")
                 for cd_mat in mdl.materials_paths:
                     full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
                     if full_path is not None:
                         material_elem["mtlName"] = str(
-                            Path('materials') / Path(cd_mat) / material_name.replace(' ', '_'))
+                            Path('materials') / Path(cd_mat) / material_name)
                         break
 
                 dme_face_set = dm.add_element(material_name, "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
@@ -302,7 +304,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             for mesh in model.meshes:
                 for flex in mesh.flexes:
                     flex_name = mdl.flex_names[flex.flex_desc_index]
-                    if flex.partner_index != 0 and mdl.flex_names[flex.partner_index]!=flex_name:
+                    if flex.partner_index != 0 and mdl.flex_names[flex.partner_index] != flex_name:
                         flex_name = flex_name[:-1]
                     flex_name = flex_name.replace("+", "_plus").replace('-', "_").replace(".", '_').replace(' ', '_')
                     if flex_name not in delta_datas:
