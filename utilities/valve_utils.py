@@ -623,6 +623,7 @@ class KeyValueFile(object):
 
 class GameInfoFile(KeyValueFile):
     visited_mods = []
+    path_cache = []
     """
     Provides an interface to gameinfo relevant operations - querying search paths, game root, game title etc...
     Passing startEmpty=True creates an empty object. Otherwise the current VPROJECT will be used to fetch the gameinfo.
@@ -632,6 +633,10 @@ class GameInfoFile(KeyValueFile):
     @classmethod
     def add_visited_mod(cls, mod_path):
         cls.visited_mods.append(mod_path)
+
+    @classmethod
+    def set_path_cache(cls, cache):
+        cls.path_cache = cache
 
     def __init__(self, filepath, chunk_class=Chunk,
                  read_callback=None, modname=None):
@@ -645,7 +650,6 @@ class GameInfoFile(KeyValueFile):
         else:
             self.filename = None
         self.project = self.filepath.parent.parent
-        self.path_cache = []
         super().__init__(filepath, parse_line, chunk_class, read_callback, True)
 
     def __getattr__(self, attr):
@@ -752,7 +756,7 @@ class GameInfoFile(KeyValueFile):
             else:
                 print("Collecting all possible search paths!")
                 paths = self.get_search_paths_recursive()
-                self.path_cache = paths
+                self.set_path_cache(paths)
 
         else:
             paths = self.get_search_paths()
