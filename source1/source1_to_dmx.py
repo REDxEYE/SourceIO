@@ -105,10 +105,15 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
     result_files = {}
+    blank_counter = 0
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             if not model.meshes:
                 continue
+            if model.name=='blank':
+                model.name = f'blank_{blank_counter}'
+                blank_counter+=1
+            print(f"\tDecompiling {model.name} mesh")
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
 
             dm = datamodel.DataModel("model", 22)
@@ -284,10 +289,11 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                     full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
                     if full_path is not None:
                         material_elem["mtlName"] = str(
-                            Path('materials') / Path(cd_mat) / normalize_path(material_name))
+                            Path('materials') / Path(normalize_path(cd_mat)) / normalize_path(material_name))
                         break
 
-                dme_face_set = dm.add_element(normalize_path(material_name), "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
+                dme_face_set = dm.add_element(normalize_path(material_name),
+                                              "DmeFaceSet", id=f"{model.name}_{material_name}_faces")
                 dme_face_set["material"] = material_elem
 
                 faces = np.full((len(indices) // 3, 4), -1)
