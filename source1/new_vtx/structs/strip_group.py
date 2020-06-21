@@ -36,6 +36,9 @@ class StripGroup(Base):
         index_offset = reader.read_uint32()
         strip_count = reader.read_uint32()
         strip_offset = reader.read_uint32()
+        assert vertex_offset < reader.size()
+        assert strip_offset < reader.size()
+        assert index_offset < reader.size()
         self.flags = StripGroupFlags(reader.read_uint8())
         # global extra_8
         if self.get_value('extra8'):

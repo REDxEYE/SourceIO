@@ -35,4 +35,6 @@ class Strip:
         self.bone_state_change_offset = reader.read_uint32()
         self.topology_indices_count = reader.read_int32()
         self.topology_offset = reader.read_int32()
-
+        assert self.topology_offset < reader.size()
+        assert self.bone_state_change_offset < reader.size()
+        assert self.bone_count < 255

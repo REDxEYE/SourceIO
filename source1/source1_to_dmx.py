@@ -95,7 +95,7 @@ def get_dmx_keywords():
 
 
 def normalize_path(path):
-    return str(path).lower().replace(' ', '_').replace('-', '_')
+    return str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\')
 
 
 def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFile):
@@ -110,9 +110,9 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             if not model.meshes:
                 continue
-            if model.name=='blank':
+            if model.name == 'blank':
                 model.name = f'blank_{blank_counter}'
-                blank_counter+=1
+                blank_counter += 1
             print(f"\tDecompiling {model.name} mesh")
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
 
@@ -169,7 +169,6 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             bone_elements = {}
 
             def write_bone(bone: Bone):
-
                 if isinstance(bone, str):
                     bone_name = bone
                     bone = None
@@ -213,9 +212,11 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
 
                 return [bone_elem]
 
-            bones = write_bone(mdl.bones[0])
-            if bones:
-                dme_model["children"].extend(bones)
+            root_bones = [bone for bone in mdl.bones if bone.parent_bone_index == -1]
+            for root_bone in root_bones:
+                bones = write_bone(root_bone)
+                if bones:
+                    dme_model["children"].extend(bones)
 
             meshes = []
             mdl_flexes = {}

@@ -14,6 +14,7 @@ class Mesh:
     def read(self, reader: ByteIO):
         entry = reader.tell()
         strip_group_count, strip_group_offset = reader.read_fmt('2I')
+        assert strip_group_offset < reader.size()
         self.flags = reader.read_uint8()
         with reader.save_current_pos():
             if strip_group_offset > 0:
