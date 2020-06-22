@@ -3,17 +3,13 @@ import struct
 
 def int16_to_float(value):
     sign = (value & 0x8000) >> 15
-    if sign == 1:
-        float_sign = -1
-    else:
-        float_sign = 0
-
+    float_sign = -1 if sign == 1 else 1
     mantissa = value & 0x3FF
     biased_exponent = (value & 0x7C00) >> 10
 
     if (biased_exponent == 31) and (mantissa == 0):
         return 65504.0 * float_sign
-    if (biased_exponent == 31) and (mantissa != 0):
+    if biased_exponent == 31:
         return 0
 
     if biased_exponent == 0 and mantissa != 0:

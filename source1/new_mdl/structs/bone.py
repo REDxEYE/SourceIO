@@ -202,9 +202,8 @@ class Bone(Base):
     def parent(self):
         from ..mdl import Mdl
         mdl: Mdl = self.get_value("MDL")
-        if mdl.bones:
-            if self.parent_bone_index != -1:
-                return mdl.bones[self.parent_bone_index]
+        if mdl.bones and self.parent_bone_index != -1:
+            return mdl.bones[self.parent_bone_index]
         return None
 
     def read(self, reader: ByteIO):

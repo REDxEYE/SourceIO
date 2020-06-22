@@ -192,7 +192,7 @@ class ByteIO:
         return self.read('d')
 
     def read_ascii_string(self, length=None):
-        if length:
+        if length is not None:
             return bytes(''.join([chr(self.read_uint8()) for _ in range(
                 length)]), 'utf').strip(b'\x00').decode('utf')
 

@@ -7,8 +7,16 @@ from .structs.header import Header
 from .structs.bone import Bone
 from .structs.texture import Material
 from .structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
+from .structs.anim_desc import AnimDesc
+from .structs.sequence import Sequence
 from .structs.attachment import Attachment
 from .structs.bodygroup import BodyPart
+
+
+class _AnimBlocks:
+    def __init__(self):
+        self.name = ''
+        self.blocks = []
 
 
 class Mdl(Base):
@@ -30,6 +38,9 @@ class Mdl(Base):
         self.body_parts = []  # type:List[BodyPart]
 
         self.attachments = []  # type:List[Attachment]
+        self.anim_descs = []  # type:List[AnimDesc]
+        self.sequences = []  # type:List[Sequence]
+        self.anim_block = _AnimBlocks()
 
     def read(self):
         self.header.read(self.reader)
@@ -91,6 +102,24 @@ class Mdl(Base):
             body_part = BodyPart()
             body_part.read(self.reader)
             self.body_parts.append(body_part)
+
+        # self.reader.seek(self.header.local_animation_offset)
+        # for _ in range(self.header.local_animation_count):
+        #     anim_desc = AnimDesc()
+        #     anim_desc.read(self.reader)
+        #     self.anim_descs.append(anim_desc)
+        #
+        # self.reader.seek(self.header.local_sequence_offset)
+        # for _ in range(self.header.local_sequence_count):
+        #     seq = Sequence()
+        #     seq.read(self.reader)
+        #     self.sequences.append(seq)
+        #
+        # self.anim_block.name = self.reader.read_from_offset(self.header.anim_block_name_offset,
+        #                                                     self.reader.read_ascii_string)
+        # self.reader.seek(self.header.anim_block_offset)
+        # for _ in range(self.header.anim_block_count):
+        #     self.anim_block.blocks.append(self.reader.read_fmt('2i'))
 
     def rebuild_flex_rules(self):
         rules = {}
