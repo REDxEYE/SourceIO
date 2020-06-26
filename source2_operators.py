@@ -125,6 +125,7 @@ class VTEXImporter_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype='FILE_PATH', )
     flip: BoolProperty(name="Flip texture", default=True)
+    load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
@@ -135,7 +136,7 @@ class VTEXImporter_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for file in self.files:
             texture = ValveTexture(str(directory / file.name))
-            texture.load(self.flip)
+            texture.load(self.flip,self.load_alpha)
         return {'FINISHED'}
 
     def invoke(self, context, event):

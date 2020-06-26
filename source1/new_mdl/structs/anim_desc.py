@@ -38,10 +38,13 @@ class AnimDesc(Base):
         self.anim_block_id = 0
         self.anim_offset = 0
         self.anim_block_ikrule_offset = 0
-        self.zeroframe_span = 0
-        self.zeroframe_count = 0
-        self.zeroframe_offset = 0
-        self.zeroframe_stall_time = 0
+
+        self.section_offset = 0
+        self.section_frame_count = 0
+        self.span_frame_count = 0
+        self.span_count = 0
+        self.span_offset = 0
+        self.stall_time = 0
         self.anim_block = 0
 
         self.animation_frames = []
@@ -49,6 +52,7 @@ class AnimDesc(Base):
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.base_prt = reader.read_int32()
+        assert entry == abs(self.base_prt)
         self.name = reader.read_source1_string(entry)
         self.fps = reader.read_float()
         self.flags = AnimDescFlags(reader.read_int32())
@@ -71,24 +75,40 @@ class AnimDesc(Base):
         local_hierarchy_count = reader.read_int32()
         local_hierarchy_offset = reader.read_int32()
 
-        section_offset = reader.read_int32()
-        section_frame_count = reader.read_int32()
+        self.section_offset = reader.read_int32()
+        self.section_frame_count = reader.read_int32()
 
-        self.zeroframe_span = reader.read_int16()
-        self.zeroframe_count = reader.read_int16()
-        self.zeroframe_offset = reader.read_int32()
+        self.span_frame_count = reader.read_int16()
+        self.span_count = reader.read_int16()
+        self.span_offset = reader.read_int32()
 
-        self.zeroframe_stall_time = reader.read_float()
+        self.stall_time = reader.read_float()
 
-        if section_offset != 0 and section_frame_count > 0:
+        self.read_span_data(reader)
+
+        if self.section_offset != 0 and self.section_frame_count > 0:
             self.read_frames()
         else:
             section_id = 0
-            self.read_frames(entry + self.anim_offset, section_id)
 
-    def read_frames(self, offset, section_id):
-        if self.flags & AnimDescFlags.FRAMEANIM:
-            raise NotImplementedError()
-        else:
-            pass
+            self.read_frames(reader, entry + self.anim_offset, section_id)
 
+    def read_span_data(self, reader: ByteIO):
+        if self.span_count > 0 and self.span_offset != 0:
+            with reader.save_current_pos():
+                reader.seek(abs(self.base_prt) + self.span_offset)
+                # TODO: https://github.com/ZeqMacaw/Crowbar/blob/5e4effa8491b358b8bae6f205599358880b7ee85/Crowbar/Core/GameModel/SourceModel49/SourceMdlFile49.vb#L1148
+                raise NotImplementedError()
+
+    def read_frames(self, reader, offset, section_id):
+        if self.flags & AnimDescFlags.FRAMEANIM == 0:
+            from ..mdl import Mdl
+            mdl: Mdl = self.get_value('MDL')
+            # section_count = (self.frame_count // self.section_frame_count) + 2
+            bone_count = len(mdl.bones)
+
+            for _ in mdl.bones:
+                bone_index = reader.read_uint8()
+                if bone_count == 255:
+                    reader.skip(3)
+                assert bone_index < bone_count
