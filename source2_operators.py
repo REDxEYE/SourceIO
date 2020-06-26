@@ -125,7 +125,7 @@ class VTEXImporter_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype='FILE_PATH', )
     flip: BoolProperty(name="Flip texture", default=True)
-    load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
+    load_alpha: BoolProperty(default=False, name='Load alpha into separate image')
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
