@@ -2,10 +2,7 @@ import os
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
-try:
-    import bpy
-except ImportError:
-    NO_BPY = 1
+
 
 bl_info = {
     "name": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)",
@@ -19,7 +16,10 @@ bl_info = {
 
 if not NO_BPY:
 
-    import bpy
+    try:
+        import bpy
+    except ImportError:
+        NO_BPY = 1
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
     from .source1_operators import (BSPImporter_OT_operator,

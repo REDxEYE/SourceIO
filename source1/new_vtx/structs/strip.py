@@ -11,7 +11,7 @@ class StripHeaderFlags(IntFlag):
     IS_QUADLIST_EXTRA = 0x04  # Extraordinary
 
 
-class Strip:
+class Strip(Base):
     def __init__(self):
         self.index_count = 0
         self.index_mesh_offset = 0
@@ -33,8 +33,9 @@ class Strip:
         self.flags = StripHeaderFlags(reader.read_uint8())
         self.bone_state_change_count = reader.read_uint32()
         self.bone_state_change_offset = reader.read_uint32()
-        self.topology_indices_count = reader.read_int32()
-        self.topology_offset = reader.read_int32()
-        assert self.topology_offset < reader.size()
+        if self.get_value('extra8'):
+            self.topology_indices_count = reader.read_int32()
+            self.topology_offset = reader.read_int32()
+            assert self.topology_offset < reader.size()
         assert self.bone_state_change_offset < reader.size()
         assert self.bone_count < 255
