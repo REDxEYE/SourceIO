@@ -73,8 +73,6 @@ def optimize_indices(vertex_indices, polygon_indices):
         new_polygon_indices.append(place)
     return new_vertex_indices, new_polygon_indices
 
-    pass
-
 
 axes_lookup_source2 = {'X': 1, 'Y': 2, 'Z': 3}
 

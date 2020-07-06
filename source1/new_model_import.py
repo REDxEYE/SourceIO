@@ -7,6 +7,8 @@ from .new_vtx.structs.strip_group import StripGroupFlags
 from .new_vvd.vvd import Vvd
 from .new_mdl.mdl import Mdl
 from .new_vtx.vtx import Vtx
+from .new_mdl.structs.model import Model
+from .new_vtx.structs.model import ModelLod as VtxModel
 from .new_vtx.structs.mesh import Mesh as VtxMesh
 
 import bpy
@@ -23,10 +25,33 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
     vertex_offset = 0
     for strip_group in vtx_mesh.strip_groups:
         indices_accumulator.extend(np.add(strip_group.indexes, vertex_offset))
-        vertex_accumulator.extend(strip_group.vertexes)
+        vertex_accumulator.extend([a.original_mesh_vertex_index for a in strip_group.vertexes])
         for strip in strip_group.strips:
             vertex_offset += strip.vertex_count
-    return indices_accumulator, vertex_accumulator
+    return indices_accumulator, vertex_accumulator, vertex_offset
+
+
+def merge_meshes(model: Model, vtx_model: VtxModel):
+    vtx_vertices = []
+    face_sets = []
+    acc = 0
+    for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
+
+        if not vtx_mesh.strip_groups:
+            continue
+        face_set = {}
+
+        vertex_start = mesh.vertex_index_start
+        face_set['material'] = mesh.material_index
+        indices, vertices, offset = merge_strip_groups(vtx_mesh)
+        indices = np.add(indices, acc)
+
+        vtx_vertices.extend(np.add(vertices, vertex_start))
+        face_set['indices'] = indices
+        face_sets.append(face_set)
+        acc += offset
+
+    return vtx_vertices, face_sets
 
 
 def get_material(mat_name, model_ob):
@@ -116,57 +141,83 @@ def import_model(mdl_path, vvd_path, vtx_path):
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
-            vtx_meshes = vtx_model.model_lods[desired_lod].meshes
+            vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
-            for n, (vtx_mesh, mesh) in enumerate(zip(vtx_meshes, model.meshes)):
-                mesh_vertices = slice(model_vertices, mesh.vertex_index_start, mesh.vertex_count)
-                vtx_indices, vtx_vertices = merge_strip_groups(vtx_mesh)
-                tmp_map = {b.original_mesh_vertex_index: n for n, b in enumerate(vtx_vertices)}
-                vtx_vertex_indices = [v.original_mesh_vertex_index for v in vtx_vertices]
-                vertices = mesh_vertices[vtx_vertex_indices]
+            indices_array = []
+            material_indices_array = []
+            used_materials = []
 
-                mesh_data = bpy.data.meshes.new(f'{model.name}_{mdl.materials[mesh.material_index].name}_MESH')
-                mesh_obj = bpy.data.objects.new(f"{model.name}_{mdl.materials[mesh.material_index].name}", mesh_data)
+            for face_set in face_sets:
+                indices_array.extend(face_set['indices'])
+                mat_name = mdl.materials[face_set['material']].name
+                if mat_name not in used_materials:
+                    used_materials.append(mat_name)
+                material_indices_array.extend([used_materials.index(mat_name)] * (len(face_set['indices']) // 3))
 
-                modifier = mesh_obj.modifiers.new(
-                    type="ARMATURE", name="Armature")
-                modifier.object = armature
+            vertices = model_vertices[vtx_vertices]
 
-                bpy.context.scene.collection.objects.link(mesh_obj)
-                mesh_data.from_pydata(vertices['vertex'], [], split(vtx_indices[::-1], 3))
-                mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
-                mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
-                mesh_data.use_auto_smooth = True
+            mesh_data = bpy.data.meshes.new(f'{model.name}_MESH')
+            mesh_obj = bpy.data.objects.new(f"{model.name}", mesh_data)
 
-                mat_name = mdl.materials[mesh.material_index].name
+            modifier = mesh_obj.modifiers.new(
+                type="ARMATURE", name="Armature")
+            modifier.object = armature
+
+            bpy.context.scene.collection.objects.link(mesh_obj)
+            mesh_data.from_pydata(vertices['vertex'], [], split(indices_array[::-1], 3))
+            mesh_data.update()
+            mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
+            mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
+            mesh_data.use_auto_smooth = True
+
+            for mat_name in used_materials:
                 get_material(mat_name, mesh_obj)
 
-                mesh_data.uv_layers.new()
-                uv_data = mesh_data.uv_layers[0].data
-                for uv_id in range(len(uv_data)):
-                    u = vertices['uv'][mesh_data.loops[uv_id].vertex_index]
-                    u = [u[0], 1 - u[1]]
-                    uv_data[uv_id].uv = u
-                weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
+            mesh_data.polygons.foreach_set('material_index', material_indices_array[::-1])
 
-                for n, (bone_indices, bone_weights) in enumerate(zip(vertices['bone_id'], vertices['weight'])):
-                    for bone_index, weight in zip(bone_indices, bone_weights):
-                        if weight > 0:
-                            bone_name = mdl.bones[bone_index].name
-                            weight_groups[bone_name].add([n], weight, 'REPLACE')
+            mesh_data.uv_layers.new()
+            uv_data = mesh_data.uv_layers[0].data
+            for uv_id in range(len(uv_data)):
+                u = vertices['uv'][mesh_data.loops[uv_id].vertex_index]
+                u = [u[0], 1 - u[1]]
+                uv_data[uv_id].uv = u
+            weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
 
+            for n, (bone_indices, bone_weights) in enumerate(zip(vertices['bone_id'], vertices['weight'])):
+                for bone_index, weight in zip(bone_indices, bone_weights):
+                    if weight > 0:
+                        bone_name = mdl.bones[bone_index].name
+                        weight_groups[bone_name].add([n], weight, 'REPLACE')
+            have_flexes = False
+            for mesh in model.meshes:
                 if mesh.flexes:
                     mesh_obj.shape_key_add(name='base')
-
+                    have_flexes = True
+                    break
+            if have_flexes:
+                for mesh in model.meshes:
                     for flex in mesh.flexes:
                         name = mdl.flex_names[flex.flex_desc_index]
                         if not mesh_obj.data.shape_keys.key_blocks.get(name):
-                            mesh_obj.shape_key_add(name=name)
-                        for flex_vertex in flex.vertex_animations:
-                            if flex_vertex.index in tmp_map:
-                                vertex_index = tmp_map[flex_vertex.index]
-                                vertex = vertices[vertex_index]['vertex']
-                                mesh_obj.data.shape_keys.key_blocks[name].data[vertex_index].co = np.add(vertex,
-                                                                                                         flex_vertex.vertex_delta)
+                            shape_key = mesh_obj.shape_key_add(name=name)
+                        else:
+                            shape_key = mesh_data.shape_keys.key_blocks[name]
+                        deltas = np.array([f.vertex_delta for f in flex.vertex_animations])
+                        vertex_indices = np.array([f.index + mesh.vertex_index_start for f in flex.vertex_animations])
+                        tmp = np.array(vtx_vertices)
+                        indices = np.where(np.in1d(vertex_indices, tmp))[0]
+                        #TODO: разобраться почему неправильная индексация снова
+                        for new_index, delta in zip(vertex_indices[indices], deltas[indices]):
+                            vertex = vertices[new_index]['vertex']
+                            shape_key.data[new_index].co = np.add(vertex, delta)
+                #
+                #     for flex in mesh.flexes:
+                #
+                #         for flex_vertex in flex.vertex_animations:
+                #             if flex_vertex.index in tmp_map:
+                #                 vertex_index = tmp_map[flex_vertex.index]
+                #                 vertex = vertices[vertex_index]['vertex']
+                #                 mesh_obj.data.shape_keys.key_blocks[name].data[vertex_index].co = np.add(vertex,
+                #                                                                                          flex_vertex.vertex_delta)
 
-    return mdl,vvd,vtx
+    return mdl, vvd, vtx
