@@ -1,6 +1,8 @@
 import random
 import re
 from pathlib import Path
+from typing import Optional
+
 import numpy as np
 from .bsp_file import BSPFile
 from .lump import LumpTypes, ModelLump, VertexLump, EdgeLump, FaceLump, SurfEdgeLump, StringsLump, StringOffsetLump, \
@@ -61,14 +63,14 @@ class BSP:
 
     def load_map_mesh(self):
 
-        model_lump: ModelLump = self.map_file.lumps.get(LumpTypes.LUMP_MODELS, False)
-        vertex_lump: VertexLump = self.map_file.lumps.get(LumpTypes.LUMP_VERTICES, False)
-        edge_lump: EdgeLump = self.map_file.lumps.get(LumpTypes.LUMP_EDGES, False)
-        surf_edge_lump: SurfEdgeLump = self.map_file.lumps.get(LumpTypes.LUMP_SURFEDGES, False)
-        face_lump: FaceLump = self.map_file.lumps.get(LumpTypes.LUMP_FACES, False)
-        texture_info_lump: TextureInfoLump = self.map_file.lumps.get(LumpTypes.LUMP_TEXINFO, False)
-        texture_data_lump: TextureDataLump = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, False)
-        strings_lump: StringsLump = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA_STRING_TABLE, False)
+        model_lump: Optional[ModelLump] = self.map_file.lumps.get(LumpTypes.LUMP_MODELS, None)
+        vertex_lump: Optional[VertexLump] = self.map_file.lumps.get(LumpTypes.LUMP_VERTICES, None)
+        edge_lump: Optional[EdgeLump] = self.map_file.lumps.get(LumpTypes.LUMP_EDGES, None)
+        surf_edge_lump: Optional[SurfEdgeLump] = self.map_file.lumps.get(LumpTypes.LUMP_SURFEDGES, None)
+        face_lump: Optional[FaceLump] = self.map_file.lumps.get(LumpTypes.LUMP_FACES, None)
+        texture_info_lump: Optional[TextureInfoLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXINFO, None)
+        texture_data_lump: Optional[TextureDataLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, None)
+        strings_lump: Optional[StringsLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA_STRING_TABLE, None)
 
         def get_string(string_id):
             return strings_lump.strings[string_id] or "NO_NAME"
@@ -79,10 +81,10 @@ class BSP:
                 print(f"Loading model {n}/{len(model_lump.models)}")
                 mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_{n}",
                                                 bpy.data.meshes.new(f"{self.filepath.stem}_{n}_MESH"))
+                mesh_data = mesh_obj.data
                 self.main_collection.objects.link(mesh_obj)
                 mesh_obj.location = model.origin
 
-                mesh_data = mesh_obj.data
                 material_lookup_table = {}
                 for texture_info in texture_info_lump.texture_info:
                     texture_data = texture_data_lump.texture_data[texture_info.texture_data_id]
@@ -166,25 +168,25 @@ class BSP:
                 #     uv_data[i].uv = u
 
     def load_lights(self):
-        lights_lump: WorldLightLump = self.map_file.lumps.get(LumpTypes.LUMP_WORLDLIGHTS, False)
+        lights_lump: Optional[WorldLightLump] = self.map_file.lumps.get(LumpTypes.LUMP_WORLDLIGHTS, None)
+        if lights_lump:
+            for light in lights_lump.lights:
+                loc = np.multiply(light.origin, self.scale)
+                if light.type == EmitType.emit_point:
+                    bpy.ops.object.light_add(type='POINT', align='WORLD', location=loc)
+                elif light.type == EmitType.emit_spotlight:
+                    bpy.ops.object.light_add(type='SPOT', align='WORLD', location=loc)
+                elif light.type == EmitType.emit_skylight:
+                    bpy.ops.object.light_add(type='SUN', align='WORLD', location=loc)
+                elif light.type == EmitType.emit_skyambient:
+                    bpy.ops.object.light_add(type='AREA', radius=1, align='WORLD', location=loc)
+                else:
+                    print("unsupported light type", light.type.name)
+                    continue
+                lamp = bpy.context.object
+                lamp_data = lamp.data
+                lamp_data.energy = light.intensity.magnitude() * self.scale
+                lamp_data.color = light.intensity.normalized().rgb
+                lamp.rotation_euler = (light.normal[0], light.normal[1], light.normal[2])
 
-        for light in lights_lump.lights:
-            loc = np.multiply(light.origin, self.scale)
-            if light.type == EmitType.emit_point:
-                bpy.ops.object.light_add(type='POINT', align='WORLD', location=loc)
-            elif light.type == EmitType.emit_spotlight:
-                bpy.ops.object.light_add(type='SPOT', align='WORLD', location=loc)
-            elif light.type == EmitType.emit_skylight:
-                bpy.ops.object.light_add(type='SUN', align='WORLD', location=loc)
-            elif light.type == EmitType.emit_skyambient:
-                bpy.ops.object.light_add(type='AREA', radius=1, align='WORLD', location=loc)
-            else:
-                print("unsupported light type", light.type.name)
-                continue
-            lamp = bpy.context.object
-            lamp_data = lamp.data
-            lamp_data.energy = light.intensity.magnitude() * self.scale
-            lamp_data.color = light.intensity.normalized().rgb
-            lamp.rotation_euler = (light.normal[0], light.normal[1], light.normal[2])
-
-            print(light)
+                print(light)

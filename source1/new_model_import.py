@@ -1,9 +1,11 @@
 import random
+import traceback
 import typing
 from pathlib import Path
 import numpy as np
 
-from .new_vtx.structs.strip_group import StripGroupFlags
+from .new_mdl.structs.bone import Bone
+from .new_phy.phy import Phy
 from .new_vvd.vvd import Vvd
 from .new_mdl.mdl import Mdl
 from .new_vtx.vtx import Vtx
@@ -126,7 +128,7 @@ def create_armature(mdl: Mdl):
     return armature_obj
 
 
-def import_model(mdl_path, vvd_path, vtx_path):
+def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path):
     mdl = Mdl(mdl_path)
     mdl.read()
     vvd = Vvd(vvd_path)
@@ -142,6 +144,9 @@ def import_model(mdl_path, vvd_path, vtx_path):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
             vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
+
+            tmp2 = np.zeros((max(vtx_vertices) + 1), dtype=np.uint32)
+            tmp2[vtx_vertices] = np.arange(len(vtx_vertices))
 
             indices_array = []
             material_indices_array = []
@@ -197,27 +202,51 @@ def import_model(mdl_path, vvd_path, vtx_path):
             if have_flexes:
                 for mesh in model.meshes:
                     for flex in mesh.flexes:
-                        name = mdl.flex_names[flex.flex_desc_index]
+                        name: str = mdl.flex_names[flex.flex_desc_index]
                         if not mesh_obj.data.shape_keys.key_blocks.get(name):
                             shape_key = mesh_obj.shape_key_add(name=name)
                         else:
                             shape_key = mesh_data.shape_keys.key_blocks[name]
                         deltas = np.array([f.vertex_delta for f in flex.vertex_animations])
                         vertex_indices = np.array([f.index + mesh.vertex_index_start for f in flex.vertex_animations])
-                        tmp = np.array(vtx_vertices)
-                        indices = np.where(np.in1d(vertex_indices, tmp))[0]
-                        #TODO: разобраться почему неправильная индексация снова
-                        for new_index, delta in zip(vertex_indices[indices], deltas[indices]):
-                            vertex = vertices[new_index]['vertex']
-                            shape_key.data[new_index].co = np.add(vertex, delta)
-                #
-                #     for flex in mesh.flexes:
-                #
-                #         for flex_vertex in flex.vertex_animations:
-                #             if flex_vertex.index in tmp_map:
-                #                 vertex_index = tmp_map[flex_vertex.index]
-                #                 vertex = vertices[vertex_index]['vertex']
-                #                 mesh_obj.data.shape_keys.key_blocks[name].data[vertex_index].co = np.add(vertex,
-                #                                                                                          flex_vertex.vertex_delta)
+                        hits = np.in1d(vertex_indices, vtx_vertices)
+                        for new_index, delta in zip(vertex_indices[hits], deltas[hits]):
+                            index = tmp2[new_index]
+                            vertex = vertices[index]['vertex']
+                            shape_key.data[index].co = np.add(vertex, delta)
 
+    if phy_path is not None and phy_path.exists():
+        phy = Phy(phy_path)
+        try:
+            phy.read()
+        except AssertionError:
+            print("Failed to parse PHY file")
+            traceback.print_exc()
+            phy = None
+        if phy is not None:
+            pass
+            create_collision_mesh(phy, mdl, armature)
     return mdl, vvd, vtx
+
+
+def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
+    for solid in phy.solids:
+        for section in solid.sections:
+            bone: Bone = mdl.bones[section.bone_index]
+            bone_name = bone.name
+            mesh_data = bpy.data.meshes.new(f'{bone_name}_collider_MESH')
+            mesh_obj = bpy.data.objects.new(f"{bone_name}_collider", mesh_data)
+
+            bpy.context.scene.collection.objects.link(mesh_obj)
+            mesh_data.from_pydata(section.vertices, [], split(section.indices, 3))
+            mesh_data.update()
+            # pose_bone = armature.pose.bones.get(bone_name)
+            # edit_bone = armature.data.bones.get(bone_name)
+            # mesh_obj.parent = armature
+            # mesh_obj.parent_bone = pose_bone.name
+            # mesh_obj.parent_type = 'BONE'
+            # mesh_obj.location = edit_bone.head
+            # mesh_obj.rotation_euler = edit_bone.rotation_euler
+            # mesh_obj.matrix_parent_inverse = (armature.matrix_world @ bone.matrix).inverted()
+            # mesh_obj.matrix_world = (armature.matrix_world @ bone.matrix)
+            # mesh_obj.matrix_parent_inverse = Matrix()

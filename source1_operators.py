@@ -30,6 +30,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
 
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
 
+    load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     # import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
@@ -48,7 +49,11 @@ class MDLImporter_OT_operator(bpy.types.Operator):
             mdl_path = directory / file.name
             vvd = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.vvd'))
             vtx = backwalk_file_resolver(mdl_path.parent, Path(mdl_path.stem + '.dx90.vtx'))
-            mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx)
+            if self.load_phy:
+                phy = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.phy'))
+            else:
+                phy = None
+            mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy)
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 text = generate_qc(mdl, ".".join(map(str, bl_info['version'])))

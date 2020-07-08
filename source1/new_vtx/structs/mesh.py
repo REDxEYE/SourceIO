@@ -5,7 +5,7 @@ from ....byte_io_mdl import ByteIO
 from .strip_group import StripGroup
 
 
-class Mesh:
+class Mesh(Base):
 
     def __init__(self):
         self.flags = 0
