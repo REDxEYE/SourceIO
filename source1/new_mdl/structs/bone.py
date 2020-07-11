@@ -242,5 +242,5 @@ class Bone(Base):
                     self.procedural_rule = JiggleRule()
                 if self.procedural_rule:
                     self.procedural_rule.read(reader)
-        if self.get_value('mdl_version') == 44:
+        if self.get_value('mdl_version') in [44,46]:
             reader.read_bytes(32)
