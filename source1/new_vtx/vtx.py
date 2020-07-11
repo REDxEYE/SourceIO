@@ -20,6 +20,7 @@ class Vtx(Base):
         self.header.read(self.reader)
 
         try:
+            self.store_value('extra8', False)
             self.reader.seek(self.header.body_part_offset)
             for _ in range(self.header.body_part_count):
                 body_part = BodyPart()
