@@ -10,7 +10,7 @@ class RERL(DataBlock):
         self.resources = []  # type: List[RERLResource]
 
     def __repr__(self):
-        return '<External resources list count:{}>'.format(self.resource_count)
+        return f'<External resources list count:{len(self.resources)}>'
 
     def print_resources(self):
         for res in self.resources:

@@ -84,7 +84,7 @@ class VTexExtraData(IntEnum):
     COMPRESSED_MIP_SIZE = 4
 
 
-class TextureBlock(DataBlock):
+class TEXR(DataBlock):
 
     def __init__(self, valve_file, info_block):
         super().__init__(valve_file, info_block)

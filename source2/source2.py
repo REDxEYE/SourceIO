@@ -79,9 +79,9 @@ class ValveFile:
             return blocks
 
     def get_data_block_class(self, block_name):
-        from .blocks import TextureBlock, DATA, NTRO, REDI, RERL, VBIB, MRPH
+        from .blocks import TEXR, DATA, NTRO, REDI, RERL, VBIB, MRPH,ANIM
         if self.filepath.suffix == '.vtex_c':
-            data_block_class = TextureBlock
+            data_block_class = TEXR
         elif self.filepath.suffix == '.vmorf_c':
             data_block_class = MRPH
         else:
@@ -99,7 +99,7 @@ class ValveFile:
             "PHYS": DATA,
             "ASEQ": DATA,
             "AGRP": DATA,
-            "ANIM": DATA,
+            "ANIM": ANIM,
             "MRPH": MRPH,
         }
         return data_classes.get(block_name, None)

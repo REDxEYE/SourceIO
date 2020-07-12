@@ -35,6 +35,7 @@ class VMDLImporter_OT_operator(bpy.types.Operator):
             model = ValveModel(str(directory / file.name))
             model.load_mesh(self.invert_uv)
             model.load_attachments()
+            model.load_animations()
         return {'FINISHED'}
 
     def invoke(self, context, event):

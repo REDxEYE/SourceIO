@@ -1,5 +1,5 @@
 import struct
-
+from typing import Iterable
 import numpy as np
 
 from ...byte_io_mdl import ByteIO

@@ -214,6 +214,7 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
                             index = tmp2[new_index]
                             vertex = vertices[index]['vertex']
                             shape_key.data[index].co = np.add(vertex, delta)
+                create_flex_drivers(mesh_obj, mdl)
 
     if phy_path is not None and phy_path.exists():
         phy = Phy(phy_path)
@@ -227,6 +228,13 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
             pass
             create_collision_mesh(phy, mdl, armature)
     return mdl, vvd, vtx
+
+
+def create_flex_drivers(obj, mdl: Mdl):
+    for controller in mdl.flex_controllers:
+        shape_key = obj.shape_key_add(name=controller.name)
+
+
 
 
 def create_collision_mesh(phy: Phy, mdl: Mdl, armature):

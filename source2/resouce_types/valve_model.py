@@ -8,6 +8,7 @@ import bpy
 import math
 from mathutils import Vector, Matrix, Quaternion, Euler
 
+from ..utils.decode_animations import parse_anim_data
 from ..common import SourceVector
 from ..source2 import ValveFile
 import numpy as np
@@ -38,16 +39,13 @@ class ValveModel:
         self.strip_from_name = strip_from_name
         name = self.name.replace(self.strip_from_name, "")
         self.main_collection = bpy.data.collections.get(name, None) or bpy.data.collections.new(name)
+
         if parent_collection is not None:
-            try:
+            if self.main_collection.name not in parent_collection.children:
                 parent_collection.children.link(self.main_collection)
-            except :
-                pass
         else:
-            try:
+            if self.main_collection.name not in bpy.context.scene.collection.children:
                 bpy.context.scene.collection.children.link(self.main_collection)
-            except :
-                pass
 
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
 
@@ -56,8 +54,6 @@ class ValveModel:
         if bone_names:
             self.armature = self.build_armature()
             self.objects.append(self.armature)
-        else:
-            armature = None
 
         self.build_meshes(self.main_collection, self.armature, invert_uv, skin_name)
 
@@ -79,7 +75,7 @@ class ValveModel:
                     name = mesh_ref_path.stem
                     pprint(mesh.available_resources)
                     vmorf_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
-                                                                         None)  # type:Path
+                                                              None)  # type:Path
                     morph_block = None
                     if vmorf_path is not None:
                         morph = ValveFile(vmorf_path)
@@ -195,7 +191,7 @@ class ValveModel:
                     remap_table = data_block.data['m_remappingTable']
                     remap_table_starts = data_block.data['m_remappingTableStarts']
                     remaps_start = remap_table_starts[mesh_index]
-                    new_bone_names = [bone.replace("$", 'PHYS_') for bone in bone_names]
+                    new_bone_names = [bone for bone in bone_names]
                     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
 
                     weights_array = vertex_buffer.vertexes.get("BLENDWEIGHT", [])
@@ -206,12 +202,12 @@ class ValveModel:
                             weights = weights_array[n]
                             for bone_index, weight in zip(bone_indices, weights):
                                 if weight > 0:
-                                    bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
+                                    bone_name = new_bone_names[remap_table[remaps_start:][int(bone_index)]]
                                     weight_groups[bone_name].add([n], weight, 'REPLACE')
 
                         else:
                             for bone_index in bone_indices:
-                                bone_name = new_bone_names[remap_table[remaps_start:][bone_index]]
+                                bone_name = new_bone_names[remap_table[remaps_start:][int(bone_index)]]
                                 weight_groups[bone_name].add([n], 1.0, 'REPLACE')
 
                 bpy.ops.object.select_all(action="DESELECT")
@@ -264,13 +260,13 @@ class ValveModel:
 
         bones = []
         for bone_name in bone_names:
-            print("Creating bone", bone_name.replace("$", 'PHYS_'))
-            bl_bone = armature.edit_bones.new(name=bone_name.replace("$", 'PHYS_'))
+            # print("Creating bone", bone_name)
+            bl_bone = armature.edit_bones.new(name=bone_name)
             bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
-            bones.append((bl_bone, bone_name.replace("$", 'PHYS_')))
+            bones.append((bl_bone, bone_name))
 
         for n, bone_name in enumerate(bone_names):
-            bl_bone = armature.edit_bones.get(bone_name.replace("$", 'PHYS_'))
+            bl_bone = armature.edit_bones.get(bone_name)
             parent_id = bone_parents[n]
             if parent_id != -1:
                 bl_parent, parent = bones[parent_id]
@@ -363,3 +359,106 @@ class ValveModel:
             empty.rotation_quaternion = rot
 
         pass
+
+    def load_animations(self):
+        if self.armature:
+            if not self.armature.animation_data:
+                self.armature.animation_data_create()
+
+            bpy.ops.object.select_all(action="DESELECT")
+            self.armature.select_set(True)
+            bpy.context.view_layer.objects.active = self.armature
+            bpy.ops.object.mode_set(mode='POSE')
+
+            ctrl_block = self.valve_file.get_data_block(block_name='CTRL')[0]
+            embedded_anim = ctrl_block.data['embedded_animation']
+            agrp = self.valve_file.get_data_block(block_id=embedded_anim['group_data_block'])
+            anim_data = self.valve_file.get_data_block(block_id=embedded_anim['anim_data_block'])
+
+            animations = parse_anim_data(anim_data.data, agrp.data)
+            bone_array = agrp.data['m_decodeKey']['m_boneArray']
+
+            def decompose(mat: Matrix):
+                return mat.decompose()
+
+            def compose(loc: Vector, rot: Quaternion, scale=None):
+                if scale is None:
+                    scale = [1, 1, 1]
+
+                mat = Matrix.Identity(4)
+                mat = mat @ Matrix.Translation(loc) @ rot.to_matrix().to_4x4() @ Matrix.Scale(1, 4, scale)
+                return mat
+
+            for animation in animations:
+                print(f"Loading animation {animation.name}")
+                action = bpy.data.actions.new(animation.name)
+                self.armature.animation_data.action = action
+                curve_per_bone = {}
+                for bone in bone_array:
+                    bone_string = f'pose.bones["{bone["m_name"]}"].'
+                    group = action.groups.new(name=bone['m_name'])
+                    pos_curves = []
+                    rot_curves = []
+                    for i in range(3):
+                        pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
+                        pos_curve.keyframe_points.add(len(animation.frames))
+                        pos_curves.append(pos_curve)
+                        pos_curve.group = group
+                    for i in range(4):
+                        rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
+                        rot_curve.keyframe_points.add(len(animation.frames))
+                        rot_curves.append(rot_curve)
+                        rot_curve.group = group
+                    curve_per_bone[bone['m_name']] = pos_curves, rot_curves
+
+                for n, frame in enumerate(animation.frames):
+                    for bone_name, bone_data in frame.bone_data.items():
+                        bone_data = frame.bone_data[bone_name]
+                        pos_curves, rot_curves = curve_per_bone[bone_name]
+
+                        pos_type, pos = bone_data['Position']
+                        rot_type, rot = bone_data['Angle']
+
+                        bone_pos = Vector([pos[1], pos[0], -pos[2]])
+                        bone_rot = Quaternion([-rot[3], -rot[1], -rot[0], rot[2]])
+
+                        bone = self.armature.pose.bones[bone_name]
+                        # mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
+
+                        if 'Position' in bone_data:
+                            if pos_type in ['CCompressedFullVector3',
+                                            'CCompressedAnimVector3',
+                                            'CCompressedStaticFullVector3']:
+                                translation_mat = Matrix.Translation(bone_pos)
+                            # elif pos_type == "CCompressedDeltaVector3":
+                            # 'CCompressedStaticVector3',
+                            #     a, b, c = decompose(mat)
+                            #     a += bone_pos
+                            #     translation_mat = compose(a, b, c)
+                            else:
+                                translation_mat = Matrix.Identity(4)
+                                pass
+
+                        if 'Angle' in bone_data:
+
+                            if rot_type in ['CCompressedAnimQuaternion',
+                                            'CCompressedFullQuaternion',
+                                            'CCompressedStaticQuaternion']:
+                                rotation_mat = bone_rot.to_matrix().to_4x4()
+                            else:
+                                rotation_mat = Matrix.Identity(4)
+
+                        mat = translation_mat @ rotation_mat
+                        if bone.parent:
+                            bone.matrix = bone.parent.matrix @ mat
+                        else:
+                            bone.matrix = bone.matrix @ mat
+
+                        if 'Position' in bone_data:
+                            for i in range(3):
+                                pos_curves[i].keyframe_points.add(1)
+                                pos_curves[i].keyframe_points[-1].co = (n, bone.location[i])
+                        if 'Angle' in bone_data:
+                            for i in range(4):
+                                rot_curves[i].keyframe_points.add(1)
+                                rot_curves[i].keyframe_points[-1].co = (n, bone.rotation_quaternion[i])
