@@ -225,7 +225,6 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
             traceback.print_exc()
             phy = None
         if phy is not None:
-            pass
             create_collision_mesh(phy, mdl, armature)
     return mdl, vvd, vtx
 

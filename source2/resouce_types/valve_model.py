@@ -301,10 +301,7 @@ class ValveModel:
     # noinspection PyUnresolvedReferences
     @staticmethod
     def get_material(mat_name, model_ob):
-        if mat_name:
-            mat_name = mat_name
-        else:
-            mat_name = "Material"
+        mat_name = mat_name if mat_name else 'Material'
         mat_ind = 0
         md = model_ob.data
         mat = None
@@ -324,9 +321,7 @@ class ValveModel:
             mat = bpy.data.materials.new(mat_name)
             md.materials.append(mat)
             # Give it a random colour
-            rand_col = []
-            for i in range(3):
-                rand_col.append(random.uniform(.4, 1))
+            rand_col = [random.uniform(.4, 1) for _ in range(3)]
             rand_col.append(1.0)
             mat.diffuse_color = rand_col
 
@@ -358,9 +353,11 @@ class ValveModel:
             empty.location = Vector([pos[1], pos[0], pos[2]])
             empty.rotation_quaternion = rot
 
-        pass
 
     def load_animations(self):
+        if not self.valve_file.get_data_block(block_name='CTRL'):
+            return
+
         if self.armature:
             if not self.armature.animation_data:
                 self.armature.animation_data_create()
