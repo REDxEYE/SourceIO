@@ -4,6 +4,7 @@ import typing
 from pathlib import Path
 import numpy as np
 
+from .new_mdl.flex_expressions import *
 from .new_mdl.structs.bone import Bone
 from .new_phy.phy import Phy
 from .new_vvd.vvd import Vvd
@@ -142,6 +143,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
+            if model.vertex_count == 0:
+                continue
             model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
             vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
@@ -202,7 +205,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
             if have_flexes:
                 for mesh in model.meshes:
                     for flex in mesh.flexes:
-                        name: str = mdl.flex_names[flex.flex_desc_index]
+                        name: str = mdl.get_value('stereo_flexes')[flex.flex_desc_index]
+                        # name: str = mdl.flex_names[flex.flex_desc_index]
                         if not mesh_obj.data.shape_keys.key_blocks.get(name):
                             shape_key = mesh_obj.shape_key_add(name=name)
                         else:
@@ -230,10 +234,46 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
 
 
 def create_flex_drivers(obj, mdl: Mdl):
+    all_exprs = mdl.rebuild_flex_rules()
     for controller in mdl.flex_controllers:
         shape_key = obj.shape_key_add(name=controller.name)
 
+    def parse_expr(expr: typing.Union[Value, Expr, Function], driver, shape_key_block):
+        if expr.__class__ in [FetchController, FetchFlex]:
+            expr: Value = expr
+            print(f"Parsing {expr} value")
+            if driver.variables.get(expr.value, None) is not None:
+                return
+            var = driver.variables.new()
+            var.name = expr.value
+            var.targets[0].id_type = 'KEY'
+            var.targets[0].id = shape_key_block
+            var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
 
+        elif issubclass(expr.__class__, Expr):
+            expr: Expr = expr
+            parse_expr(expr.right, driver, shape_key_block)
+            parse_expr(expr.left, driver, shape_key_block)
+        elif issubclass(expr.__class__, Function):
+            expr: Function = expr
+            for var in expr.values:
+                parse_expr(var, driver, shape_key_block)
+
+    for target, expr in all_exprs.items():
+        shape_key_block = obj.data.shape_keys
+        if target not in shape_key_block.key_blocks:
+            shape_key = obj.shape_key_add(name=target)
+        shape_key = shape_key_block.key_blocks[target]
+
+        shape_key.driver_remove("value")
+        fcurve = shape_key.driver_add("value")
+        fcurve.modifiers.remove(fcurve.modifiers[0])
+
+        driver = fcurve.driver
+        driver.type = 'SCRIPTED'
+        parse_expr(expr, driver, shape_key_block)
+        driver.expression = str(expr)
+        print(target, expr)
 
 
 def create_collision_mesh(phy: Phy, mdl: Mdl, armature):

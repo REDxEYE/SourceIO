@@ -20,6 +20,7 @@ class VMDLImporter_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     invert_uv: BoolProperty(name="invert UV?", default=True)
+    import_anim: BoolProperty(name="Import animations", default=False)
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
     filter_glob: StringProperty(default="*.vmdl_c", options={'HIDDEN'})
@@ -35,7 +36,8 @@ class VMDLImporter_OT_operator(bpy.types.Operator):
             model = ValveModel(str(directory / file.name))
             model.load_mesh(self.invert_uv)
             model.load_attachments()
-            model.load_animations()
+            if self.import_anim:
+                model.load_animations()
         return {'FINISHED'}
 
     def invoke(self, context, event):

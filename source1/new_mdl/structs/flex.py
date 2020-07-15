@@ -8,7 +8,6 @@ from ...new_shared.base import Base
 from .float16 import int16_to_float
 
 
-
 class FlexController(Base):
     def __init__(self):
         self.name = ''
@@ -29,8 +28,6 @@ class FlexRule(Base):
     def __init__(self):
         self.flex_index = 0
         self.flex_ops = []  # type:List[FlexOp]
-
-
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
@@ -113,7 +110,7 @@ class FlexControllerUI(Base):
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name = reader.read_source1_string(entry)
-        #TODO: https://github.com/Dmillz89/SourceSDK2013/blob/master/mp/src/public/studio.h#L924
+        # TODO: https://github.com/Dmillz89/SourceSDK2013/blob/master/mp/src/public/studio.h#L924
         self.index1, self.index2, self.index3 = reader.read_fmt('3i')
         self.stereo = reader.read_uint8()
         self.remap_type = FlexControllerRemapType(reader.read_uint8())
@@ -127,6 +124,7 @@ class VertexAminationType(IntEnum):
 
 class Flex(Base):
     def __init__(self):
+        self.name = ''
         self.flex_desc_index = 0
         self.targets = [0.0]
 
@@ -143,9 +141,17 @@ class Flex(Base):
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.flex_desc_index = reader.read_uint32()
+        self.name = self.get_value('MDL').flex_names[self.flex_desc_index]
+
         self.targets = reader.read_fmt('4f')
         vert_count, vert_offset, self.partner_index = reader.read_fmt(
             '3I')
+        if self.partner_index != -1:
+            self.name = self.name[:-1]
+
+        stereo_data = self.get_value('stereo_flexes') or {}
+        stereo_data[self.flex_desc_index] = self.name
+        self.store_value('stereo_flexes', stereo_data)
         self.vertex_anim_type = reader.read_uint8()
         reader.skip(3)
         reader.skip(6 * 4)

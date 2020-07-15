@@ -3,6 +3,7 @@ from typing import List
 from ...byte_io_mdl import ByteIO
 from ..new_shared.base import Base
 
+from .flex_expressions import *
 from .structs.header import Header
 from .structs.bone import Bone
 from .structs.texture import Material
@@ -124,87 +125,66 @@ class Mdl(Base):
     def rebuild_flex_rules(self):
         rules = {}
 
-        class IntermediateExpr:
-            def __init__(self, value, precedence):
-                self.value = value
-                self.precedence = precedence
-
-            def __repr__(self):
-                return str(self.value)
-
         for rule in self.flex_rules:
             stack = []
             try:
                 for op in rule.flex_ops:
                     flex_op = op.op
                     if flex_op == FlexOpType.CONST:
-                        stack.append(IntermediateExpr(op.value, 10))
+                        stack.append(Value(op.value, 10))
                     elif flex_op == FlexOpType.FETCH1:
-                        stack.append(IntermediateExpr(self.flex_controllers[op.index].name, 10))
+                        stack.append(FetchController(self.flex_controllers[op.index].name, 10))
                     elif flex_op == FlexOpType.FETCH2:
-                        stack.append(IntermediateExpr(f"%{self.flex_names[op.index]}", 10))
+                        stack.append(FetchFlex(self.flex_names[op.index], 10))
                     elif flex_op == FlexOpType.ADD:
-                        right = stack.pop(-1).value
-                        left = stack.pop(-1).value
-                        stack.append(IntermediateExpr(f"{left} + {right}", 1))
+                        right = stack.pop(-1)
+                        left = stack.pop(-1)
+                        stack.append(Add(left, right, 1))
                     elif flex_op == FlexOpType.SUB:
-                        right = stack.pop(-1).value
-                        left = stack.pop(-1).value
-                        stack.append(IntermediateExpr(f"{left} - {right}", 1))
+                        right = stack.pop(-1)
+                        left = stack.pop(-1)
+                        stack.append(Sub(left, right, 1))
                     elif flex_op == FlexOpType.MUL:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(
-                            IntermediateExpr(f"{left.value if left.precedence > 2 else f'({left.value})'} * "
-                                             f"{right.value if right.precedence > 2 else f'({right.value})'}", 2))
+                        stack.append(Mul(left, right, 2))
                     elif flex_op == FlexOpType.DIV:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(
-                            IntermediateExpr(f"{left.value if left.precedence > 2 else f'({left.value})'} / "
-                                             f"{right.value if right.precedence > 2 else f'({right.value})'}", 2))
+                        stack.append(Div(left, right, 2))
                     elif flex_op == FlexOpType.NEG:
-                        stack.append(IntermediateExpr(f"-{stack.pop(-1).value}", 10))
+                        stack.append(Neg(stack.pop(-1), 10))
                     elif flex_op == FlexOpType.MAX:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(
-                            IntermediateExpr(f"max({left.value if left.precedence > 5 else f'({left.value})'}, "
-                                             f"{right.value if right.precedence > 5 else f'({right.value})'})", 5))
+                        stack.append(Max((left, right), 5))
                     elif flex_op == FlexOpType.MIN:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(
-                            IntermediateExpr(f"min({left.value if left.precedence > 5 else f'({left.value})'}, "
-                                             f"{right.value if right.precedence > 5 else f'({right.value})'})", 5))
+                        stack.append(Min((left, right), 5))
                     elif flex_op == FlexOpType.COMBO:
                         count = op.index
-                        inter = stack.pop(-1)
-                        result = str(inter.value)
-                        for i in range(2, count):
-                            inter = stack.pop(-1)
-                            result += f" * {inter.value}"
-                        stack.append(IntermediateExpr(f"({result})", 5))
+                        values = [stack.pop(-1) for _ in range(count)]
+                        combo = Combo(values, 5)
+                        stack.append(combo)
                     elif flex_op == FlexOpType.DOMINATE:
                         count = op.index
-                        inter = stack.pop(-1)
-                        result = inter.value
-                        for i in range(2, count):
-                            inter = stack.pop(-1)
-                            result += " * " + inter.value
-                        inter = stack.pop(-1)
-                        result = f"({inter.value} * (1 - {result}))"
-                        stack.append(IntermediateExpr(result, 5))
+                        values = [stack.pop(-1) for _ in range(count)]
+                        dom = Dominator(values, 5)
+                        stack.append(dom)
                     else:
                         print("Unknown OP", op)
                 if len(stack) > 1 or len(stack) == 0:
                     print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
+                    print(stack)
                     continue
                 final_expr = stack.pop(-1)
                 # print(self.flex_names[rule.flex_index], '=', final_expr)
-                rules[self.flex_names[rule.flex_index]] = final_expr
-            except:
+                name= self.get_value('stereo_flexes').get(rule.flex_index,self.flex_names[rule.flex_index])
+                rules[name] = final_expr
+            except Exception as ex:
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
+                print(stack)
                 pass
 
         return rules
