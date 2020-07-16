@@ -17,7 +17,7 @@ from .utilities.path_utilities import case_insensitive_file_resolution
 
 
 # noinspection PyUnresolvedReferences
-class MDLImporter_OT_operator(bpy.types.Operator):
+class MDLImport_OT_operator(bpy.types.Operator):
     """Load Source Engine MDL models"""
     bl_idname = "source_io.mdl"
     bl_label = "Import Source MDL file"
@@ -31,7 +31,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
 
     load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
-    # import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
+    import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
@@ -53,7 +53,17 @@ class MDLImporter_OT_operator(bpy.types.Operator):
                 phy = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.phy'))
             else:
                 phy = None
+
             mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy)
+            for mat_path in mdl.materials_paths:
+                for material in mdl.materials:
+                    material_path = backwalk_file_resolver(Path(mdl_path).parent, Path(mat_path) / material.name)
+                    vmt = VMT(material_path)
+                    vmt.parse()
+                    for name, tex in vmt.textures.items():
+                        import_texture(tex)
+            # import_texture()
+
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 text = generate_qc(mdl, ".".join(map(str, bl_info['version'])))
@@ -67,7 +77,7 @@ class MDLImporter_OT_operator(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences
-class BSPImporter_OT_operator(bpy.types.Operator):
+class BSPImport_OT_operator(bpy.types.Operator):
     """Load Source Engine BSP models"""
     bl_idname = "source_io.bsp"
     bl_label = "Import Source BSP file"
@@ -121,7 +131,7 @@ class DMXImporter_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class VTFImporter_OT_operator(bpy.types.Operator):
+class VTFImport_OT_operator(bpy.types.Operator):
     """Load Source Engine VTF texture"""
     bl_idname = "import_texture.vtf"
     bl_label = "Import VTF"
@@ -150,40 +160,41 @@ class VTFImporter_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-# class VMTImporter_OT_operator(bpy.types.Operator):
-#     """Load Source Engine VMT material"""
-#     bl_idname = "import_texture.vmt"
-#     bl_label = "Import VMT"
-#     bl_options = {'UNDO'}
-#
-#     filepath: StringProperty(
-#         subtype='FILE_PATH',
-#     )
-#     files: CollectionProperty(type=bpy.types.PropertyGroup)
-#     load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
-#
-#     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
-#     game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
-#     override: BoolProperty(default=False, name='Override existing?')
-#
-#     def execute(self, context):
-#         if Path(self.filepath).is_file():
-#             directory = Path(self.filepath).parent.absolute()
-#         else:
-#             directory = Path(self.filepath).absolute()
-#         for file in self.files:
-#             vmt = VMT(str(directory / file.name), self.game)
-#             mat = BlenderMaterial(vmt)
-#             mat.load_textures(self.load_alpha)
-#             if mat.create_material(
-#                     self.override) == 'EXISTS' and not self.override:
-#                 self.report({'INFO'}, '{} material already exists')
-#         return {'FINISHED'}
-#
-#     def invoke(self, context, event):
-#         wm = context.window_manager
-#         wm.fileselect_add(self)
-#         return {'RUNNING_MODAL'}
+class VMTImport_OT_operator(bpy.types.Operator):
+    """Load Source Engine VMT material"""
+    bl_idname = "import_texture.vmt"
+    bl_label = "Import VMT"
+    bl_options = {'UNDO'}
+
+    filepath: StringProperty(
+        subtype='FILE_PATH',
+    )
+    files: CollectionProperty(type=bpy.types.PropertyGroup)
+    load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
+
+    filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
+    game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
+    override: BoolProperty(default=False, name='Override existing?')
+
+    def execute(self, context):
+        if Path(self.filepath).is_file():
+            directory = Path(self.filepath).parent.absolute()
+        else:
+            directory = Path(self.filepath).absolute()
+        for file in self.files:
+            vmt = VMT(str(directory / file.name), self.game)
+            mat = BlenderMaterial(vmt)
+            mat.load_textures(self.load_alpha)
+            if mat.create_material(
+                    self.override) == 'EXISTS' and not self.override:
+                self.report({'INFO'}, '{} material already exists')
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
 
 class VTFExport_OT_operator(bpy.types.Operator):
     """Export VTF texture"""

@@ -38,8 +38,8 @@ class BlenderMaterial:
         out = nodes.get('ShaderNodeOutputMaterial', None)
         if not out:
             out = nodes.get('Material Output', None)
-            if not out:
-                out = nodes.new('ShaderNodeOutputMaterial')
+        if not out:
+            out = nodes.new('ShaderNodeOutputMaterial')
         out.location = (0, 0)
         bsdf = nodes.new('ShaderNodeBsdfPrincipled')
         bsdf.location = (-100, 0)

@@ -1,5 +1,6 @@
 import os
 
+from ...utilities.path_utilities import NonSourceInstall
 from ...utilities.valve_utils import GameInfoFile, KeyValueFile, MaterialPathResolver
 
 from pathlib import Path
@@ -31,12 +32,9 @@ class VMT:
         if gameinfo_path.is_file():
             self.gameinfo = GameInfoFile(gameinfo_path)
         else:
-            # We might not be dealing with a Source installation.
-            # Use material path instead
-            self.gameinfo = MaterialPathResolver(self.filepath.parent)
+            self.gameinfo = NonSourceInstall(self.filepath.parent)
 
     def parse(self):
-        # print(self.shader)
         for key, value in self.material_data.items():
             if isinstance(value, str):
                 texture = self.gameinfo.find_texture(value)

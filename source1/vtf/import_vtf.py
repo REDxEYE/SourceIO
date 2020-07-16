@@ -24,22 +24,21 @@ def import_texture(path, load_alpha=True, alpha_only=False):
     pixels = pixels.astype(np.float16, copy=False)
     has_alpha = False
     if (vtf_lib.get_image_flags().get_flag(ImageFlag.ImageFlagEightBitAlpha) or vtf_lib.get_image_flags().get_flag(
-            ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
+                ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
         alpha_view = pixels[3::4]
         has_alpha = all(alpha_view != 255)
         if load_alpha and has_alpha:
             alpha = alpha_view.copy()
             alpha = np.repeat(alpha, 4)
             alpha[3::4][:] = 255
-            if has_alpha:
-                try:
-                    alpha_im = bpy.data.images.new(
-                        name + '_A', width=vtf_lib.width(), height=vtf_lib.height())
-                    alpha = np.divide(alpha, 255)
-                    alpha_im.pixels = alpha
-                    alpha_im.pack()
-                except Exception as ex:
-                    print('Caught exception "{}" '.format(ex))
+            try:
+                alpha_im = bpy.data.images.new(
+                    name + '_A', width=vtf_lib.width(), height=vtf_lib.height())
+                alpha = np.divide(alpha, 255)
+                alpha_im.pixels = alpha
+                alpha_im.pack()
+            except Exception as ex:
+                print('Caught exception "{}" '.format(ex))
         alpha_view[:] = 255
     if not alpha_only:
         print('Saving main texture')
