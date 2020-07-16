@@ -353,7 +353,6 @@ class ValveModel:
             empty.location = Vector([pos[1], pos[0], pos[2]])
             empty.rotation_quaternion = rot
 
-
     def load_animations(self):
         if not self.valve_file.get_data_block(block_name='CTRL'):
             return

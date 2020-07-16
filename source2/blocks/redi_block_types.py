@@ -50,7 +50,7 @@ class InputDependency(Dependency):
     def read(self, reader: ByteIO):
         self.content_relative_name = reader.read_source2_string()
         self.content_search_path = reader.read_source2_string()
-        self.file_crc = reader.read_int32()
+        self.file_crc = reader.read_uint32()
         self.flag = reader.read_int32()
 
 
