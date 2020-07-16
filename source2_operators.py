@@ -12,7 +12,7 @@ from .utilities.path_utilities import backwalk_file_resolver
 
 
 # noinspection PyUnresolvedReferences
-class VMDLImporter_OT_operator(bpy.types.Operator):
+class VMDLImport_OT_operator(bpy.types.Operator):
     """Load Source2 VMDL"""
     bl_idname = "source_io.vmdl"
     bl_label = "Import Source2 VMDL file"
@@ -47,7 +47,7 @@ class VMDLImporter_OT_operator(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences
-class VWRLDImporter_OT_operator(bpy.types.Operator):
+class VWRLDImport_OT_operator(bpy.types.Operator):
     """Load Source2 VWRLD"""
     bl_idname = "source_io.vwrld"
     bl_label = "Import Source2 VWRLD file"
@@ -90,7 +90,7 @@ class VWRLDImporter_OT_operator(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences
-class VMATImporter_OT_operator(bpy.types.Operator):
+class VMATImport_OT_operator(bpy.types.Operator):
     """Load Source2 material"""
     bl_idname = "source_io.vmat"
     bl_label = "Import Source2 VMDL file"
@@ -120,7 +120,7 @@ class VMATImporter_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class VTEXImporter_OT_operator(bpy.types.Operator):
+class VTEXImport_OT_operator(bpy.types.Operator):
     """Load Source Engine VTF texture"""
     bl_idname = "source_io.vtex"
     bl_label = "Import VTEX"

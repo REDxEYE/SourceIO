@@ -375,17 +375,6 @@ class ValveModel:
             animations = parse_anim_data(anim_data.data, agrp.data)
             bone_array = agrp.data['m_decodeKey']['m_boneArray']
 
-            def decompose(mat: Matrix):
-                return mat.decompose()
-
-            def compose(loc: Vector, rot: Quaternion, scale=None):
-                if scale is None:
-                    scale = [1, 1, 1]
-
-                mat = Matrix.Identity(4)
-                mat = mat @ Matrix.Translation(loc) @ rot.to_matrix().to_4x4() @ Matrix.Scale(1, 4, scale)
-                return mat
-
             for animation in animations:
                 print(f"Loading animation {animation.name}")
                 action = bpy.data.actions.new(animation.name)

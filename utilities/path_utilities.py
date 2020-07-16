@@ -77,8 +77,7 @@ def resolve_root_directory_from_file(path):
 def get_materials_path(path):
     path = Path(path)
     root_path = resolve_root_directory_from_file(path)
-    material_path = root_path / 'materials'
-    return material_path
+    return root_path / 'materials'
 
 
 class NonSourceInstall:
@@ -86,8 +85,7 @@ class NonSourceInstall:
     def __init__(self, start_dir):
         self.start_dir = Path(start_dir)
 
-    def find_file(self, filepath: str, additional_dir=None,
-                  extention=None, use_recursive=False):
+    def find_file(self, filepath: str, additional_dir=None, extention=None, use_recursive=False):
         if additional_dir is not None:
             filepath = Path(additional_dir) / filepath
 
