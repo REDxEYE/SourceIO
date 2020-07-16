@@ -3,6 +3,8 @@ import contextlib
 import io
 import struct
 import typing
+from pathlib import Path
+from typing import Union, TextIO, BinaryIO
 from io import BytesIO
 
 
@@ -21,31 +23,17 @@ class ByteIO:
         yield
         self.seek(entry)
 
-    def __init__(self, file=None, path=None, byte_object=None,
-                 mode='r', copy_data_from_handle=True):
-        """
-        Supported file handlers
-        :type byte_object: bytes
-        :type path: str
-        :type file: typing.BinaryIO
-        """
-        if file:
-            if 'w' in file.mode:
-                self.file = file
-            elif 'r' in file.mode and copy_data_from_handle:
-                self.file = io.BytesIO(file.read())
-                file.close()
-            elif 'r' in file.mode and not copy_data_from_handle:
-                self.file = file
-        elif path:
-            if 'w' in mode:
-                self.file = open(path, mode + 'b')
-            elif 'r' in mode:
-                with open(path, mode + 'b') as f:
-                    self.file = io.BytesIO(f.read())
+    def __init__(self, path_or_file_or_data: Union[Union[str, Path], BinaryIO, Union[bytes, bytearray]]=None,
+                 open_to_read=True):
+        if type(path_or_file_or_data) is BinaryIO:
+            file = path_or_file_or_data
+            self.file = file
+        elif type(path_or_file_or_data) is str or isinstance(path_or_file_or_data,Path):
+            mode = 'rb' if open_to_read else 'wb'
+            self.file = open(path_or_file_or_data, mode)
 
-        elif byte_object:
-            self.file = io.BytesIO(byte_object)
+        elif type(path_or_file_or_data) in [bytes, bytearray]:
+            self.file = io.BytesIO(path_or_file_or_data)
         else:
             self.file = BytesIO()
 
@@ -65,9 +53,8 @@ class ByteIO:
         return "<ByteIO {}/{}>".format(self.tell(), self.size())
 
     def close(self):
-        if hasattr(self.file, 'mode'):
-            if 'w' in getattr(self.file, 'mode'):
-                self.file.close()
+        if hasattr(self.file, 'mode') and 'w' in getattr(self.file, 'mode'):
+            self.file.close()
 
     def rewind(self, amount):
         self.file.seek(-amount, io.SEEK_CUR)

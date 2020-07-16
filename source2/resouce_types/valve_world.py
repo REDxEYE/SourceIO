@@ -33,12 +33,11 @@ class ValveWorld:
 
     def load_entities(self, use_placeholders=False):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
-        if data_block:
-            if data_block.data.get('m_entityLumps', False):
-                for elump in data_block.data.get('m_entityLumps'):
-                    print("Loading entity lump", elump)
-                    entity_lump = self.valve_file.get_child_resource(elump)
-                    self.handle_child_lump(entity_lump, use_placeholders)
+        if data_block and data_block.data.get('m_entityLumps', False):
+            for elump in data_block.data.get('m_entityLumps'):
+                print("Loading entity lump", elump)
+                entity_lump = self.valve_file.get_child_resource(elump)
+                self.handle_child_lump(entity_lump, use_placeholders)
 
     def handle_child_lump(self, child_lump, use_placeholders):
         if child_lump:
@@ -92,9 +91,11 @@ class ValveWorld:
             elif class_name == 'light_omni':
                 self.load_light(a.base, "POINT")
             elif class_name == 'light_ortho':
-                self.load_light(a.base, "POINT")
+                self.load_light(a.base, "AREA")
             elif class_name == 'light_spot':
                 self.load_light(a.base, "SPOT")
+            elif class_name == 'light_sun':
+                self.load_light(a.base, "SUN")
 
     def load_prop(self, parent_file, prop_data, collection_name, use_placeholders=False):
         model_path = prop_data['model']
@@ -136,7 +137,6 @@ class ValveWorld:
             self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
                                     prop_custom_data,
                                     collection)
-        pass
 
     def create_placeholder(self, name, location, rotation, scale, obj_data, parent_collection):
 
@@ -160,7 +160,7 @@ class ValveWorld:
 
         origin = parse_source2_hammer_vector(light_data['origin'])
         orientation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(light_data['angles']))
-        #orientation[1] = orientation[1] - math.radians(90)
+        # orientation[1] = orientation[1] - math.radians(90)
         scale_vec = parse_source2_hammer_vector(light_data['scales'])
 
         color = np.divide(light_data['color'], 255.0)

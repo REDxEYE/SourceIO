@@ -9,7 +9,7 @@ from .lump import *
 class BSPFile:
     def __init__(self, filepath: str):
         self.filepath = Path(filepath)
-        self.reader = ByteIO(path=self.filepath)
+        self.reader = ByteIO(self.filepath)
         self.version = 0
         self.lumps_info: List[LumpInfo] = []
         self.lumps: Dict[LumpTypes, Lump] = {}

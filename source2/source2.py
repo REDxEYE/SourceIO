@@ -19,8 +19,8 @@ class ValveFile:
     def __init__(self, filepath, data_block_handler=None):
 
         # print('Reading {}'.format(filepath))
-        self.reader = ByteIO(path=filepath, copy_data_from_handle=False)
         self.filepath = Path(filepath)
+        self.reader = ByteIO(self.filepath)
         self.data_block_handler = data_block_handler
         self.filename = self.filepath.name
         self.header = CompiledHeader()

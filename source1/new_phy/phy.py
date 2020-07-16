@@ -10,7 +10,7 @@ from ...byte_io_mdl import ByteIO
 
 class Phy(Base):
     def __init__(self, filepath):
-        self.reader = ByteIO(path=filepath)
+        self.reader = ByteIO(filepath)
         self.header = Header()
         self.solids = []  # type:List[CompactSurface]
 

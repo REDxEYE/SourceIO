@@ -11,7 +11,7 @@ from .structs.bodypart import BodyPart
 
 class Vtx(Base):
     def __init__(self, filepath):
-        self.reader = ByteIO(path=filepath)
+        self.reader = ByteIO(filepath)
         self.header = Header()
         self.body_parts = []  # type: List[BodyPart]
         self.material_replacement_lists = []  # type: List[MaterialReplacementList]

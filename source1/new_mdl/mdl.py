@@ -24,7 +24,7 @@ class Mdl(Base):
 
     def __init__(self, filepath):
         self.store_value("MDL", self)
-        self.reader = ByteIO(path=filepath)
+        self.reader = ByteIO(filepath)
         self.header = Header()
         self.bones = []  # type: List[Bone]
         self.skin_groups = []  # type: List[List[str]]
