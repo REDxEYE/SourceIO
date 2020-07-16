@@ -1,7 +1,6 @@
 class Value:
-    def __init__(self, value, precedence):
+    def __init__(self, value, ):
         self.value = value
-        self.precedence = precedence
 
     def __repr__(self):
         return f'{self.value:.4}'
@@ -23,10 +22,9 @@ class FetchFlex(Value):
 
 
 class Expr:
-    def __init__(self, lhs, rhs, precedence):
+    def __init__(self, lhs, rhs, ):
         self.left = lhs
         self.right = rhs
-        self.precedence = precedence
 
 
 class Add(Expr):
@@ -58,9 +56,8 @@ class Div(Expr):
 
 
 class Function:
-    def __init__(self, values, precedence):
+    def __init__(self, values, ):
         self.values = values
-        self.precedence = precedence
 
 
 class Max(Function):
@@ -81,9 +78,12 @@ class Min(Function):
 
 class Combo(Function):
     def __repr__(self):
-        res = '*'.join([f"{v}" if issubclass(v.__class__, Value) else f"({v})" for v in self.values])
-
-        return res
+        return '*'.join(
+            [
+                f"{v}" if issubclass(v.__class__, Value) else f"({v})"
+                for v in self.values
+            ]
+        )
 
 
 class Dominator(Combo):

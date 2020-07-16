@@ -131,60 +131,67 @@ class Mdl(Base):
                 for op in rule.flex_ops:
                     flex_op = op.op
                     if flex_op == FlexOpType.CONST:
-                        stack.append(Value(op.value, 10))
+                        stack.append(Value(op.value))
                     elif flex_op == FlexOpType.FETCH1:
-                        stack.append(FetchController(self.flex_controllers[op.index].name, 10))
+                        stack.append(FetchController(self.flex_controllers[op.index].name))
                     elif flex_op == FlexOpType.FETCH2:
-                        stack.append(FetchFlex(self.flex_names[op.index], 10))
+                        stack.append(FetchFlex(self.flex_names[op.index]))
                     elif flex_op == FlexOpType.ADD:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Add(left, right, 1))
+                        stack.append(Add(left, right))
                     elif flex_op == FlexOpType.SUB:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Sub(left, right, 1))
+                        stack.append(Sub(left, right))
                     elif flex_op == FlexOpType.MUL:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Mul(left, right, 2))
+                        stack.append(Mul(left, right))
                     elif flex_op == FlexOpType.DIV:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Div(left, right, 2))
+                        stack.append(Div(left, right))
                     elif flex_op == FlexOpType.NEG:
-                        stack.append(Neg(stack.pop(-1), 10))
+                        stack.append(Neg(stack.pop(-1)))
                     elif flex_op == FlexOpType.MAX:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Max((left, right), 5))
+                        stack.append(Max((left, right)))
                     elif flex_op == FlexOpType.MIN:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Min((left, right), 5))
+                        stack.append(Min((left, right)))
                     elif flex_op == FlexOpType.COMBO:
                         count = op.index
                         values = [stack.pop(-1) for _ in range(count)]
-                        combo = Combo(values, 5)
+                        combo = Combo(values)
                         stack.append(combo)
                     elif flex_op == FlexOpType.DOMINATE:
                         count = op.index
                         values = [stack.pop(-1) for _ in range(count)]
-                        dom = Dominator(values, 5)
+                        dom = Dominator(values)
                         stack.append(dom)
+                    elif flex_op == FlexOpType.TWO_WAY_0:
+                        mx = Max((Add(FetchController(self.flex_controllers[op.index].name), Value(1)), Value(0)))
+                        mn = Min((mx, Value(1)))
+                        res = Sub(1, mn)
+                        stack.append(res)
+                    elif flex_op == FlexOpType.TWO_WAY_1:
+                        mx = Max((FetchController(self.flex_controllers[op.index].name), Value(0)))
+                        mn = Min((mx, Value(1)))
+                        stack.append(mn)
                     else:
                         print("Unknown OP", op)
-                if len(stack) > 1 or len(stack) == 0:
+                if len(stack) > 1 or not stack:
                     print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
                     print(stack)
                     continue
                 final_expr = stack.pop(-1)
-                # print(self.flex_names[rule.flex_index], '=', final_expr)
-                name= self.get_value('stereo_flexes').get(rule.flex_index,self.flex_names[rule.flex_index])
+                name = self.get_value('stereo_flexes').get(rule.flex_index, self.flex_names[rule.flex_index])
                 rules[name] = final_expr
             except Exception as ex:
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
                 print(stack)
-                pass
 
         return rules
