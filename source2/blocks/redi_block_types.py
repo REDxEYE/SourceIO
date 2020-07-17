@@ -26,7 +26,7 @@ class Dependencies:
         self.size = reader.read_int32()
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
-            for n in range(self.size):
+            for _ in range(self.size):
                 inp_dep = self.dependency()
                 inp_dep.read(reader)
                 self.container.append(inp_dep)

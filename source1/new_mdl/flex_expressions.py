@@ -1,6 +1,3 @@
-from .structs.flex import FlexController
-
-
 class Value:
     def __init__(self, value, ):
         self.value = value
@@ -16,8 +13,6 @@ class Neg(Value):
 
 class FetchController(Value):
     def __repr__(self):
-        if type(self.value) is FlexController:
-            return f'{self.value.name}'
         return f'{self.value}'
 
 

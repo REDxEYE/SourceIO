@@ -33,7 +33,6 @@ class RERLResource:
 
     def __init__(self):
         self.r_id = 0
-        self.resource_name_offset = 0
         self.resource_name = ''
 
     def __repr__(self):
@@ -42,6 +41,6 @@ class RERLResource:
     def read(self, reader: ByteIO):
         self.r_id = reader.read_int64()
         entry = reader.tell()
-        self.resource_name_offset = reader.read_int64()
-        if self.resource_name_offset:
-            self.resource_name = reader.read_from_offset(entry + self.resource_name_offset, reader.read_ascii_string)
+        resource_name_offset = reader.read_int64()
+        if resource_name_offset:
+            self.resource_name = reader.read_from_offset(entry + resource_name_offset, reader.read_ascii_string)
