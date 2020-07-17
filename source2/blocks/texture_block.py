@@ -201,7 +201,7 @@ class TEXR(DataBlock):
 
     def get_decompressed_buffer(self, reader: ByteIO, mip_level):
         if self.compressed:
-            return ByteIO(byte_object=self.get_decompressed_at_mip(reader, mip_level))
+            return ByteIO(self.get_decompressed_at_mip(reader, mip_level))
         else:
             compressed_size = self.calculate_buffer_size_for_mip(mip_level)
             for i in range(self.mipmap_count - 1, mip_level, -1):

@@ -71,7 +71,7 @@ class MRPH(DATA):
             for op in rule['m_FlexOps']:
                 flex_op = op['m_OpCode']
                 index = op['m_Data']
-                value = struct.unpack('f', struct.pack('I', index))[0]
+                value = struct.unpack('f', struct.pack('i', index))[0]
                 if flex_op == "FLEX_OP_ADD":
                     right = stack.pop(-1)
                     left = stack.pop(-1)
@@ -163,3 +163,4 @@ class MRPH(DATA):
             flex_rules[name] = final_expr
             # except:
             #     pass
+        return flex_rules

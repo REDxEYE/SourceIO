@@ -754,6 +754,7 @@ class GameInfoFile(KeyValueFile):
                 paths = self.path_cache
             else:
                 print("Collecting all possible search paths!")
+                self.visited_mods.clear()
                 paths = self.get_search_paths_recursive()
                 self.set_path_cache(paths)
 
