@@ -359,10 +359,12 @@ class KeyValueFile(object):
         """
         line_parser needs to return key,value
         """
-        if isinstance(filepath, Path):
-            self._filepath = filepath
-        else:
-            self._filepath = Path(filepath)
+        if filepath is not None:
+            if isinstance(filepath, Path):
+                self._filepath = filepath
+            else:
+                self._filepath = Path(filepath)
+
         self.data = self.value = []
         if initial_data is not None:
             self.data.append(initial_data)
@@ -397,6 +399,7 @@ class KeyValueFile(object):
         if filepath and self.filepath.exists():
             self.read()
         if string_buffer:
+            self._filepath = "MEMORY"
             self.parse_lines(string_buffer)
 
     @property
@@ -417,11 +420,7 @@ class KeyValueFile(object):
         """
         reads the actual file, and passes the data read over to the parse_lines method
         """
-        if filepath is None:
-            filepath = self.filepath
-        else:
-            filepath = Path(filepath)
-
+        filepath = self.filepath if filepath is None else Path(filepath)
         self.parse_lines(filepath.open('r').readlines())
 
     def parse_lines(self, lines):
@@ -469,7 +468,7 @@ class KeyValueFile(object):
                     print(line)
                     raise TypeError(
                         'Malformed keyvalue found in file near line {0} in {1}. Check for misplaced quotes'.format(
-                            n + 1, self.filepath))
+                            n + 1, self.filepath if self.filepath is not None else "<MEMORY>"))
                 parent_list_end.append(
                     self.chunk_class(
                         key, value, parent_list_end))

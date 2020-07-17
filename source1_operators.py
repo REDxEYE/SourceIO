@@ -31,6 +31,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
 
     load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
+    create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
@@ -54,14 +55,15 @@ class MDLImport_OT_operator(bpy.types.Operator):
             else:
                 phy = None
 
-            mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy)
-            for mat_path in mdl.materials_paths:
-                for material in mdl.materials:
-                    material_path = backwalk_file_resolver(Path(mdl_path).parent, Path(mat_path) / material.name)
-                    vmt = VMT(material_path)
-                    vmt.parse()
-                    for name, tex in vmt.textures.items():
-                        import_texture(tex)
+            mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy, self.create_flex_drivers)
+            if self.import_textures:
+                for mat_path in mdl.materials_paths:
+                    for material in mdl.materials:
+                        material_path = backwalk_file_resolver(Path(mdl_path).parent, Path(mat_path) / material.name)
+                        vmt = VMT(material_path)
+                        vmt.parse()
+                        for name, tex in vmt.textures.items():
+                            import_texture(tex)
             # import_texture()
 
             if self.write_qc:

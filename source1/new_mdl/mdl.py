@@ -1,3 +1,4 @@
+import traceback
 from typing import List
 
 from ...byte_io_mdl import ByteIO
@@ -157,30 +158,60 @@ class Mdl(Base):
                     elif flex_op == FlexOpType.MAX:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Max((left, right)))
+                        stack.append(Max(left, right))
                     elif flex_op == FlexOpType.MIN:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
-                        stack.append(Min((left, right)))
+                        stack.append(Min(left, right))
                     elif flex_op == FlexOpType.COMBO:
                         count = op.index
                         values = [stack.pop(-1) for _ in range(count)]
-                        combo = Combo(values)
+                        combo = Combo(*values)
                         stack.append(combo)
                     elif flex_op == FlexOpType.DOMINATE:
-                        count = op.index
+                        count = op.index+1
                         values = [stack.pop(-1) for _ in range(count)]
-                        dom = Dominator(values)
+                        dom = Dominator(*values)
                         stack.append(dom)
                     elif flex_op == FlexOpType.TWO_WAY_0:
-                        mx = Max((Add(FetchController(self.flex_controllers[op.index].name), Value(1)), Value(0)))
-                        mn = Min((mx, Value(1)))
+                        mx = Max(Add(FetchController(self.flex_controllers[op.index].name), Value(1.0)), Value(0.0))
+                        mn = Min(mx, Value(1.0))
                         res = Sub(1, mn)
                         stack.append(res)
                     elif flex_op == FlexOpType.TWO_WAY_1:
-                        mx = Max((FetchController(self.flex_controllers[op.index].name), Value(0)))
-                        mn = Min((mx, Value(1)))
+                        mx = Max(FetchController(self.flex_controllers[op.index].name), Value(0.0))
+                        mn = Min(mx, Value(1.0))
                         stack.append(mn)
+                    elif flex_op == FlexOpType.NWAY:
+                        flex_cnt_value = int(stack.pop(-1).value)
+                        flex_cnt = FetchController(self.flex_controllers[flex_cnt_value].name)
+                        f_w = stack.pop(-1)
+                        f_z = stack.pop(-1)
+                        f_y = stack.pop(-1)
+                        f_x = stack.pop(-1)
+                        gtx = Min(Value(1.0), Neg(Min(Value(0.0), Sub(f_x, flex_cnt))))
+                        lty = Min(Value(1.0), Neg(Min(Value(0.0), Sub(flex_cnt, f_y))))
+                        remap_x = Min(Max(Div(Sub(flex_cnt, f_x), (Sub(f_y, f_x))), Value(0.0)), Value(1.0))
+                        gtey = Neg(Sub(Min(Value(1.0), Neg(Min(Value(0.0), Sub(flex_cnt, f_y)))), Value(1.0)))
+                        ltez = Neg(Sub(Min(Value(1.0), Neg(Min(Value(0.0), Sub(f_z, flex_cnt)))), Value(1.0)))
+                        gtz = Min(Value(1.0), Neg(Min(Value(0.0), Sub(f_z, flex_cnt))))
+                        ltw = Min(Value(1.0), Neg(Min(Value(0.0), Sub(flex_cnt, f_w))))
+                        remap_z = Sub(Value(1.0),
+                                      Min(Max(Div(Sub(flex_cnt, f_z), (Sub(f_w, f_z))), Value(0.0)), Value(1.0)))
+                        final_expr = Add(Add(Mul(Mul(gtx, lty), remap_x), Mul(gtey, ltez)), Mul(Mul(gtz, ltw), remap_z))
+
+                        final_expr = Mul(final_expr, FetchController(self.flex_controllers[op.index].name))
+                        stack.append(final_expr)
+                    elif flex_op == FlexOpType.DME_UPPER_EYELID:
+                        stack.pop(-1)
+                        stack.pop(-1)
+                        stack.pop(-1)
+                        stack.append(Value(1.0))
+                    elif flex_op == FlexOpType.DME_LOWER_EYELID:
+                        stack.pop(-1)
+                        stack.pop(-1)
+                        stack.pop(-1)
+                        stack.append(Value(1.0))
                     else:
                         print("Unknown OP", op)
                 if len(stack) > 1 or not stack:
@@ -188,9 +219,11 @@ class Mdl(Base):
                     print(stack)
                     continue
                 final_expr = stack.pop(-1)
-                name = self.get_value('stereo_flexes').get(rule.flex_index, self.flex_names[rule.flex_index])
+                # name = self.get_value('stereo_flexes').get(rule.flex_index, self.flex_names[rule.flex_index])
+                name = self.flex_names[rule.flex_index]
                 rules[name] = final_expr
             except Exception as ex:
+                traceback.print_exc()
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")
                 print(stack)
 

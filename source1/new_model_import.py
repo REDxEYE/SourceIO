@@ -129,7 +129,7 @@ def create_armature(mdl: Mdl):
     return armature_obj
 
 
-def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path):
+def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,create_drivers=False):
     mdl = Mdl(mdl_path)
     mdl.read()
     vvd = Vvd(vvd_path)
@@ -218,7 +218,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
                             index = tmp2[new_index]
                             vertex = vertices[index]['vertex']
                             shape_key.data[index].co = np.add(vertex, delta)
-                create_flex_drivers(mesh_obj, mdl)
+                if create_drivers:
+                    create_flex_drivers(mesh_obj, mdl)
 
     if phy_path is not None and phy_path.exists():
         phy = Phy(phy_path)
@@ -236,7 +237,7 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path)
 def create_flex_drivers(obj, mdl: Mdl):
     all_exprs = mdl.rebuild_flex_rules()
     for controller in mdl.flex_controllers:
-        shape_key = obj.shape_key_add(name=controller.name)
+        obj.shape_key_add(name=controller.name)
 
     def parse_expr(expr: typing.Union[Value, Expr, Function], driver, shape_key_block):
         if expr.__class__ in [FetchController, FetchFlex]:
@@ -287,12 +288,12 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
             bpy.context.scene.collection.objects.link(mesh_obj)
             mesh_data.from_pydata(section.vertices, [], split(section.indices, 3))
             mesh_data.update()
-            # pose_bone = armature.pose.bones.get(bone_name)
+            pose_bone = armature.pose.bones.get(bone_name)
             # edit_bone = armature.data.bones.get(bone_name)
             # mesh_obj.parent = armature
             # mesh_obj.parent_bone = pose_bone.name
             # mesh_obj.parent_type = 'BONE'
-            # mesh_obj.location = edit_bone.head
+            mesh_obj.location = pose_bone.head
             # mesh_obj.rotation_euler = edit_bone.rotation_euler
             # mesh_obj.matrix_parent_inverse = (armature.matrix_world @ bone.matrix).inverted()
             # mesh_obj.matrix_world = (armature.matrix_world @ bone.matrix)

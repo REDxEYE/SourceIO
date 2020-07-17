@@ -146,12 +146,14 @@ class Flex(Base):
         self.targets = reader.read_fmt('4f')
         vert_count, vert_offset, self.partner_index = reader.read_fmt(
             '3I')
-        if self.partner_index != -1:
-            self.name = self.name[:-1]
+        # if self.partner_index > 0:
+        #     self.name = self.name[:-1]
+            # partner_name = self.get_value('MDL').flex_names[self.partner_index]
+            # print(self.name,partner_name)
 
-        stereo_data = self.get_value('stereo_flexes') or {}
-        stereo_data[self.flex_desc_index] = self.name
-        self.store_value('stereo_flexes', stereo_data)
+        # stereo_data = self.get_value('stereo_flexes') or {}
+        # stereo_data[self.flex_desc_index] = self.name
+        # self.store_value('stereo_flexes', stereo_data)
         self.vertex_anim_type = reader.read_uint8()
         reader.skip(3)
         reader.skip(6 * 4)

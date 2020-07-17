@@ -1,3 +1,6 @@
+from .structs.flex import FlexController
+
+
 class Value:
     def __init__(self, value, ):
         self.value = value
@@ -13,6 +16,8 @@ class Neg(Value):
 
 class FetchController(Value):
     def __repr__(self):
+        if type(self.value) is FlexController:
+            return f'{self.value.name}'
         return f'{self.value}'
 
 
@@ -29,49 +34,49 @@ class Expr:
 
 class Add(Expr):
     def __repr__(self):
-        arg1 = self.left if issubclass(self.left.__class__, Value) else f'({self.left})'
-        arg2 = self.right if issubclass(self.right.__class__, Value) else f'({self.right})'
+        arg1 = self.left if isinstance(self.left, Value) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, Value) else f'({self.right})'
         return f'{arg1} + {arg2}'
 
 
 class Sub(Expr):
     def __repr__(self):
-        arg1 = self.left if issubclass(self.left.__class__, Value) else f'({self.left})'
-        arg2 = self.right if issubclass(self.right.__class__, Value) else f'({self.right})'
+        arg1 = self.left if isinstance(self.left, Value) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, Value) else f'({self.right})'
         return f'{arg1} - {arg2}'
 
 
 class Mul(Expr):
     def __repr__(self):
-        arg1 = self.left if issubclass(self.left.__class__, Value) else f'({self.left})'
-        arg2 = self.right if issubclass(self.right.__class__, Value) else f'({self.right})'
+        arg1 = self.left if isinstance(self.left, Value) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, Value) else f'({self.right})'
         return f'{arg1} * {arg2}'
 
 
 class Div(Expr):
     def __repr__(self):
-        arg1 = self.left if issubclass(self.left.__class__, Value) else f'({self.left})'
-        arg2 = self.right if issubclass(self.right.__class__, Value) else f'({self.right})'
+        arg1 = self.left if isinstance(self.left, Value) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, Value) else f'({self.right})'
         return f'{arg1} / {arg2}'
 
 
 class Function:
-    def __init__(self, values, ):
+    def __init__(self, *values):
         self.values = values
 
 
 class Max(Function):
     def __repr__(self):
-        arg1 = self.values[0] if issubclass(self.values[0].__class__, Value) else f'({self.values[0]})'
-        arg2 = self.values[1] if issubclass(self.values[1].__class__, Value) else f'({self.values[1]})'
+        arg1 = self.values[0] if isinstance(self.values[0], Value) else f'({self.values[0]})'
+        arg2 = self.values[1] if isinstance(self.values[1], Value) else f'({self.values[1]})'
 
         return f'max({arg1}, {arg2})'
 
 
 class Min(Function):
     def __repr__(self):
-        arg1 = self.values[0] if issubclass(self.values[0].__class__, Value) else f'({self.values[0]})'
-        arg2 = self.values[1] if issubclass(self.values[1].__class__, Value) else f'({self.values[1]})'
+        arg1 = self.values[0] if isinstance(self.values[0], Value) else f'({self.values[0]})'
+        arg2 = self.values[1] if isinstance(self.values[1], Value) else f'({self.values[1]})'
 
         return f'min({arg1}, {arg2})'
 
@@ -80,7 +85,7 @@ class Combo(Function):
     def __repr__(self):
         return '*'.join(
             [
-                f"{v}" if issubclass(v.__class__, Value) else f"({v})"
+                f"{v}" if isinstance(v, Value) else f"({v})"
                 for v in self.values
             ]
         )
