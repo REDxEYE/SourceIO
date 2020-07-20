@@ -205,8 +205,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
             if have_flexes:
                 for mesh in model.meshes:
                     for flex in mesh.flexes:
-                        name: str = mdl.get_value('stereo_flexes')[flex.flex_desc_index]
-                        # name: str = mdl.flex_names[flex.flex_desc_index]
+                        # name: str = mdl.get_value('stereo_flexes')[flex.flex_desc_index]
+                        name: str = mdl.flex_names[flex.flex_desc_index]
                         if not mesh_obj.data.shape_keys.key_blocks.get(name):
                             shape_key = mesh_obj.shape_key_add(name=name)
                         else:
