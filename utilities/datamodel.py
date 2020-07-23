@@ -22,6 +22,7 @@
 
 import struct, array, io, binascii, collections, uuid
 from struct import unpack, calcsize
+from functools import reduce
 
 import numpy as np
 
@@ -67,23 +68,21 @@ def _sub_kv2_indent():
 
 
 def _validate_array_list(iterable, array_type):
-    if iterable is None:
-        return None
-    if type(iterable) is not np.ndarray:
-        if not iterable:
-            return None
-    else:
-        if not len(iterable) != 0:
-            return None
-    try:
+    # print(array_type)
+    is_basic_type = array_type in [int, float, str]
+    if iterable is not None and len(iterable) > 0:
+        try:
+            if is_basic_type:
+                return iterable
+            else:
+                return [(array_type(i) if not isinstance(i, array_type) else i) for i in iterable]
 
-        return [array_type(i) if type(i) != array_type else i for i in iterable]
-    except Exception as e:
-        raise TypeError("Could not convert all values to {}: {}".format(array_type, e)) from e
+        except Exception as e:
+            raise TypeError("Could not convert all values to {}: {}".format(array_type, e)) from e
 
 
-def _quote(str):
-    return "\"{}\"".format(str)
+def _quote(string):
+    return f"\"{string}\""
 
 
 def get_bool(file):
@@ -96,24 +95,25 @@ def get_byte(file):
 
 def get_char(file):
     c = file.read(1)
-    if isinstance(c, str): return c
+    if isinstance(c, str):
+        return c
     return unpack("c", c)[0].decode('ASCII')
 
 
 def get_int(file):
-    return int(unpack("i", file.read(intsize))[0])
+    return unpack("i", file.read(intsize))[0]
 
 
 def get_short(file):
-    return int(unpack("H", file.read(shortsize))[0])
+    return unpack("H", file.read(shortsize))[0]
 
 
 def get_float(file):
-    return float(unpack("f", file.read(floatsize))[0])
+    return unpack("f", file.read(floatsize))[0]
 
 
 def get_vec(file, dim):
-    return list(unpack("{}f".format(dim), file.read(floatsize * dim)))
+    return unpack('f' * dim, file.read(floatsize * dim))
 
 
 def get_color(file):
@@ -156,9 +156,9 @@ class _Array(list):
             return
         res = bool(l) if type(l) is not np.ndarray else len(l) > 0
         if res:
-            return super().__init__(_validate_array_list(l, self.type))
+            super().__init__(_validate_array_list(l, self.type))
         else:
-            return super().__init__()
+            super().__init__()
 
     def to_kv2(self):
         if len(self) == 0:
@@ -205,11 +205,11 @@ class _StrArray(_Array):
 class _Vector(list):
     type_str = ""
 
-    def __init__(self, l):
-        if len(l) != len(self.type_str):
+    def __init__(self, new_list):
+        if len(new_list) != len(self.type_str):
             raise TypeError("Expected {} values".format(len(self.type_str)))
-        l = _validate_array_list(l, float)
-        super().__init__(l)
+        new_list = _validate_array_list(new_list, float)
+        super().__init__(new_list)
 
     def __repr__(self):
         return " ".join([str(ord) for ord in self])
@@ -404,7 +404,7 @@ class Element(collections.OrderedDict):
         super().__init__()
 
     def __eq__(self, other):
-        return isinstance(other, Element) and self.id == other.id
+        return isinstance(other, Element) and self.id.int == other.id.int
 
     def __bool__(self):
         return True
@@ -764,7 +764,7 @@ class DataModel:
             if is_array or suppress_dict:
                 self.out.write(bytes.join(b'', [_encode_binary_string(item) for item in value]))
             else:
-                self._string_dict.write_string(self.out, value[0])
+                self.string_dict.write_string(self.out, value[0])
 
         elif t == Element:
             self.out.write(bytes.join(b'', [item.tobytes(self) if item else struct.pack("i", -1) for item in value]))
@@ -842,8 +842,8 @@ class DataModel:
                         self._write(name)
                         self._write(value)
 
-            self._string_dict = _StringDictionary(encoding, encoding_ver, out_datamodel=self)
-            self._string_dict.write_dictionary(self.out)
+            self.string_dict = _StringDictionary(encoding, encoding_ver, out_datamodel=self)
+            self.string_dict.write_dictionary(self.out)
 
         # count elements
         out_elems = set()
@@ -882,7 +882,7 @@ class DataModel:
                 if elem._users > 1:
                     self.out.write(elem.get_kv2() + "\n\n")
 
-        self._string_dict = None
+        self.string_dict = None
         return self.out.getvalue()
 
     def write(self, path, encoding, encoding_ver):
@@ -1133,7 +1133,7 @@ def load(path=None, in_file=None, element_path=None):
                         return dm.elements[element_index]
 
                 elif attr_type == str:
-                    return get_str(in_file) if encoding_ver < 4 or from_array else dm._string_dict.read_string(in_file)
+                    return get_str(in_file) if encoding_ver < 4 or from_array else dm.string_dict.read_string(in_file)
                 elif attr_type == int:
                     return get_int(in_file)
                 elif attr_type == float:
@@ -1152,9 +1152,7 @@ def load(path=None, in_file=None, element_path=None):
                 elif attr_type == Quaternion:
                     return Quaternion(get_vec(in_file, 4))
                 elif attr_type == Matrix:
-                    out = []
-                    for i in range(4): out.append(get_vec(in_file, 4))
-                    return Matrix(out)
+                    return Matrix([get_vec(in_file, 4) for _ in range(4)])
 
                 elif attr_type == Color:
                     return get_color(in_file)
@@ -1167,13 +1165,10 @@ def load(path=None, in_file=None, element_path=None):
                     raise TypeError("Cannot read attributes of type {}".format(attr_type))
 
             def read_element(elem, use_string_dict=True):
-                # print(elem.name,"@",in_file.tell())
                 num_attributes = get_int(in_file)
                 for i in range(num_attributes):
-                    start = in_file.tell()
-                    name = dm._string_dict.read_string(in_file) if use_string_dict else get_str(in_file)
+                    name = dm.string_dict.read_string(in_file) if use_string_dict else get_str(in_file)
                     attr_type = _get_dmx_id_type(encoding, encoding_ver, get_byte(in_file))
-                    # print("\t",name,"@",start,attr_type)
                     if attr_type in _dmxtypes:
                         elem[name] = get_value(attr_type)
                     elif attr_type in _dmxtypes_array:
@@ -1188,13 +1183,13 @@ def load(path=None, in_file=None, element_path=None):
                 for prefix_elem in range(get_int(in_file)):
                     read_element(dm.prefix_attributes, use_string_dict=False)
 
-            dm._string_dict = _StringDictionary(encoding, encoding_ver, in_file=in_file)
+            dm.string_dict = _StringDictionary(encoding, encoding_ver, in_file=in_file)
             num_elements = get_int(in_file)
 
             # element headers
             for i in range(num_elements):
-                elemtype = dm._string_dict.read_string(in_file)
-                name = dm._string_dict.read_string(in_file) if encoding_ver >= 4 else get_str(in_file)
+                elemtype = dm.string_dict.read_string(in_file)
+                name = dm.string_dict.read_string(in_file) if encoding_ver >= 4 else get_str(in_file)
                 id = uuid.UUID(bytes_le=in_file.read(16))  # little-endian
                 dm.add_element(name, elemtype, id)
 
@@ -1202,7 +1197,7 @@ def load(path=None, in_file=None, element_path=None):
             for elem in [elem for elem in dm.elements if not elem._is_placeholder]:
                 read_element(elem)
 
-        dm._string_dict = None
+        dm.string_dict = None
         return dm
     finally:
         if in_file: in_file.close()
