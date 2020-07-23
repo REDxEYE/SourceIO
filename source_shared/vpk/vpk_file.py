@@ -16,6 +16,8 @@ class VPKFile:
         self.entries: Dict[str, List[Entry]] = {}
         self.archive_md5_entries: List[ArchiveMD5Entry] = []
 
+        self.path_cache = []
+
         self.tree_hash = b''
         self.archive_md5_hash = b''
         self.file_hash = b''
@@ -59,6 +61,7 @@ class VPKFile:
 
                     entry = Entry(file_name, directory_name, type_name)
                     entry.read(reader)
+                    self.path_cache.append(str(entry.full_path))
 
                     if reader.read_uint16() != 0xFFFF:
                         raise NotImplementedError('Invalid terminator')
@@ -107,6 +110,9 @@ class VPKFile:
             print("Internal file")
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
-            target_archive = ByteIO(path=target_archive_path)
+            target_archive = ByteIO(target_archive_path)
             target_archive.seek(entry.offset)
-            return ByteIO(byte_object=target_archive.read_bytes(entry.size))
+            reader = ByteIO(target_archive.read_bytes(entry.size))
+            target_archive.close()
+            del target_archive
+            return reader

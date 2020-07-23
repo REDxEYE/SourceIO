@@ -1,7 +1,7 @@
 import os
 
 from ...utilities.path_utilities import NonSourceInstall
-from ...utilities.valve_utils import GameInfoFile, KeyValueFile, MaterialPathResolver
+from ...utilities.valve_utils import GameInfoFile, KeyValueFile
 
 from pathlib import Path
 
