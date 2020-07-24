@@ -23,12 +23,12 @@ class ByteIO:
         yield
         self.seek(entry)
 
-    def __init__(self, path_or_file_or_data: Union[Union[str, Path], BinaryIO, Union[bytes, bytearray]]=None,
+    def __init__(self, path_or_file_or_data: Union[Union[str, Path], BinaryIO, Union[bytes, bytearray]] = None,
                  open_to_read=True):
         if type(path_or_file_or_data) is BinaryIO:
             file = path_or_file_or_data
             self.file = file
-        elif type(path_or_file_or_data) is str or isinstance(path_or_file_or_data,Path):
+        elif type(path_or_file_or_data) is str or isinstance(path_or_file_or_data, Path):
             mode = 'rb' if open_to_read else 'wb'
             self.file = open(path_or_file_or_data, mode)
 
@@ -143,10 +143,10 @@ class ByteIO:
         return self.file.read(size)
 
     def read(self, t):
-        return struct.unpack(t, self._read(struct.calcsize(t)))[0]
+        return struct.unpack(t, self.file.read(struct.calcsize(t)))[0]
 
     def read_fmt(self, fmt):
-        return struct.unpack(fmt, self._read(struct.calcsize(fmt)))
+        return struct.unpack(fmt, self.file.read(struct.calcsize(fmt)))
 
     def read_uint64(self):
         return self.read('Q')
@@ -180,15 +180,15 @@ class ByteIO:
 
     def read_ascii_string(self, length=None):
         if length is not None:
-            return bytes(''.join([chr(self.read_uint8()) for _ in range(
-                length)]), 'utf').strip(b'\x00').decode('utf')
+            return self.file.read(length).decode('utf')
 
-        acc = ''
-        b = self.read_uint8()
-        while b != 0:
-            acc += chr(b)
-            b = self.read_uint8()
-        return acc
+        acc = bytearray()
+        while True:
+            b = self.file.read(1)
+            if b == b'\x00':
+                break
+            acc += b
+        return acc.decode('utf')
 
     def read_fourcc(self):
         return self.read_ascii_string(4)

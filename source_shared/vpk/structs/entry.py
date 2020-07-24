@@ -8,6 +8,7 @@ class Entry:
         self.file_name = file_name.strip('/\\')
         self.directory_name = directory_name.strip('/\\')
         self.type_name = type_name.strip('./\\')
+        self._full_path = f'{self.directory_name}/{self.file_name}.{self.type_name}'
         self.crc32 = 0xBAADF00D
         self.size = 0
         self.offset = 0
@@ -16,16 +17,12 @@ class Entry:
         self.preload_data_size = 0
         self.preload_data = b''
 
-    def read(self, reader: ByteIO):
-        self.crc32 = reader.read_uint32()
-        self.preload_data_size = reader.read_uint16()
-        self.archive_id = reader.read_uint16()
-        self.offset = reader.read_uint32()
-        self.size = reader.read_uint32()
-
     @property
     def full_path(self) -> Path:
-        return Path(f'{self.directory_name}/{self.file_name}.{self.type_name}')
+        return Path(self._full_path)
+
+    def read(self, reader: ByteIO):
+        (self.crc32, self.preload_data_size, self.archive_id, self.offset, self.size) = reader.read_fmt('I2H2I')
 
     def __repr__(self):
         return f'Entry("{self.file_name}", "{self.directory_name}", "{self.type_name}")'

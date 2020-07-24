@@ -10,9 +10,7 @@ class ArchiveMD5Entry:
         self.crc32 = 0xBAADF00D
 
     def read(self, reader: ByteIO):
-        self.archive_id = reader.read_uint32()
-        self.offset = reader.read_uint32()
-        self.size = reader.read_uint32()
+        (self.archive_id,self.offset,self.size) = reader.read_fmt('3I')
         self.crc32 = reader.read_bytes(16)
 
     def __str__(self):

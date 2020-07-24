@@ -61,7 +61,7 @@ class VPKFile:
 
                     entry = Entry(file_name, directory_name, type_name)
                     entry.read(reader)
-                    self.path_cache.append(str(entry.full_path))
+                    self.path_cache.append(entry._full_path)
 
                     if reader.read_uint16() != 0xFFFF:
                         raise NotImplementedError('Invalid terminator')
