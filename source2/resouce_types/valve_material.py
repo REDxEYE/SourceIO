@@ -1,7 +1,9 @@
-from pathlib import Path
+
 
 from ..source2 import ValveFile
 from .valve_texture import ValveTexture
+
+# noinspection PyUnresolvedReferences
 import bpy
 
 

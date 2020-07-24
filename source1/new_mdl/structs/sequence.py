@@ -1,10 +1,8 @@
 from typing import List
 
-import numpy as np
-
 from .auto_layer import AutoLayer
 from .event import Event
-from ....byte_io_mdl import ByteIO
+from ....utilities.byte_io_mdl  import ByteIO
 from ...new_shared.base import Base
 
 

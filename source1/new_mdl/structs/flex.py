@@ -3,7 +3,7 @@ from enum import IntEnum
 
 from typing import List, Union
 
-from ....byte_io_mdl import ByteIO
+from ....utilities.byte_io_mdl  import ByteIO
 from ...new_shared.base import Base
 from .float16 import int16_to_float
 

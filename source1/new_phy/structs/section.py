@@ -4,7 +4,7 @@ import numpy as np
 
 from .triangle import Triangle
 from ...new_shared.base import Base
-from ....byte_io_mdl import ByteIO, split
+from ....utilities.byte_io_mdl  import ByteIO
 
 
 class Section(Base):

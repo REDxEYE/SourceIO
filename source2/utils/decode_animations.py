@@ -2,10 +2,7 @@ import math
 import numpy as np
 from typing import List
 
-from ...byte_io_mdl import ByteIO
-from ..blocks.anim_block import ANIM
-from ..blocks.anim_block import DATA
-from ..source2 import ValveFile
+from ...utilities.byte_io_mdl import ByteIO
 
 
 class _Decoder:
@@ -121,11 +118,7 @@ def parse_anim(anim_desc, decode_key, decoder_array, segment_array):
 def parse_segment(frame_id, frame: 'Frame', segment, decode_key, decoder_array):
     local_channel = segment['m_nLocalChannel']
     data_channel = decode_key['m_dataChannelArray'][local_channel]
-    bone_names = data_channel['m_szElementNameArray']
-    channel_name = data_channel['m_szChannelClass']
-    channel_attr_name = data_channel['m_szVariableName']
-
-    container = ByteIO(byte_object=segment['m_container'])
+    container = ByteIO(segment['m_container'])
 
     element_index_array = data_channel['m_nElementIndexArray']
     element_bones = np.zeros(decode_key['m_nChannelElements'], dtype=np.uint32)
@@ -145,6 +138,10 @@ def parse_segment(frame_id, frame: 'Frame', segment, decode_key, decoder_array):
 
         if container.tell() + (decoder.size * frame_id * bone_count) < container.size():
             container.skip(decoder.size * frame_id * bone_count)
+
+        bone_names = data_channel['m_szElementNameArray']
+        channel_name = data_channel['m_szChannelClass']
+        channel_attr_name = data_channel['m_szVariableName']
 
         for bone_id in range(bone_count):
             bone = element_bones[elements[bone_id]]

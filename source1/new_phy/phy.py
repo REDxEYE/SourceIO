@@ -1,13 +1,10 @@
-import struct
 from typing import List
 
 from .structs.header import Header
 from .structs.surface import CompactSurface
 
 from ..new_shared.base import Base
-from ...byte_io_mdl import ByteIO
-
-from ...utilities.valve_utils import KeyValueFile
+from ...utilities.byte_io_mdl  import ByteIO
 
 
 class Phy(Base):

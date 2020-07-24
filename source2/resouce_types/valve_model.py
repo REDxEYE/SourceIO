@@ -1,12 +1,13 @@
-import os.path
 import random
 from pprint import pprint
-from typing import List
 from pathlib import Path
 
+# noinspection PyUnresolvedReferences
 import bpy
-import math
+# noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix, Quaternion, Euler
+
+import math
 
 from ..utils.decode_animations import parse_anim_data
 from ..common import SourceVector

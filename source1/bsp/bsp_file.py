@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from typing import List, Dict, Type
+from typing import Dict, Type
 
-from ...byte_io_mdl import ByteIO
 from .lump import *
+
+from ...utilities.byte_io_mdl import ByteIO
 
 
 class BSPFile:
@@ -38,13 +39,13 @@ class BSPFile:
         self.parse_lump(OriginalFaceLump)
         self.parse_lump(TextureDataLump)
         self.parse_lump(TextureInfoLump)
-        #self.parse_lump(StringTableIdLump)
+        # self.parse_lump(StringTableIdLump)
         self.parse_lump(StringsLump)
         self.parse_lump(ModelLump)
         self.parse_lump(WorldLightLump)
 
     def parse_lump(self, lump_class: Type[Lump]):
         if self.lumps_info[lump_class.lump_id].size != 0:
-            lump =  self.lumps_info[lump_class.lump_id]
+            lump = self.lumps_info[lump_class.lump_id]
             print(f"Loading {lump_class.lump_id.name} lump.\n\tOffset: {lump.offset}\n\tSize:{lump.size}")
             self.lumps[lump_class.lump_id] = lump_class(self).parse()

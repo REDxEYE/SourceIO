@@ -1,18 +1,18 @@
-import os.path
-import random
 from pathlib import Path
 from typing import List
 
-import bpy
 import math
 import numpy as np
-from mathutils import Vector, Matrix, Quaternion, Euler
+# noinspection PyUnresolvedReferences
+import bpy
+# noinspection PyUnresolvedReferences
+from mathutils import Vector, Matrix
 
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source2_to_blender
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.path_utilities import backwalk_file_resolver
 from ..utils.entity_keyvalues import EntityKeyValues
-from ..common import SourceVector, SourceVertex, SourceVector4D
+from ..common import SourceVector4D
 from ..source2 import ValveFile
 from .valve_model import ValveModel
 
@@ -82,7 +82,7 @@ class ValveWorld:
         entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]
         for entity_kv in entity_data_block.data['m_entityKeyValues']:
             a = EntityKeyValues()
-            reader = ByteIO(byte_object=entity_kv['m_keyValuesData'])
+            reader = ByteIO(entity_kv['m_keyValuesData'])
             a.read(reader)
             class_name = a.base['classname']
             if class_name in ["prop_dynamic", "prop_physics", "prop_ragdoll", "npc_furniture"]:

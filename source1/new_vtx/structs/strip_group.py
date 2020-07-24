@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from ...new_shared.base import Base
-from ....byte_io_mdl import ByteIO
+from ....utilities.byte_io_mdl  import ByteIO
 from .strip import Strip
 from .vertex import Vertex
 

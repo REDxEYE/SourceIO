@@ -1,11 +1,8 @@
-import importlib
-from time import sleep
-
 import math
 from enum import IntEnum
 import numpy as np
 
-from ..byte_io_mdl import ByteIO
+from ..utilities.byte_io_mdl import ByteIO
 
 
 class KeyValueDataType(IntEnum):

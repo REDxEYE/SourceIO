@@ -1,8 +1,7 @@
 import struct
-from typing import Iterable
 import numpy as np
 
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
 index_header = 0xe0
 vertex_header = 0xa0
@@ -193,7 +192,6 @@ class CompressedIndexBuffer:
     def __init__(self, size, count):
         self.index_size = size
         self.index_count = count
-        pass
 
     def decode_index_buffer(self, buffer: bytes):
         buffer: np.ndarray = np.array(list(buffer), dtype=np.uint8)
@@ -215,7 +213,7 @@ class CompressedIndexBuffer:
         codeaux_table = slice(buffer, buffer.size - 16)
         destination = np.zeros((self.index_count * self.index_size),
                                dtype=np.uint8)
-        ds = ByteIO(byte_object=bytes(data))
+        ds = ByteIO(bytes(data))
         for i in range(0, self.index_count, 3):
             code_tri = buffer[buffer_index]
             buffer_index += 1
@@ -347,7 +345,7 @@ class CompressedIndexBuffer:
             return lead
         result = lead & 127
         shift = 7
-        for i in range(4):
+        for _ in range(4):
             group = data.read_uint8()
             result |= (group & 127) << shift
             shift += 7

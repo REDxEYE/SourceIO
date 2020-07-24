@@ -1,10 +1,11 @@
 from enum import IntEnum, IntFlag
 import numpy as np
 
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
 from .dummy import DataBlock
 
+# noinspection PyUnresolvedReferences
 from ..utils.PySourceIOUtils import *
 
 
@@ -121,7 +122,7 @@ class TEXR(DataBlock):
 
         if extra_data_count > 0:
             reader.seek(extra_data_entry + extra_data_offset)
-            for i in range(extra_data_count):
+            for _ in range(extra_data_count):
                 extra_type = VTexExtraData(reader.read_uint32())
                 offset = reader.read_uint32() - 8
                 size = reader.read_uint32()
@@ -148,14 +149,16 @@ class TEXR(DataBlock):
         depth = self.depth >> mip_level
         if depth < 1:
             depth = 1
-        if self.format == VTexFormat.DXT1 \
-                or self.format == VTexFormat.DXT5 \
-                or self.format == VTexFormat.BC6H \
-                or self.format == VTexFormat.BC7 \
-                or self.format == VTexFormat.ETC2 \
-                or self.format == VTexFormat.ETC2_EAC \
-                or self.format == VTexFormat.ATI1N \
-                or self.format == VTexFormat.ATI2N:
+        if self.format in [
+            VTexFormat.DXT1,
+            VTexFormat.DXT5,
+            VTexFormat.BC6H,
+            VTexFormat.BC7,
+            VTexFormat.ETC2,
+            VTexFormat.ETC2_EAC,
+            VTexFormat.ATI1N,
+            VTexFormat.ATI2N,
+        ]:
 
             misalign = width % 4
 

@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 from ..compiled_file_header import InfoBlock
 from ..common import SourceVector, SourceVector4D, SourceVector2D
 

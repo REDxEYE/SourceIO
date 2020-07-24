@@ -1,8 +1,6 @@
 from ctypes import *
-try:
-    from VTFLibEnums import *
-except BaseException:
-    from .VTFLibEnums import *
+
+from .VTFLibEnums import *
 
 
 class ImageFormatInfo(Structure):

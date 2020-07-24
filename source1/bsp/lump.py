@@ -12,7 +12,7 @@ from .datatypes.plane import Plane
 from .datatypes.texture_data import TextureData
 from .datatypes.texture_info import TextureInfo
 
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl  import ByteIO
 
 
 class LumpTypes(IntEnum):

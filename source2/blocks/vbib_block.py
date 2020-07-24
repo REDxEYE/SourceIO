@@ -19,9 +19,9 @@ except ImportError:
     from ..utils.compressed_buffers import decode_vertex_buffer, decode_index_buffer, slice
 
 from ..utils.compressed_buffers import slice
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
-from ..common import SourceVertex, short_to_float
+from ..common import short_to_float
 from .dummy import DataBlock
 
 

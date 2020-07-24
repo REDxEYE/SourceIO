@@ -492,7 +492,7 @@ class VTFLib:
     def convert_to_rgba8888(self):
         new_size = self.compute_image_size(self.width(), self.height(), self.depth(), self.mipmap_count(),
                                            VTFLibEnums.ImageFormat.ImageFormatRGBA8888)
-        new_buffer = cast(create_string_buffer(init=new_size), POINTER(c_byte))
+        new_buffer = cast(create_string_buffer(new_size), POINTER(c_byte))
         if not self.ImageConvertToRGBA8888(self.ImageGetData(0, 0, 0, 0), new_buffer, self.width(), self.height(),
                                            self.image_format().value):
             return pointer_to_array(new_buffer, new_size)

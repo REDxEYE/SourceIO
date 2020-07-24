@@ -2,7 +2,7 @@ from enum import IntEnum
 
 import math
 
-from ....byte_io_mdl import ByteIO
+from ....utilities.byte_io_mdl  import ByteIO
 
 
 class EmitType(IntEnum):

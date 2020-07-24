@@ -293,7 +293,7 @@ class ByteIO:
 
 
 if __name__ == '__main__':
-    a = ByteIO(path=r'./test.bin', mode='w')
+    a = ByteIO(r'./test.bin')
     a.write_fourcc("IDST")
     # a.write_int8(108)
     # a.write_uint32(104)
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     # a.write_uint64(18564846516)
     # a.write_ascii_string('Test123')
     a.close()
-    a = ByteIO(file=open(r'./test.bin', mode='rb'))
+    a = ByteIO(open(r'./test.bin', mode='rb'))
     print(a.peek_uint32())
     # print(a.read_from_offset(1024,a.read_uint32))
     # print(a.read_uint32())

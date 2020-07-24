@@ -5,7 +5,7 @@ import numpy as np
 from .structs.header import Header
 from .structs.fixup import Fixup
 from ..new_shared.base import Base
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl  import ByteIO
 
 
 class Vvd(Base):

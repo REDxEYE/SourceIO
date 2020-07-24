@@ -1,9 +1,10 @@
 from typing import List
 
 from ...new_shared.base import Base
-from ....byte_io_mdl import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 
 from .lod import ModelLod
+
 
 class Model(Base):
     def __init__(self):

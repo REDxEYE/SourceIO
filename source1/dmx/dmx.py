@@ -289,10 +289,7 @@ class Session:
                 rot = rot.to_euler('YXZ')
                 mat = mathutils.Matrix.Translation(bone_.position) @ rot.to_matrix().to_4x4()
                 bone.matrix_basis.identity()
-                if bone.parent:
-                    bone.matrix = bone.parent.matrix @ mat
-                else:
-                    bone.matrix = mat
+                bone.matrix = bone.parent.matrix @ mat if bone.parent else mat
             else:
                 print("Missing", bone_.name, "bone")
         bpy.ops.object.mode_set(mode='OBJECT')

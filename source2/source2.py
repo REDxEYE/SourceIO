@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import List, BinaryIO, Union
 
-from ..byte_io_mdl import ByteIO
+from ..utilities.byte_io_mdl import ByteIO
 from .common import SourceVector
 from .compiled_file_header import CompiledHeader, InfoBlock
 from ..utilities.path_utilities import backwalk_file_resolver

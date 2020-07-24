@@ -1,8 +1,6 @@
 from enum import IntFlag
 
-import numpy as np
-
-from ....byte_io_mdl import ByteIO
+from ....utilities.byte_io_mdl  import ByteIO
 from ...new_shared.base import Base
 
 
@@ -86,12 +84,12 @@ class AnimDesc(Base):
 
         self.read_span_data(reader)
 
-        if self.section_offset != 0 and self.section_frame_count > 0:
-            self.read_frames()
-        else:
-            section_id = 0
-
-            self.read_frames(reader, entry + self.anim_offset, section_id)
+        # if self.section_offset != 0 and self.section_frame_count > 0:
+        #     self.read_frames()
+        # else:
+        #     section_id = 0
+        #
+        #     self.read_frames(reader, entry + self.anim_offset, section_id)
 
     def read_span_data(self, reader: ByteIO):
         if self.span_count > 0 and self.span_offset != 0:

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# noinspection PyUnresolvedReferences
 import bpy
 import numpy as np
 

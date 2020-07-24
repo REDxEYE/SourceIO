@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, List, Dict
 
-from ...byte_io_mdl import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
 from .structs import *
 
