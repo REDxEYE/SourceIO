@@ -211,8 +211,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
                             shape_key = mesh_obj.shape_key_add(name=name)
                         else:
                             shape_key = mesh_data.shape_keys.key_blocks[name]
-                        deltas = np.array([f.vertex_delta for f in flex.vertex_animations])
-                        vertex_indices = np.array([f.index + mesh.vertex_index_start for f in flex.vertex_animations])
+                        deltas = np.array([f['vertex_delta'] for f in flex.vertex_animations])
+                        vertex_indices = np.array([f['index'][0] + mesh.vertex_index_start for f in flex.vertex_animations])
                         hits = np.in1d(vertex_indices, vtx_vertices)
                         for new_index, delta in zip(vertex_indices[hits], deltas[hits]):
                             index = tmp2[new_index]

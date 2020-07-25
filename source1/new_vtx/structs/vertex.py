@@ -1,4 +1,4 @@
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 
 
 class Vertex:

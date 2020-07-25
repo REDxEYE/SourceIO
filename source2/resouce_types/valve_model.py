@@ -10,6 +10,7 @@ from mathutils import Vector, Matrix, Quaternion, Euler
 import math
 
 from ..utils.decode_animations import parse_anim_data
+from ..blocks.vbib_block import VertexBuffer
 from ..common import SourceVector
 from ..source2 import ValveFile
 import numpy as np
@@ -108,7 +109,7 @@ class ValveModel:
                                 mesh_data_block, buffer_block, data_block, morph_block,
                                 invert_uv, mesh_index, skin_name=skin_name)
 
-    # noinspection PyTypeChecker,PyUnresolvedReferences
+    # //noinspection PyTypeChecker,PyUnresolvedReferences
     def build_mesh(self, name, armature, collection,
                    mesh_data_block, buffer_block, data_block, morph_block,
                    invert_uv,
@@ -130,7 +131,7 @@ class ValveModel:
                 start_index = draw_call['m_nStartIndex'] // 3
                 index_count = draw_call['m_nIndexCount'] // 3
                 index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
-                vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
+                vertex_buffer: VertexBuffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
                 material_name = Path(draw_call['m_material']).stem
 
                 mesh_obj = bpy.data.objects.new(name + "_" + material_name,
@@ -163,16 +164,17 @@ class ValveModel:
                 used_vertices = vertex_buffer.vertexes['POSITION'][used_range]
                 normals = vertex_buffer.vertexes['NORMAL'][used_range]
 
-                if type(normals[0][0]) is int:
+                if normals.dtype.char == 'B' and normals.shape[1] == 4:
                     # normals = SourceVector.convert_array(normals)
                     normals = [SourceVector.convert(*x[:2]).as_list for x in normals]
 
                 mesh.from_pydata(used_vertices, [], index_buffer.indexes[start_index:start_index + index_count])
                 mesh.update()
                 n = 0
-                for attrib_name, attrib_data in vertex_buffer.vertexes.items():
-                    if 'TEXCOORD' in attrib_name.upper():
-                        if len(attrib_data[0]) != 2:
+                for attrib in vertex_buffer.attributes:
+                    if 'TEXCOORD' in attrib.name.upper():
+                        attrib_data = vertex_buffer.vertexes[attrib.name]
+                        if attrib_data.shape[1] != 2:
                             continue
                         uv_layer = np.array(attrib_data)
                         if invert_uv:
@@ -182,7 +184,7 @@ class ValveModel:
                             uv_layer = tmp1.reshape((-1, 2))
                         mesh.uv_layers.new()
                         uv_data = mesh.uv_layers[n].data
-                        mesh.uv_layers[n].name = attrib_name
+                        mesh.uv_layers[n].name = attrib.name
                         for i in range(len(uv_data)):
                             uv_data[i].uv = uv_layer[used_range][mesh.loops[i].vertex_index]
                         n += 1
@@ -195,10 +197,15 @@ class ValveModel:
                     new_bone_names = [bone for bone in bone_names]
                     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
 
-                    weights_array = vertex_buffer.vertexes.get("BLENDWEIGHT", [])
-                    indices_array = vertex_buffer.vertexes.get("BLENDINDICES", [])
+                    if 'BLENDWEIGHT' in vertex_buffer.attribute_names and 'BLENDINDICES' in vertex_buffer.attribute_names:
+                        weights_array = vertex_buffer.vertexes["BLENDWEIGHT"] / 255
+                        indices_array = vertex_buffer.vertexes["BLENDINDICES"]
+                    else:
+                        weights_array = []
+                        indices_array = []
 
                     for n, bone_indices in enumerate(indices_array):
+
                         if len(weights_array) > 0:
                             weights = weights_array[n]
                             for bone_index, weight in zip(bone_indices, weights):

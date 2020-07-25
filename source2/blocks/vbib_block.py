@@ -155,10 +155,9 @@ class VertexBuffer:
         self.offset = 0
         self.total_size = 0
         self.attributes = []  # type:List[VertexAttribute]
+        self.attribute_names = []  # type:List[str]
         self.buffer = ByteIO()  # type: ByteIO
-        # self.vertexes = []  # type: List[SourceVertex]
-        self.vertexes = {}  # type: Dict[str,List]
-        self.vertex_struct = ''
+        self.vertexes = np.array([])  # type: np.ndarray
 
     def __repr__(self):
         buff = ''
@@ -186,7 +185,7 @@ class VertexBuffer:
                     used_names.append(tmp)
                 else:
                     used_names.append(v_attrib.name)
-                self.vertex_struct += v_attrib.get_struct()
+                self.attribute_names.append(v_attrib.name)
                 self.attributes.append(v_attrib)
         entry = reader.tell()
         self.offset = reader.read_uint32()
@@ -202,42 +201,13 @@ class VertexBuffer:
         self.read_buffer()
 
     def read_buffer(self):
+        vertex_types = []
         for attrib in self.attributes:
-            self.vertexes[attrib.name] = []
-        for _ in range(self.vertex_count):
-            vertex_data = list(self.buffer.read_fmt(self.vertex_struct))
-            offset = 0
-            for attrib in self.attributes:
-                attrib_len = attrib.element_count
-                if attrib.name == 'POSITION':
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif 'TEXCOORD' in attrib.name:
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif attrib.name == 'COLOR':
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif attrib.name == 'NORMAL':
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif attrib.name == 'TANGENT':
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif 'texcoord' in attrib.name:
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif attrib.name == "BLENDINDICES":
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                elif attrib.name == "BLENDWEIGHT":
-                    self.vertexes[attrib.name].append(slice(vertex_data, offset, attrib_len))
-                else:
-                    print(f"UNKNOWN ATTRIBUTE {attrib.name}!!!!")
-                offset += attrib_len
-        for attrib in self.attributes:
-            attrib_array = self.vertexes[attrib.name]
-            # if "UNORM" in attrib.format.name:
-            #     attrib_array = list(np.array(attrib_array) / 255.0)
-            # elif "SNORM" in attrib.format.name:
-            #     attrib_array = list(
-            #         np.array(attrib_array) / 128.0)
-            if attrib.name == "BLENDWEIGHT":
-                attrib_array = list(np.array(attrib_array) / 255.0)
-            self.vertexes[attrib.name] = attrib_array
+            vertex_types.append((attrib.name, *attrib.get_struct()))
+        vertex_dtype = np.dtype(vertex_types)
+        vertex_data = np.frombuffer(self.buffer.read_bytes(vertex_dtype.itemsize * self.vertex_count),
+                                    dtype=vertex_dtype)
+        self.vertexes = vertex_data
 
 
 class VertexAttribute:
@@ -257,116 +227,41 @@ class VertexAttribute:
         reader.seek(entry + 36)
         self.format = DxgiFormat(reader.read_int32())
         self.offset = reader.read_uint32()
-        self.element_count = self.get_element_count()
         reader.skip(12)
 
     def get_struct(self):
         if self.format == DxgiFormat.R32G32B32_FLOAT:
-            return '3f'
+            return np.float32, (3,)
         elif self.format == DxgiFormat.R32G32_FLOAT:
-            return '2f'
+            return np.float32, (2,)
         elif self.format == DxgiFormat.R32_FLOAT:
-            return '1f'
+            return np.float32, (1,)
         elif self.format == DxgiFormat.R32G32B32_UINT:
-            return '3I'
+            return np.uint32, (3,)
         elif self.format == DxgiFormat.R32G32B32_SINT:
-            return '3i'
+            return np.int32, (3,)
         elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
-            return '4f'
+            return np.float32, (4,)
         elif self.format == DxgiFormat.R32G32B32A32_UINT:
-            return '4I'
+            return np.uint32, (4,)
         elif self.format == DxgiFormat.R32G32B32A32_SINT:
-            return '4i'
+            return np.int32, (3,)
         elif self.format == DxgiFormat.R16G16_FLOAT:
-            return '2e'
+            return np.float16, (2,)
         elif self.format == DxgiFormat.R16G16_SINT:
-            return '2h'
+            return np.int16, (2,)
         elif self.format == DxgiFormat.R16G16_UINT:
-            return '2H'
+            return np.uint16, (2,)
         elif self.format == DxgiFormat.R16G16B16A16_SINT:
-            return '4h'
+            return np.int16, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_SNORM:
-            return '4b'
+            return np.int8, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_UNORM:
-            return '4B'
+            return np.uint8, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_UINT:
-            return '4B'
+            return np.uint8, (4,)
         elif self.format == DxgiFormat.R16G16_UNORM:
-            return '2H'
-        else:
-            raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
-
-    def get_element_count(self):
-        if self.format == DxgiFormat.R32G32B32_FLOAT:
-            return 3
-        elif self.format == DxgiFormat.R32G32_FLOAT:
-            return 2
-        elif self.format == DxgiFormat.R32_FLOAT:
-            return 1
-        elif self.format == DxgiFormat.R32G32B32_UINT:
-            return 3
-        elif self.format == DxgiFormat.R32G32B32_SINT:
-            return 3
-        elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
-            return 4
-        elif self.format == DxgiFormat.R32G32B32A32_UINT:
-            return 4
-        elif self.format == DxgiFormat.R32G32B32A32_SINT:
-            return 4
-        elif self.format == DxgiFormat.R16G16_FLOAT:
-            return 2
-        elif self.format == DxgiFormat.R16G16_SINT:
-            return 2
-        elif self.format == DxgiFormat.R16G16_UINT:
-            return 2
-        elif self.format == DxgiFormat.R16G16B16A16_SINT:
-            return 4
-        elif self.format == DxgiFormat.R8G8B8A8_SNORM:
-            return 4
-        elif self.format == DxgiFormat.R8G8B8A8_UNORM:
-            return 4
-        elif self.format == DxgiFormat.R8G8B8A8_UINT:
-            return 4
-        elif self.format == DxgiFormat.R16G16_UNORM:
-            return 4
-        elif self.format == DxgiFormat.R16G16_UNORM:
-            return 2
-        else:
-            raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
-
-    def read_from_buffer(self, reader: ByteIO):
-        if self.format == DxgiFormat.R32G32B32_FLOAT:
-            return reader.read_fmt(f'3f')
-        elif self.format == DxgiFormat.R32G32_FLOAT:
-            return reader.read_fmt(f'2f')
-        elif self.format == DxgiFormat.R32_FLOAT:
-            return reader.read_fmt(f'f')
-        elif self.format == DxgiFormat.R32G32B32_UINT:
-            return reader.read_fmt(f'3I')
-        elif self.format == DxgiFormat.R32G32B32_SINT:
-            return reader.read_fmt(f'3i')
-        elif self.format == DxgiFormat.R32G32B32A32_FLOAT:
-            return reader.read_fmt(f'4f')
-        elif self.format == DxgiFormat.R32G32B32A32_UINT:
-            return reader.read_fmt(f'4I')
-        elif self.format == DxgiFormat.R32G32B32A32_SINT:
-            return reader.read_fmt(f'4i')
-        elif self.format == DxgiFormat.R16G16_FLOAT:
-            return [short_to_float(reader.read_int16()) for _ in range(self.format.name.count('16'))]
-        elif self.format == DxgiFormat.R16G16_SINT:
-            return reader.read_fmt(f'2h')
-        elif self.format == DxgiFormat.R16G16_UINT:
-            return reader.read_fmt(f'2H')
-        elif self.format == DxgiFormat.R16G16B16A16_SINT:
-            return reader.read_fmt(f'4h')
-        elif self.format == DxgiFormat.R8G8B8A8_SNORM:
-            return reader.read_fmt(f'4b')
-        elif self.format == DxgiFormat.R8G8B8A8_UNORM:
-            return reader.read_fmt(f'4B')
-        elif self.format == DxgiFormat.R8G8B8A8_UINT:
-            return reader.read_fmt(f'4B')
-        elif self.format == DxgiFormat.R16G16_UNORM:
-            return reader.read_fmt(f'2H')
+            return np.uint16, (2,)
         else:
             raise NotImplementedError(f"UNSUPPORTED DXGI format {self.format.name}")
 

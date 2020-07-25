@@ -247,9 +247,11 @@ class BinaryKeyValue:
                 parent.update({name: v})
             else:
                 parent.append(v)
-
         if data_type == KVType.NULL:
             add(None)
+            return
+        elif data_type == KVType.DOUBLE:
+            add(self.double_buffer.read_double())
             return
         elif data_type == KVType.BOOLEAN:
             add(self.byte_buffer.read_int8() == 1)
@@ -266,9 +268,7 @@ class BinaryKeyValue:
         elif data_type == KVType.UINT64:
             add(self.double_buffer.read_uint64())
             return
-        elif data_type == KVType.DOUBLE:
-            add(self.double_buffer.read_double())
-            return
+
         elif data_type == KVType.DOUBLE_ZERO:
             add(0.0)
             return
@@ -327,4 +327,5 @@ class BinaryKeyValue:
             return
         else:
             raise NotImplementedError("Unknown KVType.{}".format(data_type.name))
+
         return parent

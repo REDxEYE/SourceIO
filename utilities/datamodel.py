@@ -22,7 +22,7 @@
 
 import struct, array, io, binascii, collections, uuid
 from struct import unpack, calcsize
-from functools import reduce
+from functools import reduce, lru_cache
 from typing import BinaryIO, Union, TextIO
 
 import numpy as np
@@ -206,20 +206,21 @@ class _StrArray(_Array):
 class _Vector(list):
     type_str = ""
 
+
     def __init__(self, new_list):
         if len(new_list) != len(self.type_str):
-            raise TypeError("Expected {} values".format(len(self.type_str)))
+            raise TypeError(f"Expected {len(self.type_str)} values")
         new_list = _validate_array_list(new_list, float)
         super().__init__(new_list)
 
     def __repr__(self):
-        return " ".join([str(ord) for ord in self])
+        return " ".join([str(c) for c in self])
 
     def __hash__(self):
         return hash(tuple(self))
 
     def __round__(self, n=0):
-        return type(self)([round(ord, n) for ord in self])
+        return type(self)([round(c, n) for c in self])
 
     def tobytes(self):
         return struct.pack(self.type_str, *self)

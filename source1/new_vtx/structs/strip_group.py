@@ -22,7 +22,7 @@ class StripGroup(Base):
     def __init__(self):
         self.flags = StripGroupFlags(0)
         self.vertexes = []  # type: List[Vertex]
-        self.indexes = []  # type: np.ndarray
+        self.indexes = np.array([])  # type: np.ndarray
         self.strips = []  # type: List[Strip]
         self.topology = []
 

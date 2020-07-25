@@ -18,7 +18,7 @@ class MRPH(DATA):
         morph_atlas.read_block_info()
         morph_atlas_data = morph_atlas.get_data_block(block_name="DATA")[0]
         morph_atlas_data.read_image(False)
-        raw_flex_data = np.array(list(morph_atlas_data.image_data), dtype=np.uint8)
+        raw_flex_data = np.frombuffer(morph_atlas_data.image_data, dtype=np.uint8)
         width = self.data['m_nWidth']
         height = self.data['m_nHeight']
         encoding_type = self.data['m_nEncodingType']
@@ -48,7 +48,7 @@ class MRPH(DATA):
                     transformed_data = np.divide(morph_data_rect, 255)
                     transformed_data = np.multiply(transformed_data, vec_range)
                     transformed_data = np.add(transformed_data, vec_offset)
-                    transformed_data = np.round(transformed_data, 6)
+                    transformed_data = transformed_data
 
                     self.flex_data[morph_datas['m_name']][c, dst_y: dst_y + rect_height, dst_x: dst_x + rect_width,
                     :] = transformed_data

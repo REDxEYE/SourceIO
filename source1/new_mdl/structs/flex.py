@@ -3,7 +3,9 @@ from enum import IntEnum
 
 from typing import List, Union
 
-from ....utilities.byte_io_mdl  import ByteIO
+import numpy as np
+
+from ....utilities.byte_io_mdl import ByteIO
 from ...new_shared.base import Base
 from .float16 import int16_to_float
 
@@ -130,7 +132,8 @@ class Flex(Base):
 
         self.partner_index = 0
         self.vertex_anim_type = 0
-        self.vertex_animations = []  # type:List[Union[VertAnimWrinkle,VertAnim]]
+        # self.vertex_animations = []  # type: List[Union[VertAnimWrinkle,VertAnim]]
+        self.vertex_animations = np.array([])  # type:np.ndarray
 
     def __eq__(self, other: 'Flex'):
         return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
@@ -144,16 +147,8 @@ class Flex(Base):
         self.name = self.get_value('MDL').flex_names[self.flex_desc_index]
 
         self.targets = reader.read_fmt('4f')
-        vert_count, vert_offset, self.partner_index = reader.read_fmt(
-            '3I')
-        # if self.partner_index > 0:
-        #     self.name = self.name[:-1]
-            # partner_name = self.get_value('MDL').flex_names[self.partner_index]
-            # print(self.name,partner_name)
+        vert_count, vert_offset, self.partner_index = reader.read_fmt('3I')
 
-        # stereo_data = self.get_value('stereo_flexes') or {}
-        # stereo_data[self.flex_desc_index] = self.name
-        # self.store_value('stereo_flexes', stereo_data)
         self.vertex_anim_type = reader.read_uint8()
         reader.skip(3)
         reader.skip(6 * 4)
@@ -162,13 +157,17 @@ class Flex(Base):
             with reader.save_current_pos():
                 reader.seek(entry + vert_offset)
                 if self.vertex_anim_type == VertexAminationType.WRINKLE:
+
                     vert_anim_class = VertAnimWrinkle
                 else:
                     vert_anim_class = VertAnim
-                for _ in range(vert_count):
-                    vert_anim = vert_anim_class()
-                    vert_anim.read(reader)
-                    self.vertex_animations.append(vert_anim)
+
+                self.vertex_animations = np.frombuffer(reader.read_bytes(vert_count * vert_anim_class.dtype.itemsize),
+                                                       vert_anim_class.dtype)
+                # for _ in range(vert_count):
+                #     vert_anim = vert_anim_class()
+                #     vert_anim.read(reader)
+                #     self.vertex_animations.append(vert_anim)
 
 
 # noinspection PyBroadException
@@ -196,6 +195,15 @@ except Exception:
 class VertAnim(Base):
     vert_anim_fixed_point_scale = 1 / 4096
     is_wrinkle = False
+    dtype = np.dtype(
+        [
+            ('index', np.uint16, (1,)),
+            ('speed', np.uint8, (1,)),
+            ('side', np.uint8, (1,)),
+            ('vertex_delta', np.float16, (3,)),
+            ('normal_delta', np.float16, (3,)),
+        ]
+    )
 
     def __init__(self):
         self.index = 0
@@ -213,6 +221,17 @@ class VertAnim(Base):
 
 class VertAnimWrinkle(VertAnim):
     is_wrinkle = True
+
+    dtype = np.dtype(
+        [
+            ('index', np.uint16, (1,)),
+            ('speed', np.uint8, (1,)),
+            ('side', np.uint8, (1,)),
+            ('vertex_delta', np.float16, (3,)),
+            ('normal_delta', np.float16, (3,)),
+            ('wrinkle_delta', np.float16, (1,)),
+        ]
+    )
 
     def __init__(self):
         super().__init__()
