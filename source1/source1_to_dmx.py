@@ -318,11 +318,11 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                         mdl_flexes[flex_name] = {'stereo': flex.partner_index != 0}
 
                     for flex_vert in flex.vertex_animations:
-                        delta_datas[flex_name]['indices'].append(flex_vert.index + mesh.vertex_index_start)
-                        delta_datas[flex_name]['shape_pos'].append(flex_vert.vertex_delta)
-                        delta_datas[flex_name]['shape_norms'].append(flex_vert.normal_delta)
+                        delta_datas[flex_name]['indices'].append(flex_vert['index'] + mesh.vertex_index_start)
+                        delta_datas[flex_name]['shape_pos'].append(flex_vert['vertex_delta'])
+                        delta_datas[flex_name]['shape_norms'].append(flex_vert['normal_delta'])
                         if flex_vert.is_wrinkle:
-                            delta_datas[flex_name]['wrinkles'].append(flex_vert.wrinkle_delta)
+                            delta_datas[flex_name]['wrinkles'].append(flex_vert['wrinkle_delta'])
 
             for flex_name, delta_data in delta_datas.items():
                 vertex_delta_data = dm.add_element(flex_name, "DmeVertexDeltaData", id=f"{mesh_name}_{flex_name}")
