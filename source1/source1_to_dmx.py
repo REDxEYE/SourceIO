@@ -318,7 +318,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                         mdl_flexes[flex_name] = {'stereo': flex.partner_index != 0}
 
                     for flex_vert in flex.vertex_animations:
-                        delta_datas[flex_name]['indices'].append(flex_vert['index'] + mesh.vertex_index_start)
+                        delta_datas[flex_name]['indices'].append(flex_vert['index'][0] + mesh.vertex_index_start)
                         delta_datas[flex_name]['shape_pos'].append(flex_vert['vertex_delta'])
                         delta_datas[flex_name]['shape_norms'].append(flex_vert['normal_delta'])
                         if len(flex_vert.dtype) == 6:
