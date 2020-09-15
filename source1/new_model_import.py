@@ -174,6 +174,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
             bpy.context.scene.collection.objects.link(mesh_obj)
             mesh_data.from_pydata(vertices['vertex'], [], split(indices_array[::-1], 3))
             mesh_data.update()
+            mesh_obj.parent = armature
+
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
             mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
             mesh_data.use_auto_smooth = True
