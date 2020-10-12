@@ -87,7 +87,7 @@ def get_material(mat_name, model_ob):
     return mat_ind
 
 
-def slice(data: [typing.Iterable, typing.Sized], start, count=None):
+def get_slice(data: [typing.Iterable, typing.Sized], start, count=None):
     if count is None:
         count = len(data) - start
     return data[start:start + count]
@@ -145,7 +145,7 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
             if model.vertex_count == 0:
                 continue
-            model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
+            model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
             vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
             tmp2 = np.zeros((max(vtx_vertices) + 1), dtype=np.uint32)

@@ -72,18 +72,21 @@ if not NO_BPY:
 
 
     classes = (
-        #Source1 stuff
+        # Source1 stuff
         MDLImport_OT_operator,
         BSPImport_OT_operator,
         # DMXImporter_OT_operator,
         VTFExport_OT_operator,
         VTFImport_OT_operator,
         VMTImport_OT_operator,
+
         # Source2 stuff
         VMDLImport_OT_operator,
         VTEXImport_OT_operator,
         VMATImport_OT_operator,
         VWRLDImport_OT_operator,
+
+        # Addon tools
         # SourceIOPreferences,
         SourceIO_MT_Menu,
         SourceIOUtils_PT_panel,
@@ -100,6 +103,7 @@ if not NO_BPY:
 
     def register():
         register_()
+
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
         bpy.types.IMAGE_MT_image.append(export)
 
@@ -107,6 +111,7 @@ if not NO_BPY:
     def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(menu_import)
         bpy.types.IMAGE_MT_image.remove(export)
+
         unregister_()
 else:
     def register():

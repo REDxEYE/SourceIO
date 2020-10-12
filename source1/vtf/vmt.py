@@ -2,6 +2,7 @@ import os
 
 from ...utilities.path_utilities import NonSourceInstall
 from ...utilities.valve_utils import GameInfoFile, KeyValueFile
+from ...utilities.keyvalues import KVParser
 
 from pathlib import Path
 
