@@ -26,9 +26,7 @@ def vector_i_transform(input: List, matrix: List):
     return output
 
 
-def generate_qc(mdl: Mdl, plugin_version="UNKNOWN"):
-    buffer = StringIO()
-
+def generate_qc(mdl: Mdl, buffer, plugin_version="UNKNOWN"):
     buffer.write(f"// Created by SourceIO v{plugin_version}\n\n")
 
     buffer.write(f"$modelname \"{mdl.header.name}\"\n")
@@ -190,5 +188,3 @@ def generate_qc(mdl: Mdl, plugin_version="UNKNOWN"):
     write_used_materials()
     write_jiggle_bones()
     write_sequences()
-    buffer.seek(0)
-    return buffer.read(-1)

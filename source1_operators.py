@@ -68,8 +68,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
-                text = generate_qc(mdl, ".".join(map(str, bl_info['version'])))
-                qc_file.write(text)
+                generate_qc(mdl,qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
 
     def invoke(self, context, event):
