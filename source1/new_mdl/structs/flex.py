@@ -157,7 +157,6 @@ class Flex(Base):
             with reader.save_current_pos():
                 reader.seek(entry + vert_offset)
                 if self.vertex_anim_type == VertexAminationType.WRINKLE:
-
                     vert_anim_class = VertAnimWrinkle
                 else:
                     vert_anim_class = VertAnim

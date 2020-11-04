@@ -93,11 +93,21 @@ def get_slice(data: [typing.Iterable, typing.Sized], start, count=None):
     return data[start:start + count]
 
 
-def create_armature(mdl: Mdl):
-    armature = bpy.data.armatures.new(f"{Path(mdl.header.name).stem}_ARM_DATA")
-    armature_obj = bpy.data.objects.new(f"{Path(mdl.header.name).stem}_ARM", armature)
+def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Collection:
+    new_collection = (bpy.data.collections.get(name, None) or
+                      bpy.data.collections.new(name))
+    if new_collection.name not in parent.children:
+        parent.children.link(new_collection)
+    new_collection.name = name
+    return new_collection
+
+
+def create_armature(mdl: Mdl, collection):
+    model_name = Path(mdl.header.name).stem
+    armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
+    armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
     armature_obj.show_in_front = True
-    bpy.context.scene.collection.objects.link(armature_obj)
+    collection.objects.link(armature_obj)
 
     armature_obj.select_set(True)
     bpy.context.view_layer.objects.active = armature_obj
@@ -129,7 +139,7 @@ def create_armature(mdl: Mdl):
     return armature_obj
 
 
-def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,create_drivers=False):
+def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path, create_drivers=False):
     mdl = Mdl(mdl_path)
     mdl.read()
     vvd = Vvd(vvd_path)
@@ -138,11 +148,19 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
     vtx.read()
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
+    model_name = Path(mdl.header.name).stem
 
-    armature = create_armature(mdl)
+    copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
+    master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
+                                                 bpy.context.scene.collection)
+    armature = create_armature(mdl, master_collection)
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
+
+        body_part_collection = get_or_create_collection(body_part.name, master_collection)
+
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
+
             if model.vertex_count == 0:
                 continue
             model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
@@ -171,7 +189,7 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
                 type="ARMATURE", name="Armature")
             modifier.object = armature
 
-            bpy.context.scene.collection.objects.link(mesh_obj)
+            body_part_collection.objects.link(mesh_obj)
             mesh_data.from_pydata(vertices['vertex'], [], split(indices_array[::-1], 3))
             mesh_data.update()
             mesh_obj.parent = armature
@@ -214,7 +232,8 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
                         else:
                             shape_key = mesh_data.shape_keys.key_blocks[name]
                         deltas = np.array([f['vertex_delta'] for f in flex.vertex_animations])
-                        vertex_indices = np.array([f['index'][0] + mesh.vertex_index_start for f in flex.vertex_animations])
+                        vertex_indices = np.array(
+                            [f['index'][0] + mesh.vertex_index_start for f in flex.vertex_animations])
                         hits = np.in1d(vertex_indices, vtx_vertices)
                         for new_index, delta in zip(vertex_indices[hits], deltas[hits]):
                             index = tmp2[new_index]
