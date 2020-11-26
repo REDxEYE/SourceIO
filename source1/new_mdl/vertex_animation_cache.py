@@ -15,21 +15,25 @@ class VertexAnimationCache(Base):
         self.vvd = vvd
 
     def process_data(self):
-        print("[WIP ]Pre-computing vertex animation vertex positions")
+        print("[WIP ]Pre-computing vertex animation cache")
         for bodypart in self.mdl.body_parts:
+            print(f'Processing bodypart "{bodypart.name}"')
             for model in bodypart.models:
+                if model.vertex_count == 0:
+                    continue
+                print(f'\t+--model "{model.name}"')
                 for mesh in model.meshes:
-                    self.process_mesh(mesh)
-        print("[Done] Pre-computing vertex animation vertex positions")
+                    self.process_mesh(mesh, model.vertex_offset)
+        print("[Done] Pre-computing vertex animation cache")
 
-    def process_mesh(self, mesh: Mesh):
+    def process_mesh(self, mesh: Mesh, vertex_offset):
         for flex in mesh.flexes:
             if flex.name not in self.vertex_cache:
                 vertex_cache = self.vertex_cache[flex.name] = np.copy(self.vvd.vertices)
             else:
                 vertex_cache = self.vertex_cache[flex.name]
             for v_anim in flex.vertex_animations:
-                vertex_index = v_anim['index'][0] + mesh.vertex_index_start
+                vertex_index = v_anim['index'][0] + mesh.vertex_index_start + vertex_offset
                 vertex_cache[vertex_index] = np.add(vertex_cache[vertex_index], v_anim['vertex_delta'])
 
         pass

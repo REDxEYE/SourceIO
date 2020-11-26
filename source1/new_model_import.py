@@ -169,9 +169,6 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
             model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
             vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
-            tmp2 = np.zeros((max(vtx_vertices) + 1), dtype=np.uint32)
-            tmp2[vtx_vertices] = np.arange(len(vtx_vertices))
-
             indices_array = []
             material_indices_array = []
             used_materials = []
@@ -219,35 +216,26 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
                     if weight > 0:
                         bone_name = mdl.bones[bone_index].name
                         weight_groups[bone_name].add([n], weight, 'REPLACE')
-            have_flexes = False
+            flex_names = []
             for mesh in model.meshes:
                 if mesh.flexes:
-                    mesh_obj.shape_key_add(name='base')
-                    have_flexes = True
-                    break
-            if have_flexes:
-                for mesh in model.meshes:
-                    for flex in mesh.flexes:
-                        # name: str = mdl.get_value('stereo_flexes')[flex.flex_desc_index]
-                        name: str = mdl.flex_names[flex.flex_desc_index]
-                        if not mesh_obj.data.shape_keys.key_blocks.get(name):
-                            shape_key = mesh_obj.shape_key_add(name=name)
-                        else:
-                            shape_key = mesh_data.shape_keys.key_blocks[name]
-                        vertex_animation = vac.vertex_cache[name]
-                        model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
-                        vertices = model_vertices[vtx_vertices]
-                        shape_key.data.foreach_set("co", vertices.reshape((-1,)))
-                        # deltas = np.array([f['vertex_delta'] for f in flex.vertex_animations])
-                        # vertex_indices = np.array(
-                        #     [flex_anim['index'][0] + mesh.vertex_index_start for flex_anim in flex.vertex_animations])
-                        # hits = np.in1d(vertex_indices, vtx_vertices)
-                        # for new_index, delta in zip(vertex_indices, deltas):
-                        #     index = tmp2[new_index]
-                        #     vertex = vertices[index]['vertex']
-                        #     shape_key.data[index].co = np.add(vertex, delta)
-                if create_drivers:
-                    create_flex_drivers(mesh_obj, mdl)
+                    flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
+            if flex_names:
+                mesh_obj.shape_key_add(name='base')
+            for flex_name in flex_names:
+                if not mesh_obj.data.shape_keys.key_blocks.get(flex_name):
+                    shape_key = mesh_obj.shape_key_add(name=flex_name)
+                else:
+                    shape_key = mesh_data.shape_keys.key_blocks[flex_name]
+                vertex_animation = vac.vertex_cache[flex_name]
+
+                model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                flex_vertices = model_vertices[vtx_vertices]
+
+                shape_key.data.foreach_set("co", flex_vertices.reshape((-1,)))
+
+            if create_drivers:
+                create_flex_drivers(mesh_obj, mdl)
 
     if phy_path is not None and phy_path.exists():
         phy = Phy(phy_path)
