@@ -6,6 +6,7 @@ import numpy as np
 
 from .new_mdl.flex_expressions import *
 from .new_mdl.structs.bone import Bone
+from .new_mdl.vertex_animation_cache import VertexAnimationCache
 from .new_phy.phy import Phy
 from .new_vvd.vvd import Vvd
 from .new_mdl.mdl import Mdl
@@ -146,15 +147,17 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
     vvd.read()
     vtx = Vtx(vtx_path)
     vtx.read()
+    vac = VertexAnimationCache(mdl, vvd)
+    vac.process_data()
+
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
-    model_name = Path(mdl.header.name).stem
+    model_name = Path(mdl.header.name).stem + 'MODEL'
 
     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
                                                  bpy.context.scene.collection)
     armature = create_armature(mdl, master_collection)
-
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
 
         body_part_collection = get_or_create_collection(body_part.name, master_collection)
@@ -231,14 +234,18 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
                             shape_key = mesh_obj.shape_key_add(name=name)
                         else:
                             shape_key = mesh_data.shape_keys.key_blocks[name]
-                        deltas = np.array([f['vertex_delta'] for f in flex.vertex_animations])
-                        vertex_indices = np.array(
-                            [f['index'][0] + mesh.vertex_index_start for f in flex.vertex_animations])
-                        hits = np.in1d(vertex_indices, vtx_vertices)
-                        for new_index, delta in zip(vertex_indices[hits], deltas[hits]):
-                            index = tmp2[new_index]
-                            vertex = vertices[index]['vertex']
-                            shape_key.data[index].co = np.add(vertex, delta)
+                        vertex_animation = vac.vertex_cache[name]
+                        model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                        vertices = model_vertices[vtx_vertices]
+                        shape_key.data.foreach_set("co", vertices.reshape((-1,)))
+                        # deltas = np.array([f['vertex_delta'] for f in flex.vertex_animations])
+                        # vertex_indices = np.array(
+                        #     [flex_anim['index'][0] + mesh.vertex_index_start for flex_anim in flex.vertex_animations])
+                        # hits = np.in1d(vertex_indices, vtx_vertices)
+                        # for new_index, delta in zip(vertex_indices, deltas):
+                        #     index = tmp2[new_index]
+                        #     vertex = vertices[index]['vertex']
+                        #     shape_key.data[index].co = np.add(vertex, delta)
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
 
