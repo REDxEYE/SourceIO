@@ -37,7 +37,6 @@ def export_texture(blender_texture, path, image_format=None):
 
     if "normal" in image_format.lower():
         def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
-    print('cur format:' + def_options.ImageFormat.name)
 
     def_options.Resize = 1
     w, h = blender_texture.size
