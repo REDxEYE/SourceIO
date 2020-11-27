@@ -22,7 +22,7 @@ if not NO_BPY:
 
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
-                                    DMXImporter_OT_operator,
+                                    # DMXImporter_OT_operator,
                                     VTFExport_OT_operator,
                                     VTFImport_OT_operator,
                                     VMTImport_OT_operator,
