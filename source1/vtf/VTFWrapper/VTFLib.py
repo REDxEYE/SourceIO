@@ -8,12 +8,17 @@ try:
     import VTFLibConstants
     import VTFLibStructures
 except Exception:
-    from . import  VTFLibEnums
+    from . import VTFLibEnums
     from . import (VTFLibEnums,
                    VTFLibStructures,
                    VTFLibConstants)
 
 platform_name = platform.system()
+
+
+class UnsupportedOS(Exception):
+    pass
+
 
 if platform_name == "Windows":
     is64bit = platform.architecture(executable=sys.executable,
@@ -28,7 +33,7 @@ elif platform_name == "Linux":
     full_path = os.path.dirname(__file__)
     vtf_lib_name = "libVTFLib13.so"
 else:
-    raise NotImplementedError()
+    raise UnsupportedOS(f"{platform_name} is not supported")
 
 
 # TODO: move to util?
