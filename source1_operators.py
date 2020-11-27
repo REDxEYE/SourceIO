@@ -32,7 +32,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
     load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
-    import_textures: BoolProperty(name="Import textures", default=False, subtype='UNSIGNED')
+    import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
@@ -42,7 +42,6 @@ class MDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
-            # if self.wip_mode:
         from .source1.new_model_import import import_model
         from .source1.new_qc.qc import generate_qc
         from . import bl_info
@@ -50,6 +49,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
             mdl_path = directory / file.name
             vvd = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.vvd'))
             vtx = backwalk_file_resolver(mdl_path.parent, Path(mdl_path.stem + '.dx90.vtx'))
+
             if self.load_phy:
                 phy = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.phy'))
             else:
@@ -64,7 +64,6 @@ class MDLImport_OT_operator(bpy.types.Operator):
                         vmt.parse()
                         for name, tex in vmt.textures.items():
                             import_texture(tex)
-            # import_texture()
 
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
@@ -228,10 +227,8 @@ class VTFExport_OT_operator(bpy.types.Operator):
             ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
             ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
             ('DXT5', "DXT5 Simple", "DXT5 format, format-specific Eight Bit Alpha flag only"),
-            ('DXT1Normal', "DXT1 Normal Map",
-             "DXT1 format, Normal Map flag only"),
-            ('DXT5Normal', "DXT5 Normal Map",
-             "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
+            ('DXT1Normal', "DXT1 Normal Map", "DXT1 format, Normal Map flag only"),
+            ('DXT5Normal', "DXT5 Normal Map", "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
         default='RGBA8888',
     )
 
