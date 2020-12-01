@@ -26,7 +26,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
     if (vtf_lib.get_image_flags().get_flag(ImageFlag.ImageFlagEightBitAlpha) or vtf_lib.get_image_flags().get_flag(
                 ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
         alpha_view = pixels[3::4]
-        has_alpha = all(alpha_view != 255)
+        has_alpha = np.sum(alpha_view != 255) > (vtf_lib.width() * vtf_lib.height()) * 0.5
         if load_alpha and has_alpha:
             alpha = alpha_view.copy()
             alpha = np.repeat(alpha, 4)
