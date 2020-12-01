@@ -1,7 +1,7 @@
 import math
 import sys
 from pathlib import Path
-from typing import List, BinaryIO, Union
+from typing import List, BinaryIO, Union, Type
 
 from ..utilities.byte_io_mdl import ByteIO
 from .common import SourceVector
@@ -43,7 +43,6 @@ class ValveFile:
             block_info = self.info_blocks[i]
             if self.data_blocks[i] is not None:
                 continue
-            # print(block_info)
             with self.reader.save_current_pos():
                 self.reader.seek(block_info.entry + block_info.block_offset)
                 block_class = self.get_data_block_class(block_info.block_name)
@@ -53,7 +52,10 @@ class ValveFile:
                 block = block_class(self, block_info)
                 self.data_blocks[self.info_blocks.index(block_info)] = block
 
-    def get_data_block(self, *, block_id=None, block_name=None):
+    def get_data_block(self, *, block_id=None, block_name=None) -> Union[DataBlock, List[DataBlock], None]:
+        """
+        :rtype: Union[DataBlock, List[DataBlock]
+        """
         if block_id is None and block_name is None:
             raise Exception(f"Empty parameters block_id={block_id} block_name={block_name}")
         elif block_id is not None and block_name is not None:
@@ -79,7 +81,8 @@ class ValveFile:
             return blocks
 
     def get_data_block_class(self, block_name):
-        from .blocks import TEXR, DATA, NTRO, REDI, RERL, VBIB, MRPH,ANIM
+        from .blocks import TEXR, DATA, NTRO, REDI, RERL, VBIB, MRPH, ANIM
+
         if self.filepath.suffix == '.vtex_c':
             data_block_class = TEXR
         elif self.filepath.suffix == '.vmorf_c':
@@ -140,10 +143,8 @@ class ValveFile:
                 asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
                 if asset and asset.exists():
                     self.available_resources[block.resource_name] = asset.absolute()
-                    # print('Found', path)
                 else:
                     pass
-                    # print('Can\'t find', path)
 
     def get_child_resource(self, name):
         if self.available_resources.get(name, None) is not None:
@@ -186,7 +187,6 @@ if __name__ == '__main__':
 
             vmdl = ValveFile(model)
             vmdl.read_block_info()
-            vmdl.dump_structs(open("structures/{}.h".format(model.split('.')[-1]), 'w'))
             vmdl.dump_resources()
             vmdl.check_external_resources()
             # print(vmdl.available_resources)

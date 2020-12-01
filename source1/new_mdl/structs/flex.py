@@ -132,7 +132,6 @@ class Flex(Base):
 
         self.partner_index = 0
         self.vertex_anim_type = 0
-        # self.vertex_animations = []  # type: List[Union[VertAnimWrinkle,VertAnim]]
         self.vertex_animations = np.array([])  # type:np.ndarray
 
     def __eq__(self, other: 'Flex'):
@@ -163,10 +162,6 @@ class Flex(Base):
 
                 self.vertex_animations = np.frombuffer(reader.read_bytes(vert_count * vert_anim_class.dtype.itemsize),
                                                        vert_anim_class.dtype)
-                # for _ in range(vert_count):
-                #     vert_anim = vert_anim_class()
-                #     vert_anim.read(reader)
-                #     self.vertex_animations.append(vert_anim)
 
 
 # noinspection PyBroadException

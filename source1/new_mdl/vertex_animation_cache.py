@@ -26,10 +26,10 @@ class VertexAnimationCache(Base):
                     self.process_mesh(mesh, model.vertex_offset)
         print("[Done] Pre-computing vertex animation cache")
 
-    def process_mesh(self, mesh: Mesh, vertex_offset):
+    def process_mesh(self, mesh: Mesh, vertex_offset, desired_lod=0):
         for flex in mesh.flexes:
             if flex.name not in self.vertex_cache:
-                vertex_cache = self.vertex_cache[flex.name] = np.copy(self.vvd.vertices)
+                vertex_cache = self.vertex_cache[flex.name] = np.copy(self.vvd.lod_data[desired_lod]['vertex'])
             else:
                 vertex_cache = self.vertex_cache[flex.name]
             for v_anim in flex.vertex_animations:

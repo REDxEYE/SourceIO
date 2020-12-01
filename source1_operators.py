@@ -16,7 +16,7 @@ from .utilities.path_utilities import backwalk_file_resolver
 from .utilities.path_utilities import case_insensitive_file_resolution
 
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyPep8Naming
 class MDLImport_OT_operator(bpy.types.Operator):
     """Load Source Engine MDL models"""
     bl_idname = "source_io.mdl"
@@ -76,7 +76,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyPep8Naming
 class BSPImport_OT_operator(bpy.types.Operator):
     """Load Source Engine BSP models"""
     bl_idname = "source_io.bsp"
@@ -100,6 +100,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+# noinspection PyUnresolvedReferences,PyPep8Naming
 class DMXImporter_OT_operator(bpy.types.Operator):
     """Load Source Engine DMX scene"""
     bl_idname = "source_io.dmx"
@@ -131,6 +132,7 @@ class DMXImporter_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+# noinspection PyUnresolvedReferences,PyPep8Naming
 class VTFImport_OT_operator(bpy.types.Operator):
     """Load Source Engine VTF texture"""
     bl_idname = "import_texture.vtf"
@@ -160,6 +162,7 @@ class VTFImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+# noinspection PyUnresolvedReferences,PyPep8Naming
 class VMTImport_OT_operator(bpy.types.Operator):
     """Load Source Engine VMT material"""
     bl_idname = "import_texture.vmt"
@@ -196,6 +199,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+# noinspection PyUnresolvedReferences,PyPep8Naming
 class VTFExport_OT_operator(bpy.types.Operator):
     """Export VTF texture"""
     bl_idname = "export_texture.vtf"
