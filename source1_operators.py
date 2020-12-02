@@ -10,10 +10,10 @@ from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
 from .source1.bsp.import_bsp import BSP
+from .utilities import valve_utils
+from .utilities.valve_utils import GameInfoFile
 from .source1.vtf.vmt import VMT
-
-from .utilities.path_utilities import backwalk_file_resolver
-from .utilities.path_utilities import case_insensitive_file_resolution
+from .utilities.path_utilities import backwalk_file_resolver, NonSourceInstall
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -57,14 +57,27 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
             mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy, self.create_flex_drivers)
             if self.import_textures:
-                for mat_path in mdl.materials_paths:
-                    for material in mdl.materials:
-                        material_path = backwalk_file_resolver(Path(mdl_path).parent, Path(mat_path) / material.name)
+                mod_path = valve_utils.get_mod_path(mdl_path)
+                rel_model_path = mdl_path.relative_to(mod_path)
+                gi_path = mod_path / 'gameinfo.txt'
+                if gi_path.exists():
+                    path_resolver = GameInfoFile(gi_path)
+                else:
+                    path_resolver = NonSourceInstall(rel_model_path)
+                for material in mdl.materials:
+                    material_path = None
+                    for mat_path in mdl.materials_paths:
+                        material_path = path_resolver.find_material(Path(mat_path) / Path(material.name).stem, True)
+                        if material_path and material_path.exists():
+                            break
+                    if material_path:
                         vmt = VMT(material_path)
                         vmt.parse()
                         for name, tex in vmt.textures.items():
                             import_texture(tex)
-
+                        mat = BlenderMaterial(vmt)
+                        mat.load_textures(True)
+                        mat.create_material(material.name, True)
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(mdl, qc_file, ".".join(map(str, bl_info['version'])))

@@ -24,7 +24,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
     pixels = pixels.astype(np.float16, copy=False)
     has_alpha = False
     if (vtf_lib.get_image_flags().get_flag(ImageFlag.ImageFlagEightBitAlpha) or vtf_lib.get_image_flags().get_flag(
-                ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
+            ImageFlag.ImageFlagOneBitAlpha)) and load_alpha:
         alpha_view = pixels[3::4]
         has_alpha = np.sum(alpha_view != 255) > (vtf_lib.width() * vtf_lib.height()) * 0.5
         if load_alpha and has_alpha:
@@ -32,7 +32,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
             alpha = np.repeat(alpha, 4)
             alpha[3::4][:] = 255
             try:
-                alpha_im = bpy.data.images.new(
+                alpha_im = bpy.data.images.get(name + '_A', None) or bpy.data.images.new(
                     name + '_A', width=vtf_lib.width(), height=vtf_lib.height())
                 alpha = np.divide(alpha, 255)
                 alpha_im.pixels = alpha
@@ -43,7 +43,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
     if not alpha_only:
         print('Saving main texture')
         try:
-            image = bpy.data.images.new(
+            image = bpy.data.images.get(name + '_RGB', None) or bpy.data.images.new(
                 name + '_RGB',
                 width=vtf_lib.width(),
                 height=vtf_lib.height())

@@ -23,8 +23,8 @@ class BlenderMaterial:
                     if image[1] is not None:
                         self.textures[key+"_ALPHA"] = bpy.data.images.get(image[1])
 
-    def create_material(self, override=True):
-        mat_name = self.vmt.filepath.stem
+    def create_material(self,material_name=None, override=True):
+        mat_name = material_name if material_name is not None else self.vmt.filepath.stem
         if bpy.data.materials.get(mat_name) and not override:
             return 'EXISTS'
         else:
