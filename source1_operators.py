@@ -57,27 +57,37 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
             mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy, self.create_flex_drivers)
             if self.import_textures:
-                mod_path = valve_utils.get_mod_path(mdl_path)
-                rel_model_path = mdl_path.relative_to(mod_path)
-                gi_path = mod_path / 'gameinfo.txt'
-                if gi_path.exists():
-                    path_resolver = GameInfoFile(gi_path)
-                else:
-                    path_resolver = NonSourceInstall(rel_model_path)
-                for material in mdl.materials:
-                    material_path = None
-                    for mat_path in mdl.materials_paths:
-                        material_path = path_resolver.find_material(Path(mat_path) / Path(material.name).stem, True)
-                        if material_path and material_path.exists():
-                            break
-                    if material_path:
-                        vmt = VMT(material_path)
-                        vmt.parse()
-                        for name, tex in vmt.textures.items():
-                            import_texture(tex)
-                        mat = BlenderMaterial(vmt)
-                        mat.load_textures(True)
-                        mat.create_material(material.name, True)
+                try:
+                    mod_path = valve_utils.get_mod_path(mdl_path)
+                    rel_model_path = mdl_path.relative_to(mod_path)
+                    gi_path = mod_path / 'gameinfo.txt'
+                    if gi_path.exists():
+                        path_resolver = GameInfoFile(gi_path)
+                    else:
+                        path_resolver = NonSourceInstall(rel_model_path)
+                    for material in mdl.materials:
+                        material_path = None
+                        for mat_path in mdl.materials_paths:
+                            material_path = path_resolver.find_material(Path(mat_path) / Path(material.name).stem, True)
+                            if material_path and material_path.exists():
+                                break
+                        if material_path:
+                            try:
+                                vmt = VMT(material_path)
+                                vmt.parse()
+                                for name, tex in vmt.textures.items():
+                                    import_texture(tex)
+                                mat = BlenderMaterial(vmt)
+                                mat.load_textures(True)
+                                mat.create_material(material.name, True)
+                            except Exception as m_ex:
+                                print(f'Failed to import material "{material.name}", caused by {m_ex}')
+                                import traceback
+                                traceback.print_exc()
+                except Exception as t_ex:
+                    print(f'Failed to import materials, caused by {t_ex}')
+                    import traceback
+                    traceback.print_exc()
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(mdl, qc_file, ".".join(map(str, bl_info['version'])))
@@ -201,8 +211,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
             vmt = VMT(str(directory / file.name), self.game)
             mat = BlenderMaterial(vmt)
             mat.load_textures(self.load_alpha)
-            if mat.create_material(
-                    self.override) == 'EXISTS' and not self.override:
+            if mat.create_material(None, self.override) == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
         return {'FINISHED'}
 
