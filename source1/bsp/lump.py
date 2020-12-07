@@ -1,17 +1,7 @@
 import lzma
 from enum import IntEnum
-import numpy as np
-from typing import List, Iterable
 
 from lzma import decompress as lzma_decompress
-
-from .datatypes.model import Model
-from .datatypes.world_light import WorldLight
-from .datatypes.face import Face
-from .datatypes.plane import Plane
-from .datatypes.texture_data import TextureData
-from .datatypes.texture_info import TextureInfo
-
 from ...utilities.byte_io_mdl import ByteIO
 
 

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from typing import Dict, Type
+from typing import Dict, Type, List
 
 from .lump import *
 from .lumps.displacement_lump import DispInfoLump, DispVert
