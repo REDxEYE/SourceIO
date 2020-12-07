@@ -2,7 +2,7 @@ from enum import IntEnum
 
 import math
 
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 
 
 class EmitType(IntEnum):
@@ -12,6 +12,7 @@ class EmitType(IntEnum):
     emit_skylight = 3  # directional light with no falloff (surface must trace to SKY texture)
     emit_quakelight = 4  # linear falloff, non-lambertian
     emit_skyambient = 5  # spherical light source with no falloff (surface must trace to SKY texture)
+
 
 
 class Color32:
@@ -66,6 +67,7 @@ class Color32:
     @property
     def rgb(self):
         return self.r, self.g, self.b
+
 
 
 class WorldLight:

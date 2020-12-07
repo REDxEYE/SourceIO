@@ -3,6 +3,17 @@ from pathlib import Path
 from typing import Dict, Type
 
 from .lump import *
+from .lumps.displacement_lump import DispInfoLump, DispVert
+from .lumps.edge_lump import EdgeLump
+from .lumps.face_lump import FaceLump, OriginalFaceLump
+from .lumps.model_lump import ModelLump
+from .lumps.plane_lump import PlaneLump
+from .lumps.string_lump import StringsLump
+from .lumps.surf_edge_lump import SurfEdgeLump
+from .lumps.texture_lump import TextureDataLump, TextureInfoLump
+from .lumps.vertex_lump import VertexLump
+from .lumps.vertex_normal_lump import VertexNormalLump, VertexNormalIndicesLump
+from .lumps.world_light_lump import WorldLightLump
 
 from ...utilities.byte_io_mdl import ByteIO
 
@@ -43,6 +54,8 @@ class BSPFile:
         self.parse_lump(StringsLump)
         self.parse_lump(ModelLump)
         self.parse_lump(WorldLightLump)
+        self.parse_lump(DispInfoLump)
+        self.parse_lump(DispVert)
 
     def parse_lump(self, lump_class: Type[Lump]):
         if self.lumps_info[lump_class.lump_id].size != 0:

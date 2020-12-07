@@ -234,12 +234,6 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
 
                 shape_key.data.foreach_set("co", flex_vertices.reshape((-1,)))
 
-                # tmp_data = bpy.data.meshes.new(f'{model.name}_{flex_name}_MESH')
-                # tmp_obj = bpy.data.objects.new(f"{model.name}_{flex_name}", tmp_data)
-                # body_part_collection.objects.link(tmp_obj)
-                # tmp_data.from_pydata(flex_vertices, [], [])
-                # tmp_data.update()
-
             if create_drivers:
                 create_flex_drivers(mesh_obj, mdl)
 

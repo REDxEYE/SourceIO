@@ -11,7 +11,8 @@ from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
 from .source1.bsp.import_bsp import BSP
 from .utilities import valve_utils
-from .utilities.valve_utils import GameInfoFile
+from .utilities.valve_utils import fix_workshop_not_having_gameinfo_file
+from .utilities.gameinfo import Gameinfo
 from .source1.vtf.vmt import VMT
 from .utilities.path_utilities import backwalk_file_resolver, NonSourceInstall
 
@@ -60,9 +61,10 @@ class MDLImport_OT_operator(bpy.types.Operator):
                 try:
                     mod_path = valve_utils.get_mod_path(mdl_path)
                     rel_model_path = mdl_path.relative_to(mod_path)
+                    mod_path = fix_workshop_not_having_gameinfo_file(mod_path)
                     gi_path = mod_path / 'gameinfo.txt'
                     if gi_path.exists():
-                        path_resolver = GameInfoFile(gi_path)
+                        path_resolver = Gameinfo(gi_path)
                     else:
                         path_resolver = NonSourceInstall(rel_model_path)
                     for material in mdl.materials:
@@ -108,13 +110,17 @@ class BSPImport_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     # files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
     def execute(self, context):
-        model = BSP(self.filepath)
-        model.load_map_mesh()
-        model.load_lights()
+        bsp_map = BSP(self.filepath)
+        bsp_map.load_map_mesh()
+        bsp_map.load_lights()
+        if self.import_textures:
+            bsp_map.load_materials()
+
         return {'FINISHED'}
 
     def invoke(self, context, event):

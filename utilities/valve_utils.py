@@ -81,25 +81,42 @@ def parse_line(line):
     return tokens
 
 
+def fix_workshop_not_having_gameinfo_file(path):
+    path = Path(path)
+    if path.parts[-1] == 'workshop':
+        path = path.parent / 'usermod'
+    return path
+
+
 def get_mod_path(path: Path):
     """
 
     :rtype: Path
     """
     org = path
-    if 'models' in path.parts or 'materials' in path.parts:
+    result_path = path
+    if 'models' in path.parts or 'materials' in path.parts or 'maps' in path.parts:
         while len(path.parts) > 1:
             path = path.parent
             if path.parts[-1] == 'models' and path.parts[-2] == 'materials':
-                return path.parent.parent
+                result_path = path.parent.parent
+                break
             if path.parts[-1] == 'models':
-                return path.parent
+                result_path = path.parent
+                break
             if path.parts[-1] == 'materials':
-                return path.parent
+                result_path = path.parent
+                break
+            if path.parts[-1] == 'maps':
+                result_path = path.parent
+                break
             if len(path.parts) == 1:
                 print(org)
-                return None
-    return path
+                result_path = org
+                break
+    # if result_path.parts[-1] == 'workshop':
+    #     result_path = result_path.parent / 'usermod'
+    return result_path
 
 
 class Chunk:

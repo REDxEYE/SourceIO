@@ -82,7 +82,7 @@ class Gameinfo:
                 self.add_new_path(path)
             else:
                 continue
-            print(f"visiting {path}")
+            # print(f"visiting {path}")
             if path.suffix == '.vpk' and path.with_name(f'{path.stem}_dir.vpk').is_file():
                 vpk = VPKFile(path.with_name(f'{path.stem}_dir.vpk'))
                 vpk.read()
@@ -123,8 +123,16 @@ class Gameinfo:
         for mod_path in paths:
             if mod_path.stem == '*':
                 mod_path = mod_path.parent
-            new_filepath = mod_path / new_filepath
-            if new_filepath.exists():
-                return new_filepath
+            search_path = mod_path / new_filepath
+            if search_path.exists():
+                return search_path
         else:
             return None
+
+    def find_texture(self, filepath, use_recursive=False):
+        return self.find_file(filepath, 'materials',
+                              extention='.vtf', use_recursive=use_recursive)
+
+    def find_material(self, filepath, use_recursive=False):
+        return self.find_file(filepath, 'materials',
+                              extention='.vmt', use_recursive=use_recursive)

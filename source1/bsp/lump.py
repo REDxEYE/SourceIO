@@ -1,7 +1,7 @@
 import lzma
 from enum import IntEnum
 import numpy as np
-from typing import List
+from typing import List, Iterable
 
 from lzma import decompress as lzma_decompress
 
@@ -12,7 +12,7 @@ from .datatypes.plane import Plane
 from .datatypes.texture_data import TextureData
 from .datatypes.texture_info import TextureInfo
 
-from ...utilities.byte_io_mdl  import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
 
 class LumpTypes(IntEnum):
@@ -58,7 +58,6 @@ class LumpTypes(IntEnum):
     LUMP_UNKNOWN = -1
 
 
-# noinspection PyTypeChecker
 class LumpInfo:
     def __init__(self, lump_id):
         self.id = LumpTypes(lump_id) if lump_id in list(LumpTypes) else lump_id
@@ -102,207 +101,13 @@ class Lump:
             prob_byte -= pb * 9 * 5
             lp = prob_byte // 9
             lc = prob_byte - lp * 9
-            my_filters = [
-                {"id": lzma.FILTER_LZMA2, "dict_size": dict_size,"pb": pb, "lp": lp, "lc": lc},
-            ]
+            my_filters = [{"id": lzma.FILTER_LZMA2, "dict_size": dict_size, "pb": pb, "lp": lp, "lc": lc}, ]
             self.reader = ByteIO(
-                byte_object=lzma_decompress(reader.read_bytes(compressed_size), lzma.FORMAT_RAW, filters=my_filters))
+                lzma_decompress(reader.read_bytes(compressed_size), lzma.FORMAT_RAW, filters=my_filters)
+            )
+            assert self.reader.size() == decompressed_size, 'Compressed lump size does not match expected'
         else:
-            self.reader = ByteIO(byte_object=self._bsp.reader.read_bytes(self._lump.size))
+            self.reader = ByteIO(self._bsp.reader.read_bytes(self._lump.size))
 
     def parse(self):
-        return self
-
-
-class VertexLump(Lump):
-    lump_id = LumpTypes.LUMP_VERTICES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.vertices = np.array([])
-
-    def parse(self):
-        reader = self.reader
-        self.vertices = np.frombuffer(reader.read_bytes(self._lump.size), np.float32, self._lump.size // 4)
-        self.vertices = self.vertices.reshape((-1, 3))
-        return self
-
-
-class VertexNormalLump(Lump):
-    lump_id = LumpTypes.LUMP_VERTNORMALS
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.normals = np.array([])
-
-    def parse(self):
-        reader = self.reader
-        self.normals = np.frombuffer(reader.read_bytes(self._lump.size), np.float32, self._lump.size // 4)
-        self.normals = self.normals.reshape((-1, 3))
-        return self
-
-
-class PlaneLump(Lump):
-    lump_id = LumpTypes.LUMP_PLANES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.planes = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            plane = Plane().parse(reader)
-            self.planes.append(plane)
-        return self
-
-
-class EdgeLump(Lump):
-    lump_id = LumpTypes.LUMP_EDGES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.edges = np.array([])
-
-    def parse(self):
-        reader = self.reader
-        self.edges = np.frombuffer(reader.read_bytes(self._lump.size), np.uint16, self._lump.size // 2)
-        self.edges = self.edges.reshape((-1, 2))
-        return self
-
-
-class SurfEdgeLump(Lump):
-    lump_id = LumpTypes.LUMP_SURFEDGES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.surf_edges = np.array([])
-
-    def parse(self):
-        reader = self.reader
-        self.surf_edges = np.frombuffer(reader.read_bytes(self._lump.size), np.int32, self._lump.size // 4)
-        return self
-
-
-class StringOffsetLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXDATA_STRING_DATA
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.string_ids = np.array([])
-
-    def parse(self):
-        reader = self.reader
-        self.string_ids = np.frombuffer(reader.read_bytes(self._lump.size), np.int32, self._lump.size // 4)
-        return self
-
-
-class StringsLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXDATA_STRING_TABLE
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.strings = []
-
-    def parse(self):
-        reader = self.reader
-        data = reader.read_bytes(-1)
-        self.strings = list(map(lambda a: a.decode("utf"), data.split(b'\x00')))
-        return self
-
-
-class VertexNormalIndicesLump(Lump):
-    lump_id = LumpTypes.LUMP_VERTNORMALINDICES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.indices = np.array([])
-
-    def parse(self):
-        reader = self.reader
-        self.indices = np.frombuffer(reader.read_bytes(self._lump.size), np.int16, self._lump.size // 2)
-        return self
-
-
-class FaceLump(Lump):
-    lump_id = LumpTypes.LUMP_FACES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.faces: List[Face] = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.faces.append(Face().parse(reader))
-        return self
-
-
-class OriginalFaceLump(Lump):
-    lump_id = LumpTypes.LUMP_ORIGINALFACES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.faces: List[Face] = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.faces.append(Face().parse(reader))
-        return self
-
-
-class TextureInfoLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXINFO
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.texture_info: List[TextureInfo] = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.texture_info.append(TextureInfo().parse(reader))
-        return self
-
-
-class TextureDataLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXDATA
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.texture_data: List[TextureData] = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.texture_data.append(TextureData().parse(reader))
-        return self
-
-
-class ModelLump(Lump):
-    lump_id = LumpTypes.LUMP_MODELS
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.models: List[Model] = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.models.append(Model().parse(reader))
-        return self
-
-
-class WorldLightLump(Lump):
-    lump_id = LumpTypes.LUMP_WORLDLIGHTS
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
-        self.lights: List[WorldLight] = []
-
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.lights.append(WorldLight().parse(reader, self._bsp.version))
         return self
