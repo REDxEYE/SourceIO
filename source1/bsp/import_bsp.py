@@ -4,13 +4,22 @@ from pathlib import Path
 from typing import Optional, List, Tuple
 
 import numpy as np
-from .bsp_file import BSPFile, Model, Face
-from .lump import LumpTypes, ModelLump, VertexLump, EdgeLump, FaceLump, SurfEdgeLump, StringsLump, StringOffsetLump, \
-    TextureDataLump, TextureInfoLump, WorldLightLump
+from .bsp_file import BSPFile
+from .datatypes.face import Face
+from .datatypes.model import Model
+from .lump import LumpTypes
 from .datatypes.world_light import EmitType, Color32
 
 import bpy
 
+from .lumps.edge_lump import EdgeLump
+from .lumps.face_lump import FaceLump
+from .lumps.model_lump import ModelLump
+from .lumps.string_lump import StringsLump
+from .lumps.surf_edge_lump import SurfEdgeLump
+from .lumps.texture_lump import TextureInfoLump, TextureDataLump
+from .lumps.vertex_lump import VertexLump
+from .lumps.world_light_lump import WorldLightLump
 from ..vtf.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..vtf.vmt import VMT
