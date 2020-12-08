@@ -29,10 +29,13 @@ def import_texture(path, update=False):
             name,
             width=vtf_lib.width(),
             height=vtf_lib.height())
-        pixels = np.divide(pixels, 255)
-        image.pixels = pixels
-        image.pack()
         image.alpha_mode = 'CHANNEL_PACKED'
+        image.file_format = 'TARGA'
+        image.source = 'GENERATED'
+        pixels: np.ndarray = np.divide(pixels, 255)
+        image.pixels = pixels
+
+        image.pack(data=pixels.tobytes(), data_len=pixels.size)
     except Exception as ex:
         print('Caught exception "{}" '.format(ex))
     vtf_lib.image_destroy()
