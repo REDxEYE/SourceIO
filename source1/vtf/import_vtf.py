@@ -35,7 +35,7 @@ def import_texture(path, update=False):
         pixels: np.ndarray = np.divide(pixels, 255)
         image.pixels = pixels
 
-        image.pack(data=pixels.tobytes(), data_len=pixels.size)
+        image.pack()
     except Exception as ex:
         print('Caught exception "{}" '.format(ex))
     vtf_lib.image_destroy()
