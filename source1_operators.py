@@ -182,7 +182,7 @@ class VTFImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            import_texture(str(directory / file.name), self.load_alpha, self.only_alpha)
+            import_texture(str(directory / file.name), True)
         return {'FINISHED'}
 
     def invoke(self, context, event):
