@@ -80,7 +80,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
                                 for name, tex in vmt.textures.items():
                                     import_texture(tex)
                                 mat = BlenderMaterial(vmt)
-                                mat.load_textures(True)
+                                mat.load_textures()
                                 mat.create_material(material.name, True)
                             except Exception as m_ex:
                                 print(f'Failed to import material "{material.name}", caused by {m_ex}')

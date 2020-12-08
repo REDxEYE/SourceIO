@@ -11,17 +11,15 @@ class BlenderMaterial:
         self.vmt = vmt
         self.textures = {}
 
-    def load_textures(self, split_alpha=True):
+    def load_textures(self):
         for key, texture in self.vmt.textures.items():
             name = Path(texture).stem
             if bpy.data.images.get(name, False):
                 self.textures[key] = bpy.data.images.get(name, False)
             else:
-                image = import_texture(texture, split_alpha, False)
+                image = import_texture(texture)
                 if image:
-                    self.textures[key] = bpy.data.images.get(image[0])
-                    if image[1] is not None:
-                        self.textures[key + "_ALPHA"] = bpy.data.images.get(image[1])
+                    self.textures[key] = bpy.data.images.get(image)
 
     def create_material(self, material_name=None, override=True):
         mat_name = material_name if material_name is not None else self.vmt.filepath.stem
@@ -30,6 +28,9 @@ class BlenderMaterial:
         else:
             bpy.data.materials.new(mat_name)
         mat = bpy.data.materials.get(mat_name)
+        mat.blend_method = 'HASHED'
+        mat.shadow_method = 'HASHED'
+
         if mat.get('source1_loaded'):
             return 'LOADED'
         mat.use_nodes = True
@@ -51,6 +52,7 @@ class BlenderMaterial:
             tex.image = self.textures.get('$basetexture')
             tex.location = (-200, -100)
             mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
+            mat.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
             tex = nodes.new('ShaderNodeTexImage')
             tex.image = self.textures.get('$bumpmap')
