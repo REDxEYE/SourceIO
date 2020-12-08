@@ -216,7 +216,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
         for file in self.files:
             vmt = VMT(str(directory / file.name), self.game)
             mat = BlenderMaterial(vmt)
-            mat.load_textures(self.load_alpha)
+            mat.load_textures()
             if mat.create_material(None, self.override) == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
         return {'FINISHED'}
