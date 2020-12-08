@@ -17,9 +17,7 @@ def import_texture(path, update=False):
     print('Loading {}'.format(name))
     vtf_lib.image_load(str(path))
     if not vtf_lib.image_is_loaded():
-        raise Exception(
-            "Failed to load texture :{}".format(
-                vtf_lib.get_last_error()))
+        raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
     rgba_data = vtf_lib.convert_to_rgba8888()
     rgba_data = vtf_lib.flip_image_external(rgba_data, vtf_lib.width(), vtf_lib.height())
     pixels = np.array(rgba_data.contents, np.uint8)
@@ -34,7 +32,6 @@ def import_texture(path, update=False):
         image.source = 'GENERATED'
         pixels: np.ndarray = np.divide(pixels, 255)
         image.pixels = pixels
-
         image.pack()
     except Exception as ex:
         print('Caught exception "{}" '.format(ex))

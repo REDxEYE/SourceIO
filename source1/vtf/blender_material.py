@@ -35,7 +35,7 @@ class BlenderMaterial:
             return 'LOADED'
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
-        diff = nodes.get('Diffuse BSDF', None)
+        diff = nodes.get('Principled BSDF', None)
         if diff:
             nodes.remove(diff)
         out = nodes.get('ShaderNodeOutputMaterial', None)
@@ -43,25 +43,25 @@ class BlenderMaterial:
             out = nodes.get('Material Output', None)
         if not out:
             out = nodes.new('ShaderNodeOutputMaterial')
-        out.location = (0, 0)
+        out.location = (385.0, 146.0)
         bsdf = nodes.new('ShaderNodeBsdfPrincipled')
-        bsdf.location = (-100, 0)
+        bsdf.location = (45.0, 146.0)
         mat.node_tree.links.new(bsdf.outputs["BSDF"], out.inputs['Surface'])
         if self.textures.get('$basetexture', False):
             tex = nodes.new('ShaderNodeTexImage')
             tex.image = self.textures.get('$basetexture')
-            tex.location = (-200, -100)
+            tex.location = (-295.0, 146.0)
             mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
             mat.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
             tex = nodes.new('ShaderNodeTexImage')
             tex.image = self.textures.get('$bumpmap')
-            tex.location = (-200, -50)
+            tex.location = (-635.0, 146.0)
             tex.image.colorspace_settings.is_data = True
             tex.image.colorspace_settings.name = 'Non-Color'
 
             normal = nodes.new("ShaderNodeNormalMap")
-            normal.location = (150, -50)
+            normal.location = (-295.0, -125.0)
             mat.node_tree.links.new(tex.outputs["Color"], normal.inputs['Color'])
             mat.node_tree.links.new(normal.outputs["Normal"], bsdf.inputs['Normal'])
         if self.textures.get('$phongexponenttexture', False):
