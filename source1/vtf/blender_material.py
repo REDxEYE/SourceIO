@@ -21,15 +21,17 @@ class BlenderMaterial:
                 if image:
                     self.textures[key] = bpy.data.images.get(image[0])
                     if image[1] is not None:
-                        self.textures[key+"_ALPHA"] = bpy.data.images.get(image[1])
+                        self.textures[key + "_ALPHA"] = bpy.data.images.get(image[1])
 
-    def create_material(self,material_name=None, override=True):
+    def create_material(self, material_name=None, override=True):
         mat_name = material_name if material_name is not None else self.vmt.filepath.stem
         if bpy.data.materials.get(mat_name) and not override:
             return 'EXISTS'
         else:
             bpy.data.materials.new(mat_name)
         mat = bpy.data.materials.get(mat_name)
+        if mat.get('source1_loaded'):
+            return 'LOADED'
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         diff = nodes.get('Diffuse BSDF', None)
@@ -65,3 +67,5 @@ class BlenderMaterial:
             tex.image = self.textures.get('$phongexponenttexture')
             tex.location = (-200, 0)
             # mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
+
+        mat['source1_loaded'] = True
