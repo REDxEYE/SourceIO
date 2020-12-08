@@ -28,6 +28,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
         alpha_view = pixels[3::4]
         has_alpha = np.sum(alpha_view != 255) > (vtf_lib.width() * vtf_lib.height()) * 0.5
         if load_alpha and has_alpha:
+            print('Saving Alpha texture')
             alpha = alpha_view.copy()
             alpha = np.repeat(alpha, 4)
             alpha[3::4][:] = 255
@@ -41,7 +42,7 @@ def import_texture(path, load_alpha=True, alpha_only=False):
                 print('Caught exception "{}" '.format(ex))
         alpha_view[:] = 255
     if not alpha_only:
-        print('Saving main texture')
+        print('Saving RGB texture')
         try:
             image = bpy.data.images.get(name + '_RGB', None) or bpy.data.images.new(
                 name + '_RGB',
