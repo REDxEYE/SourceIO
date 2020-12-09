@@ -180,7 +180,7 @@ class ByteIO:
 
     def read_ascii_string(self, length=None):
         if length is not None:
-            return self.file.read(length).decode('utf')
+            return self.file.read(length).strip(b'\x00').decode('ascii').strip()
 
         acc = bytearray()
         while True:
