@@ -32,7 +32,7 @@ class VMDLImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
-            print(f"Loading {n}/{len(self.files)}")
+            print(f"Loading {n+1}/{len(self.files)}")
             model = ValveModel(str(directory / file.name))
             model.load_mesh(self.invert_uv)
             model.load_attachments()

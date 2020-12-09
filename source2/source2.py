@@ -143,6 +143,7 @@ class ValveFile:
                 asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
                 if asset and asset.exists():
                     self.available_resources[block.resource_name] = asset.absolute()
+                    self.available_resources[block.resource_hash] = asset.absolute()
                 else:
                     pass
 

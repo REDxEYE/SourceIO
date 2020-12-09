@@ -32,6 +32,7 @@ class RERL(DataBlock):
 class RERLResource:
 
     def __init__(self):
+        self.resource_hash = 0
         self.r_id = 0
         self.resource_name = ''
 
@@ -39,7 +40,8 @@ class RERLResource:
         return '<External resource "{}">'.format(self.resource_name)
 
     def read(self, reader: ByteIO):
-        self.r_id = reader.read_int64()
+        self.resource_hash = reader.read_uint32()
+        self.r_id = reader.read_uint32()
         entry = reader.tell()
         resource_name_offset = reader.read_int64()
         if resource_name_offset:
