@@ -2,6 +2,9 @@ from enum import IntEnum
 
 import math
 
+from .primitive import Primitive
+from .. import LumpTypes
+from ..lumps.texture_lump import TextureInfoLump
 from ....utilities.byte_io_mdl import ByteIO
 
 
@@ -12,7 +15,6 @@ class EmitType(IntEnum):
     emit_skylight = 3  # directional light with no falloff (surface must trace to SKY texture)
     emit_quakelight = 4  # linear falloff, non-lambertian
     emit_skyambient = 5  # spherical light source with no falloff (surface must trace to SKY texture)
-
 
 
 class Color32:
@@ -69,9 +71,9 @@ class Color32:
         return self.r, self.g, self.b
 
 
-
-class WorldLight:
-    def __init__(self):
+class WorldLight(Primitive):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
         self.origin = []
         self.intensity = Color32()
         self.normal = []
@@ -87,14 +89,14 @@ class WorldLight:
         self.linear_attn = 0.0
         self.quadratic_attn = 0.0
         self.flags = 0
-        self.texinfo = 0
+        self.tex_info_id = 0
         self.owner = 0
 
-    def parse(self, reader: ByteIO, version):
+    def parse(self, reader: ByteIO):
         self.origin = reader.read_fmt('3f')
         self.intensity = Color32.from_array(reader.read_fmt('3f'))
         self.normal = reader.read_fmt('3f')
-        if version > 20:
+        if self._bsp.version > 20:
             self.shadow_cast_offset = reader.read_fmt('3f')
         self.cluster = reader.read_int32()
         self.type = EmitType(reader.read_int32())
@@ -107,6 +109,18 @@ class WorldLight:
         self.linear_attn = reader.read_float()
         self.quadratic_attn = reader.read_float()
         self.flags = reader.read_int32()
-        self.texinfo = reader.read_int32()
+        self.tex_info_id = reader.read_int32()
         self.owner = reader.read_int32()
         return self
+
+    @property
+    def tex_info(self):
+        tex_info_lump: TextureInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXINFO, None)
+        if tex_info_lump:
+            tex_infos = tex_info_lump.texture_info
+            return tex_infos[self.tex_info_id]
+        return None
+
+    @property
+    def tex_data(self):
+        return self.tex_info.tex_data if self.tex_info else None

@@ -1,9 +1,12 @@
-from ....utilities.byte_io_mdl  import ByteIO
+from .primitive import Primitive
+from .. import LumpTypes
+from ....utilities.byte_io_mdl import ByteIO
 
 
-class TextureInfo:
+class TextureInfo(Primitive):
 
-    def __init__(self):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
         self.texture_vectors = []
         self.lightmap_vectors = []
         self.flags = 0
@@ -15,3 +18,12 @@ class TextureInfo:
         self.flags = reader.read_int32()
         self.texture_data_id = reader.read_int32()
         return self
+
+    @property
+    def tex_data(self):
+        from ..lumps.texture_lump import TextureDataLump
+        tex_data_lump: TextureDataLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXDATA, None)
+        if tex_data_lump:
+            tex_datas = tex_data_lump.texture_data
+            return tex_datas[self.texture_data_id]
+        return None

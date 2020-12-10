@@ -14,7 +14,7 @@ class FaceLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.faces.append(Face().parse(reader))
+            self.faces.append(Face(self, self._bsp).parse(reader))
         return self
 
 
@@ -28,5 +28,5 @@ class OriginalFaceLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.faces.append(Face().parse(reader))
+            self.faces.append(Face(self, self._bsp).parse(reader))
         return self

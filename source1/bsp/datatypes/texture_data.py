@@ -1,9 +1,13 @@
+from .primitive import Primitive
+from .. import LumpTypes
+from ..lumps.string_lump import StringsLump
 from ....utilities.byte_io_mdl import ByteIO
 
 
-class TextureData:
+class TextureData(Primitive):
 
-    def __init__(self):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
         self.reflectivity = []
         self.name_id = 0
         self.width = 0
@@ -19,3 +23,12 @@ class TextureData:
         self.view_width = reader.read_int32()
         self.view_height = reader.read_int32()
         return self
+
+    @property
+    def name(self):
+        lump: StringsLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXDATA_STRING_TABLE, None)
+        if lump:
+            return lump.strings[self.name_id]
+        return None
+
+

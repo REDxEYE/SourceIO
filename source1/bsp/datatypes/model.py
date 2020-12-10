@@ -1,8 +1,12 @@
+from .primitive import Primitive
+from .. import LumpTypes
+from ..lumps.node_lump import NodeLump
 from ....utilities.byte_io_mdl import ByteIO
 
 
-class Model:
-    def __init__(self):
+class Model(Primitive):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
         self.mins = []
         self.maxs = []
         self.origin = []
@@ -18,3 +22,10 @@ class Model:
         self.first_face = reader.read_int32()
         self.face_count = reader.read_int32()
         return self
+
+    @property
+    def node(self):
+        lump: NodeLump = self._bsp.lumps.get(LumpTypes.LUMP_NODES, None)
+        if lump:
+            return lump.nodes[self.head_node]
+        return None

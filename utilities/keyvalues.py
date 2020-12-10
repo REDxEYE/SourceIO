@@ -143,7 +143,10 @@ class KVParser(KVReader):
         return key, val
 
     def parse_value(self):
-        tok, val, _ = self._match(KVToken.STR, KVToken.NUM, KVToken.OPEN)
+        tok, val, _ = self._match(KVToken.END, KVToken.STR, KVToken.NUM, KVToken.OPEN)
+
+        if tok is KVToken.END:
+            return None
 
         if tok is KVToken.STR:
             return val

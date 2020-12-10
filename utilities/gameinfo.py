@@ -82,7 +82,7 @@ class Gameinfo:
                 self.add_new_path(path)
             else:
                 continue
-            # print(f"visiting {path}")
+            print(f"visiting {path}")
             if path.suffix == '.vpk' and path.with_name(f'{path.stem}_dir.vpk').is_file():
                 vpk = VPKFile(path.with_name(f'{path.stem}_dir.vpk'))
                 vpk.read()
@@ -115,7 +115,7 @@ class Gameinfo:
             new_filepath = new_filepath.with_suffix(extention)
 
         for vpk in self.vpk_cache:
-            if str(new_filepath) in vpk.path_cache:
+            if new_filepath in vpk.path_cache:
                 entry = vpk.find_file(full_path=new_filepath)
                 if entry:
                     return vpk.read_file(entry)

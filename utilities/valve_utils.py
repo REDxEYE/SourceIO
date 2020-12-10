@@ -114,8 +114,6 @@ def get_mod_path(path: Path):
                 print(org)
                 result_path = org
                 break
-    # if result_path.parts[-1] == 'workshop':
-    #     result_path = result_path.parent / 'usermod'
     return result_path
 
 

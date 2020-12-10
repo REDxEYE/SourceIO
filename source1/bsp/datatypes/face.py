@@ -1,9 +1,12 @@
+from .primitive import Primitive
+
 from ....utilities.byte_io_mdl import ByteIO
 
 
-class Face:
-    def __init__(self):
-        self.plane_num = 0
+class Face(Primitive):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
+        self.plane_index = 0
         self.side = 0
         self.on_node = 0
         self.first_edge = 0
@@ -22,7 +25,7 @@ class Face:
         self.smoothing_groups = 0
 
     def parse(self, reader: ByteIO):
-        self.plane_num = reader.read_uint16()
+        self.plane_index = reader.read_uint16()
         self.side = reader.read_uint8()
         self.on_node = reader.read_uint8()
         self.first_edge = reader.read_int32()
@@ -40,3 +43,24 @@ class Face:
         self.first_prim_id = reader.read_uint16()
         self.smoothing_groups = reader.read_uint32()
         return self
+
+    @property
+    def tex_info(self):
+        from ..lumps.texture_lump import TextureInfoLump
+        from .. import LumpTypes
+        tex_info_lump: TextureInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXINFO, None)
+        if tex_info_lump:
+            return tex_info_lump.texture_info[self.tex_info_id]
+        return None
+    @property
+    def disp_info(self):
+        from ..lumps.displacement_lump import DispInfoLump
+        from .. import LumpTypes
+        lump: DispInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_DISPINFO, None)
+        if lump:
+            return lump.infos[self.disp_info_id]
+        return None
+
+    @property
+    def tex_data(self):
+        return self.tex_info.tex_data if self.tex_info else None

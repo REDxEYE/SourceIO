@@ -14,5 +14,5 @@ class ModelLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.models.append(Model().parse(reader))
+            self.models.append(Model(self, self._bsp).parse(reader))
         return self

@@ -16,7 +16,7 @@ class DispInfoLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.infos.append(DispInfo().parse(reader))
+            self.infos.append(DispInfo(self,self._bsp).parse(reader))
         return self
 
 

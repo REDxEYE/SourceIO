@@ -15,7 +15,7 @@ class TextureInfoLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.texture_info.append(TextureInfo().parse(reader))
+            self.texture_info.append(TextureInfo(self, self._bsp).parse(reader))
         return self
 
 
@@ -29,5 +29,5 @@ class TextureDataLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.texture_data.append(TextureData().parse(reader))
+            self.texture_data.append(TextureData(self, self._bsp).parse(reader))
         return self

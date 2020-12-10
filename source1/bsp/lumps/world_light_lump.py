@@ -14,5 +14,5 @@ class WorldLightLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.lights.append(WorldLight().parse(reader, self._bsp.version))
+            self.lights.append(WorldLight(self, self._bsp).parse(reader))
         return self

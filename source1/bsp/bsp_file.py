@@ -5,8 +5,11 @@ from typing import Dict, Type, List
 from .lump import *
 from .lumps.displacement_lump import DispInfoLump, DispVert
 from .lumps.edge_lump import EdgeLump
+from .lumps.entity_lump import EntityLump
 from .lumps.face_lump import FaceLump, OriginalFaceLump
+from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
+from .lumps.node_lump import NodeLump
 from .lumps.plane_lump import PlaneLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
@@ -40,22 +43,24 @@ class BSPFile:
         self.parse_lumps()
 
     def parse_lumps(self):
+        self.parse_lump(EntityLump)
         self.parse_lump(VertexLump)
         self.parse_lump(PlaneLump)
         self.parse_lump(EdgeLump)
         self.parse_lump(SurfEdgeLump)
         self.parse_lump(VertexNormalLump)
-        self.parse_lump(VertexNormalIndicesLump)
+        # self.parse_lump(VertexNormalIndicesLump)
         self.parse_lump(FaceLump)
-        self.parse_lump(OriginalFaceLump)
+        # self.parse_lump(OriginalFaceLump)
         self.parse_lump(TextureDataLump)
         self.parse_lump(TextureInfoLump)
-        # self.parse_lump(StringTableIdLump)
         self.parse_lump(StringsLump)
         self.parse_lump(ModelLump)
         self.parse_lump(WorldLightLump)
-        self.parse_lump(DispInfoLump)
-        self.parse_lump(DispVert)
+        # self.parse_lump(DispInfoLump)
+        # self.parse_lump(DispVert)
+        # self.parse_lump(NodeLump)
+        self.parse_lump(GameLump)
 
     def parse_lump(self, lump_class: Type[Lump]):
         if self.lumps_info[lump_class.lump_id].size != 0:

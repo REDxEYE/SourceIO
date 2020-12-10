@@ -1,10 +1,12 @@
 from typing import List
 
+from .primitive import Primitive
 from ....utilities.byte_io_mdl import ByteIO
 
 
-class DispInfo:
-    def __init__(self):
+class DispInfo(Primitive):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
         self.start_position = []
         self.disp_vert_start = 0
         self.disp_tri_start = 0
@@ -41,6 +43,15 @@ class DispInfo:
         reader.skip(6)
         self.allowed_verts = [reader.read_int32() for _ in range(10)]
         return self
+
+    @property
+    def source_face(self):
+        from ..lumps.face_lump import FaceLump
+        from ..bsp_file import LumpTypes
+        lump: FaceLump = self._bsp.lumps.get(LumpTypes.LUMP_FACES, None)
+        if lump:
+            return lump.faces[self.map_face]
+        return None
 
 
 class DispSubNeighbor:

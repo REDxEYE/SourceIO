@@ -118,6 +118,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         bsp_map = BSP(self.filepath)
         bsp_map.load_map_mesh()
         bsp_map.load_lights()
+        bsp_map.load_entities()
         if self.import_textures:
             bsp_map.load_materials()
 
