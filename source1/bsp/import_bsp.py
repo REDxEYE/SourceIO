@@ -1,3 +1,4 @@
+import math
 import random
 import re
 from pathlib import Path
@@ -27,7 +28,8 @@ from ..vtf.import_vtf import import_texture
 from ..vtf.vmt import VMT
 from ...utilities import valve_utils
 from ...utilities.gameinfo import Gameinfo
-from ...utilities.math_utilities import parse_source2_hammer_vector
+from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source2_to_blender, \
+    watt_power_spot, watt_power_point
 from ...utilities.path_utilities import NonSourceInstall
 from ...utilities.valve_utils import fix_workshop_not_having_gameinfo_file
 
@@ -130,7 +132,7 @@ class BSP:
                 class_name = entity.get('classname', None)
                 if not class_name:
                     continue
-                hammer_id = entity.get('hammerid','SOURCE_WTF?')
+                hammer_id = entity.get('hammerid', 'SOURCE_WTF?')
                 target_name = entity.get('targetname', None)
                 parent_collection = get_or_create_collection(class_name, self.main_collection)
                 if class_name == 'env_sprite':
@@ -151,6 +153,36 @@ class BSP:
                     mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
 
                     mesh_obj.location = np.multiply(location, self.scale)
+
+                elif class_name == 'light_spot':
+                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    rotation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(entity['angles']))
+                    color_hrd = parse_source2_hammer_vector(entity['_lightHDR'])
+                    color = parse_source2_hammer_vector(entity['_light'])
+                    if color_hrd[0] > 0:
+                        color = color_hrd
+                    lumens = color[-1]
+                    color_max = max(color[:-1])
+                    lumens *= color_max / 255 * (1.0 / self.scale)
+                    color = np.divide(color[:-1], color_max)
+                    inner_cone = float(entity['_inner_cone'])
+                    cone = float(entity['_cone'])
+                    watts = watt_power_spot(lumens, color, cone)
+                    self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone,
+                                     parent_collection)
+                elif class_name == 'light':
+                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    color_hrd = parse_source2_hammer_vector(entity['_lightHDR'])
+                    color = parse_source2_hammer_vector(entity['_light'])
+                    if color_hrd[0] > 0:
+                        color = color_hrd
+                    lumens = color[-1]
+                    color_max = max(color[:-1])
+                    lumens *= color_max / 255 * (1.0 / self.scale)
+                    color = np.divide(color[:-1], color_max)
+                    watts = watt_power_point(lumens, color)
+                    self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
+                                     parent_collection)
 
     def load_bmodel(self, model_id, model_name, parent_collection=None):
         model = self.model_lump.models[model_id]
@@ -243,27 +275,21 @@ class BSP:
         else:
             self.main_collection.objects.link(placeholder)
 
-    def load_lights(self):
-        lights_lump: Optional[WorldLightLump] = self.map_file.lumps.get(LumpTypes.LUMP_WORLDLIGHTS, None)
-        if lights_lump:
-            for light in lights_lump.lights:
-                loc = np.multiply(light.origin, self.scale)
-                if light.type == EmitType.emit_point:
-                    bpy.ops.object.light_add(type='POINT', align='WORLD', location=loc)
-                elif light.type == EmitType.emit_spotlight:
-                    bpy.ops.object.light_add(type='SPOT', align='WORLD', location=loc)
-                elif light.type == EmitType.emit_skylight:
-                    bpy.ops.object.light_add(type='SUN', align='WORLD', location=loc)
-                elif light.type == EmitType.emit_skyambient:
-                    bpy.ops.object.light_add(type='AREA', radius=1, align='WORLD', location=loc)
-                else:
-                    print("unsupported light type", light.type.name)
-                    continue
-                lamp = bpy.context.object
-                lamp_data = lamp.data
-                lamp_data.energy = light.intensity.magnitude() * self.scale * 10
-                lamp_data.color = light.intensity.normalized().rgb
-                lamp.rotation_euler = (light.normal[0], light.normal[1], light.normal[2])
+    def load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, parent_collection=None):
+        lamp = bpy.data.objects.new(f'{light_type}_{name}',
+                                    bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
+        lamp.location = location
+        lamp_data = lamp.data
+        lamp_data.energy = watts
+        lamp_data.color = color
+        lamp.rotation_euler = rotation
+        if light_type == 'SPOT':
+            lamp_data.spot_size = math.radians(core_or_size)
+
+        if parent_collection is not None:
+            parent_collection.objects.link(lamp)
+        else:
+            self.main_collection.objects.link(lamp)
 
     def load_materials(self):
         mod_path = valve_utils.get_mod_path(self.filepath)

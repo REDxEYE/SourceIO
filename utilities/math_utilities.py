@@ -1,5 +1,5 @@
 import math
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy as np
 
@@ -23,7 +23,8 @@ def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
 
 def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
     # XYZ -> ZXY
-    return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]), math.radians(source2_rotation[1])]
+    return [math.radians(source2_rotation[2]), math.radians(90 + source2_rotation[0]),
+            math.radians(source2_rotation[1] + 180)]
 
 
 def parse_source2_hammer_vector(string: str) -> np.ndarray:
@@ -48,3 +49,38 @@ def parse_source2_hammer_vector(string: str) -> np.ndarray:
 #     output.z = temp.x * matrix_c2.x + temp.y * matrix_c2.y + temp.z * matrix_c2.z
 #
 #     return output
+
+
+def lumen_to_candela_by_apex_angle(flux: float, angle: float):
+    """
+    Compute the luminous intensity from the luminous flux,
+    assuming that the flux of <flux> is distributed equally around
+    a cone with apex angle <angle>.
+    Keyword parameters
+    ------------------
+    flux : value, engineer string or NumPy array
+        The luminous flux in Lux.
+    angle : value, engineer string or NumPy array
+        The apex angle of the emission cone, in degrees
+        For many LEDs, this is
+    >>> lumen_to_candela_by_apex_angle(25., 120.)
+    7.957747154594769
+    """
+    solid_angle = 2 * math.pi * (1. - math.cos((angle * math.pi / 180.) / 2.0))
+    return flux / solid_angle
+
+
+MAX_LIGHT_EFFICIENCY_EFFICACY = 683
+
+
+def srgb_to_luminance(color: Union[List, Tuple]):
+    return 0.2126729 * color[0] + 0.7151522 * color[1] + 0.072175 * color[2]
+
+
+def watt_power_point(lumen, color):
+    return lumen * ((1 / MAX_LIGHT_EFFICIENCY_EFFICACY) / srgb_to_luminance(color))
+
+
+def watt_power_spot(lumen, color, cone):
+    return lumen * (1 / (MAX_LIGHT_EFFICIENCY_EFFICACY * 2 * math.pi * (
+            1 - math.cos(math.radians(cone) / 2))) * 4 * math.pi) / srgb_to_luminance(color)
