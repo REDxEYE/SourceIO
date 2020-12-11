@@ -28,7 +28,7 @@ from ..vtf.import_vtf import import_texture
 from ..vtf.vmt import VMT
 from ...utilities import valve_utils
 from ...utilities.gameinfo import Gameinfo
-from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source2_to_blender, \
+from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point
 from ...utilities.path_utilities import NonSourceInstall
 from ...utilities.valve_utils import fix_workshop_not_having_gameinfo_file
@@ -146,17 +146,24 @@ class BSP:
                                       scale=[scale, scale, scale],
                                       parent_collection=parent_collection,
                                       custom_data=dict(entity))
-                elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple',
-                                    'func_respawnroomvisualizer']:
+                elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple']:
                     model_id = int(entity['model'][1:])
                     location = parse_source2_hammer_vector(entity['origin'])
                     mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
 
                     mesh_obj.location = np.multiply(location, self.scale)
+                elif class_name == 'prop_dynamic':
+                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
 
+                    self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location, rotation,
+                                      parent_collection=parent_collection,
+                                      custom_data={'parent_path': str(self.filepath.parent),
+                                                   'prop_path': entity['model'],
+                                                   'type': class_name})
                 elif class_name == 'light_spot':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    rotation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(entity['angles']))
+                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
                     color_hrd = parse_source2_hammer_vector(entity['_lightHDR'])
                     color = parse_source2_hammer_vector(entity['_light'])
                     if color_hrd[0] > 0:
@@ -265,8 +272,8 @@ class BSP:
         if rotation is None:
             rotation = [0.0, 0.0, 0.0]
         placeholder = bpy.data.objects.new(name, None)
-        placeholder.location = np.multiply(location, self.scale)
-        placeholder.rotation_mode = 'XYZ'
+        placeholder.location = location
+        # placeholder.rotation_mode = 'XYZ'
         placeholder.rotation_euler = rotation
         placeholder.scale = np.multiply(scale, self.scale)
         placeholder['entity_data'] = custom_data

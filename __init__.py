@@ -22,20 +22,20 @@ if not NO_BPY:
 
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
-                                    # DMXImporter_OT_operator,
+        # DMXImporter_OT_operator,
                                     VTFExport_OT_operator,
                                     VTFImport_OT_operator,
                                     VMTImport_OT_operator,
                                     export
                                     )
-    from .source2_operators import (ChangeSkin_OT_operator,
-                                    LoadPlaceholder_OT_operator,
-                                    SourceIOUtils_PT_panel,
-                                    VMATImport_OT_operator,
+    from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
                                     VMDLImport_OT_operator,
                                     VWRLDImport_OT_operator
                                     )
+    from .shared_operators import (ChangeSkin_OT_operator,
+                                   LoadPlaceholder_OT_operator,
+                                   SourceIOUtils_PT_panel, )
 
 
     # class SourceIOPreferences(bpy.types.AddonPreferences):

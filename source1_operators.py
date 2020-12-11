@@ -56,36 +56,10 @@ class MDLImport_OT_operator(bpy.types.Operator):
             else:
                 phy = None
 
-            mdl, vvd, vtx = import_model(directory / file.name, vvd, vtx, phy, self.create_flex_drivers)
+            mdl, vvd, vtx,_ = import_model(directory / file.name, vvd, vtx, phy, self.create_flex_drivers)
             if self.import_textures:
                 try:
-                    mod_path = valve_utils.get_mod_path(mdl_path)
-                    rel_model_path = mdl_path.relative_to(mod_path)
-                    mod_path = fix_workshop_not_having_gameinfo_file(mod_path)
-                    gi_path = mod_path / 'gameinfo.txt'
-                    if gi_path.exists():
-                        path_resolver = Gameinfo(gi_path)
-                    else:
-                        path_resolver = NonSourceInstall(rel_model_path)
-                    for material in mdl.materials:
-                        material_path = None
-                        for mat_path in mdl.materials_paths:
-                            material_path = path_resolver.find_material(Path(mat_path) / Path(material.name).stem, True)
-                            if material_path and material_path.exists():
-                                break
-                        if material_path:
-                            try:
-                                vmt = VMT(material_path)
-                                vmt.parse()
-                                for name, tex in vmt.textures.items():
-                                    import_texture(tex)
-                                mat = BlenderMaterial(vmt)
-                                mat.load_textures()
-                                mat.create_material(material.name, True)
-                            except Exception as m_ex:
-                                print(f'Failed to import material "{material.name}", caused by {m_ex}')
-                                import traceback
-                                traceback.print_exc()
+                    import_materials(directory / file.name, mdl)
                 except Exception as t_ex:
                     print(f'Failed to import materials, caused by {t_ex}')
                     import traceback

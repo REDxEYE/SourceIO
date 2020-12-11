@@ -23,8 +23,14 @@ def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
 
 def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
     # XYZ -> ZXY
-    return [math.radians(source2_rotation[2]), math.radians(90 + source2_rotation[0]),
-            math.radians(source2_rotation[1] + 180)]
+    return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
+            math.radians(source2_rotation[1])]
+
+
+def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
+    # XYZ -> ZXY
+    return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
+            math.radians(source2_rotation[1])]
 
 
 def parse_source2_hammer_vector(string: str) -> np.ndarray:

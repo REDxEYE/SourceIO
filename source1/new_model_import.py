@@ -18,6 +18,14 @@ from .new_vtx.structs.mesh import Mesh as VtxMesh
 import bpy
 from mathutils import Vector, Matrix, Euler
 
+from .vtf.blender_material import BlenderMaterial
+from .vtf.import_vtf import import_texture
+from .vtf.vmt import VMT
+from ..utilities import valve_utils
+from ..utilities.gameinfo import Gameinfo
+from ..utilities.path_utilities import NonSourceInstall
+from ..utilities.valve_utils import fix_workshop_not_having_gameinfo_file
+
 
 def split(array, n=3):
     return [array[i:i + n] for i in range(0, len(array), n)]
@@ -140,7 +148,10 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj
 
 
-def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path, create_drivers=False):
+def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path, create_drivers=False,
+                 parent_collection=None):
+    if parent_collection is None:
+        parent_collection = bpy.context.scene.collection
     mdl = Mdl(mdl_path)
     mdl.read()
     vvd = Vvd(vvd_path)
@@ -156,7 +167,7 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
 
     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
-                                                 bpy.context.scene.collection)
+                                                 parent_collection)
     armature = create_armature(mdl, master_collection)
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
 
@@ -247,7 +258,7 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
             phy = None
         if phy is not None:
             create_collision_mesh(phy, mdl, armature)
-    return mdl, vvd, vtx
+    return mdl, vvd, vtx, armature
 
 
 def create_flex_drivers(obj, mdl: Mdl):
@@ -314,3 +325,33 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
             # mesh_obj.matrix_parent_inverse = (armature.matrix_world @ bone.matrix).inverted()
             # mesh_obj.matrix_world = (armature.matrix_world @ bone.matrix)
             # mesh_obj.matrix_parent_inverse = Matrix()
+
+
+def import_materials(mdl_path, mdl):
+    mod_path = valve_utils.get_mod_path(mdl_path)
+    rel_model_path = mdl_path.relative_to(mod_path)
+    mod_path = fix_workshop_not_having_gameinfo_file(mod_path)
+    gi_path = mod_path / 'gameinfo.txt'
+    if gi_path.exists():
+        path_resolver = Gameinfo(gi_path)
+    else:
+        path_resolver = NonSourceInstall(rel_model_path)
+    for material in mdl.materials:
+        material_path = None
+        for mat_path in mdl.materials_paths:
+            material_path = path_resolver.find_material(Path(mat_path) / Path(material.name).stem, True)
+            if material_path and material_path.exists():
+                break
+        if material_path:
+            try:
+                vmt = VMT(material_path)
+                vmt.parse()
+                for name, tex in vmt.textures.items():
+                    import_texture(tex)
+                mat = BlenderMaterial(vmt)
+                mat.load_textures()
+                mat.create_material(material.name, True)
+            except Exception as m_ex:
+                print(f'Failed to import material "{material.name}", caused by {m_ex}')
+                import traceback
+                traceback.print_exc()
