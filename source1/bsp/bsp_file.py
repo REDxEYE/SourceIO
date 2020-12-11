@@ -10,6 +10,7 @@ from .lumps.face_lump import FaceLump, OriginalFaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
 from .lumps.node_lump import NodeLump
+from .lumps.pak_lump import PakLump
 from .lumps.plane_lump import PlaneLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
@@ -56,11 +57,12 @@ class BSPFile:
         self.parse_lump(TextureInfoLump)
         self.parse_lump(StringsLump)
         self.parse_lump(ModelLump)
-        self.parse_lump(WorldLightLump)
+        # self.parse_lump(WorldLightLump)
         # self.parse_lump(DispInfoLump)
         # self.parse_lump(DispVert)
         # self.parse_lump(NodeLump)
         self.parse_lump(GameLump)
+        self.parse_lump(PakLump)
 
     def parse_lump(self, lump_class: Type[Lump]):
         if self.lumps_info[lump_class.lump_id].size != 0:

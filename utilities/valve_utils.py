@@ -88,35 +88,6 @@ def fix_workshop_not_having_gameinfo_file(path):
     return path
 
 
-def get_mod_path(path: Path):
-    """
-
-    :rtype: Path
-    """
-    org = path
-    result_path = path
-    if 'models' in path.parts or 'materials' in path.parts or 'maps' in path.parts:
-        while len(path.parts) > 1:
-            path = path.parent
-            if path.parts[-1] == 'models' and path.parts[-2] == 'materials':
-                result_path = path.parent.parent
-                break
-            if path.parts[-1] == 'models':
-                result_path = path.parent
-                break
-            if path.parts[-1] == 'materials':
-                result_path = path.parent
-                break
-            if path.parts[-1] == 'maps':
-                result_path = path.parent
-                break
-            if len(path.parts) == 1:
-                print(org)
-                result_path = org
-                break
-    return result_path
-
-
 class Chunk:
     """
     a chunk creates a reasonably convenient way to hold and access key value pairs, as well as a way to access

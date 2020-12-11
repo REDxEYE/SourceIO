@@ -9,7 +9,7 @@ def _is_end(ch: str):
 
 
 def _is_identifier_start(ch: str):
-    return ch and (ch.isalpha() or ch == '|')
+    return ch and (ch.isalpha() or ch in '|<$')
 
 
 def _is_identifier_part(ch: str):
@@ -69,9 +69,9 @@ class KVReader:
                     self._report('String literal is not closed', lc)
                 return KVToken.STR, buf, lc
 
-            if ch.isdigit():
+            if ch.isdigit() or ch == '.':
                 buf = ch
-                while self._peek_char().isdigit():
+                while self._peek_char().isdigit() or self._peek_char() == '.':
                     buf += self._next_char()
                 return KVToken.NUM, buf, lc
 
@@ -90,12 +90,12 @@ class KVReader:
             self._report(f'Unknown character \'{ch}\' ({ord(ch):02x})', lc)
 
     def _report(self, msg: str, pos: tuple):
+        self.file.seek(0)
+        print(self.file.read().decode('ascii'))
         raise ValueError(f'{self.filename}:{pos[0]}:{pos[1]}: {msg}')
 
     def _next_char(self):
         ch = self.file.read(1)
-        if 'b' in self.file.mode:
-            ch = ch.decode('ascii')
 
         if ch == '':
             ch = '\0'
@@ -114,8 +114,6 @@ class KVReader:
     def _peek_char(self):
         pos = self.file.tell()
         ch = self.file.read(1)
-        if 'b' in self.file.mode:
-            ch = ch.decode('ascii')
         self.file.seek(pos)
         return ch
 
@@ -153,9 +151,17 @@ class KVParser(KVReader):
             return None
 
         if tok is KVToken.STR:
+            if val.startswith('['):
+                return tuple(map(float, val[1:-1].split(' ')))
+            if val.startswith('{'):
+                return tuple(map(int, val[1:-1].split(' ')))
+            if all(map(lambda x: x.isdigit(), val)):
+                return float(val) if '.' in val else int(val)
             return val
 
         if tok is KVToken.NUM:
+            if '.' in val:
+                return float(val)
             return int(val)
 
         if tok is KVToken.OPEN:

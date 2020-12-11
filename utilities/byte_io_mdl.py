@@ -23,9 +23,9 @@ class ByteIO:
         yield
         self.seek(entry)
 
-    def __init__(self, path_or_file_or_data: Union[Union[str, Path], BinaryIO, Union[bytes, bytearray]] = None,
+    def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
                  open_to_read=True):
-        if type(path_or_file_or_data) is BinaryIO:
+        if hasattr(path_or_file_or_data, 'mode'):
             file = path_or_file_or_data
             self.file = file
         elif type(path_or_file_or_data) is str or isinstance(path_or_file_or_data, Path):

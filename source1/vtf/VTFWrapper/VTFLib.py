@@ -215,6 +215,14 @@ class VTFLib:
         return self.ImageLoad(create_string_buffer(
             str(filename).encode('ascii')), header_only)
 
+    ImageLoadBuffer = vtflib_cdll.vlImageLoadLump
+    ImageLoadBuffer.argtypes = [c_void_p, c_uint32, c_bool]
+    ImageLoadBuffer.restype = c_bool
+
+    def image_load_from_buffer(self, buffer, header_only=False):
+        c_buffer = create_string_buffer(buffer)
+        return self.ImageLoadBuffer(c_buffer, len(buffer), header_only)
+
     ImageSave = vtflib_cdll.vlImageSave
     ImageSave.argtypes = [c_char_p]
     ImageSave.restype = c_bool

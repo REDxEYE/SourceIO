@@ -1,7 +1,7 @@
 import bpy
 from pathlib import Path
 
-from ..vtf.vmt import VMT
+from ..vmt.vmt import VMT
 from ..vtf.import_vtf import import_texture
 
 
@@ -12,12 +12,11 @@ class BlenderMaterial:
         self.textures = {}
 
     def load_textures(self):
-        for key, texture in self.vmt.textures.items():
-            name = Path(texture).stem
+        for key, (name, texture) in self.vmt.textures.items():
             if bpy.data.images.get(name, False):
                 self.textures[key] = bpy.data.images.get(name, False)
             else:
-                image = import_texture(texture)
+                image = import_texture(name, texture)
                 if image:
                     self.textures[key] = bpy.data.images.get(image)
 

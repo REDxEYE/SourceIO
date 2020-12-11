@@ -29,7 +29,7 @@ class GameLump(Lump):
                 reader.seek(relative_offset)
                 game_lump_reader = ByteIO(reader.read_bytes(lump.size))
             if lump.id == 'sprp':
-                game_lump = StaticPropLump()
+                game_lump = StaticPropLump(lump)
                 game_lump.parse(game_lump_reader)
                 self.game_lumps[lump.id] = game_lump
 

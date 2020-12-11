@@ -1,3 +1,4 @@
+from itertools import chain
 from pathlib import Path
 from typing import List
 
@@ -54,25 +55,20 @@ class Gameinfo:
         self.modname: str = self.modname_dir.stem
 
     def get_search_paths(self):
-        gi = '|gameinfo_path|'
-        sp = '|all_source_engine_paths|'
+        def convert_path(path_to_convert):
+            if '|all_source_engine_paths|' in path_to_convert.lower():
+                return self.project_dir / path_to_convert.lower().replace('|all_source_engine_paths|', '')
+            elif '|gameinfo_path|' in path_to_convert.lower():
+                return self.modname_dir / path_to_convert.lower().replace('|gameinfo_path|', '')
+            return self.project_dir / path_to_convert
+
         all_search_paths = []
-
-        def process_path(name, s_path):
-            if gi in s_path:
-                s_path = s_path.replace(gi, '')
-            elif sp in s_path:
-                s_path = s_path.replace(sp, '')
-            return self.project_dir / s_path
-
-        for mod_name, search_path in self.data.FileSystem.SearchPaths.items():
-
-            if isinstance(search_path, list):
-                for p in search_path:
-                    all_search_paths.append(process_path(mod_name, p))
+        for paths in self.data.FileSystem.SearchPaths.values():
+            if isinstance(paths, list):
+                for path in paths:
+                    all_search_paths.append(convert_path(path))
             else:
-                all_search_paths.append(process_path(mod_name, search_path))
-
+                all_search_paths.append(convert_path(paths))
         return all_search_paths
 
     def get_search_paths_recursive(self):
@@ -95,44 +91,22 @@ class Gameinfo:
         return self.path_cache
 
     def find_file(self, filepath: str, additional_dir=None,
-                  extention=None, use_recursive=False):
+                  extension=None):
         filepath = Path(str(filepath).strip("\\/"))
 
-        if use_recursive:
-            if self.path_cache:
-                paths = self.path_cache
-            else:
-                print("Collecting all possible search paths!")
-                self.path_cache.clear()
-                self.vpk_cache.clear()
-                paths = self.get_search_paths_recursive()
-        else:
-            paths = self.get_search_paths()
         new_filepath = filepath
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
-        if extention:
-            new_filepath = new_filepath.with_suffix(extention)
-
-        for vpk in self.vpk_cache:
-            if new_filepath in vpk.path_cache:
-                entry = vpk.find_file(full_path=new_filepath)
-                if entry:
-                    return vpk.read_file(entry)
-
-        for mod_path in paths:
-            if mod_path.stem == '*':
-                mod_path = mod_path.parent
-            search_path = mod_path / new_filepath
-            if search_path.exists():
-                return search_path
+        if extension:
+            new_filepath = new_filepath.with_suffix(extension)
+        new_filepath = self.modname_dir / new_filepath
+        if new_filepath.exists():
+            return new_filepath.open('rb')
         else:
             return None
 
-    def find_texture(self, filepath, use_recursive=False):
-        return self.find_file(filepath, 'materials',
-                              extention='.vtf', use_recursive=use_recursive)
+    def find_texture(self, filepath):
+        return self.find_file(filepath, 'materials', extension='.vtf')
 
-    def find_material(self, filepath, use_recursive=False):
-        return self.find_file(filepath, 'materials',
-                              extention='.vmt', use_recursive=use_recursive)
+    def find_material(self, filepath):
+        return self.find_file(filepath, 'materials', extension='.vmt')

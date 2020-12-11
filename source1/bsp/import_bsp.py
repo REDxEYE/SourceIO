@@ -2,35 +2,37 @@ import math
 import random
 import re
 from pathlib import Path
-from typing import Optional, List, Tuple, Any, Dict
+from typing import Optional, List, Tuple
 
 import numpy as np
+
 from .bsp_file import BSPFile
 from .datatypes.face import Face
+from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 from .datatypes.model import Model
 from .lump import LumpTypes
-from .datatypes.world_light import EmitType, Color32
 
 import bpy
 
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
 from .lumps.face_lump import FaceLump
+from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
-from .lumps.world_light_lump import WorldLightLump
+from ..content_manager import ContentManager
 from ..new_model_import import get_or_create_collection
-from ..vtf.blender_material import BlenderMaterial
+from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
-from ..vtf.vmt import VMT
+from ..vmt.vmt import VMT
 from ...utilities import valve_utils
 from ...utilities.gameinfo import Gameinfo
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point
-from ...utilities.path_utilities import NonSourceInstall
+from ...utilities.path_utilities import NonSourceInstall, get_mod_path
 from ...utilities.valve_utils import fix_workshop_not_having_gameinfo_file
 
 material_name_fix = re.compile(r"_-?[\d]+_-?[\d]+_-?[\d]+")
@@ -121,7 +123,6 @@ class BSP:
         return strings_lump.strings[string_id] or "NO_NAME"
 
     def load_map_mesh(self):
-
         if self.vertex_lump and self.face_lump and self.model_lump:
             self.load_bmodel(0, 'world_geometry')
 
@@ -132,7 +133,7 @@ class BSP:
                 class_name = entity.get('classname', None)
                 if not class_name:
                     continue
-                hammer_id = entity.get('hammerid', 'SOURCE_WTF?')
+                hammer_id = str(entity.get('hammerid', 'SOURCE_WTF?'))
                 target_name = entity.get('targetname', None)
                 parent_collection = get_or_create_collection(class_name, self.main_collection)
                 if class_name == 'env_sprite':
@@ -190,6 +191,23 @@ class BSP:
                     watts = watt_power_point(lumens, color)
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                                      parent_collection)
+
+    def load_static_props(self):
+        gamelump: Optional[GameLump] = self.map_file.lumps.get(LumpTypes.LUMP_GAME_LUMP, None)
+        if gamelump:
+            static_prop_lump: StaticPropLump = gamelump.game_lumps.get('sprp', None)
+            if static_prop_lump:
+                parent_collection = get_or_create_collection('static_props', self.main_collection)
+                for n, prop in enumerate(static_prop_lump.static_props):
+                    model_name = static_prop_lump.model_names[prop.prop_type]
+                    location = np.multiply(prop.origin, self.scale)
+                    rotation = convert_rotation_source1_to_blender(prop.rotation)
+                    self.create_empty(f'static_prop_{n}', location, rotation, None, parent_collection,
+                                      custom_data={'parent_path': str(self.filepath.parent),
+                                                   'prop_path': model_name,
+                                                   'type': 'static_props'})
+
+                    pass
 
     def load_bmodel(self, model_id, model_name, parent_collection=None):
         model = self.model_lump.models[model_id]
@@ -299,40 +317,20 @@ class BSP:
             self.main_collection.objects.link(lamp)
 
     def load_materials(self):
-        mod_path = valve_utils.get_mod_path(self.filepath)
-        rel_model_path = self.filepath.relative_to(mod_path)
-        print('Mod path', mod_path)
-        print('Relative map path', rel_model_path)
-        mod_path = fix_workshop_not_having_gameinfo_file(mod_path)
-        gi_path = mod_path / 'gameinfo.txt'
-        if gi_path.exists():
-            path_resolver = Gameinfo(gi_path)
-        else:
-            path_resolver = NonSourceInstall(rel_model_path)
+        content_manager = ContentManager()
 
         texture_data_lump: Optional[TextureDataLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, None)
         for texture_data in texture_data_lump.texture_data:
-            material_name = fix_material_name(self.get_string(texture_data.name_id))
+            material_name = self.get_string(texture_data.name_id)
             print(f"Loading {material_name} material")
-            try:
-                material_path = path_resolver.find_material(material_name, True)
-
-                if material_path and material_path.exists():
-                    try:
-                        vmt = VMT(material_path)
-                        vmt.parse()
-                        for name, tex in vmt.textures.items():
-                            import_texture(tex)
-                        mat = BlenderMaterial(vmt)
-                        mat.load_textures()
-                        mat.create_material(material_name, True)
-                    except Exception as m_ex:
-                        print(f'Failed to import material "{material_name}", caused by {m_ex}')
-                        import traceback
-                        traceback.print_exc()
-                else:
-                    print(f'Failed to find {material_name} material')
-            except Exception as t_ex:
-                print(f'Failed to import materials, caused by {t_ex}')
-                import traceback
-                traceback.print_exc()
+            material_path = content_manager.find_material(material_name)
+            if material_path and material_path.exists():
+                vmt = VMT(material_path)
+                vmt.parse()
+                for name, tex in vmt.textures.items():
+                    import_texture(name, tex)
+                mat = BlenderMaterial(vmt)
+                mat.load_textures()
+                mat.create_material(material_name, True)
+            else:
+                print(f'Failed to find {material_name} material')

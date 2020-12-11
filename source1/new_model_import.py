@@ -3,7 +3,10 @@ import traceback
 import typing
 from pathlib import Path
 import numpy as np
+from typing import BinaryIO
 
+from .content_manager import ContentManager
+from ..utilities.path_utilities import get_mod_path
 from .new_mdl.flex_expressions import *
 from .new_mdl.structs.bone import Bone
 from .new_mdl.vertex_animation_cache import VertexAnimationCache
@@ -18,9 +21,9 @@ from .new_vtx.structs.mesh import Mesh as VtxMesh
 import bpy
 from mathutils import Vector, Matrix, Euler
 
-from .vtf.blender_material import BlenderMaterial
+from SourceIO.source1.vmt.blender_material import BlenderMaterial
 from .vtf.import_vtf import import_texture
-from .vtf.vmt import VMT
+from SourceIO.source1.vmt.vmt import VMT
 from ..utilities import valve_utils
 from ..utilities.gameinfo import Gameinfo
 from ..utilities.path_utilities import NonSourceInstall
@@ -148,8 +151,8 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj
 
 
-def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path, create_drivers=False,
-                 parent_collection=None):
+def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy_path: BinaryIO, create_drivers=False,
+                 parent_collection=None, disable_collection_sort=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
     mdl = Mdl(mdl_path)
@@ -170,8 +173,10 @@ def import_model(mdl_path: Path, vvd_path: Path, vtx_path: Path, phy_path: Path,
                                                  parent_collection)
     armature = create_armature(mdl, master_collection)
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
-
-        body_part_collection = get_or_create_collection(body_part.name, master_collection)
+        if disable_collection_sort:
+            body_part_collection = master_collection
+        else:
+            body_part_collection = get_or_create_collection(body_part.name, master_collection)
 
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
 
@@ -327,31 +332,19 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
             # mesh_obj.matrix_parent_inverse = Matrix()
 
 
-def import_materials(mdl_path, mdl):
-    mod_path = valve_utils.get_mod_path(mdl_path)
-    rel_model_path = mdl_path.relative_to(mod_path)
-    mod_path = fix_workshop_not_having_gameinfo_file(mod_path)
-    gi_path = mod_path / 'gameinfo.txt'
-    if gi_path.exists():
-        path_resolver = Gameinfo(gi_path)
-    else:
-        path_resolver = NonSourceInstall(rel_model_path)
+def import_materials(mdl):
+    content_manager = ContentManager()
     for material in mdl.materials:
         material_path = None
         for mat_path in mdl.materials_paths:
-            material_path = path_resolver.find_material(Path(mat_path) / Path(material.name).stem, True)
-            if material_path and material_path.exists():
+            material_path = content_manager.find_material(Path(mat_path) / Path(material.name).stem)
+            if material_path:
                 break
         if material_path:
-            try:
-                vmt = VMT(material_path)
-                vmt.parse()
-                for name, tex in vmt.textures.items():
-                    import_texture(tex)
-                mat = BlenderMaterial(vmt)
-                mat.load_textures()
-                mat.create_material(material.name, True)
-            except Exception as m_ex:
-                print(f'Failed to import material "{material.name}", caused by {m_ex}')
-                import traceback
-                traceback.print_exc()
+            vmt = VMT(material_path)
+            vmt.parse()
+            for name, tex in vmt.textures.items():
+                import_texture(*tex)
+            mat = BlenderMaterial(vmt)
+            mat.load_textures()
+            mat.create_material(material.name, True)

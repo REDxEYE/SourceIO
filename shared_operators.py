@@ -55,7 +55,9 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                         armature.rotation_mode = "XYZ"
                         armature.rotation_euler = obj.rotation_euler
                         armature.scale = obj.scale
-                        import_materials(model_path, mdl)
+                        import_materials(mdl)
+
+                        bpy.data.objects.remove(obj)
         return {'FINISHED'}
 
 

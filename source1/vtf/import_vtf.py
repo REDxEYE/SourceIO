@@ -9,16 +9,16 @@ from ..vtf.VTFWrapper.VTFLibEnums import ImageFlag
 vtf_lib = VTFLib.VTFLib()
 
 
-def import_texture(path, update=False):
-    path = Path(path).absolute()
-    name = path.stem
+def import_texture(name, file_object, update=False):
     if bpy.data.images.get(name, None) and not update:
         return name
     print('Loading {}'.format(name))
-    vtf_lib.image_load(str(path))
+    buffer = file_object.read()
+    vtf_lib.image_load_from_buffer(buffer)
     if not vtf_lib.image_is_loaded():
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
     rgba_data = vtf_lib.convert_to_rgba8888()
+
     rgba_data = vtf_lib.flip_image_external(rgba_data, vtf_lib.width(), vtf_lib.height())
     pixels = np.array(rgba_data.contents, np.uint8)
     pixels = pixels.astype(np.float16, copy=False)

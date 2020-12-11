@@ -102,3 +102,27 @@ class NonSourceInstall:
     def find_material(self, filepath, use_recursive=False):
         return self.find_file(filepath, 'materials',
                               extention='.vmt', use_recursive=use_recursive)
+
+
+def get_mod_path(path: Path) -> Path:
+    _path = path
+    result_path = path
+    if 'models' in path.parts or 'materials' in path.parts or 'maps' in path.parts:
+        while len(path.parts) > 1:
+            path = path.parent
+            if path.parts[-1] == 'models' and path.parts[-2] == 'materials':
+                result_path = path.parent.parent
+                break
+            if path.parts[-1] == 'models':
+                result_path = path.parent
+                break
+            if path.parts[-1] == 'materials':
+                result_path = path.parent
+                break
+            if path.parts[-1] == 'maps':
+                result_path = path.parent
+                break
+            if len(path.parts) == 1:
+                result_path = _path
+                break
+    return result_path

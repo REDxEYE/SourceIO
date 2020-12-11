@@ -2,19 +2,17 @@ import os
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
+from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 
 # from .source1.mdl import mdl2model, qc_generator
-from .source1.vtf.blender_material import BlenderMaterial
+from SourceIO.source1.vmt.blender_material import BlenderMaterial
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
 from .source1.bsp.import_bsp import BSP
-from .utilities import valve_utils
-from .utilities.valve_utils import fix_workshop_not_having_gameinfo_file
-from .utilities.gameinfo import Gameinfo
-from .source1.vtf.vmt import VMT
-from .utilities.path_utilities import backwalk_file_resolver, NonSourceInstall
+from .source1.vmt.vmt import VMT
+from .utilities.path_utilities import backwalk_file_resolver
+from .source1.content_manager import ContentManager
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -43,23 +41,29 @@ class MDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
-        from .source1.new_model_import import import_model
+        content_manager = ContentManager()
+        content_manager.scan_for_content(directory)
+        from .source1.new_model_import import import_model, import_materials
         from .source1.new_qc.qc import generate_qc
         from . import bl_info
         for file in self.files:
             mdl_path = directory / file.name
-            vvd = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.vvd'))
-            vtx = backwalk_file_resolver(mdl_path.parent, Path(mdl_path.stem + '.dx90.vtx'))
+            vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
+            vtx_file = backwalk_file_resolver(directory, mdl_path.stem + '.dx90.vtx')
 
             if self.load_phy:
-                phy = backwalk_file_resolver(Path(mdl_path).parent, mdl_path.with_suffix('.phy'))
+                phy = content_manager.find_file(mdl_path / mdl_path.stem, '.phy').open('rb')
             else:
                 phy = None
 
-            mdl, vvd, vtx,_ = import_model(directory / file.name, vvd, vtx, phy, self.create_flex_drivers)
+            mdl, vvd, vtx, _ = import_model(mdl_path.open('rb'),
+                                            vvd_file.open('rb'),
+                                            vtx_file.open('rb'),
+                                            phy,
+                                            self.create_flex_drivers)
             if self.import_textures:
                 try:
-                    import_materials(directory / file.name, mdl)
+                    import_materials(mdl)
                 except Exception as t_ex:
                     print(f'Failed to import materials, caused by {t_ex}')
                     import traceback
@@ -92,6 +96,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         bsp_map = BSP(self.filepath)
         bsp_map.load_map_mesh()
         bsp_map.load_entities()
+        bsp_map.load_static_props()
         if self.import_textures:
             bsp_map.load_materials()
 
@@ -156,7 +161,7 @@ class VTFImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            import_texture(str(directory / file.name), True)
+            import_texture(file.name, (directory / file.name).open(), True)
         return {'FINISHED'}
 
     def invoke(self, context, event):
