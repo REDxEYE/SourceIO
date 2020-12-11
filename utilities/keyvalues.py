@@ -94,6 +94,8 @@ class KVReader:
 
     def _next_char(self):
         ch = self.file.read(1)
+        if 'b' in self.file.mode:
+            ch = ch.decode('ascii')
 
         if ch == '':
             ch = '\0'
@@ -112,6 +114,8 @@ class KVReader:
     def _peek_char(self):
         pos = self.file.tell()
         ch = self.file.read(1)
+        if 'b' in self.file.mode:
+            ch = ch.decode('ascii')
         self.file.seek(pos)
         return ch
 
@@ -258,8 +262,8 @@ class KVWriter:
         if append_newline:
             self.stream.write('\n')
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     data = KVParser('<input>', open('gameinfo.txt'))
     data = data.parse()
 
