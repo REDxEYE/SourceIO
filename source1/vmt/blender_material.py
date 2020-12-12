@@ -21,12 +21,11 @@ class BlenderMaterial:
                     self.textures[key] = bpy.data.images.get(image)
 
     def create_material(self, material_name=None, override=True):
-        mat_name = material_name if material_name is not None else self.vmt.filepath.stem
-        if bpy.data.materials.get(mat_name) and not override:
+        if bpy.data.materials.get(material_name) and not override:
             return 'EXISTS'
         else:
-            bpy.data.materials.new(mat_name)
-        mat = bpy.data.materials.get(mat_name)
+            bpy.data.materials.new(material_name)
+        mat = bpy.data.materials.get(material_name)
         mat.blend_method = 'HASHED'
         mat.shadow_method = 'HASHED'
 
