@@ -37,26 +37,6 @@ def parse_source2_hammer_vector(string: str) -> np.ndarray:
     return np.array([float(x) for x in string.split(" ")])
 
 
-# def vector_i_transform(input: 'SourceVector',
-#                        matrix_c0: 'SourceVector',
-#                        matrix_c1: 'SourceVector',
-#                        matrix_c2: 'SourceVector',
-#                        matrix_c3: 'SourceVector'):
-#     from SourceIO.source1.data_structures.source_shared import SourceVector
-#     temp = SourceVector()
-#     output = SourceVector()
-#
-#     temp.x = input.x - matrix_c3.x
-#     temp.y = input.y - matrix_c3.y
-#     temp.z = input.z - matrix_c3.z
-#
-#     output.x = temp.x * matrix_c0.x + temp.y * matrix_c0.y + temp.z * matrix_c0.z
-#     output.y = temp.x * matrix_c1.x + temp.y * matrix_c1.y + temp.z * matrix_c1.z
-#     output.z = temp.x * matrix_c2.x + temp.y * matrix_c2.y + temp.z * matrix_c2.z
-#
-#     return output
-
-
 def lumen_to_candela_by_apex_angle(flux: float, angle: float):
     """
     Compute the luminous intensity from the luminous flux,

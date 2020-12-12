@@ -8,7 +8,7 @@ try:
     from ..utils.PySourceIOUtils import lz4_decompress as uncompress
 except ImportError:
     print("PySourceIOTextureUtils import error")
-    from SourceIO.source2.lz4 import uncompress as uncompress_tmp
+    from ..lz4 import uncompress as uncompress_tmp
 
 
     def uncompress(a, _b, _c):

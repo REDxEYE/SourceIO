@@ -21,13 +21,10 @@ from .new_vtx.structs.mesh import Mesh as VtxMesh
 import bpy
 from mathutils import Vector, Matrix, Euler
 
-from SourceIO.source1.vmt.blender_material import BlenderMaterial
+from .vmt.blender_material import BlenderMaterial
 from .vtf.import_vtf import import_texture
-from SourceIO.source1.vmt.vmt import VMT
-from ..utilities import valve_utils
-from ..utilities.gameinfo import Gameinfo
-from ..utilities.path_utilities import NonSourceInstall
-from ..utilities.valve_utils import fix_workshop_not_having_gameinfo_file
+from .vmt.vmt import VMT
+
 
 
 def split(array, n=3):

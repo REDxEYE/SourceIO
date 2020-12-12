@@ -5,7 +5,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 
 # from .source1.mdl import mdl2model, qc_generator
-from SourceIO.source1.vmt.blender_material import BlenderMaterial
+from .source1.vmt.blender_material import BlenderMaterial
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
