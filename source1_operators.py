@@ -152,10 +152,6 @@ class VTFImport_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype='FILE_PATH', )
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-
-    load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
-    only_alpha: BoolProperty(default=False, name='Only load alpha')
-
     filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
 
     def execute(self, context):
@@ -184,10 +180,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
         subtype='FILE_PATH',
     )
     files: CollectionProperty(type=bpy.types.PropertyGroup)
-    load_alpha: BoolProperty(default=True, name='Load alpha into separate image')
-
     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
-    game: StringProperty(name="PATH TO GAME", subtype='FILE_PATH', default="")
     override: BoolProperty(default=False, name='Override existing?')
 
     def execute(self, context):
@@ -196,7 +189,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            vmt = VMT(str(directory / file.name), self.game)
+            vmt = VMT(str(directory / file.name))
             mat = BlenderMaterial(vmt)
             mat.load_textures()
             if mat.create_material(None, self.override) == 'EXISTS' and not self.override:
