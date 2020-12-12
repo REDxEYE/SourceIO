@@ -15,8 +15,17 @@ class VMT:
 
     def parse(self):
         content_manager = ContentManager()
+        if self.shader.lower() == 'patch':
+            original_material = content_manager.find_file(self.material_data['include'])
+            if original_material:
+                kv_parser = KVParser('VMT', StringIO(original_material.read(-1).decode()))
+                self.shader, self.material_data = kv_parser.parse()
+            else:
+                print('Failed to find original material')
+                return
         for key, value in self.material_data.items():
             if isinstance(value, str):
                 texture = content_manager.find_texture(value)
                 if texture:
+                    print(key, value)
                     self.textures[key] = Path(value).stem, texture

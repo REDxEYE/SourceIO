@@ -93,10 +93,13 @@ class BSPImport_OT_operator(bpy.types.Operator):
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
     def execute(self, context):
+        content_manager = ContentManager()
+        content_manager.scan_for_content(self.filepath)
         bsp_map = BSP(self.filepath)
         bsp_map.load_map_mesh()
         bsp_map.load_entities()
         bsp_map.load_static_props()
+        # bsp_map.load_disp()
         if self.import_textures:
             bsp_map.load_materials()
 

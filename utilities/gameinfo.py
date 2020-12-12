@@ -8,29 +8,6 @@ from collections import OrderedDict
 from ..source_shared.vpk.vpk_file import VPKFile
 
 
-class DictX(OrderedDict):
-    def __getattr__(self, key):
-        try:
-            value = self[key]
-            if isinstance(value, dict):
-                return DictX(value)
-            return value
-        except KeyError as k:
-            raise AttributeError(k)
-
-    def __setattr__(self, key, value):
-        self[key] = value
-
-    def __delattr__(self, key):
-        try:
-            del self[key]
-        except KeyError as k:
-            raise AttributeError(k)
-
-    def __repr__(self):
-        return '<DictX ' + dict.__repr__(self) + '>'
-
-
 class Gameinfo:
     path_cache: List[Path] = []
     vpk_cache: List[VPKFile] = []
@@ -48,8 +25,7 @@ class Gameinfo:
         with open(path) as f:
             kv = KVParser('GAMEINFO', f)
             root_key, self.data = kv.parse()
-            assert root_key == 'GameInfo', 'Not a gameinfo file'
-            self.data = DictX(self.data)
+            assert root_key == 'gameinfo', 'Not a gameinfo file'
         self.modname_dir: Path = path.parent
         self.project_dir: Path = path.parent.parent
         self.modname: str = self.modname_dir.stem
@@ -63,7 +39,7 @@ class Gameinfo:
             return self.project_dir / path_to_convert
 
         all_search_paths = []
-        for paths in self.data.FileSystem.SearchPaths.values():
+        for paths in self.data['filesystem']['searchpaths'].values():
             if isinstance(paths, list):
                 for path in paths:
                     all_search_paths.append(convert_path(path))

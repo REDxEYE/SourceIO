@@ -59,7 +59,7 @@ class BSPFile:
         self.parse_lump(ModelLump)
         # self.parse_lump(WorldLightLump)
         # self.parse_lump(DispInfoLump)
-        # self.parse_lump(DispVert)
+        self.parse_lump(DispVert)
         # self.parse_lump(NodeLump)
         self.parse_lump(GameLump)
         self.parse_lump(PakLump)

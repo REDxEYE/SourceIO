@@ -15,6 +15,9 @@ def _is_identifier_start(ch: str):
 def _is_identifier_part(ch: str):
     return ch and (ch.isalnum() or '|/_.*'.find(ch) >= 0)
 
+def _to_number(val: str):
+    return float(val) if '.' in val else int(val)
+
 
 class KVToken(Enum):
     STR = "string literal"
@@ -91,7 +94,6 @@ class KVReader:
 
     def _report(self, msg: str, pos: tuple):
         self.file.seek(0)
-        print(self.file.read().decode('ascii'))
         raise ValueError(f'{self.filename}:{pos[0]}:{pos[1]}: {msg}')
 
     def _next_char(self):
@@ -133,7 +135,7 @@ class KVParser(KVReader):
         return pairs if len(pairs) > 1 else pairs[0] if pairs else None
 
     def parse_pair(self):
-        key = self._match(KVToken.STR)[1]
+        key = self._match(KVToken.STR)[1].lower()
 
         if self._match(KVToken.PLUS, required=False, consume=False):
             key = [key]
@@ -152,17 +154,21 @@ class KVParser(KVReader):
 
         if tok is KVToken.STR:
             if val.startswith('['):
-                return tuple(map(float, val[1:-1].split(' ')))
+                return tuple(map(float, val[1:-1].strip().split(' ')))
             if val.startswith('{'):
-                return tuple(map(int, val[1:-1].split(' ')))
+                return tuple(map(int, val[1:-1].strip().split(' ')))
             if all(map(lambda x: x.isdigit(), val)):
-                return float(val) if '.' in val else int(val)
+                return _to_number(val)
             return val
 
         if tok is KVToken.NUM:
-            if '.' in val:
-                return float(val)
-            return int(val)
+            val1 = _to_number(val)
+            val2 = self._match(KVToken.NUM, required=False)
+            if val2 is not None:
+                val2 = _to_number(val2[1])
+                val3 = _to_number(self._match(KVToken.NUM)[1])
+                return val1, val2, val3
+            return val2
 
         if tok is KVToken.OPEN:
             pairs = OrderedDict()

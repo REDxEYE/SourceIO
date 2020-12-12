@@ -51,10 +51,11 @@ class StaticProp:
         if version >= 7:
             self.diffuse_modulation = reader.read_fmt('4B')
         if version in [9, 10]:
-            self.disable_x360 = reader.read_uint8()
+            self.disable_x360 = reader.read_uint32()
         if version >= 10:
             self.flags_ex = reader.read_uint32()
         if version >= 11:
+            reader.skip(4)
             self.uniform_scale = reader.read_float()
 
 

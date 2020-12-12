@@ -24,9 +24,9 @@ class DispVert(Lump):
     lump_id = LumpTypes.LUMP_DISP_VERTS
     dtype = np.dtype(
         [
-            ('position', np.float, (3,)),
-            ('dist', np.float, (1,)),
-            ('alpha', np.float, (1,)),
+            ('position', np.float32, (3,)),
+            ('dist', np.float32, (1,)),
+            ('alpha', np.float32, (1,)),
 
         ]
     )

@@ -1,6 +1,7 @@
 import math
 import random
 import re
+from io import BytesIO
 from pathlib import Path
 from typing import Optional, List, Tuple
 
@@ -14,11 +15,13 @@ from .lump import LumpTypes
 
 import bpy
 
+from .lumps.displacement_lump import DispVert
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
 from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
+from .lumps.pak_lump import PakLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
@@ -28,28 +31,12 @@ from ..new_model_import import get_or_create_collection
 from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..vmt.vmt import VMT
-from ...utilities import valve_utils
-from ...utilities.gameinfo import Gameinfo
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point
-from ...utilities.path_utilities import NonSourceInstall, get_mod_path
-from ...utilities.valve_utils import fix_workshop_not_having_gameinfo_file
-
-material_name_fix = re.compile(r"_-?[\d]+_-?[\d]+_-?[\d]+")
-
-
-def fix_material_name(material_name):
-    if material_name:
-        if material_name_fix.search(material_name):
-            material_name = material_name_fix.sub("", material_name)
-            material_name = str(Path(material_name).with_suffix(''))
-    return material_name
 
 
 def get_material(mat_name, model_ob):
-    if mat_name:
-        mat_name = fix_material_name(mat_name)
-    else:
+    if not mat_name:
         mat_name = "Material"
     mat_ind = 0
     md = model_ob.data
@@ -147,13 +134,14 @@ class BSP:
                                       scale=[scale, scale, scale],
                                       parent_collection=parent_collection,
                                       custom_data=dict(entity))
-                elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple']:
+                elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple', 'func_button',
+                                    'func_tracktrain','func_door_rotating']:
                     model_id = int(entity['model'][1:])
                     location = parse_source2_hammer_vector(entity['origin'])
                     mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
 
                     mesh_obj.location = np.multiply(location, self.scale)
-                elif class_name == 'prop_dynamic':
+                elif class_name in ['prop_dynamic', 'prop_physics_override', 'prop_physics']:
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
 
@@ -165,7 +153,7 @@ class BSP:
                 elif class_name == 'light_spot':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                    color_hrd = parse_source2_hammer_vector(entity['_lightHDR'])
+                    color_hrd = parse_source2_hammer_vector(entity['_lighthdr'])
                     color = parse_source2_hammer_vector(entity['_light'])
                     if color_hrd[0] > 0:
                         color = color_hrd
@@ -180,7 +168,7 @@ class BSP:
                                      parent_collection)
                 elif class_name == 'light':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    color_hrd = parse_source2_hammer_vector(entity['_lightHDR'])
+                    color_hrd = parse_source2_hammer_vector(entity['_lighthdr'])
                     color = parse_source2_hammer_vector(entity['_light'])
                     if color_hrd[0] > 0:
                         color = color_hrd
@@ -230,6 +218,8 @@ class BSP:
         faces = []
         material_indices = []
         vertices = []
+        vertices_append = vertices.append
+        vertices_index = vertices.index
         vertex_count = self.gather_vertex_ids(model,
                                               self.face_lump.faces,
                                               self.surf_edge_lump.surf_edges,
@@ -237,8 +227,9 @@ class BSP:
 
         uvs_per_face = []
         for map_face in self.face_lump.faces[model.first_face:model.first_face + model.face_count]:
-            uvs = np.zeros((vertex_count, 2), dtype=np.float)
+            uvs = np.zeros((vertex_count, 2), dtype=np.float32)
             face = []
+            face_append = face.append
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
 
@@ -251,12 +242,12 @@ class BSP:
 
                 vert = tuple(self.scaled_vertices[vertex_id])
                 if vert in vertices:
-                    new_vert_index = vertices.index(vert)
-                    face.append(vertices.index(vert))
+                    new_vert_index = vertices_index(vert)
+                    face_append(vertices.index(vert))
                 else:
                     new_vert_index = len(vertices)
-                    face.append(new_vert_index)
-                    vertices.append(vert)
+                    face_append(new_vert_index)
+                    vertices_append(vert)
 
                 tv1, tv2 = texture_info.texture_vectors
                 uco = np.array(tv1[:3])
@@ -292,6 +283,8 @@ class BSP:
         placeholder = bpy.data.objects.new(name, None)
         placeholder.location = location
         # placeholder.rotation_mode = 'XYZ'
+        placeholder.empty_display_size = 2
+
         placeholder.rotation_euler = rotation
         placeholder.scale = np.multiply(scale, self.scale)
         placeholder['entity_data'] = custom_data
@@ -320,17 +313,32 @@ class BSP:
         content_manager = ContentManager()
 
         texture_data_lump: Optional[TextureDataLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, None)
+        pak_lump: Optional[PakLump] = self.map_file.lumps.get(LumpTypes.LUMP_PAK, None)
+        if pak_lump:
+            content_manager.sub_managers[self.filepath.stem] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
             print(f"Loading {material_name} material")
-            material_path = content_manager.find_material(material_name)
-            if material_path and material_path.exists():
-                vmt = VMT(material_path)
+            material_file = content_manager.find_material(material_name)
+
+            if material_file:
+                vmt = VMT(material_file)
                 vmt.parse()
-                for name, tex in vmt.textures.items():
+                for _, (name, tex) in vmt.textures.items():
                     import_texture(name, tex)
                 mat = BlenderMaterial(vmt)
                 mat.load_textures()
                 mat.create_material(material_name, True)
             else:
                 print(f'Failed to find {material_name} material')
+
+    def load_disp(self):
+        disp_verts_lump: Optional[DispVert] = self.map_file.lumps.get(LumpTypes.LUMP_DISP_VERTS, None)
+        if disp_verts_lump:
+            mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_disp",
+                                            bpy.data.meshes.new(f"{self.filepath.stem}_disp_MESH"))
+            mesh_data = mesh_obj.data
+
+            mesh_data.from_pydata(disp_verts_lump.vertices * self.scale, [], [])
+
+            self.main_collection.objects.link(mesh_obj)

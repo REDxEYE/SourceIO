@@ -50,7 +50,7 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                     if model_path:
                         vvd = backwalk_file_resolver(model_path.parent, model_path.with_suffix('.vvd'))
                         vtx = backwalk_file_resolver(model_path.parent, Path(model_path.stem + '.dx90.vtx'))
-                        mdl, vvd, vtx, armature = import_model(model_path, vvd, vtx, None, False, collection)
+                        mdl, vvd, vtx, armature = import_model(model_path, vvd, vtx, None, False, collection, True)
                         armature.location = obj.location
                         armature.rotation_mode = "XYZ"
                         armature.rotation_euler = obj.rotation_euler

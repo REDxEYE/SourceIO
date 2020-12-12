@@ -47,14 +47,15 @@ class ContentManager(metaclass=SingletonMeta):
         return False, path
 
     def find_file(self, filepath: str, additional_dir=None, extension=None):
-        new_filepath = filepath
+        new_filepath = Path(filepath)
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
             new_filepath = new_filepath.with_suffix(extension)
         print(f'Requesting {new_filepath} file')
         for mod, submanager in self.sub_managers.items():
-            file = submanager.find_file(filepath, additional_dir, extension)
+            print(f'Searching in {mod}')
+            file = submanager.find_file(new_filepath)
             if file is not None:
                 print(f'Found in {mod}!')
                 return file
