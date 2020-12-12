@@ -189,7 +189,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            vmt = VMT(str(directory / file.name))
+            vmt = VMT((directory / file.name).open('r'))
             mat = BlenderMaterial(vmt)
             mat.load_textures()
             if mat.create_material(None, self.override) == 'EXISTS' and not self.override:
