@@ -13,8 +13,7 @@ def import_texture(name, file_object, update=False):
     if bpy.data.images.get(name, None) and not update:
         return name
     print('Loading {}'.format(name))
-    buffer = file_object.read()
-    vtf_lib.image_load_from_buffer(buffer)
+    vtf_lib.image_load_from_buffer(file_object.read())
     if not vtf_lib.image_is_loaded():
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
     rgba_data = vtf_lib.convert_to_rgba8888()
@@ -31,7 +30,10 @@ def import_texture(name, file_object, update=False):
         image.file_format = 'TARGA'
         image.source = 'GENERATED'
         pixels: np.ndarray = np.divide(pixels, 255)
-        image.pixels = pixels
+        if bpy.app.version > (2, 83, 0):
+            image.pixels.foreach_set(pixels.tolist())
+        else:
+            image.pixels[:] = pixels.tolist()
         image.pack()
     except Exception as ex:
         print('Caught exception "{}" '.format(ex))
