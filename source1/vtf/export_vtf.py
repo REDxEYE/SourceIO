@@ -6,10 +6,9 @@ import numpy as np
 from ..vtf.VTFWrapper import VTFLib
 from ..vtf.VTFWrapper import VTFLibEnums
 
-vtf_lib = VTFLib.VTFLib()
-
 
 def export_texture(blender_texture, path, image_format=None):
+    vtf_lib = VTFLib.VTFLib()
     path = Path(path)
     if path.suffix == '':
         path = path.with_suffix('.vtf')

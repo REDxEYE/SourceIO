@@ -13,7 +13,8 @@ def _is_identifier_start(ch: str):
 
 
 def _is_identifier_part(ch: str):
-    return ch and (ch.isalnum() or '|/_.*'.find(ch) >= 0)
+    return ch and (ch.isalnum() or '|\\/_.*'.find(ch) >= 0)
+
 
 def _to_number(val: str):
     return float(val) if '.' in val else int(val)
@@ -72,7 +73,7 @@ class KVReader:
                     self._report('String literal is not closed', lc)
                 return KVToken.STR, buf, lc
 
-            if ch.isdigit() or ch == '.':
+            if ch.isdigit() or ch == '.' or ch == '-':
                 buf = ch
                 while self._peek_char().isdigit() or self._peek_char() == '.':
                     buf += self._next_char()
@@ -168,7 +169,7 @@ class KVParser(KVReader):
                 val2 = _to_number(val2[1])
                 val3 = _to_number(self._match(KVToken.NUM)[1])
                 return val1, val2, val3
-            return val2
+            return val1
 
         if tok is KVToken.OPEN:
             pairs = OrderedDict()

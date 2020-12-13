@@ -43,6 +43,8 @@ class MDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         content_manager = ContentManager()
         content_manager.scan_for_content(directory)
+        bpy.context.scene['content_manager_data'] = {name: str(sub.filepath) for name, sub in
+                                                     content_manager.sub_managers.items()}
         from .source1.new_model_import import import_model, import_materials
         from .source1.new_qc.qc import generate_qc
         from . import bl_info
@@ -61,6 +63,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
                                             vtx_file.open('rb'),
                                             phy,
                                             self.create_flex_drivers)
+
             if self.import_textures:
                 try:
                     import_materials(mdl)
@@ -95,6 +98,9 @@ class BSPImport_OT_operator(bpy.types.Operator):
     def execute(self, context):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
+
+        bpy.context.scene['content_manager_data'] = {name: str(sub.filepath) for name, sub in
+                                                     content_manager.sub_managers.items() if hasattr(sub, 'filepath')}
         bsp_map = BSP(self.filepath)
         bsp_map.load_map_mesh()
         bsp_map.load_entities()
@@ -160,7 +166,7 @@ class VTFImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            import_texture(file.name, (directory / file.name).open(), True)
+            import_texture(file.name, (directory / file.name).open('rb'), True)
         return {'FINISHED'}
 
     def invoke(self, context, event):

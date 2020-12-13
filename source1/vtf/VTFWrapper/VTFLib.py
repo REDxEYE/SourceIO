@@ -1,7 +1,11 @@
+import _ctypes
+import ctypes
 import os
 import platform
 import sys
 from ctypes import *
+
+from SourceIO.utilities.singleton import SingletonMeta
 
 try:
     import VTFLibEnums
@@ -42,7 +46,8 @@ def pointer_to_array(poiter, size, type=c_ubyte):
     return cast(poiter, POINTER(type * size))
 
 
-class VTFLib:
+class VTFLib(metaclass=SingletonMeta):
+    vtflib_cdll: ctypes.CDLL = None
     if platform_name == "Windows":
         vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
     elif platform_name == "Linux":
@@ -51,10 +56,29 @@ class VTFLib:
         raise NotImplementedError("Platform {} isn't supported".format(platform_name))
 
     def __init__(self):
+        self.load_dll()
         self.initialize()
         self.image_buffer = c_int()
         self.create_image(byref(self.image_buffer))
         self.bind_image(self.image_buffer)
+
+    @classmethod
+    def load_dll(cls):
+        cls.free_dll()
+        if platform_name == "Windows":
+            cls.vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
+        elif platform_name == "Linux":
+            cls.vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
+        else:
+            raise NotImplementedError("Platform {} isn't supported".format(platform_name))
+
+    @classmethod
+    def free_dll(cls):
+        if cls.vtflib_cdll is not None and cls.vtflib_cdll._handle:
+            handle = cls.vtflib_cdll._handle
+            del cls.vtflib_cdll
+            cls.vtflib_cdll = None
+            _ctypes.FreeLibrary(handle)
 
     GetVersion = vtflib_cdll.vlGetVersion
     GetVersion.argtypes = []
@@ -559,15 +583,3 @@ class VTFLib:
 
     def set_proc(self, proc, value):
         self.SetProc(proc, value)
-
-
-if __name__ == '__main__':
-    a = VTFLib()
-    print(a.create_default_params_structure())
-    # a.image_load(
-    #     r"G:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\usermod\materials\models\skuddbutt\mavis\body_clothed.vtf",
-    #     False)
-    print(a.image_format())
-    # print(a.get_image_flags()).get_flag(ImageFlag.ImageFlagBorder)
-    # a.image_save("G:\\SteamLibrary\\SteamApps\\common\\SourceFilmmaker\\game\\usermod\\materials\\models\\Red_eye\\Endless\\Feline\\Body2.vtf")
-    print(a.get_last_error())

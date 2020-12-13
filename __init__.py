@@ -1,5 +1,8 @@
 import os
 
+from .source1.vtf.VTFWrapper.VTFLib import VTFLib
+from .utilities.singleton import SingletonMeta
+
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
 bl_info = {
@@ -8,7 +11,8 @@ bl_info = {
     "version": (3, 8, 8),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vmdl_c) ",
-    "description": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)",
+    "description": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)\n"
+                   "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
     "category": "Import-Export"
 }
 
@@ -103,7 +107,7 @@ if not NO_BPY:
 
     def register():
         register_()
-
+        VTFLib()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
         bpy.types.IMAGE_MT_image.append(export)
 
@@ -111,7 +115,11 @@ if not NO_BPY:
     def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(menu_import)
         bpy.types.IMAGE_MT_image.remove(export)
-
+        vtf_lib = VTFLib()
+        vtf_lib.shutdown()
+        SingletonMeta.cleanup()
+        vtf_lib.free_dll()
+        del vtf_lib
         unregister_()
 else:
     def register():

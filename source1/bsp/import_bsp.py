@@ -34,6 +34,8 @@ from ..vmt.vmt import VMT
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point
 
+strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
+
 
 def get_material(mat_name, model_ob):
     if not mat_name:
@@ -127,26 +129,30 @@ class BSP:
                     continue
                 hammer_id = str(entity.get('hammerid', 'SOURCE_WTF?'))
                 target_name = entity.get('targetname', None)
+                if not target_name and not hammer_id:
+                    print(f'Cannot identify entity: {entity}')
+
                 parent_collection = get_or_create_collection(class_name, self.main_collection)
                 if class_name == 'env_sprite':
-
-                    material = entity['model']
-                    scale = float(entity.get('scale', '1.0'))
-                    location = parse_source2_hammer_vector(entity['origin'])
-
-                    self.create_empty(f'Sprite_{hammer_id}_{target_name or material}',
-                                      location,
-                                      scale=[scale, scale, scale],
-                                      parent_collection=parent_collection,
-                                      custom_data=dict(entity))
+                    continue
+                    # material = entity['model']
+                    # scale = float(entity.get('scale', '1.0'))
+                    # location = parse_source2_hammer_vector(entity['origin'])
+                    #
+                    # self.create_empty(f'Sprite_{hammer_id}_{target_name or material}',
+                    #                   location,
+                    #                   scale=[scale, scale, scale],
+                    #                   parent_collection=parent_collection,
+                    #                   custom_data=dict(entity))
                 elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple', 'func_button',
-                                    'func_tracktrain', 'func_door_rotating']:
+                                    'func_tracktrain', 'func_door_rotating', 'func_illusionary', 'func_breakable']:
                     model_id = int(entity['model'][1:])
                     location = parse_source2_hammer_vector(entity['origin'])
                     mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
+                    mesh_obj['entity'] = entity
 
                     mesh_obj.location = np.multiply(location, self.scale)
-                elif class_name in ['prop_dynamic', 'prop_physics_override', 'prop_physics']:
+                elif class_name in ['prop_dynamic', 'prop_physics_override', 'prop_physics', 'monster_generic']:
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
 
@@ -154,36 +160,45 @@ class BSP:
                                       parent_collection=parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': entity['model'],
-                                                   'type': class_name})
+                                                   'type': class_name,
+                                                   'entity': entity})
                 elif class_name == 'light_spot':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                    color_hrd = parse_source2_hammer_vector(entity['_lighthdr'])
+                    color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
                     color = parse_source2_hammer_vector(entity['_light'])
                     if color_hrd[0] > 0:
                         color = color_hrd
-                    lumens = color[-1]
-                    color_max = max(color[:-1])
+                    if len(color) == 4:
+                        lumens = color[-1]
+                        color = color[:-1]
+                    else:
+                        lumens = 1
+                    color_max = max(color)
                     lumens *= color_max / 255 * (1.0 / self.scale)
-                    color = np.divide(color[:-1], color_max)
+                    color = np.divide(color, color_max)
                     inner_cone = float(entity['_inner_cone'])
                     cone = float(entity['_cone'])
                     watts = watt_power_spot(lumens, color, cone)
                     self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone,
-                                     parent_collection)
+                                     parent_collection, entity)
                 elif class_name == 'light':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    color_hrd = parse_source2_hammer_vector(entity['_lighthdr'])
+                    color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
                     color = parse_source2_hammer_vector(entity['_light'])
                     if color_hrd[0] > 0:
                         color = color_hrd
-                    lumens = color[-1]
-                    color_max = max(color[:-1])
+                    if len(color) == 4:
+                        lumens = color[-1]
+                        color = color[:-1]
+                    else:
+                        lumens = 1
+                    color_max = max(color)
                     lumens *= color_max / 255 * (1.0 / self.scale)
-                    color = np.divide(color[:-1], color_max)
+                    color = np.divide(color, color_max)
                     watts = watt_power_point(lumens, color)
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
-                                     parent_collection)
+                                     parent_collection, entity)
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.lumps.get(LumpTypes.LUMP_GAME_LUMP, None)
@@ -218,6 +233,7 @@ class BSP:
         for texture_info in self.texture_info_lump.texture_info:
             texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
             material_name = self.get_string(texture_data.name_id)
+            material_name = strip_patch_coordinates.sub("", material_name)
             material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
 
         faces = []
@@ -294,7 +310,10 @@ class BSP:
         else:
             self.main_collection.objects.link(placeholder)
 
-    def load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, parent_collection=None):
+    def load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, parent_collection=None,
+                    entity=None):
+        if entity is None:
+            entity = {}
         lamp = bpy.data.objects.new(f'{light_type}_{name}',
                                     bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
         lamp.location = location
@@ -302,6 +321,7 @@ class BSP:
         lamp_data.energy = watts
         lamp_data.color = color
         lamp.rotation_euler = rotation
+        lamp['entity'] = entity
         if light_type == 'SPOT':
             lamp_data.spot_size = math.radians(core_or_size)
 
@@ -326,9 +346,12 @@ class BSP:
                 vmt = VMT(material_file)
                 vmt.parse()
                 for _, (name, tex) in vmt.textures.items():
-                    import_texture(name, tex)
+                    if tex:
+                        import_texture(name, tex)
                 mat = BlenderMaterial(vmt)
                 mat.load_textures()
+                material_name = strip_patch_coordinates.sub("", material_name)
+                material_name = material_name[:64]
                 mat.create_material(material_name, True)
             else:
                 print(f'Failed to find {material_name} material')

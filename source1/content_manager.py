@@ -2,26 +2,29 @@ from pathlib import Path
 
 from typing import List, Union, Dict
 
-from ..source_shared.vpk import VPKFile
+from .sub_manager import SubManager
+from ..source_shared.non_source_sub_manager import NonSourceSubManager
+from ..source_shared.vpk_sub_manager import VPKSubManager
 from ..utilities.gameinfo import Gameinfo
-from ..utilities.path_utilities import NonSourceInstall, get_mod_path
-from ..utilities.singleton import Singleton, SingletonMeta
+from ..utilities.path_utilities import get_mod_path
+from ..utilities.singleton import SingletonMeta
 
 
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
-        self.sub_managers: Dict[str, Union[Gameinfo, NonSourceInstall, VPKFile]] = {}
+        self.sub_managers: Dict[str, SubManager] = {}
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
         source_game_path = Path(source_game_path)
         if source_game_path.suffix == '.vpk':
             if source_game_path.stem in self.sub_managers:
                 return
-            sub_manager = VPKFile(source_game_path.parent / (source_game_path.stem + "_dir.vpk"))
-            sub_manager.read()
-            self.sub_managers[source_game_path.stem] = sub_manager
-            print(f'Registered sub manager for {source_game_path.stem}')
-            return
+            vpk_path = source_game_path.parent / (source_game_path.stem + "_dir.vpk")
+            if vpk_path.exists():
+                sub_manager = VPKSubManager(vpk_path)
+                self.sub_managers[source_game_path.stem] = sub_manager
+                print(f'Registered sub manager for {source_game_path.stem}')
+                return
 
         is_source, root_path = self.is_source_mod(source_game_path)
         if root_path.stem in self.sub_managers:
@@ -34,7 +37,7 @@ class ContentManager(metaclass=SingletonMeta):
                 self.scan_for_content(mod)
         else:
             if root_path.is_dir():
-                sub_manager = NonSourceInstall(root_path)
+                sub_manager = NonSourceSubManager(root_path)
                 self.sub_managers[root_path.stem] = sub_manager
                 print(f'Registered sub manager for {source_game_path.stem}')
 

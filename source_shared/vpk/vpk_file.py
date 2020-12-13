@@ -85,24 +85,24 @@ class VPKFile:
             md5_entry.read(reader)
             self.archive_md5_entries.append(md5_entry)
 
-    def find_file_internal(self, *, full_path: str = None,
-                           file_type: str = None, directory: str = None, file_name: str = None):
+    def find_file(self, *, full_path: str = None, file_type: str = None, directory: str = None, file_name: str = None):
         if full_path is not None:
-
             full_path = Path(full_path)
             if full_path.is_absolute():
                 full_path = full_path.relative_to(self.filepath.parent)
             ext = Path(full_path).suffix.strip('./\\')
-            for entry in self.entries[ext.lower()]:
+            for entry in self.entries.get(ext.lower(), []):
                 if entry.full_path == full_path:
                     return entry
-        elif all([file_type, directory, file_name]):
+            return None
+        elif file_type and directory and file_name:
             file_type = file_type.strip('./\\')
             directory = directory.strip('./\\')
             file_name = Path(file_name.strip('./\\')).stem
-            for entry in self.entries[file_type]:
+            for entry in self.entries.get(file_type, []):
                 if entry.directory_name == directory and entry.file_name == file_name:
                     return entry
+            return None
         else:
             raise Exception("No valid parameters were given")
 
@@ -111,17 +111,10 @@ class VPKFile:
             print("Internal file")
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
+            print(f'Reading {entry.file_name} from {target_archive_path}')
             target_archive = ByteIO(target_archive_path)
             target_archive.seek(entry.offset)
             reader = BytesIO(target_archive.read_bytes(entry.size))
             target_archive.close()
             del target_archive
             return reader
-
-    def find_file(self, filepath: str, additional_dir=None, extension=None):
-        new_filepath = filepath
-        if additional_dir:
-            new_filepath = Path(additional_dir, new_filepath)
-        if extension:
-            new_filepath = new_filepath.with_suffix(extension)
-        return self.find_file_internal(full_path=str(new_filepath))

@@ -6,13 +6,12 @@ import numpy as np
 from ..vtf.VTFWrapper import VTFLib
 from ..vtf.VTFWrapper.VTFLibEnums import ImageFlag
 
-vtf_lib = VTFLib.VTFLib()
-
 
 def import_texture(name, file_object, update=False):
     if bpy.data.images.get(name, None) and not update:
         return name
-    print('Loading {}'.format(name))
+    vtf_lib = VTFLib.VTFLib()
+    print(f'Loading {name} ({file_object})')
     vtf_lib.image_load_from_buffer(file_object.read())
     if not vtf_lib.image_is_loaded():
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
@@ -25,10 +24,12 @@ def import_texture(name, file_object, update=False):
         image = bpy.data.images.get(name, None) or bpy.data.images.new(
             name,
             width=vtf_lib.width(),
-            height=vtf_lib.height())
-        image.alpha_mode = 'CHANNEL_PACKED'
+            height=vtf_lib.height(),
+            alpha=True,
+        )
+        image.alpha_mode = 'STRAIGHT'
         image.file_format = 'TARGA'
-        image.source = 'GENERATED'
+
         pixels: np.ndarray = np.divide(pixels, 255)
         if bpy.app.version > (2, 83, 0):
             image.pixels.foreach_set(pixels.tolist())

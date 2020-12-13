@@ -33,7 +33,7 @@ def backwalk_file_resolver(current_path, file_to_find):
         second_part = file_to_find
         for _ in range(len(file_to_find.parts)):
             new_path = current_path / second_part
-            print(f'Searching for {second_part} in {current_path}')
+            # print(f'Searching for {second_part} in {current_path}')
             if new_path.is_file():
                 return new_path
 
@@ -126,3 +126,11 @@ def get_mod_path(path: Path) -> Path:
                 result_path = _path
                 break
     return result_path
+
+
+def is_valid_path(path: str):
+    invalid_chars = '<>:"|?*'
+    for char in invalid_chars:
+        if char in path:
+            return False
+    return True

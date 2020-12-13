@@ -3,6 +3,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
+from .source1.content_manager import ContentManager
 from .source1.new_model_import import import_model, import_materials
 from .source2.resouce_types.valve_model import ValveModel
 from .utilities.path_utilities import backwalk_file_resolver
@@ -14,8 +15,14 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     def execute(self, context):
-        for obj in context.selected_objects:
+        content_manager = ContentManager()
+        for name, sub in bpy.context.scene.get('content_manager_data', {}).items():
+            if name not in content_manager.sub_managers:
+                print(f'Registering cached sub manager for {name}:{sub}')
+                content_manager.scan_for_content(sub)
 
+        for obj in context.selected_objects:
+            print(obj.name, obj.get("entity_data", None))
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
                 model_type = Path(custom_prop_data['prop_path']).suffix
@@ -23,17 +30,17 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                                                       None) or bpy.data.collections.new(
                     name=custom_prop_data['type'])
                 if model_type in ['.vmdl_c', '.vmdl_c']:
-                    model_path = backwalk_file_resolver(custom_prop_data['parent_path'],
-                                                        Path(custom_prop_data['prop_path']).with_suffix('.vmdl_c'))
+                    mld_file = backwalk_file_resolver(custom_prop_data['parent_path'],
+                                                      Path(custom_prop_data['prop_path']).with_suffix('.vmdl_c'))
 
-                    if model_path:
+                    if mld_file:
 
                         try:
                             bpy.context.scene.collection.children.link(collection)
                         except:
                             pass
 
-                        model = ValveModel(model_path)
+                        model = ValveModel(mld_file)
                         model.load_mesh(True, parent_collection=collection,
                                         skin_name=custom_prop_data.get("skin_id", 'default'))
                         for ob in model.objects:  # type:bpy.types.Object
@@ -45,12 +52,13 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                     else:
                         self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}_c' not found!")
                 elif model_type == '.mdl':
-                    model_path = backwalk_file_resolver(custom_prop_data['parent_path'],
-                                                        Path(custom_prop_data['prop_path']))
-                    if model_path:
-                        vvd = backwalk_file_resolver(model_path.parent, model_path.with_suffix('.vvd'))
-                        vtx = backwalk_file_resolver(model_path.parent, Path(model_path.stem + '.dx90.vtx'))
-                        mdl, vvd, vtx, armature = import_model(model_path, vvd, vtx, None, False, collection, True)
+                    prop_path = Path(custom_prop_data['prop_path'])
+                    mld_file = content_manager.find_file(prop_path)
+                    if mld_file:
+                        vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
+                        vtx_file = backwalk_file_resolver(prop_path.with_name(f'{prop_path.stem}.dx90.vtx'))
+                        mdl, vvd, vtx, armature = import_model(mld_file, vvd_file, vtx_file, None, False, collection,
+                                                               True)
                         armature.location = obj.location
                         armature.rotation_mode = "XYZ"
                         armature.rotation_euler = obj.rotation_euler

@@ -2,8 +2,8 @@ from io import StringIO
 from pathlib import Path
 
 from ..content_manager import ContentManager
-from ...utilities.gameinfo import Gameinfo
 from ...utilities.keyvalues import KVParser
+from ...utilities.path_utilities import is_valid_path
 
 
 class VMT:
@@ -25,6 +25,8 @@ class VMT:
                 return
         for key, value in self.material_data.items():
             if isinstance(value, str):
+                if not is_valid_path(value):
+                    continue
                 texture = content_manager.find_texture(value)
                 if texture:
                     print(key, value)
