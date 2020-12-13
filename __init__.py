@@ -3,12 +3,12 @@ import os
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
 bl_info = {
-    "name": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)",
+    "name": "SourceIO",
     "author": "RED_EYE",
     "version": (3, 8, 6),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine MDL (.mdl, .vmdl_c) ",
-    "description": "Addon allows to import Source Engine models",
+    "description": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)",
     "category": "Import-Export"
 }
 
