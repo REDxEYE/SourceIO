@@ -34,6 +34,8 @@ class ByteIO:
 
         elif type(path_or_file_or_data) in [bytes, bytearray]:
             self.file = io.BytesIO(path_or_file_or_data)
+        elif issubclass(type(path_or_file_or_data), io.IOBase):
+            self.file = path_or_file_or_data
         else:
             self.file = BytesIO()
 

@@ -111,7 +111,7 @@ class VPKFile:
             print("Internal file")
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
-            print(f'Reading {entry.file_name} from {target_archive_path}')
+            print(f'Reading {entry.full_path} from {target_archive_path}')
             target_archive = ByteIO(target_archive_path)
             target_archive.seek(entry.offset)
             reader = BytesIO(target_archive.read_bytes(entry.size))

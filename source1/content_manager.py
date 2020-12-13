@@ -19,7 +19,10 @@ class ContentManager(metaclass=SingletonMeta):
         if source_game_path.suffix == '.vpk':
             if source_game_path.stem in self.sub_managers:
                 return
-            vpk_path = source_game_path.parent / (source_game_path.stem + "_dir.vpk")
+            if not source_game_path.stem.endswith('_dir'):
+                vpk_path = source_game_path.parent / (source_game_path.stem + "_dir.vpk")
+            else:
+                vpk_path = source_game_path
             if vpk_path.exists():
                 sub_manager = VPKSubManager(vpk_path)
                 self.sub_managers[source_game_path.stem] = sub_manager

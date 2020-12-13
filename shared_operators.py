@@ -56,7 +56,7 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                     mld_file = content_manager.find_file(prop_path)
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
-                        vtx_file = content_manager.find_file(prop_path.with_name(f'{prop_path.stem}.dx90.vtx'))
+                        vtx_file = content_manager.find_file(prop_path.parent / f'{prop_path.stem}.dx90.vtx')
                         mdl, vvd, vtx, armature = import_model(mld_file, vvd_file, vtx_file, None, False, collection,
                                                                True)
                         armature.location = obj.location
