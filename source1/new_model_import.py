@@ -332,8 +332,9 @@ def import_materials(mdl):
     content_manager = ContentManager()
     for material in mdl.materials:
         if bpy.data.materials.get(material.name, False):
-            print(f'Skipping loading of {material.name} as it already exists')
-            continue
+            if bpy.data.materials[material.name].get('source1_loaded'):
+                print(f'Skipping loading of {material.name} as it already loaded')
+                continue
         material_path = None
         for mat_path in mdl.materials_paths:
             material_path = content_manager.find_material(Path(mat_path) / Path(material.name).stem)

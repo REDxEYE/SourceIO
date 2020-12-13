@@ -27,7 +27,7 @@ def import_texture(name, file_object, update=False):
             height=vtf_lib.height(),
             alpha=True,
         )
-        image.alpha_mode = 'STRAIGHT'
+        image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
 
         pixels: np.ndarray = np.divide(pixels, 255)
