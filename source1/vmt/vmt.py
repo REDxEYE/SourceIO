@@ -23,11 +23,4 @@ class VMT:
             else:
                 print('Failed to find original material')
                 return
-        for key, value in self.material_data.items():
-            if isinstance(value, str):
-                if not is_valid_path(value):
-                    continue
-                texture = content_manager.find_texture(value)
-                if texture:
-                    print(key, value)
-                    self.textures[key] = Path(value).stem, texture
+

@@ -300,7 +300,7 @@ class BSP:
         placeholder = bpy.data.objects.new(name, None)
         placeholder.location = location
         # placeholder.rotation_mode = 'XYZ'
-        placeholder.empty_display_size = 2
+        placeholder.empty_display_size = 16
 
         placeholder.rotation_euler = rotation
         placeholder.scale = np.multiply(scale, self.scale)
@@ -343,12 +343,7 @@ class BSP:
             material_file = content_manager.find_material(material_name)
 
             if material_file:
-                vmt = VMT(material_file)
-                vmt.parse()
-                for _, (name, tex) in vmt.textures.items():
-                    if tex:
-                        import_texture(name, tex)
-                mat = BlenderMaterial(vmt)
+                mat = BlenderMaterial(material_file)
                 mat.load_textures()
                 material_name = strip_patch_coordinates.sub("", material_name)
                 material_name = material_name[:64]

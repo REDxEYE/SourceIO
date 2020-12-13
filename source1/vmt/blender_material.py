@@ -1,24 +1,33 @@
 import bpy
 from pathlib import Path
 
+from ..content_manager import ContentManager
 from ..vmt.vmt import VMT
 from ..vtf.import_vtf import import_texture
+from ...utilities.path_utilities import is_valid_path
 
 
-class BlenderMaterial:
-    def __init__(self, vmt: VMT):
-        vmt.parse()
-        self.vmt = vmt
+class BlenderMaterial(VMT):
+    def __init__(self, file_object):
+        super().__init__(file_object)
+        self.parse()
         self.textures = {}
 
     def load_textures(self):
-        for key, (name, texture) in self.vmt.textures.items():
-            if bpy.data.images.get(name, False):
-                self.textures[key] = bpy.data.images.get(name, False)
-            else:
-                image = import_texture(name, texture)
-                if image:
-                    self.textures[key] = bpy.data.images.get(image)
+        content_manager = ContentManager()
+        for key, value in self.material_data.items():
+            if isinstance(value, str):
+                if not is_valid_path(value) or value.replace('.', '').isdigit():
+                    continue
+                name = Path(value).stem
+                if bpy.data.images.get(name, False):
+                    self.textures[key] = bpy.data.images.get(name)
+                texture = content_manager.find_texture(value)
+                if texture:
+                    print(key, value)
+                    image = import_texture(name, texture)
+                    if image:
+                        self.textures[key] = image
 
     def create_material(self, material_name=None, override=True):
         print(f'Creating material {repr(material_name)}, override:{override}')

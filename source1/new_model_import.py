@@ -338,10 +338,6 @@ def import_materials(mdl):
             if material_path:
                 break
         if material_path:
-            vmt = VMT(material_path)
-            vmt.parse()
-            for name, tex in vmt.textures.items():
-                import_texture(*tex)
-            mat = BlenderMaterial(vmt)
-            mat.load_textures()
-            mat.create_material(material.name, True)
+            new_material = BlenderMaterial(material_path)
+            new_material.load_textures()
+            new_material.create_material(material.name, True)
