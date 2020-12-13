@@ -244,6 +244,27 @@ class VTFExport_OT_operator(bpy.types.Operator):
             ('DXT5Normal', "DXT5 Normal Map", "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
         default='RGBA8888',
     )
+    filter_mode: EnumProperty(
+        name='VTF mipmap filter',
+        items=(
+            ('0', 'Point Filter', 'Point Filter'),
+            ('1', 'Box Filter', 'Box Filter'),
+            ('2', 'Triangle Filter', 'Triangle Filter'),
+            ('3', 'Quadratic Filter', 'Quadratic Filter'),
+            ('4', 'Cubic Filter', 'Cubic Filter'),
+            ('5', 'Catrom Filter', 'Catrom Filter'),
+            ('6', 'Mitchell Filter', 'Mitchell Filter'),
+            ('7', 'Gaussian Filter', 'Gaussian Filter'),
+            ('8', 'SinC Filter', 'SinC Filter'),
+            ('9', 'Bessel Filter', 'Bessel Filter'),
+            ('10', 'Hanning Filter', 'Hanning Filter'),
+            ('11', 'Hamming Filter', 'Hamming Filter'),
+            ('12', 'Blackman Filter', 'Blackman Filter'),
+            ('13', 'Kaiser Filter', 'Kaiser Filter'),
+            ('14', 'Count Filter', 'Count Filter'),
+        ),
+        default='0'
+    )
 
     def execute(self, context):
         sima = context.space_data
@@ -252,7 +273,7 @@ class VTFExport_OT_operator(bpy.types.Operator):
             self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
         else:
             print(context)
-            export_texture(ima, self.filepath, self.img_format)
+            export_texture(ima, self.filepath, self.img_format, self.filter_mode)
         return {'FINISHED'}
 
     def invoke(self, context, event):
