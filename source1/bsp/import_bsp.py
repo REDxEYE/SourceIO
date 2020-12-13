@@ -93,17 +93,22 @@ class BSP:
     def gather_vertex_ids(model: Model,
                           faces: List[Face],
                           surf_edges: List[Tuple[int, int]],
-                          edges: List[Tuple[int, int]]):
-        vertex_ids = []
+                          edges: List[Tuple[int, int]],
+                          ):
+        vertex_ids = np.zeros((0, 1), dtype=np.uint32)
+        vertex_offset = 0
         for map_face in faces[model.first_face:model.first_face + model.face_count]:
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
-            for surf_edge in surf_edges[first_edge:first_edge + edge_count]:
-                reverse = surf_edge >= 0
-                edge = edges[abs(surf_edge)]
-                vertex_id = edge[0] if reverse else edge[1]
-                vertex_ids.append(vertex_id)
-        return len(vertex_ids)
+
+            used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
+            reverse = np.subtract(1, (used_surf_edges >= 0).astype(np.uint8))
+            used_edges = edges[np.abs(used_surf_edges)]
+            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+            vertex_ids = np.insert(vertex_ids, vertex_offset, face_vertex_ids)
+            vertex_offset += edge_count
+
+        return vertex_ids  # , per_face_uv
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA_STRING_TABLE, None)
@@ -135,7 +140,7 @@ class BSP:
                                       parent_collection=parent_collection,
                                       custom_data=dict(entity))
                 elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple', 'func_button',
-                                    'func_tracktrain','func_door_rotating']:
+                                    'func_tracktrain', 'func_door_rotating']:
                     model_id = int(entity['model'][1:])
                     location = parse_source2_hammer_vector(entity['origin'])
                     mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
@@ -217,51 +222,47 @@ class BSP:
 
         faces = []
         material_indices = []
-        vertices = []
-        vertices_append = vertices.append
-        vertices_index = vertices.index
-        vertex_count = self.gather_vertex_ids(model,
-                                              self.face_lump.faces,
-                                              self.surf_edge_lump.surf_edges,
-                                              self.edge_lump.edges)
 
+        surf_edges = self.surf_edge_lump.surf_edges
+        edges = self.edge_lump.edges
+
+        vertex_ids = self.gather_vertex_ids(model, self.face_lump.faces, surf_edges, edges)
+        unique_vertex_ids, indices_vertex_ids, inverse_indices = np.unique(vertex_ids, return_inverse=True,
+                                                                           return_index=True, )
         uvs_per_face = []
+
         for map_face in self.face_lump.faces[model.first_face:model.first_face + model.face_count]:
-            uvs = np.zeros((vertex_count, 2), dtype=np.float32)
+            uvs = {}
             face = []
-            face_append = face.append
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
 
             texture_info = self.texture_info_lump.texture_info[map_face.tex_info_id]
             texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
-            for surf_edge in self.surf_edge_lump.surf_edges[first_edge:first_edge + edge_count]:
-                reverse = surf_edge >= 0
-                edge = self.edge_lump.edges[abs(surf_edge)]
-                vertex_id = edge[0] if reverse else edge[1]
+            tv1, tv2 = texture_info.texture_vectors
 
-                vert = tuple(self.scaled_vertices[vertex_id])
-                if vert in vertices:
-                    new_vert_index = vertices_index(vert)
-                    face_append(vertices.index(vert))
-                else:
-                    new_vert_index = len(vertices)
-                    face_append(new_vert_index)
-                    vertices_append(vert)
+            used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
+            reverse = np.subtract(1, (used_surf_edges >= 0).astype(np.uint8))
+            used_edges = edges[np.abs(used_surf_edges)]
+            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
 
-                tv1, tv2 = texture_info.texture_vectors
-                uco = np.array(tv1[:3])
-                vco = np.array(tv2[:3])
-                unscaled_vertex = self.vertex_lump.vertices[vertex_id]
-                u = np.dot(np.array(unscaled_vertex), uco) + tv1[3]
-                v = np.dot(np.array(unscaled_vertex), vco) + tv2[3]
-                uvs[new_vert_index] = [u / texture_data.width, 1 - (v / texture_data.height)]
+            uv_vertices = self.vertex_lump.vertices[face_vertex_ids]
+
+            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / texture_data.width
+            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / texture_data.height)
+
+            v_uvs = np.dstack([u, v]).reshape((-1, 2))
+
+            for vertex_id, uv in zip(face_vertex_ids, v_uvs):
+                new_vertex_id = np.where(unique_vertex_ids == vertex_id)[0][0]
+                face.append(new_vertex_id)
+                uvs[new_vertex_id] = uv
 
             material_indices.append(material_lookup_table[texture_data.name_id])
             uvs_per_face.append(uvs)
             faces.append(face)
 
-        mesh_data.from_pydata(vertices, [], faces)
+        mesh_data.from_pydata(self.vertex_lump.vertices[unique_vertex_ids] * self.scale, [], faces)
         mesh_data.polygons.foreach_set('material_index', material_indices)
 
         mesh_data.uv_layers.new()
