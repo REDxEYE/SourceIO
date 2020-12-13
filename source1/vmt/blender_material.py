@@ -21,13 +21,15 @@ class BlenderMaterial(VMT):
                     continue
                 name = Path(value).stem
                 if bpy.data.images.get(name, False):
+                    print(f'Using existing texture {name}')
                     self.textures[key] = bpy.data.images.get(name)
+                    continue
                 texture = content_manager.find_texture(value)
                 if texture:
                     print(key, value)
                     image = import_texture(name, texture)
                     if image:
-                        self.textures[key] = image
+                        self.textures[key] = bpy.data.images.get(image)
 
     def create_material(self, material_name=None, override=True):
         print(f'Creating material {repr(material_name)}, override:{override}')

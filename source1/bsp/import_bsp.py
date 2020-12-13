@@ -339,6 +339,9 @@ class BSP:
             content_manager.sub_managers[self.filepath.stem] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
+            if bpy.data.materials.get(strip_patch_coordinates.sub("", material_name), False):
+                print(f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already exists')
+                continue
             print(f"Loading {material_name} material")
             material_file = content_manager.find_material(material_name)
 

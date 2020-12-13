@@ -26,7 +26,6 @@ from .vtf.import_vtf import import_texture
 from .vmt.vmt import VMT
 
 
-
 def split(array, n=3):
     return [array[i:i + n] for i in range(0, len(array), n)]
 
@@ -332,6 +331,9 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
 def import_materials(mdl):
     content_manager = ContentManager()
     for material in mdl.materials:
+        if bpy.data.materials.get(material.name, False):
+            print(f'Skipping loading of {material.name} as it already exists')
+            continue
         material_path = None
         for mat_path in mdl.materials_paths:
             material_path = content_manager.find_material(Path(mat_path) / Path(material.name).stem)
