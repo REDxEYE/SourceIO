@@ -229,8 +229,8 @@ class VTFExport_OT_operator(bpy.types.Operator):
         items=(
             ('RGBA8888', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
             ('RGBA8888Normal', "RGBA8888 Normal Map",
-             "RGBA8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
-            ('RGB888', "RGBA888 Simple", "RGB888 format, no alpha"),
+             "RGB8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
+            ('RGB888', "RGB888 Simple", "RGB888 format, no alpha"),
             ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
             ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
             ('DXT5', "DXT5 Simple", "DXT5 format, format-specific Eight Bit Alpha flag only"),
