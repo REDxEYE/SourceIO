@@ -39,7 +39,8 @@ class BlenderMaterial(VMT):
         else:
             bpy.data.materials.new(material_name)
         mat = bpy.data.materials.get(material_name)
-
+        if mat is None:
+            return
         if mat.get('source1_loaded'):
             return 'LOADED'
 
