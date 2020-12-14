@@ -5,7 +5,7 @@ import platform
 import sys
 from ctypes import *
 
-from SourceIO.utilities.singleton import SingletonMeta
+from ....utilities.singleton import SingletonMeta
 
 try:
     import VTFLibEnums
