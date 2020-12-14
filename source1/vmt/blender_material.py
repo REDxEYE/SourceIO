@@ -32,6 +32,7 @@ class BlenderMaterial(VMT):
                         self.textures[key] = bpy.data.images.get(image)
 
     def create_material(self, material_name=None, override=True):
+        material_name = material_name[:64]
         print(f'Creating material {repr(material_name)}, override:{override}')
         if bpy.data.materials.get(material_name) and not override:
             return 'EXISTS'
@@ -41,6 +42,7 @@ class BlenderMaterial(VMT):
 
         if mat.get('source1_loaded'):
             return 'LOADED'
+
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
         diff = nodes.get('Principled BSDF', None)
@@ -60,13 +62,25 @@ class BlenderMaterial(VMT):
             tex.image = self.textures.get('$basetexture')
             tex.location = (-295.0, 146.0)
             mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
-            mat.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs['Alpha'])
+            alpha_output = tex.outputs["Alpha"]
+            if int(self.material_data.get('$basemapalphaphongmask', '0')) == 1:
+                mat.node_tree.links.new(alpha_output, bsdf.inputs['Specular'])
+            elif int(self.material_data.get('$basealphaenvmapmask', '0')) == 1:
+                mat.node_tree.links.new(alpha_output, bsdf.inputs['Roughness'])
+            elif int(self.material_data.get('$selfillum', '0')) == 1:
+                mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Emission'])
+                mat.node_tree.links.new(alpha_output, bsdf.inputs['Emission Strength'])
+            else:
+                mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
             tex = nodes.new('ShaderNodeTexImage')
             tex.image = self.textures.get('$bumpmap')
             tex.location = (-635.0, 146.0)
             tex.image.colorspace_settings.is_data = True
             tex.image.colorspace_settings.name = 'Non-Color'
+
+            if int(self.material_data.get('$normalmapalphaenvmapmask', '0')) == 1:
+                mat.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs['Specular'])
 
             normal = nodes.new("ShaderNodeNormalMap")
             normal.location = (-295.0, -125.0)
@@ -79,4 +93,5 @@ class BlenderMaterial(VMT):
             # mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
         mat.blend_method = 'HASHED'
         mat.shadow_method = 'HASHED'
+
         mat['source1_loaded'] = True
