@@ -124,7 +124,7 @@ class BSP:
         entity_lump: Optional[EntityLump] = self.map_file.lumps.get(LumpTypes.LUMP_ENTITIES, None)
         if entity_lump:
             for entity in entity_lump.entities:
-                class_name = entity.get('classname', None)
+                class_name: str = entity.get('classname', None)
                 if not class_name:
                     continue
                 hammer_id = str(entity.get('hammerid', 'SOURCE_WTF?'))
@@ -144,14 +144,17 @@ class BSP:
                     #                   scale=[scale, scale, scale],
                     #                   parent_collection=parent_collection,
                     #                   custom_data=dict(entity))
-                elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple', 'func_button',
-                                    'func_tracktrain', 'func_door_rotating', 'func_illusionary', 'func_breakable']:
-                    model_id = int(entity['model'][1:])
-                    location = parse_source2_hammer_vector(entity['origin'])
-                    mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
-                    mesh_obj['entity'] = entity
+                # elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple', 'func_button',
+                #                     'func_tracktrain', 'func_door_rotating', 'func_illusionary', 'func_breakable',
+                #                     'func_capturezone', 'func_capturezone','']:
+                elif class_name.startswith('func_'):
+                    if 'model' in entity:
+                        model_id = int(entity['model'][1:])
+                        location = parse_source2_hammer_vector(entity.get('origin', '0 0 0'))
+                        mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
+                        mesh_obj['entity'] = entity
 
-                    mesh_obj.location = np.multiply(location, self.scale)
+                        mesh_obj.location = np.multiply(location, self.scale)
                 elif class_name in ['prop_dynamic', 'prop_physics_override', 'prop_physics', 'monster_generic']:
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
@@ -162,9 +165,21 @@ class BSP:
                                                    'prop_path': entity['model'],
                                                    'type': class_name,
                                                    'entity': entity})
+                elif class_name == 'item_teamflag':
+                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
+                    self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location, rotation,
+                                      parent_collection=parent_collection,
+                                      custom_data={'parent_path': str(self.filepath.parent),
+                                                   'prop_path': entity['flag_model'],
+                                                   'type': class_name,
+                                                   'entity': entity})
+
                 elif class_name == 'light_spot':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
+                    rotation[1] = math.radians(90) + rotation[1]
+                    rotation[2] = math.radians(180) + rotation[2]
                     color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
                     color = parse_source2_hammer_vector(entity['_light'])
                     if color_hrd[0] > 0:
@@ -178,11 +193,11 @@ class BSP:
                     lumens *= color_max / 255 * (1.0 / self.scale)
                     color = np.divide(color, color_max)
                     inner_cone = float(entity['_inner_cone'])
-                    cone = float(entity['_cone'])
+                    cone = float(entity['_cone']) * 2
                     watts = watt_power_spot(lumens, color, cone)
                     self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone,
                                      parent_collection, entity)
-                elif class_name == 'light':
+                elif class_name in ['light', 'light_environment']:
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
                     color = parse_source2_hammer_vector(entity['_light'])

@@ -58,7 +58,7 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vtx_file = content_manager.find_file(prop_path.parent / f'{prop_path.stem}.dx90.vtx')
                         mdl, vvd, vtx, armature = import_model(mld_file, vvd_file, vtx_file, None, False, collection,
-                                                               True)
+                                                               True, True)
                         armature.location = obj.location
                         armature.rotation_mode = "XYZ"
                         armature.rotation_euler = obj.rotation_euler
@@ -116,7 +116,7 @@ class SourceIOUtils_PT_panel(bpy.types.Panel):
         obj = context.active_object  # type:bpy.types.Object
         if obj.get("entity_data", None):
             entiry_data = obj['entity_data']
-            entity_raw_data = entiry_data.get('entity',{})
+            entity_raw_data = entiry_data.get('entity', {})
             box = self.layout.box()
             if entity_raw_data.get('classname', False):
                 row = box.row()

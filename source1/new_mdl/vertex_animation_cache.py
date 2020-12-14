@@ -23,7 +23,8 @@ class VertexAnimationCache(Base):
                     continue
                 print(f'\t+--model "{model.name}"')
                 for mesh in model.meshes:
-                    self.process_mesh(mesh, model.vertex_offset)
+                    if mesh.flexes:
+                        self.process_mesh(mesh, model.vertex_offset)
         print("[Done] Pre-computing vertex animation cache")
 
     def process_mesh(self, mesh: Mesh, vertex_offset, desired_lod=0):

@@ -148,7 +148,7 @@ def create_armature(mdl: Mdl, collection):
 
 
 def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy_path: BinaryIO, create_drivers=False,
-                 parent_collection=None, disable_collection_sort=False):
+                 parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
     mdl = Mdl(mdl_path)
@@ -157,8 +157,9 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
     vvd.read()
     vtx = Vtx(vtx_path)
     vtx.read()
-    vac = VertexAnimationCache(mdl, vvd)
-    vac.process_data()
+    if mdl.flex_names:
+        vac = VertexAnimationCache(mdl, vvd)
+        vac.process_data()
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
@@ -178,6 +179,27 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
 
             if model.vertex_count == 0:
                 continue
+
+            used_copy = False
+            if re_use_meshes:
+                mesh_data = bpy.data.meshes.get(f'{model.name}_MESH', False)
+                if mesh_data:
+                    mesh_data = mesh_data.copy()
+                    used_copy = True
+                else:
+                    mesh_data = bpy.data.meshes.new(f'{model.name}_MESH')
+            else:
+                mesh_data = bpy.data.meshes.new(f'{model.name}_MESH')
+            mesh_obj = bpy.data.objects.new(f"{model.name}", mesh_data)
+            body_part_collection.objects.link(mesh_obj)
+
+            modifier = mesh_obj.modifiers.new(
+                type="ARMATURE", name="Armature")
+            modifier.object = armature
+            mesh_obj.parent = armature
+            if used_copy:
+                continue
+
             model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
             vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
@@ -194,17 +216,8 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
 
             vertices = model_vertices[vtx_vertices]
 
-            mesh_data = bpy.data.meshes.new(f'{model.name}_MESH')
-            mesh_obj = bpy.data.objects.new(f"{model.name}", mesh_data)
-
-            modifier = mesh_obj.modifiers.new(
-                type="ARMATURE", name="Armature")
-            modifier.object = armature
-
-            body_part_collection.objects.link(mesh_obj)
             mesh_data.from_pydata(vertices['vertex'], [], split(indices_array[::-1], 3))
             mesh_data.update()
-            mesh_obj.parent = armature
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
             mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
