@@ -115,7 +115,15 @@ class SourceIOUtils_PT_panel(bpy.types.Panel):
         self.layout.label(text="SourceIO stuff")
         obj = context.active_object  # type:bpy.types.Object
         if obj.get("entity_data", None):
-            self.layout.operator('source_io.load_placeholder')
+            entiry_data = obj['entity_data']
+            entity_raw_data = entiry_data.get('entity',{})
+            box = self.layout.box()
+            if entity_raw_data.get('classname', False):
+                row = box.row()
+                row.label(text='Prop type:')
+                row.label(text=entity_raw_data['classname'])
+            box.label(text=entiry_data['prop_path'])
+            box.operator('source_io.load_placeholder')
         if obj.get("skin_groups", None):
             self.layout.label(text="Skins")
             box = self.layout.box()
