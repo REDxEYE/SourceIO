@@ -39,6 +39,10 @@ class Gameinfo(SubManager):
                     all_search_paths.append(convert_path(path))
             else:
                 all_search_paths.append(convert_path(paths))
+        for file in self.modname_dir.glob('*_dir.vpk'):
+            if file.suffix == '.vpk':
+                all_search_paths.append(file)
+
         return all_search_paths
 
     def find_file(self, filepath: str, additional_dir=None,
