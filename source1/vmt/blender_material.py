@@ -16,6 +16,8 @@ class BlenderMaterial(VMT):
     def load_textures(self):
         content_manager = ContentManager()
         for key, value in self.material_data.items():
+            if key == '$envmap':
+                continue
             if isinstance(value, str):
                 if not is_valid_path(value) or value.replace('.', '').isdigit():
                     continue
@@ -32,7 +34,7 @@ class BlenderMaterial(VMT):
                         self.textures[key] = bpy.data.images.get(image)
 
     def create_material(self, material_name=None, override=True):
-        material_name = material_name[:64]
+        material_name = material_name[:63]
         print(f'Creating material {repr(material_name)}, override:{override}')
         if bpy.data.materials.get(material_name) and not override:
             return 'EXISTS'
