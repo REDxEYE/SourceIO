@@ -154,6 +154,8 @@ class KVParser(KVReader):
             return None
 
         if tok is KVToken.STR:
+            if not val:
+                return ''
             if val.startswith('['):
                 return tuple(map(float, val[1:-1].strip().split(' ')))
             if val.startswith('{'):
