@@ -32,9 +32,11 @@ class VPKFile:
         self.read_entries()
         if self.header.version == 2:
             reader.skip(self.header.file_data_section_size)
-        self.read_archive_md5_section()
+        # self.read_archive_md5_section()
+        reader.skip(self.header.archive_md5_section_size)
 
-        assert self.header.other_md5_section_size == 48, f'Invalid size of other_md5_section {self.header.other_md5_section_size} bytes, should be 48 bytes'
+        assert self.header.other_md5_section_size == 48, \
+            f'Invalid size of other_md5_section {self.header.other_md5_section_size} bytes, should be 48 bytes'
         self.tree_hash = reader.read_bytes(16)
         self.archive_md5_hash = reader.read_bytes(16)
         self.file_hash = reader.read_bytes(16)
@@ -60,9 +62,10 @@ class VPKFile:
                     if not file_name:
                         break
 
-                    entry = Entry(file_name, directory_name, type_name)
+                    full_path = Path(f'{directory_name}/{file_name}.{type_name}')
+                    entry = Entry(full_path)
                     entry.read(reader)
-                    self.path_cache.append(entry.full_path)
+                    self.path_cache.append(full_path)
 
                     if reader.read_uint16() != 0xFFFF:
                         raise NotImplementedError('Invalid terminator')
@@ -92,7 +95,7 @@ class VPKFile:
                 full_path = full_path.relative_to(self.filepath.parent)
             ext = Path(full_path).suffix.strip('./\\')
             for entry in self.entries.get(ext.lower(), []):
-                if entry.full_path == full_path:
+                if entry.file_name == full_path:
                     return entry
             return None
         elif file_type and directory and file_name:
@@ -109,12 +112,11 @@ class VPKFile:
     def read_file(self, entry: Entry) -> BytesIO:
         if entry.archive_id == 0x7FFF:
             print("Internal file")
+            raise NotImplementedError('Internal files are not supported.')
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
-            print(f'Reading {entry.full_path} from {target_archive_path}')
-            target_archive = ByteIO(target_archive_path)
-            target_archive.seek(entry.offset)
-            reader = BytesIO(target_archive.read_bytes(entry.size))
-            target_archive.close()
-            del target_archive
-            return reader
+            print(f'Reading {entry.file_name} from {target_archive_path}')
+            with open(target_archive_path, 'rb') as target_archive:
+                target_archive.seek(entry.offset)
+                reader = BytesIO(target_archive.read(entry.size))
+                return reader
