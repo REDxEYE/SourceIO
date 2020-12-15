@@ -84,14 +84,14 @@ class KVReader:
             if ch == '+':
                 return KVToken.PLUS, None, lc
 
-            if ch == '{':
+            elif ch == '\0':
+                return KVToken.END, None, lc
+
+            elif ch == '{':
                 return KVToken.OPEN, None, lc
 
-            if ch == '}':
+            elif ch == '}':
                 return KVToken.CLOSE, None, lc
-
-            if ch == '\0':
-                return KVToken.END, None, lc
 
             self._report(f'Unknown character \'{ch}\' ({ord(ch):02x})', lc)
 
@@ -108,7 +108,7 @@ class KVReader:
         if ch == '\r' and self._peek_char() == '\n':
             self._index += 1
 
-        if ch == '\r' or ch == '\n':
+        if ch in ['\r', '\n']:
             self._line += 1
             self._column = 1
             return '\n'
