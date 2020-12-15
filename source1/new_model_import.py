@@ -163,7 +163,7 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
-    model_name = Path(mdl.header.name).stem + 'MODEL'
+    model_name = Path(mdl.header.name).stem + '_MODEL'
 
     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
