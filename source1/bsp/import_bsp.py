@@ -212,7 +212,7 @@ class BSP:
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump(LumpTypes.LUMP_GAME_LUMP)
         if gamelump:
-            static_prop_lump: StaticPropLump = gamelump.game_get_lump('sprp', None)
+            static_prop_lump: StaticPropLump = gamelump.game_lumps('sprp', None)
             if static_prop_lump:
                 parent_collection = get_or_create_collection('static_props', self.main_collection)
                 for n, prop in enumerate(static_prop_lump.static_props):
