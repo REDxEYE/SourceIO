@@ -188,10 +188,10 @@ class ByteIO:
 
         while True:
             chunk = self.read_bytes(32)
-            chunk_len = chunk.find(b'\x00')
-            buffer += chunk[:chunk_len]
-            if chunk_len >= 0:
-                self.seek(-(31 - chunk_len), io.SEEK_CUR)
+            chunk_end = chunk.find(b'\x00')
+            buffer += chunk[:chunk_end]
+            if chunk_end >= 0:
+                self.seek(-(len(chunk) - chunk_end - 1), io.SEEK_CUR)
                 return buffer.decode('ascii')
 
     def read_fourcc(self):
