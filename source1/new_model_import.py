@@ -179,24 +179,31 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
 
             if model.vertex_count == 0:
                 continue
-
+            mesh_name = f'{body_part.name}_{model.name}'
             used_copy = False
             if re_use_meshes:
-                mesh_data = bpy.data.meshes.get(f'{model.name}_MESH', False)
+                mesh_data = bpy.data.meshes.get(f'{mesh_name}_MESH', False)
                 if mesh_data:
                     mesh_data = mesh_data.copy()
                     used_copy = True
                 else:
-                    mesh_data = bpy.data.meshes.new(f'{model.name}_MESH')
+                    mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
             else:
-                mesh_data = bpy.data.meshes.new(f'{model.name}_MESH')
-            mesh_obj = bpy.data.objects.new(f"{model.name}", mesh_data)
+                mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
+            mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
             body_part_collection.objects.link(mesh_obj)
 
             modifier = mesh_obj.modifiers.new(
                 type="ARMATURE", name="Armature")
             modifier.object = armature
             mesh_obj.parent = armature
+
+            mesh_obj['model_type'] = 's1'
+
+            # mdl.skin_groups
+
+            mesh_obj['skin_groups'] = {}
+
             if used_copy:
                 continue
 

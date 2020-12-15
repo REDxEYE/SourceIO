@@ -71,7 +71,7 @@ def get_material(mat_name, model_ob):
 
 
 class BSP:
-    scale = 0.0133
+    scale = 0.0266
 
     def __init__(self, map_path):
         self.filepath = Path(map_path)
@@ -148,14 +148,15 @@ class BSP:
                 #                     'func_tracktrain', 'func_door_rotating', 'func_illusionary', 'func_breakable',
                 #                     'func_capturezone', 'func_capturezone','']:
                 elif class_name.startswith('func_'):
-                    if 'model' in entity:
-                        model_id = int(entity['model'][1:])
+
+                    if 'model' in entity and entity['model']:
+                        model_id = int(entity['model'].replace('*', ''))
                         location = parse_source2_hammer_vector(entity.get('origin', '0 0 0'))
                         mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
                         mesh_obj['entity'] = entity
 
                         mesh_obj.location = np.multiply(location, self.scale)
-                elif class_name in ['prop_dynamic', 'prop_physics_override', 'prop_physics', 'monster_generic']:
+                elif class_name.startswith('prop_') or class_name in ['monster_generic']:
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
 
