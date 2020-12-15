@@ -184,13 +184,13 @@ class ByteIO:
         if length is not None:
             return self.file.read(length).strip(b'\x00').decode('ascii').strip()
 
-        acc = bytearray()
-        while True:
-            b = self.file.read(1)
-            if b == b'\x00':
-                break
-            acc += b
-        return acc.decode('utf')
+        start = self.tell()
+        buffer = self.read_bytes(512)
+        while buffer.index(b'\x00') == -1:
+            buffer += self.read_bytes(512)
+        string = buffer[:buffer.index(b'\x00')].decode('ascii')
+        self.seek(start + len(string)+1)
+        return string
 
     def read_fourcc(self):
         return self.read_ascii_string(4)
