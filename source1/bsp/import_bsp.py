@@ -1,7 +1,6 @@
 import math
 import random
 import re
-from io import BytesIO
 from pathlib import Path
 from typing import Optional, List, Tuple
 
@@ -212,7 +211,7 @@ class BSP:
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump(LumpTypes.LUMP_GAME_LUMP)
         if gamelump:
-            static_prop_lump: StaticPropLump = gamelump.game_lumps('sprp', None)
+            static_prop_lump: StaticPropLump = gamelump.game_lumps.get('sprp', None)
             if static_prop_lump:
                 parent_collection = get_or_create_collection('static_props', self.main_collection)
                 for n, prop in enumerate(static_prop_lump.static_props):
