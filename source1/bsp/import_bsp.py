@@ -223,8 +223,6 @@ class BSP:
                                                    'prop_path': model_name,
                                                    'type': 'static_props'})
 
-                    pass
-
     def load_bmodel(self, model_id, model_name, custom_origin=None, parent_collection=None):
         if custom_origin is None:
             custom_origin = [0, 0, 0]
