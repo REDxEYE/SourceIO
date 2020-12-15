@@ -17,7 +17,7 @@ class Gameinfo(SubManager):
     def __init__(self, filepath: Path):
         super().__init__(filepath)
         with filepath.open('r') as f:
-            kv = KVParser('GAMEINFO', f)
+            kv = KVParser('GAMEINFO', f.read())
             root_key, self.data = kv.parse()
             assert root_key == 'gameinfo', 'Not a gameinfo file'
         self.modname_dir: Path = filepath.parent
