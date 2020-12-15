@@ -30,9 +30,11 @@ class KVToken(Enum):
 
 
 class KVReader:
-    def __init__(self, filename: str, file: TextIO):
-        self.filename = filename
-        self.file = file
+    def __init__(self, name: str, data: str):
+        self.name = name
+        self.data = data
+        self._length = len(self.data)
+        self._index = 0
         self._line = 1
         self._column = 1
         self._last = None
@@ -94,17 +96,17 @@ class KVReader:
             self._report(f'Unknown character \'{ch}\' ({ord(ch):02x})', lc)
 
     def _report(self, msg: str, pos: tuple):
-        self.file.seek(0)
-        raise ValueError(f'{self.filename}:{pos[0]}:{pos[1]}: {msg}')
+        raise ValueError(f'{self.name}:{pos[0]}:{pos[1]}: {msg}')
 
     def _next_char(self):
-        ch = self.file.read(1)
+        ch = '\0'
 
-        if ch == '':
-            ch = '\0'
+        if self._length > self._index:
+            ch = self.data[self._index]
+            self._index += 1
 
         if ch == '\r' and self._peek_char() == '\n':
-            self.file.read(1)
+            self._index += 1
 
         if ch == '\r' or ch == '\n':
             self._line += 1
@@ -115,15 +117,14 @@ class KVReader:
         return ch
 
     def _peek_char(self):
-        pos = self.file.tell()
-        ch = self.file.read(1)
-        self.file.seek(pos)
-        return ch
+        if self._length < self._index:
+            return None
+        return self.data[self._index]
 
 
 class KVParser(KVReader):
-    def __init__(self, filename: str, file: TextIO):
-        super().__init__(filename, file)
+    def __init__(self, name: str, data: str):
+        super().__init__(name, data)
 
     def parse(self):
         pairs = []
