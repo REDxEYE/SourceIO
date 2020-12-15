@@ -15,7 +15,9 @@ class VMT:
             original_material = content_manager.find_file(self.material_data['include'])
             if original_material:
                 kv_parser = KVParser('VMT', original_material.read(-1).decode())
+                patch_data = self.material_data['insert']
                 self.shader, self.material_data = kv_parser.parse()
+                self.material_data.update(patch_data)
             else:
                 print('Failed to find original material')
                 return
