@@ -1,9 +1,11 @@
+import math
 from pathlib import Path
 
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from .source1.content_manager import ContentManager
+from .source1.new_mdl.structs.header import StudioHDRFlags
 from .source1.new_model_import import import_model, import_materials
 from .source2.resouce_types.valve_model import ValveModel
 from .utilities.path_utilities import backwalk_file_resolver
@@ -62,6 +64,9 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                         armature.location = obj.location
                         armature.rotation_mode = "XYZ"
                         armature.rotation_euler = obj.rotation_euler
+                        if mdl.header.flags & StudioHDRFlags.STATIC_PROP == 0:
+                            armature.rotation_euler[2] += math.radians(90)
+                            pass
                         armature.scale = obj.scale
                         import_materials(mdl)
 
@@ -78,6 +83,15 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
+        if obj.get('model_type', False):
+            model_type = obj['model_type']
+            if model_type == 's1':
+                self.handle_s1()
+            elif model_type == 's2':
+                self.handle_s2()
+            else:
+                self.handle_s2()
+
         skin_material = obj['skin_groups'][self.skin_name]
         current_material = obj['skin_groups'][obj['active_skin']]
 
@@ -94,6 +108,12 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
         obj['active_skin'] = self.skin_name
 
         return {'FINISHED'}
+
+    def handle_s1(self):
+        pass
+
+    def handle_s2(self):
+        pass
 
 
 class SourceIOUtils_PT_panel(bpy.types.Panel):
@@ -117,13 +137,15 @@ class SourceIOUtils_PT_panel(bpy.types.Panel):
         if obj.get("entity_data", None):
             entiry_data = obj['entity_data']
             entity_raw_data = entiry_data.get('entity', {})
+
             box = self.layout.box()
-            if entity_raw_data.get('classname', False):
-                row = box.row()
-                row.label(text='Prop type:')
-                row.label(text=entity_raw_data['classname'])
-            box.label(text=entiry_data['prop_path'])
             box.operator('source_io.load_placeholder')
+            box = self.layout.box()
+            for k, v in entity_raw_data.items():
+                row = box.row()
+                row.label(text=f'{k}:')
+                row.label(text=str(v))
+
         if obj.get("skin_groups", None):
             self.layout.label(text="Skins")
             box = self.layout.box()
