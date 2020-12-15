@@ -52,12 +52,13 @@ class Face(Primitive):
         if tex_info_lump:
             return tex_info_lump.texture_info[self.tex_info_id]
         return None
+
     @property
     def disp_info(self):
         from ..lumps.displacement_lump import DispInfoLump
         from .. import LumpTypes
         lump: DispInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_DISPINFO, None)
-        if lump:
+        if lump and self.disp_info_id != -1:
             return lump.infos[self.disp_info_id]
         return None
 

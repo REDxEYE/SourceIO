@@ -15,7 +15,7 @@ from .lump import LumpTypes
 
 import bpy
 
-from .lumps.displacement_lump import DispVert
+from .lumps.displacement_lump import DispVert, DispInfoLump
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
 from .lumps.face_lump import FaceLump
@@ -81,13 +81,13 @@ class BSP:
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
 
-        self.model_lump: Optional[ModelLump] = self.map_file.lumps.get(LumpTypes.LUMP_MODELS, None)
-        self.vertex_lump: Optional[VertexLump] = self.map_file.lumps.get(LumpTypes.LUMP_VERTICES, None)
-        self.edge_lump: Optional[EdgeLump] = self.map_file.lumps.get(LumpTypes.LUMP_EDGES, None)
-        self.surf_edge_lump: Optional[SurfEdgeLump] = self.map_file.lumps.get(LumpTypes.LUMP_SURFEDGES, None)
-        self.face_lump: Optional[FaceLump] = self.map_file.lumps.get(LumpTypes.LUMP_FACES, None)
-        self.texture_info_lump: Optional[TextureInfoLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXINFO, None)
-        self.texture_data_lump: Optional[TextureDataLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, None)
+        self.model_lump: Optional[ModelLump] = self.map_file.get_lump(LumpTypes.LUMP_MODELS)
+        self.vertex_lump: Optional[VertexLump] = self.map_file.get_lump(LumpTypes.LUMP_VERTICES)
+        self.edge_lump: Optional[EdgeLump] = self.map_file.get_lump(LumpTypes.LUMP_EDGES)
+        self.surf_edge_lump: Optional[SurfEdgeLump] = self.map_file.get_lump(LumpTypes.LUMP_SURFEDGES)
+        self.face_lump: Optional[FaceLump] = self.map_file.get_lump(LumpTypes.LUMP_FACES)
+        self.texture_info_lump: Optional[TextureInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXINFO)
+        self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXDATA)
         if self.vertex_lump:
             self.scaled_vertices = np.multiply(self.vertex_lump.vertices, self.scale)
 
@@ -100,6 +100,8 @@ class BSP:
         vertex_ids = np.zeros((0, 1), dtype=np.uint32)
         vertex_offset = 0
         for map_face in faces[model.first_face:model.first_face + model.face_count]:
+            if map_face.disp_info_id != -1:
+                continue
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
 
@@ -113,7 +115,7 @@ class BSP:
         return vertex_ids  # , per_face_uv
 
     def get_string(self, string_id):
-        strings_lump: Optional[StringsLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA_STRING_TABLE, None)
+        strings_lump: Optional[StringsLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXDATA_STRING_TABLE)
         return strings_lump.strings[string_id] or "NO_NAME"
 
     def load_map_mesh(self):
@@ -121,7 +123,7 @@ class BSP:
             self.load_bmodel(0, 'world_geometry')
 
     def load_entities(self):
-        entity_lump: Optional[EntityLump] = self.map_file.lumps.get(LumpTypes.LUMP_ENTITIES, None)
+        entity_lump: Optional[EntityLump] = self.map_file.get_lump(LumpTypes.LUMP_ENTITIES)
         if entity_lump:
             for entity in entity_lump.entities:
                 class_name: str = entity.get('classname', None)
@@ -133,39 +135,28 @@ class BSP:
                     print(f'Cannot identify entity: {entity}')
 
                 parent_collection = get_or_create_collection(class_name, self.main_collection)
-                if class_name == 'env_sprite':
-                    continue
-                    # material = entity['model']
-                    # scale = float(entity.get('scale', '1.0'))
-                    # location = parse_source2_hammer_vector(entity['origin'])
-                    #
-                    # self.create_empty(f'Sprite_{hammer_id}_{target_name or material}',
-                    #                   location,
-                    #                   scale=[scale, scale, scale],
-                    #                   parent_collection=parent_collection,
-                    #                   custom_data=dict(entity))
-                # elif class_name in ['func_brush', 'func_rotating', 'func_door', 'trigger_multiple', 'func_button',
-                #                     'func_tracktrain', 'func_door_rotating', 'func_illusionary', 'func_breakable',
-                #                     'func_capturezone', 'func_capturezone','']:
-                elif class_name.startswith('func_'):
-
+                if class_name.startswith('func_'):
                     if 'model' in entity and entity['model']:
                         model_id = int(entity['model'].replace('*', ''))
                         location = parse_source2_hammer_vector(entity.get('origin', '0 0 0'))
-                        mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, parent_collection)
+                        location = np.multiply(location, self.scale)
+                        mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, location, parent_collection)
                         mesh_obj['entity'] = entity
+                    else:
+                        print(f'{target_name or hammer_id} does not reference any model, SKIPPING!')
 
-                        mesh_obj.location = np.multiply(location, self.scale)
                 elif class_name.startswith('prop_') or class_name in ['monster_generic']:
-                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
+                    if 'model' in entity:
+                        location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                        rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
 
-                    self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location, rotation,
-                                      parent_collection=parent_collection,
-                                      custom_data={'parent_path': str(self.filepath.parent),
-                                                   'prop_path': entity['model'],
-                                                   'type': class_name,
-                                                   'entity': entity})
+                        self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location,
+                                          rotation,
+                                          parent_collection=parent_collection,
+                                          custom_data={'parent_path': str(self.filepath.parent),
+                                                       'prop_path': entity['model'],
+                                                       'type': class_name,
+                                                       'entity': entity})
                 elif class_name == 'item_teamflag':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
@@ -196,7 +187,8 @@ class BSP:
                     inner_cone = float(entity['_inner_cone'])
                     cone = float(entity['_cone']) * 2
                     watts = watt_power_spot(lumens, color, cone)
-                    self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone,
+                    radius = (1 - inner_cone / cone)
+                    self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone, radius,
                                      parent_collection, entity)
                 elif class_name in ['light', 'light_environment']:
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
@@ -213,13 +205,14 @@ class BSP:
                     lumens *= color_max / 255 * (1.0 / self.scale)
                     color = np.divide(color, color_max)
                     watts = watt_power_point(lumens, color)
+
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
-                                     parent_collection, entity)
+                                     parent_collection=parent_collection, entity=entity)
 
     def load_static_props(self):
-        gamelump: Optional[GameLump] = self.map_file.lumps.get(LumpTypes.LUMP_GAME_LUMP, None)
+        gamelump: Optional[GameLump] = self.map_file.get_lump(LumpTypes.LUMP_GAME_LUMP)
         if gamelump:
-            static_prop_lump: StaticPropLump = gamelump.game_lumps.get('sprp', None)
+            static_prop_lump: StaticPropLump = gamelump.game_get_lump('sprp', None)
             if static_prop_lump:
                 parent_collection = get_or_create_collection('static_props', self.main_collection)
                 for n, prop in enumerate(static_prop_lump.static_props):
@@ -233,7 +226,9 @@ class BSP:
 
                     pass
 
-    def load_bmodel(self, model_id, model_name, parent_collection=None):
+    def load_bmodel(self, model_id, model_name, custom_origin=None, parent_collection=None):
+        if custom_origin is None:
+            custom_origin = [0, 0, 0]
         model = self.model_lump.models[model_id]
         print(f'Loading "{model_name}"')
         mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_{model_name}",
@@ -243,7 +238,10 @@ class BSP:
             parent_collection.objects.link(mesh_obj)
         else:
             self.main_collection.objects.link(mesh_obj)
-        mesh_obj.location = model.origin
+        if custom_origin is not None:
+            mesh_obj.location = custom_origin
+        else:
+            mesh_obj.location = model.origin
 
         material_lookup_table = {}
         for texture_info in self.texture_info_lump.texture_info:
@@ -264,6 +262,8 @@ class BSP:
         uvs_per_face = []
 
         for map_face in self.face_lump.faces[model.first_face:model.first_face + model.face_count]:
+            if map_face.disp_info_id != -1:
+                continue
             uvs = {}
             face = []
             first_edge = map_face.first_edge
@@ -326,7 +326,8 @@ class BSP:
         else:
             self.main_collection.objects.link(placeholder)
 
-    def load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, parent_collection=None,
+    def load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, radius=0.25,
+                    parent_collection=None,
                     entity=None):
         if entity is None:
             entity = {}
@@ -337,6 +338,7 @@ class BSP:
         lamp_data.energy = watts
         lamp_data.color = color
         lamp.rotation_euler = rotation
+        lamp_data.shadow_soft_size = radius
         lamp['entity'] = entity
         if light_type == 'SPOT':
             lamp_data.spot_size = math.radians(core_or_size)
@@ -349,14 +351,15 @@ class BSP:
     def load_materials(self):
         content_manager = ContentManager()
 
-        texture_data_lump: Optional[TextureDataLump] = self.map_file.lumps.get(LumpTypes.LUMP_TEXDATA, None)
-        pak_lump: Optional[PakLump] = self.map_file.lumps.get(LumpTypes.LUMP_PAK, None)
+        texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXDATA)
+        pak_lump: Optional[PakLump] = self.map_file.get_lump(LumpTypes.LUMP_PAK)
         if pak_lump:
             content_manager.sub_managers[self.filepath.stem] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
-            if bpy.data.materials.get(strip_patch_coordinates.sub("", material_name), False):
-                if bpy.data.materials[strip_patch_coordinates.sub("", material_name)].get('source1_loaded'):
+            tmp = strip_patch_coordinates.sub("", material_name)[:63]
+            if bpy.data.materials.get(tmp, False):
+                if bpy.data.materials[tmp].get('source1_loaded'):
                     print(f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
                     continue
             print(f"Loading {material_name} material")
@@ -366,13 +369,14 @@ class BSP:
                 mat = BlenderMaterial(material_file)
                 mat.load_textures()
                 material_name = strip_patch_coordinates.sub("", material_name)
-                material_name = material_name[:64]
+                material_name = material_name[:63]
                 mat.create_material(material_name, True)
             else:
                 print(f'Failed to find {material_name} material')
 
     def load_disp(self):
-        disp_verts_lump: Optional[DispVert] = self.map_file.lumps.get(LumpTypes.LUMP_DISP_VERTS, None)
+        disp_verts_lump: Optional[DispVert] = self.map_file.get_lump(LumpTypes.LUMP_DISP_VERTS)
+        disp_info_lump: Optional[DispInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_DISPINFO)
         if disp_verts_lump:
             mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_disp",
                                             bpy.data.meshes.new(f"{self.filepath.stem}_disp_MESH"))

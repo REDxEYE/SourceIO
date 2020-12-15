@@ -41,7 +41,16 @@ class BSPFile:
             lump.parse(reader)
             self.lumps_info.append(lump)
         self.revision = reader.read_int32()
-        self.parse_lumps()
+        # self.parse_lumps()
+
+    def get_lump(self, lump_id):
+        if lump_id in self.lumps:
+            return self.lumps[lump_id]
+        else:
+            sub: Type[Lump]
+            for sub in Lump.__subclasses__():
+                if sub.lump_id == lump_id:
+                    return self.parse_lump(sub)
 
     def parse_lumps(self):
         self.parse_lump(EntityLump)
@@ -68,4 +77,6 @@ class BSPFile:
         if self.lumps_info[lump_class.lump_id].size != 0:
             lump = self.lumps_info[lump_class.lump_id]
             print(f"Loading {lump_class.lump_id.name} lump.\n\tOffset: {lump.offset}\n\tSize:{lump.size}")
-            self.lumps[lump_class.lump_id] = lump_class(self).parse()
+            parsed_lump = lump_class(self).parse()
+            self.lumps[lump_class.lump_id] = parsed_lump
+            return parsed_lump
