@@ -24,7 +24,7 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                 content_manager.scan_for_content(sub)
 
         for obj in context.selected_objects:
-            print(obj.name, obj.get("entity_data", None))
+            print(f'Loading {obj.name}')
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
                 model_type = Path(custom_prop_data['prop_path']).suffix
