@@ -372,8 +372,10 @@ class BSP:
                 print(f'Failed to find {material_name} material')
 
     def load_disp(self):
-        disp_verts_lump: Optional[DispVert] = self.map_file.get_lump(LumpTypes.LUMP_DISP_VERTS)
         disp_info_lump: Optional[DispInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_DISPINFO)
+        if not disp_info_lump or not disp_info_lump.infos:
+            return
+        disp_verts_lump: Optional[DispVert] = self.map_file.get_lump(LumpTypes.LUMP_DISP_VERTS)
         surf_edges = self.surf_edge_lump.surf_edges
         vertices = self.vertex_lump.vertices
         edges = self.edge_lump.edges
