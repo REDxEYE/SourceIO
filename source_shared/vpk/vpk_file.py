@@ -37,7 +37,7 @@ class VPKFile:
 
             assert self.header.other_md5_section_size == 48, \
                 f'Invalid size of other_md5_section {self.header.other_md5_section_size} bytes, should be 48 bytes'
-        if self.header.version==2:
+        if self.header.version == 2:
             self.tree_hash = reader.read_bytes(16)
             self.archive_md5_hash = reader.read_bytes(16)
             self.file_hash = reader.read_bytes(16)
@@ -120,5 +120,5 @@ class VPKFile:
             print(f'Reading {entry.file_name} from {target_archive_path}')
             with open(target_archive_path, 'rb') as target_archive:
                 target_archive.seek(entry.offset)
-                reader = BytesIO(target_archive.read(entry.size))
+                reader = BytesIO(entry.preload_data + target_archive.read(entry.size))
                 return reader
