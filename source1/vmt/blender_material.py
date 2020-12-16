@@ -95,7 +95,9 @@ class BlenderMaterial(VMT):
             elif int(self.material_data.get('$selfillum', '0')) == 1:
                 mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Emission'])
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Emission Strength'])
-            else:
+            elif int(self.material_data.get('$alphatest', '0')) == 1:
+                mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
+            elif int(self.material_data.get('$translucent', '0')) == 1:
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
             tex = nodes.new('ShaderNodeTexImage')
