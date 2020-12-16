@@ -5,7 +5,7 @@ from ...utilities.keyvalues import KVParser
 class VMT:
     def __init__(self, file_object):
 
-        kv_parser = KVParser('VMT', file_object.read(-1).decode())
+        kv_parser = KVParser('VMT', file_object.read(-1).decode().replace('`', ''))
         self.shader, self.material_data = kv_parser.parse()
         self.textures = {}
 
@@ -15,9 +15,13 @@ class VMT:
             original_material = content_manager.find_file(self.material_data['include'])
             if original_material:
                 kv_parser = KVParser('VMT', original_material.read(-1).decode())
-                patch_data = self.material_data['insert']
                 self.shader, self.material_data = kv_parser.parse()
-                self.material_data.update(patch_data)
+                if 'insert' in self.material_data:
+                    patch_data = self.material_data['insert']
+                    self.material_data.update(patch_data)
+                if 'replace' in self.material_data:
+                    patch_data = self.material_data['replace']
+                    self.material_data.update(patch_data)
             else:
                 print('Failed to find original material')
                 return
