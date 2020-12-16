@@ -189,7 +189,10 @@ class ByteIO:
         while True:
             chunk = self.read_bytes(32)
             chunk_end = chunk.find(b'\x00')
-            buffer += chunk[:chunk_end]
+            if chunk_end >= 0:
+                buffer += chunk[:chunk_end]
+            else:
+                buffer += chunk
             if chunk_end >= 0:
                 self.seek(-(len(chunk) - chunk_end - 1), io.SEEK_CUR)
                 return buffer.decode('ascii')
