@@ -357,7 +357,7 @@ def import_materials(mdl):
                 continue
         material_path = None
         for mat_path in mdl.materials_paths:
-            material_path = content_manager.find_material(Path(mat_path) / Path(material.name).stem)
+            material_path = content_manager.find_material(Path(mat_path) / material.name)
             if material_path:
                 break
         if material_path:
