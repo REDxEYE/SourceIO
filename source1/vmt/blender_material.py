@@ -1,6 +1,8 @@
 import bpy
 from pathlib import Path
 
+import numpy as np
+
 from ..content_manager import ContentManager
 from ..vmt.vmt import VMT
 from ..vtf.import_vtf import import_texture
@@ -32,6 +34,26 @@ class BlenderMaterial(VMT):
                     image = import_texture(name, texture)
                     if image:
                         self.textures[key] = bpy.data.images.get(image)
+
+    def convert_ssbump(self, image):
+        print(f'Converting {image.name} SSBump to normal map')
+        if bpy.app.version > (2, 83, 0):
+            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+            image.pixels.foreach_get(buffer)
+        else:
+            buffer = np.array(image.pixels[:])
+        buffer[0::4] *= 0.5
+        buffer[0::4] += 0.33
+        buffer[1::4] *= 0.5
+        buffer[1::4] += 0.33
+        buffer[2::4] *= 0.2
+        buffer[2::4] += 0.8
+        if bpy.app.version > (2, 83, 0):
+            image.pixels.foreach_set(buffer.tolist())
+        else:
+            image.pixels[:] = buffer.tolist()
+        image.pack()
+        return image
 
     def create_material(self, material_name=None, override=True):
         material_name = material_name[:63]
@@ -77,7 +99,10 @@ class BlenderMaterial(VMT):
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
             tex = nodes.new('ShaderNodeTexImage')
-            tex.image = self.textures.get('$bumpmap')
+            image = self.textures.get('$bumpmap')
+            if int(self.material_data.get('$ssbump', '0')):
+                image = self.convert_ssbump(image)
+            tex.image = image
             tex.location = (-635.0, 146.0)
             tex.image.colorspace_settings.is_data = True
             tex.image.colorspace_settings.name = 'Non-Color'
