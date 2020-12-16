@@ -105,7 +105,7 @@ class BSP:
             edge_count = map_face.edge_count
 
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
-            reverse = np.subtract(1, (used_surf_edges >= 0).astype(np.uint8))
+            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
             face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
             vertex_ids = np.insert(vertex_ids, vertex_offset, face_vertex_ids)
@@ -271,7 +271,7 @@ class BSP:
             tv1, tv2 = texture_info.texture_vectors
 
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
-            reverse = np.subtract(1, (used_surf_edges >= 0).astype(np.uint8))
+            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
             face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
 
@@ -374,11 +374,105 @@ class BSP:
     def load_disp(self):
         disp_verts_lump: Optional[DispVert] = self.map_file.get_lump(LumpTypes.LUMP_DISP_VERTS)
         disp_info_lump: Optional[DispInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_DISPINFO)
-        if disp_verts_lump:
-            mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_disp",
-                                            bpy.data.meshes.new(f"{self.filepath.stem}_disp_MESH"))
+        surf_edges = self.surf_edge_lump.surf_edges
+        vertices = self.vertex_lump.vertices
+        edges = self.edge_lump.edges
+        disp_verts = disp_verts_lump.vertices
+        parent_collection = get_or_create_collection('displacements', self.main_collection)
+        info_count = len(disp_info_lump.infos)
+        for n, disp_info in enumerate(disp_info_lump.infos):
+            print(f'Processing {n + 1}/{info_count} displacement face')
+            uvs = []
+            final_vertices = []
+            src_face = disp_info.source_face
+
+            texture_info = src_face.tex_info
+            texture_data = texture_info.tex_data
+            tv1, tv2 = texture_info.texture_vectors
+
+            first_edge = src_face.first_edge
+            edge_count = src_face.edge_count
+
+            used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
+            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
+            used_edges = edges[np.abs(used_surf_edges)]
+            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+            face_vertices = vertices[face_vertex_ids] * self.scale
+
+            min_index = np.where(
+                np.sum(
+                    np.isclose(face_vertices,
+                               disp_info.start_position * self.scale,
+                               1.e-3),
+                    axis=1
+                ) == 3)[0][0]
+
+            # for _ in range(min_index*2):
+            #     #   0 1 2 3
+            #     #   1 2 3 0
+            #     #   3 0 1 2
+            #     Temp = face_vertices[0]
+            #     face_vertices[0] = face_vertices[1]
+            #     face_vertices[1] = face_vertices[2]
+            #     face_vertices[2] = face_vertices[3]
+            #     face_vertices[3] = Temp
+
+            def get_index(ind):
+                return (ind + min_index) % 4
+
+            left_edge = face_vertices[get_index(1)] - face_vertices[get_index(0)]
+            right_edge = face_vertices[get_index(2)] - face_vertices[get_index(3)]
+
+            num_edge_vertices = (1 << disp_info.power) + 1
+            subdivide_scale = 1.0 / (num_edge_vertices - 1)
+
+            left_edge_step = left_edge * subdivide_scale
+            right_edge_step = right_edge * subdivide_scale
+
+            for i in range(num_edge_vertices):
+                left_end = left_edge_step * i
+                left_end += face_vertices[get_index(0)]
+
+                right_end = right_edge_step * i
+                right_end += face_vertices[get_index(3)]
+
+                left_right_seg = right_end - left_end
+                left_right_step = left_right_seg * subdivide_scale
+
+                for j in range(num_edge_vertices):
+                    disp_vert_index = disp_info.disp_vert_start + (i * num_edge_vertices + j)
+
+                    flat_vertex = left_end + (left_right_step * j)
+                    disp_vertex = flat_vertex + (disp_verts[disp_vert_index] * self.scale)
+
+                    s = (np.dot(flat_vertex, tv1[:3]) + tv1[3] * self.scale) / (texture_data.view_width * self.scale)
+                    t = (np.dot(flat_vertex, tv2[:3]) + tv2[3] * self.scale) / (texture_data.view_height * self.scale)
+                    uvs.append((s, t))
+                    final_vertices.append(disp_vertex)
+            face_indices = []
+            for i in range(num_edge_vertices - 1):
+                for j in range(num_edge_vertices - 1):
+                    index = i * num_edge_vertices + j
+                    if index % 2 == 1:
+                        face_indices.append((index, index + 1, index + num_edge_vertices))
+                        face_indices.append((index + 1, index + num_edge_vertices + 1, index + num_edge_vertices))
+                    else:
+                        face_indices.append((index, index + num_edge_vertices + 1, index + num_edge_vertices))
+                        face_indices.append((index, index + 1, index + num_edge_vertices + 1,))
+
+            mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_disp_{disp_info.map_face}",
+                                            bpy.data.meshes.new(
+                                                f"{self.filepath.stem}_disp_{disp_info.map_face}_MESH"))
             mesh_data = mesh_obj.data
-
-            mesh_data.from_pydata(disp_verts_lump.vertices * self.scale, [], [])
-
-            self.main_collection.objects.link(mesh_obj)
+            if parent_collection is not None:
+                parent_collection.objects.link(mesh_obj)
+            else:
+                self.main_collection.objects.link(mesh_obj)
+            mesh_data.from_pydata(final_vertices, [], face_indices)
+            mesh_data.uv_layers.new()
+            uv_data = mesh_data.uv_layers[0].data
+            for uv_id in range(len(uv_data)):
+                u = uvs[mesh_data.loops[uv_id].vertex_index]
+                u = [u[0], 1 - u[1]]
+                uv_data[uv_id].uv = u
+            get_material(self.get_string(texture_data.name_id), mesh_obj)

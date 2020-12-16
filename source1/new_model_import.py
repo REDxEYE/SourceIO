@@ -6,6 +6,7 @@ import numpy as np
 from typing import BinaryIO
 
 from .content_manager import ContentManager
+from .new_mdl.structs.header import StudioHDRFlags
 from ..utilities.path_utilities import get_mod_path
 from .new_mdl.flex_expressions import *
 from .new_mdl.structs.bone import Bone
@@ -181,7 +182,7 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
                 continue
             mesh_name = f'{body_part.name}_{model.name}'
             used_copy = False
-            if re_use_meshes:
+            if re_use_meshes and mdl.header.flags & StudioHDRFlags.STATIC_PROP == 1:
                 mesh_data = bpy.data.meshes.get(f'{mesh_name}_MESH', False)
                 if mesh_data:
                     mesh_data = mesh_data.copy()

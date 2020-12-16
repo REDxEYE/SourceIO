@@ -30,7 +30,7 @@ class Node(Primitive):
 
     @property
     def plane(self):
-        plane_lump: PlaneLump = self._bsp.lumps.get(LumpTypes.LUMP_PLANES, None)
+        plane_lump: PlaneLump = self._bsp.get_lump(LumpTypes.LUMP_PLANES)
         if plane_lump:
             planes = plane_lump.planes
             return planes[self.plane_index]
@@ -39,7 +39,7 @@ class Node(Primitive):
     @property
     def childes(self):
         from ..lumps.node_lump import NodeLump
-        lump: NodeLump = self._bsp.lumps.get(LumpTypes.LUMP_NODES, None)
+        lump: NodeLump = self._bsp.get_lump(LumpTypes.LUMP_NODES)
         if lump:
             return lump.nodes[self.childes_id[0]], lump.nodes[self.childes_id[1]]
         return None

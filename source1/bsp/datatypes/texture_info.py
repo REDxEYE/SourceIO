@@ -22,7 +22,7 @@ class TextureInfo(Primitive):
     @property
     def tex_data(self):
         from ..lumps.texture_lump import TextureDataLump
-        tex_data_lump: TextureDataLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXDATA, None)
+        tex_data_lump: TextureDataLump = self._bsp.get_lump(LumpTypes.LUMP_TEXDATA)
         if tex_data_lump:
             tex_datas = tex_data_lump.texture_data
             return tex_datas[self.texture_data_id]

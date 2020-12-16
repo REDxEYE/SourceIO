@@ -26,7 +26,7 @@ class TextureData(Primitive):
 
     @property
     def name(self):
-        lump: StringsLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXDATA_STRING_TABLE, None)
+        lump: StringsLump = self._bsp.get_lump(LumpTypes.LUMP_TEXDATA_STRING_TABLE)
         if lump:
             return lump.strings[self.name_id]
         return None

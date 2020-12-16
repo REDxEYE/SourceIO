@@ -48,7 +48,7 @@ class Face(Primitive):
     def tex_info(self):
         from ..lumps.texture_lump import TextureInfoLump
         from .. import LumpTypes
-        tex_info_lump: TextureInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXINFO, None)
+        tex_info_lump: TextureInfoLump = self._bsp.get_lump(LumpTypes.LUMP_TEXINFO)
         if tex_info_lump:
             return tex_info_lump.texture_info[self.tex_info_id]
         return None
@@ -57,7 +57,7 @@ class Face(Primitive):
     def disp_info(self):
         from ..lumps.displacement_lump import DispInfoLump
         from .. import LumpTypes
-        lump: DispInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_DISPINFO, None)
+        lump: DispInfoLump = self._bsp.get_lump(LumpTypes.LUMP_DISPINFO)
         if lump and self.disp_info_id != -1:
             return lump.infos[self.disp_info_id]
         return None

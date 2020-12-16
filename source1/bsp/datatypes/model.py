@@ -25,7 +25,7 @@ class Model(Primitive):
 
     @property
     def node(self):
-        lump: NodeLump = self._bsp.lumps.get(LumpTypes.LUMP_NODES, None)
+        lump: NodeLump = self._bsp.get_lump(LumpTypes.LUMP_NODES)
         if lump:
             return lump.nodes[self.head_node]
         return None

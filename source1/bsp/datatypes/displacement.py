@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 from .primitive import Primitive
 from ....utilities.byte_io_mdl import ByteIO
 
@@ -22,7 +24,7 @@ class DispInfo(Primitive):
         self.allowed_verts = []  # type: List[int]
 
     def parse(self, reader: ByteIO):
-        self.start_position = reader.read_fmt('3f')
+        self.start_position = np.array(reader.read_fmt('3f'))
         self.disp_vert_start = reader.read_uint32()
         self.disp_tri_start = reader.read_uint32()
         self.power = reader.read_uint32()
@@ -48,7 +50,7 @@ class DispInfo(Primitive):
     def source_face(self):
         from ..lumps.face_lump import FaceLump
         from ..bsp_file import LumpTypes
-        lump: FaceLump = self._bsp.lumps.get(LumpTypes.LUMP_FACES, None)
+        lump: FaceLump = self._bsp.get_lump(LumpTypes.LUMP_FACES)
         if lump:
             return lump.faces[self.map_face]
         return None

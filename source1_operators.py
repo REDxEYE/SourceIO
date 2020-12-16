@@ -103,9 +103,9 @@ class BSPImport_OT_operator(bpy.types.Operator):
                                                      content_manager.sub_managers.items() if hasattr(sub, 'filepath')}
         bsp_map = BSP(self.filepath)
         bsp_map.load_map_mesh()
+        bsp_map.load_disp()
         bsp_map.load_entities()
         bsp_map.load_static_props()
-        # bsp_map.load_disp()
         if self.import_textures:
             bsp_map.load_materials()
 

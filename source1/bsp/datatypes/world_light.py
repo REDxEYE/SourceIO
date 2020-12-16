@@ -115,7 +115,7 @@ class WorldLight(Primitive):
 
     @property
     def tex_info(self):
-        tex_info_lump: TextureInfoLump = self._bsp.lumps.get(LumpTypes.LUMP_TEXINFO, None)
+        tex_info_lump: TextureInfoLump = self._bsp.get_lump(LumpTypes.LUMP_TEXINFO)
         if tex_info_lump:
             tex_infos = tex_info_lump.texture_info
             return tex_infos[self.tex_info_id]
