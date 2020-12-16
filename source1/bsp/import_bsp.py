@@ -31,7 +31,7 @@ from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..vmt.vmt import VMT
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
-    watt_power_spot, watt_power_point
+    watt_power_spot, watt_power_point, lerp_vec
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 
@@ -207,6 +207,31 @@ class BSP:
 
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                                      parent_collection=parent_collection, entity=entity)
+                elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
+                    parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))[0]
+                    location_start = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    location_end = np.multiply(parse_source2_hammer_vector(parent['origin']), self.scale)
+
+                    curve = bpy.data.curves.new(f'{target_name or hammer_id}_data', 'CURVE')
+                    curve.dimensions = '3D'
+                    curve_object = bpy.data.objects.new(target_name or hammer_id, curve)
+                    curve_path = curve.splines.new('NURBS')
+
+                    self.main_collection.objects.link(curve_object)
+
+                    slack = entity.get('slack', 0)
+
+                    point_start = (*location_start, 1)
+                    point_end = (*location_end, 1)
+                    point_mid = lerp_vec(point_start, point_end, 0.5)
+                    point_mid[2] -= sum(slack * 0.0002 for _ in range(slack))
+
+                    curve_path.points.add(2)
+                    curve_path.points[0].co = point_start
+                    curve_path.points[1].co = point_mid
+                    curve_path.points[2].co = point_end
+
+                    curve_path.use_endpoint_u = True
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump(LumpTypes.LUMP_GAME_LUMP)

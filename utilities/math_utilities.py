@@ -70,3 +70,11 @@ def watt_power_point(lumen, color):
 def watt_power_spot(lumen, color, cone):
     return lumen * (1 / (MAX_LIGHT_EFFICIENCY_EFFICACY * 2 * math.pi * (
             1 - math.cos(math.radians(cone) / 2))) * 4 * math.pi) / srgb_to_luminance(color)
+
+
+def lerp(v0, v1, t):
+    return (1 - t) * v0 + t * v1
+
+
+def lerp_vec(v0, v1, t):
+    return list(map(lambda x: lerp(x[0], x[1], t), zip(v0, v1)))
