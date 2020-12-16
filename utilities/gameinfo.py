@@ -43,6 +43,14 @@ class Gameinfo(SubManager):
             if file.suffix == '.vpk':
                 all_search_paths.append(file)
 
+        for file in self.project_dir.iterdir():
+            if file.is_file():
+                continue
+            if (file/'gameinfo.txt').exists():
+                all_search_paths.append(file)
+            for vpk_file in file.glob('*_dir.vpk'):
+                all_search_paths.append(vpk_file)
+
         return all_search_paths
 
     def find_file(self, filepath: str, additional_dir=None,

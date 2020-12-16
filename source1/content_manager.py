@@ -17,7 +17,7 @@ class ContentManager(metaclass=SingletonMeta):
     def scan_for_content(self, source_game_path: Union[str, Path]):
         source_game_path = Path(source_game_path)
         if source_game_path.suffix == '.vpk':
-            if source_game_path.stem in self.sub_managers:
+            if f'{source_game_path.parent.stem}_{source_game_path.stem}' in self.sub_managers:
                 return
             if not source_game_path.stem.endswith('_dir'):
                 vpk_path = source_game_path.parent / (source_game_path.stem + "_dir.vpk")
@@ -25,19 +25,21 @@ class ContentManager(metaclass=SingletonMeta):
                 vpk_path = source_game_path
             if vpk_path.exists():
                 sub_manager = VPKSubManager(vpk_path)
-                self.sub_managers[source_game_path.stem] = sub_manager
-                print(f'Registered sub manager for {source_game_path.stem}')
+                self.sub_managers[f'{source_game_path.parent.stem}_{source_game_path.stem}'] = sub_manager
+                print(f'Registered sub manager for {source_game_path.parent.stem}_{source_game_path.stem}')
                 return
 
         is_source, root_path = self.is_source_mod(source_game_path)
         if root_path.stem in self.sub_managers:
             return
         if is_source:
-            sub_manager = Gameinfo(root_path / 'gameinfo.txt')
-            self.sub_managers[root_path.stem] = sub_manager
-            print(f'Registered sub manager for {root_path.stem}')
-            for mod in sub_manager.get_search_paths():
-                self.scan_for_content(mod)
+            gameinfos = root_path.glob('*gameinfo*.txt')
+            for gameinfo in gameinfos:
+                sub_manager = Gameinfo(gameinfo)
+                self.sub_managers[root_path.stem] = sub_manager
+                print(f'Registered sub manager for {root_path.stem}')
+                for mod in sub_manager.get_search_paths():
+                    self.scan_for_content(mod)
         else:
             if root_path.is_dir():
                 sub_manager = NonSourceSubManager(root_path)
@@ -46,7 +48,8 @@ class ContentManager(metaclass=SingletonMeta):
 
     @staticmethod
     def is_source_mod(path: Path, second=False):
-        if (path / 'gameinfo.txt').exists():
+        gameinfos = list(path.glob('*gameinfo*.txt'))
+        if gameinfos:
             return True, path
         elif not second:
             return ContentManager.is_source_mod(get_mod_path(path), True)
