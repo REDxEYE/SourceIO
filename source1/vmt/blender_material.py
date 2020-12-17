@@ -82,42 +82,50 @@ class BlenderMaterial(VMT):
         bsdf = nodes.new('ShaderNodeBsdfPrincipled')
         bsdf.location = (45.0, 146.0)
         mat.node_tree.links.new(bsdf.outputs["BSDF"], out.inputs['Surface'])
+
         if self.textures.get('$basetexture', False):
-            tex = nodes.new('ShaderNodeTexImage')
-            tex.image = self.textures.get('$basetexture')
-            tex.location = (-295.0, 146.0)
-            mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
-            alpha_output = tex.outputs["Alpha"]
+            basetexture_node = nodes.new('ShaderNodeTexImage')
+            basetexture_node.image = self.textures.get('$basetexture')
+            basetexture_node.label = '$basetexture'
+            basetexture_node.name = '$basetexture'
+            basetexture_node.location = (-295.0, 146.0)
+            mat.node_tree.links.new(basetexture_node.outputs["Color"], bsdf.inputs['Base Color'])
+
+            alpha_output = basetexture_node.outputs["Alpha"]
             if int(self.material_data.get('$basemapalphaphongmask', '0')) == 1:
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Specular'])
             elif int(self.material_data.get('$basealphaenvmapmask', '0')) == 1:
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Roughness'])
             elif int(self.material_data.get('$selfillum', '0')) == 1:
-                mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Emission'])
+                mat.node_tree.links.new(basetexture_node.outputs["Color"], bsdf.inputs['Emission'])
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Emission Strength'])
             elif int(self.material_data.get('$alphatest', '0')) == 1:
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
             elif int(self.material_data.get('$translucent', '0')) == 1:
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
-            tex = nodes.new('ShaderNodeTexImage')
+            bumpmap_texture = nodes.new('ShaderNodeTexImage')
+            bumpmap_texture.label = '$bumpmap'
+            bumpmap_texture.name = '$bumpmap'
             image = self.textures.get('$bumpmap')
             if int(self.material_data.get('$ssbump', '0')):
                 image = self.convert_ssbump(image)
-            tex.image = image
-            tex.location = (-635.0, 146.0)
-            tex.image.colorspace_settings.is_data = True
-            tex.image.colorspace_settings.name = 'Non-Color'
+            bumpmap_texture.image = image
+            bumpmap_texture.location = (-635.0, 146.0)
+            bumpmap_texture.image.colorspace_settings.is_data = True
+            bumpmap_texture.image.colorspace_settings.name = 'Non-Color'
 
             if int(self.material_data.get('$normalmapalphaenvmapmask', '0')) == 1:
-                mat.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs['Specular'])
+                mat.node_tree.links.new(bumpmap_texture.outputs["Alpha"], bsdf.inputs['Specular'])
 
             normal = nodes.new("ShaderNodeNormalMap")
             normal.location = (-295.0, -125.0)
-            mat.node_tree.links.new(tex.outputs["Color"], normal.inputs['Color'])
+            mat.node_tree.links.new(bumpmap_texture.outputs["Color"], normal.inputs['Color'])
             mat.node_tree.links.new(normal.outputs["Normal"], bsdf.inputs['Normal'])
         if self.textures.get('$phongexponenttexture', False):
             tex = nodes.new('ShaderNodeTexImage')
+            tex.label = '$phongexponenttexture'
+            tex.name = '$phongexponenttexture'
             tex.image = self.textures.get('$phongexponenttexture')
             tex.location = (-200, 0)
             # mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
