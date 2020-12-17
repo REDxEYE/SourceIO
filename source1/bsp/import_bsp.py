@@ -405,12 +405,14 @@ class BSP:
         vertices = self.vertex_lump.vertices
         edges = self.edge_lump.edges
         disp_verts = disp_verts_lump.vertices
+        disp_vertices_alpha = disp_verts_lump._vertices['alpha']
         parent_collection = get_or_create_collection('displacements', self.main_collection)
         info_count = len(disp_info_lump.infos)
         for n, disp_info in enumerate(disp_info_lump.infos):
             print(f'Processing {n + 1}/{info_count} displacement face')
             uvs = []
             final_vertices = []
+            final_vertex_colors = []
             src_face = disp_info.source_face
 
             texture_info = src_face.tex_info
@@ -433,16 +435,6 @@ class BSP:
                                1.e-3),
                     axis=1
                 ) == 3)[0][0]
-
-            # for _ in range(min_index*2):
-            #     #   0 1 2 3
-            #     #   1 2 3 0
-            #     #   3 0 1 2
-            #     Temp = face_vertices[0]
-            #     face_vertices[0] = face_vertices[1]
-            #     face_vertices[1] = face_vertices[2]
-            #     face_vertices[2] = face_vertices[3]
-            #     face_vertices[3] = Temp
 
             def get_index(ind):
                 return (ind + min_index) % 4
@@ -476,6 +468,12 @@ class BSP:
                     t = (np.dot(flat_vertex, tv2[:3]) + tv2[3] * self.scale) / (texture_data.view_height * self.scale)
                     uvs.append((s, t))
                     final_vertices.append(disp_vertex)
+                    final_vertex_colors.append(
+                        (disp_vertices_alpha[disp_vert_index],
+                         disp_vertices_alpha[disp_vert_index],
+                         disp_vertices_alpha[disp_vert_index],
+                         1)
+                    )
             face_indices = []
             for i in range(num_edge_vertices - 1):
                 for j in range(num_edge_vertices - 1):
@@ -502,4 +500,11 @@ class BSP:
                 u = uvs[mesh_data.loops[uv_id].vertex_index]
                 u = [u[0], 1 - u[1]]
                 uv_data[uv_id].uv = u
+
+            vertex_colors = mesh_data.vertex_colors.get('mixing', False) or mesh_data.vertex_colors.new(
+                name='mixing')
+            vertex_colors_data = vertex_colors.data
+            for i in range(len(vertex_colors_data)):
+                u = final_vertex_colors[mesh_data.loops[i].vertex_index]
+                vertex_colors_data[i].color = u
             get_material(self.get_string(texture_data.name_id), mesh_obj)
