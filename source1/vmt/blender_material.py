@@ -86,7 +86,6 @@ class BlenderMaterial(VMT):
         if self.textures.get('$basetexture', False):
             basetexture_node = nodes.new('ShaderNodeTexImage')
             basetexture_node.image = self.textures.get('$basetexture')
-            basetexture_node.label = '$basetexture'
             basetexture_node.name = '$basetexture'
             basetexture_node.location = (-295.0, 146.0)
             mat.node_tree.links.new(basetexture_node.outputs["Color"], bsdf.inputs['Base Color'])
@@ -105,7 +104,6 @@ class BlenderMaterial(VMT):
                 mat.node_tree.links.new(alpha_output, bsdf.inputs['Alpha'])
         if self.textures.get('$bumpmap', False):
             bumpmap_texture = nodes.new('ShaderNodeTexImage')
-            bumpmap_texture.label = '$bumpmap'
             bumpmap_texture.name = '$bumpmap'
             image = self.textures.get('$bumpmap')
             if int(self.material_data.get('$ssbump', '0')):
@@ -124,11 +122,10 @@ class BlenderMaterial(VMT):
             mat.node_tree.links.new(normal.outputs["Normal"], bsdf.inputs['Normal'])
         if self.textures.get('$phongexponenttexture', False):
             tex = nodes.new('ShaderNodeTexImage')
-            tex.label = '$phongexponenttexture'
             tex.name = '$phongexponenttexture'
             tex.image = self.textures.get('$phongexponenttexture')
             tex.location = (-200, 0)
-            # mat.node_tree.links.new(tex.outputs["Color"], bsdf.inputs['Base Color'])
+
         mat.blend_method = 'HASHED'
         mat.shadow_method = 'HASHED'
 
