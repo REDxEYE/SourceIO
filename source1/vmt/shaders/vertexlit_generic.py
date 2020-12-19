@@ -68,6 +68,10 @@ class VertexLitGeneric(ShaderBase):
         return self._vavle_material.get_param('$alpha', 0) == 1
 
     @property
+    def additive(self):
+        return self._vavle_material.get_param('$additive', 0) == 1
+
+    @property
     def phong(self):
         return self._vavle_material.get_param('$phong', 0) == 1
 
@@ -110,6 +114,20 @@ class VertexLitGeneric(ShaderBase):
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
             if self.alpha or self.translucent:
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
+
+            if self.additive:
+                basetexture_invert_node = self.create_node(Nodes.ShaderNodeInvert)
+                basetexture_additive_mix_node = self.create_node(Nodes.ShaderNodeMixRGB)
+                self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
+                                 basetexture_additive_mix_node.outputs['Color'])
+                basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
+                self.bpy_material.use_screen_refraction = True
+                self.bpy_material.refraction_depth = 0.01
+
+                self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
+                self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
+                self.connect_nodes(basetexture_invert_node.outputs['Color'],
+                                   basetexture_additive_mix_node.inputs['Fac'])
 
         bumpmap = self.bumpmap
         if bumpmap:
