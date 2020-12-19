@@ -25,7 +25,7 @@ class VertexLitGeneric(ShaderBase):
             return None
         else:
             return self.load_texture(Path(texture_path).stem, texture_path) or self.get_missing_texture(
-                'missing_texture', (0.5, 0, 0.5, 1.0))
+                'missing_texture', (0.3, 0, 0.3, 1.0))
 
     @property
     def selfillummask(self):
