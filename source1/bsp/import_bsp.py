@@ -29,7 +29,7 @@ from ..content_manager import ContentManager
 from ..new_model_import import get_or_create_collection
 from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
-from ..vmt.vmt import VMT
+from ..vmt.valve_material import VMT
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point, lerp_vec
 
@@ -388,11 +388,9 @@ class BSP:
             material_file = content_manager.find_material(material_name)
 
             if material_file:
-                mat = BlenderMaterial(material_file)
-                mat.load_textures()
                 material_name = strip_patch_coordinates.sub("", material_name)
-                material_name = material_name[:63]
-                mat.create_material(material_name, True)
+                mat = BlenderMaterial(material_file, material_name)
+                mat.create_material()
             else:
                 print(f'Failed to find {material_name} material')
 

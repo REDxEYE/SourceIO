@@ -4,10 +4,11 @@ from ...utilities.keyvalues import KVParser
 
 class VMT:
     def __init__(self, file_object):
-
         kv_parser = KVParser('VMT', file_object.read(-1).decode().replace('`', ''))
         self.shader, self.material_data = kv_parser.parse()
-        self.textures = {}
+
+    def get_param(self, name, default):
+        return self.material_data.get(name, default)
 
     def parse(self):
         content_manager = ContentManager()

@@ -11,7 +11,7 @@ def import_texture(name, file_object, update=False):
     if bpy.data.images.get(name, None) and not update:
         return name
     vtf_lib = VTFLib.VTFLib()
-    print(f'Loading {name} ({file_object})')
+    print(f'Loading "{name}" texture ({file_object})')
     vtf_lib.image_load_from_buffer(file_object.read())
     if not vtf_lib.image_is_loaded():
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
@@ -40,4 +40,4 @@ def import_texture(name, file_object, update=False):
         print('Caught exception "{}" '.format(ex))
     vtf_lib.image_destroy()
 
-    return name
+    return image
