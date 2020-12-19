@@ -159,5 +159,7 @@ class VertexLitGeneric(ShaderBase):
             phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
             self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
                                phongexponenttexture_r_invert_node.inputs['Color'])
+            self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
+                               shader.inputs['Metallic'])
 
             self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])
