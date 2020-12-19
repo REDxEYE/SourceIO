@@ -186,6 +186,15 @@ class ShaderBase:
     def connect_nodes(self, output_socket, input_socket):
         self.bpy_material.node_tree.links.new(output_socket, input_socket)
 
+    def insert_node(self, output_socket, middle_input_socket, middle_output_socket):
+        receivers = []
+        for link in output_socket.links:
+            receivers.append(link.to_socket)
+            self.bpy_material.node_tree.links.remove(link)
+        self.connect_nodes(output_socket, middle_input_socket)
+        for receiver in receivers:
+            self.connect_nodes(middle_output_socket, receiver)
+
     def create_nodes(self, material_name: str):
         print(f'Creating material {repr(material_name)}')
         self.bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
