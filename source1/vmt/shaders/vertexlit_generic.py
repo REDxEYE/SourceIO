@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from ..shader_base import ShaderBase, Nodes
 
 
@@ -9,47 +7,39 @@ class VertexLitGeneric(ShaderBase):
     @property
     def bumpmap(self):
         texture_path = self._vavle_material.get_param('$bumpmap', None)
-        if texture_path is None:
-            return None
-        else:
-            image = self.load_texture(Path(texture_path).stem, texture_path) or self.get_missing_texture(
-                'missing_normal', (0.5, 0.5, 1.0, 1.0))
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
+        return None
 
     @property
     def basetexture(self):
         texture_path = self._vavle_material.get_param('$basetexture', None)
-        if texture_path is None:
-            return None
-        else:
-            return self.load_texture(Path(texture_path).stem, texture_path) or self.get_missing_texture(
-                'missing_texture', (0.3, 0, 0.3, 1.0))
+        if texture_path is not None:
+            return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+        return None
 
     @property
     def selfillummask(self):
         texture_path = self._vavle_material.get_param('$selfillummask', None)
-        if texture_path is None:
-            return None
-        else:
-            image = self.load_texture(Path(texture_path).stem, texture_path) or self.get_missing_texture(
-                'missing_texture', (0.0, 0.0, 0.0, 1.0))
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.0, 0.0, 0.0, 1.0))
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
+        return None
 
     @property
     def phongexponenttexture(self):
         texture_path = self._vavle_material.get_param('$phongexponenttexture', None)
-        if texture_path is None:
-            return None
-        else:
-            image = self.load_texture(Path(texture_path).stem, texture_path) or self.get_missing_texture(
-                'missing_phongexponenttexture', (0.5, 0.0, 0.0, 1.0))
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.0, 0.0, 1.0))
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
+        return None
 
     @property
     def color2(self):
@@ -64,8 +54,8 @@ class VertexLitGeneric(ShaderBase):
         return self._vavle_material.get_param('$translucent', 0) == 1
 
     @property
-    def alpha(self):
-        return self._vavle_material.get_param('$alpha', 0) == 1
+    def alphatest(self):
+        return self._vavle_material.get_param('$alphatest', 0) == 1
 
     @property
     def additive(self):
@@ -112,7 +102,7 @@ class VertexLitGeneric(ShaderBase):
                 self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
             else:
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
-            if self.alpha or self.translucent:
+            if self.translucent or self.alphatest:
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
 
             if self.additive:

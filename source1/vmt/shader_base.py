@@ -1,13 +1,12 @@
 from pathlib import Path
+from typing import Dict, Any
 
 import bpy
 import numpy as np
-from typing import Dict, Any
 
 from SourceIO.source1.content_manager import ContentManager
 from SourceIO.source1.vmt.node_arranger import nodes_iterate
 from SourceIO.source1.vtf.import_vtf import import_texture
-from SourceIO.utilities.path_utilities import is_valid_path
 
 
 class Nodes:
@@ -146,6 +145,12 @@ class ShaderBase:
         return None
 
     @staticmethod
+    def load_texture_or_default(file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
+        texture_name = Path(file).stem
+        texture = ShaderBase.load_texture(texture_name, file)
+        return texture or ShaderBase.get_missing_texture(f'missing_{texture_name}', default_color)
+
+    @staticmethod
     def clamp_value(value, min_value=0.0, max_value=1.0):
         return min(max_value, max(value, min_value))
 
@@ -181,7 +186,7 @@ class ShaderBase:
         return node
 
     def get_node(self, name):
-        self.bpy_material.node_tree.nodes.get(name, None)
+        return self.bpy_material.node_tree.nodes.get(name, None)
 
     def connect_nodes(self, output_socket, input_socket):
         self.bpy_material.node_tree.links.new(output_socket, input_socket)
