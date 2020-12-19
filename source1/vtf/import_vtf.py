@@ -1,10 +1,7 @@
 import bpy
-from pathlib import Path
-
 import numpy as np
 
 from ..vtf.VTFWrapper import VTFLib
-from ..vtf.VTFWrapper.VTFLibEnums import ImageFlag
 
 
 def import_texture(name, file_object, update=False):
@@ -36,8 +33,10 @@ def import_texture(name, file_object, update=False):
         else:
             image.pixels[:] = pixels.tolist()
         image.pack()
+        return image
     except Exception as ex:
         print('Caught exception "{}" '.format(ex))
-    vtf_lib.image_destroy()
+    finally:
+        vtf_lib.image_destroy()
 
-    return image
+    return None

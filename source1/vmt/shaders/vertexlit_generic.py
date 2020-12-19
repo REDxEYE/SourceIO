@@ -82,7 +82,8 @@ class VertexLitGeneric(ShaderBase):
         return self._vavle_material.get_param('$phongtint', (1.0, 1.0, 1.0))
 
     def create_nodes(self, material_name):
-        super().create_nodes(material_name)
+        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+            return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled)

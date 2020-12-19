@@ -122,6 +122,7 @@ class BSP:
             self.load_bmodel(0, 'world_geometry')
 
     def load_entities(self):
+        content_manager = ContentManager()
         entity_lump: Optional[EntityLump] = self.map_file.get_lump(LumpTypes.LUMP_ENTITIES)
         if entity_lump:
             for entity in entity_lump.entities:
@@ -214,6 +215,7 @@ class BSP:
 
                     curve = bpy.data.curves.new(f'{target_name or hammer_id}_data', 'CURVE')
                     curve.dimensions = '3D'
+                    curve.bevel_depth = entity.get('width') / 100
                     curve_object = bpy.data.objects.new(target_name or hammer_id, curve)
                     curve_path = curve.splines.new('NURBS')
 
@@ -232,6 +234,15 @@ class BSP:
                     curve_path.points[2].co = point_end
 
                     curve_path.use_endpoint_u = True
+
+                    material_name = entity.get('ropematerial')
+                    get_material(material_name, curve_object)
+
+                    material_file = content_manager.find_material(material_name)
+                    if material_file:
+                        material_name = strip_patch_coordinates.sub("", material_name)
+                        mat = BlenderMaterial(material_file, material_name)
+                        mat.create_material()
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump(LumpTypes.LUMP_GAME_LUMP)

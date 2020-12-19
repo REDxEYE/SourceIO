@@ -206,7 +206,7 @@ class ShaderBase:
 
         if self.bpy_material is None:
             print('Failed to get or create material')
-            return
+            return 'UNKNOWN'
 
         if self.bpy_material.get('source1_loaded'):
             return 'LOADED'
