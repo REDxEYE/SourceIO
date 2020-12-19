@@ -31,7 +31,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
     load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
-    import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
+    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
