@@ -44,3 +44,7 @@ class Cable(ShaderBase):
             self.connect_nodes(tex_coord_node.outputs['UV'], tex_mapping_node.inputs['Vector'])
             self.connect_nodes(tex_mapping_node.outputs['Vector'], basetexture_node.inputs['Vector'])
             self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+
+
+class SplineRope(Cable):
+    SHADER = 'splinerope'
