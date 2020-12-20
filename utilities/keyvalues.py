@@ -16,6 +16,10 @@ def _is_identifier_part(ch: str):
     return ch and (ch.isalnum() or '|\\/_.*'.find(ch) >= 0)
 
 
+def _is_number(val: str):
+    return all(map(lambda x: x.isdigit() or x == '.', val))
+
+
 def _to_number(val: str):
     return float(val) if '.' in val else int(val)
 
@@ -161,7 +165,7 @@ class KVParser(KVReader):
                 return tuple(map(float, val[1:-1].strip().split(' ')))
             if val.startswith('{'):
                 return tuple(map(int, val[1:-1].strip().split(' ')))
-            if all(map(lambda x: x.isdigit(), val)):
+            if _is_number(val):
                 return _to_number(val)
             return val
 

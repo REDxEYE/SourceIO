@@ -10,7 +10,7 @@ from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
 from .source1.bsp.import_bsp import BSP
-from .source1.vmt.vmt import VMT
+from .source1.vmt.valve_material import VMT
 from .utilities.path_utilities import backwalk_file_resolver
 from .source1.content_manager import ContentManager
 
@@ -31,7 +31,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
     load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
-    import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
+    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 

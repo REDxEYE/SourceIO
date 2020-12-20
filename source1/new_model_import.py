@@ -24,7 +24,7 @@ from mathutils import Vector, Matrix, Euler
 
 from .vmt.blender_material import BlenderMaterial
 from .vtf.import_vtf import import_texture
-from .vmt.vmt import VMT
+from .vmt.valve_material import VMT
 
 
 def split(array, n=3):
@@ -362,6 +362,5 @@ def import_materials(mdl):
             if material_path:
                 break
         if material_path:
-            new_material = BlenderMaterial(material_path)
-            new_material.load_textures()
-            new_material.create_material(material.name, True)
+            new_material = BlenderMaterial(material_path, material.name)
+            new_material.create_material()
