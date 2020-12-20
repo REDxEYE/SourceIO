@@ -209,9 +209,12 @@ class BSP:
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                                      parent_collection=parent_collection, entity=entity)
                 elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
-                    parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))[0]
+                    parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))
+                    if len(parent) == 0:
+                        print(f'Cannot find rope parent \'{entity["nextkey"]}\', skipping')
+                        continue
                     location_start = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    location_end = np.multiply(parse_source2_hammer_vector(parent['origin']), self.scale)
+                    location_end = np.multiply(parse_source2_hammer_vector(parent[0]['origin']), self.scale)
 
                     curve = bpy.data.curves.new(f'{target_name or hammer_id}_data', 'CURVE')
                     curve.dimensions = '3D'
