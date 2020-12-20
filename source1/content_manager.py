@@ -58,7 +58,8 @@ class ContentManager(metaclass=SingletonMeta):
         return False, path
 
     def find_file(self, filepath: str, additional_dir=None, extension=None):
-        new_filepath = Path(filepath)
+
+        new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
