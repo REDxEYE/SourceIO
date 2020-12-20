@@ -1,5 +1,6 @@
 from typing import List
 
+from ..datatypes.gamelumps.detail_prop_lump import DetailPropLump
 from ..datatypes.gamelumps.static_prop_lump import StaticPropLump
 from ....utilities.byte_io_mdl import ByteIO
 from .. import Lump, LumpTypes
@@ -32,5 +33,9 @@ class GameLump(Lump):
                 game_lump = StaticPropLump(lump)
                 game_lump.parse(game_lump_reader)
                 self.game_lumps[lump.id] = game_lump
+            elif lump.id == 'dprp':
+                detail_lump = DetailPropLump(lump)
+                detail_lump.parse(game_lump_reader)
+                self.game_lumps[lump.id] = detail_lump
 
         return self

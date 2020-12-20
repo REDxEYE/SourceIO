@@ -30,6 +30,7 @@ from ..new_model_import import get_or_create_collection
 from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..vmt.valve_material import VMT
+from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point, lerp_vec
 
@@ -144,7 +145,6 @@ class BSP:
                         mesh_obj['entity'] = entity
                     else:
                         print(f'{target_name or hammer_id} does not reference any model, SKIPPING!')
-
                 elif class_name.startswith('prop_') or class_name in ['monster_generic']:
                     if 'model' in entity:
                         location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
@@ -166,7 +166,6 @@ class BSP:
                                                    'prop_path': entity['flag_model'],
                                                    'type': class_name,
                                                    'entity': entity})
-
                 elif class_name == 'light_spot':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
@@ -261,6 +260,18 @@ class BSP:
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
                                                    'type': 'static_props'})
+
+    def load_detail_props(self):
+        content_manager = ContentManager()
+        entity_lump: Optional[EntityLump] = self.map_file.get_lump(LumpTypes.LUMP_ENTITIES)
+        if entity_lump:
+            worldspawn = entity_lump.entities[0]
+            assert worldspawn['classname'] == 'worldspawn'
+            vbsp_name = worldspawn['detailvbsp']
+            vbsp_file = content_manager.find_file(vbsp_name)
+            vbsp = KVParser('vbsp',vbsp_file.read().decode('ascii'))
+            details_info = vbsp.parse()
+            print(vbsp_file)
 
     def load_bmodel(self, model_id, model_name, custom_origin=None, parent_collection=None):
         if custom_origin is None:
