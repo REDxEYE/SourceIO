@@ -59,16 +59,22 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vtx_file = content_manager.find_file(prop_path.parent / f'{prop_path.stem}.dx90.vtx')
-                        mdl, vvd, vtx, armature = import_model(mld_file, vvd_file, vtx_file, None, False, collection,
-                                                               True, True)
-                        armature.location = obj.location
-                        armature.rotation_mode = "XYZ"
-                        armature.rotation_euler = obj.rotation_euler
-                        if mdl.header.flags & StudioHDRFlags.STATIC_PROP == 0:
+                        model_container = import_model(mld_file, vvd_file, vtx_file, None, False, collection,
+                                                       True, True)
+                        if model_container.armature:
+                            armature = model_container.armature
+                            armature.location = obj.location
+                            armature.rotation_mode = "XYZ"
+                            armature.rotation_euler = obj.rotation_euler
                             armature.rotation_euler[2] += math.radians(90)
-                            pass
-                        armature.scale = obj.scale
-                        import_materials(mdl)
+                            armature.scale = obj.scale
+                        else:
+                            for mesh_obj in model_container.objects:
+                                mesh_obj.location = obj.location
+                                mesh_obj.rotation_mode = "XYZ"
+                                mesh_obj.rotation_euler = obj.rotation_euler
+                                mesh_obj.scale = obj.scale
+                        import_materials(model_container.mdl)
 
                         bpy.data.objects.remove(obj)
         return {'FINISHED'}

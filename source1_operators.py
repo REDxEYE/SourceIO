@@ -58,22 +58,19 @@ class MDLImport_OT_operator(bpy.types.Operator):
             else:
                 phy = None
 
-            mdl, vvd, vtx, _ = import_model(mdl_path.open('rb'),
-                                            vvd_file.open('rb'),
-                                            vtx_file.open('rb'),
-                                            phy,
-                                            self.create_flex_drivers)
+            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), phy,
+                                           self.create_flex_drivers)
 
             if self.import_textures:
                 try:
-                    import_materials(mdl)
+                    import_materials(model_container.mdl)
                 except Exception as t_ex:
                     print(f'Failed to import materials, caused by {t_ex}')
                     import traceback
                     traceback.print_exc()
             if self.write_qc:
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
-                generate_qc(mdl, qc_file, ".".join(map(str, bl_info['version'])))
+                generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -106,6 +103,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         bsp_map.load_disp()
         bsp_map.load_entities()
         bsp_map.load_static_props()
+        # bsp_map.load_detail_props()
         if self.import_textures:
             bsp_map.load_materials()
 

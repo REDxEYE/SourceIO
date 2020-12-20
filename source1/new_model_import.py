@@ -1,9 +1,8 @@
 import random
 import traceback
-import typing
 from pathlib import Path
 import numpy as np
-from typing import BinaryIO
+from typing import BinaryIO, Iterable, Sized, List, Union
 
 from .content_manager import ContentManager
 from .new_mdl.structs.header import StudioHDRFlags
@@ -96,7 +95,7 @@ def get_material(mat_name, model_ob):
     return mat_ind
 
 
-def get_slice(data: [typing.Iterable, typing.Sized], start, count=None):
+def get_slice(data: [Iterable, Sized], start, count=None):
     if count is None:
         count = len(data) - start
     return data[start:start + count]
@@ -148,6 +147,15 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj
 
 
+class ModelContainer:
+    def __init__(self, mdl: Mdl, vvd: Vvd, vtx: Vtx):
+        self.mdl = mdl
+        self.vvd = vvd
+        self.vtx = vtx
+        self.armature = None
+        self.objects: List[bpy.types.Object] = []
+
+
 def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy_path: BinaryIO, create_drivers=False,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
@@ -158,6 +166,9 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
     vvd.read()
     vtx = Vtx(vtx_path)
     vtx.read()
+
+    container = ModelContainer(mdl, vvd, vtx)
+
     if mdl.flex_names:
         vac = VertexAnimationCache(mdl, vvd)
         vac.process_data()
@@ -169,7 +180,11 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
                                                  parent_collection)
-    armature = create_armature(mdl, master_collection)
+    static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP == 1
+    if not static_prop:
+        armature = create_armature(mdl, master_collection)
+        container.armature = armature
+
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         if disable_collection_sort:
             body_part_collection = master_collection
@@ -182,7 +197,7 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
                 continue
             mesh_name = f'{body_part.name}_{model.name}'
             used_copy = False
-            if re_use_meshes and mdl.header.flags & StudioHDRFlags.STATIC_PROP == 1:
+            if re_use_meshes and static_prop:
                 mesh_data = bpy.data.meshes.get(f'{mesh_name}_MESH', False)
                 if mesh_data:
                     mesh_data = mesh_data.copy()
@@ -193,17 +208,18 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
                 mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
             body_part_collection.objects.link(mesh_obj)
-
-            modifier = mesh_obj.modifiers.new(
-                type="ARMATURE", name="Armature")
-            modifier.object = armature
-            mesh_obj.parent = armature
+            if not static_prop:
+                modifier = mesh_obj.modifiers.new(
+                    type="ARMATURE", name="Armature")
+                modifier.object = armature
+                mesh_obj.parent = armature
 
             mesh_obj['model_type'] = 's1'
 
             # mdl.skin_groups
 
             mesh_obj['skin_groups'] = {}
+            container.objects.append(mesh_obj)
 
             if used_copy:
                 continue
@@ -242,33 +258,35 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
                 u = vertices['uv'][mesh_data.loops[uv_id].vertex_index]
                 u = [u[0], 1 - u[1]]
                 uv_data[uv_id].uv = u
-            weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
 
-            for n, (bone_indices, bone_weights) in enumerate(zip(vertices['bone_id'], vertices['weight'])):
-                for bone_index, weight in zip(bone_indices, bone_weights):
-                    if weight > 0:
-                        bone_name = mdl.bones[bone_index].name
-                        weight_groups[bone_name].add([n], weight, 'REPLACE')
-            flex_names = []
-            for mesh in model.meshes:
-                if mesh.flexes:
-                    flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
-            if flex_names:
-                mesh_obj.shape_key_add(name='base')
-            for flex_name in flex_names:
-                if not mesh_obj.data.shape_keys.key_blocks.get(flex_name):
-                    shape_key = mesh_obj.shape_key_add(name=flex_name)
-                else:
-                    shape_key = mesh_data.shape_keys.key_blocks[flex_name]
-                vertex_animation = vac.vertex_cache[flex_name]
+            if not static_prop:
+                weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
 
-                model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
-                flex_vertices = model_vertices[vtx_vertices]
+                for n, (bone_indices, bone_weights) in enumerate(zip(vertices['bone_id'], vertices['weight'])):
+                    for bone_index, weight in zip(bone_indices, bone_weights):
+                        if weight > 0:
+                            bone_name = mdl.bones[bone_index].name
+                            weight_groups[bone_name].add([n], weight, 'REPLACE')
+                flex_names = []
+                for mesh in model.meshes:
+                    if mesh.flexes:
+                        flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
+                if flex_names:
+                    mesh_obj.shape_key_add(name='base')
+                for flex_name in flex_names:
+                    if not mesh_obj.data.shape_keys.key_blocks.get(flex_name):
+                        shape_key = mesh_obj.shape_key_add(name=flex_name)
+                    else:
+                        shape_key = mesh_data.shape_keys.key_blocks[flex_name]
+                    vertex_animation = vac.vertex_cache[flex_name]
 
-                shape_key.data.foreach_set("co", flex_vertices.reshape((-1,)))
+                    model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                    flex_vertices = model_vertices[vtx_vertices]
 
-            if create_drivers:
-                create_flex_drivers(mesh_obj, mdl)
+                    shape_key.data.foreach_set("co", flex_vertices.reshape((-1,)))
+
+                if create_drivers:
+                    create_flex_drivers(mesh_obj, mdl)
 
     if phy_path is not None and phy_path.exists():
         phy = Phy(phy_path)
@@ -280,7 +298,7 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
             phy = None
         if phy is not None:
             create_collision_mesh(phy, mdl, armature)
-    return mdl, vvd, vtx, armature
+    return container
 
 
 def create_flex_drivers(obj, mdl: Mdl):
@@ -288,7 +306,7 @@ def create_flex_drivers(obj, mdl: Mdl):
     for controller in mdl.flex_controllers:
         obj.shape_key_add(name=controller.name)
 
-    def parse_expr(expr: typing.Union[Value, Expr, Function], driver, shape_key_block):
+    def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
         if expr.__class__ in [FetchController, FetchFlex]:
             expr: Value = expr
             print(f"Parsing {expr} value")
