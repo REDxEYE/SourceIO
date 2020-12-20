@@ -182,7 +182,7 @@ class ByteIO:
 
     def read_ascii_string(self, length=None):
         if length is not None:
-            return self.file.read(length).strip(b'\x00').decode('ascii').strip()
+            return self.file.read(length).strip(b'\x00').decode('latin').strip()
 
         buffer = bytearray()
 
@@ -195,7 +195,7 @@ class ByteIO:
                 buffer += chunk
             if chunk_end >= 0:
                 self.seek(-(len(chunk) - chunk_end - 1), io.SEEK_CUR)
-                return buffer.decode('ascii')
+                return buffer.decode('latin')
 
     def read_fourcc(self):
         return self.read_ascii_string(4)
