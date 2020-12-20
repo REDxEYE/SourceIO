@@ -180,7 +180,7 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
                                                  parent_collection)
-    static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP == 1
+    static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     if not static_prop:
         armature = create_armature(mdl, master_collection)
         container.armature = armature
