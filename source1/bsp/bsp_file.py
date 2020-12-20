@@ -36,9 +36,10 @@ class BSPFile:
         magic = reader.read_fourcc()
         assert magic == "VBSP", "Invalid BSP header"
         self.version = reader.read_int32()
+        is_l4d2 = reader.peek_uint32() <= 1036 and self.version == 21
         for lump_id in range(64):
             lump = LumpInfo(lump_id)
-            lump.parse(reader)
+            lump.parse(reader, is_l4d2)
             self.lumps_info.append(lump)
         self.revision = reader.read_int32()
         # self.parse_lumps()
