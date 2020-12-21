@@ -91,6 +91,9 @@ class BSP:
         if self.vertex_lump:
             self.scaled_vertices = np.multiply(self.vertex_lump.vertices, self.scale)
 
+        content_manager = ContentManager()
+        content_manager.sub_managers[Path(self.filepath).stem] = self.map_file.get_lump(LumpTypes.LUMP_PAK)
+
     @staticmethod
     def gather_vertex_ids(model: Model,
                           faces: List[Face],
@@ -203,7 +206,7 @@ class BSP:
                     color_max = max(color)
                     lumens *= color_max / 255 * (1.0 / self.scale)
                     color = np.divide(color, color_max)
-                    watts = watt_power_point(lumens, color)
+                    watts = watt_power_point(lumens, color)*100
 
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                                      parent_collection=parent_collection, entity=entity)
@@ -269,7 +272,7 @@ class BSP:
             assert worldspawn['classname'] == 'worldspawn'
             vbsp_name = worldspawn['detailvbsp']
             vbsp_file = content_manager.find_file(vbsp_name)
-            vbsp = KVParser('vbsp',vbsp_file.read().decode('ascii'))
+            vbsp = KVParser('vbsp', vbsp_file.read().decode('ascii'))
             details_info = vbsp.parse()
             print(vbsp_file)
 
