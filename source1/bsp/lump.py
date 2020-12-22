@@ -98,10 +98,10 @@ class Lump:
             prob_byte = reader.read_int8()
             dict_size = reader.read_uint32()
 
-            pb = prob_byte // (9 * 5)
-            prob_byte -= pb * 9 * 5
-            lp = prob_byte // 9
-            lc = prob_byte - lp * 9
+            lc = prob_byte % 9
+            props = int(prob_byte / 9)
+            pb = int(props / 5)
+            lp = props % 5
             my_filters = [{"id": lzma.FILTER_LZMA2, "dict_size": dict_size, "pb": pb, "lp": lp, "lc": lc}, ]
             self.reader = ByteIO(
                 lzma_decompress(reader.read_bytes(compressed_size), lzma.FORMAT_RAW, filters=my_filters)
