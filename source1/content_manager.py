@@ -41,6 +41,13 @@ class ContentManager(metaclass=SingletonMeta):
                 print(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
                     self.scan_for_content(mod)
+        elif 'workshop' in root_path.name:
+            sub_manager = NonSourceSubManager(root_path)
+            self.sub_managers[root_path.stem] = sub_manager
+            print(f'Registered sub manager for {root_path.stem}')
+            for mod in root_path.parent.iterdir():
+                if mod.is_dir():
+                    self.scan_for_content(mod)
         else:
             if root_path.is_dir():
                 sub_manager = NonSourceSubManager(root_path)
@@ -56,8 +63,6 @@ class ContentManager(metaclass=SingletonMeta):
         gameinfos = list(path.glob('*gameinfo*.txt'))
         if gameinfos:
             return True, path
-        elif path.name == 'workshop':
-            return False, path
         elif not second:
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
