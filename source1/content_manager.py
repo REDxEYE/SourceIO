@@ -48,7 +48,7 @@ class ContentManager(metaclass=SingletonMeta):
 
     @staticmethod
     def is_source_mod(path: Path, second=False):
-        if path.is_file():
+        if path.name == 'gameinfo.txt':
             path = path.parent
         if path.parts[-1] == '*':
             path = path.parent
