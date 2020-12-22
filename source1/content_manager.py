@@ -8,6 +8,7 @@ from ..source_shared.vpk_sub_manager import VPKSubManager
 from ..utilities.gameinfo import Gameinfo
 from ..utilities.path_utilities import get_mod_path
 from ..utilities.singleton import SingletonMeta
+from ..utilities.valve_utils import fix_workshop_not_having_gameinfo_file
 
 
 class ContentManager(metaclass=SingletonMeta):
@@ -52,6 +53,7 @@ class ContentManager(metaclass=SingletonMeta):
             path = path.parent
         if path.parts[-1] == '*':
             path = path.parent
+        path = fix_workshop_not_having_gameinfo_file(path)
         gameinfos = list(path.glob('*gameinfo*.txt'))
         if gameinfos:
             return True, path
