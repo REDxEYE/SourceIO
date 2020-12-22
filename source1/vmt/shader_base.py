@@ -4,9 +4,9 @@ from typing import Dict, Any
 import bpy
 import numpy as np
 
-from SourceIO.source1.content_manager import ContentManager
-from SourceIO.source1.vmt.node_arranger import nodes_iterate
-from SourceIO.source1.vtf.import_vtf import import_texture
+from ..content_manager import ContentManager
+from ..vmt.node_arranger import nodes_iterate
+from ..vtf.import_vtf import import_texture
 
 
 class Nodes:

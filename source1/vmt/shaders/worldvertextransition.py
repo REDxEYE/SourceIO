@@ -1,4 +1,4 @@
-from SourceIO.source1.vmt.shader_base import ShaderBase, Nodes
+from ..shader_base import ShaderBase, Nodes
 
 
 class WorldVertexTransition(ShaderBase):
