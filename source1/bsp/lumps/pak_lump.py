@@ -10,6 +10,7 @@ class PakLump(Lump):
 
     def __init__(self, bsp):
         super().__init__(bsp)
+        self.filepath = self._bsp.filepath
         self.zip_file: zipfile.ZipFile = None
         self._cache = {}
 

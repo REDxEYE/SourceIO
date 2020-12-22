@@ -92,6 +92,7 @@ class BSP:
             self.scaled_vertices = np.multiply(self.vertex_lump.vertices, self.scale)
 
         content_manager = ContentManager()
+        print('Adding map pack file to content manager')
         content_manager.sub_managers[Path(self.filepath).stem] = self.map_file.get_lump(LumpTypes.LUMP_PAK)
 
     @staticmethod
@@ -206,7 +207,7 @@ class BSP:
                     color_max = max(color)
                     lumens *= color_max / 255 * (1.0 / self.scale)
                     color = np.divide(color, color_max)
-                    watts = watt_power_point(lumens, color)*100
+                    watts = watt_power_point(lumens, color) * 100
 
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                                      parent_collection=parent_collection, entity=entity)

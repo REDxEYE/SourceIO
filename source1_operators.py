@@ -96,9 +96,11 @@ class BSPImport_OT_operator(bpy.types.Operator):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
 
+        bsp_map = BSP(self.filepath)
+
         bpy.context.scene['content_manager_data'] = {name: str(sub.filepath) for name, sub in
                                                      content_manager.sub_managers.items() if hasattr(sub, 'filepath')}
-        bsp_map = BSP(self.filepath)
+
         bsp_map.load_map_mesh()
         bsp_map.load_disp()
         bsp_map.load_entities()
