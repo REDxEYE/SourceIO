@@ -7,7 +7,7 @@ from .shaders import vertexlit_generic, lightmap_generic, worldvertextransition,
 
 class BlenderMaterial:
     def __init__(self, file_object, material_name):
-        self.material_name: str = material_name[:63]
+        self.material_name: str = material_name[-63:]
         self.vmt: VMT = VMT(file_object)
         self._handlers: Dict[str, Type[ShaderBase]] = dict()
 
@@ -26,7 +26,7 @@ class BlenderMaterial:
         pass
 
     # def create_material(self, material_name=None, override=True):
-    #     material_name = material_name[:63]
+    #     material_name = material_name[-63:]
     #     print(f'Creating material {repr(material_name)}, override:{override}')
     #     if bpy.data.materials.get(material_name) and not override:
     #         return 'EXISTS'

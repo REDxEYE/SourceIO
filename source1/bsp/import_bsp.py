@@ -297,7 +297,7 @@ class BSP:
         for texture_info in self.texture_info_lump.texture_info:
             texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
             material_name = self.get_string(texture_data.name_id)
-            material_name = strip_patch_coordinates.sub("", material_name)
+            material_name = strip_patch_coordinates.sub("", material_name)[-63:]
             material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
 
         faces = []
@@ -407,7 +407,7 @@ class BSP:
             content_manager.sub_managers[self.filepath.stem] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
-            tmp = strip_patch_coordinates.sub("", material_name)[:63]
+            tmp = strip_patch_coordinates.sub("", material_name)[-63:]
             if bpy.data.materials.get(tmp, False):
                 if bpy.data.materials[tmp].get('source1_loaded'):
                     print(f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
@@ -533,4 +533,6 @@ class BSP:
             for i in range(len(vertex_colors_data)):
                 u = final_vertex_colors[mesh_data.loops[i].vertex_index]
                 vertex_colors_data[i].color = u
-            get_material(self.get_string(texture_data.name_id), mesh_obj)
+            material_name = self.get_string(texture_data.name_id)
+            material_name = strip_patch_coordinates.sub("", material_name)[-63:]
+            get_material(material_name, mesh_obj)
