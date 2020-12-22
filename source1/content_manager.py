@@ -53,10 +53,11 @@ class ContentManager(metaclass=SingletonMeta):
             path = path.parent
         if path.parts[-1] == '*':
             path = path.parent
-        path = fix_workshop_not_having_gameinfo_file(path)
         gameinfos = list(path.glob('*gameinfo*.txt'))
         if gameinfos:
             return True, path
+        elif path.name == 'workshop':
+            return False, path
         elif not second:
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
