@@ -75,9 +75,29 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                                 mesh_obj.rotation_euler = obj.rotation_euler
                                 mesh_obj.scale = obj.scale
                         import_materials(model_container.mdl)
+                        skin = custom_prop_data.get('skin', None)
+                        if skin:
+                            for model in model_container.objects:
+                                skin_materials = model['skin_groups'][skin]
+                                current_materials = model['skin_groups'][model['active_skin']]
+                                print(skin_materials, current_materials)
+                                for skin_material, current_material in zip(skin_materials, current_materials):
+                                    swap_materials(model, skin_material[-63:], current_material[-63:])
+                                model['active_skin'] = skin
 
                         bpy.data.objects.remove(obj)
         return {'FINISHED'}
+
+
+def swap_materials(obj, new_material_name, target_name):
+    mat = bpy.data.materials.get(new_material_name, None) or bpy.data.materials.new(name=new_material_name)
+    print(f'Swapping {target_name} with {new_material_name}')
+    for n, obj_mat in enumerate(obj.data.materials):
+        print(target_name, obj_mat.name)
+        if obj_mat.name == target_name:
+            print(obj_mat.name, "->", mat.name)
+            obj.data.materials[n] = mat
+            break
 
 
 class ChangeSkin_OT_operator(bpy.types.Operator):
@@ -92,34 +112,29 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
         if obj.get('model_type', False):
             model_type = obj['model_type']
             if model_type == 's1':
-                self.handle_s1()
+                self.handle_s1(obj)
             elif model_type == 's2':
-                self.handle_s2()
+                self.handle_s2(obj)
             else:
-                self.handle_s2()
-
-        skin_material = obj['skin_groups'][self.skin_name]
-        current_material = obj['skin_groups'][obj['active_skin']]
-
-        mat_name = Path(skin_material).stem
-        current_mat_name = Path(current_material).stem
-        mat = bpy.data.materials.get(mat_name, None) or bpy.data.materials.new(name=mat_name)
-
-        for n, obj_mat in enumerate(obj.data.materials):
-            if obj_mat.name == current_mat_name:
-                print(obj_mat.name, "->", mat.name)
-                obj.data.materials[n] = mat
-                break
+                self.handle_s2(obj)
 
         obj['active_skin'] = self.skin_name
 
         return {'FINISHED'}
 
-    def handle_s1(self):
-        pass
+    def handle_s1(self, obj):
+        skin_materials = obj['skin_groups'][self.skin_name]
+        current_materials = obj['skin_groups'][obj['active_skin']]
+        for skin_material, current_material in zip(skin_materials, current_materials):
+            swap_materials(obj, skin_material[-63:], current_material[-63:])
 
-    def handle_s2(self):
-        pass
+    def handle_s2(self, obj):
+        skin_material = obj['skin_groups'][self.skin_name]
+        current_material = obj['skin_groups'][obj['active_skin']]
+
+        mat_name = Path(skin_material).stem
+        current_mat_name = Path(current_material).stem
+        swap_materials(obj, mat_name, current_mat_name)
 
 
 class SourceIOUtils_PT_panel(bpy.types.Panel):

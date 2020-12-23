@@ -32,7 +32,7 @@ from ..vtf.import_vtf import import_texture
 from ..vmt.valve_material import VMT
 from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
-    watt_power_spot, watt_power_point, lerp_vec
+    watt_power_spot, watt_power_point, lerp_vec, clamp_value
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 
@@ -153,14 +153,15 @@ class BSP:
                     if 'model' in entity:
                         location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                         rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-
+                        skin = entity.get('skin', 0)
                         self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location,
                                           rotation,
                                           parent_collection=parent_collection,
                                           custom_data={'parent_path': str(self.filepath.parent),
                                                        'prop_path': entity['model'],
                                                        'type': class_name,
-                                                       'entity': entity})
+                                                       'entity': entity,
+                                                       'skin': skin})
                 elif class_name == 'item_teamflag':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
@@ -191,6 +192,21 @@ class BSP:
                     cone = float(entity['_cone']) * 2
                     watts = watt_power_spot(lumens, color, cone)
                     radius = (1 - inner_cone / cone)
+                    self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone, radius,
+                                     parent_collection, entity)
+                elif class_name == 'point_spotlight':
+                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
+                    rotation[1] = math.radians(90) + rotation[1]
+                    rotation[2] = math.radians(180) + rotation[2]
+                    color = parse_source2_hammer_vector(entity['rendercolor'])
+                    lumens = entity['spotlightlength']
+                    color_max = max(color)
+                    lumens *= color_max / 255 * (1.0 / self.scale)
+                    color = np.divide(color, color_max)
+                    cone = clamp_value((entity['spotlightwidth'] / 256) * 180, 1, 180)
+                    watts = watt_power_spot(lumens, color, cone)
+                    radius = (1 - 60 / cone)
                     self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone, radius,
                                      parent_collection, entity)
                 elif class_name in ['light', 'light_environment']:
@@ -263,7 +279,8 @@ class BSP:
                     self.create_empty(f'static_prop_{n}', location, rotation, None, parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
-                                                   'type': 'static_props'})
+                                                   'type': 'static_props',
+                                                   'skin': str(prop.skin - 1 if prop.skin != 0 else 0)})
 
     def load_detail_props(self):
         content_manager = ContentManager()

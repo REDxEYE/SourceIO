@@ -198,15 +198,28 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
             mesh_name = f'{body_part.name}_{model.name}'
             used_copy = False
             if re_use_meshes and static_prop:
-                mesh_data = bpy.data.meshes.get(f'{mesh_name}_MESH', False)
-                if mesh_data:
-                    mesh_data = mesh_data.copy()
+                mesh_obj_original = bpy.data.objects.get(mesh_name, None)
+                mesh_data_original = bpy.data.meshes.get(f'{mesh_name}_MESH', False)
+                if mesh_obj_original and mesh_data_original:
+                    mesh_data = mesh_data_original.copy()
+                    mesh_obj = mesh_obj_original.copy()
+                    mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
+                    mesh_obj['active_skin'] = mesh_obj_original['active_skin']
+                    mesh_obj['model_type'] = 's1'
+                    mesh_obj.data = mesh_data
                     used_copy = True
                 else:
                     mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
+                    mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
+                    mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
+                    mesh_obj['active_skin'] = '0'
+                    mesh_obj['model_type'] = 's1'
             else:
                 mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
-            mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
+                mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
+                mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
+                mesh_obj['active_skin'] = '0'
+                mesh_obj['model_type'] = 's1'
             body_part_collection.objects.link(mesh_obj)
             if not static_prop:
                 modifier = mesh_obj.modifiers.new(
@@ -214,11 +227,8 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
                 modifier.object = armature
                 mesh_obj.parent = armature
 
-            mesh_obj['model_type'] = 's1'
-
             # mdl.skin_groups
 
-            mesh_obj['skin_groups'] = {}
             container.objects.append(mesh_obj)
 
             if used_copy:

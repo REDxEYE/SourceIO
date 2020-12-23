@@ -4,6 +4,9 @@ from typing import List, Union, Tuple
 import numpy as np
 
 
+def clamp_value(value, min_value=0.0, max_value=1.0):
+    return min(max_value, max(value, min_value))
+
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
     angle_y = -math.asin(round(m2, 6))
     c = math.cos(angle_y)

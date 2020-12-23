@@ -1,7 +1,7 @@
 import traceback
 from typing import List
 
-from ...utilities.byte_io_mdl  import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 from ..new_shared.base import Base
 
 from .flex_expressions import *
@@ -70,6 +70,16 @@ class Mdl(Base):
                 texture_index = self.reader.read_uint16()
                 skin_group.append(self.materials[texture_index].name)
             self.skin_groups.append(skin_group)
+
+        diff_start = 0
+        for skin_info in self.skin_groups[1:]:
+            for n, (a, b) in enumerate(zip(self.skin_groups[0], skin_info)):
+                if a == b:
+                    diff_start = max(n, diff_start)
+                    break
+
+        for n, skin_info in enumerate(self.skin_groups):
+            self.skin_groups[n] = skin_info[:diff_start]
 
         self.reader.seek(self.header.flex_desc_offset)
         for _ in range(self.header.flex_desc_count):
@@ -169,7 +179,7 @@ class Mdl(Base):
                         combo = Combo(*values)
                         stack.append(combo)
                     elif flex_op == FlexOpType.DOMINATE:
-                        count = op.index+1
+                        count = op.index + 1
                         values = [stack.pop(-1) for _ in range(count)]
                         dom = Dominator(*values)
                         stack.append(dom)
