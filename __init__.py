@@ -1,17 +1,18 @@
 import os
+from pathlib import Path
 
 from .source1.vtf.VTFWrapper.VTFLib import VTFLib
 from .utilities.singleton import SingletonMeta
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
-
+custom_icons = {}
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE",
-    "version": (3, 8, 8),
+    "version": (3, 9, 0),
     "blender": (2, 80, 0),
-    "location": "File > Import-Export > SourceEngine MDL (.mdl, .vmdl_c) ",
-    "description": "Source1/Source2 Engine assets(.mdl, .vmdl_c, .vwrld_c, .vtex_c and etc)\n"
+    "location": "File > Import-Export > SourceEngine assets",
+    "description": "Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
                    "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
     "category": "Import-Export"
 }
@@ -55,15 +56,22 @@ if not NO_BPY:
 
     # noinspection PyPep8Naming
     class SourceIO_MT_Menu(bpy.types.Menu):
-        bl_label = "Source engine"
+        bl_label = "Source Engine Assets"
         bl_idname = "IMPORT_MT_sourceio"
 
         def draw(self, context):
+            crowbar_icon = custom_icons["main"]["crowbar_icon"]
+            bsp_icon = custom_icons["main"]["bsp_icon"]
+            vtf_icon = custom_icons["main"]["vtf_icon"]
+            vmt_icon = custom_icons["main"]["vmt_icon"]
             layout = self.layout
-            layout.operator(MDLImport_OT_operator.bl_idname, text="Source model (.mdl)")
-            layout.operator(BSPImport_OT_operator.bl_idname, text="Source map (.bsp)")
-            layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)")
-            layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)")
+            layout.operator(MDLImport_OT_operator.bl_idname, text="Source model (.mdl)",
+                            icon_value=crowbar_icon.icon_id)
+            layout.operator(BSPImport_OT_operator.bl_idname, text="Source map (.bsp)",
+                            icon_value=bsp_icon.icon_id)
+            layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)",
+                            icon_value=vtf_icon.icon_id)
+            layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)", icon_value=vmt_icon.icon_id)
             # layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)")
             layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)")
@@ -72,7 +80,31 @@ if not NO_BPY:
 
 
     def menu_import(self, context):
-        self.layout.menu(SourceIO_MT_Menu.bl_idname)
+        source_io_icon = custom_icons["main"]["sourceio_icon"]
+        self.layout.menu(SourceIO_MT_Menu.bl_idname, icon_value=source_io_icon.icon_id)
+
+
+    def load_icon(loader, filename, name):
+        script_path = Path(os.path.dirname(__file__))
+        loader.load(name, str(script_path / 'icons' / filename), 'IMAGE')
+
+
+    def register_custom_icon():
+        import bpy.utils.previews
+        pcoll = bpy.utils.previews.new()
+        load_icon(pcoll, 'sourceio_icon.png', "sourceio_icon")
+        load_icon(pcoll, 'crowbar_icon.png', "crowbar_icon")
+        load_icon(pcoll, 'bsp_icon.png', "bsp_icon")
+        load_icon(pcoll, 'vtf_icon.png', "vtf_icon")
+        load_icon(pcoll, 'vmt_icon.png', "vmt_icon")
+        custom_icons["main"] = pcoll
+
+
+    def unregister_custom_icon():
+        import bpy.utils.previews
+        for pcoll in custom_icons.values():
+            bpy.utils.previews.remove(pcoll)
+        custom_icons.clear()
 
 
     classes = (
@@ -106,6 +138,7 @@ if not NO_BPY:
 
 
     def register():
+        register_custom_icon()
         register_()
         VTFLib()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
@@ -120,6 +153,7 @@ if not NO_BPY:
         SingletonMeta.cleanup()
         vtf_lib.free_dll()
         del vtf_lib
+        unregister_custom_icon()
         unregister_()
 else:
     def register():
