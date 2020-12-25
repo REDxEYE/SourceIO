@@ -9,7 +9,7 @@ custom_icons = {}
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE",
-    "version": (3, 9, 0),
+    "version": (3, 9, 1),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine assets",
     "description": "Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
@@ -64,6 +64,10 @@ if not NO_BPY:
             bsp_icon = custom_icons["main"]["bsp_icon"]
             vtf_icon = custom_icons["main"]["vtf_icon"]
             vmt_icon = custom_icons["main"]["vmt_icon"]
+            model_doc_icon = custom_icons["main"]["model_doc_icon"]
+            vmat_icon = custom_icons["main"]["vmat_icon"]
+            vtex_icon = custom_icons["main"]["vtex_icon"]
+            vwrld_icon = custom_icons["main"]["vwrld_icon"]
             layout = self.layout
             layout.operator(MDLImport_OT_operator.bl_idname, text="Source model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
@@ -71,12 +75,17 @@ if not NO_BPY:
                             icon_value=bsp_icon.icon_id)
             layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)",
                             icon_value=vtf_icon.icon_id)
-            layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)", icon_value=vmt_icon.icon_id)
+            layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
+                            icon_value=vmt_icon.icon_id)
             # layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
-            layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)")
-            layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)")
-            layout.operator(VTEXImport_OT_operator.bl_idname, text="Source2 texture (.vtex)")
-            layout.operator(VMATImport_OT_operator.bl_idname, text="Source2 material (.vmat)")
+            layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
+                            icon_value=model_doc_icon.icon_id)
+            layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)",
+                            icon_value=vwrld_icon.icon_id)
+            layout.operator(VTEXImport_OT_operator.bl_idname, text="Source2 texture (.vtex)",
+                            icon_value=vtex_icon.icon_id)
+            layout.operator(VMATImport_OT_operator.bl_idname, text="Source2 material (.vmat)",
+                            icon_value=vmat_icon.icon_id)
 
 
     def menu_import(self, context):
@@ -97,6 +106,10 @@ if not NO_BPY:
         load_icon(pcoll, 'bsp_icon.png', "bsp_icon")
         load_icon(pcoll, 'vtf_icon.png', "vtf_icon")
         load_icon(pcoll, 'vmt_icon.png', "vmt_icon")
+        load_icon(pcoll, 'model_doc_icon.png', "model_doc_icon")
+        load_icon(pcoll, 'vmat_icon.png', "vmat_icon")
+        load_icon(pcoll, 'vtex_icon.png', "vtex_icon")
+        load_icon(pcoll, 'vwrld_icon.png', "vwrld_icon")
         custom_icons["main"] = pcoll
 
 
