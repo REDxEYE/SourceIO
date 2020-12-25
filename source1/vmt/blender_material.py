@@ -2,7 +2,7 @@ from typing import Dict, Type
 
 from ..vmt.valve_material import VMT
 from .shader_base import ShaderBase
-from .shaders import vertexlit_generic, lightmap_generic, worldvertextransition, cable,unlit_generic
+from .shaders import vertexlit_generic, lightmap_generic, worldvertextransition, cable, unlit_generic, eyerefract
 
 
 class BlenderMaterial:
