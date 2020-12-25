@@ -134,7 +134,7 @@ class BSP:
                 class_name: str = entity.get('classname', None)
                 if not class_name:
                     continue
-                hammer_id = str(entity.get('hammerid', 'SOURCE_WTF?'))
+                hammer_id = str(entity.get('hammerid', 'missing_hammer_id'))
                 target_name = entity.get('targetname', None)
                 if not target_name and not hammer_id:
                     print(f'Cannot identify entity: {entity}')
