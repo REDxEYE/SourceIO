@@ -78,12 +78,15 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                         skin = custom_prop_data.get('skin', None)
                         if skin:
                             for model in model_container.objects:
-                                skin_materials = model['skin_groups'][skin]
-                                current_materials = model['skin_groups'][model['active_skin']]
-                                print(skin_materials, current_materials)
-                                for skin_material, current_material in zip(skin_materials, current_materials):
-                                    swap_materials(model, skin_material[-63:], current_material[-63:])
-                                model['active_skin'] = skin
+                                if skin in model['skin_groups']:
+                                    skin_materials = model['skin_groups'][skin]
+                                    current_materials = model['skin_groups'][model['active_skin']]
+                                    print(skin_materials, current_materials)
+                                    for skin_material, current_material in zip(skin_materials, current_materials):
+                                        swap_materials(model, skin_material[-63:], current_material[-63:])
+                                    model['active_skin'] = skin
+                                else:
+                                    print(f'Skin {skin} not found')
 
                         bpy.data.objects.remove(obj)
         return {'FINISHED'}
