@@ -298,16 +298,18 @@ def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
 
-    if phy_path is not None and phy_path.exists():
-        phy = Phy(phy_path)
-        try:
-            phy.read()
-        except AssertionError:
-            print("Failed to parse PHY file")
-            traceback.print_exc()
-            phy = None
-        if phy is not None:
-            create_collision_mesh(phy, mdl, armature)
+    attachmens_collection = get_or_create_collection(f'{model_name}_attachmens', parent_collection)
+    create_attachments(mdl, armature if not static_prop else container.objects[0], attachmens_collection)
+    # if phy_path is not None and phy_path.exists():
+    #     phy = Phy(phy_path)
+    #     try:
+    #         phy.read()
+    #     except AssertionError:
+    #         print("Failed to parse PHY file")
+    #         traceback.print_exc()
+    #         phy = None
+    #     if phy is not None:
+    #         create_collision_mesh(phy, mdl, armature)
     return container
 
 
@@ -375,6 +377,23 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
             # mesh_obj.matrix_parent_inverse = (armature.matrix_world @ bone.matrix).inverted()
             # mesh_obj.matrix_world = (armature.matrix_world @ bone.matrix)
             # mesh_obj.matrix_parent_inverse = Matrix()
+
+
+def create_attachments(mdl: Mdl, armature: bpy.types.Object, parent_collection: bpy.types.Collection):
+    for attachment in mdl.attachments:
+        bone = armature.data.bones.get(mdl.bones[attachment.parent_bone].name)
+
+        empty = bpy.data.objects.new("empty", None)
+        parent_collection.objects.link(empty)
+        empty.name = attachment.name
+        pos = Vector(attachment.pos)
+        rot = Euler(attachment.rot)
+        empty.matrix_basis.identity()
+        empty.parent = armature
+        empty.parent_type = 'BONE'
+        empty.parent_bone = bone.name
+        empty.location = pos
+        empty.rotation_euler = rot
 
 
 def import_materials(mdl):
