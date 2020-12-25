@@ -9,7 +9,7 @@ def _is_end(ch: str):
 
 
 def _is_identifier_start(ch: str):
-    return ch and (ch.isalpha() or ch in '|<>$_')
+    return ch and (ch.isalpha() or ch in '|<>$%_')
 
 
 def _is_identifier_part(ch: str):
