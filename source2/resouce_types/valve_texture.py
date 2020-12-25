@@ -31,7 +31,11 @@ class ValveTexture:
             width=data_block.width,
             height=data_block.height)
         image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
-        image.pixels = rgb
+        if rgb.shape[0]>0:
+            if bpy.app.version > (2, 83, 0):
+                image.pixels.foreach_set(rgb.tolist())
+            else:
+                image.pixels[:] = rgb.tolist()
         image.save()
         # image.pack()
         if (
@@ -44,7 +48,11 @@ class ValveTexture:
                 width=data_block.width,
                 height=data_block.height)
             image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
-            image.pixels = alpha
+            if alpha.shape[0] > 0:
+                if bpy.app.version > (2, 83, 0):
+                    image.pixels.foreach_set(alpha.tolist())
+                else:
+                    image.pixels[:] = alpha.tolist()
             image.save()
             # image.pack()
 
