@@ -78,7 +78,8 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
                         skin = custom_prop_data.get('skin', None)
                         if skin:
                             for model in model_container.objects:
-                                if skin in model['skin_groups']:
+                                if str(skin) in model['skin_groups']:
+                                    skin = str(skin)
                                     skin_materials = model['skin_groups'][skin]
                                     current_materials = model['skin_groups'][model['active_skin']]
                                     print(skin_materials, current_materials)

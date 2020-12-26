@@ -153,7 +153,7 @@ class BSP:
                     if 'model' in entity:
                         location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                         rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                        skin = entity.get('skin', 0)
+                        skin = str(entity.get('skin', 0))
                         self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location,
                                           rotation,
                                           parent_collection=parent_collection,
