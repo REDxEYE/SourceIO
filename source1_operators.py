@@ -66,7 +66,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
                     import traceback
                     traceback.print_exc()
             if self.write_qc:
-                from .source1.new_qc.qc import generate_qc
+                from .source1.qc.qc import generate_qc
                 from . import bl_info
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))

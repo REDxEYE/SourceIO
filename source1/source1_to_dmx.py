@@ -5,13 +5,13 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from .new_mdl.mdl import Mdl
-from .new_mdl.structs.bone import Bone
-from .new_mdl.structs.model import Model
-from .new_vtx.structs.mesh import Mesh as VtxMesh
-from .new_vtx.structs.model import ModelLod as VtxModel
-from .new_vtx.vtx import Vtx
-from .new_vvd.vvd import Vvd
+from .mdl.mdl import Mdl
+from .mdl.structs.bone import Bone
+from .mdl.structs.model import Model
+from .vtx.structs.mesh import Mesh as VtxMesh
+from .vtx.structs.model import ModelLod as VtxModel
+from .vtx.vtx import Vtx
+from .vvd.vvd import Vvd
 from ..utilities import datamodel
 from ..utilities.valve_utils import GameInfoFile
 

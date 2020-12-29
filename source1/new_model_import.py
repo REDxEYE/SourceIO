@@ -5,18 +5,18 @@ import numpy as np
 from typing import BinaryIO, Iterable, Sized, List, Union, Optional
 
 from .content_manager import ContentManager
-from .new_mdl.structs.header import StudioHDRFlags
+from .mdl.structs.header import StudioHDRFlags
 from ..utilities.path_utilities import get_mod_path
-from .new_mdl.flex_expressions import *
-from .new_mdl.structs.bone import Bone
-from .new_mdl.vertex_animation_cache import VertexAnimationCache
-from .new_phy.phy import Phy
-from .new_vvd.vvd import Vvd
-from .new_mdl.mdl import Mdl
-from .new_vtx.vtx import Vtx
-from .new_mdl.structs.model import Model
-from .new_vtx.structs.model import ModelLod as VtxModel
-from .new_vtx.structs.mesh import Mesh as VtxMesh
+from .mdl.flex_expressions import *
+from .mdl.structs.bone import Bone
+from .mdl.vertex_animation_cache import VertexAnimationCache
+from .phy.phy import Phy
+from .vvd.vvd import Vvd
+from .mdl.mdl import Mdl
+from .vtx.vtx import Vtx
+from .mdl.structs.model import Model
+from .vtx.structs.model import ModelLod as VtxModel
+from .vtx.structs.mesh import Mesh as VtxMesh
 
 import bpy
 from mathutils import Vector, Matrix, Euler

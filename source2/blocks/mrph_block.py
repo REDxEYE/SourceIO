@@ -2,7 +2,7 @@ import struct
 
 from .data_block import DATA
 import numpy as np
-from ...source1.new_mdl.flex_expressions import *
+from ...source1.mdl.flex_expressions import *
 
 
 class MRPH(DATA):
