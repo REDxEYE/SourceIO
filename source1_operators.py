@@ -45,8 +45,6 @@ class MDLImport_OT_operator(bpy.types.Operator):
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
         from .source1.new_model_import import import_model, import_materials
-        from .source1.new_qc.qc import generate_qc
-        from . import bl_info
         for file in self.files:
             mdl_path = directory / file.name
             vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
@@ -68,6 +66,8 @@ class MDLImport_OT_operator(bpy.types.Operator):
                     import traceback
                     traceback.print_exc()
             if self.write_qc:
+                from .source1.new_qc.qc import generate_qc
+                from . import bl_info
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
