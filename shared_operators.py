@@ -6,7 +6,7 @@ from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProp
 
 from .source1.content_manager import ContentManager
 from .source1.mdl.structs.header import StudioHDRFlags
-from .source1.new_model_import import import_model, import_materials
+from .source1.import_model import import_model, import_materials
 from .source2.resouce_types.valve_model import ValveModel
 from .utilities.path_utilities import backwalk_file_resolver
 
