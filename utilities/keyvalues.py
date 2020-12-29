@@ -162,8 +162,10 @@ class KVParser(KVReader):
             if not val:
                 return ''
             if val.startswith('['):
+                val = val.replace('  ', '')
                 return tuple(map(float, val[1:-1].strip().split(' ')))
             if val.startswith('{'):
+                val = val.replace('  ', '')
                 return tuple(map(int, val[1:-1].strip().split(' ')))
             if _is_number(val):
                 return _to_number(val)
