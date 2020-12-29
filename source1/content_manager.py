@@ -54,6 +54,25 @@ class ContentManager(metaclass=SingletonMeta):
                 self.sub_managers[root_path.stem] = sub_manager
                 print(f'Registered sub manager for {source_game_path.stem}')
 
+    def deserialize(self, data: Dict[str, str]):
+        for name, path in data.items():
+            if path.endswith('.vpk'):
+                sub_manager = VPKSubManager(Path(path))
+                self.sub_managers[name] = sub_manager
+            elif path.endswith('.txt'):
+                sub_manager = Gameinfo(Path(path))
+                self.sub_managers[name] = sub_manager
+            elif path.endswith('.bps'):
+                from .bsp.bsp_file import BSPFile, LumpTypes
+                bsp = BSPFile(path)
+                bsp.parse()
+                pak_lump = bsp.get_lump(LumpTypes.LUMP_PAK)
+                if pak_lump:
+                    self.sub_managers[name] = pak_lump
+            else:
+                sub_manager = NonSourceSubManager(Path(path))
+                self.sub_managers[name] = sub_manager
+
     @staticmethod
     def is_source_mod(path: Path, second=False):
         if path.name == 'gameinfo.txt':
@@ -88,3 +107,6 @@ class ContentManager(metaclass=SingletonMeta):
 
     def find_material(self, filepath):
         return self.find_file(filepath, 'materials', extension='.vmt')
+
+    def serialize(self):
+        return {name: str(sub_manager.filepath) for name, sub_manager in self.sub_managers.items()}
