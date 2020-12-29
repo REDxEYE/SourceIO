@@ -2,7 +2,7 @@ import random
 import traceback
 from pathlib import Path
 import numpy as np
-from typing import BinaryIO, Iterable, Sized, List, Union
+from typing import BinaryIO, Iterable, Sized, List, Union, Optional
 
 from .content_manager import ContentManager
 from .new_mdl.structs.header import StudioHDRFlags
@@ -156,15 +156,15 @@ class ModelContainer:
         self.objects: List[bpy.types.Object] = []
 
 
-def import_model(mdl_path: BinaryIO, vvd_path: BinaryIO, vtx_path: BinaryIO, phy_path: BinaryIO, create_drivers=False,
-                 parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
+def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy_file: Optional[BinaryIO],
+                 create_drivers=False, parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
-    mdl = Mdl(mdl_path)
+    mdl = Mdl(mdl_file)
     mdl.read()
-    vvd = Vvd(vvd_path)
+    vvd = Vvd(vvd_file)
     vvd.read()
-    vtx = Vtx(vtx_path)
+    vtx = Vtx(vtx_file)
     vtx.read()
 
     container = ModelContainer(mdl, vvd, vtx)
