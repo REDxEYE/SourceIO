@@ -193,9 +193,8 @@ class VMTImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            mat = BlenderMaterial((directory / file.name).open('rb'))
-            mat.load_textures()
-            if mat.create_material(Path(file.name).stem, self.override) == 'EXISTS' and not self.override:
+            mat = BlenderMaterial((directory / file.name).open('rb'), Path(file.name).stem)
+            if mat.create_material() == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
         return {'FINISHED'}
 
