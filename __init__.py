@@ -19,10 +19,7 @@ bl_info = {
 
 if not NO_BPY:
 
-    try:
-        import bpy
-    except ImportError:
-        NO_BPY = 1
+    import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
     from .source1_operators import (BSPImport_OT_operator,
@@ -42,17 +39,6 @@ if not NO_BPY:
                                    LoadPlaceholder_OT_operator,
                                    SourceIOUtils_PT_panel, )
 
-
-    # class SourceIOPreferences(bpy.types.AddonPreferences):
-    #     bl_idname = __package__
-    #
-    #     sfm_path: StringProperty(default='', name='SFM path')
-    #
-    #     def draw(self, context):
-    #         layout = self.layout
-    #         layout.label(text='Enter SFM install path:')
-    #         row = layout.row()
-    #         row.prop(self, 'sfm_path')
 
     # noinspection PyPep8Naming
     class SourceIO_MT_Menu(bpy.types.Menu):
@@ -143,11 +129,7 @@ if not NO_BPY:
         ChangeSkin_OT_operator
     )
 
-    try:
-        register_, unregister_ = bpy.utils.register_classes_factory(classes)
-    except:
-        register_ = lambda: 0
-        unregister_ = lambda: 0
+    register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
 
     def register():
