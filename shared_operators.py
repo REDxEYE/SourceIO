@@ -18,10 +18,7 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
 
     def execute(self, context):
         content_manager = ContentManager()
-        for name, sub in bpy.context.scene.get('content_manager_data', {}).items():
-            if name not in content_manager.sub_managers:
-                print(f'Registering cached sub manager for {name}:{sub}')
-                content_manager.scan_for_content(sub)
+        content_manager.deserialize(bpy.context.scene.get('content_manager_data', {}))
 
         for obj in context.selected_objects:
             print(f'Loading {obj.name}')
