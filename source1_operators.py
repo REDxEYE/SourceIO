@@ -4,13 +4,11 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 
-# from .source1.mdl import mdl2model, qc_generator
 from .source1.vmt.blender_material import BlenderMaterial
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
 from .source1.bsp.import_bsp import BSP
-from .source1.vmt.valve_material import VMT
 from .utilities.path_utilities import backwalk_file_resolver
 from .source1.content_manager import ContentManager
 
@@ -43,8 +41,9 @@ class MDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         content_manager = ContentManager()
         content_manager.scan_for_content(directory)
-        bpy.context.scene['content_manager_data'] = {name: str(sub.filepath) for name, sub in
-                                                     content_manager.sub_managers.items()}
+
+        bpy.context.scene['content_manager_data'] = content_manager.serialize()
+
         from .source1.new_model_import import import_model, import_materials
         from .source1.new_qc.qc import generate_qc
         from . import bl_info
@@ -98,8 +97,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
 
         bsp_map = BSP(self.filepath)
 
-        bpy.context.scene['content_manager_data'] = {name: str(sub.filepath) for name, sub in
-                                                     content_manager.sub_managers.items() if hasattr(sub, 'filepath')}
+        bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
         bsp_map.load_map_mesh()
         bsp_map.load_disp()
