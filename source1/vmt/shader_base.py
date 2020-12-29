@@ -111,6 +111,10 @@ class Nodes:
 class ShaderBase:
     SHADER: str = "Unknown"
 
+    @classmethod
+    def all_subclasses(cls):
+        return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
+
     def __init__(self, valve_material):
         from .valve_material import VMT
         self._vavle_material: VMT = valve_material

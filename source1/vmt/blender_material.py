@@ -12,7 +12,8 @@ class BlenderMaterial:
         self._handlers: Dict[str, Type[ShaderBase]] = dict()
 
         sub: Type[ShaderBase]
-        for sub in ShaderBase.__subclasses__():
+        for sub in ShaderBase.all_subclasses():
+            print(f'Registered handler for {sub.__name__} shader')
             self._handlers[sub.SHADER] = sub
 
         self.vmt.parse()
