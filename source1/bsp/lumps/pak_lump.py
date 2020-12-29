@@ -33,9 +33,3 @@ class PakLump(Lump):
         if new_filepath is not None:
             return BytesIO(self.zip_file.open(new_filepath, 'r').read())
         return None
-
-    def find_texture(self, filepath):
-        return self.find_file(filepath, 'materials', extension='.vtf')
-
-    def find_material(self, filepath):
-        return self.find_file(filepath, 'materials', extension='.vmt')
