@@ -6,6 +6,7 @@ from typing import BinaryIO, Iterable, Sized, List, Union, Optional
 
 from .content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
+from ..bpy_utils import BPYLoggingManager
 from ..utilities.path_utilities import get_mod_path
 from .mdl.flex_expressions import *
 from .mdl.structs.bone import Bone
@@ -24,6 +25,9 @@ from mathutils import Vector, Matrix, Euler
 from .vmt.blender_material import BlenderMaterial
 from .vtf.import_vtf import import_texture
 from .vmt.valve_material import VMT
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('mdl_loader')
 
 
 def split(array, n=3):
@@ -321,7 +325,7 @@ def create_flex_drivers(obj, mdl: Mdl):
     def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
         if expr.__class__ in [FetchController, FetchFlex]:
             expr: Value = expr
-            print(f"Parsing {expr} value")
+            logger.info(f"Parsing {expr} value")
             if driver.variables.get(expr.value, None) is not None:
                 return
             var = driver.variables.new()
@@ -353,7 +357,7 @@ def create_flex_drivers(obj, mdl: Mdl):
         driver.type = 'SCRIPTED'
         parse_expr(expr, driver, shape_key_block)
         driver.expression = str(expr)
-        print(target, expr)
+        logger.debug(f'{target} {expr}')
 
 
 def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
@@ -401,7 +405,7 @@ def import_materials(mdl):
     for material in mdl.materials:
         if bpy.data.materials.get(material.name, False):
             if bpy.data.materials[material.name].get('source1_loaded'):
-                print(f'Skipping loading of {material.name} as it already loaded')
+                logger.info(f'Skipping loading of {material.name} as it already loaded')
                 continue
         material_path = None
         for mat_path in mdl.materials_paths:

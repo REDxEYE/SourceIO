@@ -3,12 +3,16 @@ from pathlib import Path
 from typing import List, Union, Dict
 
 from .sub_manager import SubManager
+from ..bpy_utils import BPYLoggingManager
 from ..source_shared.non_source_sub_manager import NonSourceSubManager
 from ..source_shared.vpk_sub_manager import VPKSubManager
 from ..utilities.gameinfo import Gameinfo
 from ..utilities.path_utilities import get_mod_path
 from ..utilities.singleton import SingletonMeta
 from ..utilities.valve_utils import fix_workshop_not_having_gameinfo_file
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('content_manager')
 
 
 class ContentManager(metaclass=SingletonMeta):
@@ -27,7 +31,7 @@ class ContentManager(metaclass=SingletonMeta):
             if vpk_path.exists():
                 sub_manager = VPKSubManager(vpk_path)
                 self.sub_managers[f'{source_game_path.parent.stem}_{source_game_path.stem}'] = sub_manager
-                print(f'Registered sub manager for {source_game_path.parent.stem}_{source_game_path.stem}')
+                logger.info(f'Registered sub manager for {source_game_path.parent.stem}_{source_game_path.stem}')
                 return
 
         is_source, root_path = self.is_source_mod(source_game_path)
@@ -38,13 +42,13 @@ class ContentManager(metaclass=SingletonMeta):
             for gameinfo in gameinfos:
                 sub_manager = Gameinfo(gameinfo)
                 self.sub_managers[root_path.stem] = sub_manager
-                print(f'Registered sub manager for {root_path.stem}')
+                logger.info(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
                     self.scan_for_content(mod)
         elif 'workshop' in root_path.name:
             sub_manager = NonSourceSubManager(root_path)
             self.sub_managers[root_path.stem] = sub_manager
-            print(f'Registered sub manager for {root_path.stem}')
+            logger.info(f'Registered sub manager for {root_path.stem}')
             for mod in root_path.parent.iterdir():
                 if mod.is_dir():
                     self.scan_for_content(mod)
@@ -52,7 +56,7 @@ class ContentManager(metaclass=SingletonMeta):
             if root_path.is_dir():
                 sub_manager = NonSourceSubManager(root_path)
                 self.sub_managers[root_path.stem] = sub_manager
-                print(f'Registered sub manager for {source_game_path.stem}')
+                logger.info(f'Registered sub manager for {source_game_path.stem}')
 
     def deserialize(self, data: Dict[str, str]):
         for name, path in data.items():
@@ -93,12 +97,12 @@ class ContentManager(metaclass=SingletonMeta):
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
             new_filepath = new_filepath.with_suffix(extension)
-        print(f'Requesting {new_filepath} file')
+        logger.info(f'Requesting {new_filepath} file')
         for mod, submanager in self.sub_managers.items():
             # print(f'Searching in {mod}')
             file = submanager.find_file(new_filepath)
             if file is not None:
-                print(f'Found in {mod}!')
+                logger.debug(f'Found in {mod}!')
                 return file
         return None
 

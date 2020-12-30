@@ -30,11 +30,13 @@ from ..import_model import get_or_create_collection
 from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..vmt.valve_material import VMT
+from ...bpy_utils import BPYLoggingManager
 from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point, lerp_vec, clamp_value
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
+log_manager = BPYLoggingManager()
 
 
 def get_material(mat_name, model_ob):
@@ -75,7 +77,8 @@ class BSP:
 
     def __init__(self, map_path):
         self.filepath = Path(map_path)
-        print('Loading map from', self.filepath)
+        self.logger = log_manager.get_logger(self.filepath.name)
+        self.logger.info(f'Loading map "{self.filepath}"')
         self.map_file = BSPFile(self.filepath)
         self.map_file.parse()
         self.main_collection = bpy.data.collections.new(self.filepath.name)
@@ -92,7 +95,7 @@ class BSP:
             self.scaled_vertices = np.multiply(self.vertex_lump.vertices, self.scale)
 
         content_manager = ContentManager()
-        print('Adding map pack file to content manager')
+        self.logger.debug('Adding map pack file to content manager')
         content_manager.sub_managers[Path(self.filepath).stem] = self.map_file.get_lump(LumpTypes.LUMP_PAK)
 
     @staticmethod
@@ -137,7 +140,7 @@ class BSP:
                 hammer_id = str(entity.get('hammerid', 'missing_hammer_id'))
                 target_name = entity.get('targetname', None)
                 if not target_name and not hammer_id:
-                    print(f'Cannot identify entity: {entity}')
+                    self.logger.error(f'Cannot identify entity: {entity}')
 
                 parent_collection = get_or_create_collection(class_name, self.main_collection)
                 if class_name.startswith('func_'):
@@ -148,7 +151,7 @@ class BSP:
                         mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, location, parent_collection)
                         mesh_obj['entity'] = entity
                     else:
-                        print(f'{target_name or hammer_id} does not reference any model, SKIPPING!')
+                        self.logger.warn(f'{target_name or hammer_id} does not reference any model, SKIPPING!')
                 elif class_name.startswith('prop_') or class_name in ['monster_generic']:
                     if 'model' in entity:
                         location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
@@ -230,7 +233,7 @@ class BSP:
                 elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
                     parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))
                     if len(parent) == 0:
-                        print(f'Cannot find rope parent \'{entity["nextkey"]}\', skipping')
+                        self.logger.error(f'Cannot find rope parent \'{entity["nextkey"]}\', skipping')
                         continue
                     location_start = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     location_end = np.multiply(parse_source2_hammer_vector(parent[0]['origin']), self.scale)
@@ -298,7 +301,7 @@ class BSP:
         if custom_origin is None:
             custom_origin = [0, 0, 0]
         model = self.model_lump.models[model_id]
-        print(f'Loading "{model_name}"')
+        self.logger.info(f'Loading "{model_name}"')
         mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_{model_name}",
                                         bpy.data.meshes.new(f"{self.filepath.stem}_{model_name}_MESH"))
         mesh_data = mesh_obj.data
@@ -428,9 +431,10 @@ class BSP:
             tmp = strip_patch_coordinates.sub("", material_name)[-63:]
             if bpy.data.materials.get(tmp, False):
                 if bpy.data.materials[tmp].get('source1_loaded'):
-                    print(f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
+                    self.logger.debug(
+                        f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
                     continue
-            print(f"Loading {material_name} material")
+            self.logger.info(f"Loading {material_name} material")
             material_file = content_manager.find_material(material_name)
 
             if material_file:
@@ -438,7 +442,7 @@ class BSP:
                 mat = BlenderMaterial(material_file, material_name)
                 mat.create_material()
             else:
-                print(f'Failed to find {material_name} material')
+                self.logger.error(f'Failed to find {material_name} material')
 
     def load_disp(self):
         disp_info_lump: Optional[DispInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_DISPINFO)
@@ -453,7 +457,7 @@ class BSP:
         parent_collection = get_or_create_collection('displacements', self.main_collection)
         info_count = len(disp_info_lump.infos)
         for n, disp_info in enumerate(disp_info_lump.infos):
-            print(f'Processing {n + 1}/{info_count} displacement face')
+            self.logger.info(f'Processing {n + 1}/{info_count} displacement face')
             uvs = []
             final_vertices = []
             final_vertex_colors = []

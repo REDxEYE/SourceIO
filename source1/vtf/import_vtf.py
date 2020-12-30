@@ -2,13 +2,17 @@ import bpy
 import numpy as np
 
 from ..vtf.VTFWrapper import VTFLib
+from ...bpy_utils import BPYLoggingManager
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('content_manager')
 
 
 def import_texture(name, file_object, update=False):
     if bpy.data.images.get(name, None) and not update:
         return name
     vtf_lib = VTFLib.VTFLib()
-    print(f'Loading "{name}" texture ({file_object})')
+    logger.info(f'Loading "{name}" texture')
     vtf_lib.image_load_from_buffer(file_object.read())
     if not vtf_lib.image_is_loaded():
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
@@ -35,7 +39,7 @@ def import_texture(name, file_object, update=False):
         image.pack()
         return image
     except Exception as ex:
-        print('Caught exception "{}" '.format(ex))
+        logger.error('Caught exception "{}" '.format(ex))
     finally:
         vtf_lib.image_destroy()
 

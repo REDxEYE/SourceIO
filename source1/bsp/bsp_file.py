@@ -18,13 +18,17 @@ from .lumps.texture_lump import TextureDataLump, TextureInfoLump
 from .lumps.vertex_lump import VertexLump
 from .lumps.vertex_normal_lump import VertexNormalLump, VertexNormalIndicesLump
 from .lumps.world_light_lump import WorldLightLump
+from ...bpy_utils import BPYLoggingManager
 
 from ...utilities.byte_io_mdl import ByteIO
+
+log_manager = BPYLoggingManager()
 
 
 class BSPFile:
     def __init__(self, filepath: str):
         self.filepath = Path(filepath)
+        self.logger = log_manager.get_logger(self.filepath.name)
         self.reader = ByteIO(self.filepath)
         self.version = 0
         self.lumps_info: List[LumpInfo] = []
@@ -77,7 +81,9 @@ class BSPFile:
     def parse_lump(self, lump_class: Type[Lump]):
         if self.lumps_info[lump_class.lump_id].size != 0:
             lump = self.lumps_info[lump_class.lump_id]
-            print(f"Loading {lump_class.lump_id.name} lump.\n\tOffset: {lump.offset}\n\tSize:{lump.size}")
+            self.logger.debug(f'Loading {lump_class.lump_id.name} lump', 'bps_parser')
+            self.logger.debug(f'\tOffset: {lump.offset}', 'bps_parser')
+            self.logger.debug(f'\tSize: {lump.size}', 'bps_parser')
             parsed_lump = lump_class(self).parse()
             self.lumps[lump_class.lump_id] = parsed_lump
             return parsed_lump

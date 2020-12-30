@@ -7,6 +7,7 @@ import numpy as np
 from ..content_manager import ContentManager
 from ..vmt.node_arranger import nodes_iterate
 from ..vtf.import_vtf import import_texture
+from ...bpy_utils import BPYLoggingManager
 
 
 class Nodes:
@@ -108,6 +109,9 @@ class Nodes:
     ShaderNodeWireframe = 'ShaderNodeWireframe'
 
 
+log_manager = BPYLoggingManager()
+
+
 class ShaderBase:
     SHADER: str = "Unknown"
 
@@ -117,6 +121,8 @@ class ShaderBase:
 
     def __init__(self, valve_material):
         from .valve_material import VMT
+
+        self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
         self._vavle_material: VMT = valve_material
         self._material_data: Dict[str, Any] = self._vavle_material.material_data
         self.textures = {}
@@ -136,10 +142,9 @@ class ShaderBase:
                 image.pixels[:] = image_data
             return image
 
-    @staticmethod
-    def load_texture(texture_name, texture_path):
+    def load_texture(self, texture_name, texture_path):
         if bpy.data.images.get(texture_name, False):
-            print(f'Using existing texture {texture_name}')
+            self.logger.debug(f'Using existing texture {texture_name}')
             return bpy.data.images.get(texture_name)
 
         content_manager = ContentManager()
@@ -148,10 +153,9 @@ class ShaderBase:
             return import_texture(texture_name, texture_file)
         return None
 
-    @staticmethod
-    def load_texture_or_default(file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
+    def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
         texture_name = Path(file).stem
-        texture = ShaderBase.load_texture(texture_name, file)
+        texture = self.load_texture(texture_name, file)
         return texture or ShaderBase.get_missing_texture(f'missing_{texture_name}', default_color)
 
     @staticmethod
@@ -205,11 +209,11 @@ class ShaderBase:
             self.connect_nodes(middle_output_socket, receiver)
 
     def create_nodes(self, material_name: str):
-        print(f'Creating material {repr(material_name)}')
+        self.logger.info(f'Creating material {repr(material_name)}')
         self.bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
 
         if self.bpy_material is None:
-            print('Failed to get or create material')
+            self.logger.error('Failed to get or create material')
             return 'UNKNOWN'
 
         if self.bpy_material.get('source1_loaded'):
