@@ -66,7 +66,7 @@ class ContentManager(metaclass=SingletonMeta):
             elif path.endswith('.txt'):
                 sub_manager = Gameinfo(Path(path))
                 self.sub_managers[name] = sub_manager
-            elif path.endswith('.bps'):
+            elif path.endswith('.bsp'):
                 from .bsp.bsp_file import BSPFile, LumpTypes
                 bsp = BSPFile(path)
                 bsp.parse()

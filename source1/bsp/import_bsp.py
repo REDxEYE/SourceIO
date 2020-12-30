@@ -212,7 +212,7 @@ class BSP:
                     radius = (1 - 60 / cone)
                     self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone, radius,
                                      parent_collection, entity)
-                elif class_name in ['light', 'light_environment']:
+                elif class_name == 'light':
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
                     color = parse_source2_hammer_vector(entity['_light'])
@@ -226,9 +226,27 @@ class BSP:
                     color_max = max(color)
                     lumens *= color_max / 255 * (1.0 / self.scale)
                     color = np.divide(color, color_max)
-                    watts = watt_power_point(lumens, color) * 100
+                    watts = watt_power_point(lumens, color)*100
 
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
+                                     parent_collection=parent_collection, entity=entity)
+                elif class_name == 'light_environment':
+                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
+                    color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
+                    color = parse_source2_hammer_vector(entity['_light'])
+                    if color_hrd[0] > 0:
+                        color = color_hrd
+                    if len(color) == 4:
+                        lumens = color[-1]
+                        color = color[:-1]
+                    else:
+                        lumens = 1
+                    color_max = max(color)
+                    lumens *= color_max / 255 * (1.0 / self.scale)
+                    color = np.divide(color, color_max)
+                    watts = watt_power_point(lumens, color)
+
+                    self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'SUN', watts, color, 1,
                                      parent_collection=parent_collection, entity=entity)
                 elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
                     parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))
