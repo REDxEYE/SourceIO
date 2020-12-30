@@ -38,7 +38,6 @@ else:
     import bpy
 
 
-
     def get_log_file(filename):
         return bpy.data.texts.get(filename, None) or bpy.data.texts.new(filename)
 
@@ -55,12 +54,10 @@ else:
     class BPYLogger:
         def __init__(self, name):
             self.name = name
-            self.file = None
 
         def log(self, log_level, message, module=None):
-            if self.file is None:
-                self.file = get_log_file(self.name)
-            self.file.write(f'[{log_level:8}]-[{f"{module}:" if module is not None else ""}{self.name}] {message}\n')
+            file = get_log_file(self.name)
+            file.write(f'[{log_level:8}]-[{f"{module}:" if module is not None else ""}{self.name}] {message}\n')
             print(f'[{log_level:8}]-[{self.name}] {message}')
 
         def debug(self, message, module=None):
@@ -74,4 +71,3 @@ else:
 
         def error(self, message, module=None):
             self.log('ERROR', message, module)
-
