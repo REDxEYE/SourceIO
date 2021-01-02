@@ -3,7 +3,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, CollectionProperty
 
-from SourceIO.goldsrc.bsp import load_map
+
 
 
 class GBSPImport_OT_operator(bpy.types.Operator):
@@ -17,13 +17,15 @@ class GBSPImport_OT_operator(bpy.types.Operator):
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
     def execute(self, context):
+        from .goldsrc.bsp import BSP
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
-            load_map(directory / file.name)
+            bsp = BSP(directory / file.name)
+            bsp.load_map()
         return {'FINISHED'}
 
     def invoke(self, context, event):

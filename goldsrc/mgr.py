@@ -17,11 +17,14 @@ class ContentManager:
                 self.game_root_mod = path
                 print(f'Found game root: {self.game_root} ({self.game_root_mod})')
                 break
-
+            elif len(path.parts) == 1:
+                self.game_root: Path = Path(path.parent.parent)
+                self.game_root_mod = Path(path.parent)
+                break
             path = path.parent
 
         if self.game_root is None:
-            raise ValueError('Cannot find game directory path')
+            print('Cannot find game directory path')
 
     def get_game_file(self, path: Path):
         return self.game_root / path
