@@ -115,6 +115,8 @@ class BspTexturesDataLump(BspLump):
         textures_count = struct.unpack('I', handle.read(4))[0]
         textures_offset = struct.unpack('I' * textures_count, handle.read(4 * textures_count))
         for texture_offset in textures_offset:
+            if texture_offset == 0xffffffff:
+                continue
             handle.seek(self.offset + texture_offset)
             texture_name = handle.read(16)
             texture_name = texture_name[:texture_name.index(b'\x00')].decode().upper()
@@ -284,7 +286,7 @@ class BspFile:
         self.handle = file.open('rb')
         self.version = struct.unpack('<I', self.handle.read(4))[0]
         self.lumps = [BspLump.get_handler(type)(self) for type in BspLumpType]
-        assert self.version == 30, 'Not a GoldSRC map file'
+        assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
 
 
 def load_map(path: Path):
