@@ -523,14 +523,17 @@ class BSP:
         if len(color) == 4:
             lumens = color[-1]
             color = color[:-1]
+        elif len(color) == 1:
+            color = [color[0], color[0], color[0]]
+            lumens = color[0]
         else:
-            lumens = 1
+            lumens = 200
         color_max = max(color)
         lumens *= color_max / 255 * (1.0 / self.scale)
         color = np.divide(color, color_max)
-        inner_cone = float(entity_data['_cone2'])
+        inner_cone = float(entity_data.get('_cone2', 60))
         cone = float(entity_data['_cone']) * 2
-        watts = watt_power_spot(lumens, color, cone)
+        watts = (lumens * (1 / math.radians(cone))) / 10
         radius = (1 - inner_cone / cone)
         light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
                                   'SPOT', watts, color, cone, radius,
@@ -545,12 +548,15 @@ class BSP:
         if len(color) == 4:
             lumens = color[-1]
             color = color[:-1]
+        elif len(color) == 1:
+            color = [color[0], color[0], color[0]]
+            lumens = color[0]
         else:
-            lumens = 1
+            lumens = 200
         color_max = max(color)
-        lumens *= color_max / 255 * (1.0 / self.scale)
+        lumens *= (color_max / 255) * (1.0 / self.scale)
         color = np.divide(color, color_max)
-        watts = watt_power_point(lumens, color) * 100
+        watts = lumens / 10
         light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
                                   'POINT', watts, color, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
