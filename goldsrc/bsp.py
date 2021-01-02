@@ -1,3 +1,4 @@
+import math
 import random
 import struct
 from enum import IntEnum
@@ -5,17 +6,14 @@ from pathlib import Path
 
 import bpy
 import numpy as np
+from typing import Dict, Any
 
 from .mgr import ContentManager
 from .wad import make_texture, flip_texture
+from ..bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
+from ..utilities.math_utilities import parse_source2_hammer_vector, watt_power_point, watt_power_spot
 
-
-def convert_units(units: int) -> float:
-    return units * 0.01905
-
-
-def convert_units_vec(units):
-    return list(map(convert_units, units))
+log_manager = BPYLoggingManager()
 
 
 class BspLumpType(IntEnum):
@@ -166,10 +164,8 @@ class BspVerticesLump(BspLump):
 
     def parse(self):
         self.file.handle.seek(self.offset)
-        for _ in range(self.length // 12):
-            self.values.append({
-                'vector': struct.unpack('fff', self.file.handle.read(12))
-            })
+        self.values = np.frombuffer(self.file.handle.read(self.length), np.float32)
+        self.values = self.values.reshape((-1, 3))
         return self
 
 
@@ -181,16 +177,12 @@ class BspTexturesInfoLump(BspLump):
     def parse(self):
         self.file.handle.seek(self.offset)
         for _ in range(self.length // 40):
-            s = struct.unpack('fff', self.file.handle.read(12))
-            s_shift = struct.unpack('f', self.file.handle.read(4))[0]
-            t = struct.unpack('fff', self.file.handle.read(12))
-            t_shift = struct.unpack('f', self.file.handle.read(4))[0]
+            s = struct.unpack('ffff', self.file.handle.read(16))
+            t = struct.unpack('ffff', self.file.handle.read(16))
             texture, flags = struct.unpack('II', self.file.handle.read(8))
             self.values.append({
                 's': s,
-                's_shift': s_shift,
                 't': t,
-                't_shift': t_shift,
                 'texture': texture,
                 'flags': flags
             })
@@ -228,30 +220,23 @@ class BspFaceLump(BspLump):
 class BspEdgeLump(BspLump):
     def __init__(self, file: 'BspFile'):
         super().__init__(file, BspLumpType.LUMP_EDGES)
-        self.values = []
+        self.values = np.array([])
 
     def parse(self):
         self.file.handle.seek(self.offset)
-        for _ in range(self.length // 4):
-            self.values.append({
-                'indices': struct.unpack('HH', self.file.handle.read(4))
-            })
+        self.values = np.frombuffer(self.file.handle.read(self.length), np.int16)
+        self.values = self.values.reshape((-1, 2))
         return self
 
 
 class BspSurfaceEdgeLump(BspLump):
     def __init__(self, file: 'BspFile'):
         super().__init__(file, BspLumpType.LUMP_SURFACE_EDGES)
-        self.values = []
+        self.values = np.array([])
 
     def parse(self):
         self.file.handle.seek(self.offset)
-        for _ in range(self.length // 4):
-            index = struct.unpack('i', self.file.handle.read(4))[0]
-            self.values.append({
-                'index': abs(index),
-                'negative': index < 0
-            })
+        self.values = np.frombuffer(self.file.handle.read(self.length), np.int32)
         return self
 
 
@@ -289,182 +274,305 @@ class BspFile:
         assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
 
 
-def load_map(path: Path):
-    bsp_name = path.stem
-    bsp_file = BspFile(path)
+class BSP:
+    scale = 0.01905
 
-    for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
-        bsp_file.manager.add_game_resource_root(bsp_file.manager.game_root / 'valve' / default_resource)
+    def __init__(self, map_path: Path):
+        self.map_path = map_path
+        self.bsp_name = map_path.stem
+        self.logger = log_manager.get_logger(self.bsp_name)
+        self.logger.info(f'Loading map "{self.bsp_name}"')
+        self.bsp_file = BspFile(map_path)
+        self.bsp_collection = bpy.data.collections.new(self.bsp_name)
 
-    bsp_lump_entities = bsp_file.lumps[BspLumpType.LUMP_ENTITIES].parse()
-    bsp_lump_textures_data = bsp_file.lumps[BspLumpType.LUMP_TEXTURES_DATA].parse()
-    bsp_lump_vertices = bsp_file.lumps[BspLumpType.LUMP_VERTICES].parse()
-    bsp_lump_textures_info = bsp_file.lumps[BspLumpType.LUMP_TEXTURES_INFO].parse()
-    bsp_lump_faces = bsp_file.lumps[BspLumpType.LUMP_FACES].parse()
-    bsp_lump_edges = bsp_file.lumps[BspLumpType.LUMP_EDGES].parse()
-    bsp_lump_surface_edges = bsp_file.lumps[BspLumpType.LUMP_SURFACE_EDGES].parse()
-    bsp_lump_models = bsp_file.lumps[BspLumpType.LUMP_MODELS].parse()
+        self.bsp_lump_entities = self.bsp_file.lumps[BspLumpType.LUMP_ENTITIES].parse()
+        self.bsp_lump_textures_data = self.bsp_file.lumps[BspLumpType.LUMP_TEXTURES_DATA].parse()
+        self.bsp_lump_vertices = self.bsp_file.lumps[BspLumpType.LUMP_VERTICES].parse()
+        self.bsp_lump_textures_info = self.bsp_file.lumps[BspLumpType.LUMP_TEXTURES_INFO].parse()
+        self.bsp_lump_faces = self.bsp_file.lumps[BspLumpType.LUMP_FACES].parse()
+        self.bsp_lump_edges = self.bsp_file.lumps[BspLumpType.LUMP_EDGES].parse()
+        self.bsp_lump_surface_edges = self.bsp_file.lumps[BspLumpType.LUMP_SURFACE_EDGES].parse()
+        self.bsp_lump_models = self.bsp_file.lumps[BspLumpType.LUMP_MODELS].parse()
 
-    bsp_collection = bpy.data.collections.new(bsp_name)
-    bpy.context.scene.collection.children.link(bsp_collection)
+        for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
+            self.bsp_file.manager.add_game_resource_root(self.bsp_file.manager.game_root / 'valve' / default_resource)
 
-    model_objects = {}
+    @staticmethod
+    def gather_model_data(model, faces, surf_edges, edges):
+        vertex_ids = np.zeros((0, 1), dtype=np.uint32)
+        vertex_offset = 0
+        material_indices = []
+        for map_face in faces[model['first_face']:model['first_face'] + model['faces']]:
+            first_edge = map_face['first_edge']
+            edge_count = map_face['edges']
+            material_indices.append(map_face['texture_info'])
 
-    for model_index, entity_model in enumerate(bsp_lump_models.values):
-        model_vertices = []
-        model_indices = []
-        model_material_indices = []
-        model_material_uvs = []
+            used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
+            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
+            used_edges = edges[np.abs(used_surf_edges)]
+            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+            vertex_ids = np.insert(vertex_ids, vertex_offset, face_vertex_ids)
+            vertex_offset += edge_count
 
-        model_mesh = bpy.data.meshes.new(f'model_{model_index}_mesh')
-        model_object = bpy.data.objects.new(f'model_{model_index}', model_mesh)
-        bsp_collection.objects.link(model_object)
+        return vertex_ids, material_indices
 
-        for face in bsp_lump_faces.values[
-                    entity_model['first_face']:entity_model['first_face'] + entity_model['faces']]:
-            face_edges = []
-            for face_surf_edge in bsp_lump_surface_edges.values[face['first_edge']:face['first_edge'] + face['edges']]:
-                face_edge = bsp_lump_edges.values[face_surf_edge['index']]['indices']
-                face_edge = face_edge[not face_surf_edge['negative']]
-                face_edge_vertex = bsp_lump_vertices.values[face_edge]['vector']
-                if face_edge_vertex not in model_vertices:
-                    face_edges.append(len(model_vertices))
-                    model_vertices.append(face_edge_vertex)
-                else:
-                    face_edges.append(model_vertices.index(face_edge_vertex))
-            model_indices.append(face_edges)
+    def load_map(self):
 
-            face_texture_info = bsp_lump_textures_info.values[face['texture_info']]
-            face_texture_data = bsp_lump_textures_data.values[face_texture_info['texture']]
-            face_texture_name = face_texture_data['name']
+        bpy.context.scene.collection.children.link(self.bsp_collection)
 
-            face_uvs = {}
-            for face_edge in face_edges:
-                face_vertex = model_vertices[face_edge]
-                u = np.dot(face_vertex, face_texture_info['s']) + face_texture_info['s_shift']
-                v = np.dot(face_vertex, face_texture_info['t']) + face_texture_info['t_shift']
-                face_uvs[face_edge] = (u / face_texture_data['width'], 1 - v / face_texture_data['height'])
-            model_material_uvs.append(face_uvs)
+        self.load_materials()
+        self.load_bmodel(0, f'{self.bsp_name}_world_geometry')
+        self.load_entities()
 
-            face_texture = bpy.data.images.get(face_texture_name, None)
+    def load_materials(self):
+        for material in self.bsp_lump_textures_data.values:
+            material_name = material['name']
+
+            face_texture = bpy.data.images.get(material_name, None)
             if face_texture is None:
                 face_texture = bpy.data.images.new(
-                    face_texture_name,
-                    width=face_texture_data['width'],
-                    height=face_texture_data['height'],
+                    material_name,
+                    width=material['width'],
+                    height=material['height'],
                     alpha=True
                 )
 
                 if bpy.app.version > (2, 83, 0):
-                    face_texture.pixels.foreach_set(face_texture_data['data'])
+                    face_texture.pixels.foreach_set(material['data'])
                 else:
-                    face_texture.pixels[:] = face_texture_data['data']
+                    face_texture.pixels[:] = material['data']
 
                 face_texture.pack()
 
-            face_material = None
-            for face_material_candidate in bpy.data.materials:
-                if face_material_candidate.name == face_texture_name:
-                    face_material = face_material_candidate
-                    break
-            if face_material:
-                if model_mesh.materials.get(face_material.name):
-                    for material_index in range(len(model_mesh.materials)):
-                        if model_mesh.materials[material_index].name == face_material.name:
-                            model_material_indices.append(material_index)
-                            break
-                else:
-                    model_material_indices.append(len(model_mesh.materials))
-                    model_mesh.materials.append(face_material)
-            else:
-                model_material_indices.append(len(model_mesh.materials))
-                face_material = bpy.data.materials.new(face_texture_name)
-                model_mesh.materials.append(face_material)
-                color = [random.uniform(.4, 1) for _ in range(3)]
-                color.append(1.0)
-                face_material.diffuse_color = color
+            bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
+            if bpy_material.get('goldsrc_loaded', 0):
+                continue
+            bpy_material.use_nodes = True
+            bpy_material.blend_method = 'HASHED'
+            bpy_material.shadow_method = 'HASHED'
+            bpy_material['goldsrc_loaded'] = 1
 
-        model_vertices = list(map(convert_units_vec, model_vertices))
+            for node in bpy_material.node_tree.nodes:
+                bpy_material.node_tree.nodes.remove(node)
 
-        model_mesh.from_pydata(model_vertices, [], model_indices)
+            material_output = bpy_material.node_tree.nodes.new('ShaderNodeOutputMaterial')
+            shader_diffuse = bpy_material.node_tree.nodes.new('ShaderNodeBsdfPrincipled')
+            shader_diffuse.name = 'SHADER'
+            shader_diffuse.label = 'SHADER'
+            bpy_material.node_tree.links.new(shader_diffuse.outputs['BSDF'], material_output.inputs['Surface'])
+
+            texture_node = bpy_material.node_tree.nodes.new('ShaderNodeTexImage')
+            if material_name in bpy.data.images:
+                texture_node.image = bpy.data.images.get(material_name)
+            bpy_material.node_tree.links.new(texture_node.outputs['Color'], shader_diffuse.inputs['Base Color'])
+            if material_name.startswith('{'):
+                bpy_material.node_tree.links.new(texture_node.outputs['Alpha'], shader_diffuse.inputs['Alpha'])
+            shader_diffuse.inputs['Specular'].default_value = 0.00
+
+    def load_bmodel(self, model_index, model_name, parent_collection=None):
+        entity_model: Dict[str, Any] = self.bsp_lump_models.values[model_index]
+
+        model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+        model_object = bpy.data.objects.new(model_name, model_mesh)
+
+        if parent_collection is not None:
+            parent_collection.objects.link(model_object)
+        else:
+            self.bsp_collection.objects.link(model_object)
+
+        bsp_faces = self.bsp_lump_faces.values
+        bsp_surfedges = self.bsp_lump_surface_edges.values
+        bsp_edges = self.bsp_lump_edges.values
+        bsp_vertices = self.bsp_lump_vertices.values
+
+        vertex_ids, used_materials = self.gather_model_data(entity_model, bsp_faces, bsp_surfedges, bsp_edges)
+        unique_vertex_ids, indices_vertex_ids, inverse_indices = np.unique(vertex_ids, return_inverse=True,
+                                                                           return_index=True, )
+        material_lookup_table = {}
+
+        for texture_info_index in used_materials:
+            face_texture_info: Dict = self.bsp_lump_textures_info.values[texture_info_index]
+            face_texture_data: Dict = self.bsp_lump_textures_data.values[face_texture_info['texture']]
+            face_texture_name = face_texture_data['name']
+            material_lookup_table[texture_info_index] = get_material(face_texture_name, model_object)
+
+        uvs_per_face = []
+        faces = []
+        material_indices = []
+        for map_face in bsp_faces[entity_model['first_face']:entity_model['first_face'] + entity_model['faces']]:
+            uvs = {}
+            face = []
+
+            first_edge = map_face['first_edge']
+            edge_count = map_face['edges']
+
+            used_surf_edges = bsp_surfedges[first_edge:first_edge + edge_count]
+            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
+            used_edges = bsp_edges[np.abs(used_surf_edges)]
+            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+
+            uv_vertices = bsp_vertices[face_vertex_ids]
+
+            material_indices.append(material_lookup_table[map_face['texture_info']])
+
+            face_texture_info: Dict = self.bsp_lump_textures_info.values[map_face['texture_info']]
+            face_texture_data: Dict = self.bsp_lump_textures_data.values[face_texture_info['texture']]
+
+            tv1 = face_texture_info['s']
+            tv2 = face_texture_info['t']
+
+            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / face_texture_data['width']
+            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / face_texture_data['height'])
+
+            v_uvs = np.dstack([u, v]).reshape((-1, 2))
+
+            for vertex_id, uv in zip(face_vertex_ids, v_uvs):
+                new_vertex_id = np.where(unique_vertex_ids == vertex_id)[0][0]
+                face.append(new_vertex_id)
+                uvs[new_vertex_id] = uv
+            uvs_per_face.append(uvs)
+            faces.append(face)
+
+        model_mesh.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
+        model_mesh.polygons.foreach_set('material_index', material_indices)
         model_mesh.update()
-        model_mesh.polygons.foreach_set('material_index', model_material_indices)
 
         model_mesh.uv_layers.new()
         model_mesh_uv = model_mesh.uv_layers[0].data
         for poly in model_mesh.polygons:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-                model_mesh_uv[loop_index].uv = model_material_uvs[poly.index][model_mesh.loops[loop_index].vertex_index]
+                model_mesh_uv[loop_index].uv = uvs_per_face[poly.index][
+                    model_mesh.loops[loop_index].vertex_index]
 
-        model_objects[model_index] = model_object
+        return model_object
 
-    for material in bsp_lump_textures_data.values:
-        material_name = material['name']
-        bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
-        bpy_material.use_nodes = True
-        bpy_material.blend_method = 'HASHED'
-        bpy_material.shadow_method = 'HASHED'
+    def load_entities(self):
+        for entity in self.bsp_lump_entities.values:
+            if 'classname' not in entity:
+                continue
+            entity_class: str = entity['classname']
+            # print(entity_class, entity)
+            if entity_class == 'worldspawn':
+                for game_wad_path in entity['wad'].split(';'):
+                    if len(game_wad_path) == 0:
+                        continue
+                    game_wad_path = Path(game_wad_path)
+                    game_wad_path = Path(game_wad_path.name)
+                    self.bsp_file.manager.add_game_resource_root(game_wad_path)
+            elif entity_class.startswith('trigger'):
+                self.load_trigger(entity_class, entity)
+            elif entity_class.startswith('func'):
+                self.load_brush(entity_class, entity)
+            elif entity_class == 'light_spot':
+                self.load_light_spot(entity_class, entity)
+            elif entity_class == 'light':
+                self.load_light(entity_class, entity)
+            else:
+                print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
-        for node in bpy_material.node_tree.nodes:
-            bpy_material.node_tree.nodes.remove(node)
+    def load_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        if 'model' not in entity_data:
+            self.logger.warn(f'Trigger "{entity_class}" does not reference any models')
+            return
 
-        material_output = bpy_material.node_tree.nodes.new('ShaderNodeOutputMaterial')
-        shader_diffuse = bpy_material.node_tree.nodes.new('ShaderNodeBsdfPrincipled')
-        shader_diffuse.name = 'SHADER'
-        shader_diffuse.label = 'SHADER'
-        bpy_material.node_tree.links.new(shader_diffuse.outputs['BSDF'], material_output.inputs['Surface'])
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
 
-        texture_node = bpy_material.node_tree.nodes.new('ShaderNodeTexImage')
-        if material_name in bpy.data.images:
-            texture_node.image = bpy.data.images.get(material_name)
-        bpy_material.node_tree.links.new(texture_node.outputs['Color'], shader_diffuse.inputs['Base Color'])
-        if material_name.startswith('{'):
-            bpy_material.node_tree.links.new(texture_node.outputs['Alpha'], shader_diffuse.inputs['Alpha'])
-        shader_diffuse.inputs['Specular'].default_value = 0.00
+        model_index = int(entity_data['model'][1:])
+        model_object = self.load_bmodel(model_index,
+                                        entity_data.get('targetname', None) or f'{entity_class}_{model_index}',
+                                        parent_collection=entity_collection)
+        model_object.location = origin
 
-    for entity in bsp_lump_entities.values:
-        if 'classname' not in entity:
-            continue
-        entity_class = entity['classname']
+    def load_brush(self, entity_class: str, entity_data: Dict[str, Any]):
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        if 'model' not in entity_data:
+            self.logger.warn(f'Brush "{entity_class}" does not reference any models')
+            return
 
-        entity_collection = bpy.data.collections.get(entity_class, None)
-        if entity_collection is None:
-            entity_collection = bpy.data.collections.new(entity_class)
-            entity_collection.name = entity_class
-            bsp_collection.children.link(entity_collection)
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
 
-        entity_model = None
-        if 'model' in entity and entity['model'].startswith('*'):
-            model_index = int(entity['model'][1:])
-            if model_index in model_objects:
-                entity_model = model_objects[model_index]
-                entity_collection.objects.link(entity_model)
-                bsp_collection.objects.unlink(entity_model)
+        model_index = int(entity_data['model'][1:])
+        model_object = self.load_bmodel(model_index,
+                                        entity_data.get('targetname', None) or f'{entity_class}_{model_index}',
+                                        parent_collection=entity_collection)
 
-        if entity_model is not None and 'origin' in entity:
-            entity_model.location = convert_units_vec(map(float, entity['origin'].split(' ')))
+        model_object.location = origin
+        model_object.rotation_euler = angles
 
-        if entity_model is not None and 'renderamt' in entity:
-            for model_material_index, model_material in enumerate(entity_model.data.materials):
-                alpha_mat_name = f'{model_material.name}_alpha_{entity["renderamt"]}'
+        if 'renderamt' in entity_data:
+            for model_material_index, model_material in enumerate(model_object.data.materials):
+                renderamt = int(entity_data["renderamt"])
+                alpha_mat_name = f'{model_material.name}_alpha_{renderamt}'
                 alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
                 if alpha_mat is None:
                     alpha_mat = model_material.copy()
                     alpha_mat.name = alpha_mat_name
-                entity_model.data.materials[model_material_index] = alpha_mat
+                model_object.data.materials[model_material_index] = alpha_mat
 
                 model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
                 if model_shader:
-                    model_shader.inputs['Alpha'].default_value = 1.0 - int(entity['renderamt']) / 255
+                    model_shader.inputs['Alpha'].default_value = 1.0 - (renderamt / 255)
 
-        if entity_class == 'worldspawn':
-            for game_wad_path in entity['wad'].split(';'):
-                if len(game_wad_path) == 0:
-                    continue
-                game_wad_path = Path(game_wad_path)
-                game_wad_path = Path(game_wad_path.name)
-                bsp_file.manager.add_game_resource_root(game_wad_path)
-        elif entity_class == 'light':
-            pass
+    def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        color = parse_source2_hammer_vector(entity_data['_light'])
+        if len(color) == 4:
+            lumens = color[-1]
+            color = color[:-1]
         else:
-            print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
+            lumens = 1
+        color_max = max(color)
+        lumens *= color_max / 255 * (1.0 / self.scale)
+        color = np.divide(color, color_max)
+        inner_cone = float(entity_data['_cone2'])
+        cone = float(entity_data['_cone']) * 2
+        watts = watt_power_spot(lumens, color, cone)
+        radius = (1 - inner_cone / cone)
+        light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
+                                  'SPOT', watts, color, cone, radius,
+                                  parent_collection=entity_collection, entity=entity_data)
+        light.location = origin
+        light.rotation_euler = angles
+
+    def load_light(self, entity_class, entity_data):
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        color = parse_source2_hammer_vector(entity_data['_light'])
+        if len(color) == 4:
+            lumens = color[-1]
+            color = color[:-1]
+        else:
+            lumens = 1
+        color_max = max(color)
+        lumens *= color_max / 255 * (1.0 / self.scale)
+        color = np.divide(color, color_max)
+        watts = watt_power_point(lumens, color) * 100
+        light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
+                                  'POINT', watts, color, 0.1,
+                                  parent_collection=entity_collection, entity=entity_data)
+        light.location = origin
+
+    def _load_lights(self, name, light_type, watts, color, core_or_size=0.0, radius=0.25,
+                     parent_collection=None,
+                     entity=None):
+        if entity is None:
+            entity = {}
+        lamp = bpy.data.objects.new(f'{light_type}_{name}',
+                                    bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
+        lamp_data = lamp.data
+        lamp_data.energy = watts
+        lamp_data.color = color
+        lamp_data.shadow_soft_size = radius
+        lamp['entity'] = entity
+        if light_type == 'SPOT':
+            lamp_data.spot_size = math.radians(core_or_size)
+
+        if parent_collection is not None:
+            parent_collection.objects.link(lamp)
+        else:
+            self.bsp_collection.objects.link(lamp)
+        return lamp

@@ -26,11 +26,10 @@ from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
 from ..content_manager import ContentManager
-from ..import_model import get_or_create_collection
 from ..vmt.blender_material import BlenderMaterial
 from ..vtf.import_vtf import import_texture
 from ..vmt.valve_material import VMT
-from ...bpy_utils import BPYLoggingManager
+from ...bpy_utils import BPYLoggingManager, get_material, get_or_create_collection
 from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
     watt_power_spot, watt_power_point, lerp_vec, clamp_value
@@ -39,37 +38,6 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
 
 
-def get_material(mat_name, model_ob):
-    if not mat_name:
-        mat_name = "Material"
-    mat_ind = 0
-    md = model_ob.data
-    mat = None
-    for candidate in bpy.data.materials:  # Do we have this material already?
-        if candidate.name == mat_name:
-            mat = candidate
-    if mat:
-        if md.materials.get(mat.name):  # Look for it on this mesh_data
-            for i in range(len(md.materials)):
-                if md.materials[i].name == mat.name:
-                    mat_ind = i
-                    break
-        else:  # material exists, but not on this mesh_data
-            md.materials.append(mat)
-            mat_ind = len(md.materials) - 1
-    else:  # material does not exist
-        mat = bpy.data.materials.new(mat_name)
-        md.materials.append(mat)
-        # Give it a random colour
-        rand_col = []
-        for i in range(3):
-            rand_col.append(random.uniform(.4, 1))
-        rand_col.append(1.0)
-        mat.diffuse_color = rand_col
-
-        mat_ind = len(md.materials) - 1
-
-    return mat_ind
 
 
 class BSP:

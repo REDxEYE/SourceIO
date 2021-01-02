@@ -65,7 +65,7 @@ class LumpInfo:
     def compressed(self):
         return self.magic != 0
 
-    def parse(self, reader: ByteIO,is_l4d2):
+    def parse(self, reader: ByteIO, is_l4d2):
         if is_l4d2:
             self.version = reader.read_int32()
             self.offset = reader.read_int32()
