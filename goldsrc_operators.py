@@ -4,8 +4,6 @@ import bpy
 from bpy.props import StringProperty, CollectionProperty
 
 
-
-
 class GBSPImport_OT_operator(bpy.types.Operator):
     """Load GoldSrc BSP"""
     bl_idname = "source_io.gbsp"
@@ -17,7 +15,7 @@ class GBSPImport_OT_operator(bpy.types.Operator):
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
     def execute(self, context):
-        from .goldsrc.bsp import BSP
+        from .goldsrc.bsp.bsp import BSP
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.absolute()
         else:

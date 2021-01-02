@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .wad import WadFile, WadEntry
+from ..wad import WadFile, WadEntry
 
 
 class ContentManager:

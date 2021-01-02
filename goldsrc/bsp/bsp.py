@@ -1,5 +1,4 @@
 import math
-import random
 import struct
 from enum import IntEnum
 from pathlib import Path
@@ -9,9 +8,9 @@ import numpy as np
 from typing import Dict, Any
 
 from .mgr import ContentManager
-from .wad import make_texture, flip_texture
-from ..bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
-from ..utilities.math_utilities import parse_source2_hammer_vector, watt_power_point, watt_power_spot
+from ..wad import make_texture, flip_texture
+from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
+from ...utilities.math_utilities import parse_source2_hammer_vector
 
 log_manager = BPYLoggingManager()
 
