@@ -13,7 +13,7 @@ class ContentManager:
 
         while True:
             if Path.exists(path / 'liblist.gam'):
-                self.game_root = path.parent
+                self.game_root: Path = path.parent
                 self.game_root_mod = path
                 print(f'Found game root: {self.game_root} ({self.game_root_mod})')
                 break

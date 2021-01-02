@@ -3,6 +3,7 @@ import struct
 from enum import IntEnum
 from pathlib import Path
 
+import bpy
 import numpy as np
 
 from .mgr import ContentManager
@@ -143,8 +144,9 @@ class BspTexturesDataLump(BspLump):
                 texture_resource = self.file.manager.get_game_resource(texture_name)
                 if not texture_resource:
                     print(f'Could not find texture resource: {texture_name}')
-                    continue
-                texture_data = texture_resource.read_texture()[0]
+                    texture_data = [0.5 for _ in range(texture_width * texture_height * 4)]
+                else:
+                    texture_data = texture_resource.read_texture()[0]
 
             self.values.append({
                 'name': texture_name,
@@ -289,6 +291,9 @@ def load_map(path: Path):
     bsp_name = path.stem
     bsp_file = BspFile(path)
 
+    for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
+        bsp_file.manager.add_game_resource_root(bsp_file.manager.game_root / 'valve' / default_resource)
+
     bsp_lump_entities = bsp_file.lumps[BspLumpType.LUMP_ENTITIES].parse()
     bsp_lump_textures_data = bsp_file.lumps[BspLumpType.LUMP_TEXTURES_DATA].parse()
     bsp_lump_vertices = bsp_file.lumps[BspLumpType.LUMP_VERTICES].parse()
@@ -297,8 +302,6 @@ def load_map(path: Path):
     bsp_lump_edges = bsp_file.lumps[BspLumpType.LUMP_EDGES].parse()
     bsp_lump_surface_edges = bsp_file.lumps[BspLumpType.LUMP_SURFACE_EDGES].parse()
     bsp_lump_models = bsp_file.lumps[BspLumpType.LUMP_MODELS].parse()
-
-    import bpy
 
     bsp_collection = bpy.data.collections.new(bsp_name)
     bpy.context.scene.collection.children.link(bsp_collection)
