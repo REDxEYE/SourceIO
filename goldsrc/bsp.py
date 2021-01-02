@@ -283,6 +283,8 @@ class BSP:
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
         self.bsp_file = BspFile(map_path)
+        for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
+            self.bsp_file.manager.add_game_resource_root(self.bsp_file.manager.game_root / 'valve' / default_resource)
         self.bsp_collection = bpy.data.collections.new(self.bsp_name)
 
         self.bsp_lump_entities = self.bsp_file.lumps[BspLumpType.LUMP_ENTITIES].parse()
@@ -294,8 +296,7 @@ class BSP:
         self.bsp_lump_surface_edges = self.bsp_file.lumps[BspLumpType.LUMP_SURFACE_EDGES].parse()
         self.bsp_lump_models = self.bsp_file.lumps[BspLumpType.LUMP_MODELS].parse()
 
-        for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
-            self.bsp_file.manager.add_game_resource_root(self.bsp_file.manager.game_root / 'valve' / default_resource)
+
 
     @staticmethod
     def gather_model_data(model, faces, surf_edges, edges):
@@ -526,6 +527,8 @@ class BSP:
         elif len(color) == 1:
             color = [color[0], color[0], color[0]]
             lumens = color[0]
+        elif len(color) == 5:
+            *color, lumens = color[:4]
         else:
             lumens = 200
         color_max = max(color)
@@ -551,6 +554,8 @@ class BSP:
         elif len(color) == 1:
             color = [color[0], color[0], color[0]]
             lumens = color[0]
+        elif len(color) == 5:
+            *color, lumens = color[:4]
         else:
             lumens = 200
         color_max = max(color)
