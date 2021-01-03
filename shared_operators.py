@@ -4,6 +4,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
+from .bpy_utils import get_or_create_collection
 from .source1.content_manager import ContentManager
 from .source1.mdl.structs.header import StudioHDRFlags
 from .source1.import_model import import_model, import_materials
@@ -25,9 +26,7 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
                 model_type = Path(custom_prop_data['prop_path']).suffix
-                collection = bpy.data.collections.get(custom_prop_data['type'],
-                                                      None) or bpy.data.collections.new(
-                    name=custom_prop_data['type'])
+                collection = get_or_create_collection(custom_prop_data['type'])
                 if model_type in ['.vmdl_c', '.vmdl_c']:
                     mld_file = backwalk_file_resolver(custom_prop_data['parent_path'],
                                                       Path(custom_prop_data['prop_path']).with_suffix('.vmdl_c'))
@@ -90,17 +89,6 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-def swap_materials(obj, new_material_name, target_name):
-    mat = bpy.data.materials.get(new_material_name, None) or bpy.data.materials.new(name=new_material_name)
-    print(f'Swapping {target_name} with {new_material_name}')
-    for n, obj_mat in enumerate(obj.data.materials):
-        print(target_name, obj_mat.name)
-        if obj_mat.name == target_name:
-            print(obj_mat.name, "->", mat.name)
-            obj.data.materials[n] = mat
-            break
-
-
 class ChangeSkin_OT_operator(bpy.types.Operator):
     bl_idname = "source_io.select_skin"
     bl_label = "Change skin"
@@ -138,28 +126,50 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
         swap_materials(obj, mat_name, current_mat_name)
 
 
-class SourceIOUtils_PT_panel(bpy.types.Panel):
-    bl_label = "SourceIO utils"
-    bl_idname = "source_io.utils"
+def swap_materials(obj, new_material_name, target_name):
+    mat = bpy.data.materials.get(new_material_name, None) or bpy.data.materials.new(name=new_material_name)
+    print(f'Swapping {target_name} with {new_material_name}')
+    for n, obj_mat in enumerate(obj.data.materials):
+        print(target_name, obj_mat.name)
+        if obj_mat.name == target_name:
+            print(obj_mat.name, "->", mat.name)
+            obj.data.materials[n] = mat
+            break
+
+
+class UITools:
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "SourceIO"
 
+
+class SourceIOUtils_PT_panel(UITools, bpy.types.Panel):
+    bl_label = "SourceIO utils"
+    bl_idname = "source_io.utils"
+
+    def draw(self, context):
+        self.layout.label(text="SourceIO Utils")
+
+
+class Placeholders_PT_panel(UITools, bpy.types.Panel):
+    bl_label = 'Placeholders loading'
+    bl_idname = 'source_io.placeholders'
+    bl_parent_id = "source_io.utils"
+
     @classmethod
     def poll(cls, context):
         obj = context.active_object  # type:bpy.types.Object
-        if obj:
-            return obj.type in ["EMPTY", 'MESH']
-        else:
-            return False
+        return obj and obj.get("entity_data", None) is not None
 
     def draw(self, context):
-        self.layout.label(text="SourceIO stuff")
+        self.layout.label(text="Placeholders loading")
         obj = context.active_object  # type:bpy.types.Object
         if obj.get("entity_data", None):
             entiry_data = obj['entity_data']
             entity_raw_data = entiry_data.get('entity', {})
-
+            row = self.layout.row()
+            row.label(text=f'Total selected placeholders:')
+            row.label(text=str(len([obj for obj in context.selected_objects if 'entity_data' in obj])))
             box = self.layout.box()
             box.operator('source_io.load_placeholder')
             box = self.layout.box()
@@ -168,6 +178,20 @@ class SourceIOUtils_PT_panel(bpy.types.Panel):
                 row.label(text=f'{k}:')
                 row.label(text=str(v))
 
+
+class SkinChanger_PT_panel(UITools, bpy.types.Panel):
+    bl_label = 'Model skins'
+    bl_idname = 'source_io.skin_changer'
+    bl_parent_id = "source_io.utils"
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object  # type:bpy.types.Object
+        return obj and obj.get("skin_groups", None) is not None
+
+    def draw(self, context):
+        self.layout.label(text="Model skins")
+        obj = context.active_object  # type:bpy.types.Object
         if obj.get("skin_groups", None):
             self.layout.label(text="Skins")
             box = self.layout.box()
