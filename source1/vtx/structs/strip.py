@@ -1,6 +1,6 @@
 from enum import IntFlag
 
-from ...shared.base import Base
+from ....source_shared.base import Base
 from ....utilities.byte_io_mdl  import ByteIO
 
 

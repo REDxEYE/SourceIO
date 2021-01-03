@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 from .triangle import Triangle
-from ...shared.base import Base
+from ....source_shared.base import Base
 from ....utilities.byte_io_mdl  import ByteIO
 
 

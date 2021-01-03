@@ -3,7 +3,7 @@ from typing import List
 from .auto_layer import AutoLayer
 from .event import Event
 from ....utilities.byte_io_mdl  import ByteIO
-from ...shared.base import Base
+from ....source_shared.base import Base
 
 
 class Sequence(Base):

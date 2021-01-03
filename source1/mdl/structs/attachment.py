@@ -1,7 +1,7 @@
 import numpy as np
 
 from ....utilities.byte_io_mdl  import ByteIO
-from ...shared.base import Base
+from ....source_shared.base import Base
 from ....utilities import math_utilities
 
 

@@ -1,10 +1,9 @@
 import numpy as np
 
-from ..shared.base import Base
+from ...source_shared.base import Base
 from ..vvd.vvd import Vvd
 from .mdl import Mdl
 from .structs.mesh import Mesh
-from .structs.model import Model
 
 
 class VertexAnimationCache(Base):

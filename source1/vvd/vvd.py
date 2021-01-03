@@ -4,7 +4,7 @@ import numpy as np
 
 from .structs.header import Header
 from .structs.fixup import Fixup
-from ..shared.base import Base
+from ...source_shared.base import Base
 from ...utilities.byte_io_mdl  import ByteIO
 
 

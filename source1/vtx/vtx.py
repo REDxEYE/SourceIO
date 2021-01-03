@@ -2,7 +2,7 @@ import struct
 from typing import List
 
 from .structs.MaterialReplacementList import MaterialReplacementList
-from ..shared.base import Base
+from ...source_shared.base import Base
 from ...utilities.byte_io_mdl  import ByteIO
 
 from .structs.header import Header

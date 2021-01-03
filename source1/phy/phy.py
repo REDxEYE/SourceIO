@@ -3,7 +3,7 @@ from typing import List
 from .structs.header import Header
 from .structs.surface import CompactSurface
 
-from ..shared.base import Base
+from ...source_shared.base import Base
 from ...utilities.byte_io_mdl  import ByteIO
 
 

@@ -3,7 +3,7 @@ from enum import IntFlag, IntEnum
 import numpy as np
 
 from ....utilities.byte_io_mdl  import ByteIO
-from ...shared.base import Base
+from ....source_shared.base import Base
 
 from .axis_interp_rule import AxisInterpRule
 from .jiggle_bone import JiggleRule

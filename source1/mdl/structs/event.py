@@ -1,5 +1,5 @@
 from ....utilities.byte_io_mdl  import ByteIO
-from ...shared.base import Base
+from ....source_shared.base import Base
 
 
 class Event(Base):

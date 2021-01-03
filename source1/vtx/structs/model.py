@@ -1,6 +1,6 @@
 from typing import List
 
-from ...shared.base import Base
+from ....source_shared.base import Base
 from ....utilities.byte_io_mdl import ByteIO
 
 from .lod import ModelLod

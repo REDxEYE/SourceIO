@@ -1,7 +1,7 @@
 from enum import IntFlag
 
 from ....utilities.byte_io_mdl  import ByteIO
-from ...shared.base import Base
+from ....source_shared.base import Base
 
 
 # noinspection SpellCheckingInspection

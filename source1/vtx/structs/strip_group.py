@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from ...shared.base import Base
+from ....source_shared.base import Base
 from ....utilities.byte_io_mdl  import ByteIO
 from .strip import Strip
 from .vertex import Vertex

@@ -1,12 +1,12 @@
 import struct
 from enum import IntEnum
 
-from typing import List, Union
+from typing import List
 
 import numpy as np
 
 from ....utilities.byte_io_mdl import ByteIO
-from ...shared.base import Base
+from ....source_shared.base import Base
 from .float16 import int16_to_float
 
 

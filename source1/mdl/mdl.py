@@ -2,7 +2,7 @@ import traceback
 from typing import List
 
 from ...utilities.byte_io_mdl import ByteIO
-from ..shared.base import Base
+from ...source_shared.base import Base
 
 from .flex_expressions import *
 from .structs.header import Header
