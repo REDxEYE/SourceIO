@@ -12,6 +12,22 @@ class LightmapGeneric(ShaderBase):
         return None
 
     @property
+    def bumpmap(self):
+        texture_path = self._vavle_material.get_param('$bumpmap', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            if self.ssbump:
+                image = self.convert_ssbump(image)
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
+        return None
+
+    @property
+    def ssbump(self):
+        return self._vavle_material.get_param('ssbump', 0) == 1
+
+    @property
     def phong(self):
         return self._vavle_material.get_param('$phong', 0) == 1
 

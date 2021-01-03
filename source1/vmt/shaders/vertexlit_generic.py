@@ -11,6 +11,7 @@ class VertexLitGeneric(ShaderBase):
         texture_path = self._vavle_material.get_param('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
