@@ -8,11 +8,11 @@ NO_BPY = int(os.environ.get('NO_BPY', '0'))
 custom_icons = {}
 bl_info = {
     "name": "SourceIO",
-    "author": "RED_EYE",
-    "version": (3, 9, 4),
+    "author": "RED_EYE, ShadelessFox",
+    "version": (3, 9, 5),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine assets",
-    "description": "Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
+    "description": "GoldSrc/Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
                    "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
     "category": "Import-Export"
 }
@@ -21,6 +21,8 @@ if not NO_BPY:
 
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
+
+    from .goldsrc_operators import (GBSPImport_OT_operator, )
 
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
@@ -35,9 +37,12 @@ if not NO_BPY:
                                     VMDLImport_OT_operator,
                                     VWRLDImport_OT_operator
                                     )
-    from .shared_operators import (ChangeSkin_OT_operator,
+    from .shared_operators import (SourceIOUtils_PT_panel,
+                                   Placeholders_PT_panel,
+                                   SkinChanger_PT_panel,
+                                   ChangeSkin_OT_operator,
                                    LoadPlaceholder_OT_operator,
-                                   SourceIOUtils_PT_panel, )
+                                   )
 
 
     # noinspection PyPep8Naming
@@ -63,6 +68,7 @@ if not NO_BPY:
                             icon_value=vtf_icon.icon_id)
             layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
                             icon_value=vmt_icon.icon_id)
+            layout.separator()
             # layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
                             icon_value=model_doc_icon.icon_id)
@@ -72,6 +78,9 @@ if not NO_BPY:
                             icon_value=vtex_icon.icon_id)
             layout.operator(VMATImport_OT_operator.bl_idname, text="Source2 material (.vmat)",
                             icon_value=vmat_icon.icon_id)
+            layout.separator()
+            layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
+                            icon_value=bsp_icon.icon_id)
 
 
     def menu_import(self, context):
@@ -107,6 +116,8 @@ if not NO_BPY:
 
 
     classes = (
+        # GoldSrc
+        GBSPImport_OT_operator,
         # Source1 stuff
         MDLImport_OT_operator,
         BSPImport_OT_operator,
@@ -125,6 +136,8 @@ if not NO_BPY:
         # SourceIOPreferences,
         SourceIO_MT_Menu,
         SourceIOUtils_PT_panel,
+        Placeholders_PT_panel,
+        SkinChanger_PT_panel,
         LoadPlaceholder_OT_operator,
         ChangeSkin_OT_operator
     )
