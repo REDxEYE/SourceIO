@@ -75,9 +75,6 @@ def get_slice(data: [Iterable, Sized], start, count=None):
     return data[start:start + count]
 
 
-
-
-
 def create_armature(mdl: Mdl, collection):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
@@ -349,7 +346,6 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
 
 def create_attachments(mdl: Mdl, armature: bpy.types.Object, parent_collection: bpy.types.Collection):
     for attachment in mdl.attachments:
-        bone = armature.data.bones.get(mdl.bones[attachment.parent_bone].name)
 
         empty = bpy.data.objects.new("empty", None)
         parent_collection.objects.link(empty)
@@ -358,8 +354,10 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, parent_collection: 
         rot = Euler(attachment.rot)
         empty.matrix_basis.identity()
         empty.parent = armature
-        empty.parent_type = 'BONE'
-        empty.parent_bone = bone.name
+        if armature.type == 'ARMATURE':
+            bone = armature.data.bones.get(mdl.bones[attachment.parent_bone].name)
+            empty.parent_type = 'BONE'
+            empty.parent_bone = bone.name
         empty.location = pos
         empty.rotation_euler = rot
 

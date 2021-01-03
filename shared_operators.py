@@ -26,7 +26,8 @@ class LoadPlaceholder_OT_operator(bpy.types.Operator):
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
                 model_type = Path(custom_prop_data['prop_path']).suffix
-                collection = get_or_create_collection(custom_prop_data['type'])
+                collection = (bpy.data.collections.get(custom_prop_data['type'], None) or
+                              bpy.data.collections.new(custom_prop_data['type']))
                 if model_type in ['.vmdl_c', '.vmdl_c']:
                     mld_file = backwalk_file_resolver(custom_prop_data['parent_path'],
                                                       Path(custom_prop_data['prop_path']).with_suffix('.vmdl_c'))
