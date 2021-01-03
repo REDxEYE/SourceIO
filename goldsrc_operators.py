@@ -2,7 +2,7 @@ from pathlib import Path
 
 import bpy
 from bpy.props import StringProperty, CollectionProperty
-from .goldsrc.bsp.bsp_file import BSP
+from .goldsrc.bsp.import_bsp import BSP
 
 class GBSPImport_OT_operator(bpy.types.Operator):
     """Load GoldSrc BSP"""
