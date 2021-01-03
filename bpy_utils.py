@@ -61,9 +61,7 @@ else:
             mat = bpy.data.materials.new(mat_name)
             md.materials.append(mat)
             # Give it a random colour
-            rand_col = []
-            for i in range(3):
-                rand_col.append(random.uniform(.4, 1))
+            rand_col = [random.uniform(.4, 1) for _ in range(3)]
             rand_col.append(1.0)
             mat.diffuse_color = rand_col
 

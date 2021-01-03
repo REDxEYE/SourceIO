@@ -61,10 +61,7 @@ class WadEntry:
 
         assert handle.read(2) == b'\x00\x01', 'Invalid palette start anchor'
 
-        texture_palette = []
-
-        for _ in range(256):
-            texture_palette.append(struct.unpack('BBB', handle.read(3)))
+        texture_palette = [struct.unpack('BBB', handle.read(3)) for _ in range(256)]
 
         assert handle.read(2) == b'\x00\x00', 'Invalid palette end anchor'
 

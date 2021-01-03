@@ -367,10 +367,11 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, parent_collection: 
 def import_materials(mdl):
     content_manager = ContentManager()
     for material in mdl.materials:
-        if bpy.data.materials.get(material.name, False):
-            if bpy.data.materials[material.name].get('source1_loaded'):
-                logger.info(f'Skipping loading of {material.name} as it already loaded')
-                continue
+        if bpy.data.materials.get(material.name, False) and bpy.data.materials[
+            material.name
+        ].get('source1_loaded'):
+            logger.info(f'Skipping loading of {material.name} as it already loaded')
+            continue
         material_path = None
         for mat_path in mdl.materials_paths:
             material_path = content_manager.find_material(Path(mat_path) / material.name)

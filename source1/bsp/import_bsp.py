@@ -218,7 +218,7 @@ class BSP:
                                      parent_collection=parent_collection, entity=entity)
                 elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
                     parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))
-                    if len(parent) == 0:
+                    if not parent:
                         self.logger.error(f'Cannot find rope parent \'{entity["nextkey"]}\', skipping')
                         continue
                     location_start = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
@@ -295,11 +295,7 @@ class BSP:
             parent_collection.objects.link(mesh_obj)
         else:
             self.main_collection.objects.link(mesh_obj)
-        if custom_origin is not None:
-            mesh_obj.location = custom_origin
-        else:
-            mesh_obj.location = model.origin
-
+        mesh_obj.location = model.origin if custom_origin is None else custom_origin
         material_lookup_table = {}
         for texture_info in self.texture_info_lump.texture_info:
             texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
@@ -415,11 +411,12 @@ class BSP:
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
             tmp = strip_patch_coordinates.sub("", material_name)[-63:]
-            if bpy.data.materials.get(tmp, False):
-                if bpy.data.materials[tmp].get('source1_loaded'):
-                    self.logger.debug(
-                        f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
-                    continue
+            if bpy.data.materials.get(tmp, False) and bpy.data.materials[tmp].get(
+                'source1_loaded'
+            ):
+                self.logger.debug(
+                    f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
+                continue
             self.logger.info(f"Loading {material_name} material")
             material_file = content_manager.find_material(material_name)
 

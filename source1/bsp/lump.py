@@ -70,12 +70,12 @@ class LumpInfo:
             self.version = reader.read_int32()
             self.offset = reader.read_int32()
             self.size = reader.read_int32()
-            self.magic = reader.read_uint32()
         else:
             self.offset = reader.read_int32()
             self.size = reader.read_int32()
             self.version = reader.read_int32()
-            self.magic = reader.read_uint32()
+
+        self.magic = reader.read_uint32()
 
     def __repr__(self):
         return f"<{self.id.name if self.id in list(LumpTypes) else self.id} o:{self.offset} s:{self.size}>"
