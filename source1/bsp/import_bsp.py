@@ -226,7 +226,7 @@ class BSP:
                     color_max = max(color)
                     lumens *= color_max / 255 * (1.0 / self.scale)
                     color = np.divide(color, color_max)
-                    watts = watt_power_point(lumens, color)*100
+                    watts = watt_power_point(lumens, color) * 100
 
                     self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                                      parent_collection=parent_collection, entity=entity)
@@ -301,7 +301,13 @@ class BSP:
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
                                                    'type': 'static_props',
-                                                   'skin': str(prop.skin - 1 if prop.skin != 0 else 0)})
+                                                   'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
+                                                   'entity': {
+                                                       'type': 'static_prop',
+                                                       'origin': prop.origin,
+                                                       'angles': prop.rotation,
+                                                   }
+                                                   })
 
     def load_detail_props(self):
         content_manager = ContentManager()

@@ -164,6 +164,8 @@ class ShaderBase:
 
     @staticmethod
     def convert_ssbump(image: bpy.types.Image):
+        if image.get('ssbump_converted',None):
+            return image
         if bpy.app.version > (2, 83, 0):
             buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
             image.pixels.foreach_get(buffer)
@@ -180,6 +182,26 @@ class ShaderBase:
         else:
             image.pixels[:] = buffer.tolist()
         image.pack()
+        image['ssbump_converted'] = True
+        return image
+
+    @staticmethod
+    def convert_normalmap(image: bpy.types.Image):
+        if image.get('normalmap_converted', None):
+            return image
+        if bpy.app.version > (2, 83, 0):
+            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+            image.pixels.foreach_get(buffer)
+        else:
+            buffer = np.array(image.pixels[:])
+
+        buffer[1::4] = np.subtract(1, buffer[1::4])
+        if bpy.app.version > (2, 83, 0):
+            image.pixels.foreach_set(buffer.tolist())
+        else:
+            image.pixels[:] = buffer.tolist()
+        image.pack()
+        image['normalmap_converted'] = True
         return image
 
     def clean_nodes(self):
