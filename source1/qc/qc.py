@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from ..mdl.mdl import Mdl
+from ..mdl.mdl_file import Mdl
 from ..mdl.structs.bone import ProceduralBoneType
 from ..mdl.structs.header import StudioHDRFlags
 from ..mdl.structs.bodygroup import BodyPart

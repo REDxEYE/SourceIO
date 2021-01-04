@@ -100,7 +100,7 @@ class AnimDesc(Base):
 
     def read_frames(self, reader, offset, section_id):
         if self.flags & AnimDescFlags.FRAMEANIM == 0:
-            from ..mdl import Mdl
+            from ..mdl_file import Mdl
             mdl: Mdl = self.get_value('MDL')
             # section_count = (self.frame_count // self.section_frame_count) + 2
             bone_count = len(mdl.bones)

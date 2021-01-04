@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from .mdl.mdl import Mdl
+from .mdl.mdl_file import Mdl
 from .mdl.structs.bone import Bone
 from .mdl.structs.model import Model
 from .vtx.structs.mesh import Mesh as VtxMesh

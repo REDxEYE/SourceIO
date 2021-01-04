@@ -13,7 +13,7 @@ from .mdl.structs.bone import Bone
 from .mdl.vertex_animation_cache import VertexAnimationCache
 from .phy.phy import Phy
 from .vvd.vvd import Vvd
-from .mdl.mdl import Mdl
+from .mdl.mdl_file import Mdl
 from .vtx.vtx import Vtx
 from .mdl.structs.model import Model
 from .vtx.structs.model import ModelLod as VtxModel

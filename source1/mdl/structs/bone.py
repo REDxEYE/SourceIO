@@ -152,7 +152,7 @@ class Bone(Base):
 
     @property
     def children(self):
-        from ..mdl import Mdl
+        from ..mdl_file import Mdl
         mdl: Mdl = self.get_value("MDL")
         childes = []
         if mdl.bones:
@@ -199,7 +199,7 @@ class Bone(Base):
 
     @property
     def parent(self):
-        from ..mdl import Mdl
+        from ..mdl_file import Mdl
         mdl: Mdl = self.get_value("MDL")
         if mdl.bones and self.parent_bone_index != -1:
             return mdl.bones[self.parent_bone_index]
