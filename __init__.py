@@ -22,7 +22,8 @@ if not NO_BPY:
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
-    from .goldsrc_operators import (GBSPImport_OT_operator, )
+    from .goldsrc_operators import (GBSPImport_OT_operator,
+                                    GMDLImport_OT_operator)
 
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
@@ -81,6 +82,8 @@ if not NO_BPY:
             layout.separator()
             layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
+            layout.operator(GMDLImport_OT_operator.bl_idname, text="GoldSrc model (.mdl)",
+                            icon_value=crowbar_icon.icon_id)
 
 
     def menu_import(self, context):
@@ -118,6 +121,7 @@ if not NO_BPY:
     classes = (
         # GoldSrc
         GBSPImport_OT_operator,
+        GMDLImport_OT_operator,
         # Source1 stuff
         MDLImport_OT_operator,
         BSPImport_OT_operator,
