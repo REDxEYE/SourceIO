@@ -216,7 +216,7 @@ class BSP:
     def handle_light_environment(self, entity_class, entity_data):
         entity_name = self.get_entity_name(entity_data)
         parent_collection = get_or_create_collection(entity_class, self.main_collection)
-        location = np.multiply(parse_source2_hammer_vector(entity_class['origin']), self.scale)
+        location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
         color, lumens = self._get_light_data(entity_data)
         color_max = max(color)
         lumens *= color_max / 255 * (1.0 / self.scale)
