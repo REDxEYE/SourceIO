@@ -2,7 +2,7 @@ import math
 import random
 import re
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any
 
 import numpy as np
 
@@ -96,162 +96,179 @@ class BSP:
             self.load_bmodel(0, 'world_geometry')
 
     def load_entities(self):
-        content_manager = ContentManager()
+
         entity_lump: Optional[EntityLump] = self.map_file.get_lump(LumpTypes.LUMP_ENTITIES)
         if entity_lump:
             for entity in entity_lump.entities:
                 class_name: str = entity.get('classname', None)
                 if not class_name:
                     continue
-                hammer_id = str(entity.get('hammerid', 'missing_hammer_id'))
-                target_name = entity.get('targetname', None)
-                if not target_name and not hammer_id:
-                    self.logger.error(f'Cannot identify entity: {entity}')
-
                 parent_collection = get_or_create_collection(class_name, self.main_collection)
                 if class_name.startswith('func_'):
-                    if 'model' in entity and entity['model']:
-                        model_id = int(entity['model'].replace('*', ''))
-                        location = parse_source2_hammer_vector(entity.get('origin', '0 0 0'))
-                        location = np.multiply(location, self.scale)
-                        mesh_obj = self.load_bmodel(model_id, target_name or hammer_id, location, parent_collection)
-                        mesh_obj['entity'] = entity
-                    else:
-                        self.logger.warn(f'{target_name or hammer_id} does not reference any model, SKIPPING!')
+                    self.handle_brush(class_name, entity)
                 elif class_name.startswith('prop_') or class_name in ['monster_generic']:
-                    if 'model' in entity:
-                        location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                        rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                        skin = str(entity.get('skin', 0))
-                        self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location,
-                                          rotation,
-                                          parent_collection=parent_collection,
-                                          custom_data={'parent_path': str(self.filepath.parent),
-                                                       'prop_path': entity['model'],
-                                                       'type': class_name,
-                                                       'entity': entity,
-                                                       'skin': skin})
+                    self.handle_model(class_name, entity)
                 elif class_name == 'item_teamflag':
+                    entity_name = self.get_entity_name(entity)
                     location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                    self.create_empty(target_name or entity.get('parentname', None) or hammer_id, location, rotation,
+                    self.create_empty(entity_name, location, rotation,
                                       parent_collection=parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': entity['flag_model'],
                                                    'type': class_name,
                                                    'entity': entity})
                 elif class_name == 'light_spot':
-                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                    rotation[1] = math.radians(90) + rotation[1]
-                    rotation[2] = math.radians(180) + rotation[2]
-                    color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
-                    color = parse_source2_hammer_vector(entity['_light'])
-                    if color_hrd[0] > 0:
-                        color = color_hrd
-                    if len(color) == 4:
-                        lumens = color[-1]
-                        color = color[:-1]
-                    else:
-                        lumens = 1
-                    color_max = max(color)
-                    lumens *= color_max / 255 * (1.0 / self.scale)
-                    color = np.divide(color, color_max)
-                    inner_cone = float(entity['_inner_cone'])
-                    cone = float(entity['_cone']) * 2
-                    watts = watt_power_spot(lumens, color, cone)
-                    radius = (1 - inner_cone / cone)
-                    self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone, radius,
-                                     parent_collection, entity)
+                    self.handle_light_spot(class_name, entity)
                 elif class_name == 'point_spotlight':
-                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
-                    rotation[1] = math.radians(90) + rotation[1]
-                    rotation[2] = math.radians(180) + rotation[2]
-                    color = parse_source2_hammer_vector(entity['rendercolor'])
-                    lumens = entity['spotlightlength']
-                    color_max = max(color)
-                    lumens *= color_max / 255 * (1.0 / self.scale)
-                    color = np.divide(color, color_max)
                     cone = clamp_value((entity['spotlightwidth'] / 256) * 180, 1, 180)
-                    watts = watt_power_spot(lumens, color, cone)
-                    radius = (1 - 60 / cone)
-                    self.load_lights(target_name or hammer_id, location, rotation, 'SPOT', watts, color, cone, radius,
-                                     parent_collection, entity)
+                    entity['_light'] = f'{entity["rendercolor"]} {entity["spotlightlength"]}'
+                    entity['_inner_cone'] = cone
+                    entity['_cone'] = cone
+                    self.handle_light_spot(class_name, entity)
                 elif class_name == 'light':
-                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
-                    color = parse_source2_hammer_vector(entity['_light'])
-                    if color_hrd[0] > 0:
-                        color = color_hrd
-                    if len(color) == 4:
-                        lumens = color[-1]
-                        color = color[:-1]
-                    else:
-                        lumens = 1
-                    color_max = max(color)
-                    lumens *= color_max / 255 * (1.0 / self.scale)
-                    color = np.divide(color, color_max)
-                    watts = watt_power_point(lumens, color) * 100
-
-                    self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
-                                     parent_collection=parent_collection, entity=entity)
+                    self.handle_light(class_name, entity)
                 elif class_name == 'light_environment':
-                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    color_hrd = parse_source2_hammer_vector(entity.get('_lighthdr', '-1 -1 -1 1'))
-                    color = parse_source2_hammer_vector(entity['_light'])
-                    if color_hrd[0] > 0:
-                        color = color_hrd
-                    if len(color) == 4:
-                        lumens = color[-1]
-                        color = color[:-1]
-                    else:
-                        lumens = 1
-                    color_max = max(color)
-                    lumens *= color_max / 255 * (1.0 / self.scale)
-                    color = np.divide(color, color_max)
-                    watts = watt_power_point(lumens, color)
-
-                    self.load_lights(target_name or hammer_id, location, [0.0, 0.0, 0.0], 'SUN', watts, color, 1,
-                                     parent_collection=parent_collection, entity=entity)
+                    self.handle_light_environment(class_name, entity)
                 elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
-                    parent = list(filter(lambda x: x.get('targetname') == entity['nextkey'], entity_lump.entities))
-                    if len(parent) == 0:
-                        self.logger.error(f'Cannot find rope parent \'{entity["nextkey"]}\', skipping')
-                        continue
-                    location_start = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    location_end = np.multiply(parse_source2_hammer_vector(parent[0]['origin']), self.scale)
+                    self.handle_rope(class_name, entity)
 
-                    curve = bpy.data.curves.new(f'{target_name or hammer_id}_data', 'CURVE')
-                    curve.dimensions = '3D'
-                    curve.bevel_depth = entity.get('width') / 100
-                    curve_object = bpy.data.objects.new(f'{target_name or hammer_id}', curve)
-                    curve_path = curve.splines.new('NURBS')
+    def get_entity_name(self, entity_data: Dict[str, Any]):
+        return f'{entity_data.get("targetname", None) or entity_data.get("hammerid", "missing_hammer_id")}'
 
-                    self.main_collection.objects.link(curve_object)
+    def handle_brush(self, entity_class, entity_data):
+        entity_name = self.get_entity_name(entity_data)
+        if 'model' in entity_data and entity_data['model']:
+            parent_collection = get_or_create_collection(entity_class, self.main_collection)
+            model_id = int(entity_data['model'].replace('*', ''))
+            brush_name = entity_data.get('targetname', None) or f'{entity_class}_{model_id}'
+            location = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0'))
+            location = np.multiply(location, self.scale)
+            mesh_obj = self.load_bmodel(model_id, brush_name, location, parent_collection)
+            mesh_obj['entity'] = entity_data
+        else:
+            self.logger.warn(f'{entity_name} does not reference any model, SKIPPING!')
 
-                    slack = entity.get('slack', 0)
+    def handle_model(self, entity_class, entity_data):
+        entity_name = self.get_entity_name(entity_data)
+        if 'model' in entity_data:
+            parent_collection = get_or_create_collection(entity_class, self.main_collection)
+            location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+            rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
+            skin = str(entity_data.get('skin', 0))
+            self.create_empty(entity_name, location,
+                              rotation,
+                              parent_collection=parent_collection,
+                              custom_data={'parent_path': str(self.filepath.parent),
+                                           'prop_path': entity_data['model'],
+                                           'type': entity_class,
+                                           'entity': entity_data,
+                                           'skin': skin})
 
-                    point_start = (*location_start, 1)
-                    point_end = (*location_end, 1)
-                    point_mid = lerp_vec(point_start, point_end, 0.5)
-                    point_mid[2] -= sum(slack * 0.0002 for _ in range(slack))
+    @staticmethod
+    def _get_light_data(entity_data):
+        color_hrd = parse_source2_hammer_vector(entity_data.get('_lighthdr', '-1 -1 -1 1'))
+        color = parse_source2_hammer_vector(entity_data['_light'])
+        if color_hrd[0] > 0:
+            color = color_hrd
+        if len(color) == 4:
+            lumens = color[-1]
+            color = color[:-1]
+        elif len(color) == 1:
+            color = [color[0], color[0], color[0]]
+            lumens = color[0]
+        else:
+            lumens = 200
+        return color, lumens
 
-                    curve_path.points.add(2)
-                    curve_path.points[0].co = point_start
-                    curve_path.points[1].co = point_mid
-                    curve_path.points[2].co = point_end
+    def handle_light_spot(self, entity_class, entity_data):
+        entity_name = self.get_entity_name(entity_data)
+        parent_collection = get_or_create_collection(entity_class, self.main_collection)
 
-                    curve_path.use_endpoint_u = True
+        location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+        rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
+        rotation[1] = math.radians(90) + rotation[1]
+        rotation[2] = math.radians(180) + rotation[2]
+        color, lumens = self._get_light_data(entity_data)
+        color_max = max(color)
+        lumens *= color_max / 255 * (1.0 / self.scale)
+        color = np.divide(color, color_max)
+        inner_cone = float(entity_data['_inner_cone'])
+        cone = float(entity_data['_cone']) * 2
+        watts = (lumens * (1 / math.radians(cone))) / 10
+        radius = (1 - inner_cone / cone)
+        self._load_lights(entity_name, location, rotation, 'SPOT', watts, color, cone, radius,
+                          parent_collection, entity_data)
 
-                    material_name = entity.get('ropematerial')
-                    get_material(material_name, curve_object)
+    def handle_light(self, entity_class, entity_data):
+        entity_name = self.get_entity_name(entity_data)
+        parent_collection = get_or_create_collection(entity_class, self.main_collection)
+        location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+        color, lumens = self._get_light_data(entity_data)
+        color_max = max(color)
+        lumens *= color_max / 255 * (1.0 / self.scale)
+        color = np.divide(color, color_max)
+        watts = lumens / 10
 
-                    material_file = content_manager.find_material(material_name)
-                    if material_file:
-                        material_name = strip_patch_coordinates.sub("", material_name)
-                        mat = BlenderMaterial(material_file, material_name)
-                        mat.create_material()
+        self._load_lights(entity_name, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
+                          parent_collection=parent_collection, entity=entity_data)
+
+    def handle_light_environment(self, entity_class, entity_data):
+        entity_name = self.get_entity_name(entity_data)
+        parent_collection = get_or_create_collection(entity_class, self.main_collection)
+        location = np.multiply(parse_source2_hammer_vector(entity_class['origin']), self.scale)
+        color, lumens = self._get_light_data(entity_data)
+        color_max = max(color)
+        lumens *= color_max / 255 * (1.0 / self.scale)
+        color = np.divide(color, color_max)
+        watts = lumens / 10
+
+        self._load_lights(entity_name, location, [0.0, 0.0, 0.0], 'SUN', watts, color, 1,
+                          parent_collection=parent_collection, entity=entity_class)
+
+    def handle_rope(self, entity_class, entity_data):
+        entity_lump: Optional[EntityLump] = self.map_file.get_lump(LumpTypes.LUMP_ENTITIES)
+        content_manager = ContentManager()
+        entity_name = self.get_entity_name(entity_data)
+        parent_collection = get_or_create_collection(entity_class, self.main_collection)
+
+        parent = list(filter(lambda x: x.get('targetname') == entity_data['nextkey'], entity_lump.entities))
+        if len(parent) == 0:
+            self.logger.error(f'Cannot find rope parent \'{entity_data["nextkey"]}\', skipping')
+            return
+        location_start = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+        location_end = np.multiply(parse_source2_hammer_vector(parent[0]['origin']), self.scale)
+
+        curve = bpy.data.curves.new(f'{entity_name}_data', 'CURVE')
+        curve.dimensions = '3D'
+        curve.bevel_depth = entity_data.get('width') / 100
+        curve_object = bpy.data.objects.new(f'{entity_name}', curve)
+        curve_path = curve.splines.new('NURBS')
+
+        parent_collection.objects.link(curve_object)
+
+        slack = entity_data.get('slack', 0)
+
+        point_start = (*location_start, 1)
+        point_end = (*location_end, 1)
+        point_mid = lerp_vec(point_start, point_end, 0.5)
+        point_mid[2] -= sum(slack * 0.0002 for _ in range(slack))
+
+        curve_path.points.add(2)
+        curve_path.points[0].co = point_start
+        curve_path.points[1].co = point_mid
+        curve_path.points[2].co = point_end
+
+        curve_path.use_endpoint_u = True
+
+        material_name = entity_data.get('ropematerial')
+        get_material(material_name, curve_object)
+
+        material_file = content_manager.find_material(material_name)
+        if material_file:
+            material_name = strip_patch_coordinates.sub("", material_name)
+            mat = BlenderMaterial(material_file, material_name)
+            mat.create_material()
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump(LumpTypes.LUMP_GAME_LUMP)
@@ -387,9 +404,9 @@ class BSP:
         else:
             self.main_collection.objects.link(placeholder)
 
-    def load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, radius=0.25,
-                    parent_collection=None,
-                    entity=None):
+    def _load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, radius=0.25,
+                     parent_collection=None,
+                     entity=None):
         if entity is None:
             entity = {}
         lamp = bpy.data.objects.new(f'{light_type}_{name}',
