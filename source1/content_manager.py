@@ -52,6 +52,11 @@ class ContentManager(metaclass=SingletonMeta):
             for mod in root_path.parent.iterdir():
                 if mod.is_dir():
                     self.scan_for_content(mod)
+        elif 'download' in root_path.name:
+            sub_manager = NonSourceSubManager(root_path)
+            self.sub_managers[root_path.stem] = sub_manager
+            logger.info(f'Registered sub manager for {root_path.stem}')
+            self.scan_for_content(root_path.parent)
         else:
             if root_path.is_dir():
                 sub_manager = NonSourceSubManager(root_path)
