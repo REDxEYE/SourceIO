@@ -38,8 +38,6 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
 
 
-
-
 class BSP:
     scale = 0.0266
 
@@ -227,7 +225,7 @@ class BSP:
                     curve = bpy.data.curves.new(f'{target_name or hammer_id}_data', 'CURVE')
                     curve.dimensions = '3D'
                     curve.bevel_depth = entity.get('width') / 100
-                    curve_object = bpy.data.objects.new(target_name or hammer_id, curve)
+                    curve_object = bpy.data.objects.new(f'{target_name or hammer_id}', curve)
                     curve_path = curve.splines.new('NURBS')
 
                     self.main_collection.objects.link(curve_object)
