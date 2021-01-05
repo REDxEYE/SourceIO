@@ -62,17 +62,16 @@ def import_model(mdl_file: BinaryIO, parent_collection=None, disable_collection_
 
             for n, mesh in enumerate(model.meshes):
                 for face, is_fan in mesh.faces:
-                    new_face = []
                     if is_fan:
                         for i in range(1, len(face) - 1):
-                            new_face.append([face[0], face[i + 1], face[i]])
+                            model_faces.append([face[0],
+                                             face[i + 1],
+                                             face[i]])
                     else:
                         for i in range(len(face) - 2):
-                            if i % 2 == 0:
-                                new_face.append([face[i], face[i + 2], face[i + 1]])
-                            else:
-                                new_face.append([face[i], face[i + 1], face[i + 2]])
-                    model_faces.extend(new_face)
+                            model_faces.append([face[i],
+                                             face[i + 2 - (i & 1)],
+                                             face[i + 1 + (i & 1)]])
 
             model_vertices = np.zeros_like(model_faces, np.float32)
             for vert in np.array(model_faces).flatten():
