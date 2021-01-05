@@ -476,11 +476,8 @@ class BSP:
                     axis=1
                 ) == 3)[0][0]
 
-            def get_index(ind):
-                return (ind + min_index) % 4
-
-            left_edge = face_vertices[get_index(1)] - face_vertices[get_index(0)]
-            right_edge = face_vertices[get_index(2)] - face_vertices[get_index(3)]
+            left_edge = face_vertices[(1 + min_index) & 3] - face_vertices[min_index & 3]
+            right_edge = face_vertices[(2 + min_index) & 3] - face_vertices[(3 + min_index) & 3]
 
             num_edge_vertices = (1 << disp_info.power) + 1
             subdivide_scale = 1.0 / (num_edge_vertices - 1)
@@ -490,10 +487,10 @@ class BSP:
 
             for i in range(num_edge_vertices):
                 left_end = left_edge_step * i
-                left_end += face_vertices[get_index(0)]
+                left_end += face_vertices[min_index & 3]
 
                 right_end = right_edge_step * i
-                right_end += face_vertices[get_index(3)]
+                right_end += face_vertices[(3 + min_index) & 3]
 
                 left_right_seg = right_end - left_end
                 left_right_step = left_right_seg * subdivide_scale
@@ -518,7 +515,7 @@ class BSP:
             for i in range(num_edge_vertices - 1):
                 for j in range(num_edge_vertices - 1):
                     index = i * num_edge_vertices + j
-                    if index % 2 == 1:
+                    if index & 1:
                         face_indices.append((index, index + 1, index + num_edge_vertices))
                         face_indices.append((index + 1, index + num_edge_vertices + 1, index + num_edge_vertices))
                     else:

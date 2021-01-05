@@ -1,12 +1,21 @@
 from ..content_manager import ContentManager
+from ...bpy_utils import BPYLoggingManager
 from ...utilities.keyvalues import KVParser
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('valve_material')
 
 
 class VMT:
     def __init__(self, file_object):
         kv_parser = KVParser('VMT', file_object.read(-1).decode().replace('`', ''))
-        self.shader, self.material_data = kv_parser.parse()
-        self.shader = self.shader.lower()
+        try:
+            self.shader, self.material_data = kv_parser.parse()
+            self.shader = self.shader.lower()
+        except ValueError as e:
+            self.shader = '<invalid>'
+            self.material_data = {}
+            logger.warn(f'Cannot parse material file: {e}')
 
     def get_param(self, name, default):
         return self.material_data.get(name, default)
