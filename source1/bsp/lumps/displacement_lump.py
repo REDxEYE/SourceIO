@@ -33,14 +33,14 @@ class DispVert(Lump):
 
     def __init__(self, bsp):
         super().__init__(bsp)
-        self._vertices: np.ndarray = np.array(0, dtype=self.dtype)
-        self.vertices = np.array((-1, 3))
+        self.vertices: np.ndarray = np.array(0, dtype=self.dtype)
+        self.transformed_vertices = np.array((-1, 3))
 
     def parse(self):
         reader = self.reader
-        self._vertices = np.frombuffer(reader.read_bytes(self._lump.size),
-                                       self.dtype, self._lump.size // self.dtype.itemsize)
+        self.vertices = np.frombuffer(reader.read_bytes(self._lump.size),
+                                      self.dtype, self._lump.size // self.dtype.itemsize)
 
-        self.vertices = self._vertices['position'] * self._vertices['dist']
+        self.transformed_vertices = self.vertices['position'] * self.vertices['dist']
 
         return self
