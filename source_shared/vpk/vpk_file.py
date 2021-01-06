@@ -17,7 +17,7 @@ class VPKFile:
         self.entries: Dict[str, List[Entry]] = {}
         self.archive_md5_entries: List[ArchiveMD5Entry] = []
 
-        self.path_cache = []
+        self.path_cache = {}
 
         self.tree_hash = b''
         self.archive_md5_hash = b''
@@ -67,7 +67,7 @@ class VPKFile:
                     full_path = Path(f'{directory_name}/{file_name}.{type_name}')
                     entry = Entry(full_path)
                     entry.read(reader)
-                    self.path_cache.append(full_path)
+                    self.path_cache[full_path] = entry
 
                     if reader.read_uint16() != 0xFFFF:
                         raise NotImplementedError('Invalid terminator')
@@ -95,21 +95,27 @@ class VPKFile:
             full_path = Path(full_path)
             if full_path.is_absolute():
                 full_path = full_path.relative_to(self.filepath.parent)
-            ext = Path(full_path).suffix.strip('./\\')
-            for entry in self.entries.get(ext.lower(), []):
-                if entry.file_name == full_path:
-                    return entry
-            return None
+
+            # ext = Path(full_path).suffix.strip('./\\')
+            # for entry in self.entries.get(ext.lower(), []):
+            #     if entry.file_name == full_path:
+            #         return entry
+            # return None
         elif file_type and directory and file_name:
             file_type = file_type.strip('./\\')
             directory = directory.strip('./\\')
             file_name = Path(file_name.strip('./\\')).stem
-            for entry in self.entries.get(file_type, []):
-                if entry.directory_name == directory and entry.file_name == file_name:
-                    return entry
-            return None
+            full_path = Path(f'{directory}/{file_name}.{file_type}')
         else:
             raise Exception("No valid parameters were given")
+            # for entry in self.entries.get(file_type, []):
+            #     if entry.directory_name == directory and entry.file_name == file_name:
+            #         return entry
+            # return None
+        entry = self.path_cache.get(full_path,None)
+        if entry:
+            return entry
+
 
     def read_file(self, entry: Entry) -> BytesIO:
         if entry.archive_id == 0x7FFF:
