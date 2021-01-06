@@ -8,7 +8,7 @@ import numpy as np
 from typing import Dict, Any
 
 from .mgr import ContentManager
-from .bsp_file import BspFile,BspLumpType
+from .bsp_file import BspFile, BspLumpType
 from ..wad import make_texture, flip_texture
 from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
 from ...utilities.math_utilities import parse_source2_hammer_vector
@@ -212,7 +212,8 @@ class BSP:
                 print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
     def load_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        trigger_collection = get_or_create_collection('triggers', self.bsp_collection)
+        entity_collection = get_or_create_collection(entity_class, trigger_collection)
         if 'model' not in entity_data:
             self.logger.warn(f'Trigger "{entity_class}" does not reference any models')
             return
