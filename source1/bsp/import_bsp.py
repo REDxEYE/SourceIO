@@ -72,11 +72,13 @@ class BSP:
                           ):
         vertex_ids = np.zeros((0, 1), dtype=np.uint32)
         vertex_offset = 0
+        material_ids = []
         for map_face in faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
+            material_ids.append(map_face.tex_info_id)
 
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
@@ -85,7 +87,7 @@ class BSP:
             vertex_ids = np.insert(vertex_ids, vertex_offset, face_vertex_ids)
             vertex_offset += edge_count
 
-        return vertex_ids  # , per_face_uv
+        return vertex_ids, material_ids
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXDATA_STRING_TABLE)
@@ -321,22 +323,24 @@ class BSP:
         else:
             mesh_obj.location = model.origin
 
-        material_lookup_table = {}
-        for texture_info in self.texture_info_lump.texture_info:
-            texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
-            material_name = self.get_string(texture_data.name_id)
-            material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-            material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
-
         faces = []
         material_indices = []
 
         surf_edges = self.surf_edge_lump.surf_edges
         edges = self.edge_lump.edges
 
-        vertex_ids = self.gather_vertex_ids(model, self.face_lump.faces, surf_edges, edges)
+        vertex_ids, material_ids = self.gather_vertex_ids(model, self.face_lump.faces, surf_edges, edges)
         unique_vertex_ids, indices_vertex_ids, inverse_indices = np.unique(vertex_ids, return_inverse=True,
                                                                            return_index=True, )
+
+        material_lookup_table = {}
+        for texture_info in sorted(set(material_ids)):
+            texture_info = self.texture_info_lump.texture_info[texture_info]
+            texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
+            material_name = self.get_string(texture_data.name_id)
+            material_name = strip_patch_coordinates.sub("", material_name)[-63:]
+            material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
+
         uvs_per_face = []
 
         for map_face in self.face_lump.faces[model.first_face:model.first_face + model.face_count]:
@@ -455,12 +459,14 @@ class BSP:
         disp_info_lump: Optional[DispInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_DISPINFO)
         if not disp_info_lump or not disp_info_lump.infos:
             return
+
         disp_verts_lump: Optional[DispVert] = self.map_file.get_lump(LumpTypes.LUMP_DISP_VERTS)
         surf_edges = self.surf_edge_lump.surf_edges
         vertices = self.vertex_lump.vertices
         edges = self.edge_lump.edges
-        disp_verts = disp_verts_lump.vertices
-        disp_vertices_alpha = disp_verts_lump._vertices['alpha']
+
+        disp_verts = disp_verts_lump.transformed_vertices
+        disp_vertices_alpha = disp_verts_lump.vertices['alpha']
         parent_collection = get_or_create_collection('displacements', self.main_collection)
         info_count = len(disp_info_lump.infos)
         for n, disp_info in enumerate(disp_info_lump.infos):
@@ -484,12 +490,12 @@ class BSP:
             face_vertices = vertices[face_vertex_ids] * self.scale
 
             min_index = np.where(
-                np.sum(
-                    np.isclose(face_vertices,
-                               disp_info.start_position * self.scale,
-                               1.e-3),
-                    axis=1
-                ) == 3)[0][0]
+                np.isclose(np.sum(np.subtract(face_vertices, disp_info.start_position * self.scale), axis=1), 0, 0.001,
+                           0.001))
+            if not min_index:
+                min_index = 0
+            else:
+                min_index = min_index[0][0]
 
             left_edge = face_vertices[(1 + min_index) & 3] - face_vertices[min_index & 3]
             right_edge = face_vertices[(2 + min_index) & 3] - face_vertices[(3 + min_index) & 3]
