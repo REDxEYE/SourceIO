@@ -6,9 +6,9 @@ import numpy as np
 from .structs.bone import StudioBone
 from .structs.studioheader import StudioHeader
 from .structs.bodypart import StudioBodypart
+from .structs.texture import StudioTexture
 from ...source_shared.base import Base
 from ...utilities.byte_io_mdl import ByteIO
-from ...utilities.math_utilities import angle_matrix, r_concat_transforms
 
 
 class Mdl(Base):
@@ -18,8 +18,8 @@ class Mdl(Base):
         self.reader = ByteIO(filepath)
         self.header = StudioHeader()
         self.bones: List[StudioBone] = []
-        self.bone_transforms: List[np.ndarray] = []
         self.bodyparts: List[StudioBodypart] = []
+        self.textures: List[StudioTexture] = []
 
     def read(self):
         self.header.read(self.reader)
@@ -30,18 +30,14 @@ class Mdl(Base):
             bone.read(self.reader)
             self.bones.append(bone)
 
-        for bone in self.bones:
-            bone_matrix = angle_matrix(bone.rot[0], bone.rot[1], bone.rot[2])
-            bone_matrix[0][3] = bone.pos[2]
-            bone_matrix[1][3] = bone.pos[0]
-            bone_matrix[2][3] = bone.pos[1]
-            if bone.parent != -1:
-                parent = self.bone_transforms[bone.parent]
-                bone_matrix = r_concat_transforms(parent, bone_matrix)
-            self.bone_transforms.append(bone_matrix)
-
         self.reader.seek(self.header.body_part_offset)
         for _ in range(self.header.body_part_count):
             bodypart = StudioBodypart()
             bodypart.read(self.reader)
             self.bodyparts.append(bodypart)
+
+        self.reader.seek(self.header.texture_offset)
+        for _ in range(self.header.texture_count):
+            texture = StudioTexture()
+            texture.read(self.reader)
+            self.textures.append(texture)

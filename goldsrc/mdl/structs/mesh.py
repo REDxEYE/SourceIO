@@ -14,6 +14,18 @@ from ....utilities.byte_io_mdl import ByteIO
 # 	int		normindex;		// normal glm::vec3
 # };
 
+class StudioTrivert(Base):
+    def __init__(self):
+        self.vertex_index = 0
+        self.normal_index = 0
+        self.uv = []
+
+    def read(self, reader: ByteIO):
+        self.vertex_index = reader.read_uint16()
+        self.normal_index = reader.read_uint16()
+        self.uv = [reader.read_uint16(), reader.read_uint16()]
+
+
 class StudioMesh(Base):
     def __init__(self):
         self.triangle_count = 0
@@ -21,9 +33,7 @@ class StudioMesh(Base):
         self.skin_ref = 0
         self.normal_count = 0
         self.normal_offset = 0
-        self.faces: List[Tuple[List[int], int]] = []
-        self.normal_indices: List[List[int]] = []
-        self.uvs: List[List[Tuple[float, float]]] = []
+        self.triangles: List[Tuple[List[StudioTrivert], bool]] = []
 
     def read(self, reader: ByteIO):
         (self.triangle_count, self.triangle_offset,
@@ -31,17 +41,16 @@ class StudioMesh(Base):
          self.normal_count, self.normal_offset) = reader.read_fmt('5i')
         with reader.save_current_pos():
             reader.seek(self.triangle_offset)
+
             while True:
-                polylist_count = reader.read_int16()
-                if polylist_count == 0:
+                trivert_count = reader.read_int16()
+                trivert_fan = trivert_count < 0
+                trivert_count = abs(trivert_count)
+                if trivert_count == 0:
                     break
-                face = []
-                normals = []
-                uvs = []
-                for _ in range(abs(polylist_count)):
-                    face.append(reader.read_int16())
-                    normals.append(reader.read_int16())
-                    uvs.append((reader.read_int16(), reader.read_int16()))
-                self.faces.append((face, polylist_count < 0))
-                self.normal_indices.append(normals)
-                self.uvs.append(uvs)
+                triverts = []
+                for _ in range(trivert_count):
+                    trivert = StudioTrivert()
+                    trivert.read(reader)
+                    triverts.append(trivert)
+                self.triangles.append((triverts, trivert_fan))

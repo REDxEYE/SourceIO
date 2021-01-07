@@ -22,6 +22,6 @@ class StudioBone(Base):
         self.bone_controllers = reader.read_fmt('6i')
         self.pos = reader.read_fmt('3f')
         self.rot = reader.read_fmt('3f')
-        self.rot = [self.rot[1], self.rot[0], self.rot[2]]
+        # self.rot = [self.rot[1], self.rot[0], self.rot[2]]
         self.pos_scale = reader.read_fmt('3f')
         self.rot_scale = reader.read_fmt('3f')
