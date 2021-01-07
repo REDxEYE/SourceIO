@@ -33,6 +33,7 @@ class GBSPImport_OT_operator(bpy.types.Operator):
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+
 class GMDLImport_OT_operator(bpy.types.Operator):
     """Load GoldSrc MDL"""
     bl_idname = "source_io.gmdl"
@@ -51,7 +52,9 @@ class GMDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
-            import_model(directory / file.name)
+            texture_file = (directory / file.name).with_name(Path(file.name).stem + 't')
+
+            import_model(directory / file.name, texture_file if texture_file.exists() else None)
         return {'FINISHED'}
 
     def invoke(self, context, event):
