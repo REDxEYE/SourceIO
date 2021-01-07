@@ -333,6 +333,11 @@ class BSP:
         unique_vertex_ids, indices_vertex_ids, inverse_indices = np.unique(vertex_ids, return_inverse=True,
                                                                            return_index=True, )
 
+        remapped = {}
+        for vertex_id in vertex_ids:
+            new_id = np.where(unique_vertex_ids == vertex_id)[0][0]
+            remapped[vertex_id] = new_id
+
         material_lookup_table = {}
         for texture_info in sorted(set(material_ids)):
             texture_info = self.texture_info_lump.texture_info[texture_info]
@@ -368,7 +373,7 @@ class BSP:
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
 
             for vertex_id, uv in zip(face_vertex_ids, v_uvs):
-                new_vertex_id = np.where(unique_vertex_ids == vertex_id)[0][0]
+                new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv
 
