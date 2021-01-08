@@ -12,9 +12,9 @@ from .source2.resouce_types.valve_model import ValveModel
 from .utilities.path_utilities import backwalk_file_resolver
 
 
-class LoadPlaceholder_OT_operator(bpy.types.Operator):
+class LoadEntity_OT_operator(bpy.types.Operator):
     bl_idname = "source_io.load_placeholder"
-    bl_label = "Load placeholder"
+    bl_label = "Load Entity"
     bl_options = {'UNDO'}
 
     def execute(self, context):
@@ -163,16 +163,17 @@ class Placeholders_PT_panel(UITools, bpy.types.Panel):
         return obj and obj.get("entity_data", None) is not None
 
     def draw(self, context):
-        self.layout.label(text="Placeholders loading")
+        self.layout.label(text="Entity loading")
         obj = context.active_object  # type:bpy.types.Object
         if obj.get("entity_data", None):
             entiry_data = obj['entity_data']
             entity_raw_data = entiry_data.get('entity', {})
             row = self.layout.row()
-            row.label(text=f'Total selected placeholders:')
+            row.label(text=f'Total selected entities:')
             row.label(text=str(len([obj for obj in context.selected_objects if 'entity_data' in obj])))
-            box = self.layout.box()
-            box.operator('source_io.load_placeholder')
+            if entiry_data.get('prop_path',False):
+                box = self.layout.box()
+                box.operator('source_io.load_placeholder')
             box = self.layout.box()
             for k, v in entity_raw_data.items():
                 row = box.row()
