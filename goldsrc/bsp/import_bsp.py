@@ -28,6 +28,7 @@ class BSP:
         for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
             self.bsp_file.manager.add_game_resource_root(self.bsp_file.manager.game_root / 'valve' / default_resource)
         self.bsp_collection = bpy.data.collections.new(self.bsp_name)
+        self.entry_cache = {}
 
         self.bsp_lump_entities = self.bsp_file.lumps[BspLumpType.LUMP_ENTITIES].parse()
         self.bsp_lump_textures_data = self.bsp_file.lumps[BspLumpType.LUMP_TEXTURES_DATA].parse()
@@ -187,12 +188,21 @@ class BSP:
 
         return model_object
 
+    def get_entity_by_target_name(self, target_name):
+        return self.entry_cache.get(target_name, None)
+
+    def get_entity_by_target(self, target_name):
+        for entry in self.entry_cache.values():
+            if target_name == entry.get('target', ''):
+                return entry
+
     def load_entities(self):
+        self.entry_cache = {k['targetname']: k for k in self.bsp_lump_entities.values if 'targetname' in k}
         for entity in self.bsp_lump_entities.values:
             if 'classname' not in entity:
                 continue
             entity_class: str = entity['classname']
-            # print(entity_class, entity)
+
             if entity_class == 'worldspawn':
                 for game_wad_path in entity['wad'].split(';'):
                     if len(game_wad_path) == 0:
@@ -208,6 +218,28 @@ class BSP:
                 self.load_light_spot(entity_class, entity)
             elif entity_class == 'light':
                 self.load_light(entity_class, entity)
+            elif entity_class == 'info_node':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class.startswith('monster_'):
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'multi_manager':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'env_glow':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'scripted_sequence':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'info_landmark':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'ambient_generic':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'env_message':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'info_player_start':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'env_fade':
+                self.load_general_entity(entity_class, entity)
+            elif entity_class == 'path_track':
+                self.load_path_track(entity_class, entity)
             else:
                 print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
@@ -328,3 +360,59 @@ class BSP:
         else:
             self.bsp_collection.objects.link(lamp)
         return lamp
+
+    def load_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        if 'targetname' not in entity_data:
+            copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
+            entity_name = f'{entity_class}_{copy_count}'
+        else:
+            entity_name = entity_data['targetname']
+
+        placeholder = bpy.data.objects.new(entity_name, None)
+        placeholder.location = origin
+        placeholder.rotation_euler = angles
+        placeholder['entity_data'] = {'entity': entity_data}
+        entity_collection.objects.link(placeholder)
+
+    def load_path_track(self, entity_class: str, entity_data: Dict[str, Any]):
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        start_name = entity_data['targetname']
+        points = []
+        parent_name = start_name
+        while True:
+            parent = self.get_entity_by_target(parent_name)
+            if parent is not None:
+                parent_name = parent['targetname']
+            else:
+                break
+        if bpy.data.objects.get(parent_name, None):
+            return
+        next_name = parent_name
+        while True:
+            child = self.get_entity_by_target_name(next_name)
+            if child:
+                points.append(parse_source2_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
+                next_name = child['target']
+            else:
+                break
+
+        line = self._create_lines(parent_name, points)
+        entity_collection.objects.link(line)
+
+    def _create_lines(self, name, points):
+        line_data = bpy.data.curves.new(name=f'{name}_data', type='CURVE')
+        line_data.dimensions = '3D'
+        line_data.fill_mode = 'FULL'
+        line_data.bevel_depth = 0
+
+        polyline = line_data.splines.new('POLY')
+        polyline.points.add(len(points) - 1)
+        for idx in range(len(points)):
+            polyline.points[idx].co = tuple(points[idx]) + (1.0,)
+
+        line = bpy.data.objects.new(f'{name}', line_data)
+        line.location = [0, 0, 0]
+        return line
