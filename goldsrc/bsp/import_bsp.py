@@ -395,6 +395,9 @@ class BSP:
             child = self.get_entity_by_target_name(next_name)
             if child:
                 points.append(parse_source2_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
+                if 'target' not in child:
+                    self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
+                    break
                 next_name = child['target']
             else:
                 break
