@@ -88,7 +88,7 @@ def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.
 
 
 def parse_source2_hammer_vector(string: str) -> np.ndarray:
-    return np.array([float(x) for x in string.split(" ") if x])
+    return np.array([float(x) for x in string.split(" ") if x], np.float32)
 
 
 def lumen_to_candela_by_apex_angle(flux: float, angle: float):
