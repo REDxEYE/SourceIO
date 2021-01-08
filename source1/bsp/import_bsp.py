@@ -107,9 +107,9 @@ class BSP:
                     continue
                 parent_collection = get_or_create_collection(entity_class, self.main_collection)
                 if entity_class.startswith('func_'):
-                    self.handle_brush(entity_class, entity_data)
-                elif entity_class.startswith('trigger'):
-                    self.handle_brush(entity_class, entity_data)
+                    self.handle_func_brush(entity_class, entity_data)
+                elif 'trigger' in entity_class:
+                    self.handle_trigger(entity_class, entity_data)
                 elif entity_class.startswith('prop_') or entity_class in ['monster_generic']:
                     self.handle_model(entity_class, entity_data)
                 elif entity_class == 'item_teamflag':
@@ -142,7 +142,7 @@ class BSP:
                 elif entity_class == 'env_soundscape':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'momentary_rot_button':
-                    self.handle_brush(entity_class, entity_data)
+                    self.handle_brush(entity_class, entity_data, self.main_collection)
                 elif entity_class.startswith('item_'):
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class.startswith('weapon_'):
@@ -201,6 +201,14 @@ class BSP:
             if target_name == entry.get('target', ''):
                 return entry
 
+    def handle_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
+        trigger_collection = get_or_create_collection('triggers', self.main_collection)
+        self.handle_brush(entity_class, entity_data, trigger_collection)
+
+    def handle_func_brush(self, entity_class: str, entity_data: Dict[str, Any]):
+        func_brush_collection = get_or_create_collection('func_brushes', self.main_collection)
+        self.handle_brush(entity_class, entity_data, func_brush_collection)
+
     def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
@@ -236,6 +244,7 @@ class BSP:
             if child:
                 points.append(parse_source2_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
                 if 'target' not in child:
+                    self.logger.warn(f'Entity {next_name} does not have targer. {entity_data}')
                     break
                 next_name = child['target']
             else:
@@ -259,10 +268,10 @@ class BSP:
         line.location = [0, 0, 0]
         return line
 
-    def handle_brush(self, entity_class, entity_data):
+    def handle_brush(self, entity_class, entity_data, master_collection):
         entity_name = self.get_entity_name(entity_data)
         if 'model' in entity_data and entity_data['model']:
-            parent_collection = get_or_create_collection(entity_class, self.main_collection)
+            parent_collection = get_or_create_collection(entity_class, master_collection)
             model_id = int(entity_data['model'].replace('*', ''))
             brush_name = entity_data.get('targetname', None) or f'{entity_class}_{model_id}'
             location = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0'))
