@@ -49,7 +49,7 @@ class BSP:
         self.map_file.parse()
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
-
+        self.entry_cache = {}
         self.model_lump: Optional[ModelLump] = self.map_file.get_lump(LumpTypes.LUMP_MODELS)
         self.vertex_lump: Optional[VertexLump] = self.map_file.get_lump(LumpTypes.LUMP_VERTICES)
         self.edge_lump: Optional[EdgeLump] = self.map_file.get_lump(LumpTypes.LUMP_EDGES)
@@ -98,45 +98,166 @@ class BSP:
             self.load_bmodel(0, 'world_geometry')
 
     def load_entities(self):
-
         entity_lump: Optional[EntityLump] = self.map_file.get_lump(LumpTypes.LUMP_ENTITIES)
+        self.entry_cache = {k['targetname']: k for k in entity_lump.entities if 'targetname' in k}
         if entity_lump:
-            for entity in entity_lump.entities:
-                class_name: str = entity.get('classname', None)
-                if not class_name:
+            for entity_data in entity_lump.entities:
+                entity_class: str = entity_data.get('classname', None)
+                if not entity_class:
                     continue
-                parent_collection = get_or_create_collection(class_name, self.main_collection)
-                if class_name.startswith('func_'):
-                    self.handle_brush(class_name, entity)
-                elif class_name.startswith('prop_') or class_name in ['monster_generic']:
-                    self.handle_model(class_name, entity)
-                elif class_name == 'item_teamflag':
-                    entity_name = self.get_entity_name(entity)
-                    location = np.multiply(parse_source2_hammer_vector(entity['origin']), self.scale)
-                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity['angles']))
+                parent_collection = get_or_create_collection(entity_class, self.main_collection)
+                if entity_class.startswith('func_'):
+                    self.handle_brush(entity_class, entity_data)
+                elif entity_class.startswith('trigger'):
+                    self.handle_brush(entity_class, entity_data)
+                elif entity_class.startswith('prop_') or entity_class in ['monster_generic']:
+                    self.handle_model(entity_class, entity_data)
+                elif entity_class == 'item_teamflag':
+                    entity_name = self.get_entity_name(entity_data)
+                    location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
                     self.create_empty(entity_name, location, rotation,
                                       parent_collection=parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
-                                                   'prop_path': entity['flag_model'],
-                                                   'type': class_name,
-                                                   'entity': entity})
-                elif class_name == 'light_spot':
-                    self.handle_light_spot(class_name, entity)
-                elif class_name == 'point_spotlight':
-                    cone = clamp_value((entity['spotlightwidth'] / 256) * 180, 1, 180)
-                    entity['_light'] = f'{entity["rendercolor"]} {entity["spotlightlength"]}'
-                    entity['_inner_cone'] = cone
-                    entity['_cone'] = cone
-                    self.handle_light_spot(class_name, entity)
-                elif class_name == 'light':
-                    self.handle_light(class_name, entity)
-                elif class_name == 'light_environment':
-                    self.handle_light_environment(class_name, entity)
-                elif class_name in ['keyframe_rope', 'move_rope'] and 'nextkey' in entity:
-                    self.handle_rope(class_name, entity)
+                                                   'prop_path': entity_data['flag_model'],
+                                                   'type': entity_class,
+                                                   'entity': entity_data})
+                elif entity_class == 'light_spot':
+                    self.handle_light_spot(entity_class, entity_data)
+                elif entity_class == 'point_spotlight':
+                    cone = clamp_value((entity_data['spotlightwidth'] / 256) * 180, 1, 180)
+                    entity_data['_light'] = f'{entity_data["rendercolor"]} {entity_data["spotlightlength"]}'
+                    entity_data['_inner_cone'] = cone
+                    entity_data['_cone'] = cone
+                    self.handle_light_spot(entity_class, entity_data)
+                elif entity_class == 'light':
+                    self.handle_light(entity_class, entity_data)
+                elif entity_class == 'light_environment':
+                    self.handle_light_environment(entity_class, entity_data)
+                elif entity_class in ['keyframe_rope', 'move_rope']:
+                    if 'nextkey' not in entity_data:
+                        self.logger.warn(f'Missing "nextkey" in {entity_data}')
+                        continue
+                    self.handle_rope(entity_class, entity_data)
+                elif entity_class == 'env_soundscape':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'momentary_rot_button':
+                    self.handle_brush(entity_class, entity_data)
+                elif entity_class.startswith('item_'):
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class.startswith('weapon_'):
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'logic_auto':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'info_node':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'point_template':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'ambient_generic':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'info_player_start':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'npc_antlion_grub':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'aiscripted_schedule':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'filter_activator_name':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'logic_achievement':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'logic_relay':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'water_lod_control':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'ai_script_conditions':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'env_sprite':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'phys_pulleyconstraint':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'env_tonemap_controller':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class.startswith('info_'):
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'env_hudhint':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'infodecal':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'path_corner':
+                    self.handle_path_track(entity_class, entity_data)
+                elif entity_class.startswith('npc'):
+                    self.handle_general_entity(entity_class, entity_data)
+                else:
+                    print(f'Unsupported entity type {entity_class}: {entity_data}')
 
     def get_entity_name(self, entity_data: Dict[str, Any]):
         return f'{entity_data.get("targetname", None) or entity_data.get("hammerid", "missing_hammer_id")}'
+
+    def get_entity_by_target_name(self, target_name):
+        return self.entry_cache.get(target_name, None)
+
+    def get_entity_by_target(self, target_name):
+        for entry in self.entry_cache.values():
+            if target_name == entry.get('target', ''):
+                return entry
+
+    def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        entity_collection = get_or_create_collection(entity_class, self.main_collection)
+        if 'targetname' not in entity_data:
+            copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
+            entity_name = f'{entity_class}_{entity_data.get("hammerid", None) or copy_count}'
+        else:
+            entity_name = entity_data['targetname']
+
+        placeholder = bpy.data.objects.new(entity_name, None)
+        placeholder.location = origin
+        placeholder.rotation_euler = angles
+        placeholder['entity_data'] = {'entity': entity_data}
+        entity_collection.objects.link(placeholder)
+
+    def handle_path_track(self, entity_class: str, entity_data: Dict[str, Any]):
+        entity_collection = get_or_create_collection(entity_class, self.main_collection)
+        start_name = entity_data['targetname']
+        points = []
+        parent_name = start_name
+        while True:
+            parent = self.get_entity_by_target(parent_name)
+            if parent is not None:
+                parent_name = parent['targetname']
+            else:
+                break
+        if bpy.data.objects.get(parent_name, None):
+            return
+        next_name = parent_name
+        while True:
+            child = self.get_entity_by_target_name(next_name)
+            if child:
+                points.append(parse_source2_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
+                if 'target' not in child:
+                    break
+                next_name = child['target']
+            else:
+                break
+
+        line = self._create_lines(parent_name, points)
+        entity_collection.objects.link(line)
+
+    def _create_lines(self, name, points):
+        line_data = bpy.data.curves.new(name=f'{name}_data', type='CURVE')
+        line_data.dimensions = '3D'
+        line_data.fill_mode = 'FULL'
+        line_data.bevel_depth = 0
+
+        polyline = line_data.splines.new('POLY')
+        polyline.points.add(len(points) - 1)
+        for idx in range(len(points)):
+            polyline.points[idx].co = tuple(points[idx]) + (1.0,)
+
+        line = bpy.data.objects.new(f'{name}', line_data)
+        line.location = [0, 0, 0]
+        return line
 
     def handle_brush(self, entity_class, entity_data):
         entity_name = self.get_entity_name(entity_data)
@@ -495,8 +616,8 @@ class BSP:
             face_vertices = vertices[face_vertex_ids] * self.scale
 
             min_index = np.where(
-                np.isclose(np.sum(np.subtract(face_vertices, disp_info.start_position * self.scale), axis=1), 0, 0.001,
-                           0.001))
+                np.isclose(np.sum(np.subtract(face_vertices, disp_info.start_position * self.scale), axis=1), 0, 0.01,
+                           0.01))
             if not min_index:
                 min_index = 0
             else:
