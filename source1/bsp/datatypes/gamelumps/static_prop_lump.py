@@ -52,8 +52,8 @@ class StaticProp:
             self.diffuse_modulation = reader.read_fmt('4B')
         if version in [9, 10]:
             self.disable_x360 = reader.read_uint32()
-        if version >= 10:
-            self.flags_ex = reader.read_uint32()
+        # if version >= 10:
+        #     self.flags_ex = reader.read_uint32()
         if version >= 11:
             reader.skip(4)
             self.uniform_scale = reader.read_float()
@@ -72,7 +72,8 @@ class StaticPropLump:
             self.model_names.append(reader.read_ascii_string(128))
         for _ in range(reader.read_int32()):
             self.leafs.append(reader.read_uint16())
-        for _ in range(reader.read_int32()):
+        prop_count = reader.read_int32()
+        for _ in range(prop_count):
             prop = StaticProp()
             prop.parse(reader, self._glump_info.version)
             self.static_props.append(prop)
