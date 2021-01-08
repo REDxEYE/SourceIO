@@ -5,8 +5,9 @@ from mathutils import Vector, Matrix, Euler
 import numpy as np
 from numpy import matrix
 from .mdl_file import Mdl
-from .structs.texture import MdlTextureFlag
+from .structs.texture import MdlTextureFlag, StudioTexture
 from ...bpy_utils import get_or_create_collection, get_material
+from ...source1.vmt.shaders.goldsrc_shader import GoldSrcShader
 from ...utilities.math_utilities import vector_transform, r_concat_transforms
 
 
@@ -149,46 +150,8 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: BinaryIO, parent_collecti
             model_object.parent = armature
 
 
-def load_material(model_texture_info, model_object):
+def load_material(model_texture_info: StudioTexture, model_object):
     mat_id = get_material(model_texture_info.name, model_object)
-    model_texture = bpy.data.images.get(model_texture_info.name, None)
-    if model_texture is None:
-        model_texture = bpy.data.images.new(
-            model_texture_info.name,
-            width=model_texture_info.width,
-            height=model_texture_info.height,
-            alpha=False
-        )
-
-        if bpy.app.version > (2, 83, 0):
-            model_texture.pixels.foreach_set(model_texture_info.data.flatten().tolist())
-        else:
-            model_texture.pixels[:] = model_texture_info.data.flatten().tolist()
-
-        model_texture.pack()
-
-    bpy_mat = bpy.data.materials.get(model_texture_info.name, None) or bpy.data.materials.new(
-        model_texture_info.name)
-    if not bpy_mat.get('goldsrc_loaded', False):
-        bpy_mat.use_nodes = True
-        bpy_mat.blend_method = 'HASHED'
-        bpy_mat.shadow_method = 'HASHED'
-
-        for node in bpy_mat.node_tree.nodes:
-            bpy_mat.node_tree.nodes.remove(node)
-
-        bpy_mat_diff = bpy_mat.node_tree.nodes.new('ShaderNodeBsdfPrincipled')
-        bpy_mat_diff.name = 'SHADER'
-        bpy_mat_diff.label = 'SHADER'
-        bpy_mat_diff.inputs['Specular'].default_value = 0.5 if model_texture_info.flags & MdlTextureFlag.CHROME else 0.0
-        bpy_mat_diff.inputs['Metallic'].default_value = 1.0 if model_texture_info.flags & MdlTextureFlag.CHROME else 0.0
-
-        bpy_mat_tex = bpy_mat.node_tree.nodes.new('ShaderNodeTexImage')
-        bpy_mat_tex.image = bpy.data.images.get(model_texture_info.name)
-        bpy_mat.node_tree.links.new(bpy_mat_tex.outputs['Color'], bpy_mat_diff.inputs['Base Color'])
-
-        bpy_mat_output = bpy_mat.node_tree.nodes.new('ShaderNodeOutputMaterial')
-        bpy_mat.node_tree.links.new(bpy_mat_diff.outputs['BSDF'], bpy_mat_output.inputs['Surface'])
-        bpy_mat['goldsrc_loaded'] = True
-
+    bpy_material = GoldSrcShader(model_texture_info)
+    bpy_material.create_nodes(model_texture_info.name)
     return mat_id
