@@ -42,7 +42,7 @@ if not NO_BPY:
                                    Placeholders_PT_panel,
                                    SkinChanger_PT_panel,
                                    ChangeSkin_OT_operator,
-                                   LoadPlaceholder_OT_operator,
+                                   LoadEntity_OT_operator,
                                    )
 
 
@@ -142,7 +142,7 @@ if not NO_BPY:
         SourceIOUtils_PT_panel,
         Placeholders_PT_panel,
         SkinChanger_PT_panel,
-        LoadPlaceholder_OT_operator,
+        LoadEntity_OT_operator,
         ChangeSkin_OT_operator
     )
 
