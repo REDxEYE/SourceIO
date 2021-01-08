@@ -25,6 +25,8 @@ class LoadEntity_OT_operator(bpy.types.Operator):
             print(f'Loading {obj.name}')
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
+                if 'prop_path' not in custom_prop_data:
+                    continue
                 model_type = Path(custom_prop_data['prop_path']).suffix
                 collection = (bpy.data.collections.get(custom_prop_data['type'], None) or
                               bpy.data.collections.new(custom_prop_data['type']))
@@ -171,7 +173,7 @@ class Placeholders_PT_panel(UITools, bpy.types.Panel):
             row = self.layout.row()
             row.label(text=f'Total selected entities:')
             row.label(text=str(len([obj for obj in context.selected_objects if 'entity_data' in obj])))
-            if entiry_data.get('prop_path',False):
+            if entiry_data.get('prop_path', False):
                 box = self.layout.box()
                 box.operator('source_io.load_placeholder')
             box = self.layout.box()
