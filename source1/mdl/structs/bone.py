@@ -225,7 +225,7 @@ class Bone(Base):
         self.physics_bone_index = reader.read_uint32()
         self.surface_prop = reader.read_source1_string(entry)
         self.contents = Contents(reader.read_uint32())
-        if self.get_value('mdl_version') >= 48:
+        if self.get_value('mdl_version') >= 47:
             _ = [reader.read_uint32() for _ in range(8)]
         if self.get_value('mdl_version') >= 53:
             reader.skip(4 * 7)
