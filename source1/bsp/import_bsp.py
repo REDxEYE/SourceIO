@@ -353,7 +353,7 @@ class BSP:
         color_max = max(color)
         lumens *= color_max / 255 * (1.0 / self.scale)
         color = np.divide(color, color_max)
-        watts = lumens / 10
+        watts = lumens / 10000
 
         self._load_lights(entity_name, location, [0.0, 0.0, 0.0], 'SUN', watts, color, 1,
                           parent_collection=parent_collection, entity=entity_class)
