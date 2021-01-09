@@ -2,10 +2,9 @@ import binascii
 import contextlib
 import io
 import struct
-import typing
-from pathlib import Path
-from typing import Union, TextIO, BinaryIO
 from io import BytesIO
+from pathlib import Path
+from typing import Union, BinaryIO
 
 
 class OffsetOutOfBounds(Exception):
@@ -182,7 +181,10 @@ class ByteIO:
 
     def read_ascii_string(self, length=None):
         if length is not None:
-            return self.file.read(length).strip(b'\x00').decode('latin').strip()
+            buffer = self.file.read(length).strip(b'\x00')
+            if b'\x00' in buffer:
+                buffer = buffer[:buffer.index(b'\x00')]
+            return buffer.decode('latin').strip()
 
         buffer = bytearray()
 
