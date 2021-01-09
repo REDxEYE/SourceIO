@@ -87,6 +87,10 @@ def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.
             math.radians(source2_rotation[1])]
 
 
+def convert_to_radians(vector: Union[List[float], np.ndarray]):
+    return np.deg2rad(vector)
+
+
 def parse_source2_hammer_vector(string: str) -> np.ndarray:
     return np.array([float(x) for x in string.split(" ") if x], np.float32)
 

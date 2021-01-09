@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 from ..lump import Lump, LumpType, LumpInfo
 from ..structs.texture import TextureData
@@ -9,6 +9,7 @@ class TextureDataLump(Lump):
 
     def __init__(self, info: LumpInfo):
         super().__init__(info)
+        self.key_values: Dict[str, TextureData] = {}
         self.values: List[TextureData] = []
 
     def parse(self):
@@ -23,4 +24,5 @@ class TextureDataLump(Lump):
 
             texture_data = TextureData()
             texture_data.parse(self.buffer)
+            self.key_values[texture_data.name] = texture_data
             self.values.append(texture_data)

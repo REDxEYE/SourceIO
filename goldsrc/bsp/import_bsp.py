@@ -17,7 +17,7 @@ from .lumps.texture_data import TextureDataLump
 from .lumps.texture_info import TextureInfoLump
 from .lumps.vertex_lump import VertexLump
 from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
-from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender
+from ...utilities.math_utilities import parse_source2_hammer_vector, convert_to_radians
 
 log_manager = BPYLoggingManager()
 
@@ -64,27 +64,27 @@ class BSP:
         return vertex_ids, material_indices
 
     def load_map(self):
-
         bpy.context.scene.collection.children.link(self.bsp_collection)
 
         self.load_entities()
         self.load_bmodel(0, f'{self.bsp_name}_world_geometry')
         self.load_materials()
 
-    def load_materials(self):
-        for material in self.bsp_lump_textures_data.values:
-            material_name = material.name
+    def load_material(self, material_name):
+        materials_dict = self.bsp_lump_textures_data.key_values
+        if material_name in materials_dict:
+            texture_data = materials_dict[material_name]
 
             face_texture = bpy.data.images.get(material_name, None)
             if face_texture is None:
                 face_texture = bpy.data.images.new(
                     material_name,
-                    width=material.width,
-                    height=material.height,
+                    width=texture_data.width,
+                    height=texture_data.height,
                     alpha=True
                 )
 
-                face_texture_contents = material.get_contents(self.bsp_file).flatten().tolist()
+                face_texture_contents = texture_data.get_contents(self.bsp_file).flatten().tolist()
 
                 if bpy.app.version > (2, 83, 0):
                     face_texture.pixels.foreach_set(face_texture_contents)
@@ -92,10 +92,10 @@ class BSP:
                     face_texture.pixels[:] = face_texture_contents
 
                 face_texture.pack()
-
             bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
+
             if bpy_material.get('goldsrc_loaded', False):
-                continue
+                return
             bpy_material.use_nodes = True
             bpy_material.blend_method = 'HASHED'
             bpy_material.shadow_method = 'HASHED'
@@ -117,6 +117,11 @@ class BSP:
             if material_name.startswith('{'):
                 bpy_material.node_tree.links.new(texture_node.outputs['Alpha'], shader_diffuse.inputs['Alpha'])
             shader_diffuse.inputs['Specular'].default_value = 0.00
+
+    def load_materials(self):
+        for material in self.bsp_lump_textures_data.values:
+            material_name = material.name
+            self.load_material(material_name)
 
     def load_bmodel(self, model_index, model_name, parent_collection=None):
         entity_model = self.bsp_lump_models.values[model_index]
@@ -144,6 +149,7 @@ class BSP:
             face_texture_data = self.bsp_lump_textures_data.values[face_texture_info.texture]
             face_texture_name = face_texture_data.name
             material_lookup_table[texture_info_index] = get_material(face_texture_name, model_object)
+            self.load_material(face_texture_name)
 
         uvs_per_face = []
         faces = []
@@ -277,7 +283,7 @@ class BSP:
             return
 
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = convert_to_radians(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
@@ -288,26 +294,25 @@ class BSP:
             model_object.rotation_euler = angles
 
             model_object['entity_data'] = {'entity': entity_data}
+            render_mode = int(entity_data.get('rendermode', 0))
+            render_amount = int(entity_data.get('renderamt', 0))
+            if render_mode == 4 and render_amount != 0:
+                for model_material_index, model_material in enumerate(model_object.data.materials):
+                    alpha_mat_name = f'{model_material.name}_alpha_{render_amount}'
+                    alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
+                    if alpha_mat is None:
+                        alpha_mat = model_material.copy()
+                        alpha_mat.name = alpha_mat_name
+                    model_object.data.materials[model_material_index] = alpha_mat
 
-            # TODO: Refactor this - load materials on demand
-            # if 'renderamt' in entity_data:
-            #     for model_material_index, model_material in enumerate(model_object.data.materials):
-            #         renderamt = int(entity_data["renderamt"])
-            #         alpha_mat_name = f'{model_material.name}_alpha_{renderamt}'
-            #         alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
-            #         if alpha_mat is None:
-            #             alpha_mat = model_material.copy()
-            #             alpha_mat.name = alpha_mat_name
-            #         model_object.data.materials[model_material_index] = alpha_mat
-            #
-            #         model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
-            #         if model_shader:
-            #             model_shader.inputs['Alpha'].default_value = 1.0 - (renderamt / 255)
+                    model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
+                    if model_shader:
+                        model_shader.inputs['Alpha'].default_value = 1.0 - (render_amount / 255)
 
     def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = convert_to_radians(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
         color = parse_source2_hammer_vector(entity_data['_light'])
         if len(color) == 4:
             lumens = color[-1]
@@ -405,7 +410,7 @@ class BSP:
         if 'monster_' in entity_class:
             print(entity_class, entity_data)
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = convert_to_radians(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
