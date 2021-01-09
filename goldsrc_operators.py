@@ -1,8 +1,9 @@
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, CollectionProperty
+from bpy.props import StringProperty, CollectionProperty, BoolProperty
 from .goldsrc.bsp.import_bsp import BSP
+from .goldsrc.bsp.mgr import GoldSrcContentManager
 from .goldsrc.mdl.import_mdl import import_model
 
 
@@ -16,6 +17,8 @@ class GBSPImport_OT_operator(bpy.types.Operator):
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
+    use_hd: BoolProperty(name="Load HD models", default=False, subtype='UNSIGNED')
+
     def execute(self, context):
 
         if Path(self.filepath).is_file():
@@ -24,6 +27,8 @@ class GBSPImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
+            content_manager = GoldSrcContentManager()
+            content_manager.use_hd = self.use_hd
             bsp = BSP(directory / file.name)
             bsp.load_map()
         return {'FINISHED'}
@@ -52,8 +57,7 @@ class GMDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
-            texture_file = (directory / file.name).with_name(Path(file.name).stem + 't')
-
+            texture_file = (directory / file.name).with_name(Path(file.name).stem + 't.mdl')
             import_model(directory / file.name, texture_file if texture_file.exists() else None)
         return {'FINISHED'}
 

@@ -3,9 +3,8 @@ from enum import IntEnum
 from pathlib import Path
 
 import numpy as np
-from typing import Dict, Any
 
-from .mgr import ContentManager
+from .mgr import GoldSrcContentManager
 from ..wad import make_texture, flip_texture
 
 
@@ -260,10 +259,9 @@ class BspModelsLump(BspLump):
 
 class BspFile:
     def __init__(self, file: Path):
-        self.manager = ContentManager(file)
+        self.manager = GoldSrcContentManager()
+        self.manager.scan_for_content(file)
         self.handle = file.open('rb')
         self.version = struct.unpack('<I', self.handle.read(4))[0]
         self.lumps = [BspLump.get_handler(type)(self) for type in BspLumpType]
         assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
-
-

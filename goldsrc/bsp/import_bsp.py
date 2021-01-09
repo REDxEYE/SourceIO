@@ -25,8 +25,7 @@ class BSP:
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
         self.bsp_file = BspFile(map_path)
-        for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
-            self.bsp_file.manager.add_game_resource_root(self.bsp_file.manager.game_root / 'valve' / default_resource)
+
         self.bsp_collection = bpy.data.collections.new(self.bsp_name)
         self.entry_cache = {}
 
