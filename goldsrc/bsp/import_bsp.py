@@ -1,14 +1,21 @@
 import math
-import struct
-from enum import IntEnum
 from pathlib import Path
+from typing import Dict, Any, cast
 
 import bpy
 import numpy as np
-from typing import Dict, Any
 
+from .bsp_file import BspFile
 from .entity_handlers import entity_handlers
-from .bsp_file import BspFile, BspLumpType
+from .lump import LumpType
+from .lumps.edge_lump import EdgeLump
+from .lumps.entity_lump import EntityLump
+from .lumps.face_lump import FaceLump
+from .lumps.model_lump import ModelLump
+from .lumps.surface_edge_lump import SurfaceEdgeLump
+from .lumps.texture_data import TextureDataLump
+from .lumps.texture_info import TextureInfoLump
+from .lumps.vertex_lump import VertexLump
 from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender
 
@@ -28,24 +35,24 @@ class BSP:
         self.bsp_collection = bpy.data.collections.new(self.bsp_name)
         self.entry_cache = {}
 
-        self.bsp_lump_entities = self.bsp_file.lumps[BspLumpType.LUMP_ENTITIES].parse()
-        self.bsp_lump_textures_data = self.bsp_file.lumps[BspLumpType.LUMP_TEXTURES_DATA].parse()
-        self.bsp_lump_vertices = self.bsp_file.lumps[BspLumpType.LUMP_VERTICES].parse()
-        self.bsp_lump_textures_info = self.bsp_file.lumps[BspLumpType.LUMP_TEXTURES_INFO].parse()
-        self.bsp_lump_faces = self.bsp_file.lumps[BspLumpType.LUMP_FACES].parse()
-        self.bsp_lump_edges = self.bsp_file.lumps[BspLumpType.LUMP_EDGES].parse()
-        self.bsp_lump_surface_edges = self.bsp_file.lumps[BspLumpType.LUMP_SURFACE_EDGES].parse()
-        self.bsp_lump_models = self.bsp_file.lumps[BspLumpType.LUMP_MODELS].parse()
+        self.bsp_lump_entities = cast(EntityLump, self.bsp_file.get_lump(LumpType.LUMP_ENTITIES))
+        self.bsp_lump_textures_data = cast(TextureDataLump, self.bsp_file.get_lump(LumpType.LUMP_TEXTURES_DATA))
+        self.bsp_lump_vertices = cast(VertexLump, self.bsp_file.get_lump(LumpType.LUMP_VERTICES))
+        self.bsp_lump_textures_info = cast(TextureInfoLump, self.bsp_file.get_lump(LumpType.LUMP_TEXTURES_INFO))
+        self.bsp_lump_faces = cast(FaceLump, self.bsp_file.get_lump(LumpType.LUMP_FACES))
+        self.bsp_lump_edges = cast(EdgeLump, self.bsp_file.get_lump(LumpType.LUMP_EDGES))
+        self.bsp_lump_surface_edges = cast(SurfaceEdgeLump, self.bsp_file.get_lump(LumpType.LUMP_SURFACE_EDGES))
+        self.bsp_lump_models = cast(ModelLump, self.bsp_file.get_lump(LumpType.LUMP_MODELS))
 
     @staticmethod
     def gather_model_data(model, faces, surf_edges, edges):
         vertex_ids = np.zeros((0, 1), dtype=np.uint32)
         vertex_offset = 0
         material_indices = []
-        for map_face in faces[model['first_face']:model['first_face'] + model['faces']]:
-            first_edge = map_face['first_edge']
-            edge_count = map_face['edges']
-            material_indices.append(map_face['texture_info'])
+        for map_face in faces[model.first_face:model.first_face + model.faces]:
+            first_edge = map_face.first_edge
+            edge_count = map_face.edges
+            material_indices.append(map_face.texture_info)
 
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
@@ -60,37 +67,39 @@ class BSP:
 
         bpy.context.scene.collection.children.link(self.bsp_collection)
 
-        self.load_bmodel(0, f'{self.bsp_name}_world_geometry')
         self.load_entities()
+        self.load_bmodel(0, f'{self.bsp_name}_world_geometry')
         self.load_materials()
 
     def load_materials(self):
         for material in self.bsp_lump_textures_data.values:
-            material_name = material['name']
+            material_name = material.name
 
             face_texture = bpy.data.images.get(material_name, None)
             if face_texture is None:
                 face_texture = bpy.data.images.new(
                     material_name,
-                    width=material['width'],
-                    height=material['height'],
+                    width=material.width,
+                    height=material.height,
                     alpha=True
                 )
 
+                face_texture_contents = material.get_contents(self.bsp_file).flatten().tolist()
+
                 if bpy.app.version > (2, 83, 0):
-                    face_texture.pixels.foreach_set(material['data'])
+                    face_texture.pixels.foreach_set(face_texture_contents)
                 else:
-                    face_texture.pixels[:] = material['data']
+                    face_texture.pixels[:] = face_texture_contents
 
                 face_texture.pack()
 
             bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
-            if bpy_material.get('goldsrc_loaded', 0):
+            if bpy_material.get('goldsrc_loaded', False):
                 continue
             bpy_material.use_nodes = True
             bpy_material.blend_method = 'HASHED'
             bpy_material.shadow_method = 'HASHED'
-            bpy_material['goldsrc_loaded'] = 1
+            bpy_material['goldsrc_loaded'] = True
 
             for node in bpy_material.node_tree.nodes:
                 bpy_material.node_tree.nodes.remove(node)
@@ -110,8 +119,8 @@ class BSP:
             shader_diffuse.inputs['Specular'].default_value = 0.00
 
     def load_bmodel(self, model_index, model_name, parent_collection=None):
-        entity_model: Dict[str, Any] = self.bsp_lump_models.values[model_index]
-        if entity_model['faces'] == 0:
+        entity_model = self.bsp_lump_models.values[model_index]
+        if not entity_model.faces:
             return
         model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
         model_object = bpy.data.objects.new(model_name, model_mesh)
@@ -127,25 +136,24 @@ class BSP:
         bsp_vertices = self.bsp_lump_vertices.values
 
         vertex_ids, used_materials = self.gather_model_data(entity_model, bsp_faces, bsp_surfedges, bsp_edges)
-        unique_vertex_ids, indices_vertex_ids, inverse_indices = np.unique(vertex_ids, return_inverse=True,
-                                                                           return_index=True, )
+        unique_vertex_ids = np.unique(vertex_ids)
         material_lookup_table = {}
 
         for texture_info_index in used_materials:
-            face_texture_info: Dict = self.bsp_lump_textures_info.values[texture_info_index]
-            face_texture_data: Dict = self.bsp_lump_textures_data.values[face_texture_info['texture']]
-            face_texture_name = face_texture_data['name']
+            face_texture_info = self.bsp_lump_textures_info.values[texture_info_index]
+            face_texture_data = self.bsp_lump_textures_data.values[face_texture_info.texture]
+            face_texture_name = face_texture_data.name
             material_lookup_table[texture_info_index] = get_material(face_texture_name, model_object)
 
         uvs_per_face = []
         faces = []
         material_indices = []
-        for map_face in bsp_faces[entity_model['first_face']:entity_model['first_face'] + entity_model['faces']]:
+        for map_face in bsp_faces[entity_model.first_face:entity_model.first_face + entity_model.faces]:
             uvs = {}
             face = []
 
-            first_edge = map_face['first_edge']
-            edge_count = map_face['edges']
+            first_edge = map_face.first_edge
+            edge_count = map_face.edges
 
             used_surf_edges = bsp_surfedges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
@@ -154,16 +162,16 @@ class BSP:
 
             uv_vertices = bsp_vertices[face_vertex_ids]
 
-            material_indices.append(material_lookup_table[map_face['texture_info']])
+            material_indices.append(material_lookup_table[map_face.texture_info])
 
-            face_texture_info: Dict = self.bsp_lump_textures_info.values[map_face['texture_info']]
-            face_texture_data: Dict = self.bsp_lump_textures_data.values[face_texture_info['texture']]
+            face_texture_info = self.bsp_lump_textures_info.values[map_face.texture_info]
+            face_texture_data = self.bsp_lump_textures_data.values[face_texture_info.texture]
 
-            tv1 = face_texture_info['s']
-            tv2 = face_texture_info['t']
+            tv1 = face_texture_info.s
+            tv2 = face_texture_info.t
 
-            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / face_texture_data['width']
-            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / face_texture_data['height'])
+            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / face_texture_data.width
+            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / face_texture_data.height)
 
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
 
@@ -281,19 +289,20 @@ class BSP:
 
             model_object['entity_data'] = {'entity': entity_data}
 
-            if 'renderamt' in entity_data:
-                for model_material_index, model_material in enumerate(model_object.data.materials):
-                    renderamt = int(entity_data["renderamt"])
-                    alpha_mat_name = f'{model_material.name}_alpha_{renderamt}'
-                    alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
-                    if alpha_mat is None:
-                        alpha_mat = model_material.copy()
-                        alpha_mat.name = alpha_mat_name
-                    model_object.data.materials[model_material_index] = alpha_mat
-
-                    model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
-                    if model_shader:
-                        model_shader.inputs['Alpha'].default_value = 1.0 - (renderamt / 255)
+            # TODO: Refactor this - load materials on demand
+            # if 'renderamt' in entity_data:
+            #     for model_material_index, model_material in enumerate(model_object.data.materials):
+            #         renderamt = int(entity_data["renderamt"])
+            #         alpha_mat_name = f'{model_material.name}_alpha_{renderamt}'
+            #         alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
+            #         if alpha_mat is None:
+            #             alpha_mat = model_material.copy()
+            #             alpha_mat.name = alpha_mat_name
+            #         model_object.data.materials[model_material_index] = alpha_mat
+            #
+            #         model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
+            #         if model_shader:
+            #             model_shader.inputs['Alpha'].default_value = 1.0 - (renderamt / 255)
 
     def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)

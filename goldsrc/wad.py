@@ -73,7 +73,6 @@ class WadEntry:
         for index, indices in enumerate(texture_indices):
             texture_data = make_texture(indices, texture_palette, has_alpha)
             texture_data = flip_texture(texture_data, width >> index, height >> index)
-            texture_data = texture_data.flatten().tolist()
             self.textures.append(texture_data)
 
         return self.textures
