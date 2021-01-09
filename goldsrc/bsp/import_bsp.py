@@ -7,9 +7,8 @@ import bpy
 import numpy as np
 from typing import Dict, Any
 
-from .mgr import ContentManager
+from .entity_handlers import entity_handlers
 from .bsp_file import BspFile, BspLumpType
-from ..wad import make_texture, flip_texture
 from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
 from ...utilities.math_utilities import parse_source2_hammer_vector
 
@@ -202,45 +201,49 @@ class BSP:
                 continue
             entity_class: str = entity['classname']
 
-            if entity_class == 'worldspawn':
-                for game_wad_path in entity['wad'].split(';'):
-                    if len(game_wad_path) == 0:
-                        continue
-                    game_wad_path = Path(game_wad_path)
-                    game_wad_path = Path(game_wad_path.name)
-                    self.bsp_file.manager.add_game_resource_root(game_wad_path)
-            elif entity_class.startswith('trigger'):
-                self.load_trigger(entity_class, entity)
-            elif entity_class.startswith('func'):
-                self.load_brush(entity_class, entity)
-            elif entity_class == 'light_spot':
-                self.load_light_spot(entity_class, entity)
-            elif entity_class == 'light':
-                self.load_light(entity_class, entity)
-            elif entity_class == 'info_node':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class.startswith('monster_'):
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'multi_manager':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'env_glow':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'scripted_sequence':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'info_landmark':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'ambient_generic':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'env_message':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'info_player_start':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'env_fade':
-                self.load_general_entity(entity_class, entity)
-            elif entity_class == 'path_track':
-                self.load_path_track(entity_class, entity)
+            if entity_class in entity_handlers:
+                entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+                entity_handlers[entity_class](entity, self.scale, entity_collection)
             else:
-                print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
+                if entity_class == 'worldspawn':
+                    for game_wad_path in entity['wad'].split(';'):
+                        if len(game_wad_path) == 0:
+                            continue
+                        game_wad_path = Path(game_wad_path)
+                        game_wad_path = Path(game_wad_path.name)
+                        self.bsp_file.manager.add_game_resource_root(game_wad_path)
+                elif entity_class.startswith('trigger'):
+                    self.load_trigger(entity_class, entity)
+                elif entity_class.startswith('func'):
+                    self.load_brush(entity_class, entity)
+                elif entity_class == 'light_spot':
+                    self.load_light_spot(entity_class, entity)
+                elif entity_class == 'light':
+                    self.load_light(entity_class, entity)
+                elif entity_class == 'light_environment':
+                    self.load_light_environment(entity_class, entity)
+                elif entity_class == 'info_node':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'multi_manager':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'env_glow':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'scripted_sequence':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'info_landmark':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'ambient_generic':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'env_message':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'info_player_start':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'env_fade':
+                    self.load_general_entity(entity_class, entity)
+                elif entity_class == 'path_track' or entity_class == 'path_corner':
+                    self.load_path_track(entity_class, entity)
+                else:
+                    print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
     def load_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
         trigger_collection = get_or_create_collection('triggers', self.bsp_collection)
@@ -273,6 +276,8 @@ class BSP:
 
         model_object.location = origin
         model_object.rotation_euler = angles
+
+        model_object['entity_data'] = {'entity': entity_data}
 
         if 'renderamt' in entity_data:
             for model_material_index, model_material in enumerate(model_object.data.materials):
@@ -339,6 +344,31 @@ class BSP:
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
 
+    def load_light_environment(self, entity_class, entity_data):
+        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        color = parse_source2_hammer_vector(entity_data['_light'])
+        if len(color) == 4:
+            lumens = color[-1]
+            color = color[:-1]
+        elif len(color) == 1:
+            color = [color[0], color[0], color[0]]
+            lumens = color[0]
+        elif len(color) == 5:
+            *color, lumens = color[:4]
+        else:
+            lumens = 200
+        color_max = max(color)
+        lumens *= (color_max / 255) * (1.0 / self.scale)
+        color = np.divide(color, color_max)
+        watts = lumens / 10000
+        light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
+                                  'SUN', watts, color, 0.1,
+                                  parent_collection=entity_collection, entity=entity_data)
+        light.location = origin
+        if 'pitch' in entity_data:
+            light.rotation_euler[0] = float(entity_data['pitch'])
+
     def _load_lights(self, name, light_type, watts, color, core_or_size=0.0, radius=0.25,
                      parent_collection=None,
                      entity=None):
@@ -361,6 +391,8 @@ class BSP:
         return lamp
 
     def load_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
+        if 'monster_' in entity_class:
+            print(entity_class, entity_data)
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
@@ -380,15 +412,21 @@ class BSP:
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
         start_name = entity_data['targetname']
         points = []
+        visited = []
         parent_name = start_name
         while True:
             parent = self.get_entity_by_target(parent_name)
             if parent is not None:
+                if parent['targetname'] in visited:
+                    visited.append(parent_name)
+                    break
+                visited.append(parent_name)
                 parent_name = parent['targetname']
             else:
                 break
         if bpy.data.objects.get(parent_name, None):
             return
+        visited.clear()
         next_name = parent_name
         while True:
             child = self.get_entity_by_target_name(next_name)
@@ -397,11 +435,15 @@ class BSP:
                 if 'target' not in child:
                     self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
                     break
+                if child['target'] in visited:
+                    break
+                visited.append(next_name)
                 next_name = child['target']
             else:
                 break
 
         line = self._create_lines(parent_name, points)
+        line['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(line)
 
     def _create_lines(self, name, points):

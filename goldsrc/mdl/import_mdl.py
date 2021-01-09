@@ -1,14 +1,13 @@
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 import bpy
 from mathutils import Vector, Matrix, Euler
 import numpy as np
-from numpy import matrix
 from .mdl_file import Mdl
 from .structs.texture import MdlTextureFlag, StudioTexture
-from ...bpy_utils import get_or_create_collection, get_material
+from ...bpy_utils import get_or_create_collection, get_material, get_new_unique_collection
 from ...source1.vmt.shaders.goldsrc_shader import GoldSrcShader
-from ...utilities.math_utilities import vector_transform, r_concat_transforms
+from ...source_shared.model_container import GoldSrcModelContainer
 
 
 def create_armature(mdl: Mdl, collection):
@@ -51,8 +50,8 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: BinaryIO, mdl_texture_file: BinaryIO, parent_collection=None, disable_collection_sort=False,
-                 re_use_meshes=False):
+def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO],
+                 parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
 
@@ -64,28 +63,55 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: BinaryIO, parent_collecti
         mdl_filet.read()
         mdl_file_textures = mdl_filet.textures
 
-    model_name = Path(mdl.header.name).stem + '_MODEL'
-    copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
+    model_container = GoldSrcModelContainer(mdl)
 
-    master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
-                                                 parent_collection)
+    model_name = Path(mdl.header.name).stem + '_MODEL'
+    master_collection = get_new_unique_collection(model_name, parent_collection)
 
     armature, bone_transforms = create_armature(mdl, master_collection)
+    model_container.armature = armature
 
     for body_part in mdl.bodyparts:
-        mdl_body_part_collection = bpy.data.collections.new(body_part.name)
-        master_collection.children.link(mdl_body_part_collection)
+        mdl_body_part_collection = bpy.data.collections.new(
+            body_part.name) if not disable_collection_sort else master_collection
+
+        if not disable_collection_sort:
+            master_collection.children.link(mdl_body_part_collection)
 
         for body_part_model in body_part.models:
+            model_name = body_part_model.name
+            used_copy = False
+            model_object = None
 
+            if re_use_meshes:
+                mesh_obj_original = bpy.data.objects.get(model_name, None)
+                mesh_data_original = bpy.data.meshes.get(f'{model_name}_mesh', False)
+                if mesh_obj_original and mesh_data_original:
+                    model_mesh = mesh_data_original.copy()
+                    model_object = mesh_obj_original.copy()
+                    # mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
+                    # mesh_obj['active_skin'] = mesh_obj_original['active_skin']
+                    model_object['model_type'] = 'goldsc'
+                    model_object.data = model_mesh
+                    used_copy = True
+
+            if not re_use_meshes or not used_copy:
+                model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+                model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
+
+            mdl_body_part_collection.objects.link(model_object)
+            model_container.objects.append(model_object)
+
+            modifier = model_object.modifiers.new(name='Skeleton', type='ARMATURE')
+            modifier.object = armature
+            model_object.parent = armature
+
+            if used_copy:
+                continue
             model_vertices = body_part_model.vertices
             model_indices = []
             model_materials = []
 
-            model_name = body_part_model.name
-            model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
-            model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
-            mdl_body_part_collection.objects.link(model_object)
             uv_per_mesh = []
 
             for model_index, body_part_model_mesh in enumerate(body_part_model.meshes):
@@ -145,13 +171,12 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: BinaryIO, parent_collecti
                 for vertex in vertex_bone_vertices:
                     model_mesh.vertices[vertex].co = vertex_group_transform @ model_mesh.vertices[vertex].co
 
-            modifier = model_object.modifiers.new(name='Skeleton', type='ARMATURE')
-            modifier.object = armature
-            model_object.parent = armature
+    return model_container
 
 
 def load_material(model_texture_info: StudioTexture, model_object):
     mat_id = get_material(model_texture_info.name, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
     bpy_material.create_nodes(model_texture_info.name)
+    bpy_material.align_nodes()
     return mat_id

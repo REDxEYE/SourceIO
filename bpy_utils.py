@@ -80,6 +80,15 @@ else:
         new_collection.name = name
         return new_collection
 
+
+    def get_new_unique_collection(model_name, parent_collection):
+        copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
+
+        master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
+                                                     parent_collection)
+        return master_collection
+
+
     def get_log_file(filename):
         return bpy.data.texts.get(filename, None) or bpy.data.texts.new(filename)
 

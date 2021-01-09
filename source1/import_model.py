@@ -7,7 +7,7 @@ from typing import BinaryIO, Iterable, Sized, List, Union, Optional
 from .content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
 from ..bpy_utils import BPYLoggingManager, get_material, get_or_create_collection
-from ..utilities.path_utilities import get_mod_path
+from ..source_shared.model_container import Source1ModelContainer
 from .mdl.flex_expressions import *
 from .mdl.structs.bone import Bone
 from .mdl.vertex_animation_cache import VertexAnimationCache
@@ -112,15 +112,6 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj
 
 
-class ModelContainer:
-    def __init__(self, mdl: Mdl, vvd: Vvd, vtx: Vtx):
-        self.mdl = mdl
-        self.vvd = vvd
-        self.vtx = vtx
-        self.armature = None
-        self.objects: List[bpy.types.Object] = []
-
-
 def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy_file: Optional[BinaryIO],
                  create_drivers=False, parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
@@ -132,7 +123,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
     vtx = Vtx(vtx_file)
     vtx.read()
 
-    container = ModelContainer(mdl, vvd, vtx)
+    container = Source1ModelContainer(mdl, vvd, vtx)
 
     if mdl.flex_names:
         vac = VertexAnimationCache(mdl, vvd)
