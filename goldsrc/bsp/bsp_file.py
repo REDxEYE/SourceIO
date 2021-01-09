@@ -216,7 +216,7 @@ class BspEdgeLump(BspLump):
 
     def parse(self):
         self.file.handle.seek(self.offset)
-        self.values = np.frombuffer(self.file.handle.read(self.length), np.int16)
+        self.values = np.frombuffer(self.file.handle.read(self.length), np.uint16)
         self.values = self.values.reshape((-1, 2))
         return self
 

@@ -10,7 +10,7 @@ from typing import Dict, Any
 from .entity_handlers import entity_handlers
 from .bsp_file import BspFile, BspLumpType
 from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
-from ...utilities.math_utilities import parse_source2_hammer_vector
+from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender
 
 log_manager = BPYLoggingManager()
 
@@ -60,9 +60,9 @@ class BSP:
 
         bpy.context.scene.collection.children.link(self.bsp_collection)
 
-        self.load_materials()
         self.load_bmodel(0, f'{self.bsp_name}_world_geometry')
         self.load_entities()
+        self.load_materials()
 
     def load_materials(self):
         for material in self.bsp_lump_textures_data.values:
@@ -111,7 +111,8 @@ class BSP:
 
     def load_bmodel(self, model_index, model_name, parent_collection=None):
         entity_model: Dict[str, Any] = self.bsp_lump_models.values[model_index]
-
+        if entity_model['faces'] == 0:
+            return
         model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
         model_object = bpy.data.objects.new(model_name, model_mesh)
 
@@ -258,7 +259,8 @@ class BSP:
         model_object = self.load_bmodel(model_index,
                                         entity_data.get('targetname', None) or f'{entity_class}_{model_index}',
                                         parent_collection=entity_collection)
-        model_object.location = origin
+        if model_object:
+            model_object.location = origin
 
     def load_brush(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
@@ -267,36 +269,36 @@ class BSP:
             return
 
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        angles = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
                                         entity_data.get('targetname', None) or f'{entity_class}_{model_index}',
                                         parent_collection=entity_collection)
+        if model_object:
+            model_object.location = origin
+            model_object.rotation_euler = angles
 
-        model_object.location = origin
-        model_object.rotation_euler = angles
+            model_object['entity_data'] = {'entity': entity_data}
 
-        model_object['entity_data'] = {'entity': entity_data}
+            if 'renderamt' in entity_data:
+                for model_material_index, model_material in enumerate(model_object.data.materials):
+                    renderamt = int(entity_data["renderamt"])
+                    alpha_mat_name = f'{model_material.name}_alpha_{renderamt}'
+                    alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
+                    if alpha_mat is None:
+                        alpha_mat = model_material.copy()
+                        alpha_mat.name = alpha_mat_name
+                    model_object.data.materials[model_material_index] = alpha_mat
 
-        if 'renderamt' in entity_data:
-            for model_material_index, model_material in enumerate(model_object.data.materials):
-                renderamt = int(entity_data["renderamt"])
-                alpha_mat_name = f'{model_material.name}_alpha_{renderamt}'
-                alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
-                if alpha_mat is None:
-                    alpha_mat = model_material.copy()
-                    alpha_mat.name = alpha_mat_name
-                model_object.data.materials[model_material_index] = alpha_mat
-
-                model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
-                if model_shader:
-                    model_shader.inputs['Alpha'].default_value = 1.0 - (renderamt / 255)
+                    model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
+                    if model_shader:
+                        model_shader.inputs['Alpha'].default_value = 1.0 - (renderamt / 255)
 
     def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        angles = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
         color = parse_source2_hammer_vector(entity_data['_light'])
         if len(color) == 4:
             lumens = color[-1]
@@ -394,7 +396,7 @@ class BSP:
         if 'monster_' in entity_class:
             print(entity_class, entity_data)
         origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        angles = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
