@@ -509,7 +509,7 @@ class BSP:
 
             material_indices.append(material_lookup_table[texture_data.name_id])
             uvs_per_face.append(uvs)
-            faces.append(face)
+            faces.append(face[::-1])
 
         mesh_data.from_pydata(self.vertex_lump.vertices[unique_vertex_ids] * self.scale, [], faces)
         mesh_data.polygons.foreach_set('material_index', material_indices)
@@ -625,8 +625,12 @@ class BSP:
             face_vertices = vertices[face_vertex_ids] * self.scale
 
             min_index = np.where(
-                np.isclose(np.sum(np.subtract(face_vertices, disp_info.start_position * self.scale), axis=1), 0, 0.01,
-                           0.01))
+                np.sum(
+                    np.isclose(face_vertices,
+                               disp_info.start_position * self.scale,
+                               1.e-2),
+                    axis=1
+                ) == 3)
             if not min_index:
                 min_index = 0
             else:

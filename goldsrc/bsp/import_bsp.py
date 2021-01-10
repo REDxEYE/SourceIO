@@ -186,7 +186,7 @@ class BSP:
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv
             uvs_per_face.append(uvs)
-            faces.append(face)
+            faces.append(face[::-1])
 
         model_mesh.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
         model_mesh.polygons.foreach_set('material_index', material_indices)
