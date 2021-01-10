@@ -2,7 +2,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from SourceIO import SingletonMeta
+from ...utilities.singleton import SingletonMeta
 from ..wad import WadFile, WadEntry
 
 

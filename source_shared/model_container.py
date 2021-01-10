@@ -1,10 +1,10 @@
 from typing import List, Optional
 import bpy
 
-from SourceIO.source1.mdl.mdl_file import Mdl as S1Mdl
-from SourceIO.goldsrc.mdl.mdl_file import Mdl as GMdl
-from SourceIO.source1.vtx.vtx import Vtx
-from SourceIO.source1.vvd.vvd import Vvd
+from ..source1.mdl.mdl_file import Mdl as S1Mdl
+from ..goldsrc.mdl.mdl_file import Mdl as GMdl
+from ..source1.vtx.vtx import Vtx
+from ..source1.vvd.vvd import Vvd
 
 
 class ModelContainer:
