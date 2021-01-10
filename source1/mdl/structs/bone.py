@@ -2,7 +2,7 @@ from enum import IntFlag, IntEnum
 
 import numpy as np
 
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 
 from .axis_interp_rule import AxisInterpRule
@@ -225,7 +225,7 @@ class Bone(Base):
         self.physics_bone_index = reader.read_uint32()
         self.surface_prop = reader.read_source1_string(entry)
         self.contents = Contents(reader.read_uint32())
-        if self.get_value('mdl_version') >= 47:
+        if self.get_value('mdl_version') >= 44:
             _ = [reader.read_uint32() for _ in range(8)]
         if self.get_value('mdl_version') >= 53:
             reader.skip(4 * 7)
@@ -241,5 +241,3 @@ class Bone(Base):
                     self.procedural_rule = JiggleRule()
                 if self.procedural_rule:
                     self.procedural_rule.read(reader)
-        if self.get_value('mdl_version') in [44, 46]:
-            reader.read_bytes(32)

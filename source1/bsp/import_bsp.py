@@ -105,7 +105,6 @@ class BSP:
                 entity_class: str = entity_data.get('classname', None)
                 if not entity_class:
                     continue
-                parent_collection = get_or_create_collection(entity_class, self.main_collection)
                 if entity_class.startswith('func_'):
                     self.handle_func_brush(entity_class, entity_data)
                 elif 'trigger' in entity_class:

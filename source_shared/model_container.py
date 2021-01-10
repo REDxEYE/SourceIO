@@ -25,3 +25,4 @@ class Source1ModelContainer(ModelContainer):
         self.mdl: S1Mdl = mdl
         self.vvd: Vvd = vvd
         self.vtx: Vtx = vtx
+        self.collection = None
