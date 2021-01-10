@@ -114,6 +114,7 @@ class BSP:
                     self.handle_model(entity_class, entity_data)
                 elif entity_class == 'item_teamflag':
                     entity_name = self.get_entity_name(entity_data)
+                    parent_collection = get_or_create_collection(entity_class, self.main_collection)
                     location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
                     rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
                     self.create_empty(entity_name, location, rotation,
@@ -229,16 +230,23 @@ class BSP:
         entity_collection = get_or_create_collection(entity_class, self.main_collection)
         start_name = entity_data['targetname']
         points = []
+        visited = []
         parent_name = start_name
         while True:
             parent = self.get_entity_by_target(parent_name)
             if parent is not None:
+                if parent['targetname'] in visited:
+                    visited.append(parent_name)
+                    break
+                visited.append(parent_name)
                 parent_name = parent['targetname']
             else:
                 break
         if bpy.data.objects.get(parent_name, None):
             return
+
         next_name = parent_name
+        closed_loop = False
         while True:
             child = self.get_entity_by_target_name(next_name)
             if child:
@@ -246,20 +254,27 @@ class BSP:
                 if 'target' not in child:
                     self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
                     break
+                if child['target'] == parent_name:
+                    closed_loop = True
+                    break
+                elif child['target'] == child['targetname']:
+                    break
                 next_name = child['target']
             else:
                 break
 
-        line = self._create_lines(parent_name, points)
+        line = self._create_lines(parent_name, points, closed_loop)
+        line['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(line)
 
-    def _create_lines(self, name, points):
+    def _create_lines(self, name, points, closed=False):
         line_data = bpy.data.curves.new(name=f'{name}_data', type='CURVE')
         line_data.dimensions = '3D'
         line_data.fill_mode = 'FULL'
         line_data.bevel_depth = 0
 
         polyline = line_data.splines.new('POLY')
+        polyline.use_cyclic_u = closed
         polyline.points.add(len(points) - 1)
         for idx in range(len(points)):
             polyline.points[idx].co = tuple(points[idx]) + (1.0,)

@@ -144,6 +144,11 @@ class BSP:
         unique_vertex_ids = np.unique(vertex_ids)
         material_lookup_table = {}
 
+        remapped = {}
+        for vertex_id in vertex_ids:
+            new_id = np.where(unique_vertex_ids == vertex_id)[0][0]
+            remapped[vertex_id] = new_id
+
         for texture_info_index in used_materials:
             face_texture_info = self.bsp_lump_textures_info.values[texture_info_index]
             face_texture_data = self.bsp_lump_textures_data.values[face_texture_info.texture]
@@ -182,7 +187,7 @@ class BSP:
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
 
             for vertex_id, uv in zip(face_vertex_ids, v_uvs):
-                new_vertex_id = np.where(unique_vertex_ids == vertex_id)[0][0]
+                new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv
             uvs_per_face.append(uvs)
@@ -442,8 +447,9 @@ class BSP:
                 break
         if bpy.data.objects.get(parent_name, None):
             return
-        visited.clear()
+
         next_name = parent_name
+        closed_loop = False
         while True:
             child = self.get_entity_by_target_name(next_name)
             if child:
@@ -451,24 +457,28 @@ class BSP:
                 if 'target' not in child:
                     self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
                     break
-                if child['target'] in visited:
+                if child['target'] == parent_name:
+                    closed_loop = True
+                    break
+                elif child['target'] == child['targetname']:
                     break
                 visited.append(next_name)
                 next_name = child['target']
             else:
                 break
 
-        line = self._create_lines(parent_name, points)
+        line = self._create_lines(parent_name, points, closed_loop)
         line['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(line)
 
-    def _create_lines(self, name, points):
+    def _create_lines(self, name, points, closed=False):
         line_data = bpy.data.curves.new(name=f'{name}_data', type='CURVE')
         line_data.dimensions = '3D'
         line_data.fill_mode = 'FULL'
         line_data.bevel_depth = 0
 
         polyline = line_data.splines.new('POLY')
+        polyline.use_cyclic_u = closed
         polyline.points.add(len(points) - 1)
         for idx in range(len(points)):
             polyline.points[idx].co = tuple(points[idx]) + (1.0,)
