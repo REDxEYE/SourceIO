@@ -111,7 +111,7 @@ class VMATImport_OT_operator(bpy.types.Operator):
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             material = ValveMaterial(str(directory / file.name))
-            material.load(self.flip, self.split_alpha)
+            material.load()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -128,7 +128,6 @@ class VTEXImport_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype='FILE_PATH', )
     flip: BoolProperty(name="Flip texture", default=True)
-    load_alpha: BoolProperty(default=False, name='Load alpha into separate image')
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
@@ -139,7 +138,7 @@ class VTEXImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for file in self.files:
             texture = ValveTexture(str(directory / file.name))
-            texture.load(self.flip,self.load_alpha)
+            texture.load(self.flip)
         return {'FINISHED'}
 
     def invoke(self, context, event):

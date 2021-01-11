@@ -138,10 +138,25 @@ class ShaderBase:
     def load_texture(self, texture_name, texture_path):
         pass
 
+    @staticmethod
+    def make_texture(texture_name, texture_dimm, texture_data, raw_texture=False):
+        image = bpy.data.images.new(texture_name, width=texture_dimm[0], height=texture_dimm[1], alpha=True)
+        image.alpha_mode = 'CHANNEL_PACKED'
+        image.file_format = 'TARGA'
+        if bpy.app.version > (2, 83, 0):
+            image.pixels.foreach_set(texture_data.flatten().tolist())
+        else:
+            image.pixels[:] = texture_data.flatten().tolist()
+        image.pack()
+        if raw_texture:
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+        return image
+
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
         texture_name = Path(file).stem
         texture = self.load_texture(texture_name, file)
-        return texture or ShaderBase.get_missing_texture(f'missing_{texture_name}', default_color)
+        return texture or self.get_missing_texture(f'missing_{texture_name}', default_color)
 
     @staticmethod
     def clamp_value(value, min_value=0.0, max_value=1.0):
@@ -181,14 +196,14 @@ class ShaderBase:
             self.logger.error('Failed to get or create material')
             return 'UNKNOWN'
 
-        if self.bpy_material.get('source1_loaded'):
+        if self.bpy_material.get('source2_loaded'):
             return 'LOADED'
 
         self.bpy_material.use_nodes = True
         self.clean_nodes()
         self.bpy_material.blend_method = 'HASHED'
         self.bpy_material.shadow_method = 'HASHED'
-        self.bpy_material['source1_loaded'] = True
+        self.bpy_material['source2_loaded'] = True
 
     def align_nodes(self):
         nodes_iterate(self.bpy_material.node_tree)

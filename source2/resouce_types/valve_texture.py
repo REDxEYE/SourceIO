@@ -4,6 +4,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 
+from ..blocks import TEXR
 from ..source2 import ValveFile
 
 
@@ -16,47 +17,25 @@ class ValveTexture:
             self.valve_file = ValveFile(vtex_path)
             self.valve_file.read_block_info()
 
-    def load(self, flip: bool, split_alpha: bool):
+    def load(self, flip: bool):
         name = Path(self.valve_file.filename).stem
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+        print(f'Loading {name} texture')
+        data_block: TEXR = self.valve_file.get_data_block(block_name='DATA')[0]
         data_block.read_image(flip)
-        if split_alpha:
-            rgb, alpha = data_block.get_rgb_and_alpha()
-        else:
-            rgb = np.divide(list(data_block.image_data),255)
-            alpha = None
+        pixel_data = np.divide(np.frombuffer(data_block.image_data, np.uint8), 255)
 
         image = bpy.data.images.new(
             name + '_RGB.tga',
             width=data_block.width,
             height=data_block.height)
+        image.alpha_mode = 'CHANNEL_PACKED'
+        image.file_format = 'TARGA'
         image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
-        if rgb.shape[0]>0:
+        if pixel_data.shape[0] > 0:
             if bpy.app.version > (2, 83, 0):
-                image.pixels.foreach_set(rgb.tolist())
+                image.pixels.foreach_set(pixel_data.tolist())
             else:
-                image.pixels[:] = rgb.tolist()
+                image.pixels[:] = pixel_data.tolist()
         image.save()
-        # image.pack()
-        if (
-                alpha is not None
-                and (np.sum(alpha[0::4]) + np.sum(alpha[1::4]) + np.sum(alpha[2::4]))
-                > 10
-        ):
-            image = bpy.data.images.new(
-                name + '_A.tga',
-                width=data_block.width,
-                height=data_block.height)
-            image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
-            if alpha.shape[0] > 0:
-                if bpy.app.version > (2, 83, 0):
-                    image.pixels.foreach_set(alpha.tolist())
-                else:
-                    image.pixels[:] = alpha.tolist()
-            image.save()
-            # image.pack()
 
-        return (
-            name + '_RGB.tga',
-            name + '_A.tga' if not (alpha is None or split_alpha) else None,
-        )
+        return image

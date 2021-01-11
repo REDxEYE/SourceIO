@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import bpy
 from typing import Dict, Any
 import numpy as np
@@ -5,7 +7,6 @@ import numpy as np
 from ....source1.content_manager import ContentManager
 from ..shader_base import ShaderBase
 from ....source1.vtf.import_vtf import import_texture
-
 
 
 class Source1ShaderBase(ShaderBase):

@@ -4,7 +4,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 
-from .bpy_utilities.blender_material.material_loader import Source1MaterialLoader
+from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session

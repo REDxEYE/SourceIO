@@ -6,7 +6,7 @@ import numpy as np
 from .mdl_file import Mdl
 from .structs.texture import StudioTexture
 from ...bpy_utilities.utils import get_new_unique_collection, get_material
-from ...bpy_utilities.blender_material.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
+from ...bpy_utilities.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
 from ...source_shared.model_container import GoldSrcModelContainer
 
 

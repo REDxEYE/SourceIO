@@ -6,7 +6,7 @@ from .content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
 from ..bpy_utilities.logging import BPYLoggingManager
 from ..bpy_utilities.utils import get_material, get_or_create_collection
-from ..bpy_utilities.blender_material.material_loader import Source1MaterialLoader
+from ..bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ..source_shared.model_container import Source1ModelContainer
 from .mdl.flex_expressions import *
 from .mdl.structs.bone import Bone

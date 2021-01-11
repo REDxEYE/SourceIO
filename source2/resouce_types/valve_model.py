@@ -7,6 +7,7 @@ from mathutils import Vector, Matrix, Quaternion, Euler
 
 import math
 
+from .valve_material import ValveMaterial
 from ..utils.decode_animations import parse_anim_data
 from ..blocks.vbib_block import VertexBuffer
 from ..common import SourceVector
@@ -127,6 +128,9 @@ class ValveModel:
             global_vertex_offset = 0
             for draw_call in draw_calls:
 
+                if draw_call['m_material'] in self.valve_file.available_resources:
+                    material = ValveMaterial(self.valve_file.available_resources[draw_call['m_material']])
+                    material.load()
                 material_name = Path(draw_call['m_material']).stem
                 model_name = name + "_" + material_name
                 used_copy = False

@@ -25,7 +25,7 @@ from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
 from ..content_manager import ContentManager
-from ...bpy_utilities.blender_material.material_loader import Source1MaterialLoader
+from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...utilities.keyvalues import KVParser
