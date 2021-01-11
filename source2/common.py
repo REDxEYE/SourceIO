@@ -107,33 +107,34 @@ class SourceVector:
         return " X:{} Y:{} Z:{}".format(self.x, self.y, self.z)
 
     @staticmethod
-    def convert_array(array: np.ndarray):
+    def convert_array(inpurt_array: np.ndarray):
         # X Y Z
-        tmp = np.array(array).reshape((-1,))
-        output = np.zeros((len(array) * 3), dtype=np.float32)
-        xs = tmp[0::4]
-        ys = tmp[1::4]
+        inpurt_array = inpurt_array.astype(np.int32)
+        output = np.zeros((len(inpurt_array), 3), dtype=np.float32)
+        xs = inpurt_array[:, 0]
+        ys = inpurt_array[:, 1]
 
-        z_signs = np.floor(np.divide(np.subtract(xs, 128), 128))
-        t_signs = np.floor(np.divide(np.subtract(ys, 128), 128))
+        z_signs = -np.floor((xs - 128) / 128)
+        t_signs = -np.floor((ys - 128) / 128)
 
-        x_abs = np.abs(np.subtract(xs, 128)) - z_signs
-        y_abs = np.abs(np.subtract(ys, 128)) - t_signs
+        x_abss = np.abs(xs - 128) - z_signs
+        y_abss = np.abs(ys - 128) - t_signs
 
-        x_sings = np.negative(np.floor(np.divide(np.subtract(x_abs, 64), 64)))
-        y_sings = np.negative(np.floor(np.divide(np.subtract(y_abs, 64), 64)))
+        x_sings = -np.floor((x_abss - 64) / 64)
+        y_sings = -np.floor((y_abss - 64) / 64)
 
-        output[0::3] = np.divide(np.abs(np.subtract(x_abs, 64)), 64)
-        output[1::3] = np.divide(np.abs(np.subtract(y_abs, 64)), 64)
-        output[2::3] = np.subtract(1, np.subtract(output[0::3], output[1::3]))
-        output = output.reshape((-1, 3))
+        output[:, 0] = (np.abs(x_abss - 64) - x_sings) / 64
+        output[:, 1] = (np.abs(y_abss - 64) - y_sings) / 64
+        output[:, 2] = (1 - output[:, 0]) - output[:, 1]
+
         sq = np.sqrt(np.sum(output ** 2, 1))
         output[:, 0] /= sq
         output[:, 1] /= sq
         output[:, 2] /= sq
-        output[:, 0] *= x_sings
-        output[:, 1] *= y_sings
-        output[:, 2] *= z_signs
+
+        output[:, 0] *= lerp(1, -1, np.abs(x_sings))
+        output[:, 1] *= lerp(1, -1, np.abs(y_sings))
+        output[:, 2] *= lerp(1, -1, np.abs(z_signs))
         return output
 
     @staticmethod

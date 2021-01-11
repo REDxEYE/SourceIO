@@ -1,5 +1,3 @@
-import random
-from pprint import pprint
 from pathlib import Path
 
 # noinspection PyUnresolvedReferences
@@ -15,17 +13,19 @@ from ..common import SourceVector
 from ..source2 import ValveFile
 import numpy as np
 
+from ...bpy_utils import get_material
+
 
 class ValveModel:
 
-    def __init__(self, vmdl_path, valve_file=None):
+    def __init__(self, vmdl_path, valve_file=None, re_use_meshes=False):
         if valve_file:
             self.valve_file = valve_file
         else:
             self.valve_file = ValveFile(vmdl_path)
             self.valve_file.read_block_info()
             self.valve_file.check_external_resources()
-
+        self.re_use_meshes = re_use_meshes
         self.name = self.valve_file.filepath.stem
         self.strip_from_name = ''
         self.lod_collections = {}
@@ -61,7 +61,7 @@ class ValveModel:
 
     def build_meshes(self, collection, armature, invert_uv: bool = True, skin_name="default"):
         data_block = self.valve_file.get_data_block(block_name='DATA')[0]
-        pprint(self.valve_file.available_resources)
+        # pprint(self.valve_file.available_resources)
         use_external_meshes = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
         if use_external_meshes:
             for mesh_index, mesh_ref in enumerate(data_block.data['m_refMeshes']):
@@ -75,7 +75,7 @@ class ValveModel:
                     mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
                     buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                     name = mesh_ref_path.stem
-                    pprint(mesh.available_resources)
+                    # pprint(mesh.available_resources)
                     vmorf_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
                                                               None)  # type:Path
                     morph_block = None
@@ -126,16 +126,27 @@ class ValveModel:
             draw_calls = scene["m_drawCalls"]
             global_vertex_offset = 0
             for draw_call in draw_calls:
-                base_vertex = draw_call['m_nBaseVertex']
-                vertex_count = draw_call['m_nVertexCount']
-                start_index = draw_call['m_nStartIndex'] // 3
-                index_count = draw_call['m_nIndexCount'] // 3
-                index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
-                vertex_buffer: VertexBuffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
-                material_name = Path(draw_call['m_material']).stem
 
-                mesh_obj = bpy.data.objects.new(name + "_" + material_name,
-                                                bpy.data.meshes.new(name + "_" + material_name + "_DATA"))
+                material_name = Path(draw_call['m_material']).stem
+                model_name = name + "_" + material_name
+                used_copy = False
+                mesh_obj = None
+                if self.re_use_meshes:
+                    mesh_obj_original = bpy.data.objects.get(model_name, None)
+                    mesh_data_original = bpy.data.meshes.get(f'{model_name}_mesh', False)
+                    if mesh_obj_original and mesh_data_original:
+                        model_mesh = mesh_data_original.copy()
+                        mesh_obj = mesh_obj_original.copy()
+                        # mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
+                        # mesh_obj['active_skin'] = mesh_obj_original['active_skin']
+                        mesh_obj['model_type'] = 'S2'
+                        mesh_obj.data = model_mesh
+                        used_copy = True
+
+                if not self.re_use_meshes or not used_copy:
+                    model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+                    mesh_obj = bpy.data.objects.new(f'{model_name}', model_mesh)
+
                 # if data_block.data['m_materialGroups']:
                 #     default_skin = data_block.data['m_materialGroups'][0]
                 #     mat_id = default_skin['m_materials'].index(draw_call['m_material'])
@@ -158,35 +169,41 @@ class ValveModel:
                         type="ARMATURE", name="Armature")
                     modifier.object = armature
 
-                self.get_material(material_name, mesh_obj)
+                if used_copy:
+                    continue
+                get_material(material_name, mesh_obj)
+
+                base_vertex = draw_call['m_nBaseVertex']
+                vertex_count = draw_call['m_nVertexCount']
+                start_index = draw_call['m_nStartIndex'] // 3
+                index_count = draw_call['m_nIndexCount'] // 3
+                index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
+                vertex_buffer: VertexBuffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
 
                 used_range = slice(base_vertex, base_vertex + vertex_count)
                 used_vertices = vertex_buffer.vertexes['POSITION'][used_range]
                 normals = vertex_buffer.vertexes['NORMAL'][used_range]
 
                 if normals.dtype.char == 'B' and normals.shape[1] == 4:
-                    # normals = SourceVector.convert_array(normals)
-                    normals = [SourceVector.convert(*x[:2]).as_list for x in normals]
+                    normals = SourceVector.convert_array(normals)
 
-                mesh.from_pydata(used_vertices, [], index_buffer.indexes[start_index:start_index + index_count])
+                mesh.from_pydata(used_vertices, [],
+                                 index_buffer.indexes[start_index:start_index + index_count].tolist())
                 mesh.update()
                 n = 0
                 for attrib in vertex_buffer.attributes:
                     if 'TEXCOORD' in attrib.name.upper():
-                        attrib_data = vertex_buffer.vertexes[attrib.name]
-                        if attrib_data.shape[1] != 2:
+                        uv_layer = vertex_buffer.vertexes[attrib.name].copy()
+                        if uv_layer.shape[1] != 2:
                             continue
-                        uv_layer = np.array(attrib_data)
                         if invert_uv:
-                            tmp1 = uv_layer.reshape((-1))
-                            v = tmp1[1::2]
-                            tmp1[1::2] = np.subtract(np.ones_like(v), v)
-                            uv_layer = tmp1.reshape((-1, 2))
-                        mesh.uv_layers.new()
-                        uv_data = mesh.uv_layers[n].data
-                        mesh.uv_layers[n].name = attrib.name
-                        for i in range(len(uv_data)):
-                            uv_data[i].uv = uv_layer[used_range][mesh.loops[i].vertex_index]
+                            uv_layer[:, 1] = np.subtract(1, uv_layer[:, 1])
+
+                        uv_data = mesh.uv_layers.new(name=attrib.name).data
+                        vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
+                        mesh.loops.foreach_get('vertex_index', vertex_indices)
+                        new_uv_data = uv_layer[used_range][vertex_indices]
+                        uv_data.foreach_set('uv', new_uv_data.flatten())
                         n += 1
                 if armature:
                     model_skeleton = data_block.data['m_modelSkeleton']
@@ -194,7 +211,7 @@ class ValveModel:
                     remap_table = data_block.data['m_remappingTable']
                     remap_table_starts = data_block.data['m_remappingTableStarts']
                     remaps_start = remap_table_starts[mesh_index]
-                    new_bone_names = [bone for bone in bone_names]
+                    new_bone_names = bone_names.copy()
                     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
 
                     if 'BLENDWEIGHT' in vertex_buffer.attribute_names and 'BLENDINDICES' in vertex_buffer.attribute_names:
@@ -218,10 +235,7 @@ class ValveModel:
                                 bone_name = new_bone_names[remap_table[remaps_start:][int(bone_index)]]
                                 weight_groups[bone_name].add([n], 1.0, 'REPLACE')
 
-                bpy.ops.object.select_all(action="DESELECT")
-                mesh_obj.select_set(True)
-                bpy.context.view_layer.objects.active = mesh_obj
-                bpy.ops.object.shade_smooth()
+                mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons)))
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
                 if morphs_available:
@@ -268,7 +282,6 @@ class ValveModel:
 
         bones = []
         for bone_name in bone_names:
-            # print("Creating bone", bone_name)
             bl_bone = armature.edit_bones.new(name=bone_name)
             bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
             bones.append((bl_bone, bone_name))
@@ -305,37 +318,6 @@ class ValveModel:
         bpy.context.view_layer.objects.active = armature_obj
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
         return armature_obj
-
-    # noinspection PyUnresolvedReferences
-    @staticmethod
-    def get_material(mat_name, model_ob):
-        mat_name = mat_name if mat_name else 'Material'
-        mat_ind = 0
-        md = model_ob.data
-        mat = None
-        for candidate in bpy.data.materials:  # Do we have this material already?
-            if candidate.name == mat_name:
-                mat = candidate
-        if mat:
-            if md.materials.get(mat.name):  # Look for it on this mesh_data
-                for i in range(len(md.materials)):
-                    if md.materials[i].name == mat.name:
-                        mat_ind = i
-                        break
-            else:  # material exists, but not on this mesh_data
-                md.materials.append(mat)
-                mat_ind = len(md.materials) - 1
-        else:  # material does not exist
-            mat = bpy.data.materials.new(mat_name)
-            md.materials.append(mat)
-            # Give it a random colour
-            rand_col = [random.uniform(.4, 1) for _ in range(3)]
-            rand_col.append(1.0)
-            mat.diffuse_color = rand_col
-
-            mat_ind = len(md.materials) - 1
-
-        return mat_ind
 
     def load_attachments(self):
         all_attachment = {}

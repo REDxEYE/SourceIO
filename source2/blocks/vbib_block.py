@@ -21,7 +21,6 @@ except ImportError:
 from ..utils.compressed_buffers import slice
 from ...utilities.byte_io_mdl import ByteIO
 
-from ..common import short_to_float
 from .dummy import DataBlock
 
 
@@ -167,6 +166,12 @@ class VertexBuffer:
                'attributes:{} vertex size:{} ' \
                'vertex attributes: {} >'.format(self.vertex_count, len(self.attributes), self.vertex_size, buff, )
 
+    def construct_dtype(self):
+        numpy_dtype = []
+        for attrib in self.attributes:
+            numpy_dtype.append((attrib.name, *attrib.get_struct()))
+        return np.dtype(numpy_dtype)
+
     def read(self, reader: ByteIO):
         self.vertex_count = reader.read_uint32()
         self.vertex_size = reader.read_uint32()
@@ -187,6 +192,7 @@ class VertexBuffer:
                     used_names.append(v_attrib.name)
                 self.attribute_names.append(v_attrib.name)
                 self.attributes.append(v_attrib)
+
         entry = reader.tell()
         self.offset = reader.read_uint32()
         self.total_size = reader.read_uint32()
@@ -201,13 +207,8 @@ class VertexBuffer:
         self.read_buffer()
 
     def read_buffer(self):
-        vertex_types = []
-        for attrib in self.attributes:
-            vertex_types.append((attrib.name, *attrib.get_struct()))
-        vertex_dtype = np.dtype(vertex_types)
-        vertex_data = np.frombuffer(self.buffer.read_bytes(vertex_dtype.itemsize * self.vertex_count),
-                                    dtype=vertex_dtype)
-        self.vertexes = vertex_data
+        vertex_dtype = self.construct_dtype()
+        self.vertexes = np.frombuffer(self.buffer.read_bytes(vertex_dtype.itemsize * self.vertex_count), vertex_dtype)
 
 
 class VertexAttribute:
@@ -275,7 +276,7 @@ class IndexBuffer:
         self.unk2 = 0
         self.total_size = 0
         self.buffer = ByteIO()  # type:ByteIO
-        self.indexes = []
+        self.indexes: np.ndarray = np.zeros(0)
 
     def __repr__(self):
         return '<IndexBuffer indexes:{} size:{}>'.format(self.index_count, self.index_size)
@@ -291,22 +292,18 @@ class IndexBuffer:
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
             if self.total_size != self.index_size * self.index_count:
-                data = reader.read_bytes(self.total_size)
-                self.buffer.write_bytes(decode_index_buffer(data, self.index_size, self.index_count))
+                self.buffer.write_bytes(decode_index_buffer(reader.read_bytes(self.total_size),
+                                                            self.index_size, self.index_count))
             else:
                 self.buffer.write_bytes(reader.read_bytes(self.index_count * self.index_size))
-            self.buffer.seek(0)
-        # with open("test.bin", 'wb') as f:
-        #     f.write(self.buffer.read_bytes(-1))
-        self.buffer.seek(0)
 
+        self.buffer.seek(0)
         self.read_buffer()
 
     def read_buffer(self):
-        reader = self.buffer.read_uint32 if self.index_size == 4 else self.buffer.read_uint16
-        for n in range(0, self.index_count, 3):
-            polygon = [reader(), reader(), reader()]
-            self.indexes.append(polygon)
+        index_dtype = np.uint32 if self.index_size == 4 else np.uint16
+        self.indexes = np.frombuffer(self.buffer.read_bytes(self.index_count * self.index_size), index_dtype)
+        self.indexes = self.indexes.reshape((-1, 3))
 
 
 class VBIB(DataBlock):

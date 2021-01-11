@@ -66,9 +66,9 @@ class ValveWorld:
             model_file = world_node_file.get_child_resource(static_object['m_renderableModel'])
             if model_file is not None:
                 print(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_file.filepath.stem} mesh")
-                model = ValveModel("", model_file)
+                model = ValveModel("", model_file, re_use_meshes=True)
                 to_remove = Path(node_path)
-                model.load_mesh(self.invert_uv, to_remove.stem + "_", collection)
+                model.load_mesh(self.invert_uv, to_remove.stem + "_", collection, )
                 mat_rows = static_object['m_vTransform']  # type:List[SourceVector4D]
                 transform_mat = Matrix(
                     [mat_rows[0].as_list, mat_rows[1].as_list, mat_rows[2].as_list, [0, 0, 0, 1]])
@@ -76,7 +76,6 @@ class ValveWorld:
                     obj.matrix_world = transform_mat
                     obj.scale = Vector([self.scale, self.scale, self.scale])
                     obj.location *= self.scale
-            bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=3)
 
     def load_entity_lump(self, entity_lump, use_placeholders):
         entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]

@@ -178,7 +178,7 @@ class CompressedVertexBuffer:
         result = np.zeros((self.vertex_count * self.vertex_size,), dtype=np.uint8)
 
         while vertex_offset < self.vertex_count:
-            print(f"Decoding vertex block {vertex_offset}/{self.vertex_count}", end='\r')
+            # print(f"Decoding vertex block {vertex_offset}/{self.vertex_count}", end='\r')
             block_size = vertex_block_size if vertex_offset + vertex_block_size < self.vertex_count else \
                 self.vertex_count - vertex_offset
             vertex_span = self.decode_vertex_block(vertex_span, slice(result, vertex_offset * self.vertex_size),
