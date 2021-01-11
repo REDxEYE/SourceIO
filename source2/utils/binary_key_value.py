@@ -1,8 +1,9 @@
 from enum import IntEnum
 
+import numpy as np
+
 from ...utilities.byte_io_mdl import ByteIO
 from ..compiled_file_header import InfoBlock
-from ..common import SourceVector, SourceVector4D, SourceVector2D
 
 try:
     from ..utils.PySourceIOUtils import lz4_decompress as uncompress
@@ -247,6 +248,7 @@ class BinaryKeyValue:
                 parent.update({name: v})
             else:
                 parent.append(v)
+
         if data_type == KVType.NULL:
             add(None)
             return
@@ -314,12 +316,7 @@ class BinaryKeyValue:
                 self.read_value(name, reader, sub_type, tmp, True)
 
             if sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO):
-                if t_array_size == 3:
-                    tmp = SourceVector(*tmp)
-                elif t_array_size == 4:
-                    tmp = SourceVector4D(*tmp)
-                elif t_array_size == 2:
-                    tmp = SourceVector2D(*tmp)
+                tmp = np.array(tmp)
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
             size = self.int_buffer.read_uint32()

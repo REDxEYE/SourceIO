@@ -25,7 +25,7 @@ class ValveTexture:
         pixel_data = np.divide(np.frombuffer(data_block.image_data, np.uint8), 255)
 
         image = bpy.data.images.new(
-            name + '_RGB.tga',
+            name + '.tga',
             width=data_block.width,
             height=data_block.height)
         image.alpha_mode = 'CHANNEL_PACKED'

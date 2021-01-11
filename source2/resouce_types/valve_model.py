@@ -305,8 +305,8 @@ class ValveModel:
             parent_id = bone_parents[n]
             bone_pos = bone_positions[n]
             bone_rot = bone_rotations[n]
-            bone_pos = Vector([bone_pos.y, bone_pos.x, -bone_pos.z])
-            bone_rot = Quaternion([-bone_rot.w, -bone_rot.y, -bone_rot.x, bone_rot.z])
+            bone_pos = Vector([bone_pos[1], bone_pos[0], -bone_pos[2]])
+            bone_rot = Quaternion([-bone_rot[3], -bone_rot[1], -bone_rot[0], bone_rot[2]])
             mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
             pose_bone.matrix_basis.identity()
 

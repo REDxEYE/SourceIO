@@ -42,8 +42,8 @@ class MRPH(DATA):
                     rect_u = round(bundle['m_flULeftSrc'] * morph_atlas_data.width)
                     rect_v = round(bundle['m_flVTopSrc'] * morph_atlas_data.height)
                     morph_data_rect = raw_flex_data[rect_v:rect_v + rect_height, rect_u:rect_u + rect_width, :]
-                    vec_offset = np.array(bundle['m_offsets'].as_list)
-                    vec_range = np.array(bundle['m_ranges'].as_list)
+                    vec_offset = bundle['m_offsets']
+                    vec_range = bundle['m_ranges']
 
                     transformed_data = np.divide(morph_data_rect, 255)
                     transformed_data = np.multiply(transformed_data, vec_range)

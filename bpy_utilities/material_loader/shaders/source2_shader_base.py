@@ -24,7 +24,7 @@ class Source2ShaderBase(ShaderBase):
         return self._get_param('m_intParams', name, 'm_nValue', default)
 
     def get_float(self, name, default):
-        return self._get_param('m_floatParams', name, 'm_nValue', default)
+        return self._get_param('m_floatParams', name, 'm_flValue', default)
 
     def get_vector(self, name, default):
         return self._get_param('m_vectorParams', name, 'm_value', default)
@@ -38,9 +38,8 @@ class Source2ShaderBase(ShaderBase):
     def get_dynamic_texture(self, name, default):
         return self._get_param('m_dynamicTextureParams', name, 'error', default)
 
-    @staticmethod
-    def split_normal(image: bpy.types.Image):
-        roughness_name = str(Path(image.name).with_name(f'{Path(image.name).stem}_roughness.tga'))
+    def split_normal(self,image: bpy.types.Image):
+        roughness_name = self.new_texture_name_with_suffix(image.name,'roughness','tga')
         if image.get('normalmap_converted', None):
             return image, bpy.data.images.get(roughness_name, None)
         if bpy.app.version > (2, 83, 0):

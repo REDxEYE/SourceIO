@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import bpy
 import numpy as np
@@ -135,7 +135,7 @@ class ShaderBase:
                 image.pixels[:] = image_data
             return image
 
-    def load_texture(self, texture_name, texture_path):
+    def load_texture(self, texture_name, texture_path) -> Optional[bpy.types.Image]:
         pass
 
     @staticmethod
@@ -153,6 +153,15 @@ class ShaderBase:
             image.colorspace_settings.name = 'Non-Color'
         return image
 
+    @staticmethod
+    def split_to_channels(image):
+        if bpy.app.version > (2, 83, 0):
+            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+            image.pixels.foreach_get(buffer)
+        else:
+            buffer = np.array(image.pixels[:])
+        return buffer[0::4], buffer[1::4], buffer[2::4], buffer[3::4],
+
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
         texture_name = Path(file).stem
         texture = self.load_texture(texture_name, file)
@@ -161,6 +170,11 @@ class ShaderBase:
     @staticmethod
     def clamp_value(value, min_value=0.0, max_value=1.0):
         return min(max_value, max(value, min_value))
+
+    @staticmethod
+    def new_texture_name_with_suffix(old_name, suffix, ext):
+        old_name = Path(old_name)
+        return f'{old_name.with_name(old_name.stem)}_{suffix}.{ext}'
 
     def clean_nodes(self):
         for node in self.bpy_material.node_tree.nodes:
