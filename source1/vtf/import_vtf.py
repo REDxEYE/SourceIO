@@ -2,7 +2,7 @@ import bpy
 import numpy as np
 
 from ..vtf.VTFWrapper import VTFLib
-from ...bpy_utils import BPYLoggingManager
+from ...bpy_utilities.logging import BPYLoggingManager
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('content_manager')

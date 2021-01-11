@@ -4,7 +4,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
 
-from .source1.vmt.blender_material import BlenderMaterial
+from .bpy_utilities.blender_material.material_loader import Source1MaterialLoader
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
@@ -193,7 +193,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            mat = BlenderMaterial((directory / file.name).open('rb'), Path(file.name).stem)
+            mat = Source1MaterialLoader((directory / file.name).open('rb'), Path(file.name).stem)
             if mat.create_material() == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
         return {'FINISHED'}

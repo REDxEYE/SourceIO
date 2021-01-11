@@ -16,7 +16,8 @@ from .lumps.surface_edge_lump import SurfaceEdgeLump
 from .lumps.texture_data import TextureDataLump
 from .lumps.texture_info import TextureInfoLump
 from .lumps.vertex_lump import VertexLump
-from ...bpy_utils import BPYLoggingManager, get_or_create_collection, get_material
+from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.utils import get_or_create_collection, get_material
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_to_radians
 
 log_manager = BPYLoggingManager()

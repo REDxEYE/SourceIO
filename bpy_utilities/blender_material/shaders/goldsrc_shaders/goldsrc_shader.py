@@ -1,20 +1,12 @@
-import numpy as np
 import bpy
 
-from ..shader_base import ShaderBase, Nodes
-from ....bpy_utils import BPYLoggingManager
-from ....goldsrc.mdl.structs.texture import StudioTexture, MdlTextureFlag
-
-log_manager = BPYLoggingManager()
+from ...shader_base import Nodes
+from ..goldsrc_shader_base import GoldSrcShaderBase
+from .....goldsrc.mdl.structs.texture import StudioTexture, MdlTextureFlag
 
 
-class GoldSrcShader(ShaderBase):
+class GoldSrcShader(GoldSrcShaderBase):
     SHADER: str = 'goldsrc_shader'
-
-    def __init__(self, goldsrc_material: StudioTexture):
-        self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
-        self.bpy_material: bpy.types.Material = None
-        self._vavle_material: StudioTexture = goldsrc_material
 
     def create_nodes(self, material_name: str):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:

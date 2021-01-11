@@ -1,5 +1,5 @@
 from ..content_manager import ContentManager
-from ...bpy_utils import BPYLoggingManager
+from ...bpy_utilities.logging import BPYLoggingManager
 from ...utilities.keyvalues import KVParser
 
 log_manager = BPYLoggingManager()

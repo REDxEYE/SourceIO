@@ -3,22 +3,20 @@ from pathlib import Path
 from typing import Dict, Type, List
 
 from .lump import *
-from .lumps.displacement_lump import DispInfoLump, DispVert
+from .lumps.displacement_lump import DispVert
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
-from .lumps.face_lump import FaceLump, OriginalFaceLump
+from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
-from .lumps.node_lump import NodeLump
 from .lumps.pak_lump import PakLump
 from .lumps.plane_lump import PlaneLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureDataLump, TextureInfoLump
 from .lumps.vertex_lump import VertexLump
-from .lumps.vertex_normal_lump import VertexNormalLump, VertexNormalIndicesLump
-from .lumps.world_light_lump import WorldLightLump
-from ...bpy_utils import BPYLoggingManager
+from .lumps.vertex_normal_lump import VertexNormalLump
+from ...bpy_utilities.logging import BPYLoggingManager
 
 from ...utilities.byte_io_mdl import ByteIO
 

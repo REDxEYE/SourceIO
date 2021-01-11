@@ -1,5 +1,4 @@
 import math
-import random
 import re
 from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Any
@@ -26,13 +25,12 @@ from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
 from ..content_manager import ContentManager
-from ..vmt.blender_material import BlenderMaterial
-from ..vtf.import_vtf import import_texture
-from ..vmt.valve_material import VMT
-from ...bpy_utils import BPYLoggingManager, get_material, get_or_create_collection
+from ...bpy_utilities.blender_material.material_loader import Source1MaterialLoader
+from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
-    watt_power_spot, watt_power_point, lerp_vec, clamp_value
+    lerp_vec, clamp_value
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
@@ -413,7 +411,7 @@ class BSP:
         material_file = content_manager.find_material(material_name)
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
-            mat = BlenderMaterial(material_file, material_name)
+            mat = Source1MaterialLoader(material_file, material_name)
             mat.create_material()
 
     def load_static_props(self):
@@ -599,7 +597,7 @@ class BSP:
 
             if material_file:
                 material_name = strip_patch_coordinates.sub("", material_name)
-                mat = BlenderMaterial(material_file, material_name)
+                mat = Source1MaterialLoader(material_file, material_name)
                 mat.create_material()
             else:
                 self.logger.error(f'Failed to find {material_name} material')

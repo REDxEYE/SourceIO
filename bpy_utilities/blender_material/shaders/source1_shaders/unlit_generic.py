@@ -1,7 +1,8 @@
-from ..shader_base import ShaderBase, Nodes
+from ...shader_base import Nodes
+from ..source1_shader_base import Source1ShaderBase
 
 
-class UnlitGeneric(ShaderBase):
+class UnlitGeneric(Source1ShaderBase):
     SHADER: str = 'unlitgeneric'
 
     @property

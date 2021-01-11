@@ -1,12 +1,12 @@
-import random
-import traceback
 from pathlib import Path
 import numpy as np
-from typing import BinaryIO, Iterable, Sized, List, Union, Optional
+from typing import BinaryIO, Iterable, Sized, Union, Optional
 
 from .content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
-from ..bpy_utils import BPYLoggingManager, get_material, get_or_create_collection
+from ..bpy_utilities.logging import BPYLoggingManager
+from ..bpy_utilities.utils import get_material, get_or_create_collection
+from ..bpy_utilities.blender_material.material_loader import Source1MaterialLoader
 from ..source_shared.model_container import Source1ModelContainer
 from .mdl.flex_expressions import *
 from .mdl.structs.bone import Bone
@@ -21,10 +21,6 @@ from .vtx.structs.mesh import Mesh as VtxMesh
 
 import bpy
 from mathutils import Vector, Matrix, Euler
-
-from .vmt.blender_material import BlenderMaterial
-from .vtf.import_vtf import import_texture
-from .vmt.valve_material import VMT
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('mdl_loader')
@@ -367,5 +363,5 @@ def import_materials(mdl):
             if material_path:
                 break
         if material_path:
-            new_material = BlenderMaterial(material_path, material.name)
+            new_material = Source1MaterialLoader(material_path, material.name)
             new_material.create_material()

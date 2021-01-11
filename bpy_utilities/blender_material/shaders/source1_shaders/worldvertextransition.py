@@ -1,7 +1,8 @@
-from ..shader_base import ShaderBase, Nodes
+from ...shader_base import Nodes
+from ..source1_shader_base import Source1ShaderBase
 
 
-class WorldVertexTransition(ShaderBase):
+class WorldVertexTransition(Source1ShaderBase):
     SHADER = 'worldvertextransition'
 
     @property

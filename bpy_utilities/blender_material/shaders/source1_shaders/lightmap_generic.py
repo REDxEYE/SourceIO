@@ -1,7 +1,7 @@
-from ..shader_base import ShaderBase, Nodes
+from ...shader_base import Nodes
+from ..source1_shader_base import Source1ShaderBase
 
-
-class LightmapGeneric(ShaderBase):
+class LightmapGeneric(Source1ShaderBase):
     SHADER = 'lightmappedgeneric'
 
     @property

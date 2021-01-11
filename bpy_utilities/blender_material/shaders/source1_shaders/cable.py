@@ -1,9 +1,10 @@
 import math
 
-from ..shader_base import ShaderBase, Nodes
+from ...shader_base import Nodes
+from ..source1_shader_base import Source1ShaderBase
 
 
-class Cable(ShaderBase):
+class Cable(Source1ShaderBase):
     SHADER = 'cable'
 
     @property

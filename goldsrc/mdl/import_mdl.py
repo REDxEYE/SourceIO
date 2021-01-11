@@ -4,9 +4,9 @@ import bpy
 from mathutils import Vector, Matrix, Euler
 import numpy as np
 from .mdl_file import Mdl
-from .structs.texture import MdlTextureFlag, StudioTexture
-from ...bpy_utils import get_or_create_collection, get_material, get_new_unique_collection
-from ...source1.vmt.shaders.goldsrc_shader import GoldSrcShader
+from .structs.texture import StudioTexture
+from ...bpy_utilities.utils import get_new_unique_collection, get_material
+from ...bpy_utilities.blender_material.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
 from ...source_shared.model_container import GoldSrcModelContainer
 
 

@@ -1,7 +1,8 @@
-from ..shader_base import ShaderBase, Nodes
+from ...shader_base import Nodes
+from ..source1_shader_base import Source1ShaderBase
 
 
-class EyeRefract(ShaderBase):
+class EyeRefract(Source1ShaderBase):
     SHADER: str = 'eyerefract'
 
     @property

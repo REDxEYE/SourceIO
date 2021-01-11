@@ -3,7 +3,7 @@ from pathlib import Path
 import bpy
 from .mgr import GoldSrcContentManager
 from ..mdl.import_mdl import import_model
-from ...bpy_utils import get_new_unique_collection
+from ...bpy_utilities.utils import get_new_unique_collection
 from ...utilities.math_utilities import parse_source2_hammer_vector
 
 content_manager = GoldSrcContentManager()

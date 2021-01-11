@@ -13,7 +13,7 @@ from ..common import SourceVector
 from ..source2 import ValveFile
 import numpy as np
 
-from ...bpy_utils import get_material
+from ...bpy_utilities.utils import get_material
 
 
 class ValveModel:
