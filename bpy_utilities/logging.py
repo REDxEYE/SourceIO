@@ -2,7 +2,7 @@ import os
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
-if NO_BPY:
+if not NO_BPY:
     from .logging_impl import BPYLogger as _BPYLogger
     from .logging_impl import BPYLoggingManager as _BPYLoggingManager
 else:

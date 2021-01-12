@@ -23,7 +23,8 @@ class ValveTexture:
         data_block: TEXR = self.valve_file.get_data_block(block_name='DATA')[0]
         data_block.read_image(flip)
         pixel_data = np.divide(np.frombuffer(data_block.image_data, np.uint8), 255)
-
+        if name + '.tga' in bpy.data.images:
+            return bpy.data.images[f'{name}.tga']
         image = bpy.data.images.new(
             name + '.tga',
             width=data_block.width,

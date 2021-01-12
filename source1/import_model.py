@@ -5,7 +5,7 @@ from typing import BinaryIO, Iterable, Sized, Union, Optional
 from .content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
 from ..bpy_utilities.logging import BPYLoggingManager
-from ..bpy_utilities.utils import get_material, get_or_create_collection
+from ..bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection
 from ..bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ..source_shared.model_container import Source1ModelContainer
 from .mdl.flex_expressions import *
@@ -129,9 +129,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
     all_vertices = vvd.lod_data[desired_lod]
     model_name = Path(mdl.header.name).stem + '_MODEL'
 
-    copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
-    master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
-                                                 parent_collection)
+    master_collection = get_new_unique_collection(model_name, parent_collection)
     container.collection = master_collection
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     if not static_prop:
@@ -142,7 +140,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
         if disable_collection_sort:
             body_part_collection = master_collection
         else:
-            body_part_collection = get_or_create_collection(body_part.name, master_collection)
+            body_part_collection = get_new_unique_collection(body_part.name, master_collection)
 
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
 
@@ -251,8 +249,8 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
 
-    attachmens_collection = get_or_create_collection(f'{model_name}_attachmens', parent_collection)
-    create_attachments(mdl, armature if not static_prop else container.objects[0], attachmens_collection)
+    attachment_collection = get_new_unique_collection(f'{model_name}_attachments', master_collection)
+    create_attachments(mdl, armature if not static_prop else container.objects[0], attachment_collection)
     # if phy_path is not None and phy_path.exists():
     #     phy = Phy(phy_path)
     #     try:

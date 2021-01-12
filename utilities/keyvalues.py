@@ -127,6 +127,13 @@ class KVReader:
 
 
 class KVParser(KVReader):
+    strict_mode = False
+
+    @classmethod
+    def set_strict_parsing_mode(cls, value):
+        """Sets parser to use only last value if it's found more that one"""
+        cls.strict_mode = value
+
     def __init__(self, name: str, data: str):
         super().__init__(name, data)
 
@@ -192,7 +199,9 @@ class KVParser(KVReader):
                 else:
                     pairs.setdefault(key, []).append(val)
             for key, val in pairs.items():
-                if len(val) == 1:
+                if self.strict_mode:
+                    pairs[key] = val[-1]
+                elif len(val) == 1:
                     pairs[key] = val[0]
 
             return pairs

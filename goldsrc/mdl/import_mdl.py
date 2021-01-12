@@ -72,11 +72,8 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO],
     model_container.armature = armature
 
     for body_part in mdl.bodyparts:
-        mdl_body_part_collection = bpy.data.collections.new(
-            body_part.name) if not disable_collection_sort else master_collection
-
-        if not disable_collection_sort:
-            master_collection.children.link(mdl_body_part_collection)
+        mdl_body_part_collection = get_new_unique_collection(
+            body_part.name, master_collection) if not disable_collection_sort else master_collection
 
         for body_part_model in body_part.models:
             model_name = body_part_model.name

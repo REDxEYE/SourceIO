@@ -336,8 +336,8 @@ class ValveModel:
         for name, attachment in all_attachment.items():
             empty = bpy.data.objects.new(name, None)
             attachment_collection.objects.link(empty)
-            pos = attachment['m_vInfluenceOffsets'][0].as_list
-            rot = Quaternion(attachment['m_vInfluenceRotations'][0].as_list)
+            pos = attachment['m_vInfluenceOffsets'][0]
+            rot = Quaternion(attachment['m_vInfluenceRotations'][0])
             empty.matrix_basis.identity()
 
             if attachment['m_influenceNames'][0]:

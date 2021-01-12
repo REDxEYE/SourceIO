@@ -2,19 +2,19 @@ from pathlib import Path
 from typing import Dict, Type, Any, Union
 
 from .shader_base import ShaderBase
-from .shaders.source2_shader_base import Source2ShaderBase
 from ..logging import BPYLoggingManager
 from ...goldsrc.mdl.structs.texture import StudioTexture
 from ...source1.vmt.valve_material import VMT
-from .shaders.source1_shader_base import Source1ShaderBase
-from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 
-# from .shaders.source2_shader_base import Source2ShaderBase
+from .shaders.goldsrc_shader_base import GoldSrcShaderBase
+from .shaders.source1_shader_base import Source1ShaderBase
+from .shaders.source2_shader_base import Source2ShaderBase
 
 from .shaders.source1_shaders import eyerefract, cable, unlit_generic, lightmap_generic, vertexlit_generic, \
     worldvertextransition
 from .shaders.goldsrc_shaders import goldsrc_shader
-from .shaders.source2_shaders import vr_complex
+from .shaders.source2_shaders import vr_complex, vr_skin
+
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('material_loader')
 
