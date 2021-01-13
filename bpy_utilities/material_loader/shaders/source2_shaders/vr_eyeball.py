@@ -6,12 +6,36 @@ from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
 
-class VrSkin(Source2ShaderBase):
-    SHADER: str = 'vr_skin.vfx'
+class VrEyeball(Source2ShaderBase):
+    SHADER: str = 'vr_eyeball.vfx'
 
     @property
     def color_texture(self):
         texture_path = self.get_texture('g_tColor', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
+            return image
+        return None
+
+    @property
+    def occlusion_texture(self):
+        texture_path = self.get_texture('g_tOcclusion', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
+            return image
+        return None
+
+    @property
+    def iris_texture(self):
+        texture_path = self.get_texture('g_tIris', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
+            return image
+        return None
+
+    @property
+    def iris_mask_texture(self):
+        texture_path = self.get_texture('g_tIrisMask', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -36,16 +60,6 @@ class VrSkin(Source2ShaderBase):
             image.colorspace_settings.name = 'Non-Color'
             image, roughness = self.split_normal(image)
             return image, roughness
-        return None
-
-    @property
-    def combined_masks(self):
-        texture_path = self.get_texture('g_tCombinedMasks', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
         return None
 
     @property
@@ -84,13 +98,12 @@ class VrSkin(Source2ShaderBase):
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         color_texture = self.color_texture
+        occlusion_texture = self.occlusion_texture
+        iris_texture = self.iris_texture
+        iris_mask_texture = self.iris_mask_texture
         normal_texture, roughness_texture = self.normal_texture
         albedo_node = self.create_node(Nodes.ShaderNodeTexImage, 'albedo')
         albedo_node.image = color_texture
-        combined_masks = self.combined_masks
-        if combined_masks:
-            combined_mask_node = self.create_node(Nodes.ShaderNodeTexImage, 'combined_masks')
-            combined_mask_node.image = combined_masks
         if self.color[0] != 1.0 and self.color[1] != 1.0 and self.color[2] != 1.0:
             color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
             color_mix.blend_type = 'MULTIPLY'
@@ -106,8 +119,6 @@ class VrSkin(Source2ShaderBase):
 
         if self.translucent or self.alpha_test:
             self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Alpha'])
-        elif self.metalness:
-            self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Metallic'])
 
         normal_map_texture = self.create_node(Nodes.ShaderNodeTexImage, 'normal')
         normal_map_texture.image = normal_texture
