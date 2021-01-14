@@ -28,7 +28,9 @@ class ValveTexture:
         image = bpy.data.images.new(
             name + '.tga',
             width=data_block.width,
-            height=data_block.height)
+            height=data_block.height,
+            alpha=True
+            )
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
         image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))

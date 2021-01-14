@@ -71,7 +71,7 @@ class ValveWorld:
                 model.load_mesh(self.invert_uv, to_remove.stem + "_", collection, )
                 mat_rows = static_object['m_vTransform']  # type:List[SourceVector4D]
                 transform_mat = Matrix(
-                    [mat_rows[0].as_list, mat_rows[1].as_list, mat_rows[2].as_list, [0, 0, 0, 1]])
+                    [mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
                 for obj in model.objects:
                     obj.matrix_world = transform_mat
                     obj.scale = Vector([self.scale, self.scale, self.scale])
