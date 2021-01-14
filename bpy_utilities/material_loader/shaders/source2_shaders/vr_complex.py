@@ -2,7 +2,6 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from SourceIO.source2.common import SourceVector4D
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
