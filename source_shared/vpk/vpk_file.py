@@ -119,8 +119,10 @@ class VPKFile:
 
     def read_file(self, entry: Entry) -> BytesIO:
         if entry.archive_id == 0x7FFF:
-            print("Internal file")
-            raise NotImplementedError('Internal files are not supported.')
+            # print("Internal file")
+            # raise NotImplementedError('Internal files are not supported.')
+            reader = BytesIO(entry.preload_data)
+            return reader
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
             print(f'Reading {entry.file_name} from {target_archive_path}')
