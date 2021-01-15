@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 from typing import BinaryIO, Iterable, Sized, Union, Optional
 
-from .content_manager import ContentManager
+from ..source_shared.content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
 from ..bpy_utilities.logging import BPYLoggingManager
 from ..bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection

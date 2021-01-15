@@ -1,14 +1,15 @@
 from pathlib import Path
+from pprint import pprint
 
 from typing import Union, Dict
 
-from .sub_manager import SubManager
-from ..bpy_utilities.logging import BPYLoggingManager
-from ..source_shared.non_source_sub_manager import NonSourceSubManager
-from ..source_shared.vpk_sub_manager import VPKSubManager
-from ..utilities.gameinfo import Gameinfo
-from ..utilities.path_utilities import get_mod_path
-from ..utilities.singleton import SingletonMeta
+from SourceIO.source1.sub_manager import SubManager
+from SourceIO.bpy_utilities.logging import BPYLoggingManager
+from SourceIO.source_shared.non_source_sub_manager import NonSourceSubManager
+from SourceIO.source_shared.vpk_sub_manager import VPKSubManager
+from SourceIO.utilities.gameinfo import Gameinfo
+from SourceIO.utilities.path_utilities import get_mod_path
+from SourceIO.utilities.singleton import SingletonMeta
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('content_manager')
@@ -71,7 +72,7 @@ class ContentManager(metaclass=SingletonMeta):
                 sub_manager = Gameinfo(Path(path))
                 self.sub_managers[name] = sub_manager
             elif path.endswith('.bsp'):
-                from .bsp.bsp_file import BSPFile, LumpTypes
+                from ..source1.bsp.bsp_file import BSPFile, LumpTypes
                 bsp = BSPFile(path)
                 bsp.parse()
                 pak_lump = bsp.get_lump(LumpTypes.LUMP_PAK)
@@ -117,4 +118,9 @@ class ContentManager(metaclass=SingletonMeta):
         return self.find_file(filepath, 'materials', extension='.vmt')
 
     def serialize(self):
-        return {name: str(sub_manager.filepath) for name, sub_manager in self.sub_managers.items()}
+        serialized = {}
+        for name, sub_manager in self.sub_managers.items():
+            name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
+            serialized[name] = str(sub_manager.filepath)
+
+        return serialized

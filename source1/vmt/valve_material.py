@@ -1,4 +1,4 @@
-from ..content_manager import ContentManager
+from ...source_shared.content_manager import ContentManager
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...utilities.keyvalues import KVParser
 

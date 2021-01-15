@@ -10,7 +10,7 @@ from .source1.vtf.import_vtf import import_texture
 from .source1.dmx.dmx import Session
 from .source1.bsp.import_bsp import BSP
 from .utilities.path_utilities import backwalk_file_resolver
-from .source1.content_manager import ContentManager
+from .source_shared.content_manager import ContentManager
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
