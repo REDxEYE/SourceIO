@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import bpy
 from typing import Dict, Any
 import numpy as np
