@@ -62,7 +62,8 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                         entity_data_holder.location = obj.location
                         entity_data_holder.rotation_euler = obj.rotation_euler
                         entity_data_holder.scale = obj.scale
-                        entity_data_holder['entity_data'] = obj['entity_data']
+                        entity_data_holder['entity_data'] = {}
+                        entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
                         if model_container.collection:
                             model_container.collection.objects.link(entity_data_holder)
                         else:
