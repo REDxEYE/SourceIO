@@ -91,7 +91,10 @@ class VertexLitGeneric(Source1ShaderBase):
 
     @property
     def phongboost(self):
-        return self._vavle_material.get_param('$phongboost', 1)
+        value = self._vavle_material.get_param('$phongboost', 1)
+        if type(value) is tuple:
+            value = value[0]
+        return value
 
     @property
     def phongtint(self):
