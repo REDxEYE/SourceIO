@@ -5,7 +5,7 @@ from typing import BinaryIO, Iterable, Sized, Union, Optional
 from ..source_shared.content_manager import ContentManager
 from .mdl.structs.header import StudioHDRFlags
 from ..bpy_utilities.logging import BPYLoggingManager
-from ..bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection
+from ..bpy_utilities.utils import get_material, get_new_unique_collection
 from ..bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ..source_shared.model_container import Source1ModelContainer
 from .mdl.flex_expressions import *
