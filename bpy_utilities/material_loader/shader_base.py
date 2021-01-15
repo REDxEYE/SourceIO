@@ -210,14 +210,16 @@ class ShaderBase:
             self.logger.error('Failed to get or create material')
             return 'UNKNOWN'
 
-        if self.bpy_material.get('source2_loaded'):
+        if self.bpy_material.get('source_loaded'):
             return 'LOADED'
 
         self.bpy_material.use_nodes = True
         self.clean_nodes()
         self.bpy_material.blend_method = 'HASHED'
         self.bpy_material.shadow_method = 'HASHED'
-        self.bpy_material['source2_loaded'] = True
+        self.bpy_material.use_screen_refraction = True
+        self.bpy_material.refraction_depth = 0.01
+        self.bpy_material['source_loaded'] = True
 
     def align_nodes(self):
         nodes_iterate(self.bpy_material.node_tree)

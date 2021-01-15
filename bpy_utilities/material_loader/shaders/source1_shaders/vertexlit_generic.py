@@ -134,8 +134,7 @@ class VertexLitGeneric(Source1ShaderBase):
                 self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
                                  basetexture_additive_mix_node.outputs['Color'])
                 basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
-                self.bpy_material.use_screen_refraction = True
-                self.bpy_material.refraction_depth = 0.01
+
 
                 self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
                 self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
