@@ -68,9 +68,12 @@ class BSP:
                           surf_edges: List[Tuple[int, int]],
                           edges: List[Tuple[int, int]],
                           ):
-        vertex_ids = np.zeros((0, 1), dtype=np.uint32)
         vertex_offset = 0
         material_ids = []
+        vertex_count = 0
+        for map_face in faces[model.first_face:model.first_face + model.face_count]:
+            vertex_count += map_face.edge_count
+        vertex_ids = np.zeros(vertex_count, dtype=np.uint32)
         for map_face in faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
@@ -81,8 +84,9 @@ class BSP:
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
-            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
-            vertex_ids = np.insert(vertex_ids, vertex_offset, face_vertex_ids)
+            tmp = np.arange(len(used_edges))
+            face_vertex_ids = used_edges[tmp,reverse]
+            vertex_ids[vertex_offset:vertex_offset + edge_count] = face_vertex_ids
             vertex_offset += edge_count
 
         return vertex_ids, material_ids
