@@ -73,7 +73,7 @@ class BSP:
         vertex_count = 0
         for map_face in faces[model.first_face:model.first_face + model.face_count]:
             vertex_count += map_face.edge_count
-        vertex_ids = np.zeros(vertex_count, dtype=np.uint32)
+        vertex_ids = np.zeros(vertex_count, dtype=np.uint16)
         for map_face in faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
@@ -85,7 +85,7 @@ class BSP:
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
             tmp = np.arange(len(used_edges))
-            face_vertex_ids = used_edges[tmp,reverse]
+            face_vertex_ids = used_edges[tmp, reverse]
             vertex_ids[vertex_offset:vertex_offset + edge_count] = face_vertex_ids
             vertex_offset += edge_count
 
@@ -476,13 +476,10 @@ class BSP:
         edges = self.edge_lump.edges
 
         vertex_ids, material_ids = self.gather_vertex_ids(model, self.face_lump.faces, surf_edges, edges)
-        unique_vertex_ids, indices_vertex_ids, inverse_indices = np.unique(vertex_ids, return_inverse=True,
-                                                                           return_index=True, )
+        unique_vertex_ids = np.unique(vertex_ids)
 
-        remapped = {}
-        for vertex_id in vertex_ids:
-            new_id = np.where(unique_vertex_ids == vertex_id)[0][0]
-            remapped[vertex_id] = new_id
+        tmp2 = np.searchsorted(unique_vertex_ids, vertex_ids)
+        remapped = dict(zip(vertex_ids, tmp2))
 
         material_lookup_table = {}
         for texture_info in sorted(set(material_ids)):
@@ -509,7 +506,8 @@ class BSP:
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
-            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+            tmp = np.arange(len(used_edges))
+            face_vertex_ids = used_edges[tmp, reverse]
 
             uv_vertices = self.vertex_lump.vertices[face_vertex_ids]
 
@@ -637,7 +635,8 @@ class BSP:
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
-            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+            tmp = np.arange(len(used_edges))
+            face_vertex_ids = used_edges[tmp, reverse]
             face_vertices = vertices[face_vertex_ids] * self.scale
 
             min_index = np.where(
@@ -707,19 +706,21 @@ class BSP:
             else:
                 self.main_collection.objects.link(mesh_obj)
             mesh_data.from_pydata(final_vertices, [], face_indices)
-            mesh_data.uv_layers.new()
-            uv_data = mesh_data.uv_layers[0].data
-            for uv_id in range(len(uv_data)):
-                u = uvs[mesh_data.loops[uv_id].vertex_index]
-                u = [u[0], 1 - u[1]]
-                uv_data[uv_id].uv = u
+
+            uv_data = mesh_data.uv_layers.new().data
+            uvs = np.array(uvs,dtype=np.float32)
+            uvs[:, 1] = 1 - uvs[:, 1]
+
+            vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
+            mesh_data.loops.foreach_get('vertex_index', vertex_indices)
+            uv_data.foreach_set('uv', uvs[vertex_indices].flatten())
 
             vertex_colors = mesh_data.vertex_colors.get('mixing', False) or mesh_data.vertex_colors.new(
                 name='mixing')
             vertex_colors_data = vertex_colors.data
-            for i in range(len(vertex_colors_data)):
-                u = final_vertex_colors[mesh_data.loops[i].vertex_index]
-                vertex_colors_data[i].color = u
+            final_vertex_colors = np.array(final_vertex_colors,dtype=np.float32)
+            vertex_colors_data.foreach_set('color', final_vertex_colors[vertex_indices].flatten())
+
             material_name = self.get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]
             get_material(material_name, mesh_obj)

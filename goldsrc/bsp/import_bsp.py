@@ -58,7 +58,8 @@ class BSP:
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
-            face_vertex_ids = [u[r] for (u, r) in zip(used_edges, reverse)]
+            tmp = np.arange(len(used_edges))
+            face_vertex_ids = used_edges[tmp, reverse]
             vertex_ids = np.insert(vertex_ids, vertex_offset, face_vertex_ids)
             vertex_offset += edge_count
 
