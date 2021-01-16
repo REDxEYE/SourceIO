@@ -640,7 +640,7 @@ class BSP:
                 np.sum(
                     np.isclose(face_vertices,
                                disp_info.start_position * self.scale,
-                               1.e-2),
+                               0.5e-2),
                     axis=1
                 ) == 3)
             if not min_index:

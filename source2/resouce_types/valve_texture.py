@@ -22,7 +22,7 @@ class ValveTexture:
         print(f'Loading {name} texture')
         data_block: TEXR = self.valve_file.get_data_block(block_name='DATA')[0]
         data_block.read_image(flip)
-        pixel_data = np.divide(np.frombuffer(data_block.image_data, np.uint8), 255)
+        pixel_data = np.divide(np.frombuffer(data_block.image_data, np.uint8), 255, dtype=np.float32)
         if name + '.tga' in bpy.data.images:
             return bpy.data.images[f'{name}.tga']
         image = bpy.data.images.new(
@@ -30,7 +30,7 @@ class ValveTexture:
             width=data_block.width,
             height=data_block.height,
             alpha=True
-            )
+        )
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
         image.filepath_raw = str(self.valve_file.filepath.with_name(image.name).with_suffix('.tga'))
@@ -40,5 +40,5 @@ class ValveTexture:
             else:
                 image.pixels[:] = pixel_data.tolist()
         image.save()
-
+        del pixel_data
         return image
