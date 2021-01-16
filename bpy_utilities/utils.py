@@ -3,36 +3,24 @@ import random
 
 
 def get_material(mat_name, model_ob):
-    if not mat_name:
-        mat_name = "Material"
-    mat_ind = 0
     md = model_ob.data
-    mat = None
-    for candidate in bpy.data.materials:  # Do we have this material already?
-        if candidate.name == mat_name:
-            mat = candidate
+    mat = bpy.data.materials.get(mat_name, None)
     if mat:
-        if md.materials.get(mat.name):  # Look for it on this mesh_data
-            for i in range(len(md.materials)):
-                if md.materials[i].name == mat.name:
-                    mat_ind = i
-                    break
-        else:  # material exists, but not on this mesh_data
+        if md.materials.get(mat.name, None):
+            for i, material in enumerate(md.materials):
+                if material == mat:
+                    return i
+        else:
             md.materials.append(mat)
-            mat_ind = len(md.materials) - 1
-    else:  # material does not exist
+            return len(md.materials) - 1
+    else:
         mat = bpy.data.materials.new(mat_name)
-        md.materials.append(mat)
-        # Give it a random colour
-        rand_col = []
-        for i in range(3):
-            rand_col.append(random.uniform(.4, 1))
+        rand_col = [random.uniform(.4, 1) for _ in range(3)]
         rand_col.append(1.0)
         mat.diffuse_color = rand_col
 
-        mat_ind = len(md.materials) - 1
-
-    return mat_ind
+        md.materials.append(mat)
+        return len(md.materials) - 1
 
 
 def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Collection:
