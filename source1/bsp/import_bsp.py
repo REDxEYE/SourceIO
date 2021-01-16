@@ -708,7 +708,7 @@ class BSP:
             mesh_data.from_pydata(final_vertices, [], face_indices)
 
             uv_data = mesh_data.uv_layers.new().data
-            uvs = np.array(uvs,dtype=np.float32)
+            uvs = np.array(uvs, dtype=np.float32)
             uvs[:, 1] = 1 - uvs[:, 1]
 
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
@@ -718,7 +718,7 @@ class BSP:
             vertex_colors = mesh_data.vertex_colors.get('mixing', False) or mesh_data.vertex_colors.new(
                 name='mixing')
             vertex_colors_data = vertex_colors.data
-            final_vertex_colors = np.array(final_vertex_colors,dtype=np.float32)
+            final_vertex_colors = np.array(final_vertex_colors, dtype=np.float32)
             vertex_colors_data.foreach_set('color', final_vertex_colors[vertex_indices].flatten())
 
             material_name = self.get_string(texture_data.name_id)
