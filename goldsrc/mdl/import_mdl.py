@@ -21,7 +21,9 @@ def create_armature(mdl: Mdl, collection):
     bpy.context.view_layer.objects.active = armature_obj
     bpy.ops.object.mode_set(mode='EDIT')
 
-    for mdl_bone_info in mdl.bones:
+    for n, mdl_bone_info in enumerate(mdl.bones):
+        if not mdl_bone_info.name:
+            mdl_bone_info.name = f'Bone_{n}'
         mdl_bone = armature.edit_bones.new(mdl_bone_info.name)
         mdl_bone.head = Vector(mdl_bone_info.pos)
         mdl_bone.tail = Vector([0, 0, 0.25]) + mdl_bone.head
