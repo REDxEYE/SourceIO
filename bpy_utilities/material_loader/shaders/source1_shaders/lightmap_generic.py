@@ -1,6 +1,7 @@
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
+
 class LightmapGeneric(Source1ShaderBase):
     SHADER = 'lightmappedgeneric'
 
@@ -64,3 +65,7 @@ class LightmapGeneric(Source1ShaderBase):
 
         if not self.phong:
             shader.inputs['Specular'].default_value = 0
+
+
+class ReflectiveLightmapGeneric(LightmapGeneric):
+    SHADER = 'lightmappedreflective'
