@@ -20,8 +20,7 @@ def import_texture(name, file_object, update=False):
     rgba_data = vtf_lib.convert_to_rgba8888()
     rgba_data = vtf_lib.flip_image_external(rgba_data, vtf_lib.width(), vtf_lib.height())
 
-    pixels = np.array(rgba_data.contents, np.uint8)
-    pixels = pixels.astype(np.float16, copy=False)
+    pixels = np.divide(rgba_data.contents, 255, dtype=np.float32)
     try:
         image = bpy.data.images.get(name, None) or bpy.data.images.new(
             name,
@@ -32,7 +31,6 @@ def import_texture(name, file_object, update=False):
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
 
-        pixels: np.ndarray = np.divide(pixels, 255)
         if bpy.app.version > (2, 83, 0):
             image.pixels.foreach_set(pixels.tolist())
         else:
@@ -43,5 +41,4 @@ def import_texture(name, file_object, update=False):
         logger.error('Caught exception "{}" '.format(ex))
     finally:
         vtf_lib.image_destroy()
-
     return None
