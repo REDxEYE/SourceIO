@@ -15,10 +15,7 @@ def get_material(mat_name, model_ob):
             return len(md.materials) - 1
     else:
         mat = bpy.data.materials.new(mat_name)
-        rand_col = [random.uniform(.4, 1) for _ in range(3)]
-        rand_col.append(1.0)
-        mat.diffuse_color = rand_col
-
+        mat.diffuse_color = [random.uniform(.4, 1) for _ in range(3)] + [1.0]
         md.materials.append(mat)
         return len(md.materials) - 1
 
