@@ -51,7 +51,7 @@ class Vvd(Base):
                         lod_offset = lod_offsets[lod_id]
                         vertex_index = fixup.vertex_index
                         vertex_count = fixup.vertex_count
-                        lod_data[lod_offset:lod_offset + vertex_count] = self._vertices[vertex_index + vertex_count]
+                        lod_data[lod_offset:lod_offset + vertex_count] = self._vertices[vertex_index:vertex_index + vertex_count]
                         lod_offsets[lod_id] += fixup.vertex_count
 
         else:
