@@ -1,24 +1,24 @@
+import math
 from pathlib import Path
 from typing import List
 
-import math
-import numpy as np
 # noinspection PyUnresolvedReferences
 import bpy
+import numpy as np
 # noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix
 
-from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source2_to_blender
-from ...utilities.byte_io_mdl import ByteIO
-from ...utilities.path_utilities import backwalk_file_resolver
-from ..utils.entity_keyvalues import EntityKeyValues
+from .valve_model import ValveModel
 from ..common import SourceVector4D
 from ..source2 import ValveFile
-from .valve_model import ValveModel
+from ..utils.entity_keyvalues import EntityKeyValues
+from ...utilities.byte_io_mdl import ByteIO
+from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source2_to_blender
+from ...utilities.path_utilities import backwalk_file_resolver
 
 
 class ValveWorld:
-    def __init__(self, vmdl_path, invert_uv=False, scale=0.0328):
+    def __init__(self, vmdl_path, *, invert_uv=False, scale=1.0):
         self.valve_file = ValveFile(vmdl_path)
         self.valve_file.read_block_info()
         self.valve_file.check_external_resources()
@@ -100,9 +100,9 @@ class ValveWorld:
         model_path = prop_data['model']
         print("Loading", model_path, 'model')
         model_path = backwalk_file_resolver(parent_file.filepath.parent, Path(model_path + "_c"))
-        prop_location = parse_source2_hammer_vector(prop_data['origin'])
-        prop_rotation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(prop_data['angles']))
-        prop_scale = parse_source2_hammer_vector(prop_data['scales'])
+        prop_location = parse_hammer_vector(prop_data['origin'])
+        prop_rotation = convert_rotation_source2_to_blender(parse_hammer_vector(prop_data['angles']))
+        prop_scale = parse_hammer_vector(prop_data['scales'])
         collection = bpy.data.collections.get(collection_name, None) or bpy.data.collections.new(name=collection_name)
         try:
             bpy.context.scene.collection.children.link(collection)
@@ -157,10 +157,10 @@ class ValveWorld:
 
         name = light_data.get('targetname', None)
 
-        origin = parse_source2_hammer_vector(light_data['origin'])
-        orientation = convert_rotation_source2_to_blender(parse_source2_hammer_vector(light_data['angles']))
+        origin = parse_hammer_vector(light_data['origin'])
+        orientation = convert_rotation_source2_to_blender(parse_hammer_vector(light_data['angles']))
         orientation[1] = orientation[1] - math.radians(90)
-        scale_vec = parse_source2_hammer_vector(light_data['scales'])
+        scale_vec = parse_hammer_vector(light_data['scales'])
 
         color = np.divide(light_data['color'], 255.0)
         brightness = float(light_data['brightness'])

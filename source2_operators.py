@@ -7,6 +7,7 @@ from .source2.resouce_types.valve_model import ValveModel
 from .source2.resouce_types.valve_texture import ValveTexture
 from .source2.resouce_types.valve_material import ValveMaterial
 from .source2.resouce_types.valve_world import ValveWorld
+from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
 
@@ -58,7 +59,7 @@ class VWRLDImport_OT_operator(bpy.types.Operator):
     filter_glob: StringProperty(default="*.vwrld_c", options={'HIDDEN'})
 
     invert_uv: BoolProperty(name="invert UV?", default=True)
-    scale: FloatProperty(name="World scale", default=0.0328083989501312)  # LifeForLife suggestion
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
 
     use_placeholders: BoolProperty(name="Use placeholders instead of objects", default=False)
     load_static: BoolProperty(name="Load static meshes", default=True)
@@ -72,7 +73,7 @@ class VWRLDImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
-            world = ValveWorld(str(directory / file.name), self.invert_uv, self.scale)
+            world = ValveWorld(str(directory / file.name), invert_uv=self.invert_uv, scale=self.scale)
             if self.load_static:
                 try:
                     world.load_static()

@@ -6,7 +6,7 @@ import bpy
 from .mgr import GoldSrcContentManager
 from ..mdl.import_mdl import import_model
 from ...bpy_utilities.utils import get_new_unique_collection
-from ...utilities.math_utilities import parse_source2_hammer_vector
+from ...utilities.math_utilities import parse_hammer_vector
 
 content_manager = GoldSrcContentManager()
 
@@ -17,8 +17,8 @@ def handle_generic_model_prop(entity_data, scale, parent_collection):
 
 
 def handle_model_prop(model_name, entity_data, scale, parent_collection):
-    origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * scale
-    angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+    origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * scale
+    angles = parse_hammer_vector(entity_data.get('angles', '0 0 0'))
     target_name = entity_data.get('targetname', entity_data['classname'])
     model_path = content_manager.get_game_resource(str(model_name))
     if model_path:

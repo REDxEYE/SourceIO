@@ -3,6 +3,10 @@ from typing import List, Union, Tuple
 
 import numpy as np
 
+# According to the Valve documentation,
+# one hammer unit is 1/16 of feet, and one feet is 30.48 cm
+HAMMER_UNIT_TO_METERS = ((1 / 16) * 30.48) / 100
+
 
 def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
@@ -91,7 +95,7 @@ def convert_to_radians(vector: Union[List[float], np.ndarray]):
     return np.deg2rad(vector)
 
 
-def parse_source2_hammer_vector(string: str) -> np.ndarray:
+def parse_hammer_vector(string: str) -> np.ndarray:
     return np.array([float(x) for x in string.split(" ") if x], np.float32)
 
 

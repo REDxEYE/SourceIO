@@ -10,6 +10,7 @@ from .source1.dmx.dmx import Session
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
 from .source_shared.content_manager import ContentManager
+from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 from .utilities.path_utilities import backwalk_file_resolver
 
 
@@ -27,7 +28,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
-    scale: FloatProperty(name="World scale", default=0.0266, precision=6)
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
     def execute(self, context):
@@ -78,7 +79,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     filepath: StringProperty(subtype="FILE_PATH")
-    scale: FloatProperty(name="World scale", default=0.0266, precision=6)
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
@@ -87,9 +88,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
 
-        bsp_map = BSP(self.filepath)
-        bsp_map.scale = self.scale
-
+        bsp_map = BSP(self.filepath, scale=self.scale)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
         bsp_map.load_map_mesh()

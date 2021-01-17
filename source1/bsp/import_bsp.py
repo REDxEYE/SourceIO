@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Any
 
+import bpy
 import numpy as np
 
 from .bsp_file import BSPFile
@@ -10,9 +11,6 @@ from .datatypes.face import Face
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 from .datatypes.model import Model
 from .lump import LumpTypes
-
-import bpy
-
 from .lumps.displacement_lump import DispVert, DispInfoLump
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
@@ -24,27 +22,25 @@ from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
-from ...source_shared.content_manager import ContentManager
-from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.utils import get_material, get_or_create_collection
+from ...source_shared.content_manager import ContentManager
 from ...utilities.keyvalues import KVParser
-from ...utilities.math_utilities import parse_source2_hammer_vector, convert_rotation_source1_to_blender, \
-    lerp_vec, clamp_value
+from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source1_to_blender, lerp_vec, clamp_value
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
 
 
 class BSP:
-    scale = 0.0266
-
-    def __init__(self, map_path):
+    def __init__(self, map_path, *, scale=1.0):
         self.filepath = Path(map_path)
         self.logger = log_manager.get_logger(self.filepath.name)
         self.logger.info(f'Loading map "{self.filepath}"')
         self.map_file = BSPFile(self.filepath)
         self.map_file.parse()
+        self.scale = scale
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
         self.entry_cache = {}
@@ -114,8 +110,8 @@ class BSP:
                 elif entity_class == 'item_teamflag':
                     entity_name = self.get_entity_name(entity_data)
                     parent_collection = get_or_create_collection(entity_class, self.main_collection)
-                    location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
-                    rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
+                    location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
+                    rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
                     self.create_empty(entity_name, location, rotation,
                                       parent_collection=parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
@@ -210,8 +206,8 @@ class BSP:
         self.handle_brush(entity_class, entity_data, func_brush_collection)
 
     def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = parse_source2_hammer_vector(entity_data.get('angles', '0 0 0'))
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = parse_hammer_vector(entity_data.get('angles', '0 0 0'))
         entity_collection = get_or_create_collection(entity_class, self.main_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
@@ -249,7 +245,7 @@ class BSP:
         while True:
             child = self.get_entity_by_target_name(next_name)
             if child:
-                points.append(parse_source2_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
+                points.append(parse_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
                 if 'target' not in child:
                     self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
                     break
@@ -288,7 +284,7 @@ class BSP:
             parent_collection = get_or_create_collection(entity_class, master_collection)
             model_id = int(entity_data['model'].replace('*', ''))
             brush_name = entity_data.get('targetname', f'{entity_class}_{model_id}')
-            location = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0'))
+            location = parse_hammer_vector(entity_data.get('origin', '0 0 0'))
             location = np.multiply(location, self.scale)
             mesh_obj = self.load_bmodel(model_id, brush_name, location, parent_collection)
             mesh_obj['entity'] = entity_data
@@ -299,8 +295,8 @@ class BSP:
         entity_name = self.get_entity_name(entity_data)
         if 'model' in entity_data:
             parent_collection = get_or_create_collection(entity_class, self.main_collection)
-            location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
-            rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
+            location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
+            rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
             skin = str(entity_data.get('skin', 0))
             self.create_empty(entity_name, location,
                               rotation,
@@ -313,8 +309,8 @@ class BSP:
 
     @staticmethod
     def _get_light_data(entity_data):
-        color_hrd = parse_source2_hammer_vector(entity_data.get('_lighthdr', '-1 -1 -1 1'))
-        color = parse_source2_hammer_vector(entity_data['_light'])
+        color_hrd = parse_hammer_vector(entity_data.get('_lighthdr', '-1 -1 -1 1'))
+        color = parse_hammer_vector(entity_data['_light'])
         if color_hrd[0] > 0:
             color = color_hrd
         if len(color) == 4:
@@ -331,8 +327,8 @@ class BSP:
         entity_name = self.get_entity_name(entity_data)
         parent_collection = get_or_create_collection(entity_class, self.main_collection)
 
-        location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
-        rotation = convert_rotation_source1_to_blender(parse_source2_hammer_vector(entity_data['angles']))
+        location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
+        rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
         rotation[1] = math.radians(90) + rotation[1]
         rotation[2] = math.radians(180) + rotation[2]
         color, lumens = self._get_light_data(entity_data)
@@ -349,7 +345,7 @@ class BSP:
     def handle_light(self, entity_class, entity_data):
         entity_name = self.get_entity_name(entity_data)
         parent_collection = get_or_create_collection(entity_class, self.main_collection)
-        location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+        location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
         color, lumens = self._get_light_data(entity_data)
         color_max = max(color)
         lumens *= color_max / 255 * (1.0 / self.scale)
@@ -362,7 +358,7 @@ class BSP:
     def handle_light_environment(self, entity_class, entity_data):
         entity_name = self.get_entity_name(entity_data)
         parent_collection = get_or_create_collection(entity_class, self.main_collection)
-        location = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
+        location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
         color, lumens = self._get_light_data(entity_data)
         color_max = max(color)
         lumens *= color_max / 255 * (1.0 / self.scale)
@@ -382,8 +378,8 @@ class BSP:
         if len(parent) == 0:
             self.logger.error(f'Cannot find rope parent \'{entity_data["nextkey"]}\', skipping')
             return
-        location_start = np.multiply(parse_source2_hammer_vector(entity_data['origin']), self.scale)
-        location_end = np.multiply(parse_source2_hammer_vector(parent[0]['origin']), self.scale)
+        location_start = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
+        location_end = np.multiply(parse_hammer_vector(parent[0]['origin']), self.scale)
 
         curve = bpy.data.curves.new(f'{entity_name}_data', 'CURVE')
         curve.dimensions = '3D'

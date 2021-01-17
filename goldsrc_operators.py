@@ -6,6 +6,7 @@ from bpy.props import StringProperty, CollectionProperty, BoolProperty, FloatPro
 from .goldsrc.bsp.import_bsp import BSP
 from .goldsrc.bsp.mgr import GoldSrcContentManager
 from .goldsrc.mdl.import_mdl import import_model
+from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
 class GBSPImport_OT_operator(bpy.types.Operator):
@@ -18,7 +19,7 @@ class GBSPImport_OT_operator(bpy.types.Operator):
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
-    scale: FloatProperty(name="World scale", default=0.0266, precision=6)
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     use_hd: BoolProperty(name="Load HD models", default=False, subtype='UNSIGNED')
 
     def execute(self, context):
@@ -51,7 +52,7 @@ class GMDLImport_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
-    scale: FloatProperty(name="World scale", default=0.0266, precision=6)
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
 

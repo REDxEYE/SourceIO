@@ -18,20 +18,19 @@ from .lumps.texture_info import TextureInfoLump
 from .lumps.vertex_lump import VertexLump
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.utils import get_or_create_collection, get_material
-from ...utilities.math_utilities import parse_source2_hammer_vector, convert_to_radians
+from ...utilities.math_utilities import parse_hammer_vector, convert_to_radians
 
 log_manager = BPYLoggingManager()
 
 
 class BSP:
-    scale = 0.01905
-
-    def __init__(self, map_path: Path):
+    def __init__(self, map_path: Path, *, scale=1.0):
         self.map_path = map_path
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
         self.bsp_file = BspFile(map_path)
+        self.scale = scale
 
         self.bsp_collection = bpy.data.collections.new(self.bsp_name)
         self.entry_cache = {}
@@ -274,7 +273,7 @@ class BSP:
             self.logger.warn(f'Trigger "{entity_class}" does not reference any models')
             return
 
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
@@ -289,8 +288,8 @@ class BSP:
             self.logger.warn(f'Brush "{entity_class}" does not reference any models')
             return
 
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
@@ -318,9 +317,9 @@ class BSP:
 
     def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
-        color = parse_source2_hammer_vector(entity_data['_light'])
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        color = parse_hammer_vector(entity_data['_light'])
         if len(color) == 4:
             lumens = color[-1]
             color = color[:-1]
@@ -346,8 +345,8 @@ class BSP:
 
     def load_light(self, entity_class, entity_data):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        color = parse_source2_hammer_vector(entity_data['_light'])
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        color = parse_hammer_vector(entity_data['_light'])
         if len(color) == 4:
             lumens = color[-1]
             color = color[:-1]
@@ -369,8 +368,8 @@ class BSP:
 
     def load_light_environment(self, entity_class, entity_data):
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        color = parse_source2_hammer_vector(entity_data['_light'])
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        color = parse_hammer_vector(entity_data['_light'])
         if len(color) == 4:
             lumens = color[-1]
             color = color[:-1]
@@ -416,8 +415,8 @@ class BSP:
     def load_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
         if 'monster_' in entity_class:
             print(entity_class, entity_data)
-        origin = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_source2_hammer_vector(entity_data.get('angles', '0 0 0')))
+        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
         entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
@@ -456,7 +455,7 @@ class BSP:
         while True:
             child = self.get_entity_by_target_name(next_name)
             if child:
-                points.append(parse_source2_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
+                points.append(parse_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
                 if 'target' not in child:
                     self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
                     break
