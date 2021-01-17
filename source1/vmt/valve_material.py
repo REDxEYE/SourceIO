@@ -9,7 +9,7 @@ logger = log_manager.get_logger('valve_material')
 class VMT:
     def __init__(self, file_object):
         KVParser.set_strict_parsing_mode(True)
-        kv_parser = KVParser('VMT', file_object.read(-1).decode('utf').replace('`', ''))
+        kv_parser = KVParser('VMT', file_object.read(-1).decode('latin', errors='replace'))
         try:
             self.shader, self.material_data = kv_parser.parse()
             self.shader = self.shader.lower()
