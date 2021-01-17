@@ -23,11 +23,8 @@ class MDLImport_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
-    # organize_bodygroups: BoolProperty(name="Organize bodygroups", default=True, subtype='UNSIGNED')
-
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
 
-    load_phy: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
@@ -50,12 +47,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
             vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
             vtx_file = backwalk_file_resolver(directory, mdl_path.stem + '.dx90.vtx')
 
-            if self.load_phy:
-                phy = content_manager.find_file(mdl_path / mdl_path.stem, '.phy').open('rb')
-            else:
-                phy = None
-
-            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), phy,
+            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), None,
                                            self.create_flex_drivers)
 
             if self.import_textures:
