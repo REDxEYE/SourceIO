@@ -15,6 +15,11 @@ class Entry:
 
     def read(self, reader: ByteIO):
         (self.crc32, self.preload_data_size, self.archive_id, self.offset, self.size) = reader.read_fmt('I2H2I')
+        if reader.read_uint16() != 0xFFFF:
+            raise NotImplementedError('Invalid terminator')
+
+        if self.preload_data_size > 0:
+            self.preload_data = reader.read_bytes(self.preload_data_size)
 
     def __repr__(self):
         return f'Entry("{self.file_name}"")'

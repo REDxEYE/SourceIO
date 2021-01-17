@@ -14,10 +14,9 @@ class VPKFile:
         self.is_dir = self.filepath.stem[-3:] == 'dir'
         self.reader = ByteIO(self.filepath)
         self.header = Header()
-        self.entries: Dict[str, List[Entry]] = {}
         self.archive_md5_entries: List[ArchiveMD5Entry] = []
 
-        self.path_cache = {}
+        self.entries = {}
 
         self.tree_hash = b''
         self.archive_md5_hash = b''
@@ -67,15 +66,7 @@ class VPKFile:
                     full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
                     entry = Entry(full_path)
                     entry.read(reader)
-                    self.path_cache[full_path] = entry
-
-                    if reader.read_uint16() != 0xFFFF:
-                        raise NotImplementedError('Invalid terminator')
-
-                    if entry.preload_data_size > 0:
-                        entry.preload_data = reader.read_bytes(entry.preload_data_size)
-
-                    self.entries[type_name].append(entry)
+                    self.entries[full_path] = entry
 
     def read_archive_md5_section(self):
         reader = self.reader
@@ -93,7 +84,7 @@ class VPKFile:
     def find_file(self, full_path: Union[Path, str]):
         if type(full_path) in [WindowsPath, Path]:
             full_path = full_path.as_posix().lower()
-        return self.path_cache.get(full_path, None)
+        return self.entries.get(full_path, None)
 
     def read_file(self, entry: Entry) -> BytesIO:
         if entry.archive_id == 0x7FFF:
