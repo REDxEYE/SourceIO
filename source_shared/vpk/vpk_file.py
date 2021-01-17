@@ -1,5 +1,5 @@
 from io import BytesIO
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from typing import Union, List, Dict
 
 from ...utilities.byte_io_mdl import ByteIO
@@ -64,7 +64,7 @@ class VPKFile:
                     if not file_name:
                         break
 
-                    full_path = Path(f'{directory_name}/{file_name}.{type_name}')
+                    full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
                     entry = Entry(full_path)
                     entry.read(reader)
                     self.path_cache[full_path] = entry
@@ -90,37 +90,13 @@ class VPKFile:
             md5_entry.read(reader)
             self.archive_md5_entries.append(md5_entry)
 
-    def find_file(self, *, full_path: str = None, file_type: str = None, directory: str = None, file_name: str = None):
-        if full_path is not None:
-            full_path = Path(full_path)
-            if full_path.is_absolute():
-                full_path = full_path.relative_to(self.filepath.parent)
-
-            # ext = Path(full_path).suffix.strip('./\\')
-            # for entry in self.entries.get(ext.lower(), []):
-            #     if entry.file_name == full_path:
-            #         return entry
-            # return None
-        elif file_type and directory and file_name:
-            file_type = file_type.strip('./\\')
-            directory = directory.strip('./\\')
-            file_name = Path(file_name.strip('./\\')).stem
-            full_path = Path(f'{directory}/{file_name}.{file_type}')
-        else:
-            raise Exception("No valid parameters were given")
-            # for entry in self.entries.get(file_type, []):
-            #     if entry.directory_name == directory and entry.file_name == file_name:
-            #         return entry
-            # return None
-        entry = self.path_cache.get(full_path,None)
-        if entry:
-            return entry
-
+    def find_file(self, full_path: Union[Path, str]):
+        if type(full_path) in [WindowsPath, Path]:
+            full_path = full_path.as_posix().lower()
+        return self.path_cache.get(full_path, None)
 
     def read_file(self, entry: Entry) -> BytesIO:
         if entry.archive_id == 0x7FFF:
-            # print("Internal file")
-            # raise NotImplementedError('Internal files are not supported.')
             reader = BytesIO(entry.preload_data)
             return reader
         else:

@@ -11,6 +11,6 @@ class VPKSubManager(SubManager):
         self.vpk_archive.read()
 
     def find_file(self, filepath: str):
-        entry = self.vpk_archive.find_file(full_path=str(filepath))
+        entry = self.vpk_archive.find_file(full_path=filepath)
         if entry:
             return self.vpk_archive.read_file(entry)
