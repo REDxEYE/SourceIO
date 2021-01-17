@@ -215,10 +215,12 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
 
             mesh_data.uv_layers.new()
             uv_data = mesh_data.uv_layers[0].data
-            for uv_id in range(len(uv_data)):
-                u = vertices['uv'][mesh_data.loops[uv_id].vertex_index]
-                u = [u[0], 1 - u[1]]
-                uv_data[uv_id].uv = u
+
+            vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
+            mesh_data.loops.foreach_get('vertex_index', vertex_indices)
+            uvs = vertices['uv']
+            uvs[:, 1] = 1 - uvs[:, 1]
+            uv_data.foreach_set('uv', uvs[vertex_indices].flatten())
 
             if not static_prop:
                 weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
