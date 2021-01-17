@@ -1,6 +1,8 @@
 from functools import partial
 from pathlib import Path
+
 import bpy
+
 from .mgr import GoldSrcContentManager
 from ..mdl.import_mdl import import_model
 from ...bpy_utilities.utils import get_new_unique_collection
@@ -23,17 +25,15 @@ def handle_model_prop(model_name, entity_data, scale, parent_collection):
         master_collection = get_new_unique_collection(target_name, parent_collection)
         model_texture_path = content_manager.get_game_resource(str(model_name.with_name(model_name.stem + 't.mdl')))
         model_container = import_model(model_path.open('rb'),
-                                       model_texture_path.open('rb') if model_texture_path is not None else None,
+                                       model_texture_path.open('rb') if model_texture_path is not None else None, scale,
                                        master_collection, disable_collection_sort=True, re_use_meshes=True)
         if model_container.armature:
             model_container.armature.location = origin
             model_container.armature.rotation_euler = angles
-            model_container.armature.scale *= scale
         else:
             for o in model_container.objects:
                 o.location = origin
                 o.rotation_euler = angles
-                o.scale *= scale
         entity_data_holder = bpy.data.objects.new(target_name, None)
         entity_data_holder.location = origin
         entity_data_holder.rotation_euler = angles

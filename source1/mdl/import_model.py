@@ -1,26 +1,26 @@
 from pathlib import Path
-import numpy as np
-from typing import BinaryIO, Iterable, Sized, Union, Optional
-
-from ...source_shared.content_manager import ContentManager
-from ...source_shared.model_container import Source1ModelContainer
-from ...bpy_utilities.logging import BPYLoggingManager
-from ...bpy_utilities.utils import get_material, get_new_unique_collection
-from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
-from ..phy.phy import Phy
-from ..vvd.vvd import Vvd
-from ..vtx.vtx import Vtx
-from ..vtx.structs.model import ModelLod as VtxModel
-from ..vtx.structs.mesh import Mesh as VtxMesh
-from .flex_expressions import *
-from .structs.bone import Bone
-from .vertex_animation_cache import VertexAnimationCache
-from .mdl_file import Mdl
-from .structs.header import StudioHDRFlags
-from .structs.model import Model
+from typing import BinaryIO, Iterable, Sized, Union
 
 import bpy
+import numpy as np
 from mathutils import Vector, Matrix, Euler
+
+from .flex_expressions import *
+from .mdl_file import Mdl
+from .structs.bone import Bone
+from .structs.header import StudioHDRFlags
+from .structs.model import Model
+from .vertex_animation_cache import VertexAnimationCache
+from ..phy.phy import Phy
+from ..vtx.structs.mesh import Mesh as VtxMesh
+from ..vtx.structs.model import ModelLod as VtxModel
+from ..vtx.vtx import Vtx
+from ..vvd.vvd import Vvd
+from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from ...bpy_utilities.utils import get_material, get_new_unique_collection
+from ...source_shared.content_manager import ContentManager
+from ...source_shared.model_container import Source1ModelContainer
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('mdl_loader')
@@ -71,7 +71,7 @@ def get_slice(data: [Iterable, Sized], start, count=None):
     return data[start:start + count]
 
 
-def create_armature(mdl: Mdl, collection):
+def create_armature(mdl: Mdl, collection, scale=1.0):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -91,12 +91,12 @@ def create_armature(mdl: Mdl, collection):
         if s_bone.parent_bone_index != -1:
             bl_parent = bl_bones[s_bone.parent_bone_index]
             bl_bone.parent = bl_parent
-        bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
+        bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 
     bpy.ops.object.mode_set(mode='POSE')
     for se_bone in mdl.bones:
         bl_bone = armature_obj.pose.bones.get(se_bone.name)
-        pos = Vector(se_bone.position)
+        pos = Vector(se_bone.position) * scale
         rot = Euler(se_bone.rotation)
         mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
         bl_bone.matrix_basis.identity()
@@ -108,7 +108,7 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj
 
 
-def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy_file: Optional[BinaryIO],
+def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, scale=1.0,
                  create_drivers=False, parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
@@ -129,8 +129,12 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
     container.collection = master_collection
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
+    if mdl.flex_names:
+        vac = VertexAnimationCache(mdl, vvd)
+        vac.process_data()
+
     if not static_prop:
-        armature = create_armature(mdl, master_collection)
+        armature = create_armature(mdl, master_collection, scale)
         container.armature = armature
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
@@ -196,7 +200,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
 
             vertices = model_vertices[vtx_vertices]
 
-            mesh_data.from_pydata(vertices['vertex'], [], split(indices_array[::-1], 3))
+            mesh_data.from_pydata(vertices['vertex'] * scale, [], split(indices_array[::-1], 3))
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
@@ -232,8 +236,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
                 if flex_names:
                     mesh_obj.shape_key_add(name='base')
                 for flex_name in flex_names:
-                    vac = VertexAnimationCache(mdl, vvd)
-                    vac.process_data()
+
 
                     shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, mesh_obj.shape_key_add(name=flex_name))
                     vertex_animation = vac.vertex_cache[flex_name]

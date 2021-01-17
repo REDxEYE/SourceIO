@@ -2,15 +2,15 @@ import os
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from .source1.bsp.import_bsp import BSP
+from .source1.dmx.dmx import Session
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
-from .source1.dmx.dmx import Session
-from .source1.bsp.import_bsp import BSP
-from .utilities.path_utilities import backwalk_file_resolver
 from .source_shared.content_manager import ContentManager
+from .utilities.path_utilities import backwalk_file_resolver
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -27,7 +27,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
-
+    scale: FloatProperty(name="World scale", default=0.0266, precision=6)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
     def execute(self, context):
@@ -47,7 +47,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
             vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
             vtx_file = backwalk_file_resolver(directory, mdl_path.stem + '.dx90.vtx')
 
-            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), None,
+            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), self.scale,
                                            self.create_flex_drivers)
 
             if self.import_textures:
@@ -78,7 +78,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     filepath: StringProperty(subtype="FILE_PATH")
-    # files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    scale: FloatProperty(name="World scale", default=0.0266, precision=6)
     import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
@@ -88,6 +88,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         content_manager.scan_for_content(self.filepath)
 
         bsp_map = BSP(self.filepath)
+        bsp_map.scale = self.scale
 
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 

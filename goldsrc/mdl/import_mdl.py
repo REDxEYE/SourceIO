@@ -1,16 +1,18 @@
 from pathlib import Path
 from typing import BinaryIO, Optional
+
 import bpy
-from mathutils import Vector, Matrix, Euler
 import numpy as np
+from mathutils import Vector, Matrix, Euler
+
 from .mdl_file import Mdl
 from .structs.texture import StudioTexture
-from ...bpy_utilities.utils import get_new_unique_collection, get_material
 from ...bpy_utilities.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
+from ...bpy_utilities.utils import get_new_unique_collection, get_material
 from ...source_shared.model_container import GoldSrcModelContainer
 
 
-def create_armature(mdl: Mdl, collection):
+def create_armature(mdl: Mdl, collection, scale):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -25,8 +27,8 @@ def create_armature(mdl: Mdl, collection):
         if not mdl_bone_info.name:
             mdl_bone_info.name = f'Bone_{n}'
         mdl_bone = armature.edit_bones.new(mdl_bone_info.name)
-        mdl_bone.head = Vector(mdl_bone_info.pos)
-        mdl_bone.tail = Vector([0, 0, 0.25]) + mdl_bone.head
+        mdl_bone.head = Vector(mdl_bone_info.pos) * scale
+        mdl_bone.tail = (Vector([0, 0, 0.25])*scale) + mdl_bone.head
         if mdl_bone_info.parent != -1:
             mdl_bone.parent = armature.edit_bones.get(mdl.bones[mdl_bone_info.parent].name)
 
@@ -36,7 +38,7 @@ def create_armature(mdl: Mdl, collection):
 
     for mdl_bone_info in mdl.bones:
         mdl_bone = armature_obj.pose.bones.get(mdl_bone_info.name)
-        mdl_bone_pos = Vector(mdl_bone_info.pos)
+        mdl_bone_pos = Vector(mdl_bone_info.pos) * scale
         mdl_bone_rot = Euler(mdl_bone_info.rot).to_matrix().to_4x4()
         mdl_bone_mat = Matrix.Translation(mdl_bone_pos) @ mdl_bone_rot
         mdl_bone.matrix.identity()
@@ -52,7 +54,7 @@ def create_armature(mdl: Mdl, collection):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO],
+def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
@@ -70,7 +72,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO],
     model_name = Path(mdl.header.name).stem + '_MODEL'
     master_collection = get_new_unique_collection(model_name, parent_collection)
 
-    armature, bone_transforms = create_armature(mdl, master_collection)
+    armature, bone_transforms = create_armature(mdl, master_collection, scale)
     model_container.armature = armature
 
     for body_part in mdl.bodyparts:
@@ -107,7 +109,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO],
 
             if used_copy:
                 continue
-            model_vertices = body_part_model.vertices
+            model_vertices = body_part_model.vertices * scale
             model_indices = []
             model_materials = []
 
