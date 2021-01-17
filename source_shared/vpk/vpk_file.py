@@ -31,7 +31,6 @@ class VPKFile:
         self.read_entries()
         if self.header.version == 2:
             reader.skip(self.header.file_data_section_size)
-            # self.read_archive_md5_section()
             reader.skip(self.header.archive_md5_section_size)
 
             assert self.header.other_md5_section_size == 48, \
@@ -51,9 +50,6 @@ class VPKFile:
             type_name = reader.read_ascii_string()
             if not type_name:
                 break
-            if type_name not in self.entries:
-                self.entries[type_name] = []
-
             while 1:
                 directory_name = reader.read_ascii_string()
                 if not directory_name:
