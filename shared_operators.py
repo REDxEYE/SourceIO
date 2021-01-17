@@ -22,7 +22,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
             print(f'Loading {obj.name}')
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
-                prop_scale = custom_prop_data['scale']
+                prop_scale = custom_prop_data.get('scale', 1.0)
                 if 'prop_path' not in custom_prop_data:
                     continue
                 model_type = Path(custom_prop_data['prop_path']).suffix
@@ -33,7 +33,6 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                                       Path(custom_prop_data['prop_path']).with_suffix('.vmdl_c'))
 
                     if mld_file:
-
                         try:
                             bpy.context.scene.collection.children.link(collection)
                         except:
