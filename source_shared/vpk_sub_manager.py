@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ..source1.sub_manager import SubManager
 from ..source_shared.vpk import VPKFile
+from ..utilities.sub_manager import SubManager
 
 
 class VPKSubManager(SubManager):

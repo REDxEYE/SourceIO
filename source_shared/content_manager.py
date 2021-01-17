@@ -1,15 +1,14 @@
 from pathlib import Path
-from pprint import pprint
 
 from typing import Union, Dict
 
-from ..source1.sub_manager import SubManager
 from ..bpy_utilities.logging import BPYLoggingManager
 from ..source_shared.non_source_sub_manager import NonSourceSubManager
 from ..source_shared.vpk_sub_manager import VPKSubManager
 from ..utilities.gameinfo import Gameinfo
 from ..utilities.path_utilities import get_mod_path
 from ..utilities.singleton import SingletonMeta
+from ..utilities.sub_manager import SubManager
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('content_manager')

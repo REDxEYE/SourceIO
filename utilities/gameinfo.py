@@ -1,10 +1,8 @@
-from itertools import chain
 from pathlib import Path
 from typing import List
 
 from .keyvalues import KVParser
-
-from ..source1.sub_manager import SubManager
+from .sub_manager import SubManager
 
 
 class Gameinfo(SubManager):

@@ -2,22 +2,22 @@ from pathlib import Path
 import numpy as np
 from typing import BinaryIO, Iterable, Sized, Union, Optional
 
-from ..source_shared.content_manager import ContentManager
-from .mdl.structs.header import StudioHDRFlags
-from ..bpy_utilities.logging import BPYLoggingManager
-from ..bpy_utilities.utils import get_material, get_new_unique_collection
-from ..bpy_utilities.material_loader.material_loader import Source1MaterialLoader
-from ..source_shared.model_container import Source1ModelContainer
-from .mdl.flex_expressions import *
-from .mdl.structs.bone import Bone
-from .mdl.vertex_animation_cache import VertexAnimationCache
-from .phy.phy import Phy
-from .vvd.vvd import Vvd
-from .mdl.mdl_file import Mdl
-from .vtx.vtx import Vtx
-from .mdl.structs.model import Model
-from .vtx.structs.model import ModelLod as VtxModel
-from .vtx.structs.mesh import Mesh as VtxMesh
+from ...source_shared.content_manager import ContentManager
+from ...source_shared.model_container import Source1ModelContainer
+from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.utils import get_material, get_new_unique_collection
+from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from ..phy.phy import Phy
+from ..vvd.vvd import Vvd
+from ..vtx.vtx import Vtx
+from ..vtx.structs.model import ModelLod as VtxModel
+from ..vtx.structs.mesh import Mesh as VtxMesh
+from .flex_expressions import *
+from .structs.bone import Bone
+from .vertex_animation_cache import VertexAnimationCache
+from .mdl_file import Mdl
+from .structs.header import StudioHDRFlags
+from .structs.model import Model
 
 import bpy
 from mathutils import Vector, Matrix, Euler
@@ -121,10 +121,6 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
 
     container = Source1ModelContainer(mdl, vvd, vtx)
 
-    if mdl.flex_names:
-        vac = VertexAnimationCache(mdl, vvd)
-        vac.process_data()
-
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
     model_name = Path(mdl.header.name).stem + '_MODEL'
@@ -132,6 +128,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
     master_collection = get_new_unique_collection(model_name, parent_collection)
     container.collection = master_collection
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
+    armature = None
     if not static_prop:
         armature = create_armature(mdl, master_collection)
         container.armature = armature
@@ -177,8 +174,6 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
                     type="ARMATURE", name="Armature")
                 modifier.object = armature
                 mesh_obj.parent = armature
-
-            # mdl.skin_groups
 
             container.objects.append(mesh_obj)
 
@@ -237,10 +232,10 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
                 if flex_names:
                     mesh_obj.shape_key_add(name='base')
                 for flex_name in flex_names:
-                    if not mesh_obj.data.shape_keys.key_blocks.get(flex_name):
-                        shape_key = mesh_obj.shape_key_add(name=flex_name)
-                    else:
-                        shape_key = mesh_data.shape_keys.key_blocks[flex_name]
+                    vac = VertexAnimationCache(mdl, vvd)
+                    vac.process_data()
+
+                    shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, mesh_obj.shape_key_add(name=flex_name))
                     vertex_animation = vac.vertex_cache[flex_name]
 
                     model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
@@ -253,16 +248,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, phy
 
     attachment_collection = get_new_unique_collection(f'{model_name}_attachments', master_collection)
     create_attachments(mdl, armature if not static_prop else container.objects[0], attachment_collection)
-    # if phy_path is not None and phy_path.exists():
-    #     phy = Phy(phy_path)
-    #     try:
-    #         phy.read()
-    #     except AssertionError:
-    #         print("Failed to parse PHY file")
-    #         traceback.print_exc()
-    #         phy = None
-    #     if phy is not None:
-    #         create_collision_mesh(phy, mdl, armature)
+
     return container
 
 
@@ -294,9 +280,7 @@ def create_flex_drivers(obj, mdl: Mdl):
 
     for target, expr in all_exprs.items():
         shape_key_block = obj.data.shape_keys
-        if target not in shape_key_block.key_blocks:
-            shape_key = obj.shape_key_add(name=target)
-        shape_key = shape_key_block.key_blocks[target]
+        shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
 
         shape_key.driver_remove("value")
         fcurve = shape_key.driver_add("value")
@@ -334,10 +318,8 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
 
 def create_attachments(mdl: Mdl, armature: bpy.types.Object, parent_collection: bpy.types.Collection):
     for attachment in mdl.attachments:
-
-        empty = bpy.data.objects.new("empty", None)
+        empty = bpy.data.objects.new(attachment.name, None)
         parent_collection.objects.link(empty)
-        empty.name = attachment.name
         pos = Vector(attachment.pos)
         rot = Euler(attachment.rot)
         empty.matrix_basis.identity()

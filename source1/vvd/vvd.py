@@ -5,7 +5,7 @@ import numpy as np
 from .structs.header import Header
 from .structs.fixup import Fixup
 from ...source_shared.base import Base
-from ...utilities.byte_io_mdl  import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
 
 class Vvd(Base):
@@ -23,26 +23,6 @@ class Vvd(Base):
         self._vertices = np.array([], dtype=self.vertex_t)
         self.fixups = []  # type:List[Fixup]
         self.lod_data = {}  # type:Dict[int,np.ndarray]
-
-    @property
-    def weights(self):
-        return self._vertices['weight']
-
-    @property
-    def bone_ids(self):
-        return self._vertices['bone_id']
-
-    @property
-    def vertices(self):
-        return self._vertices['vertex']
-
-    @property
-    def normals(self):
-        return self._vertices['normal']
-
-    @property
-    def uvs(self):
-        return self._vertices['uv']
 
     def read(self):
         self.header.read(self.reader)
@@ -71,8 +51,7 @@ class Vvd(Base):
                         lod_offset = lod_offsets[lod_id]
                         vertex_index = fixup.vertex_index
                         vertex_count = fixup.vertex_count
-                        lod_data[lod_offset:lod_offset + fixup.vertex_count] = self._vertices[
-                                                                               vertex_index:vertex_index + vertex_count]
+                        lod_data[lod_offset:lod_offset + vertex_count] = self._vertices[vertex_index + vertex_count]
                         lod_offsets[lod_id] += fixup.vertex_count
 
         else:
