@@ -428,6 +428,7 @@ class BSP:
         placeholder = bpy.data.objects.new(entity_name, None)
         placeholder.location = origin
         placeholder.rotation_euler = angles
+        placeholder.scale *= self.scale
         placeholder['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(placeholder)
 

@@ -55,8 +55,6 @@ class BSP:
         self.face_lump: Optional[FaceLump] = self.map_file.get_lump(LumpTypes.LUMP_FACES)
         self.texture_info_lump: Optional[TextureInfoLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXINFO)
         self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump(LumpTypes.LUMP_TEXDATA)
-        if self.vertex_lump:
-            self.scaled_vertices = np.multiply(self.vertex_lump.vertices, self.scale)
 
         content_manager = ContentManager()
         self.logger.debug('Adding map pack file to content manager')
