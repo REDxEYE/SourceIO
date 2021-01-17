@@ -25,12 +25,12 @@ def import_texture(name, file_object, update=False):
 
     pixels = np.divide(rgba_data.contents, 255, dtype=np.float32)
     try:
-        image = bpy.data.images.get(name, None) or bpy.data.images.new(
+        image = bpy.data.images.get(name, bpy.data.images.new(
             name,
             width=image_width,
             height=image_height,
             alpha=True,
-        )
+        ))
         image.generated_width = image_width
         image.generated_height = image_height
         image.alpha_mode = 'CHANNEL_PACKED'

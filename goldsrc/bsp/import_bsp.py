@@ -94,7 +94,7 @@ class BSP:
                     face_texture.pixels[:] = face_texture_contents
 
                 face_texture.pack()
-            bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
+            bpy_material = bpy.data.materials.get(material_name, bpy.data.materials.new(material_name))
 
             if bpy_material.get('goldsrc_loaded', False):
                 return
@@ -278,7 +278,7 @@ class BSP:
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
-                                        entity_data.get('targetname', None) or f'{entity_class}_{model_index}',
+                                        entity_data.get('targetname', f'{entity_class}_{model_index}'),
                                         parent_collection=entity_collection)
         if model_object:
             model_object.location = origin
@@ -294,7 +294,7 @@ class BSP:
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
-                                        entity_data.get('targetname', None) or f'{entity_class}_{model_index}',
+                                        entity_data.get('targetname', f'{entity_class}_{model_index}'),
                                         parent_collection=entity_collection)
         if model_object:
             model_object.location = origin
@@ -338,7 +338,7 @@ class BSP:
         cone = float(entity_data['_cone']) * 2
         watts = (lumens * (1 / math.radians(cone))) / 10
         radius = (1 - inner_cone / cone)
-        light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
+        light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
                                   'SPOT', watts, color, cone, radius,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
@@ -362,7 +362,7 @@ class BSP:
         lumens *= (color_max / 255) * (1.0 / self.scale)
         color = np.divide(color, color_max)
         watts = lumens / 10
-        light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
+        light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
                                   'POINT', watts, color, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
@@ -385,7 +385,7 @@ class BSP:
         lumens *= (color_max / 255) * (1.0 / self.scale)
         color = np.divide(color, color_max)
         watts = lumens / 10000
-        light = self._load_lights(entity_data.get('targetname', None) or f'{entity_class}',
+        light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
                                   'SUN', watts, color, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin

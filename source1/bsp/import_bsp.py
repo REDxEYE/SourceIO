@@ -193,7 +193,7 @@ class BSP:
                     print(f'Unsupported entity type {entity_class}: {entity_data}')
 
     def get_entity_name(self, entity_data: Dict[str, Any]):
-        return f'{entity_data.get("targetname", None) or entity_data.get("hammerid", "missing_hammer_id")}'
+        return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
 
     def get_entity_by_target_name(self, target_name):
         return self.entry_cache.get(target_name, None)
@@ -217,7 +217,7 @@ class BSP:
         entity_collection = get_or_create_collection(entity_class, self.main_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
-            entity_name = f'{entity_class}_{entity_data.get("hammerid", None) or copy_count}'
+            entity_name = f'{entity_class}_{entity_data.get("hammerid", copy_count)}'
         else:
             entity_name = entity_data['targetname']
 
@@ -289,7 +289,7 @@ class BSP:
         if 'model' in entity_data and entity_data['model']:
             parent_collection = get_or_create_collection(entity_class, master_collection)
             model_id = int(entity_data['model'].replace('*', ''))
-            brush_name = entity_data.get('targetname', None) or f'{entity_class}_{model_id}'
+            brush_name = entity_data.get('targetname', f'{entity_class}_{model_id}')
             location = parse_source2_hammer_vector(entity_data.get('origin', '0 0 0'))
             location = np.multiply(location, self.scale)
             mesh_obj = self.load_bmodel(model_id, brush_name, location, parent_collection)
@@ -715,8 +715,8 @@ class BSP:
             mesh_data.loops.foreach_get('vertex_index', vertex_indices)
             uv_data.foreach_set('uv', uvs[vertex_indices].flatten())
 
-            vertex_colors = mesh_data.vertex_colors.get('mixing', False) or mesh_data.vertex_colors.new(
-                name='mixing')
+            vertex_colors = mesh_data.vertex_colors.get('mixing', mesh_data.vertex_colors.new(
+                name='mixing'))
             vertex_colors_data = vertex_colors.data
             final_vertex_colors = np.array(final_vertex_colors, dtype=np.float32)
             vertex_colors_data.foreach_set('color', final_vertex_colors[vertex_indices].flatten())

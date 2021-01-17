@@ -204,7 +204,7 @@ class ShaderBase:
 
     def create_nodes(self, material_name: str):
         self.logger.info(f'Creating material {repr(material_name)}')
-        self.bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
+        self.bpy_material = bpy.data.materials.get(material_name, bpy.data.materials.new(material_name))
 
         if self.bpy_material is None:
             self.logger.error('Failed to get or create material')

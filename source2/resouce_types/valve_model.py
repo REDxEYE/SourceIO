@@ -118,7 +118,7 @@ class ValveModel:
 
         morphs_available = morph_block is not None and morph_block.read_morphs()
         if morphs_available:
-            flex_trunc = bpy.data.texts.get(f"{name}_flexes", None) or bpy.data.texts.new(f"{name}_flexes")
+            flex_trunc = bpy.data.texts.get(f"{name}_flexes", bpy.data.texts.new(f"{name}_flexes"))
             for flex in morph_block.data['m_morphDatas']:
                 if flex['m_name']:
                     flex_trunc.write(f"{flex['m_name'][:63]}->{flex['m_name']}\n")
@@ -330,7 +330,7 @@ class ValveModel:
                 if attachment['key'] not in all_attachment:
                     all_attachment[attachment['key']] = attachment['value']
 
-        attachment_collection = bpy.data.collections.get('ATTACHMENTS', None) or bpy.data.collections.new('ATTACHMENTS')
+        attachment_collection = bpy.data.collections.get('ATTACHMENTS', bpy.data.collections.new('ATTACHMENTS'))
         if attachment_collection.name not in self.main_collection.children:
             self.main_collection.children.link(attachment_collection)
         for name, attachment in all_attachment.items():
