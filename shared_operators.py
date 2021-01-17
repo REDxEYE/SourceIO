@@ -141,7 +141,7 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
 
 
 def swap_materials(obj, new_material_name, target_name):
-    mat = bpy.data.materials.get(new_material_name, bpy.data.materials.new(name=new_material_name))
+    mat = bpy.data.materials.get(new_material_name, None) or bpy.data.materials.new(name=new_material_name)
     print(f'Swapping {target_name} with {new_material_name}')
     for n, obj_mat in enumerate(obj.data.materials):
         print(target_name, obj_mat.name)

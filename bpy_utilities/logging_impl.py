@@ -6,7 +6,7 @@ from ..utilities.singleton import SingletonMeta
 
 
 def get_log_file(filename):
-    return bpy.data.texts.get(filename, bpy.data.texts.new(filename))
+    return bpy.data.texts.get(filename, None) or bpy.data.texts.new(filename)
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):

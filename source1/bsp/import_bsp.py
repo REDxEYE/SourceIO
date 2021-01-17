@@ -715,8 +715,8 @@ class BSP:
             mesh_data.loops.foreach_get('vertex_index', vertex_indices)
             uv_data.foreach_set('uv', uvs[vertex_indices].flatten())
 
-            vertex_colors = mesh_data.vertex_colors.get('mixing', mesh_data.vertex_colors.new(
-                name='mixing'))
+            vertex_colors = mesh_data.vertex_colors.get('mixing', False) or mesh_data.vertex_colors.new(
+                name='mixing')
             vertex_colors_data = vertex_colors.data
             final_vertex_colors = np.array(final_vertex_colors, dtype=np.float32)
             vertex_colors_data.foreach_set('color', final_vertex_colors[vertex_indices].flatten())

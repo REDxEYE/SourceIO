@@ -94,7 +94,7 @@ class BSP:
                     face_texture.pixels[:] = face_texture_contents
 
                 face_texture.pack()
-            bpy_material = bpy.data.materials.get(material_name, bpy.data.materials.new(material_name))
+            bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
 
             if bpy_material.get('goldsrc_loaded', False):
                 return
