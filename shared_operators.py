@@ -3,9 +3,9 @@ from pathlib import Path
 
 import bpy
 
-from .source_shared.content_manager import ContentManager
 from .source1.mdl.import_model import import_model, import_materials
 from .source2.resouce_types.valve_model import ValveModel
+from .source_shared.content_manager import ContentManager
 from .utilities.path_utilities import backwalk_file_resolver
 
 
@@ -22,6 +22,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
             print(f'Loading {obj.name}')
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
+                prop_scale = obj['scale']
                 if 'prop_path' not in custom_prop_data:
                     continue
                 model_type = Path(custom_prop_data['prop_path']).suffix
@@ -55,7 +56,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vtx_file = content_manager.find_file(prop_path.parent / f'{prop_path.stem}.dx90.vtx')
-                        model_container = import_model(mld_file, vvd_file, vtx_file, None, False, collection,
+                        model_container = import_model(mld_file, vvd_file, vtx_file, prop_scale, False, collection,
                                                        True, True)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)

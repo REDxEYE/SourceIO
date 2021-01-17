@@ -236,8 +236,6 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                 if flex_names:
                     mesh_obj.shape_key_add(name='base')
                 for flex_name in flex_names:
-
-
                     shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, mesh_obj.shape_key_add(name=flex_name))
                     vertex_animation = vac.vertex_cache[flex_name]
 
@@ -250,7 +248,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                     create_flex_drivers(mesh_obj, mdl)
 
     attachment_collection = get_new_unique_collection(f'{model_name}_attachments', master_collection)
-    create_attachments(mdl, armature if not static_prop else container.objects[0], attachment_collection)
+    create_attachments(mdl, armature if not static_prop else container.objects[0], scale, attachment_collection)
 
     return container
 
@@ -319,13 +317,14 @@ def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
             # mesh_obj.matrix_parent_inverse = Matrix()
 
 
-def create_attachments(mdl: Mdl, armature: bpy.types.Object, parent_collection: bpy.types.Collection):
+def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale, parent_collection: bpy.types.Collection):
     for attachment in mdl.attachments:
         empty = bpy.data.objects.new(attachment.name, None)
         parent_collection.objects.link(empty)
-        pos = Vector(attachment.pos)
+        pos = Vector(attachment.pos) * scale
         rot = Euler(attachment.rot)
         empty.matrix_basis.identity()
+        empty.scale *= scale
         empty.parent = armature
         if armature.type == 'ARMATURE':
             bone = armature.data.bones.get(mdl.bones[attachment.parent_bone].name)

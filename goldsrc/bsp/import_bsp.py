@@ -18,7 +18,7 @@ from .lumps.texture_info import TextureInfoLump
 from .lumps.vertex_lump import VertexLump
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.utils import get_or_create_collection, get_material
-from ...utilities.math_utilities import parse_hammer_vector, convert_to_radians
+from ...utilities.math_utilities import parse_hammer_vector, convert_to_radians, HAMMER_UNIT_TO_METERS
 
 log_manager = BPYLoggingManager()
 
@@ -331,11 +331,11 @@ class BSP:
         else:
             lumens = 200
         color_max = max(color)
-        lumens *= color_max / 255 * (1.0 / self.scale)
+        lumens *= color_max / 255
         color = np.divide(color, color_max)
         inner_cone = float(entity_data.get('_cone2', 60))
         cone = float(entity_data['_cone']) * 2
-        watts = (lumens * (1 / math.radians(cone))) / 10
+        watts = (lumens * (1 / math.radians(cone)))
         radius = (1 - inner_cone / cone)
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
                                   'SPOT', watts, color, cone, radius,
@@ -358,9 +358,9 @@ class BSP:
         else:
             lumens = 200
         color_max = max(color)
-        lumens *= (color_max / 255) * (1.0 / self.scale)
+        lumens *= (color_max / 255)
         color = np.divide(color, color_max)
-        watts = lumens / 10
+        watts = lumens
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
                                   'POINT', watts, color, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
@@ -381,9 +381,9 @@ class BSP:
         else:
             lumens = 200
         color_max = max(color)
-        lumens *= (color_max / 255) * (1.0 / self.scale)
+        lumens *= (color_max / 255)
         color = np.divide(color, color_max)
-        watts = lumens / 10000
+        watts = lumens / 1000
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
                                   'SUN', watts, color, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
@@ -399,7 +399,7 @@ class BSP:
         lamp = bpy.data.objects.new(f'{light_type}_{name}',
                                     bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
         lamp_data = lamp.data
-        lamp_data.energy = watts
+        lamp_data.energy =watts *10* (self.scale / HAMMER_UNIT_TO_METERS)**2
         lamp_data.color = color
         lamp_data.shadow_soft_size = radius
         lamp['entity'] = entity
@@ -410,6 +410,7 @@ class BSP:
             parent_collection.objects.link(lamp)
         else:
             self.bsp_collection.objects.link(lamp)
+        lamp.scale *= self.scale
         return lamp
 
     def load_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
@@ -427,6 +428,7 @@ class BSP:
         placeholder = bpy.data.objects.new(entity_name, None)
         placeholder.location = origin
         placeholder.rotation_euler = angles
+        placeholder.empty_display_size = 16
         placeholder.scale *= self.scale
         placeholder['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(placeholder)

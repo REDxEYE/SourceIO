@@ -27,7 +27,8 @@ from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoad
 from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...source_shared.content_manager import ContentManager
 from ...utilities.keyvalues import KVParser
-from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source1_to_blender, lerp_vec, clamp_value
+from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source1_to_blender, lerp_vec, clamp_value, \
+    HAMMER_UNIT_TO_METERS
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
@@ -304,6 +305,7 @@ class BSP:
                               custom_data={'parent_path': str(self.filepath.parent),
                                            'prop_path': entity_data['model'],
                                            'type': entity_class,
+                                           'scale': self.scale,
                                            'entity': entity_data,
                                            'skin': skin})
 
@@ -333,11 +335,11 @@ class BSP:
         rotation[2] = math.radians(180) + rotation[2]
         color, lumens = self._get_light_data(entity_data)
         color_max = max(color)
-        lumens *= color_max / 255 * (1.0 / self.scale)
+        lumens *= color_max / 255
         color = np.divide(color, color_max)
         inner_cone = float(entity_data['_inner_cone'])
         cone = float(entity_data['_cone']) * 2
-        watts = (lumens * (1 / math.radians(cone))) / 10
+        watts = (lumens * (1 / math.radians(cone)))
         radius = (1 - inner_cone / cone)
         self._load_lights(entity_name, location, rotation, 'SPOT', watts, color, cone, radius,
                           parent_collection, entity_data)
@@ -348,9 +350,9 @@ class BSP:
         location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
         color, lumens = self._get_light_data(entity_data)
         color_max = max(color)
-        lumens *= color_max / 255 * (1.0 / self.scale)
+        lumens *= color_max / 255
         color = np.divide(color, color_max)
-        watts = lumens / 10
+        watts = lumens
 
         self._load_lights(entity_name, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
                           parent_collection=parent_collection, entity=entity_data)
@@ -361,7 +363,7 @@ class BSP:
         location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
         color, lumens = self._get_light_data(entity_data)
         color_max = max(color)
-        lumens *= color_max / 255 * (1.0 / self.scale)
+        lumens *= color_max / 255
         color = np.divide(color, color_max)
         watts = lumens / 10000
 
@@ -425,6 +427,7 @@ class BSP:
                     self.create_empty(f'static_prop_{n}', location, rotation, None, parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
+                                                   'scale': self.scale,
                                                    'type': 'static_props',
                                                    'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    'entity': {
@@ -560,10 +563,11 @@ class BSP:
                                     bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
         lamp.location = location
         lamp_data = lamp.data
-        lamp_data.energy = watts
+        lamp_data.energy = watts * (self.scale / HAMMER_UNIT_TO_METERS)**2
         lamp_data.color = color
         lamp.rotation_euler = rotation
         lamp_data.shadow_soft_size = radius
+        lamp.scale *= self.scale
         lamp['entity'] = entity
         if light_type == 'SPOT':
             lamp_data.spot_size = math.radians(core_or_size)
