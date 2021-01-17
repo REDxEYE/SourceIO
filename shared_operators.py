@@ -22,7 +22,6 @@ class LoadEntity_OT_operator(bpy.types.Operator):
             print(f'Loading {obj.name}')
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
-                prop_scale = custom_prop_data.get('scale', 1.0)
                 if 'prop_path' not in custom_prop_data:
                     continue
                 model_type = Path(custom_prop_data['prop_path']).suffix
@@ -55,7 +54,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vtx_file = content_manager.find_file(prop_path.parent / f'{prop_path.stem}.dx90.vtx')
-                        model_container = import_model(mld_file, vvd_file, vtx_file, prop_scale, False, collection,
+                        model_container = import_model(mld_file, vvd_file, vtx_file, 1.0, False, collection,
                                                        True, True)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)

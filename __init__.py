@@ -80,10 +80,10 @@ if not NO_BPY:
             layout.operator(VMATImport_OT_operator.bl_idname, text="Source2 material (.vmat)",
                             icon_value=vmat_icon.icon_id)
             layout.separator()
-            layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
-                            icon_value=bsp_icon.icon_id)
             layout.operator(GMDLImport_OT_operator.bl_idname, text="GoldSrc model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
+            layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
+                            icon_value=bsp_icon.icon_id)
 
 
     def menu_import(self, context):
