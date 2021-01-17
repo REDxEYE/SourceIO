@@ -1,5 +1,5 @@
 from ..utilities.path_utilities import backwalk_file_resolver
-from ..utilities.sub_manager import SubManager
+from ..source_shared.sub_manager import SubManager
 
 
 class NonSourceSubManager(SubManager):

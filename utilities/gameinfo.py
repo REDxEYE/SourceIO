@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List
 
 from .keyvalues import KVParser
-from .sub_manager import SubManager
+from ..source_shared.sub_manager import SubManager
 
 
 class Gameinfo(SubManager):
