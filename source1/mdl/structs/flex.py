@@ -160,7 +160,7 @@ class Flex(Base):
                 else:
                     vert_anim_class = VertAnim
 
-                self.vertex_animations = np.frombuffer(reader.read_bytes(vert_count * vert_anim_class.dtype.itemsize),
+                self.vertex_animations = np.frombuffer(reader.read(vert_count * vert_anim_class.dtype.itemsize),
                                                        vert_anim_class.dtype)
 
 

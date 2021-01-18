@@ -43,13 +43,13 @@ class TextureData:
             for index, offset in enumerate(self.offsets):
                 buffer.seek(entry_offset + offset)
                 texture_size = (self.width * self.height) >> (index * 2)
-                texture_indices.append(np.frombuffer(buffer.read_bytes(texture_size), np.uint8))
+                texture_indices.append(np.frombuffer(buffer.read(texture_size), np.uint8))
 
-            assert buffer.read_bytes(2) == b'\x00\x01', 'Invalid palette start anchor'
+            assert buffer.read(2) == b'\x00\x01', 'Invalid palette start anchor'
 
-            texture_palette = np.frombuffer(buffer.read_bytes(256 * 3), np.uint8).reshape((-1, 3))
+            texture_palette = np.frombuffer(buffer.read(256 * 3), np.uint8).reshape((-1, 3))
 
-            assert buffer.read_bytes(2) == b'\x00\x00', 'Invalid palette end anchor'
+            assert buffer.read(2) == b'\x00\x00', 'Invalid palette end anchor'
 
             self.data = make_texture(texture_indices[0], texture_palette, use_alpha=self.name.startswith('{'))
             self.data = flip_texture(self.data, self.width, self.height)

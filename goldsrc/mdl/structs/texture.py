@@ -34,7 +34,7 @@ class StudioTexture(Base):
 
         with reader.save_current_pos():
             reader.seek(self.index)
-            indices = np.frombuffer(reader.read_bytes(self.width * self.height), np.uint8)
-            palette = np.frombuffer(reader.read_bytes(256 * 3), np.uint8).reshape((-1, 3))
+            indices = np.frombuffer(reader.read(self.width * self.height), np.uint8)
+            palette = np.frombuffer(reader.read(256 * 3), np.uint8).reshape((-1, 3))
             palette = np.insert(palette, 3, 255, 1) / 255
             self.data = np.flip(palette[indices].reshape((self.height, self.width, 4)), 0).reshape((-1, 4))

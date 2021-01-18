@@ -47,8 +47,8 @@ class CompiledShader:
 
     def read_shader(self):
         reader = self.reader
-        self.file_id = reader.read_bytes(16)
-        self.static_id = reader.read_bytes(16)
+        self.file_id = reader.read(16)
+        self.static_id = reader.read(16)
         print("FILEID:", rhex(self.file_id))
         print("STAATICID:", rhex(self.static_id))
         unk = reader.read_uint32()

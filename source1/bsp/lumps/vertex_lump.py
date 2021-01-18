@@ -11,6 +11,6 @@ class VertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertices = np.frombuffer(reader.read_bytes(self._lump.size), np.float32, self._lump.size // 4)
+        self.vertices = np.frombuffer(reader.read(self._lump.size), np.float32, self._lump.size // 4)
         self.vertices = self.vertices.reshape((-1, 3))
         return self

@@ -112,7 +112,7 @@ class ValveFile:
             if block.block_name == name:
                 with self.reader.save_current_pos():
                     self.reader.seek(block.entry + block.block_offset)
-                    file.write(self.reader.read_bytes(block.block_size))
+                    file.write(self.reader.read(block.block_size))
 
     # noinspection PyTypeChecker
     def dump_resources(self):

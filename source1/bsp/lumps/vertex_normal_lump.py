@@ -12,7 +12,7 @@ class VertexNormalLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.normals = np.frombuffer(reader.read_bytes(self._lump.size), np.float32, self._lump.size // 4)
+        self.normals = np.frombuffer(reader.read(self._lump.size), np.float32, self._lump.size // 4)
         self.normals = self.normals.reshape((-1, 3))
         return self
 
@@ -26,5 +26,5 @@ class VertexNormalIndicesLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.indices = np.frombuffer(reader.read_bytes(self._lump.size), np.int16, self._lump.size // 2)
+        self.indices = np.frombuffer(reader.read(self._lump.size), np.int16, self._lump.size // 2)
         return self

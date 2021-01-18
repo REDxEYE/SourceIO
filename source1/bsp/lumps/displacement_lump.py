@@ -38,7 +38,7 @@ class DispVert(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertices = np.frombuffer(reader.read_bytes(self._lump.size),
+        self.vertices = np.frombuffer(reader.read(self._lump.size),
                                       self.dtype, self._lump.size // self.dtype.itemsize)
 
         self.transformed_vertices = self.vertices['position'] * self.vertices['dist']

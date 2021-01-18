@@ -81,7 +81,7 @@ class BinaryKeyValue:
         self.double_buffer = ByteIO()
 
     def read(self, reader: ByteIO):
-        fourcc = reader.read_bytes(4)
+        fourcc = reader.read(4)
         assert tuple(fourcc) in [self.KV3_SIG, self.VKV3_SIG], 'Invalid KV Signature'
         if tuple(fourcc) == self.VKV3_SIG:
             self.read_v2(reader)
@@ -89,9 +89,9 @@ class BinaryKeyValue:
             self.read_v1(reader)
 
     def block_decompress(self, reader):
-        self.flags = reader.read_bytes(4)
+        self.flags = reader.read(4)
         if self.flags[3] & 0x80:
-            self.buffer.write_bytes(reader.read_bytes(-1))
+            self.buffer.write_bytes(reader.read(-1))
         working = True
         while reader.tell() != reader.size() and working:
             block_mask = reader.read_uint16()
@@ -104,7 +104,7 @@ class BinaryKeyValue:
 
                     entry = self.buffer.tell()
                     self.buffer.seek(offset)
-                    data = self.buffer.read_bytes(lookup_size)
+                    data = self.buffer.read(lookup_size)
                     self.buffer.seek(entry)
                     while size > 0:
                         self.buffer.write_bytes(data[:lookup_size if lookup_size < size else size])
@@ -120,20 +120,20 @@ class BinaryKeyValue:
     def decompress_lz4(self, reader):
         decompressed_size = reader.read_uint32()
         compressed_size = reader.size() - reader.tell()
-        data = reader.read_bytes(-1)
+        data = reader.read(-1)
         data = uncompress(data, compressed_size, decompressed_size)
         self.buffer.write_bytes(data)
         self.buffer.seek(0)
 
     def read_v1(self, reader):
-        encoding = reader.read_bytes(16)
+        encoding = reader.read(16)
         assert tuple(encoding) in [
             self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED,
             self.KV3_ENCODING_BINARY_BLOCK_LZ4,
             self.KV3_ENCODING_BINARY_UNCOMPRESSED,
         ], 'Unrecognized KV3 Encoding'
 
-        fmt = reader.read_bytes(16)
+        fmt = reader.read(16)
 
         assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
         if tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
@@ -141,7 +141,7 @@ class BinaryKeyValue:
         elif tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4:
             self.decompress_lz4(reader)
         elif tuple(encoding) == self.KV3_ENCODING_BINARY_UNCOMPRESSED:
-            self.buffer.write_bytes(reader.read_bytes(-1))
+            self.buffer.write_bytes(reader.read(-1))
             self.buffer.seek(0)
         string_count = self.buffer.read_uint32()
         for _ in range(string_count):
@@ -156,7 +156,7 @@ class BinaryKeyValue:
         del self.buffer
 
     def read_v2(self, reader: ByteIO):
-        fmt = reader.read_bytes(16)
+        fmt = reader.read(16)
         assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
@@ -165,11 +165,11 @@ class BinaryKeyValue:
         self.double_count = reader.read_uint32()
         if compression_method == 0:
             length = reader.read_uint32()
-            self.buffer.write_bytes(reader.read_bytes(length))
+            self.buffer.write_bytes(reader.read(length))
         elif compression_method == 1:
             uncompressed_size = reader.read_uint32()
             compressed_size = self.block_info.block_size - reader.tell()
-            data = reader.read_bytes(compressed_size)
+            data = reader.read(compressed_size)
             u_data = uncompress(data, compressed_size, uncompressed_size)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
             self.buffer.write_bytes(u_data)
@@ -178,19 +178,19 @@ class BinaryKeyValue:
 
         self.buffer.seek(0)
 
-        self.byte_buffer.write_bytes(self.buffer.read_bytes(self.bin_blob_count))
+        self.byte_buffer.write_bytes(self.buffer.read(self.bin_blob_count))
         self.byte_buffer.seek(0)
 
         if self.buffer.tell() % 4 != 0:
             self.buffer.seek(self.buffer.tell() + (4 - (self.buffer.tell() % 4)))
 
-        self.int_buffer.write_bytes(self.buffer.read_bytes(self.int_count * 4))
+        self.int_buffer.write_bytes(self.buffer.read(self.int_count * 4))
         self.int_buffer.seek(0)
 
         if self.buffer.tell() % 8 != 0:
             self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
 
-        self.double_buffer.write_bytes(self.buffer.read_bytes(self.double_count * 8))
+        self.double_buffer.write_bytes(self.buffer.read(self.double_count * 8))
         self.double_buffer.seek(0)
 
         for _ in range(self.int_buffer.read_uint32()):
@@ -320,7 +320,7 @@ class BinaryKeyValue:
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
             size = self.int_buffer.read_uint32()
-            add(self.byte_buffer.read_bytes(size))
+            add(self.byte_buffer.read(size))
             return
         else:
             raise NotImplementedError("Unknown KVType.{}".format(data_type.name))

@@ -11,7 +11,7 @@ class DATA(DataBlock):
         reader = self.reader
         if reader.size():
             with reader.save_current_pos():
-                fourcc = reader.read_bytes(4)
+                fourcc = reader.read(4)
             if tuple(fourcc) == (0x56, 0x4B, 0x56, 0x03) or tuple(fourcc) == (0x01, 0x33, 0x56, 0x4B):
                 kv = BinaryKeyValue(self.info_block)
                 kv.read(reader)

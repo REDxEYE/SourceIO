@@ -445,7 +445,7 @@ class BSP:
             assert worldspawn['classname'] == 'worldspawn'
             vbsp_name = worldspawn['detailvbsp']
             vbsp_file = content_manager.find_file(vbsp_name)
-            vbsp = KVParser('vbsp', vbsp_file.read().decode('ascii'))
+            vbsp = KVParser('vbsp', vbsp_file._read().decode('ascii'))
             details_info = vbsp.parse()
             print(vbsp_file)
 

@@ -138,7 +138,7 @@ class TEXR(DataBlock):
                         for _ in range(mips):
                             self.compressed_mips.append(reader.read_uint32())
                     else:
-                        self.extra_data.append((extra_type, reader.read_bytes(size)))
+                        self.extra_data.append((extra_type, reader.read(size)))
         # print(self.format)
         # self.read_image()
 
@@ -197,8 +197,8 @@ class TEXR(DataBlock):
             for i in range(self.mipmap_count - 1, mip_level, -1):
                 reader.skip(self.calculate_buffer_size_for_mip(i))
         if compressed_size >= uncompressed_size:
-            return reader.read_bytes(uncompressed_size)
-        data = lz4_decompress(reader.read_bytes(compressed_size), compressed_size, uncompressed_size)
+            return reader.read(uncompressed_size)
+        data = lz4_decompress(reader.read(compressed_size), compressed_size, uncompressed_size)
         assert len(data) == uncompressed_size, "Uncompressed data size != expected uncompressed size"
         return data
 
@@ -215,7 +215,7 @@ class TEXR(DataBlock):
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
-            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_r8g8b8a8(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.BC7:
@@ -228,23 +228,23 @@ class TEXR(DataBlock):
                         if container.compiler_identifier == "CompileTexture" and container.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
                             hemi_oct_rb = True
                             break
-            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_bc7(data, self.width, self.height, hemi_oct_rb, flip)
             self.image_data = data
         elif self.format == VTexFormat.ATI1N:
-            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_ati1n(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.ATI2N:
-            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_ati2n(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.DXT1:
-            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_dxt1(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.DXT5:
-            data = self.get_decompressed_buffer(reader, 0).read_bytes(-1)
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_dxt5(data, self.width, self.height, flip)
             self.image_data = data
 
