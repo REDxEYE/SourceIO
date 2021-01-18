@@ -12,7 +12,7 @@ class DataBlock:
 
         with self._valve_file.reader.save_current_pos():
             self._valve_file.reader.seek(self.info_block.absolute_offset)
-            self.reader = ByteIO(self._valve_file.reader.read_bytes(self.info_block.block_size))
+            self.reader = ByteIO(self._valve_file.reader.read(self.info_block.block_size))
 
         self.parsed = False
 

@@ -15,7 +15,7 @@ class PakLump(Lump):
         self._cache = {}
 
     def parse(self):
-        zip_data = BytesIO(self.reader.read_bytes(self._lump.size))
+        zip_data = BytesIO(self.reader.read(self._lump.size))
         self.zip_file = zipfile.ZipFile(zip_data)
         self._cache = {a.lower(): a for a in self.zip_file.NameToInfo}
         return self

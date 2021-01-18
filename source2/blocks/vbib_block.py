@@ -199,16 +199,16 @@ class VertexBuffer:
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
             if self.total_size != self.vertex_size * self.vertex_count:
-                data = reader.read_bytes(self.total_size)
+                data = reader.read(self.total_size)
                 self.buffer.write_bytes(decode_vertex_buffer(data, self.vertex_size, self.vertex_count))
             else:
-                self.buffer.write_bytes(reader.read_bytes(self.vertex_count * self.vertex_size))
+                self.buffer.write_bytes(reader.read(self.vertex_count * self.vertex_size))
             self.buffer.seek(0)
         self.read_buffer()
 
     def read_buffer(self):
         vertex_dtype = self.construct_dtype()
-        self.vertexes = np.frombuffer(self.buffer.read_bytes(vertex_dtype.itemsize * self.vertex_count), vertex_dtype)
+        self.vertexes = np.frombuffer(self.buffer.read(vertex_dtype.itemsize * self.vertex_count), vertex_dtype)
 
 
 class VertexAttribute:
@@ -292,17 +292,17 @@ class IndexBuffer:
         with reader.save_current_pos():
             reader.seek(entry + self.offset)
             if self.total_size != self.index_size * self.index_count:
-                self.buffer.write_bytes(decode_index_buffer(reader.read_bytes(self.total_size),
+                self.buffer.write_bytes(decode_index_buffer(reader.read(self.total_size),
                                                             self.index_size, self.index_count))
             else:
-                self.buffer.write_bytes(reader.read_bytes(self.index_count * self.index_size))
+                self.buffer.write_bytes(reader.read(self.index_count * self.index_size))
 
         self.buffer.seek(0)
         self.read_buffer()
 
     def read_buffer(self):
         index_dtype = np.uint32 if self.index_size == 4 else np.uint16
-        self.indexes = np.frombuffer(self.buffer.read_bytes(self.index_count * self.index_size), index_dtype)
+        self.indexes = np.frombuffer(self.buffer.read(self.index_count * self.index_size), index_dtype)
         self.indexes = self.indexes.reshape((-1, 3))
 
 

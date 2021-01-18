@@ -40,7 +40,7 @@ class _Decoder:
 
     def read_element(self, reader: ByteIO):
         if 'O' in self._type:
-            return self._read_quat(reader.read_bytes(6))
+            return self._read_quat(reader.read(6))
         elif 'Y' in self._type:
             count = int(self._type[:-1])
             return [reader.read_float16() for _ in range(count)]
@@ -134,7 +134,7 @@ def parse_segment(frame_id, frame: 'Frame', segment, decode_key, decoder_array):
         bone_count = container.read_int16()
         total_size = container.read_int16()
 
-        elements = np.frombuffer(container.read_bytes(2 * bone_count), dtype=np.uint16)
+        elements = np.frombuffer(container.read(2 * bone_count), dtype=np.uint16)
 
         if container.tell() + (decoder.size * frame_id * bone_count) < container.size():
             container.skip(decoder.size * frame_id * bone_count)

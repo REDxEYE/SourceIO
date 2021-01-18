@@ -74,6 +74,6 @@ class StudioModel:
             self.bone_normal_info = reader.read_fmt(f'{self.vertex_count}B')
 
             reader.seek(self.vertex_offset)
-            self.vertices = np.frombuffer(reader.read_bytes(12 * self.vertex_count), np.float32).reshape((-1, 3))
+            self.vertices = np.frombuffer(reader.read(12 * self.vertex_count), np.float32).reshape((-1, 3))
             reader.seek(self.normal_offset)
-            self.normals = np.frombuffer(reader.read_bytes(12 * self.normal_count), np.float32).reshape((-1, 3))
+            self.normals = np.frombuffer(reader.read(12 * self.normal_count), np.float32).reshape((-1, 3))

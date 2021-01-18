@@ -38,7 +38,7 @@ class Lump:
 
         with self.info.bsp.handle.save_current_pos():
             self.info.bsp.handle.seek(self.info.offset)
-            self.buffer = ByteIO(self.info.bsp.handle.read_bytes(self.info.length))
+            self.buffer = ByteIO(self.info.bsp.handle.read(self.info.length))
 
     def parse(self):
         raise NotImplementedError

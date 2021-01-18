@@ -243,7 +243,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                     model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
                     flex_vertices = model_vertices[vtx_vertices] * scale
 
-                    shape_key.data.foreach_set("co", flex_vertices.reshape((-1,)))
+                    shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
 
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)

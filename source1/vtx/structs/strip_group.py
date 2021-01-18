@@ -46,7 +46,7 @@ class StripGroup(Base):
 
         with reader.save_current_pos():
             reader.seek(entry + index_offset)
-            self.indexes = np.frombuffer(reader.read_bytes(2 * index_count), dtype=np.uint16)
+            self.indexes = np.frombuffer(reader.read(2 * index_count), dtype=np.uint16)
             reader.seek(entry + vertex_offset)
             for _ in range(vertex_count):
                 vertex = Vertex()

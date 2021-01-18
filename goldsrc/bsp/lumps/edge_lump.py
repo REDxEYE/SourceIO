@@ -11,4 +11,4 @@ class EdgeLump(Lump):
         self.values = np.array([])
 
     def parse(self):
-        self.values = np.frombuffer(self.buffer.read_bytes(self.info.length), np.uint16).reshape((-1, 2))
+        self.values = np.frombuffer(self.buffer.read(self.info.length), np.uint16).reshape((-1, 2))

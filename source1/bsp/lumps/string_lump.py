@@ -11,7 +11,7 @@ class StringOffsetLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.string_ids = np.frombuffer(reader.read_bytes(self._lump.size), np.int32, self._lump.size // 4)
+        self.string_ids = np.frombuffer(reader.read(self._lump.size), np.int32, self._lump.size // 4)
         return self
 
 
@@ -24,6 +24,6 @@ class StringsLump(Lump):
 
     def parse(self):
         reader = self.reader
-        data = reader.read_bytes(-1)
+        data = reader.read(-1)
         self.strings = list(map(lambda a: a.decode("utf"), data.split(b'\x00')))
         return self

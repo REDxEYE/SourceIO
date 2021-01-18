@@ -104,11 +104,11 @@ class Lump:
             lp = props % 5
             my_filters = [{"id": lzma.FILTER_LZMA2, "dict_size": dict_size, "pb": pb, "lp": lp, "lc": lc}, ]
             self.reader = ByteIO(
-                lzma_decompress(reader.read_bytes(compressed_size), lzma.FORMAT_RAW, filters=my_filters)
+                lzma_decompress(reader.read(compressed_size), lzma.FORMAT_RAW, filters=my_filters)
             )
             assert self.reader.size() == decompressed_size, 'Compressed lump size does not match expected'
         else:
-            self.reader = ByteIO(self._bsp.reader.read_bytes(self._lump.size))
+            self.reader = ByteIO(self._bsp.reader.read(self._lump.size))
 
     def parse(self):
         return self

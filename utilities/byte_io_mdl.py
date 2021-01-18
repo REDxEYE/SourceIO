@@ -41,12 +41,12 @@ class ByteIO:
     @property
     def preview(self):
         with self.save_current_pos():
-            return self.read_bytes(64)
+            return self.read(64)
 
     @property
     def preview_f(self):
         with self.save_current_pos():
-            block = self.read_bytes(64)
+            block = self.read(64)
             hex_values = split(split(binascii.hexlify(block).decode().upper(), 2), 4)
             return [' '.join(b) for b in hex_values]
 
@@ -82,7 +82,7 @@ class ByteIO:
 
     def insert_begin(self, to_insert):
         self.seek(0)
-        buffer = self._read(-1)
+        buffer = self.read(-1)
 
         del self.file
         self.file = BytesIO()
@@ -94,7 +94,7 @@ class ByteIO:
 
     def _peek(self, size=1):
         with self.save_current_pos():
-            return self._read(size)
+            return self.read(size)
 
     def peek(self, t):
         size = struct.calcsize(t)
@@ -140,44 +140,44 @@ class ByteIO:
 
     # ------------ READ SECTION ------------ #
 
-    def _read(self, size=-1) -> bytes:
+    def read(self, size=-1) -> bytes:
         return self.file.read(size)
 
-    def read(self, t):
+    def _read(self, t):
         return struct.unpack(t, self.file.read(struct.calcsize(t)))[0]
 
     def read_fmt(self, fmt):
         return struct.unpack(fmt, self.file.read(struct.calcsize(fmt)))
 
     def read_uint64(self):
-        return self.read('Q')
+        return self._read('Q')
 
     def read_int64(self):
-        return self.read('q')
+        return self._read('q')
 
     def read_uint32(self):
-        return self.read('I')
+        return self._read('I')
 
     def read_int32(self):
-        return self.read('i')
+        return self._read('i')
 
     def read_uint16(self):
-        return self.read('H')
+        return self._read('H')
 
     def read_int16(self):
-        return self.read('h')
+        return self._read('h')
 
     def read_uint8(self):
-        return self.read('B')
+        return self._read('B')
 
     def read_int8(self):
-        return self.read('b')
+        return self._read('b')
 
     def read_float(self):
-        return self.read('f')
+        return self._read('f')
 
     def read_double(self):
-        return self.read('d')
+        return self._read('d')
 
     def read_ascii_string(self, length=None):
         if length is not None:
@@ -189,7 +189,7 @@ class ByteIO:
         buffer = bytearray()
 
         while True:
-            chunk = self.read_bytes(32)
+            chunk = self.read(32)
             chunk_end = chunk.find(b'\x00')
             if chunk_end >= 0:
                 buffer += chunk[:chunk_end]
@@ -288,11 +288,8 @@ class ByteIO:
         self.seek(curr_offset, io.SEEK_SET)
         return ret
 
-    def read_bytes(self, size):
-        return self._read(size)
-
     def read_float16(self):
-        return self.read('e')
+        return self._read('e')
 
     def write_bytes(self, data):
         self._write(data)

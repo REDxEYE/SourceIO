@@ -11,5 +11,5 @@ class SurfEdgeLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.surf_edges = np.frombuffer(reader.read_bytes(self._lump.size), np.int32, self._lump.size // 4)
+        self.surf_edges = np.frombuffer(reader.read(self._lump.size), np.int32, self._lump.size // 4)
         return self

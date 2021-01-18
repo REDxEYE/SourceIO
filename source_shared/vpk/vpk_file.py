@@ -36,13 +36,13 @@ class VPKFile:
             assert self.header.other_md5_section_size == 48, \
                 f'Invalid size of other_md5_section {self.header.other_md5_section_size} bytes, should be 48 bytes'
         if self.header.version == 2:
-            self.tree_hash = reader.read_bytes(16)
-            self.archive_md5_hash = reader.read_bytes(16)
-            self.file_hash = reader.read_bytes(16)
+            self.tree_hash = reader.read(16)
+            self.archive_md5_hash = reader.read(16)
+            self.file_hash = reader.read(16)
 
             if self.header.signature_section_size != 0:
-                self.public_key = reader.read_bytes(reader.read_int32())
-                self.signature = reader.read_bytes(reader.read_int32())
+                self.public_key = reader.read(reader.read_int32())
+                self.signature = reader.read(reader.read_int32())
 
     def read_entries(self):
         reader = self.reader
