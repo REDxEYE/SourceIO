@@ -236,7 +236,8 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                 if flex_names:
                     mesh_obj.shape_key_add(name='base')
                 for flex_name in flex_names:
-                    shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(name=flex_name)
+                    shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
+                        name=flex_name)
                     vertex_animation = vac.vertex_cache[flex_name]
 
                     model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)

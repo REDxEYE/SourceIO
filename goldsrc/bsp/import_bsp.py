@@ -399,7 +399,7 @@ class BSP:
         lamp = bpy.data.objects.new(f'{light_type}_{name}',
                                     bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
         lamp_data = lamp.data
-        lamp_data.energy =watts *10* (self.scale / HAMMER_UNIT_TO_METERS)**2
+        lamp_data.energy = watts * 10 * (self.scale / HAMMER_UNIT_TO_METERS) ** 2
         lamp_data.color = color
         lamp_data.shadow_soft_size = radius
         lamp['entity'] = entity

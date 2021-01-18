@@ -432,8 +432,8 @@ class BSP:
                                                    'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    'entity': {
                                                        'type': 'static_prop',
-                                                       'origin': prop.origin,
-                                                       'angles': prop.rotation,
+                                                       'origin': list(prop.origin),
+                                                       'angles': list(prop.rotation),
                                                    }
                                                    })
 
