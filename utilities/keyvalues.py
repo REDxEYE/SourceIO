@@ -42,11 +42,11 @@ class KVReader:
         self._line = 1
         self._column = 1
         self._last = None
-        self._last = self.read()
+        self._last = self._read()
 
     def read(self):
         tok = self._last
-        self._last = self.read()
+        self._last = self._read()
         return tok
 
     def peek(self):
