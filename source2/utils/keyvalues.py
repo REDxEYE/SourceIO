@@ -353,7 +353,7 @@ class Writer:
 class KeyValues:
     @staticmethod
     def read_file(filename: str):
-        return KeyValues.read_data(open(filename, 'r', encoding='utf-8'), filename)
+        return KeyValues.read_data(open(filename, 'r', encoding='latin', errors='replace'), filename)
 
     @staticmethod
     def read_data(stream: typing.TextIO, filename: str = '<input>'):

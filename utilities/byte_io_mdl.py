@@ -184,7 +184,7 @@ class ByteIO:
             buffer = self.file.read(length).strip(b'\x00')
             if b'\x00' in buffer:
                 buffer = buffer[:buffer.index(b'\x00')]
-            return buffer.decode('latin').strip()
+            return buffer.decode('latin', errors='replace').strip()
 
         buffer = bytearray()
 
@@ -197,7 +197,7 @@ class ByteIO:
                 buffer += chunk
             if chunk_end >= 0:
                 self.seek(-(len(chunk) - chunk_end - 1), io.SEEK_CUR)
-                return buffer.decode('latin')
+                return buffer.decode('latin', errors='replace')
 
     def read_fourcc(self):
         return self.read_ascii_string(4)
