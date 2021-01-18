@@ -26,10 +26,6 @@ log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('mdl_loader')
 
 
-def split(array, n=3):
-    return [array[i:i + n] for i in range(0, len(array), n)]
-
-
 def merge_strip_groups(vtx_mesh: VtxMesh):
     indices_accumulator = []
     vertex_accumulator = []
@@ -44,25 +40,24 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
 
 def merge_meshes(model: Model, vtx_model: VtxModel):
     vtx_vertices = []
-    face_sets = []
     acc = 0
+    mat_arrays = []
+    indices_array = []
     for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
 
         if not vtx_mesh.strip_groups:
             continue
-        face_set = {}
 
         vertex_start = mesh.vertex_index_start
-        face_set['material'] = mesh.material_index
         indices, vertices, offset = merge_strip_groups(vtx_mesh)
         indices = np.add(indices, acc)
-
+        mat_array = np.full(indices.shape[0] // 3, mesh.material_index)
+        mat_arrays.append(mat_array)
         vtx_vertices.extend(np.add(vertices, vertex_start))
-        face_set['indices'] = indices
-        face_sets.append(face_set)
+        indices_array.append(indices)
         acc += offset
 
-    return vtx_vertices, face_sets
+    return vtx_vertices, np.hstack(indices_array), np.hstack(mat_arrays)
 
 
 def get_slice(data: [Iterable, Sized], start, count=None):
@@ -185,32 +180,23 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                 continue
 
             model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
-            vtx_vertices, face_sets = merge_meshes(model, vtx_model.model_lods[desired_lod])
+            vtx_vertices, indices_array, material_indices_array = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
-            indices_array = []
-            material_indices_array = []
-            used_materials = []
-
-            for face_set in face_sets:
-                indices_array.extend(face_set['indices'])
-                mat_name = mdl.materials[face_set['material']].name
-                if mat_name not in used_materials:
-                    used_materials.append(mat_name)
-                material_indices_array.extend([used_materials.index(mat_name)] * (len(face_set['indices']) // 3))
-
+            indices_array = np.array(indices_array, dtype=np.uint32)
             vertices = model_vertices[vtx_vertices]
 
-            mesh_data.from_pydata(vertices['vertex'] * scale, [], split(indices_array[::-1], 3))
+            mesh_data.from_pydata(vertices['vertex'] * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
             mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
             mesh_data.use_auto_smooth = True
 
-            for mat_name in used_materials:
+            for mat_id in np.unique(material_indices_array):
+                mat_name = mdl.materials[mat_id].name
                 get_material(mat_name, mesh_obj)
 
-            mesh_data.polygons.foreach_set('material_index', material_indices_array[::-1])
+            mesh_data.polygons.foreach_set('material_index', material_indices_array[::-1].tolist())
 
             mesh_data.uv_layers.new()
             uv_data = mesh_data.uv_layers[0].data
@@ -293,29 +279,6 @@ def create_flex_drivers(obj, mdl: Mdl):
         parse_expr(expr, driver, shape_key_block)
         driver.expression = str(expr)
         logger.debug(f'{target} {expr}')
-
-
-def create_collision_mesh(phy: Phy, mdl: Mdl, armature):
-    for solid in phy.solids:
-        for section in solid.sections:
-            bone: Bone = mdl.bones[section.bone_index]
-            bone_name = bone.name
-            mesh_data = bpy.data.meshes.new(f'{bone_name}_collider_MESH')
-            mesh_obj = bpy.data.objects.new(f"{bone_name}_collider", mesh_data)
-
-            bpy.context.scene.collection.objects.link(mesh_obj)
-            mesh_data.from_pydata(section.vertices, [], split(section.indices, 3))
-            mesh_data.update()
-            pose_bone = armature.pose.bones.get(bone_name)
-            # edit_bone = armature.data.bones.get(bone_name)
-            # mesh_obj.parent = armature
-            # mesh_obj.parent_bone = pose_bone.name
-            # mesh_obj.parent_type = 'BONE'
-            mesh_obj.location = pose_bone.head
-            # mesh_obj.rotation_euler = edit_bone.rotation_euler
-            # mesh_obj.matrix_parent_inverse = (armature.matrix_world @ bone.matrix).inverted()
-            # mesh_obj.matrix_world = (armature.matrix_world @ bone.matrix)
-            # mesh_obj.matrix_parent_inverse = Matrix()
 
 
 def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale, parent_collection: bpy.types.Collection):
