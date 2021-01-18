@@ -33,7 +33,6 @@ class VertexAnimationCache(Base):
             else:
                 vertex_cache = self.vertex_cache[flex.name]
             vertex_indices = flex.vertex_animations['index'].reshape(-1) + mesh.vertex_index_start + vertex_offset
-
             vertex_cache[vertex_indices] = np.add(vertex_cache[vertex_indices], flex.vertex_animations['vertex_delta'])
 
         pass

@@ -9,7 +9,7 @@ logger = log_manager.get_logger('valve_material')
 class VMT:
     def __init__(self, file_object):
         KVParser.set_strict_parsing_mode(True)
-        kv_parser = KVParser('VMT', file_object._read(-1).decode('latin', errors='replace'))
+        kv_parser = KVParser('VMT', file_object.read(-1).decode('latin', errors='replace'))
         try:
             self.shader, self.material_data = kv_parser.parse()
             self.shader = self.shader.lower()
@@ -28,7 +28,7 @@ class VMT:
             original_material = content_manager.find_file(self.material_data['include'])
             if original_material:
                 KVParser.set_strict_parsing_mode(True)
-                kv_parser = KVParser('VMT', original_material._read(-1).decode())
+                kv_parser = KVParser('VMT', original_material.read(-1).decode())
                 KVParser.set_strict_parsing_mode(False)
                 old_data = self.material_data
                 self.shader, self.material_data = kv_parser.parse()

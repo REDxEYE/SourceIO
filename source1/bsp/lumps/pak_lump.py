@@ -31,5 +31,5 @@ class PakLump(Lump):
         new_filepath = str(new_filepath.as_posix()).lower()
         new_filepath = self._cache.get(new_filepath, None)
         if new_filepath is not None:
-            return BytesIO(self.zip_file.open(new_filepath, 'r')._read())
+            return BytesIO(self.zip_file.open(new_filepath, 'r').read())
         return None
