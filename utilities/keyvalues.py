@@ -5,7 +5,7 @@ from typing import TextIO
 
 
 def _is_end(ch: str):
-    return ch in '\r\n'
+    return ch in '\r\n\0'
 
 
 def _is_identifier_start(ch: str):
