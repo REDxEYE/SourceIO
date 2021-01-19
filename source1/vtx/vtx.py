@@ -3,7 +3,7 @@ from typing import List
 
 from .structs.material_replacement_list import MaterialReplacementList
 from ...source_shared.base import Base
-from ...utilities.byte_io_mdl  import ByteIO
+from ...utilities.byte_io_mdl import ByteIO
 
 from .structs.header import Header
 from .structs.bodypart import BodyPart
@@ -26,7 +26,7 @@ class Vtx(Base):
                 body_part = BodyPart()
                 body_part.read(self.reader)
                 self.body_parts.append(body_part)
-        except (struct.error,AssertionError):
+        except (struct.error, AssertionError):
             self.reader.seek(self.header.body_part_offset)
             self.body_parts.clear()
             self.store_value('extra8', True)

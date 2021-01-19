@@ -199,23 +199,9 @@ class VertAnim(Base):
         ]
     )
 
-    def __init__(self):
-        self.index = 0
-        self.speed = 0
-        self.side = 0
-        self.vertex_delta = []  # 3
-        self.normal_delta = []  # 3
-
-    def read(self, reader: ByteIO):
-        self.index, self.speed, self.side = reader.read_fmt('hBB')
-        self.vertex_delta = _float16_vector3(reader)
-        self.normal_delta = _float16_vector3(reader)
-        return self
-
 
 class VertAnimWrinkle(VertAnim):
     is_wrinkle = True
-
     dtype = np.dtype(
         [
             ('index', np.uint16, (1,)),
@@ -226,12 +212,3 @@ class VertAnimWrinkle(VertAnim):
             ('wrinkle_delta', np.float16, (1,)),
         ]
     )
-
-    def __init__(self):
-        super().__init__()
-        self.wrinkle_delta = 0
-
-    def read(self, reader: ByteIO):
-        super().read(reader)
-        self.wrinkle_delta = _float16(reader)
-        return self

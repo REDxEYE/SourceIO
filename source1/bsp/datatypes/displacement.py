@@ -25,15 +25,15 @@ class DispInfo(Primitive):
 
     def parse(self, reader: ByteIO):
         self.start_position = np.array(reader.read_fmt('3f'))
-        self.disp_vert_start = reader.read_uint32()
-        self.disp_tri_start = reader.read_uint32()
-        self.power = reader.read_uint32()
-        self.min_tess = reader.read_int32()
-        self.smoothing_angle = reader.read_float()
-        self.contents = reader.read_uint32()
-        self.map_face = reader.read_uint16()
-        self.lightmap_alpha_start = reader.read_uint32()
-        self.lightmap_sample_position_start = reader.read_uint32()
+        (self.disp_vert_start,
+         self.disp_tri_start,
+         self.power,
+         self.min_tess,
+         self.smoothing_angle,
+         self.contents,
+         self.map_face,
+         self.lightmap_alpha_start,
+         self.lightmap_sample_position_start,) = reader.read_fmt('<4IfIH2I')
         for _ in range(4):
             disp_neighbor = DispNeighbor()
             disp_neighbor.read(reader)
@@ -64,11 +64,11 @@ class DispSubNeighbor:
         self.neighbor_span = 0
 
     def read(self, reader: ByteIO):
-        self.neighbor = reader.read_uint16()
-        self.neighbor_orientation = reader.read_uint8()
-        self.span = reader.read_uint8()
-        reader.skip(1)
-        self.neighbor_span = reader.read_uint8()
+        (self.neighbor,
+         self.neighbor_orientation,
+         self.span,
+         self.neighbor_span,) = reader.read_fmt('H2BxB')
+        return self
 
 
 class DispNeighbor:
@@ -76,10 +76,7 @@ class DispNeighbor:
         self.sub_neighbors = []  # type: List[DispSubNeighbor]
 
     def read(self, reader: ByteIO):
-        for _ in range(2):
-            sub_neighbor = DispSubNeighbor()
-            sub_neighbor.read(reader)
-            self.sub_neighbors.append(sub_neighbor)
+        self.sub_neighbors = [DispSubNeighbor().read(reader) for _ in range(2)]
 
 
 class DisplaceCornerNeighbors:
@@ -88,5 +85,5 @@ class DisplaceCornerNeighbors:
         self.neighbor_count = 0
 
     def read(self, reader: ByteIO):
-        self.neighbor_indices = reader.read_fmt('H' * 4)
+        self.neighbor_indices = reader.read_fmt('4H')
         self.neighbor_count = reader.read_uint8()

@@ -28,7 +28,7 @@ class Vvd(Base):
         self.header.read(self.reader)
 
         self.reader.seek(self.header.vertex_data_offset)
-        self._vertices = np.frombuffer(self.reader.read(48 * self.header.lod_vertex_count[0]),
+        self._vertices = np.frombuffer(self.reader.read(self.vertex_t.itemsize * self.header.lod_vertex_count[0]),
                                        dtype=self.vertex_t)
 
         for n, count in enumerate(self.header.lod_vertex_count[:self.header.lod_count]):
@@ -51,7 +51,8 @@ class Vvd(Base):
                         lod_offset = lod_offsets[lod_id]
                         vertex_index = fixup.vertex_index
                         vertex_count = fixup.vertex_count
-                        lod_data[lod_offset:lod_offset + vertex_count] = self._vertices[vertex_index:vertex_index + vertex_count]
+                        lod_data[lod_offset:lod_offset + vertex_count] = self._vertices[
+                                                                         vertex_index:vertex_index + vertex_count]
                         lod_offsets[lod_id] += fixup.vertex_count
 
         else:
