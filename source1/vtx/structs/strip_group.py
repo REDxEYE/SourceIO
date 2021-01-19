@@ -4,9 +4,8 @@ from typing import List
 import numpy as np
 
 from ....source_shared.base import Base
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from .strip import Strip
-from .vertex import Vertex
 
 
 class StripGroupFlags(IntFlag):
@@ -18,12 +17,21 @@ class StripGroupFlags(IntFlag):
 
 
 class StripGroup(Base):
+    vertex_dtype = np.dtype(
+        [
+            ('bone_weight_index', np.uint8, (3,)),
+            ('bone_count', np.uint8, (1,)),
+            ('original_mesh_vertex_index', np.uint16, (1,)),
+            ('bone_id', np.uint8, (3,)),
+
+        ]
+    )
 
     def __init__(self):
         self.flags = StripGroupFlags(0)
-        self.vertexes = []  # type: List[Vertex]
-        self.indexes = np.array([])  # type: np.ndarray
-        self.strips = []  # type: List[Strip]
+        self.vertexes: np.ndarray = np.array([])
+        self.indexes: np.ndarray = np.array([])
+        self.strips: List[Strip] = []
         self.topology = []
 
     def read(self, reader: ByteIO):
@@ -48,10 +56,7 @@ class StripGroup(Base):
             reader.seek(entry + index_offset)
             self.indexes = np.frombuffer(reader.read(2 * index_count), dtype=np.uint16)
             reader.seek(entry + vertex_offset)
-            for _ in range(vertex_count):
-                vertex = Vertex()
-                vertex.read(reader)
-                self.vertexes.append(vertex)
+            self.vertexes = np.frombuffer(reader.read(vertex_count * self.vertex_dtype.itemsize), self.vertex_dtype)
             reader.seek(entry + strip_offset)
             for _ in range(strip_count):
                 strip = Strip()

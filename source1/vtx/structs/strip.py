@@ -1,7 +1,7 @@
 from enum import IntFlag
 
 from ....source_shared.base import Base
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 
 
 class StripHeaderFlags(IntFlag):
@@ -24,14 +24,13 @@ class Strip(Base):
         self.topology_offset = 0
 
     def read(self, reader: ByteIO):
-        self.index_count = reader.read_uint32()
-        self.index_mesh_offset = reader.read_uint32()
-        self.vertex_count = reader.read_uint32()
-        self.vertex_mesh_offset = reader.read_uint32()
-        self.bone_count = reader.read_uint16()
+        (self.index_count,
+         self.index_mesh_offset,
+         self.vertex_count,
+         self.vertex_mesh_offset,
+         self.bone_count) = reader.read_fmt('4IH')
         self.flags = StripHeaderFlags(reader.read_uint8())
-        self.bone_state_change_count = reader.read_uint32()
-        self.bone_state_change_offset = reader.read_uint32()
+        self.bone_state_change_count, self.bone_state_change_offset = reader.read_fmt('2I')
         if self.get_value('extra8'):
             self.topology_indices_count = reader.read_int32()
             self.topology_offset = reader.read_int32()
