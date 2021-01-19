@@ -49,7 +49,7 @@ class LightmapGeneric(Source1ShaderBase):
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled)
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
