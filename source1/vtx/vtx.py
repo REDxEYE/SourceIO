@@ -1,7 +1,7 @@
 import struct
 from typing import List
 
-from .structs.MaterialReplacementList import MaterialReplacementList
+from .structs.material_replacement_list import MaterialReplacementList
 from ...source_shared.base import Base
 from ...utilities.byte_io_mdl  import ByteIO
 
