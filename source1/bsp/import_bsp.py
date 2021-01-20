@@ -563,7 +563,7 @@ class BSP:
                                     bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
         lamp.location = location
         lamp_data = lamp.data
-        lamp_data.energy = watts * (self.scale / HAMMER_UNIT_TO_METERS)**2
+        lamp_data.energy = watts * (self.scale / HAMMER_UNIT_TO_METERS) ** 2
         lamp_data.color = color
         lamp.rotation_euler = rotation
         lamp_data.shadow_soft_size = radius
@@ -633,7 +633,7 @@ class BSP:
             used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = edges[np.abs(used_surf_edges)]
-            tmp = np.arange(len(used_edges))
+            tmp = np.arange(used_edges.shape[0])
             face_vertex_ids = used_edges[tmp, reverse]
             face_vertices = vertices[face_vertex_ids] * self.scale
 
@@ -644,8 +644,12 @@ class BSP:
                                0.5e-2),
                     axis=1
                 ) == 3)
-            if not min_index:
-                min_index = 0
+            if min_index[0].shape[0] == 0:
+                lowest = 999.e16
+                for i, value in enumerate(np.sum(face_vertices - disp_info.start_position, axis=1)):
+                    if value < lowest:
+                        min_index = i
+                        lowest = value
             else:
                 min_index = min_index[0][0]
 
