@@ -17,6 +17,7 @@ from .lumps.texture_lump import TextureDataLump, TextureInfoLump
 from .lumps.vertex_lump import VertexLump
 from .lumps.vertex_normal_lump import VertexNormalLump
 from ...bpy_utilities.logging import BPYLoggingManager
+from ...source_shared.content_manager import ContentManager
 
 from ...utilities.byte_io_mdl import ByteIO
 
@@ -30,8 +31,11 @@ class BSPFile:
         self.reader = ByteIO(self.filepath)
         self.version = 0
         self.lumps_info: List[LumpInfo] = []
-        self.lumps: Dict[LumpTypes, Lump] = {}
+        self.lumps: Dict[str, Lump] = {}
         self.revision = 0
+        self.content_manager = ContentManager()
+        content_provider = self.content_manager.get_content_provider_from_path(self.filepath)
+        self.steam_app_id = content_provider.steam_id
 
     def parse(self):
         reader = self.reader
@@ -44,44 +48,32 @@ class BSPFile:
             lump.parse(reader, is_l4d2)
             self.lumps_info.append(lump)
         self.revision = reader.read_int32()
+
         # self.parse_lumps()
 
-    def get_lump(self, lump_id):
-        if lump_id in self.lumps:
-            return self.lumps[lump_id]
+    def get_lump(self, lump_name):
+
+        if lump_name in self.lumps:
+            return self.lumps[lump_name]
         else:
-            sub: Type[Lump]
             for sub in Lump.__subclasses__():
-                if sub.lump_id == lump_id:
-                    return self.parse_lump(sub)
+                sub: Type[Lump]
+                for dep in sub.tags:
+                    if dep.lump_name == lump_name:
+                        if dep.bsp_version is not None and dep.bsp_version >= self.version:
+                            continue
+                        if dep.steam_id is not None and dep.steam_id != self.steam_app_id:
+                            continue
+                        parsed_lump = self.parse_lump(sub, dep.lump_id, dep.lump_name)
+                        self.lumps[lump_name] = parsed_lump
+                        return parsed_lump
 
-    def parse_lumps(self):
-        self.parse_lump(EntityLump)
-        self.parse_lump(VertexLump)
-        self.parse_lump(PlaneLump)
-        self.parse_lump(EdgeLump)
-        self.parse_lump(SurfEdgeLump)
-        self.parse_lump(VertexNormalLump)
-        # self.parse_lump(VertexNormalIndicesLump)
-        self.parse_lump(FaceLump)
-        # self.parse_lump(OriginalFaceLump)
-        self.parse_lump(TextureDataLump)
-        self.parse_lump(TextureInfoLump)
-        self.parse_lump(StringsLump)
-        self.parse_lump(ModelLump)
-        # self.parse_lump(WorldLightLump)
-        # self.parse_lump(DispInfoLump)
-        self.parse_lump(DispVert)
-        # self.parse_lump(NodeLump)
-        self.parse_lump(GameLump)
-        self.parse_lump(PakLump)
-
-    def parse_lump(self, lump_class: Type[Lump]):
-        if self.lumps_info[lump_class.lump_id].size != 0:
-            lump = self.lumps_info[lump_class.lump_id]
-            self.logger.debug(f'Loading {lump_class.lump_id.name} lump', 'bps_parser')
+    def parse_lump(self, lump_class: Type[Lump], lump_id, lump_name):
+        if self.lumps_info[lump_id].size != 0:
+            lump = self.lumps_info[lump_id]
+            self.logger.debug(f'Loading {lump_name} lump', 'bps_parser')
             self.logger.debug(f'\tOffset: {lump.offset}', 'bps_parser')
             self.logger.debug(f'\tSize: {lump.size}', 'bps_parser')
-            parsed_lump = lump_class(self).parse()
-            self.lumps[lump_class.lump_id] = parsed_lump
+            parsed_lump = lump_class(self, lump_id).parse()
+            self.lumps[lump_id] = parsed_lump
             return parsed_lump

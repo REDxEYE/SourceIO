@@ -1,14 +1,13 @@
 from typing import List
 
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ..datatypes.face import Face
 
 
+@lump_tag(7, 'LUMP_FACES')
 class FaceLump(Lump):
-    lump_id = LumpTypes.LUMP_FACES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.faces: List[Face] = []
 
     def parse(self):
@@ -18,11 +17,10 @@ class FaceLump(Lump):
         return self
 
 
+@lump_tag(27, 'LUMP_ORIGINALFACES')
 class OriginalFaceLump(Lump):
-    lump_id = LumpTypes.LUMP_ORIGINALFACES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.faces: List[Face] = []
 
     def parse(self):

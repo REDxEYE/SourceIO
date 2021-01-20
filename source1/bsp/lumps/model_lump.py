@@ -1,14 +1,13 @@
 from typing import List
 
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ..datatypes.model import Model
 
 
+@lump_tag(14, 'LUMP_MODELS')
 class ModelLump(Lump):
-    lump_id = LumpTypes.LUMP_MODELS
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.models: List[Model] = []
 
     def parse(self):

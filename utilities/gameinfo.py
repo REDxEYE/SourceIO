@@ -22,6 +22,13 @@ class Gameinfo(SubManager):
         self.project_dir: Path = filepath.parent.parent
         self.modname: str = self.modname_dir.stem
 
+    @property
+    def steam_id(self):
+        fs = self.data.get('filesystem', None)
+        if not fs:
+            return 0
+        return int(fs.get('steamappid'))
+
     def get_search_paths(self):
         def convert_path(path_to_convert):
             if '|all_source_engine_paths|' in path_to_convert.lower():
@@ -44,7 +51,7 @@ class Gameinfo(SubManager):
         for file in self.project_dir.iterdir():
             if file.is_file():
                 continue
-            if (file/'gameinfo.txt').exists():
+            if (file / 'gameinfo.txt').exists():
                 all_search_paths.append(file)
             for vpk_file in file.glob('*_dir.vpk'):
                 all_search_paths.append(vpk_file)

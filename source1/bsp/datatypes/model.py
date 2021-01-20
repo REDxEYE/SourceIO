@@ -1,5 +1,4 @@
 from .primitive import Primitive
-from .. import LumpTypes
 from ..lumps.node_lump import NodeLump
 from ....utilities.byte_io_mdl import ByteIO
 
@@ -25,7 +24,7 @@ class Model(Primitive):
 
     @property
     def node(self):
-        lump: NodeLump = self._bsp.get_lump(LumpTypes.LUMP_NODES)
+        lump: NodeLump = self._bsp.get_lump('LUMP_NODES')
         if lump:
             return lump.nodes[self.head_node]
         return None

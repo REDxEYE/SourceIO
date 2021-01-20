@@ -1,12 +1,12 @@
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ..datatypes.plane import Plane
 
 
+@lump_tag(1, 'LUMP_PLANES')
 class PlaneLump(Lump):
-    lump_id = LumpTypes.LUMP_PLANES
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.planes = []
 
     def parse(self):

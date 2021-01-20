@@ -1,12 +1,12 @@
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ..datatypes.node import Node
 
 
+@lump_tag(5, 'LUMP_NODES')
 class NodeLump(Lump):
-    lump_id = LumpTypes.LUMP_NODES
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.nodes = []
 
     def parse(self):

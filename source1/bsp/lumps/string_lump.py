@@ -1,12 +1,12 @@
 import numpy as np
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 
 
+@lump_tag(44, 'LUMP_TEXDATA_STRING_DATA')
 class StringOffsetLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXDATA_STRING_DATA
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.string_ids = np.array([])
 
     def parse(self):
@@ -15,11 +15,11 @@ class StringOffsetLump(Lump):
         return self
 
 
+@lump_tag(43, 'LUMP_TEXDATA_STRING_TABLE')
 class StringsLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXDATA_STRING_TABLE
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.strings = []
 
     def parse(self):

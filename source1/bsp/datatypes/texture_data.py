@@ -1,5 +1,4 @@
 from .primitive import Primitive
-from .. import LumpTypes
 from ..lumps.string_lump import StringsLump
 from ....utilities.byte_io_mdl import ByteIO
 
@@ -26,7 +25,7 @@ class TextureData(Primitive):
 
     @property
     def name(self):
-        lump: StringsLump = self._bsp.get_lump(LumpTypes.LUMP_TEXDATA_STRING_TABLE)
+        lump: StringsLump = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
         if lump:
             return lump.strings[self.name_id]
         return None

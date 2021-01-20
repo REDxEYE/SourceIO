@@ -1,12 +1,12 @@
 import numpy as np
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 
 
+@lump_tag(3, 'LUMP_VERTICES')
 class VertexLump(Lump):
-    lump_id = LumpTypes.LUMP_VERTICES
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.vertices = np.array([])
 
     def parse(self):

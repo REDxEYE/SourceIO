@@ -49,8 +49,7 @@ class DispInfo(Primitive):
     @property
     def source_face(self):
         from ..lumps.face_lump import FaceLump
-        from ..bsp_file import LumpTypes
-        lump: FaceLump = self._bsp.get_lump(LumpTypes.LUMP_FACES)
+        lump: FaceLump = self._bsp.get_lump('LUMP_FACES')
         if lump:
             return lump.faces[self.map_face]
         return None

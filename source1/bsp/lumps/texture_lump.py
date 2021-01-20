@@ -1,15 +1,15 @@
 from typing import List
 
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ..datatypes.texture_data import TextureData
 from ..datatypes.texture_info import TextureInfo
 
 
+@lump_tag(6, 'LUMP_TEXINFO')
 class TextureInfoLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXINFO
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.texture_info: List[TextureInfo] = []
 
     def parse(self):
@@ -19,11 +19,11 @@ class TextureInfoLump(Lump):
         return self
 
 
+@lump_tag(2, 'LUMP_TEXDATA')
 class TextureDataLump(Lump):
-    lump_id = LumpTypes.LUMP_TEXDATA
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.texture_data: List[TextureData] = []
 
     def parse(self):

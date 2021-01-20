@@ -1,15 +1,14 @@
 from io import BytesIO
 from pathlib import Path, PurePath
 
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 import zipfile
 
 
+@lump_tag(40, 'LUMP_PAK')
 class PakLump(Lump):
-    lump_id = LumpTypes.LUMP_PAK
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.filepath = self._bsp.filepath
         self.zip_file: zipfile.ZipFile = None
         self._cache = {}

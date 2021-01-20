@@ -1,12 +1,12 @@
 import numpy as np
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 
 
+@lump_tag(12, 'LUMP_EDGES')
 class EdgeLump(Lump):
-    lump_id = LumpTypes.LUMP_EDGES
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.edges = np.array([])
 
     def parse(self):

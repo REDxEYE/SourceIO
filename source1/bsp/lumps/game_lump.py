@@ -3,15 +3,15 @@ from typing import List
 from ..datatypes.gamelumps.detail_prop_lump import DetailPropLump
 from ..datatypes.gamelumps.static_prop_lump import StaticPropLump
 from ....utilities.byte_io_mdl import ByteIO
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ..datatypes.game_lump_header import GameLumpHeader
 
 
+@lump_tag(35, 'LUMP_GAME_LUMP')
 class GameLump(Lump):
-    lump_id = LumpTypes.LUMP_GAME_LUMP
 
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.lump_count = 0
         self.game_lumps_info: List[GameLumpHeader] = []
         self.game_lumps = {}

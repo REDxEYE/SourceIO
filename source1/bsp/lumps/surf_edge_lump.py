@@ -1,12 +1,11 @@
 import numpy as np
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 
 
+@lump_tag(13, 'LUMP_SURFEDGES')
 class SurfEdgeLump(Lump):
-    lump_id = LumpTypes.LUMP_SURFEDGES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.surf_edges = np.array([])
 
     def parse(self):

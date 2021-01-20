@@ -1,13 +1,12 @@
 import numpy as np
 
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 
 
+@lump_tag(30, 'LUMP_VERTNORMALS')
 class VertexNormalLump(Lump):
-    lump_id = LumpTypes.LUMP_VERTNORMALS
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.normals = np.array([])
 
     def parse(self):
@@ -17,11 +16,10 @@ class VertexNormalLump(Lump):
         return self
 
 
+@lump_tag(31, 'LUMP_VERTNORMALINDICES')
 class VertexNormalIndicesLump(Lump):
-    lump_id = LumpTypes.LUMP_VERTNORMALINDICES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.indices = np.array([])
 
     def parse(self):

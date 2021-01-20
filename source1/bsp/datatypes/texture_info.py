@@ -1,5 +1,4 @@
 from .primitive import Primitive
-from .. import LumpTypes
 from ....utilities.byte_io_mdl import ByteIO
 
 
@@ -22,7 +21,7 @@ class TextureInfo(Primitive):
     @property
     def tex_data(self):
         from ..lumps.texture_lump import TextureDataLump
-        tex_data_lump: TextureDataLump = self._bsp.get_lump(LumpTypes.LUMP_TEXDATA)
+        tex_data_lump: TextureDataLump = self._bsp.get_lump('LUMP_TEXDATA')
         if tex_data_lump:
             tex_datas = tex_data_lump.texture_data
             return tex_datas[self.texture_data_id]

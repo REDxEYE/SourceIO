@@ -1,13 +1,12 @@
 from io import StringIO
-from .. import Lump, LumpTypes
+from .. import Lump, lump_tag
 from ....utilities.keyvalues import KVParser
 
 
+@lump_tag(0, 'LUMP_ENTITIES')
 class EntityLump(Lump):
-    lump_id = LumpTypes.LUMP_ENTITIES
-
-    def __init__(self, bsp):
-        super().__init__(bsp)
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
         self.entities = []
 
     def parse(self):

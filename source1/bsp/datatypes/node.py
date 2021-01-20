@@ -1,8 +1,6 @@
 from typing import List
 
 from .primitive import Primitive
-from .. import LumpTypes
-
 from ..lumps.plane_lump import PlaneLump
 
 from ....utilities.byte_io_mdl import ByteIO
@@ -30,7 +28,7 @@ class Node(Primitive):
 
     @property
     def plane(self):
-        plane_lump: PlaneLump = self._bsp.get_lump(LumpTypes.LUMP_PLANES)
+        plane_lump: PlaneLump = self._bsp.get_lump('LUMP_PLANES')
         if plane_lump:
             planes = plane_lump.planes
             return planes[self.plane_index]

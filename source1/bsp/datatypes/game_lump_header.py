@@ -1,9 +1,6 @@
 from typing import List
 
 from .primitive import Primitive
-from .. import LumpTypes
-
-from ..lumps.plane_lump import PlaneLump
 
 from ....utilities.byte_io_mdl import ByteIO
 
