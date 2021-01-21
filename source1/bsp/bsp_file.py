@@ -60,7 +60,7 @@ class BSPFile:
                 sub: Type[Lump]
                 for dep in sub.tags:
                     if dep.lump_name == lump_name:
-                        if dep.bsp_version is not None and dep.bsp_version >= self.version:
+                        if dep.bsp_version is not None and dep.bsp_version > self.version:
                             continue
                         if dep.steam_id is not None and dep.steam_id != self.steam_app_id:
                             continue

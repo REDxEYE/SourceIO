@@ -10,7 +10,7 @@ from .bsp_file import BSPFile
 from .datatypes.face import Face
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 from .datatypes.model import Model
-from .lumps.displacement_lump import DispVert, DispInfoLump
+from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
 from .lumps.face_lump import FaceLump
@@ -324,20 +324,21 @@ class BSP:
         if not disp_info_lump or not disp_info_lump.infos:
             return
 
+        disp_multiblend: Optional[DispMultiblend] = self.map_file.get_lump('LUMP_DISP_MULTIBLEND')
+
         disp_verts_lump: Optional[DispVert] = self.map_file.get_lump('LUMP_DISP_VERTS')
         surf_edges = self.surf_edge_lump.surf_edges
         vertices = self.vertex_lump.vertices
         edges = self.edge_lump.edges
 
         disp_verts = disp_verts_lump.transformed_vertices
-        disp_vertices_alpha = disp_verts_lump.vertices['alpha']
+
         parent_collection = get_or_create_collection('displacements', self.main_collection)
         info_count = len(disp_info_lump.infos)
+        multiblend_offset = 0
         for n, disp_info in enumerate(disp_info_lump.infos):
             self.logger.info(f'Processing {n + 1}/{info_count} displacement face')
-            uvs = []
-            final_vertices = []
-            final_vertex_colors = []
+            final_vertex_colors = {}
             src_face = disp_info.source_face
 
             texture_info = src_face.tex_info
@@ -375,10 +376,14 @@ class BSP:
 
             num_edge_vertices = (1 << disp_info.power) + 1
             subdivide_scale = 1.0 / (num_edge_vertices - 1)
-
             left_edge_step = left_edge * subdivide_scale
             right_edge_step = right_edge * subdivide_scale
 
+            subdiv_vert_count = num_edge_vertices ** 2
+
+            disp_vertices = np.zeros((subdiv_vert_count, 3), dtype=np.float32)
+            disp_uv = np.zeros((subdiv_vert_count, 2), dtype=np.float32)
+            disp_indices = np.arange(0, subdiv_vert_count, dtype=np.uint32) + disp_info.disp_vert_start
             for i in range(num_edge_vertices):
                 left_end = left_edge_step * i
                 left_end += face_vertices[min_index & 3]
@@ -390,21 +395,37 @@ class BSP:
                 left_right_step = left_right_seg * subdivide_scale
 
                 for j in range(num_edge_vertices):
-                    disp_vert_index = disp_info.disp_vert_start + (i * num_edge_vertices + j)
+                    disp_vertices[(i * num_edge_vertices + j)] = left_end + (left_right_step * j)
+            disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * self.scale) / (
+                    texture_data.view_width * self.scale)
+            disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * self.scale) / (
+                    texture_data.view_height * self.scale))
 
-                    flat_vertex = left_end + (left_right_step * j)
-                    disp_vertex = flat_vertex + (disp_verts[disp_vert_index] * self.scale)
+            disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices]
+            final_vertex_colors['vertex_alpha'] = np.concatenate(
+                (np.hstack([disp_vertices_alpha, disp_vertices_alpha, disp_vertices_alpha]),
+                 np.ones((disp_vertices_alpha.shape[0], 1))), axis=1)
 
-                    s = (np.dot(flat_vertex, tv1[:3]) + tv1[3] * self.scale) / (texture_data.view_width * self.scale)
-                    t = (np.dot(flat_vertex, tv2[:3]) + tv2[3] * self.scale) / (texture_data.view_height * self.scale)
-                    uvs.append((s, t))
-                    final_vertices.append(disp_vertex)
-                    final_vertex_colors.append(
-                        (disp_vertices_alpha[disp_vert_index],
-                         disp_vertices_alpha[disp_vert_index],
-                         disp_vertices_alpha[disp_vert_index],
-                         1)
-                    )
+            if disp_multiblend and disp_info.has_multiblend:
+                multiblend_layers = disp_multiblend.blends[multiblend_offset:multiblend_offset + subdiv_vert_count]
+                final_vertex_colors['multiblend'] = multiblend_layers['multiblend']
+                final_vertex_colors['alphablend'] = multiblend_layers['alphablend']
+                miltiblend_color_layer = multiblend_layers['multiblend_colors']
+                shape_ = multiblend_layers.shape[0]
+                final_vertex_colors['multiblend_color0'] = np.concatenate((miltiblend_color_layer[:, 0, :],
+                                                                           np.ones((shape_, 1))),
+                                                                          axis=1)
+                final_vertex_colors['multiblend_color1'] = np.concatenate((miltiblend_color_layer[:, 1, :],
+                                                                           np.ones((shape_, 1))),
+                                                                          axis=1)
+                final_vertex_colors['multiblend_color2'] = np.concatenate((miltiblend_color_layer[:, 2, :],
+                                                                           np.ones((shape_, 1))),
+                                                                          axis=1)
+                final_vertex_colors['multiblend_color3'] = np.concatenate((miltiblend_color_layer[:, 3, :],
+                                                                           np.ones((shape_, 1))),
+                                                                          axis=1)
+                multiblend_offset += subdiv_vert_count
+
             face_indices = []
             for i in range(num_edge_vertices - 1):
                 for j in range(num_edge_vertices - 1):
@@ -424,21 +445,17 @@ class BSP:
                 parent_collection.objects.link(mesh_obj)
             else:
                 self.main_collection.objects.link(mesh_obj)
-            mesh_data.from_pydata(final_vertices, [], face_indices)
+            mesh_data.from_pydata(disp_vertices + disp_verts[disp_indices] * self.scale, [], face_indices)
 
             uv_data = mesh_data.uv_layers.new().data
-            uvs = np.array(uvs, dtype=np.float32)
-            uvs[:, 1] = 1 - uvs[:, 1]
-
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
             mesh_data.loops.foreach_get('vertex_index', vertex_indices)
-            uv_data.foreach_set('uv', uvs[vertex_indices].flatten())
+            uv_data.foreach_set('uv', disp_uv[vertex_indices].flatten())
 
-            vertex_colors = mesh_data.vertex_colors.get('mixing', False) or mesh_data.vertex_colors.new(
-                name='mixing')
-            vertex_colors_data = vertex_colors.data
-            final_vertex_colors = np.array(final_vertex_colors, dtype=np.float32)
-            vertex_colors_data.foreach_set('color', final_vertex_colors[vertex_indices].flatten())
+            for name, vertex_color_layer in final_vertex_colors.items():
+                vertex_colors = mesh_data.vertex_colors.get(name, False) or mesh_data.vertex_colors.new(name=name)
+                vertex_colors_data = vertex_colors.data
+                vertex_colors_data.foreach_set('color', vertex_color_layer[vertex_indices].flatten())
 
             material_name = self.get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]

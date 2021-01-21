@@ -5,6 +5,9 @@ import numpy as np
 from .primitive import Primitive
 from ....utilities.byte_io_mdl import ByteIO
 
+DISP_INFO_FLAG_HAS_MULTIBLEND = 0x40000000
+DISP_INFO_FLAG_MAGIC = 0x80000000
+
 
 class DispInfo(Primitive):
     def __init__(self, lump, bsp):
@@ -22,6 +25,7 @@ class DispInfo(Primitive):
         self.displace_neighbors = []  # type: List[DispNeighbor]
         self.displace_corner_neighbors = []  # type: List[DisplaceCornerNeighbors]
         self.allowed_verts = []  # type: List[int]
+        self.has_multiblend = False
 
     def parse(self, reader: ByteIO):
         self.start_position = np.array(reader.read_fmt('3f'))
@@ -34,6 +38,8 @@ class DispInfo(Primitive):
          self.map_face,
          self.lightmap_alpha_start,
          self.lightmap_sample_position_start,) = reader.read_fmt('<4IfIH2I')
+        self.has_multiblend = ((self.min_tess + DISP_INFO_FLAG_MAGIC) & DISP_INFO_FLAG_HAS_MULTIBLEND) != 0
+
         for _ in range(4):
             disp_neighbor = DispNeighbor()
             disp_neighbor.read(reader)

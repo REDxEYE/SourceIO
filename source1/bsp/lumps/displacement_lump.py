@@ -49,9 +49,9 @@ class DispVert(Lump):
 class DispMultiblend(Lump):
     dtype = np.dtype(
         [
-            ('multiblend', np.float, (4,)),
-            ('alphablend', np.float, (4,)),
-            ('multiblend_colors', np.float, (3, 4)),
+            ('multiblend', np.float32, (4,)),
+            ('alphablend', np.float32, (4,)),
+            ('multiblend_colors', np.float32, (4, 3)),
         ]
     )
 
@@ -61,4 +61,6 @@ class DispMultiblend(Lump):
 
     def parse(self):
         reader = self.reader
+        assert self._lump.size % self.dtype.itemsize == 0
         self.blends = np.frombuffer(reader.read(self._lump.size), self.dtype)
+        return self
