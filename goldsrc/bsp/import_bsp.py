@@ -227,7 +227,7 @@ class BSP:
                 entity_handlers[entity_class](entity, self.scale, entity_collection)
             else:
                 if entity_class == 'worldspawn':
-                    for game_wad_path in entity['wad'].split(';'):
+                    for game_wad_path in entity.get('wad', '').split(';'):
                         if len(game_wad_path) == 0:
                             continue
                         game_wad_path = Path(game_wad_path)
