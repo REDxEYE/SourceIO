@@ -1,3 +1,4 @@
+import traceback
 from pathlib import Path
 from typing import Dict, Type, Any, Union
 
@@ -24,11 +25,6 @@ class MaterialLoaderBase:
         self.material_name: str = material_name[-63:]
 
     def create_material(self):
-        handler: ShaderBase = self._handlers.get(self.vmt.shader, ShaderBase)(self.vmt)
-        handler.create_nodes(self.material_name)
-        handler.align_nodes()
-        if self.vmt.shader not in self._handlers:
-            logger.error(f'Shader "{self.vmt.shader}" not currently supported by SourceIO')
         pass
 
 
@@ -43,12 +39,20 @@ class Source1MaterialLoader(MaterialLoaderBase):
         super().__init__(material_name)
         self.material_name: str = material_name[-63:]
         self.vmt: VMT = VMT(file_object)
-
-        self.vmt.parse()
+        try:
+            self.vmt.parse()
+        except Exception as ex:
+            logger.error(f'Failed to load material, due to {ex} error')
+            traceback.print_exc()
+            logger.debug(f'Failed material: {self.material_name}:{self.vmt.shader}')
+            self.vmt.shader = 'ERROR'
+            self.vmt.material_data = {}
 
     def create_material(self):
         handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.vmt)
+
         handler.create_nodes(self.material_name)
+
         handler.align_nodes()
         if self.vmt.shader not in self._handlers:
             logger.error(f'Shader "{self.vmt.shader}" not currently supported by SourceIO')
@@ -69,7 +73,12 @@ class GoldSrcMaterialLoader(MaterialLoaderBase):
 
     def create_material(self):
         handler: GoldSrcShaderBase = self._handlers['goldsrc_shader'](self.texture_data)
-        handler.create_nodes(self.material_name)
+        try:
+            handler.create_nodes(self.material_name)
+        except Exception as ex:
+            logger.error(f'Failed to load material, due to {ex} error')
+            traceback.print_exc()
+            logger.debug(f'Failed material: {self.material_name}:{self.texture_data.name}')
         handler.align_nodes()
 
 
@@ -89,5 +98,10 @@ class Source2MaterialLoader(MaterialLoaderBase):
     def create_material(self):
         handler: Source2ShaderBase = self._handlers.get(
             self.texture_data['m_shaderName'], Source2ShaderBase)(self.texture_data, self.resources)
-        handler.create_nodes(self.material_name)
+        try:
+            handler.create_nodes(self.material_name)
+        except Exception as ex:
+            logger.error(f'Failed to load material, due to {ex} error')
+            traceback.print_exc()
+            logger.debug(f'Failed material: {self.material_name}')
         handler.align_nodes()
