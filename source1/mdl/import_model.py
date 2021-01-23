@@ -230,9 +230,9 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
 
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
-
-    attachment_collection = get_new_unique_collection(f'{model_name}_attachments', master_collection)
-    create_attachments(mdl, armature if not static_prop else container.objects[0], scale, attachment_collection)
+    if mdl.attachments:
+        attachment_collection = get_new_unique_collection(f'{model_name}_attachments', master_collection)
+        create_attachments(mdl, armature if not static_prop else container.objects[0], scale, attachment_collection)
 
     return container
 
