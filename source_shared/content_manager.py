@@ -70,10 +70,10 @@ class ContentManager(metaclass=SingletonMeta):
                 sub_manager = Gameinfo(Path(path))
                 self.content_providers[name] = sub_manager
             elif path.endswith('.bsp'):
-                from ..source1.bsp.bsp_file import BSPFile, LumpTypes
+                from ..source1.bsp.bsp_file import BSPFile
                 bsp = BSPFile(path)
                 bsp.parse()
-                pak_lump = bsp.get_lump(LumpTypes.LUMP_PAK)
+                pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
                     self.content_providers[name] = pak_lump
             else:

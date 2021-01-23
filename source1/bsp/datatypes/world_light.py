@@ -3,7 +3,6 @@ from enum import IntEnum
 import math
 
 from .primitive import Primitive
-from .. import LumpTypes
 from ..lumps.texture_lump import TextureInfoLump
 from ....utilities.byte_io_mdl import ByteIO
 
@@ -115,7 +114,7 @@ class WorldLight(Primitive):
 
     @property
     def tex_info(self):
-        tex_info_lump: TextureInfoLump = self._bsp.get_lump(LumpTypes.LUMP_TEXINFO)
+        tex_info_lump: TextureInfoLump = self._bsp.get_lump('LUMP_TEXINFO')
         if tex_info_lump:
             tex_infos = tex_info_lump.texture_info
             return tex_infos[self.tex_info_id]

@@ -37,7 +37,7 @@ class Node(Primitive):
     @property
     def childes(self):
         from ..lumps.node_lump import NodeLump
-        lump: NodeLump = self._bsp.get_lump(LumpTypes.LUMP_NODES)
+        lump: NodeLump = self._bsp.get_lump('LUMP_NODES')
         if lump:
             return lump.nodes[self.childes_id[0]], lump.nodes[self.childes_id[1]]
         return None
