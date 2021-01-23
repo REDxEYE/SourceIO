@@ -186,6 +186,8 @@ class BSP:
                 entity_class: str = entity_data.get('classname', None)
                 if not entity_class:
                     continue
+                if entity_class == 'func_fish_pool':
+                    continue
                 if entity_class.startswith('func_'):
                     self.handle_func_brush(entity_class, entity_data)
                 elif 'trigger' in entity_class:
@@ -221,7 +223,8 @@ class BSP:
                         continue
                     self.handle_rope(entity_class, entity_data)
                 elif entity_class == 'env_soundscape':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('env', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'momentary_rot_button':
                     self.handle_brush(entity_class, entity_data, self.main_collection)
                 elif entity_class.startswith('item_'):
@@ -229,45 +232,52 @@ class BSP:
                 elif entity_class.startswith('weapon_'):
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'logic_auto':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('logic', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'info_node':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('info', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'point_template':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'ambient_generic':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'info_player_start':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'npc_antlion_grub':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('info', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'aiscripted_schedule':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'filter_activator_name':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'logic_achievement':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('logic', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'logic_relay':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'water_lod_control':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('logic', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'ai_script_conditions':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'env_sprite':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('env', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'phys_pulleyconstraint':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'env_tonemap_controller':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('env', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class.startswith('info_'):
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('info', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'env_hudhint':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('env', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'infodecal':
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('info', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'path_corner':
                     self.handle_path_track(entity_class, entity_data)
                 elif entity_class.startswith('npc'):
-                    self.handle_general_entity(entity_class, entity_data)
+                    info_collection = get_or_create_collection('npc', self.main_collection)
+                    self.handle_general_entity(entity_class, entity_data, info_collection)
                 else:
                     print(f'Unsupported entity type {entity_class}: {entity_data}')
 
@@ -489,10 +499,11 @@ class BSP:
         func_brush_collection = get_or_create_collection('func_brushes', self.main_collection)
         self.handle_brush(entity_class, entity_data, func_brush_collection)
 
-    def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):
+    def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any],
+                              parent_collection: bpy.types.Collection = None):
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = parse_hammer_vector(entity_data.get('angles', '0 0 0'))
-        entity_collection = get_or_create_collection(entity_class, self.main_collection)
+        entity_collection = get_or_create_collection(entity_class, parent_collection or self.main_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
             entity_name = f'{entity_class}_{entity_data.get("hammerid", copy_count)}'
