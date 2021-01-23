@@ -7,11 +7,9 @@ from mathutils import Vector, Matrix, Euler
 
 from .flex_expressions import *
 from .mdl_file import Mdl
-from .structs.bone import Bone
 from .structs.header import StudioHDRFlags
 from .structs.model import Model
 from .vertex_animation_cache import VertexAnimationCache
-from ..phy.phy import Phy
 from ..vtx.structs.mesh import Mesh as VtxMesh
 from ..vtx.structs.model import ModelLod as VtxModel
 from ..vtx.vtx import Vtx
