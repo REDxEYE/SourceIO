@@ -27,7 +27,7 @@ class Gameinfo(SubManager):
         fs = self.data.get('filesystem', None)
         if not fs:
             return 0
-        return int(fs.get('steamappid'))
+        return int(fs.get('steamappid',0))
 
     def get_search_paths(self):
         def convert_path(path_to_convert):
