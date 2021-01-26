@@ -67,7 +67,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                             model_container.collection.objects.link(entity_data_holder)
                         else:
                             collection.collection.objects.link(entity_data_holder)
-                        if model_container.armature:
+                        if model_container.armature is not None:
                             armature = model_container.armature
                             armature.location = obj.location
                             armature.rotation_mode = "XYZ"

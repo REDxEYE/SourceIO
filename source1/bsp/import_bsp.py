@@ -496,8 +496,9 @@ class BSP:
         self.handle_brush(entity_class, entity_data, trigger_collection)
 
     def handle_func_brush(self, entity_class: str, entity_data: Dict[str, Any]):
-        func_brush_collection = get_or_create_collection('func_brushes', self.main_collection)
-        self.handle_brush(entity_class, entity_data, func_brush_collection)
+        if entity_data.get('model', '').startswith('*'):
+            func_brush_collection = get_or_create_collection('func_brushes', self.main_collection)
+            self.handle_brush(entity_class, entity_data, func_brush_collection)
 
     def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any],
                               parent_collection: bpy.types.Collection = None):

@@ -191,7 +191,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
 
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
-                get_material(mat_name, mesh_obj)
+                get_material(mat_name[-63:], mesh_obj)
 
             mesh_data.polygons.foreach_set('material_index', material_indices_array[::-1].tolist())
 
@@ -298,9 +298,9 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale, parent_colle
 def import_materials(mdl):
     content_manager = ContentManager()
     for material in mdl.materials:
-        if bpy.data.materials.get(material.name, False):
-            if bpy.data.materials[material.name].get('source1_loaded'):
-                logger.info(f'Skipping loading of {material.name} as it already loaded')
+        if bpy.data.materials.get(material.name[-63:], False):
+            if bpy.data.materials[material.name[-63:]].get('source1_loaded',False):
+                logger.info(f'Skipping loading of {material.name[-63:]} as it already loaded')
                 continue
         material_path = None
         for mat_path in mdl.materials_paths:
@@ -308,5 +308,5 @@ def import_materials(mdl):
             if material_path:
                 break
         if material_path:
-            new_material = Source1MaterialLoader(material_path, material.name)
+            new_material = Source1MaterialLoader(material_path, material.name[-63:])
             new_material.create_material()
