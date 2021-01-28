@@ -503,7 +503,7 @@ class BSP:
     def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any],
                               parent_collection: bpy.types.Collection = None):
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = parse_hammer_vector(entity_data.get('angles', '0 0 0'))
+        angles = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
         entity_collection = get_or_create_collection(entity_class, parent_collection or self.main_collection)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
