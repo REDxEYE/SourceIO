@@ -42,7 +42,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
-        from .source1.mdl.import_model import import_model, import_materials
+        from .source1.mdl.import_mdl import import_model, import_materials
         for file in self.files:
             mdl_path = directory / file.name
             vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')

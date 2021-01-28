@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ..source_shared.vpk import VPKFile
-from ..source_shared.sub_manager import ContentProviderBase
+from ..source_shared.content_provider_base import ContentProviderBase
 
 
 class VPKContentProvider(ContentProviderBase):

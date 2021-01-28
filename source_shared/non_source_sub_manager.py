@@ -1,5 +1,5 @@
 from ..utilities.path_utilities import backwalk_file_resolver
-from ..source_shared.sub_manager import ContentProviderBase
+from ..source_shared.content_provider_base import ContentProviderBase
 
 
 class NonSourceContentProvider(ContentProviderBase):

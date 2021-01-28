@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List
 
 from .keyvalues import KVParser
-from ..source_shared.sub_manager import ContentProviderBase
+from ..source_shared.content_provider_base import ContentProviderBase
 
 
 class GameinfoContentProvider(ContentProviderBase):

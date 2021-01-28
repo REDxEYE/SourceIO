@@ -1,9 +1,10 @@
+from functools import lru_cache
 from pathlib import Path
 from typing import Union, Dict
 
 from ..bpy_utilities.logging import BPYLoggingManager
 from ..source_shared.non_source_sub_manager import NonSourceContentProvider
-from ..source_shared.sub_manager import ContentProviderBase
+from ..source_shared.content_provider_base import ContentProviderBase
 from ..source_shared.vpk_sub_manager import VPKContentProvider
 from ..utilities.gameinfo import GameinfoContentProvider
 from ..utilities.path_utilities import get_mod_path
@@ -94,6 +95,7 @@ class ContentManager(metaclass=SingletonMeta):
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
 
+    @lru_cache(maxsize=128)
     def find_file(self, filepath: str, additional_dir=None, extension=None):
 
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
