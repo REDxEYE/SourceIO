@@ -80,7 +80,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
-    import_textures: BoolProperty(name="Import materials", default=False, subtype='UNSIGNED')
+    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
