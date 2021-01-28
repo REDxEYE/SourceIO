@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import List
 
 from .keyvalues import KVParser
-from ..source_shared.sub_manager import SubManager
+from ..source_shared.sub_manager import ContentProviderBase
 
 
-class Gameinfo(SubManager):
+class GameinfoContentProvider(ContentProviderBase):
     path_cache: List[Path] = []
 
     @classmethod

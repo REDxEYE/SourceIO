@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-class SubManager:
+class ContentProviderBase:
 
     def __init__(self, filepath: Path):
         self.filepath = filepath

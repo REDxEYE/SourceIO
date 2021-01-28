@@ -1,10 +1,10 @@
 from pathlib import Path
 
 from ..source_shared.vpk import VPKFile
-from ..source_shared.sub_manager import SubManager
+from ..source_shared.sub_manager import ContentProviderBase
 
 
-class VPKSubManager(SubManager):
+class VPKContentProvider(ContentProviderBase):
     def __init__(self, filepath: Path):
         super().__init__(filepath)
         self.vpk_archive = VPKFile(filepath)
