@@ -26,8 +26,8 @@ from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoad
 from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...source_shared.content_manager import ContentManager
 from ...utilities.keyvalues import KVParser
-from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source1_to_blender, lerp_vec, clamp_value, \
-    HAMMER_UNIT_TO_METERS
+from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source1_to_blender, lerp_vec, \
+    clamp_value, HAMMER_UNIT_TO_METERS
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()

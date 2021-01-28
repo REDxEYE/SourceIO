@@ -58,9 +58,6 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                                        True, True)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
-                        entity_data_holder.location = obj.location
-                        entity_data_holder.rotation_euler = obj.rotation_euler
-                        entity_data_holder.scale = obj.scale
                         entity_data_holder['entity_data'] = {}
                         entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
                         if model_container.collection:
@@ -78,6 +75,10 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                         else:
                             if model_container.objects:
                                 entity_data_holder.parent = model_container.objects[0]
+                            else:
+                                entity_data_holder.location = obj.location
+                                entity_data_holder.rotation_euler = obj.rotation_euler
+                                entity_data_holder.scale = obj.scale
                             for mesh_obj in model_container.objects:
                                 mesh_obj.location = obj.location
                                 mesh_obj.rotation_mode = "XYZ"
