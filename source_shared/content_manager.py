@@ -1,4 +1,3 @@
-from functools import lru_cache
 from pathlib import Path
 from typing import Union, Dict
 
@@ -21,13 +20,10 @@ class ContentManager(metaclass=SingletonMeta):
     def scan_for_content(self, source_game_path: Union[str, Path]):
 
         source_game_path = Path(source_game_path)
-        if source_game_path.suffix == '.vpk':
+        if source_game_path.suffix == '.vpk' and source_game_path.stem.endswith('_dir'):
             if f'{source_game_path.parent.stem}_{source_game_path.stem}' in self.content_providers:
                 return
-            if not source_game_path.stem.endswith('_dir'):
-                vpk_path = source_game_path.parent / (source_game_path.stem + "_dir.vpk")
-            else:
-                vpk_path = source_game_path
+            vpk_path = source_game_path
             if vpk_path.exists():
                 sub_manager = VPKContentProvider(vpk_path)
                 self.content_providers[f'{source_game_path.parent.stem}_{source_game_path.stem}'] = sub_manager
@@ -95,7 +91,6 @@ class ContentManager(metaclass=SingletonMeta):
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
 
-    @lru_cache(maxsize=128)
     def find_file(self, filepath: str, additional_dir=None, extension=None):
 
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))

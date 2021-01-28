@@ -1,3 +1,4 @@
+from functools import lru_cache
 from io import BytesIO
 from pathlib import Path, WindowsPath
 from typing import Union, List, Dict
@@ -28,7 +29,9 @@ class VPKFile:
     def read(self):
         reader = self.reader
         self.header.read(reader)
+        entry = reader.tell()
         self.read_entries()
+        self.reader.seek(entry + self.header.tree_size)
         if self.header.version == 2:
             reader.skip(self.header.file_data_section_size)
             reader.skip(self.header.archive_md5_section_size)
@@ -60,9 +63,9 @@ class VPKFile:
                         break
 
                     full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
-                    entry = Entry(full_path)
-                    entry.read(reader)
-                    self.entries[full_path] = entry
+                    self.entries[full_path] = Entry(full_path, reader.tell())
+                    _, preload_size = reader.read_fmt('IH')
+                    reader.skip(preload_size + 12)
 
     def read_archive_md5_section(self):
         reader = self.reader
@@ -77,12 +80,15 @@ class VPKFile:
             md5_entry.read(reader)
             self.archive_md5_entries.append(md5_entry)
 
+    @lru_cache(128)
     def find_file(self, full_path: Union[Path, str]):
         if type(full_path) in [WindowsPath, Path]:
             full_path = full_path.as_posix().lower()
         return self.entries.get(full_path, None)
 
     def read_file(self, entry: Entry) -> BytesIO:
+        if not entry.loaded:
+            entry.read(self.reader)
         if entry.archive_id == 0x7FFF:
             reader = BytesIO(entry.preload_data)
             return reader
