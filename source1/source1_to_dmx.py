@@ -12,6 +12,7 @@ from .vtx.structs.mesh import Mesh as VtxMesh
 from .vtx.structs.model import ModelLod as VtxModel
 from .vtx.vtx import Vtx
 from .vvd.vvd import Vvd
+from ..source_shared.content_manager import ContentManager
 from ..utilities import datamodel
 from ..utilities.valve_utils import GameInfoFile
 
@@ -31,11 +32,10 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
     vertex_accumulator = []
     vertex_offset = 0
     for strip_group in vtx_mesh.strip_groups:
-        indices_accumulator.extend(np.add(strip_group.indexes, vertex_offset))
-        vertex_accumulator.extend([a.original_mesh_vertex_index for a in strip_group.vertexes])
-        for strip in strip_group.strips:
-            vertex_offset += strip.vertex_count
-    return indices_accumulator, vertex_accumulator, vertex_offset
+        indices_accumulator.append(np.add(strip_group.indexes, vertex_offset))
+        vertex_accumulator.append(strip_group.vertexes['original_mesh_vertex_index'].reshape(-1))
+        vertex_offset += sum(strip.vertex_count for strip in strip_group.strips)
+    return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset
 
 
 def merge_meshes(model: Model, vtx_model: VtxModel):
@@ -46,17 +46,12 @@ def merge_meshes(model: Model, vtx_model: VtxModel):
 
         if not vtx_mesh.strip_groups:
             continue
-        face_set = {}
 
-        vertex_start = mesh.vertex_index_start
-        face_set['material'] = mesh.material_index
         indices, vertices, offset = merge_strip_groups(vtx_mesh)
-        # vertices, indices = optimize_indices(vertices, indices)
         indices = np.add(indices, acc)
 
-        vtx_vertices.extend(np.add(vertices, vertex_start))
-        face_set['indices'] = indices
-        face_sets.append(face_set)
+        vtx_vertices.extend(np.add(vertices, mesh.vertex_index_start))
+        face_sets.append({'material': mesh.material_index, 'indices': indices})
         acc += offset
 
     return vtx_vertices, face_sets
@@ -96,7 +91,8 @@ def normalize_path(path):
     return str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\')
 
 
-def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFile):
+def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
+    content_manager = ContentManager()
     output_folder = Path(str(output_folder).lower())
     armature_name = Path(mdl.header.name).stem
     bone_ids = {}
@@ -155,7 +151,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
             dme_model["transform"] = make_transform("",
                                                     datamodel.Vector3([0, 0, 0]),
                                                     datamodel.Quaternion([0, 0, 0, 1]),
-                                                    dme_model.name + "transform")
+                                                    f'{dme_model.name}_transform')
 
             keywords = get_dmx_keywords()
 
@@ -285,7 +281,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                 material_elem = dm.add_element(material_name, "DmeMaterial",
                                                id=f"{material_name}_mat")
                 for cd_mat in mdl.materials_paths:
-                    full_path = gameinfo.find_material(Path(cd_mat) / material_name, True)
+                    full_path = content_manager.find_material(Path(cd_mat) / material_name)
                     if full_path is not None:
                         material_elem["mtlName"] = str(
                             Path('materials') / Path(normalize_path(cd_mat)) / normalize_path(material_name))
@@ -296,8 +292,8 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder, gameinfo: GameInfoFil
                 dme_face_set["material"] = material_elem
 
                 faces = np.full((len(indices) // 3, 4), -1)
-                for face_, face in zip(faces, np.array(indices).reshape((-1, 3))):
-                    face_[:3] = face[::-1]
+                face_indices = np.array(indices).reshape((-1, 3))
+                faces[:, :3] = np.flip(face_indices, 1)
                 dme_face_set["faces"] = datamodel.make_array(faces.flatten(), int)
                 dme_face_sets.append(dme_face_set)
             dme_mesh["faceSets"] = datamodel.make_array(dme_face_sets, datamodel.Element)
