@@ -14,7 +14,6 @@ from .vtx.vtx import Vtx
 from .vvd.vvd import Vvd
 from ..source_shared.content_manager import ContentManager
 from ..utilities import datamodel
-from ..utilities.valve_utils import GameInfoFile
 
 
 def split(array, n=3):
