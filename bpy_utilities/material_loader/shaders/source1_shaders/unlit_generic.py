@@ -24,11 +24,27 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def color2(self):
-        return self._vavle_material.get_param('$color2', None)
+        color_value = self._vavle_material.get_param('$color2', None)
+        if color_value:
+            if type(color_value) is float:
+                color_value = [color_value, color_value, color_value]
+            elif len(color_value) == 1:
+                color_value = [color_value[0], color_value[0], color_value[0]]
+            else:
+                color_value = [1, 1, 1]
+        return color_value
 
     @property
     def color(self):
-        return self._vavle_material.get_param('$color', None)
+        color_value = self._vavle_material.get_param('$color', None)
+        if color_value:
+            if type(color_value) is float:
+                color_value = [color_value, color_value, color_value]
+            elif len(color_value) == 1:
+                color_value = [color_value[0], color_value[0], color_value[0]]
+            else:
+                color_value = [1, 1, 1]
+        return color_value
 
     @property
     def translucent(self):
