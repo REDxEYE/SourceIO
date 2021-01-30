@@ -509,7 +509,7 @@ class BSP:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
             entity_name = f'{entity_class}_{entity_data.get("hammerid", copy_count)}'
         else:
-            entity_name = entity_data['targetname']
+            entity_name = str(entity_data['targetname'])
 
         placeholder = bpy.data.objects.new(entity_name, None)
         placeholder.location = origin
