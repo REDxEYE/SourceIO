@@ -42,10 +42,8 @@ def merge_meshes(model: Model, vtx_model: VtxModel):
     face_sets = []
     acc = 0
     for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
-
         if not vtx_mesh.strip_groups:
             continue
-
         indices, vertices, offset = merge_strip_groups(vtx_mesh)
         indices = np.add(indices, acc)
 
@@ -260,8 +258,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
             vertex_data[keywords['texco']] = datamodel.make_array(model_vertices['uv'], datamodel.Vector2)
             vertex_data[keywords['texco'] + "Indices"] = datamodel.make_array(vtx_vertices, int)
 
-            vertex_data[keywords['norm']] = datamodel.make_array(model_vertices['normal'],
-                                                                 datamodel.Vector3)
+            vertex_data[keywords['norm']] = datamodel.make_array(model_vertices['normal'], datamodel.Vector3)
             vertex_data[keywords['norm'] + "Indices"] = datamodel.make_array(vtx_vertices, int)
 
             vertex_data[keywords["weight"]] = datamodel.make_array(model_vertices['weight'].flatten(), float)
