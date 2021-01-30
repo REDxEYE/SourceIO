@@ -53,6 +53,8 @@ class VertexLitGeneric(Source1ShaderBase):
                 color_value = [color_value, color_value, color_value]
             elif len(color_value) == 1:
                 color_value = [color_value[0], color_value[0], color_value[0]]
+            else:
+                color_value = [1, 1, 1]
         return color_value
 
     @property
@@ -63,6 +65,8 @@ class VertexLitGeneric(Source1ShaderBase):
                 color_value = [color_value, color_value, color_value]
             elif len(color_value) == 1:
                 color_value = [color_value[0], color_value[0], color_value[0]]
+            else:
+                color_value = [1, 1, 1]
         return color_value
 
     @property
@@ -87,7 +91,10 @@ class VertexLitGeneric(Source1ShaderBase):
 
     @property
     def phongexponent(self):
-        return self._vavle_material.get_param('$phongexponent', 5.0)
+        value = self._vavle_material.get_param('$phongexponent', None)
+        if type(value) not in [int, float]:
+            value = 5.0
+        return value
 
     @property
     def phongboost(self):
@@ -105,7 +112,7 @@ class VertexLitGeneric(Source1ShaderBase):
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
@@ -134,7 +141,6 @@ class VertexLitGeneric(Source1ShaderBase):
                 self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
                                  basetexture_additive_mix_node.outputs['Color'])
                 basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
-
 
                 self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
                 self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
