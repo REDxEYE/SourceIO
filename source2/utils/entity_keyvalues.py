@@ -21,9 +21,9 @@ class EntityKeyValues:
         key = reader.read_uint32()
         key = self.key_lookup.get(key)
         if use_string:
-            tmp = reader.read_ascii_string()
-            # assert key == tmp, f"Add this string ->{tmp} to entitykeyvalues_list.txt"
-            key = tmp
+            key = reader.read_ascii_string()
+        else:
+            key = str(key)
         value_type = reader.read_uint32()
 
         if value_type == 30:
@@ -37,7 +37,7 @@ class EntityKeyValues:
         elif value_type == 9:  # color
             parent[key] = reader.read_fmt("4B")
         elif value_type == 26:
-            parent[key] = reader.read_uint64()
+            parent[key] = str(reader.read_uint64())
         elif value_type == 37:
             parent[key] = reader.read_int32()
         elif value_type in [3, 14, 40, 43, 45, 54, 39]:

@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from ..blocks import DATA
-from ..source2 import ValveFile
-from .valve_texture import ValveTexture
+from ..source2 import ValveCompiledFile
+from .valve_texture import ValveCompiledTexture
 
 # noinspection PyUnresolvedReferences
 import bpy
@@ -10,17 +10,16 @@ import bpy
 from ...bpy_utilities.material_loader.material_loader import Source2MaterialLoader
 
 
-class ValveMaterial:
+class ValveCompiledMaterial(ValveCompiledFile):
 
-    def __init__(self, vtex_path):
-        self.valve_file = ValveFile(vtex_path)
-        self.valve_file.read_block_info()
-        self.valve_file.check_external_resources()
+    def __init__(self, path_or_file):
+        super().__init__(path_or_file)
+
 
     def load(self):
-        data_block: DATA = self.valve_file.get_data_block(block_name='DATA')[0]
+        data_block: DATA = self.get_data_block(block_name='DATA')[0]
         source_material = Source2MaterialLoader(data_block.data, Path(data_block.data['m_materialName']).stem,
-                                                self.valve_file.available_resources)
+                                                self.available_resources)
         source_material.create_material()
         # if data_block:
         #     bl_material = bpy.data.materials.get(self.valve_file.filepath.stem, False) or bpy.data.materials.new(

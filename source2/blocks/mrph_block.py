@@ -2,6 +2,8 @@ import struct
 
 from .data_block import DATA
 import numpy as np
+
+
 from ...source1.mdl.flex_expressions import *
 
 
@@ -12,9 +14,10 @@ class MRPH(DATA):
         self.flex_data = {}
 
     def read_morphs(self):
+        from ..resouce_types.valve_texture import ValveCompiledTexture
         if self.data['m_pTextureAtlas'] not in self._valve_file.available_resources:
             return False
-        morph_atlas = self._valve_file.parse_new(self._valve_file.available_resources[self.data['m_pTextureAtlas']])
+        morph_atlas = ValveCompiledTexture(self._valve_file.available_resources[self.data['m_pTextureAtlas']])
         morph_atlas.read_block_info()
         morph_atlas_data = morph_atlas.get_data_block(block_name="DATA")[0]
         morph_atlas_data.read_image(False)

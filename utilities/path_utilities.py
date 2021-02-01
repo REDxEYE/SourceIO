@@ -117,7 +117,8 @@ def get_mod_path(path: Path) -> Path:
                 break
             if path.parts[-1] == 'materials':
                 result_path = path.parent
-                break
+                if (result_path/'models').exists():
+                    break
             if path.parts[-1] == 'maps':
                 result_path = path.parent
                 break

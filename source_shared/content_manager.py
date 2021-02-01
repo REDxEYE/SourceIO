@@ -5,7 +5,8 @@ from ..bpy_utilities.logging import BPYLoggingManager
 from ..source_shared.non_source_sub_manager import NonSourceContentProvider
 from ..source_shared.content_provider_base import ContentProviderBase
 from ..source_shared.vpk_sub_manager import VPKContentProvider
-from ..utilities.gameinfo import GameinfoContentProvider
+from ..source1.source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
+from ..source2.source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
 from ..utilities.path_utilities import get_mod_path
 from ..utilities.singleton import SingletonMeta
 
@@ -20,7 +21,7 @@ class ContentManager(metaclass=SingletonMeta):
     def scan_for_content(self, source_game_path: Union[str, Path]):
 
         source_game_path = Path(source_game_path)
-        if source_game_path.suffix == '.vpk' and source_game_path.stem.endswith('_dir'):
+        if source_game_path.suffix == '.vpk':
             if f'{source_game_path.parent.stem}_{source_game_path.stem}' in self.content_providers:
                 return
             vpk_path = source_game_path
@@ -36,7 +37,14 @@ class ContentManager(metaclass=SingletonMeta):
         if is_source:
             gameinfos = root_path.glob('*gameinfo*.txt')
             for gameinfo in gameinfos:
-                sub_manager = GameinfoContentProvider(gameinfo)
+                sub_manager = Source1GameinfoContentProvider(gameinfo)
+                self.content_providers[root_path.stem] = sub_manager
+                logger.info(f'Registered sub manager for {root_path.stem}')
+                for mod in sub_manager.get_search_paths():
+                    self.scan_for_content(mod)
+            gameinfos = root_path.glob('*gameinfo*.gi')
+            for gameinfo in gameinfos:
+                sub_manager = Source2GameinfoContentProvider(gameinfo)
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
@@ -65,7 +73,10 @@ class ContentManager(metaclass=SingletonMeta):
                 sub_manager = VPKContentProvider(Path(path))
                 self.content_providers[name] = sub_manager
             elif path.endswith('.txt'):
-                sub_manager = GameinfoContentProvider(Path(path))
+                sub_manager = Source1GameinfoContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.gi'):
+                sub_manager = Source2GameinfoContentProvider(Path(path))
                 self.content_providers[name] = sub_manager
             elif path.endswith('.bsp'):
                 from ..source1.bsp.bsp_file import BSPFile
@@ -84,7 +95,7 @@ class ContentManager(metaclass=SingletonMeta):
             path = path.parent
         if path.parts[-1] == '*':
             path = path.parent
-        gameinfos = list(path.glob('*gameinfo*.txt'))
+        gameinfos = list(path.glob('*gameinfo*.*'))
         if gameinfos:
             return True, path
         elif not second:

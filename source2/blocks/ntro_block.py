@@ -1,10 +1,64 @@
+from enum import IntEnum
 from typing import List
 
 from ...utilities.byte_io_mdl import ByteIO
-from ..common import KeyValueDataType, kv_type_to_c_type, SourceVector2D, SourceVector, SourceVector4D, \
-    Matrix, CTransform
+from ..common import Matrix, CTransform
 
 from .dummy import DataBlock
+
+
+class KeyValueDataType(IntEnum):
+    STRUCT = 1
+    ENUM = 2
+    POINTER = 3
+    STRING = 4
+    UBYTE = 10
+    BYTE = 11
+    SHORT = 12
+    USHORT = 13
+    INTEGER = 14
+    UINTEGER = 15
+    INT64 = 16
+    UINT64 = 17
+    FLOAT = 18
+    VECTOR2 = 21
+    VECTOR3 = 22
+    VECTOR4 = 23
+    QUATERNION = 25
+    Fltx4 = 27
+    COLOR = 28  # Standard RGBA, 1 byte per channel
+    BOOLEAN = 30
+    NAME = 31  # Also used for notes as well? idk... seems to be some kind of special string
+    Matrix3x4 = 33
+    Matrix3x4a = 36
+    CTransform = 40
+    Vector4D_44 = 44
+
+    UNKNOWN = -1
+
+
+kv_type_to_c_type = {
+    1: 'STRUCT',
+    2: 'int',
+    3: 'int',
+    4: 'char*',
+    10: 'unsigned byte',
+    11: 'byte',
+    12: 'short',
+    13: 'unsigned short',
+    14: 'int',
+    15: 'unsigned int',
+    16: 'long long',
+    17: 'unsigned long long',
+    18: 'float',
+    21: 'vector2',
+    22: 'vector3',
+    23: 'vector4',
+    25: 'quaternion',
+    28: 'RGB',
+    30: 'byte',
+    31: 'char*'
+}
 
 
 class NTRO(DataBlock):
@@ -251,13 +305,13 @@ class NTROStructField:
             offset = reader.read_uint32()
             return reader.read_from_offset(entry + offset, reader.read_ascii_string)
         if self.type == KeyValueDataType.VECTOR2:
-            return SourceVector2D().read(reader)
+            return reader.read_fmt('2f')
         if self.type == KeyValueDataType.VECTOR3:
-            return SourceVector().read(reader)
+            return reader.read_fmt('3f')
         if self.type == KeyValueDataType.VECTOR4 or self.type == KeyValueDataType.COLOR \
                 or self.type == KeyValueDataType.QUATERNION or self.type == KeyValueDataType.Fltx4 \
                 or self.type == KeyValueDataType.Vector4D_44:
-            return SourceVector4D().read(reader)
+            return reader.read_fmt('4f')
         if self.type == KeyValueDataType.POINTER:
             return reader.read_uint32()
         if self.type == KeyValueDataType.ENUM:

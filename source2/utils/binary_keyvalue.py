@@ -3,13 +3,13 @@ from enum import IntEnum
 import numpy as np
 
 from ...utilities.byte_io_mdl import ByteIO
-from ..compiled_file_header import InfoBlock
+from ..blocks.compiled_file_header import InfoBlock
 
 try:
     from ..utils.PySourceIOUtils import lz4_decompress as uncompress
 except ImportError:
     print("PySourceIOTextureUtils import error")
-    from ..lz4 import uncompress as uncompress_tmp
+    from ..utils.lz4 import uncompress as uncompress_tmp
 
 
     def uncompress(a, _b, _c):

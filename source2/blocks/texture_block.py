@@ -139,8 +139,6 @@ class TEXR(DataBlock):
                             self.compressed_mips.append(reader.read_uint32())
                     else:
                         self.extra_data.append((extra_type, reader.read(size)))
-        # print(self.format)
-        # self.read_image()
 
     def calculate_buffer_size_for_mip(self, mip_level):
         bytes_per_pixel = block_size(self.format)

@@ -14,7 +14,7 @@ from .shaders.source2_shader_base import Source2ShaderBase
 from .shaders.source1_shaders import eyerefract, cable, unlit_generic, lightmap_generic, vertexlit_generic, \
     worldvertextransition, unlittwotexture, lightmapped_4wayblend
 from .shaders.goldsrc_shaders import goldsrc_shader
-from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball
+from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball,vr_simple
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('material_loader')
@@ -96,8 +96,12 @@ class Source2MaterialLoader(MaterialLoaderBase):
         self.texture_data = source2_material_data
 
     def create_material(self):
+        shader = self.texture_data['m_shaderName']
         handler: Source2ShaderBase = self._handlers.get(
-            self.texture_data['m_shaderName'], Source2ShaderBase)(self.texture_data, self.resources)
+            shader, Source2ShaderBase)(self.texture_data, self.resources)
+
+        if shader not in self._handlers:
+            logger.error(f'Shader "{shader}" not currently supported by SourceIO')
         try:
             handler.create_nodes(self.material_name)
         except Exception as ex:

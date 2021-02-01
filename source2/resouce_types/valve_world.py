@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import List
+from typing import List, Tuple, Dict, Any
 
 # noinspection PyUnresolvedReferences
 import bpy
@@ -8,85 +8,119 @@ import numpy as np
 # noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix
 
-from .valve_model import ValveModel
-from ..common import SourceVector4D
-from ..source2 import ValveFile
+from .valve_model import ValveCompiledModel
+from ..blocks import DataBlock
+from ..source2 import ValveCompiledFile
 from ..utils.entity_keyvalues import EntityKeyValues
+from ...source_shared.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source2_to_blender
-from ...utilities.path_utilities import backwalk_file_resolver
+from ...bpy_utilities.utils import get_new_unique_collection, get_or_create_collection
 
 
-class ValveWorld:
-    def __init__(self, vmdl_path, *, invert_uv=False, scale=1.0):
-        self.valve_file = ValveFile(vmdl_path)
-        self.valve_file.read_block_info()
-        self.valve_file.check_external_resources()
+def get_entity_name(entity_data: Dict[str, Any]):
+    return f'{entity_data.get("targetname", entity_data.get("hammeruniqueid", "missing_hammer_id"))}'
+
+
+class ValveCompiledWorld(ValveCompiledFile):
+    def __init__(self, path_or_file, *, invert_uv=False, scale=1.0):
+        super().__init__(path_or_file)
         self.invert_uv = invert_uv
         self.scale = scale
+        self.master_collection = bpy.context.scene.collection
 
-    def load_static(self):
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+    def load(self, map_name):
+        self.master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
+        self.load_static_props()
+        self.load_entities()
+
+    def load_static_props(self):
+        data_block = self.get_data_block(block_name='DATA')[0]
         if data_block:
             for world_node_t in data_block.data['m_worldNodes']:
                 self.load_world_node(world_node_t)
 
-    def load_entities(self, use_placeholders=False):
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+    def load_entities(self):
+        content_manager = ContentManager()
+        data_block = self.get_data_block(block_name='DATA')[0]
         if data_block and data_block.data.get('m_entityLumps', False):
             for elump in data_block.data.get('m_entityLumps'):
                 print("Loading entity lump", elump)
-                entity_lump = self.valve_file.get_child_resource(elump)
-                self.handle_child_lump(entity_lump, use_placeholders)
+                proper_path = self.available_resources.get(elump, None)
+                if not proper_path:
+                    continue
+                elump_file = content_manager.find_file(proper_path)
+                if not elump_file:
+                    continue
+                self.handle_child_lump(proper_path.stem, ValveCompiledFile(elump_file))
 
-    def handle_child_lump(self, child_lump, use_placeholders):
+    def handle_child_lump(self, name, child_lump):
         if child_lump:
-            self.load_entity_lump(child_lump, use_placeholders)
+            self.load_entity_lump(name, child_lump)
         else:
             print("Missing", child_lump.filepath, 'entity lump')
         entity_data_block = child_lump.get_data_block(block_name='DATA')[0]
         for child_lump_path in entity_data_block.data['m_childLumps']:
             print("Loading next child entity lump", child_lump_path)
-            next_lump = child_lump.get_child_resource(child_lump_path)
-            self.handle_child_lump(next_lump, use_placeholders)
+            proper_path = child_lump.available_resources.get(child_lump_path, None)
+            if not proper_path:
+                continue
+            next_lump = ContentManager().find_file(proper_path)
+            if not next_lump:
+                continue
+            self.handle_child_lump(proper_path.stem, ValveCompiledFile(next_lump))
 
     def load_world_node(self, node):
+        content_manager = ContentManager()
         node_path = node['m_worldNodePrefix'] + '.vwnod_c'
-        full_node_path = backwalk_file_resolver(self.valve_file.filepath.parent, node_path)
-        world_node_file = ValveFile(full_node_path)
+        full_node_path = content_manager.find_file(node_path)
+        world_node_file = ValveCompiledFile(full_node_path)
         world_node_file.read_block_info()
         world_node_file.check_external_resources()
-        world_data = world_node_file.get_data_block(block_name="DATA")[0]
-        collection = bpy.data.collections.get("STATIC", None) or bpy.data.collections.new(name="STATIC")
-        try:
-            bpy.context.scene.collection.children.link(collection)
-        except:
-            pass
+        world_data: DataBlock = world_node_file.get_data_block(block_name="DATA")[0]
+        collection = get_or_create_collection(f"static_props_{Path(node_path).stem}", self.master_collection)
         for n, static_object in enumerate(world_data.data['m_sceneObjects']):
-            model_file = world_node_file.get_child_resource(static_object['m_renderableModel'])
-            if model_file is not None:
-                print(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_file.filepath.stem} mesh")
-                model = ValveModel("", model_file, re_use_meshes=True)
-                to_remove = Path(node_path)
-                model.load_mesh(self.invert_uv, to_remove.stem + "_", collection, )
-                mat_rows = static_object['m_vTransform']  # type:List[SourceVector4D]
-                transform_mat = Matrix(
-                    [mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
-                for obj in model.objects:
-                    obj.matrix_world = transform_mat
-                    obj.scale = Vector([self.scale, self.scale, self.scale])
-                    obj.location *= self.scale
+            model_path = static_object['m_renderableModel']
+            proper_path = world_node_file.available_resources.get(model_path)
+            print(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_path} mesh")
+            mat_rows: List = static_object['m_vTransform']
+            transform_mat = Matrix([mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
+            loc, rot, sca = transform_mat.decompose()
+            custom_data = {'prop_path': str(proper_path),
+                           'type': 'static_prop',
+                           'scale': self.scale,
+                           'entity': static_object,
+                           'skin': static_object.get('skin', 'default') or 'default'}
 
-    def load_entity_lump(self, entity_lump, use_placeholders):
+            self.create_empty(proper_path.stem, loc,
+                              rot.to_euler(),
+                              sca,
+                              parent_collection=collection,
+                              custom_data=custom_data)
+            # model = ValveCompiledModel(file, re_use_meshes=True)
+            # to_remove = Path(node_path)
+            # model.load_mesh(self.invert_uv, to_remove.stem + "_", collection, )
+            # mat_rows: List = static_object['m_vTransform']
+            # transform_mat = Matrix(
+            #     [mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
+            # for obj in model.objects:
+            #     obj.matrix_world = transform_mat
+            #     obj.scale = Vector([self.scale, self.scale, self.scale])
+            #     obj.location *= self.scale
+
+    def load_entity_lump(self, lump_name, entity_lump):
         entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]
         for entity_kv in entity_data_block.data['m_entityKeyValues']:
             a = EntityKeyValues()
             reader = ByteIO(entity_kv['m_keyValuesData'])
             a.read(reader)
-            class_name = a.base['classname']
-            if class_name in ["prop_dynamic", "prop_physics", "prop_ragdoll", "npc_furniture"]:
-                self.load_prop(entity_lump, a.base, class_name, use_placeholders)
+            entity_data = a.base
+            class_name: str = entity_data['classname']
 
+            if class_name.startswith('npc_'):
+                self.handle_model(class_name, entity_data)
+            if class_name.startswith('prop_'):
+                self.handle_model(class_name, entity_data)
             elif class_name == 'light_omni':
                 self.load_light(a.base, "POINT")
             elif class_name == 'light_ortho':
@@ -96,66 +130,50 @@ class ValveWorld:
             elif class_name == 'light_sun':
                 self.load_light(a.base, "SUN")
 
-    def load_prop(self, parent_file, prop_data, collection_name, use_placeholders=False):
-        model_path = prop_data['model']
-        print("Loading", model_path, 'model')
-        model_path = backwalk_file_resolver(parent_file.filepath.parent, Path(model_path + "_c"))
-        prop_location = parse_hammer_vector(prop_data['origin'])
-        prop_rotation = convert_rotation_source2_to_blender(parse_hammer_vector(prop_data['angles']))
-        prop_scale = parse_hammer_vector(prop_data['scales'])
-        collection = bpy.data.collections.get(collection_name, None) or bpy.data.collections.new(name=collection_name)
-        try:
-            bpy.context.scene.collection.children.link(collection)
-        except:
-            pass
-        if model_path and not use_placeholders:
-            model = ValveModel(model_path)
-            model.load_mesh(self.invert_uv, parent_collection=collection, skin_name=prop_data.get("skin", "default"))
-            for obj in model.objects:
-                obj.location = prop_location * self.scale
-                obj.rotation_mode = 'XYZ'
-                obj.rotation_euler = prop_rotation
-                obj.scale = prop_scale * self.scale
-        elif use_placeholders:
-            prop_custom_data = {'prop_path': prop_data['model'],
-                                'parent_path': str(parent_file.filepath.parent),
-                                'skin_group_name': prop_data.get("skin", "default"),
-                                'type': collection_name}
+    def handle_model(self, entity_class, entity_data):
+        entity_name = get_entity_name(entity_data)
+        if 'model' in entity_data:
+            parent_collection = get_or_create_collection(entity_class, self.master_collection)
+            model_path = entity_data['model']
+            prop_location = parse_hammer_vector(entity_data['origin'])
+            prop_rotation = convert_rotation_source2_to_blender(parse_hammer_vector(entity_data['angles']))
+            prop_scale = parse_hammer_vector(entity_data['scales'])
 
-            self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
-                                    prop_custom_data,
-                                    collection)
-        else:
-            print("Missing", prop_data['model'], "model")
-            print("\tCreating placeholder!")
-            prop_custom_data = {'prop_path': prop_data['model'],
-                                'parent_path': str(parent_file.filepath.parent),
-                                'skin_group_name': prop_data.get("skin", "default"),
-                                'type': collection_name}
+            custom_data = {'prop_path': f'{model_path}_c',
+                           'type': entity_class,
+                           'scale': self.scale,
+                           'entity': entity_data,
+                           'skin': entity_data.get("skin", "default")}
 
-            self.create_placeholder(Path(prop_data['model']).stem, prop_location, prop_rotation, prop_scale,
-                                    prop_custom_data,
-                                    collection)
+            self.create_empty(entity_name, prop_location,
+                              prop_rotation,
+                              prop_scale,
+                              parent_collection=parent_collection,
+                              custom_data=custom_data)
 
-    def create_placeholder(self, name, location, rotation, scale, obj_data, parent_collection):
-
+    def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None,
+                     custom_data=None):
+        if custom_data is None:
+            custom_data = {}
+        if scale is None:
+            scale = [1.0, 1.0, 1.0]
+        if rotation is None:
+            rotation = [0.0, 0.0, 0.0]
         placeholder = bpy.data.objects.new(name, None)
-        placeholder.location = location * self.scale
-        placeholder.rotation_mode = 'XYZ'
+        placeholder.location = location
         placeholder.rotation_euler = rotation
-        placeholder.scale = scale * self.scale
-        placeholder['entity_data'] = obj_data
 
-        parent_collection.objects.link(placeholder)
+        placeholder.empty_display_size = 16
+        placeholder.scale = np.multiply(scale, self.scale)
+        placeholder['entity_data'] = custom_data
+        if parent_collection is not None:
+            parent_collection.objects.link(placeholder)
+        else:
+            self.master_collection.objects.link(placeholder)
 
     def load_light(self, light_data, lamp_type):
-        light_collection = bpy.data.collections.get("LIGHTS", None) or bpy.data.collections.new(name="LIGHTS")
-        try:
-            bpy.context.scene.collection.children.link(light_collection)
-        except:
-            pass
-
-        name = light_data.get('targetname', None)
+        light_collection = get_or_create_collection(light_data['classname'], self.master_collection)
+        name = get_entity_name(light_data)
 
         origin = parse_hammer_vector(light_data['origin'])
         orientation = convert_rotation_source2_to_blender(parse_hammer_vector(light_data['angles']))

@@ -4,7 +4,8 @@ from typing import Dict, Any, Union
 import numpy as np
 
 from ..shader_base import ShaderBase
-from ....source2.resouce_types.valve_texture import ValveTexture
+from ....source2.resouce_types.valve_texture import ValveCompiledTexture
+from ....source_shared.content_manager import ContentManager
 
 
 class Source2ShaderBase(ShaderBase):
@@ -38,8 +39,8 @@ class Source2ShaderBase(ShaderBase):
     def get_dynamic_texture(self, name, default):
         return self._get_param('m_dynamicTextureParams', name, 'error', default)
 
-    def split_normal(self,image: bpy.types.Image):
-        roughness_name = self.new_texture_name_with_suffix(image.name,'roughness','tga')
+    def split_normal(self, image: bpy.types.Image):
+        roughness_name = self.new_texture_name_with_suffix(image.name, 'roughness', 'tga')
         if image.get('normalmap_converted', None):
             return image, bpy.data.images.get(roughness_name, None)
         if bpy.app.version > (2, 83, 0):
@@ -63,7 +64,11 @@ class Source2ShaderBase(ShaderBase):
         return image, roughness_texture
 
     def load_texture(self, texture_name, texture_path):
+
         if texture_path in self.resources:
-            texture = ValveTexture(self.resources[texture_path])
-            return texture.load(True)
+            proper_path = self.resources[texture_path]
+            texture_path = ContentManager().find_file(proper_path)
+            if texture_path:
+                texture = ValveCompiledTexture(texture_path)
+                return texture.load(proper_path.stem, True)
         return None
