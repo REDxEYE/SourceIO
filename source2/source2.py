@@ -1,33 +1,31 @@
 import math
 import sys
 from pathlib import Path
-from typing import List, BinaryIO, Union, Type
+from typing import List, BinaryIO, Union, Optional
 
+from SourceIO.source_shared.content_manager import ContentManager
 from ..utilities.byte_io_mdl import ByteIO
-from .common import SourceVector
-from .compiled_file_header import CompiledHeader, InfoBlock
-from ..utilities.path_utilities import backwalk_file_resolver
-from .blocks import DataBlock
+from .blocks.compiled_file_header import CompiledHeader, InfoBlock
+from .blocks import DataBlock, DATA
 
 
-class ValveFile:
+class ValveCompiledFile:
+    data_block_class = DATA
 
     @classmethod
     def parse_new(cls, filepath):
         return cls(filepath)
 
-    def __init__(self, filepath, data_block_handler=None):
-
-        # print('Reading {}'.format(filepath))
-        self.filepath = Path(filepath)
-        self.reader = ByteIO(self.filepath)
-        self.data_block_handler = data_block_handler
-        self.filename = self.filepath.name
+    def __init__(self, path_or_file):
+        self.reader = ByteIO(path_or_file)
         self.header = CompiledHeader()
         self.header.read(self.reader)
         self.info_blocks = []  # type: List[InfoBlock]
         self.data_blocks = []  # type: List[Union[DataBlock,None]]
         self.available_resources = {}
+
+        self.read_block_info()
+        self.check_external_resources()
 
     def read_block_info(self):
         self.info_blocks.clear()
@@ -52,7 +50,8 @@ class ValveFile:
                 block = block_class(self, block_info)
                 self.data_blocks[self.info_blocks.index(block_info)] = block
 
-    def get_data_block(self, *, block_id=None, block_name=None) -> Union[DataBlock, List[DataBlock], None]:
+    def get_data_block(self, *, block_id: Optional[int] = None, block_name: Optional[str] = None) \
+            -> Union[DataBlock, List[DataBlock], None]:
         """
         :rtype: Union[DataBlock, List[DataBlock]
         """
@@ -83,19 +82,19 @@ class ValveFile:
     def get_data_block_class(self, block_name):
         from .blocks import TEXR, DATA, NTRO, REDI, RERL, VBIB, MRPH, ANIM
 
-        if self.filepath.suffix == '.vtex_c':
-            data_block_class = TEXR
-        elif self.filepath.suffix == '.vmorf_c':
-            data_block_class = MRPH
-        else:
-            data_block_class = DATA
+        # if self.filepath.suffix == '.vtex_c':
+        #     data_block_class = TEXR
+        # elif self.filepath.suffix == '.vmorf_c':
+        #     data_block_class = MRPH
+        # else:
+
         data_classes = {
             "NTRO": NTRO,
             "REDI": REDI,
             "RERL": RERL,
             "VBIB": VBIB,
             "VXVS": VBIB,
-            "DATA": data_block_class,
+            "DATA": self.data_block_class,
             "CTRL": DATA,
             "MBUF": VBIB,
             "MDAT": DATA,
@@ -136,20 +135,16 @@ class ValveFile:
         from .blocks.rerl_block import RERL
         if self.get_data_block(block_name="RERL"):
             relr_block: RERL = self.get_data_block(block_name="RERL")[0]
-
             for block in relr_block.resources:
                 path = Path(block.resource_name)
                 asset = path.with_suffix(path.suffix + '_c')
-                asset = backwalk_file_resolver(Path(self.filepath).parent, asset)
-                if asset and asset.exists():
-                    self.available_resources[block.resource_name] = asset.absolute()
-                    self.available_resources[block.resource_hash] = asset.absolute()
-                else:
-                    pass
+                if asset:
+                    self.available_resources[block.resource_name] = asset
+                    self.available_resources[block.resource_hash] = asset
 
     def get_child_resource(self, name):
         if self.available_resources.get(name, None) is not None:
-            res = ValveFile(self.available_resources.get(name))
+            res = ValveCompiledFile(self.available_resources.get(name))
             res.read_block_info()
             res.check_external_resources()
             return res
@@ -170,7 +165,7 @@ def quaternion_to_euler_angle(w, x, y, z):
     t4 = +1.0 - 2.0 * (y * y + z * z)
     z = math.degrees(math.atan2(t3, t4))
 
-    return SourceVector(x, y, z)
+    return x, y, z
 
 
 if __name__ == '__main__':
@@ -186,7 +181,7 @@ if __name__ == '__main__':
             # model_path = r'../test_data/source2/sniper_model.vmorf_c'
             # model_path = r'../test_data/source2/sniper.vphys_c'
 
-            vmdl = ValveFile(model)
+            vmdl = ValveCompiledFile(model)
             vmdl.read_block_info()
             vmdl.dump_resources()
             vmdl.check_external_resources()

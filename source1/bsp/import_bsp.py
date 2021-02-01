@@ -60,6 +60,11 @@ class BSP:
         self.logger.debug('Adding map pack file to content manager')
         content_manager.content_providers[Path(self.filepath).stem] = self.map_file.get_lump('LUMP_PAK')
 
+    def convert_rotation(self, rotation_value):
+        convert_rotation_source1_to_blender(parse_hammer_vector())
+        if self.map_file.steam_app_id == 620:
+            pass
+
     @staticmethod
     def gather_vertex_ids(model: Model, faces: List[Face], surf_edges: List[Tuple[int, int]],
                           edges: List[Tuple[int, int]]):
@@ -509,7 +514,7 @@ class BSP:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
             entity_name = f'{entity_class}_{entity_data.get("hammerid", copy_count)}'
         else:
-            entity_name = entity_data['targetname']
+            entity_name = str(entity_data['targetname'])
 
         placeholder = bpy.data.objects.new(entity_name, None)
         placeholder.location = origin
@@ -540,8 +545,7 @@ class BSP:
             self.create_empty(entity_name, location,
                               rotation,
                               parent_collection=parent_collection,
-                              custom_data={'parent_path': str(self.filepath.parent),
-                                           'prop_path': entity_data['model'],
+                              custom_data={'prop_path': entity_data['model'],
                                            'type': entity_class,
                                            'scale': self.scale,
                                            'entity': entity_data,

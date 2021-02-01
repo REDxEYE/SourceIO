@@ -3,13 +3,12 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
-from .source2.resouce_types.valve_model import ValveModel
-from .source2.resouce_types.valve_texture import ValveTexture
-from .source2.resouce_types.valve_material import ValveMaterial
-from .source2.resouce_types.valve_world import ValveWorld
+from .source2.resouce_types.valve_model import ValveCompiledModel
+from .source2.resouce_types.valve_texture import ValveCompiledTexture
+from .source2.resouce_types.valve_material import ValveCompiledMaterial
+from .source2.resouce_types.valve_world import ValveCompiledWorld
+from .source_shared.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
-
-
 
 
 # noinspection PyUnresolvedReferences
@@ -33,8 +32,8 @@ class VMDLImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
-            print(f"Loading {n+1}/{len(self.files)}")
-            model = ValveModel(str(directory / file.name))
+            print(f"Loading {n + 1}/{len(self.files)}")
+            model = ValveCompiledModel(str(directory / file.name))
             model.load_mesh(self.invert_uv)
             model.load_attachments()
             if self.import_anim:
@@ -47,7 +46,6 @@ class VMDLImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-# noinspection PyUnresolvedReferences
 class VWRLDImport_OT_operator(bpy.types.Operator):
     """Load Source2 VWRLD"""
     bl_idname = "source_io.vwrld"
@@ -61,10 +59,6 @@ class VWRLDImport_OT_operator(bpy.types.Operator):
     invert_uv: BoolProperty(name="invert UV?", default=True)
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
 
-    use_placeholders: BoolProperty(name="Use placeholders instead of objects", default=False)
-    load_static: BoolProperty(name="Load static meshes", default=True)
-    load_dynamic: BoolProperty(name="Load entities", default=True)
-
     def execute(self, context):
 
         if Path(self.filepath).is_file():
@@ -73,15 +67,9 @@ class VWRLDImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
-            world = ValveWorld(str(directory / file.name), invert_uv=self.invert_uv, scale=self.scale)
-            if self.load_static:
-                try:
-                    world.load_static()
-                except KeyboardInterrupt:
-                    print("Skipped static assets")
-            if self.load_dynamic:
-                world.load_entities(self.use_placeholders)
-        print("Hey @LifeForLife, everything is imported as you wanted!!")
+            ContentManager().scan_for_content((directory.parent / file.name).with_suffix('.vpk'))
+            world = ValveCompiledWorld(directory / file.name, invert_uv=self.invert_uv, scale=self.scale)
+            world.load(file.name)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -111,7 +99,7 @@ class VMATImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
-            material = ValveMaterial(str(directory / file.name))
+            material = ValveCompiledMaterial(str(directory / file.name))
             material.load()
         return {'FINISHED'}
 
@@ -138,7 +126,7 @@ class VTEXImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            texture = ValveTexture(str(directory / file.name))
+            texture = ValveCompiledTexture(str(directory / file.name))
             texture.load(self.flip)
         return {'FINISHED'}
 
@@ -146,5 +134,3 @@ class VTEXImport_OT_operator(bpy.types.Operator):
         wm = context.window_manager
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
-
-

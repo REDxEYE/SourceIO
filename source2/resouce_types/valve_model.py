@@ -7,50 +7,41 @@ from mathutils import Vector, Matrix, Quaternion, Euler
 
 import math
 
-from .valve_material import ValveMaterial
+from .valve_material import ValveCompiledMaterial
+from .vavle_morph import ValveCompiledMorph
 from ..utils.decode_animations import parse_anim_data
 from ..blocks.vbib_block import VertexBuffer
-from ..common import SourceVector
-from ..source2 import ValveFile
+from ..common import convert_normals
+from ..source2 import ValveCompiledFile
 import numpy as np
 
-from ...bpy_utilities.utils import get_material
+from ...bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection
+from ...source_shared.content_manager import ContentManager
 
 
-class ValveModel:
+class ValveCompiledModel(ValveCompiledFile):
 
-    def __init__(self, vmdl_path, valve_file=None, re_use_meshes=False):
-        if valve_file:
-            self.valve_file = valve_file
-        else:
-            self.valve_file = ValveFile(vmdl_path)
-            self.valve_file.read_block_info()
-            self.valve_file.check_external_resources()
+    def __init__(self, path_or_file, re_use_meshes=False):
+        super().__init__(path_or_file)
         self.re_use_meshes = re_use_meshes
-        self.name = self.valve_file.filepath.stem
         self.strip_from_name = ''
         self.lod_collections = {}
         self.objects = []
-
+        data_block = self.get_data_block(block_name='DATA')
+        assert len(data_block) == 1
+        data_block = data_block[0]
+        self.name = data_block.data['m_name']
         self.main_collection = None
         self.armature = None
+        self.materials = []
 
-    # noinspection PyUnresolvedReferences
     def load_mesh(self, invert_uv, strip_from_name='',
-                  parent_collection: bpy.types.Collection = None,
-                  skin_name="default"):
+                  parent_collection: bpy.types.Collection = None):
         self.strip_from_name = strip_from_name
         name = self.name.replace(self.strip_from_name, "")
-        self.main_collection = bpy.data.collections.get(name, None) or bpy.data.collections.new(name)
+        self.main_collection = get_or_create_collection(name, parent_collection or bpy.context.scene.collection)
 
-        if parent_collection is not None:
-            if self.main_collection.name not in parent_collection.children:
-                parent_collection.children.link(self.main_collection)
-        else:
-            if self.main_collection.name not in bpy.context.scene.collection.children:
-                bpy.context.scene.collection.children.link(self.main_collection)
-
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+        data_block = self.get_data_block(block_name='DATA')[0]
 
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
@@ -58,38 +49,41 @@ class ValveModel:
             self.armature = self.build_armature()
             self.objects.append(self.armature)
 
-        self.build_meshes(self.main_collection, self.armature, invert_uv, skin_name)
+        self.build_meshes(self.main_collection, self.armature, invert_uv)
+        self.load_materials()
 
-    def build_meshes(self, collection, armature, invert_uv: bool = True, skin_name="default"):
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
-        # pprint(self.valve_file.available_resources)
-        use_external_meshes = len(self.valve_file.get_data_block(block_name='CTRL')) == 0
+    def build_meshes(self, collection, armature, invert_uv: bool = True):
+        content_manager = ContentManager()
+
+        data_block = self.get_data_block(block_name='DATA')[0]
+        use_external_meshes = len(self.get_data_block(block_name='CTRL')) == 0
         if use_external_meshes:
             for mesh_index, mesh_ref in enumerate(data_block.data['m_refMeshes']):
                 if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
                     continue
-                mesh_ref_path = self.valve_file.available_resources.get(mesh_ref, None)  # type:Path
-                if mesh_ref_path is not None:
-                    mesh = ValveFile(mesh_ref_path)
+                mesh_ref_path = self.available_resources.get(mesh_ref, None)  # type:Path
+                mesh_ref_file = content_manager.find_file(mesh_ref_path)
+                if mesh_ref_file:
+                    mesh = ValveCompiledFile(mesh_ref_file)
+                    self.available_resources.update(mesh.available_resources)
                     mesh.read_block_info()
                     mesh.check_external_resources()
                     mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
                     buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                     name = mesh_ref_path.stem
-                    # pprint(mesh.available_resources)
                     vmorf_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
                                                               None)  # type:Path
                     morph_block = None
                     if vmorf_path is not None:
-                        morph = ValveFile(vmorf_path)
+                        morph = ValveCompiledMorph(vmorf_path)
                         morph.read_block_info()
                         morph.check_external_resources()
                         morph_block = morph.get_data_block(block_name="DATA")[0]
                     self.build_mesh(name, armature, collection,
                                     mesh_data_block, buffer_block, data_block, morph_block,
-                                    invert_uv, mesh_index, skin_name=skin_name)
+                                    invert_uv, mesh_index)
         else:
-            control_block = self.valve_file.get_data_block(block_name="CTRL")[0]
+            control_block = self.get_data_block(block_name="CTRL")[0]
             e_meshes = control_block.data['embedded_meshes']
             for e_mesh in e_meshes:
                 name = e_mesh['name']
@@ -102,19 +96,19 @@ class ValveModel:
                 buffer_block_index = e_mesh['vbib_block']
                 morph_block_index = e_mesh['morph_block']
 
-                mesh_data_block = self.valve_file.get_data_block(block_id=data_block_index)
-                buffer_block = self.valve_file.get_data_block(block_id=buffer_block_index)
-                morph_block = self.valve_file.get_data_block(block_id=morph_block_index)
+                mesh_data_block = self.get_data_block(block_id=data_block_index)
+                buffer_block = self.get_data_block(block_id=buffer_block_index)
+                morph_block = self.get_data_block(block_id=morph_block_index)
 
                 self.build_mesh(name, armature, collection,
                                 mesh_data_block, buffer_block, data_block, morph_block,
-                                invert_uv, mesh_index, skin_name=skin_name)
+                                invert_uv, mesh_index)
 
     # //noinspection PyTypeChecker,PyUnresolvedReferences
     def build_mesh(self, name, armature, collection,
                    mesh_data_block, buffer_block, data_block, morph_block,
                    invert_uv,
-                   mesh_index, skin_name="default"):
+                   mesh_index):
 
         morphs_available = morph_block is not None and morph_block.read_morphs()
         if morphs_available:
@@ -128,9 +122,8 @@ class ValveModel:
             global_vertex_offset = 0
             for draw_call in draw_calls:
 
-                if draw_call['m_material'] in self.valve_file.available_resources:
-                    material = ValveMaterial(self.valve_file.available_resources[draw_call['m_material']])
-                    material.load()
+                self.materials.append(draw_call['m_material'])
+
                 material_name = Path(draw_call['m_material']).stem
                 model_name = name + "_" + material_name
                 used_copy = False
@@ -141,8 +134,8 @@ class ValveModel:
                     if mesh_obj_original and mesh_data_original:
                         model_mesh = mesh_data_original.copy()
                         mesh_obj = mesh_obj_original.copy()
-                        # mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
-                        # mesh_obj['active_skin'] = mesh_obj_original['active_skin']
+                        mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
+                        mesh_obj['active_skin'] = mesh_obj_original['active_skin']
                         mesh_obj['model_type'] = 'S2'
                         mesh_obj.data = model_mesh
                         used_copy = True
@@ -151,18 +144,21 @@ class ValveModel:
                     model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                     mesh_obj = bpy.data.objects.new(f'{model_name}', model_mesh)
 
-                # if data_block.data['m_materialGroups']:
-                #     default_skin = data_block.data['m_materialGroups'][0]
-                #     mat_id = default_skin['m_materials'].index(draw_call['m_material'])
-                #     if mat_id != -1:
-                #         mat_groups = {}
-                #         for skin_group in data_block.data['m_materialGroups']:
-                #             mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
-                #
-                #         mesh_obj['active_skin'] = skin_name
-                #         mesh_obj['skin_groups'] = mat_groups
-                #
-                #         material_name = Path(mat_groups[skin_name]).stem
+                if data_block.data['m_materialGroups']:
+                    default_skin = data_block.data['m_materialGroups'][0]
+                    mat_id = default_skin['m_materials'].index(draw_call['m_material'])
+                    if mat_id != -1:
+                        mat_groups = {}
+                        for skin_group in data_block.data['m_materialGroups']:
+                            mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
+
+                        mesh_obj['active_skin'] = 'default'
+                        mesh_obj['skin_groups'] = mat_groups
+
+                        material_name = Path(mat_groups['default']).stem
+                else:
+                    mesh_obj['active_skin'] = 'default'
+                    mesh_obj['skin_groups'] = []
                 mesh = mesh_obj.data  # type:bpy.types.Mesh
 
                 self.objects.append(mesh_obj)
@@ -189,7 +185,7 @@ class ValveModel:
                 normals = vertex_buffer.vertexes['NORMAL'][used_range]
 
                 if normals.dtype.char == 'B' and normals.shape[1] == 4:
-                    normals = SourceVector.convert_array(normals)
+                    normals = convert_normals(normals)
 
                 mesh.from_pydata(used_vertices, [],
                                  index_buffer.indexes[start_index:start_index + index_count].tolist())
@@ -264,7 +260,7 @@ class ValveModel:
 
     # noinspection PyUnresolvedReferences
     def build_armature(self):
-        data_block = self.valve_file.get_data_block(block_name='DATA')[0]
+        data_block = self.get_data_block(block_name='DATA')[0]
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
         bone_positions = model_skeleton['m_bonePosParent']
@@ -325,7 +321,7 @@ class ValveModel:
 
     def load_attachments(self):
         all_attachment = {}
-        for block in self.valve_file.get_data_block(block_name="MDAT"):
+        for block in self.get_data_block(block_name="MDAT"):
             for attachment in block.data['m_attachments']:
                 if attachment['key'] not in all_attachment:
                     all_attachment[attachment['key']] = attachment['value']
@@ -348,7 +344,7 @@ class ValveModel:
             empty.rotation_quaternion = rot
 
     def load_animations(self):
-        if not self.valve_file.get_data_block(block_name='CTRL'):
+        if not self.get_data_block(block_name='CTRL'):
             return
 
         if self.armature:
@@ -360,10 +356,10 @@ class ValveModel:
             bpy.context.view_layer.objects.active = self.armature
             bpy.ops.object.mode_set(mode='POSE')
 
-            ctrl_block = self.valve_file.get_data_block(block_name='CTRL')[0]
+            ctrl_block = self.get_data_block(block_name='CTRL')[0]
             embedded_anim = ctrl_block.data['embedded_animation']
-            agrp = self.valve_file.get_data_block(block_id=embedded_anim['group_data_block'])
-            anim_data = self.valve_file.get_data_block(block_id=embedded_anim['anim_data_block'])
+            agrp = self.get_data_block(block_id=embedded_anim['group_data_block'])
+            anim_data = self.get_data_block(block_id=embedded_anim['anim_data_block'])
 
             animations = parse_anim_data(anim_data.data, agrp.data)
             bone_array = agrp.data['m_decodeKey']['m_boneArray']
@@ -441,3 +437,14 @@ class ValveModel:
                             for i in range(4):
                                 rot_curves[i].keyframe_points.add(1)
                                 rot_curves[i].keyframe_points[-1].co = (n, bone.rotation_quaternion[i])
+
+    def load_materials(self):
+        content_manager = ContentManager()
+        for material in self.materials:
+            print(f'Loading {material}')
+            file = self.available_resources.get(material, None)
+            if file:
+                file = content_manager.find_file(file)
+                if file:  # duh
+                    material = ValveCompiledMaterial(file)
+                    material.load()

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from .keyvalues import KVParser
+from ..utilities.keyvalues import KVParser
 from ..source_shared.content_provider_base import ContentProviderBase
 
 
@@ -27,7 +27,7 @@ class GameinfoContentProvider(ContentProviderBase):
         fs = self.data.get('filesystem', None)
         if not fs:
             return 0
-        return int(fs.get('steamappid',0))
+        return int(fs.get('steamappid', 0))
 
     def get_search_paths(self):
         def convert_path(path_to_convert):
@@ -38,24 +38,24 @@ class GameinfoContentProvider(ContentProviderBase):
             return self.project_dir / path_to_convert
 
         all_search_paths = []
-        for paths in self.data['filesystem']['searchpaths'].values():
-            if isinstance(paths, list):
-                for path in paths:
-                    all_search_paths.append(convert_path(path))
-            else:
-                all_search_paths.append(convert_path(paths))
-        for file in self.modname_dir.glob('*_dir.vpk'):
-            if file.suffix == '.vpk':
-                all_search_paths.append(file)
+        fs = self.data.get('filesystem', None)
+        if fs and fs.get('searchpaths', None):
+            for paths in fs['searchpaths'].values():
+                if isinstance(paths, list):
+                    for path in paths:
+                        all_search_paths.append(convert_path(path))
+                else:
+                    all_search_paths.append(convert_path(paths))
 
+        for file in self.modname_dir.glob('*_dir.vpk'):
+            all_search_paths.append(file)
         for file in self.project_dir.iterdir():
             if file.is_file():
                 continue
-            if (file / 'gameinfo.txt').exists():
+            if (file / 'gameinfo.gi').exists():
                 all_search_paths.append(file)
             for vpk_file in file.glob('*_dir.vpk'):
                 all_search_paths.append(vpk_file)
-
         return all_search_paths
 
     def find_file(self, filepath: str, additional_dir=None,

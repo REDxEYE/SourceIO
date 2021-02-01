@@ -3,10 +3,18 @@ from pathlib import Path
 
 import bpy
 
+from .bpy_utilities.utils import get_or_create_collection
 from .source1.mdl.import_mdl import import_model, import_materials
-from .source2.resouce_types.valve_model import ValveModel
+from .source2.resouce_types.valve_model import ValveCompiledModel
 from .source_shared.content_manager import ContentManager
 from .utilities.path_utilities import backwalk_file_resolver
+
+
+def get_parent(collection):
+    for pcoll in bpy.data.collections:
+        if collection.name in pcoll.children:
+            return pcoll
+    return bpy.context.scene.collection
 
 
 class LoadEntity_OT_operator(bpy.types.Operator):
@@ -25,26 +33,34 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                 if 'prop_path' not in custom_prop_data:
                     continue
                 model_type = Path(custom_prop_data['prop_path']).suffix
-                collection = (bpy.data.collections.get(custom_prop_data['type'], None) or
-                              bpy.data.collections.new(custom_prop_data['type']))
+                parent = get_parent(obj.users_collection[0])
+                collection = get_or_create_collection(custom_prop_data['type'], parent)
+                # collection = (bpy.data.collections.get(custom_prop_data['type'], None) or
+                #               bpy.data.collections.new(custom_prop_data['type']))
+
                 if model_type in ['.vmdl_c', '.vmdl_c']:
-                    mld_file = backwalk_file_resolver(custom_prop_data['parent_path'],
-                                                      Path(custom_prop_data['prop_path']).with_suffix('.vmdl_c'))
-
+                    mld_file = content_manager.find_file(custom_prop_data['prop_path'])
                     if mld_file:
-                        try:
-                            bpy.context.scene.collection.children.link(collection)
-                        except:
-                            pass
-
-                        model = ValveModel(mld_file)
-                        model.load_mesh(True, parent_collection=collection,
-                                        skin_name=custom_prop_data.get("skin_id", 'default'))
+                        skin = custom_prop_data.get('skin', None)
+                        model = ValveCompiledModel(mld_file)
+                        model.load_mesh(True, parent_collection=collection)
                         for ob in model.objects:  # type:bpy.types.Object
                             ob.location = obj.location
                             ob.rotation_mode = "XYZ"
                             ob.rotation_euler = obj.rotation_euler
                             ob.scale = obj.scale
+
+                            # if skin:
+                            #     if str(skin) in ob['skin_groups']:
+                            #         skin = str(skin)
+                            #         skin_materials = ob['skin_groups'][skin]
+                            #         current_materials = ob['skin_groups'][ob['active_skin']]
+                            #         print(skin_materials, current_materials)
+                            #         for skin_material, current_material in zip(skin_materials, current_materials):
+                            #             swap_materials(ob, skin_material[-63:], current_material[-63:])
+                            #         ob['active_skin'] = skin
+                            #     else:
+                            #         print(f'Skin {skin} not found')
                         bpy.data.objects.remove(obj)
                     else:
                         self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}_c' not found!")

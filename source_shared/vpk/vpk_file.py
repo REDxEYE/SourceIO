@@ -12,7 +12,6 @@ class VPKFile:
 
     def __init__(self, filepath: Union[str, Path]):
         self.filepath = Path(filepath)
-        assert self.filepath.stem[-3:] == 'dir'
         self.reader = ByteIO(self.filepath)
         self.header = Header()
         self.archive_md5_entries: List[ArchiveMD5Entry] = []

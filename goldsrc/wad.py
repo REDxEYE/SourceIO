@@ -6,10 +6,10 @@ import numpy as np
 
 
 def make_texture(indices, palette, use_alpha: bool = False):
-    palette = np.array([[*p, 255] for p in palette], np.uint8)
+    new_palete = np.full((len(palette), 4), 255, dtype=np.uint8)
+    new_palete[:, :3] = palette
 
-    indices = np.array(indices, np.uint8)
-    colors = palette[indices]
+    colors = new_palete[indices]
     colors = colors.astype(np.float32)
 
     if use_alpha:
@@ -57,7 +57,7 @@ class WadEntry:
         for index, offset in enumerate(offsets):
             handle.seek(self.offset + offset)
             texture_size = (width * height) >> (index * 2)
-            texture_indices.append(struct.unpack('B' * texture_size, handle.read(texture_size)))
+            texture_indices.append(struct.unpack(f'{texture_size}B', handle.read(texture_size)))
 
         assert handle.read(2) == b'\x00\x01', 'Invalid palette start anchor'
 
