@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 from typing import List, BinaryIO, Union, Optional
 
-from SourceIO.source_shared.content_manager import ContentManager
 from ..utilities.byte_io_mdl import ByteIO
 from .blocks.compiled_file_header import CompiledHeader, InfoBlock
 from .blocks import DataBlock, DATA
