@@ -3,7 +3,6 @@ import typing
 from pathlib import Path
 
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 
 from .mdl.mdl_file import Mdl
 from .mdl.structs.bone import Bone
@@ -14,13 +13,14 @@ from .vtx.vtx import Vtx
 from .vvd.vvd import Vvd
 from ..source_shared.content_manager import ContentManager
 from ..utilities import datamodel
+from ..utilities.math_utilities import matrix_to_quat
 
 
 def split(array, n=3):
     return [array[i:i + n] for i in range(0, len(array), n)]
 
 
-def slice(data: [typing.Iterable, typing.Sized], start, count=None):
+def get_slice(data: [typing.Iterable, typing.Sized], start, count=None):
     if count is None:
         count = len(data) - start
     return data[start:start + count]
@@ -105,7 +105,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
                 model.name = f'blank_{blank_counter}'
                 blank_counter += 1
             print(f"\tDecompiling {model.name} mesh")
-            model_vertices = slice(all_vertices, model.vertex_offset, model.vertex_count)
+            model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
 
             dm = datamodel.DataModel("model", 22)
             dm.allow_random_ids = False
@@ -120,7 +120,7 @@ def decompile(mdl: Mdl, vvd: Vvd, vtx: Vtx, output_folder):
                 new_transform = dm.add_element(name, "DmeTransform", id=object_name + "transform")
                 pos = [matrix[0, 3], matrix[1, 3], matrix[2, 3]]
                 new_transform["position"] = datamodel.Vector3(list(pos))
-                new_transform["orientation"] = datamodel.Quaternion(R.from_matrix(matrix[:3, :3]).as_quat())
+                new_transform["orientation"] = datamodel.Quaternion(matrix_to_quat(matrix[:3, :3]))
                 return new_transform
 
             root = dm.add_element(model.name, id="Scene SourceIOExport")
