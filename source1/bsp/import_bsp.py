@@ -531,7 +531,7 @@ class BSP:
             location = parse_hammer_vector(entity_data.get('origin', '0 0 0'))
             location = np.multiply(location, self.scale)
             mesh_obj = self.load_bmodel(model_id, brush_name, location, parent_collection)
-            mesh_obj['entity'] = entity_data
+            mesh_obj['entity_data'] = {'entity': entity_data}
         else:
             self.logger.warn(f'{entity_name} does not reference any model, SKIPPING!')
 
