@@ -282,7 +282,7 @@ class BSP:
                     self.handle_path_track(entity_class, entity_data)
                 elif entity_class.startswith('npc'):
                     info_collection = get_or_create_collection('npc', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
+                    self.handle_model(entity_class, entity_data, info_collection)
                 else:
                     print(f'Unsupported entity type {entity_class}: {entity_data}')
 
@@ -535,10 +535,10 @@ class BSP:
         else:
             self.logger.warn(f'{entity_name} does not reference any model, SKIPPING!')
 
-    def handle_model(self, entity_class, entity_data):
+    def handle_model(self, entity_class, entity_data, master_collection=None):
         entity_name = get_entity_name(entity_data)
         if 'model' in entity_data:
-            parent_collection = get_or_create_collection(entity_class, self.main_collection)
+            parent_collection = get_or_create_collection(entity_class, master_collection or self.main_collection)
             location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
             rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
             skin = str(entity_data.get('skin', 0))
