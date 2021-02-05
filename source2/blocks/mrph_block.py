@@ -3,8 +3,8 @@ import struct
 from .data_block import DATA
 import numpy as np
 
-
 from ...source1.mdl.flex_expressions import *
+from ...source_shared.content_manager import ContentManager
 
 
 class MRPH(DATA):
@@ -17,7 +17,13 @@ class MRPH(DATA):
         from ..resouce_types.valve_texture import ValveCompiledTexture
         if self.data['m_pTextureAtlas'] not in self._valve_file.available_resources:
             return False
-        morph_atlas = ValveCompiledTexture(self._valve_file.available_resources[self.data['m_pTextureAtlas']])
+        vmorf_actual_path = self._valve_file.available_resources.get(self.data['m_pTextureAtlas'], None)
+        if not vmorf_actual_path:
+            return False
+        vmorf_path = ContentManager().find_file(vmorf_actual_path)
+        if not vmorf_path:
+            return False
+        morph_atlas = ValveCompiledTexture(vmorf_path)
         morph_atlas.read_block_info()
         morph_atlas_data = morph_atlas.get_data_block(block_name="DATA")[0]
         morph_atlas_data.read_image(False)

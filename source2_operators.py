@@ -31,6 +31,7 @@ class VMDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
+        ContentManager().scan_for_content(directory)
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             model = ValveCompiledModel(str(directory / file.name))
@@ -97,7 +98,9 @@ class VMATImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
+        ContentManager().scan_for_content(directory)
         for n, file in enumerate(self.files):
+
             print(f"Loading {n + 1}/{len(self.files)}")
             material = ValveCompiledMaterial(str(directory / file.name))
             material.load()

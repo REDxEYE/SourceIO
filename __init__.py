@@ -9,7 +9,7 @@ custom_icons = {}
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE, ShadelessFox",
-    "version": (3, 9, 9),
+    "version": (3, 10, 0),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine assets",
     "description": "GoldSrc/Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
