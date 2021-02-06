@@ -1,12 +1,9 @@
-from pathlib import Path
-
 # noinspection PyUnresolvedReferences
 import bpy
 import numpy as np
 
 from ..blocks import TEXR
 from ..source2 import ValveCompiledFile
-import array
 
 
 class ValveCompiledTexture(ValveCompiledFile):
@@ -33,11 +30,12 @@ class ValveCompiledTexture(ValveCompiledFile):
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
         image.filepath_raw = f'{name}.tga'
-        if len(pixel_data) > 0:
+
+        if pixel_data.shape[0] > 0:
             if bpy.app.version > (2, 83, 0):
-                image.pixels.foreach_set(pixel_data)
+                image.pixels.foreach_set(pixel_data.tolist())
             else:
-                image.pixels[:] = pixel_data
+                image.pixels[:] = pixel_data.tolist()
         image.pack()
         del pixel_data
         return image
