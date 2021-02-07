@@ -14,7 +14,7 @@ from .shaders.source2_shader_base import Source2ShaderBase
 from .shaders.source1_shaders import eyerefract, cable, unlit_generic, lightmap_generic, vertexlit_generic, \
     worldvertextransition, unlittwotexture, lightmapped_4wayblend
 from .shaders.goldsrc_shaders import goldsrc_shader
-from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball,vr_simple
+from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball, vr_simple, vr_glass
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('material_loader')
