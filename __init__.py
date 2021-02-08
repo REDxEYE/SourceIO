@@ -36,7 +36,7 @@ if not NO_BPY:
     from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
                                     VMDLImport_OT_operator,
-                                    VWRLDImport_OT_operator
+                                    VWRLDImport_OT_operator, DMXCameraImport_OT_operator
                                     )
     from .shared_operators import (SourceIOUtils_PT_panel,
                                    Placeholders_PT_panel,
@@ -84,6 +84,16 @@ if not NO_BPY:
                             icon_value=crowbar_icon.icon_id)
             layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
+            layout.menu(SourceIOUtils_MT_Menu.bl_idname)
+
+
+    class SourceIOUtils_MT_Menu(bpy.types.Menu):
+        bl_label = "Source Engine Utils"
+        bl_idname = "IMPORT_MT_sourceio_utils"
+
+        def draw(self, context):
+            layout = self.layout
+            layout.operator(DMXCameraImport_OT_operator.bl_idname, text="Valve camera(.dmx)")
 
 
     def menu_import(self, context):
@@ -131,6 +141,7 @@ if not NO_BPY:
         VMTImport_OT_operator,
 
         # Source2 stuff
+        DMXCameraImport_OT_operator,
         VMDLImport_OT_operator,
         VTEXImport_OT_operator,
         VMATImport_OT_operator,
@@ -139,6 +150,7 @@ if not NO_BPY:
         # Addon tools
         # SourceIOPreferences,
         SourceIO_MT_Menu,
+        SourceIOUtils_MT_Menu,
         SourceIOUtils_PT_panel,
         Placeholders_PT_panel,
         SkinChanger_PT_panel,
