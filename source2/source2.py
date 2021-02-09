@@ -51,9 +51,6 @@ class ValveCompiledFile:
 
     def get_data_block(self, *, block_id: Optional[int] = None, block_name: Optional[str] = None) \
             -> Union[DataBlock, List[DataBlock], None]:
-        """
-        :rtype: Union[DataBlock, List[DataBlock]
-        """
         if block_id is None and block_name is None:
             raise Exception(f"Empty parameters block_id={block_id} block_name={block_name}")
         elif block_id is not None and block_name is not None:

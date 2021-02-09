@@ -3,6 +3,7 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
+from .source2.misc.camera_loader import load_camera
 from .source2.resouce_types.valve_model import ValveCompiledModel
 from .source2.resouce_types.valve_texture import ValveCompiledTexture
 from .source2.resouce_types.valve_material import ValveCompiledMaterial
@@ -31,6 +32,7 @@ class VMDLImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
+        ContentManager().scan_for_content(directory)
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             model = ValveCompiledModel(str(directory / file.name))
@@ -97,6 +99,7 @@ class VMATImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
+        ContentManager().scan_for_content(directory)
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             material = ValveCompiledMaterial(str(directory / file.name))
@@ -127,7 +130,32 @@ class VTEXImport_OT_operator(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for file in self.files:
             texture = ValveCompiledTexture(str(directory / file.name))
-            texture.load(self.flip)
+            texture.load(Path(file.name).stem, self.flip)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+class DMXCameraImport_OT_operator(bpy.types.Operator):
+    """Load Valve DMX camera data"""
+    bl_idname = "source_io.dmx_camera"
+    bl_label = "Import DMX camera"
+    bl_options = {'UNDO'}
+
+    filepath: StringProperty(subtype='FILE_PATH', )
+    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
+
+    def execute(self, context):
+        if Path(self.filepath).is_file():
+            directory = Path(self.filepath).parent.absolute()
+        else:
+            directory = Path(self.filepath).absolute()
+        for file in self.files:
+            load_camera(directory / file.name)
         return {'FINISHED'}
 
     def invoke(self, context, event):
