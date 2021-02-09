@@ -373,7 +373,7 @@ class DmxModel:
         return combination_input_control
 
     def save(self, output_path: Path):
-        self.dmx.write((output_path / f'{self.mdl_model.name}').with_suffix('.dmx'), 'binary', 9)
+        self.dmx.write((output_path / Path(self.mdl_model.name.lower()).stem).with_suffix('.dmx'), 'binary', 9)
 
 
 class ModelDecompiler:
