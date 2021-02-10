@@ -232,13 +232,6 @@ class BinaryKeyValue:
 
     def parse(self, reader: ByteIO, parent=None, in_array=False):
         name = None if in_array else self.strings[self.int_buffer.read_uint32()]
-
-        def add(v):
-            if not in_array:
-                parent.update({name: v})
-            else:
-                parent.append(v)
-
         data_type, flag_info = self.read_type(reader)
         self.read_value(name, reader, data_type, parent, in_array)
 
@@ -316,7 +309,7 @@ class BinaryKeyValue:
                 self.read_value(name, reader, sub_type, tmp, True)
 
             if sub_type in (KVType.DOUBLE, KVType.DOUBLE_ONE, KVType.DOUBLE_ZERO):
-                tmp = np.array(tmp)
+                tmp = np.array(tmp, dtype=np.float64)
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
             size = self.int_buffer.read_uint32()

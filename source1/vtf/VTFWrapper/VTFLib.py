@@ -7,15 +7,7 @@ from ctypes import *
 
 from ....utilities.singleton import SingletonMeta
 
-try:
-    import VTFLibEnums
-    import VTFLibConstants
-    import VTFLibStructures
-except Exception:
-    from . import VTFLibEnums
-    from . import (VTFLibEnums,
-                   VTFLibStructures,
-                   VTFLibConstants)
+from . import VTFLibEnums, VTFLibStructures
 
 platform_name = platform.system()
 
@@ -64,21 +56,12 @@ class VTFLib(metaclass=SingletonMeta):
 
     @classmethod
     def load_dll(cls):
-        cls.free_dll()
         if platform_name == "Windows":
             cls.vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
         elif platform_name == "Linux":
             cls.vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
         else:
             raise NotImplementedError("Platform {} isn't supported".format(platform_name))
-
-    @classmethod
-    def free_dll(cls):
-        if cls.vtflib_cdll is not None and cls.vtflib_cdll._handle:
-            handle = cls.vtflib_cdll._handle
-            del cls.vtflib_cdll
-            cls.vtflib_cdll = None
-            _ctypes.FreeLibrary(handle)
 
     GetVersion = vtflib_cdll.vlGetVersion
     GetVersion.argtypes = []

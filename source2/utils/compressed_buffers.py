@@ -15,10 +15,10 @@ def unzigzag8(v):
     return (-(v & 1) ^ (v >> 1)) & 0xFF
 
 
-def slice(data: np.ndarray, start, len=None):
-    if len is None:
-        len = data.size - start
-    return data[start:start + len]
+def get_slice(data: np.ndarray, start, size=None):
+    if size is None:
+        size = data.size - start
+    return data[start:start + size]
 
 
 def decode_vertex_buffer(data, size, count):
@@ -79,7 +79,7 @@ class CompressedVertexBuffer:
             b, data_var, destination[14] = next(2, data[data_var])
             b, data_var, destination[15] = next(2, data[data_var])
 
-            return slice(data, data_var)
+            return get_slice(data, data_var)
         elif bitslog2 == 2:
             data_var = 8
 
@@ -115,24 +115,24 @@ class CompressedVertexBuffer:
             data_offset += 1
             b, data_var, destination[14] = next(4, data[data_var])
             b, data_var, destination[15] = next(4, data[data_var])
-            return slice(data, data_var)
+            return get_slice(data, data_var)
 
         elif bitslog2 == 3:
             destination[:byte_group_size] = data[0:byte_group_size]
-            return slice(data, byte_group_size)
+            return get_slice(data, byte_group_size)
         else:
             raise Exception("Unexpected bit length")
 
     def decode_bytes(self, data: np.ndarray, destination: np.ndarray):
         assert destination.size % byte_group_size == 0, "Expected data length to be a multiple of ByteGroupSize."
         header_size = ((destination.size // byte_group_size) + 3) // 4
-        header = slice(data, 0)
-        data: np.ndarray = slice(data, header_size)
+        header = get_slice(data, 0)
+        data: np.ndarray = get_slice(data, header_size)
         for i in range(0, destination.size, byte_group_size):
             assert data.size >= tail_max_size, "Cannot decode"
             header_offset = i // byte_group_size
             bitslog2 = (header[header_offset // 4] >> ((header_offset % 4) * 2)) & 3
-            data = self.decode_bytes_group(data, slice(destination, i), bitslog2)
+            data = self.decode_bytes_group(data, get_slice(destination, i), bitslog2)
         return data
 
     def get_vertex_block_size(self):
@@ -149,7 +149,7 @@ class CompressedVertexBuffer:
         vertex_count_aligned = (vertex_count + byte_group_size - 1) & ~(
                 byte_group_size - 1)
         for k in range(self.vertex_size):
-            data = self.decode_bytes(data, slice(buffer, 0, vertex_count_aligned))
+            data = self.decode_bytes(data, get_slice(buffer, 0, vertex_count_aligned))
             vertex_offset = k
             p = last_vertex[k]
             for i in range(vertex_count):
@@ -158,8 +158,8 @@ class CompressedVertexBuffer:
                 transposed[vertex_offset] = v
                 p = v
                 vertex_offset += self.vertex_size
-        vertex_data[:vertex_count * self.vertex_size] = slice(transposed, 0, vertex_count * self.vertex_size)
-        last_vertex[:self.vertex_size] = slice(transposed, self.vertex_size * (vertex_count - 1), self.vertex_size)
+        vertex_data[:vertex_count * self.vertex_size] = get_slice(transposed, 0, vertex_count * self.vertex_size)
+        last_vertex[:self.vertex_size] = get_slice(transposed, self.vertex_size * (vertex_count - 1), self.vertex_size)
         return data
 
     def decode_vertex_buffer(self, buffer: bytes):
@@ -171,8 +171,8 @@ class CompressedVertexBuffer:
         header = vertex_span[0]
         assert header == vertex_header, \
             f"Invalid vertex buffer header, expected {vertex_header} but got {header}."
-        vertex_span: np.ndarray = slice(vertex_span, 1)
-        last_vertex: np.ndarray = slice(vertex_span, buffer.size - 1 - self.vertex_size, self.vertex_size)
+        vertex_span: np.ndarray = get_slice(vertex_span, 1)
+        last_vertex: np.ndarray = get_slice(vertex_span, buffer.size - 1 - self.vertex_size, self.vertex_size)
         vertex_block_size = self.get_vertex_block_size()
         vertex_offset = 0
         result = np.zeros((self.vertex_count * self.vertex_size,), dtype=np.uint8)
@@ -181,7 +181,7 @@ class CompressedVertexBuffer:
             # print(f"Decoding vertex block {vertex_offset}/{self.vertex_count}", end='\r')
             block_size = vertex_block_size if vertex_offset + vertex_block_size < self.vertex_count else \
                 self.vertex_count - vertex_offset
-            vertex_span = self.decode_vertex_block(vertex_span, slice(result, vertex_offset * self.vertex_size),
+            vertex_span = self.decode_vertex_block(vertex_span, get_slice(result, vertex_offset * self.vertex_size),
                                                    block_size,
                                                    last_vertex)
             vertex_offset += block_size
@@ -209,8 +209,8 @@ class CompressedIndexBuffer:
         last_id = 0
 
         buffer_index = 1
-        data = slice(buffer, data_offset, buffer.size - 16 - data_offset)
-        codeaux_table = slice(buffer, buffer.size - 16)
+        data = get_slice(buffer, data_offset, buffer.size - 16 - data_offset)
+        codeaux_table = get_slice(buffer, buffer.size - 16)
         destination = np.zeros((self.index_count * self.index_size),
                                dtype=np.uint8)
         ds = ByteIO(bytes(data))

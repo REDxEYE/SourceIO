@@ -12,10 +12,13 @@ from .valve_model import ValveCompiledModel
 from ..blocks import DataBlock
 from ..source2 import ValveCompiledFile
 from ..utils.entity_keyvalues import EntityKeyValues
+from ...bpy_utilities.logging import BPYLoggingManager, BPYLogger
 from ...source_shared.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source2_to_blender
 from ...bpy_utilities.utils import get_new_unique_collection, get_or_create_collection
+
+log_manager = BPYLoggingManager()
 
 
 def get_entity_name(entity_data: Dict[str, Any]):
@@ -25,11 +28,13 @@ def get_entity_name(entity_data: Dict[str, Any]):
 class ValveCompiledWorld(ValveCompiledFile):
     def __init__(self, path_or_file, *, invert_uv=False, scale=1.0):
         super().__init__(path_or_file)
+        self.logger: BPYLogger = None
         self.invert_uv = invert_uv
         self.scale = scale
         self.master_collection = bpy.context.scene.collection
 
     def load(self, map_name):
+        self.logger = log_manager.get_logger(map_name)
         self.master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
         self.load_static_props()
         self.load_entities()
@@ -45,7 +50,7 @@ class ValveCompiledWorld(ValveCompiledFile):
         data_block = self.get_data_block(block_name='DATA')[0]
         if data_block and data_block.data.get('m_entityLumps', False):
             for elump in data_block.data.get('m_entityLumps'):
-                print("Loading entity lump", elump)
+                self.logger.info("Loading entity lump", elump)
                 proper_path = self.available_resources.get(elump, None)
                 if not proper_path:
                     continue
@@ -58,10 +63,10 @@ class ValveCompiledWorld(ValveCompiledFile):
         if child_lump:
             self.load_entity_lump(name, child_lump)
         else:
-            print("Missing", child_lump.filepath, 'entity lump')
+            self.logger.warn(f'Missing {child_lump.filepath} entity lump')
         entity_data_block = child_lump.get_data_block(block_name='DATA')[0]
         for child_lump_path in entity_data_block.data['m_childLumps']:
-            print("Loading next child entity lump", child_lump_path)
+            self.logger.info("Loading next child entity lump", child_lump_path)
             proper_path = child_lump.available_resources.get(child_lump_path, None)
             if not proper_path:
                 continue
@@ -82,7 +87,7 @@ class ValveCompiledWorld(ValveCompiledFile):
         for n, static_object in enumerate(world_data.data['m_sceneObjects']):
             model_path = static_object['m_renderableModel']
             proper_path = world_node_file.available_resources.get(model_path)
-            print(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_path} mesh")
+            self.logger.info(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_path} mesh")
             mat_rows: List = static_object['m_vTransform']
             transform_mat = Matrix([mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
             loc, rot, sca = transform_mat.decompose()

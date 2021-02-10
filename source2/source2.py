@@ -1,7 +1,7 @@
 import math
 import sys
 from pathlib import Path
-from typing import List, BinaryIO, Union, Optional
+from typing import List, BinaryIO, Union, Optional, TypeVar
 
 from ..utilities.byte_io_mdl import ByteIO
 from .blocks.compiled_file_header import CompiledHeader, InfoBlock
@@ -50,7 +50,7 @@ class ValveCompiledFile:
                 self.data_blocks[self.info_blocks.index(block_info)] = block
 
     def get_data_block(self, *, block_id: Optional[int] = None, block_name: Optional[str] = None) \
-            -> Union[DataBlock, List[DataBlock], None]:
+            -> Union[DataBlock, List[DataBlock], None, TypeVar('DATA')]:
         if block_id is None and block_name is None:
             raise Exception(f"Empty parameters block_id={block_id} block_name={block_name}")
         elif block_id is not None and block_name is not None:

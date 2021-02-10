@@ -8,6 +8,7 @@ from ....source_shared.base import Base
 from .axis_interp_rule import AxisInterpRule
 from .jiggle_bone import JiggleRule
 from .quat_interp_bone import QuatInterpRule
+from ....utilities.math_utilities import quat_to_matrix
 
 
 class BoneFlags(IntFlag):
@@ -166,36 +167,19 @@ class Bone(Base):
 
     @property
     def matrix(self):
-        from scipy.spatial.transform import Rotation as R
-        r_matrix = R.from_quat(self.quat).as_matrix()
+        r_matrix = quat_to_matrix(self.quat)
         tmp = np.identity(4)
         tmp[0, :3] = r_matrix[0]
         tmp[1, :3] = r_matrix[1]
         tmp[2, :3] = r_matrix[2]
-        # qw = self.quat[3]
-        # qx = self.quat[0]
-        # qy = self.quat[1]
-        # qz = self.quat[2]
-        # n = 1.0 / math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw)
-        # qx *= n
-        # qy *= n
-        # qz *= n
-        # qw *= n
-        # r_matrix = np.array(
-        #     [1.0 - 2.0 * qy * qy - 2.0 * qz * qz, 2.0 * qx * qy - 2.0 * qz * qw, 2.0 * qx * qz + 2.0 * qy * qw,
-        #      0.0,
-        #      2.0 * qx * qy + 2.0 * qz * qw, 1.0 - 2.0 * qx * qx - 2.0 * qz * qz, 2.0 * qy * qz - 2.0 * qx * qw,
-        #      0.0,
-        #      2.0 * qx * qz - 2.0 * qy * qw, 2.0 * qy * qz + 2.0 * qx * qw, 1.0 - 2.0 * qx * qx - 2.0 * qy * qy,
-        #      0.0, 0.0, 0.0, 0.0, 1.0]).reshape((4, 4))
-        t_matix = np.array([
+        t_matrix = np.array([
             [1, 0, 0, self.position[0]],
             [0, 1, 0, self.position[1]],
             [0, 0, 1, self.position[2]],
             [0, 0, 0, 1],
         ], dtype=np.float32)
 
-        return np.identity(4) @ t_matix @ tmp
+        return np.identity(4) @ t_matrix @ tmp
 
     @property
     def parent(self):

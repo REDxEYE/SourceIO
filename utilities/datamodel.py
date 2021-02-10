@@ -1006,7 +1006,8 @@ def load(path=None, in_file=None, element_path=None):
                             child_level = 0
                             for line_raw in in_file:
                                 line_number += 1
-                                if "{" in line_raw: child_level += 1
+                                if "{" in line_raw:
+                                    child_level += 1
                                 if "}" in line_raw:
                                     if child_level == 0:
                                         return
@@ -1098,7 +1099,8 @@ def load(path=None, in_file=None, element_path=None):
                     raise DatamodelParseError("Parsing of {} failed on line {}".format(path, line_number)) from ex
 
             for element in dm.elements:
-                if element._is_placeholder == True: continue
+                if element._is_placeholder:
+                    continue
                 users = element_users[str(element.id)]
                 for user_info in users:
                     if user_info.Index == -1:

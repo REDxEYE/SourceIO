@@ -16,9 +16,9 @@ try:
 
 except ImportError:
     print("Failed to import native binary!\nUsing python version")
-    from ..utils.compressed_buffers import decode_vertex_buffer, decode_index_buffer, slice
+    from ..utils.compressed_buffers import decode_vertex_buffer, decode_index_buffer
 
-from ..utils.compressed_buffers import slice
+from ..utils.compressed_buffers import get_slice
 from ...utilities.byte_io_mdl import ByteIO
 
 from .dummy import DataBlock

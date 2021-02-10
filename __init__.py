@@ -175,7 +175,6 @@ if not NO_BPY:
         vtf_lib = VTFLib()
         vtf_lib.shutdown()
         SingletonMeta.cleanup()
-        vtf_lib.free_dll()
         del vtf_lib
         unregister_custom_icon()
         unregister_()
