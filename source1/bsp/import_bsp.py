@@ -242,6 +242,10 @@ class BSP:
                 elif entity_class == 'info_node':
                     info_collection = get_or_create_collection('info', self.main_collection)
                     self.handle_general_entity(entity_class, entity_data, info_collection)
+                elif entity_class == 'worldspawn':
+                    self.handle_general_entity(entity_class, entity_data)
+                elif entity_class == 'sky_camera':
+                    self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'point_template':
                     self.handle_general_entity(entity_class, entity_data)
                 elif entity_class == 'ambient_generic':
@@ -280,11 +284,14 @@ class BSP:
                     self.handle_general_entity(entity_class, entity_data, info_collection)
                 elif entity_class == 'path_corner':
                     self.handle_path_track(entity_class, entity_data)
+                elif entity_class == 'path_track':
+                    self.handle_path_track(entity_class, entity_data)
                 elif entity_class.startswith('npc'):
                     info_collection = get_or_create_collection('npc', self.main_collection)
                     self.handle_model(entity_class, entity_data, info_collection)
                 else:
                     print(f'Unsupported entity type {entity_class}: {entity_data}')
+                    self.handle_general_entity(entity_class, entity_data)
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')
@@ -738,7 +745,7 @@ class BSP:
         line['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(line)
 
-    def _create_lines(self, name, points, closed=False):
+    def _create_lines(self, name, points, closed=False, line_type='POLY'):
         line_data = bpy.data.curves.new(name=f'{name}_data', type='CURVE')
         line_data.dimensions = '3D'
         line_data.fill_mode = 'FULL'
