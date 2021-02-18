@@ -1,126 +1,193 @@
-from fgdtools import FgdParse, Fgd, FgdEntity, FgdEntityProperty
+from pathlib import Path
 
-base_class = """from typing import Type
+from fgdtools import FgdEntity, FgdParse, FgdEntityProperty, Fgd
+import os
 
-def parse_int_vector(value:str):
-    return [int(val) for val in value.split(' ')]
-
-def parse_float_vector(value:str):
-    return [float(val) for val in value.split(' ')]
+os.environ['NO_BPY'] = '1'
+from SourceIO.source_shared.content_manager import ContentManager
 
 
-class Base:
-    def __init__(self):
-        self.hammer_id = '0'
-        self.class_name = '0'
-        
-    def from_dict(self,entity_props):
-        assert 'classname' in entity_props, 'Missing "classname" property'
-        assert 'hammerid' in entity_props, 'Missing "hammerid" property'
-        self.class_name = entity_props.get('classname')
-        self.hammer_id = entity_props.get('hammerid')
-        
-        
-"""
-class_template = """class {class_name}({bases}):
-    def __init__(self):
-        super().__init__()
-        for base in self.__class__.mro()[1:-1]:
-            base.__init__(self)
-        {properties}
-    
-    def from_dict(self, entity_props):
-        base: Type[Base]
-        for base in self.__class__.mro()[1:-1]:
-            base.from_dict(self, entity_props)
-        {property_init}
-        
-        
-"""
+def parse_int_vector(string):
+    return [int(val) for val in string.split(' ')]
 
-property_template = '\n\t\t"""{display_name}\n\t\t{description}\n\t\tType:{type}"""\n\t\tself.{name} = {default_value}'
-property_init_template = 'self.{name} = entity_props.get(\'{name2}\', {default_value})'
 
-classname_remap = {}
+def parse_float_vector(string):
+    return [float(val) for val in string.split(' ')]
 
 
 def collect_parents(parent: FgdEntity):
     parents = []
     for pparent in parent.parents:
         parents += collect_parents(pparent)
-    return [classname_remap[parent.name]] + parents
+    return [parent] + parents
+
+
+def main():
+    # fgd_path = r"F:\SteamLibrary\steamapps\common\Black Mesa\bin\bms.fgd"
+    fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\tf.fgd"
+    ContentManager().scan_for_content(fgd_path)
+    fgd: Fgd = FgdParse(fgd_path)
+    processed_classes = []
+    buffer = ''
+
+    buffer += """def parse_int_vector(string):
+    return [int(val) for val in string.split(' ')]
+
+
+def parse_float_vector(string):
+    return [float(val) for val in string.split(' ')]
+
+
+class Base:
+    def __init__(self):
+        self.hammer_id = 0
+        self.class_name = 'ANY'
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        instance.hammer_id = int(entity_data.get('hammerid'))
+        instance.class_name = entity_data.get('classname')
+\n\n"""
+
+    entity_classes = fgd.entities
+    include: Fgd
+    for include in fgd.includes:
+        for entity in include.entities:
+            if entity in entity_classes:
+                entity_classes.pop(entity_classes.index(entity))
+    entity_class: FgdEntity
+    for entity_class in entity_classes:
+        if entity_class.name in processed_classes:
+            continue
+        buffer += f'class {entity_class.name}'
+
+        all_parents = []
+        for parent in entity_class.parents:
+            all_parents += collect_parents(parent)
+            all_parents.pop(all_parents.index(parent))
+        all_parents = set(all_parents)
+
+        if entity_class.parents:
+            buffer += '('
+            buffer += ', '.join(parent.name for parent in set(entity_class.parents) if parent not in all_parents)
+            buffer += ')'
+        else:
+            buffer += '(Base)'
+        buffer += ':\n'
+        for definition in entity_class.definitions:
+            if definition['name'] == 'iconsprite':
+                buffer += f'    icon_sprite = {definition["args"][0]}\n'
+            elif definition['name'] == 'studio' and definition['args']:
+                buffer += f'    model = {definition["args"][0]}\n'
+            elif definition['name'] == 'studioprop' and definition['args']:
+                buffer += f'    viewport_model = {definition["args"][0]}\n'
+
+        buffer += '    def __init__(self):'
+
+        if entity_class.parents:
+            for parent in sorted(set(entity_class.parents), key=lambda a: len(a.parents), reverse=True):
+                if parent.name not in all_parents:
+                    buffer += f'\n        super({parent.name}).__init__()'
+        else:
+            buffer += '\n        super().__init__()'
+
+        prop_cache = []
+        for parent in list(all_parents) + entity_class.parents:
+            for prop in parent.properties:
+                if prop.name not in prop_cache:
+                    prop_cache.append(prop.name)
+        default_prop_cache = {}
+        if entity_class.class_type == 'PointClass':
+            buffer += f'\n        self.origin = [0, 0, 0]'
+        for prop in entity_class.properties:
+            if prop.name not in prop_cache:
+                buffer += f'\n        self.{prop.name} = '
+                if prop.default_value:  # and prop.description is not None:
+                    try:
+                        if prop.value_type == 'color255':
+                            def_value = f'[{", ".join(map(str, parse_int_vector(prop.default_value)))}]'
+                            default_prop_cache[prop.name] = def_value
+                            buffer += def_value
+                        elif prop.value_type in ['angle', 'vector', 'color1']:
+                            def_value = f'[{", ".join(map(str, parse_float_vector(prop.default_value)))}]'
+                            default_prop_cache[prop.name] = def_value
+                            buffer += def_value
+                        elif prop.value_type in ['integer', 'float', 'node_dest', 'angle_negative_pitch']:
+                            def_value = f'{prop.default_value}'
+                            default_prop_cache[prop.name] = def_value
+                            buffer += def_value
+                        elif prop.value_type == 'choices':
+                            def_value = '"CHOICES NOT SUPPORTED"'
+                            default_prop_cache[prop.name] = def_value
+                            buffer += def_value
+                        elif prop.value_type in ['string', 'studio', 'material', 'sprite', 'sound']:
+                            def_value = f'"{prop.default_value}"'
+                            default_prop_cache[prop.name] = def_value
+                            buffer += def_value
+                        elif prop.value_type == 'target_destination' and prop.default_value == 'Name of the entity to set navigation properties on.':
+                            buffer += 'None  # Set to none due to bug in BlackMesa base.fgd file'
+                        elif prop.value_type == 'vecline' and prop.default_value == 'The position the rope attaches to object 2':
+                            buffer += 'None  # Set to none due to bug in BlackMesa base.fgd file'
+                        else:
+                            buffer += prop.default_value
+                    except ValueError as ex:
+                        buffer += f'None  # Failed to parse value type due to {ex}'
+                    buffer += f'  # Type: {prop.value_type}'
+                else:
+                    buffer += f'None  # Type: {prop.value_type}'
+
+        if not entity_class.properties:
+            buffer += '\n        pass'
+
+        buffer += '\n\n    @staticmethod'
+        buffer += '\n    def from_dict(instance, entity_data: dict):'
+        if entity_class.parents:
+            for parent in set(entity_class.parents):
+                if parent.name not in all_parents:
+                    buffer += f'\n        {parent.name}.from_dict(instance, entity_data)'
+        else:
+            buffer += f'\n        Base.from_dict(instance, entity_data)'
+
+        if entity_class.class_type == 'PointClass':
+            buffer += f'\n        instance.origin = parse_float_vector(entity_data.get(\'origin\', "0 0 0"))'
+
+        for prop in entity_class.properties:
+            if prop.name not in prop_cache:
+                buffer += f'\n        instance.{prop.name} = '
+                try:
+                    if prop.value_type == 'color255':
+                        buffer += f'parse_int_vector(entity_data.get(\'{prop.name.lower()}\', "{prop.default_value or "0 0 0"}"))'
+                    elif prop.value_type in ['angle', 'vector', 'color1', 'origin']:
+                        buffer += f'parse_float_vector(entity_data.get(\'{prop.name.lower()}\', "{prop.default_value or "0 0 0"}"))'
+                    elif prop.value_type in ['integer', 'node_dest']:
+                        buffer += f'int(entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, 0)}))'
+                    elif prop.value_type in ['float', 'angle_negative_pitch']:
+                        buffer += f'float(entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, 0)}))'
+                    elif prop.value_type == 'choices':
+                        buffer += f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
+                    elif prop.value_type in ['string', 'studio', 'material', 'sprite', 'sound']:
+                        buffer += f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
+                    elif prop.value_type == 'target_destination' and prop.default_value == 'Name of the entity to set navigation properties on.':
+                        buffer += f'entity_data.get(\'{prop.name.lower()}\', None)  # Set to none due to bug in BlackMesa base.fgd file'
+                    elif prop.value_type == 'vecline' and prop.default_value == 'The position the rope attaches to object 2':
+                        buffer += f'entity_data.get(\'{prop.name.lower()}\', None)  # Set to none due to bug in BlackMesa base.fgd file'
+                    else:
+                        buffer += f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
+                except ValueError as ex:
+                    buffer += f'None  # Failed to parse value type due to {ex}'
+                buffer += f'  # Type: {prop.value_type}'
+        buffer += '\n\n\n'
+
+        processed_classes.append(entity_class.name)
+    buffer += '\nentity_class_handle = {'
+    for entity_class in processed_classes:
+        buffer += f'\n    \'{entity_class}\': {entity_class},'
+    buffer += '\n}'
+    print(ContentManager().get_content_provider_from_path(fgd_path))
+    output_name = Path(fgd_path).stem
+    with open(f'../bsp/entities/{output_name}_entity_classes.py', 'w') as f:
+        f.write(buffer)
 
 
 if __name__ == '__main__':
-    fgd_data: Fgd = FgdParse(r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\tf.fgd")
-    classes_data = base_class
-    entity_class: FgdEntity
-
-    all_entities = fgd_data.entities
-    for inc in fgd_data.includes:
-        all_entities += inc.entities
-
-    for entity_class in fgd_data.entities:
-        class_name = entity_class.name  # ''.join([p.capitalize() for p in entity_class.name.split('_')])
-        classname_remap[entity_class.name] = class_name
-        prop: FgdEntityProperty
-        class_props = []
-        class_props_init = []
-        for prop in entity_class.properties:
-            parent: FgdEntity
-            skip = False
-            for parent in entity_class.parents:
-                for pprop in parent.properties:
-                    if prop.name == pprop.name:
-                        skip = True
-                        break
-                if skip:
-                    break
-            if skip:
-                continue
-            default_value = prop.default_value
-            if prop.description is None:
-                default_value = None
-            elif prop.value_type in ['angle', 'origin', 'color255', 'vector']:
-                default_value = '[{}, {}, {}]'.format(*(prop.default_value or '0 0 0').split(' '))
-            elif prop.value_type in ['string', 'sprite', 'choices', 'sound', 'material', 'studio']:
-                default_value = f'"{prop.default_value}"'
-            else:
-                print(prop.value_type)
-            prop_name = prop.name
-            if prop_name == 'class':
-                prop_name = 'class_'
-            prop_data = property_template.format(display_name=prop.display_name, description=prop.description,
-                                                 name=prop_name, default_value=default_value or 'None',
-                                                 type=prop.value_type)
-            class_props_init_data = property_init_template.format(name=prop_name, name2=prop.name,
-                                                                  default_value=default_value or 'None')
-            class_props.append(prop_data)
-            class_props_init.append(class_props_init_data)
-
-        if entity_class.parents:
-            skip = False
-            parents = []
-            for parent in entity_class.parents:
-                parents += collect_parents(parent)
-
-            bases = []
-            for parent in entity_class.parents:
-                if classname_remap[parent.name] not in parents and classname_remap[parent.name] not in bases:
-                    bases.append(classname_remap[parent.name])
-
-        else:
-            bases = ['Base']
-
-        class_data = class_template.format(class_name=class_name,
-                                           bases=', '.join(bases),
-                                           properties='\n\t\t'.join(class_props),
-                                           property_init='\n\t\t'.join(class_props_init))
-        classes_data += class_data
-
-    class_map = """\nclass_map = {{
-{}
-}}""".format(',\n'.join([f'\t"{ent.name}": {ent.name}' for ent in fgd_data.entities]))
-    classes_data += class_map
-    with open('./tf2_class_dump.py', 'w') as f:
-        f.write(classes_data.replace('\t', ' ' * 4))
+    main()
