@@ -12,7 +12,7 @@ logger = log_manager.get_logger('content_manager')
 
 def import_texture(name, file_object, update=False):
     if bpy.data.images.get(name, None) and not update:
-        return name
+        return bpy.data.images.get(name)
     vtf_lib = VTFLib.VTFLib()
     logger.info(f'Loading "{name}" texture')
     vtf_lib.image_load_from_buffer(file_object.read())
@@ -31,8 +31,7 @@ def import_texture(name, file_object, update=False):
             height=image_height,
             alpha=True,
         )
-        image.generated_width = image_width
-        image.generated_height = image_height
+        image.filepath = name + '.tga'
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
 
