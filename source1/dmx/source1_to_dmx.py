@@ -14,6 +14,7 @@ from ..vvd.vvd import Vvd
 from ...source_shared.content_manager import ContentManager
 from ...utilities import datamodel
 from ...utilities.math_utilities import matrix_to_quat
+from ...utilities.path_utilities import find_vtx
 
 
 def split(array, n=3):
@@ -382,7 +383,7 @@ class ModelDecompiler:
     def __init__(self, model_path: Path):
         self.mdl_file = model_path.with_suffix('.mdl')
         self.vvd_file = model_path.with_suffix('.vvd')
-        self.vtx_file = model_path.with_suffix('.dx90.vtx')
+        self.vtx_file = find_vtx(model_path)
         assert self.mdl_file.exists() and self.vvd_file.exists() and self.vtx_file.exists(), \
             "One or more of model files are missing"
         self.mdl = Mdl(self.mdl_file)

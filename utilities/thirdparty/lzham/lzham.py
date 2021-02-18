@@ -132,14 +132,3 @@ class LZHAM(metaclass=SingletonMeta):
             return pointer_to_array(decompressed_ptr, decompressed_size_ptr.contents.value).contents
         else:
             raise Exception(f'LZHAM decompression error: {result.name}')
-
-
-if __name__ == '__main__':
-    from binascii import unhexlify
-
-    z = LZHAM()
-    print(z.version())
-    # z.init_decompress(20)
-    z.decompress_memory(
-        unhexlify('D041C2FEA125110D5804001E767ABB840C0B6E4869C96102E8B480180000DFE5E01FEDF8C0C06A1D3805'), 172, 20)
-    print(z.lib)

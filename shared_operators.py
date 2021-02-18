@@ -7,7 +7,7 @@ from .bpy_utilities.utils import get_or_create_collection
 from .source1.mdl.import_mdl import import_model, import_materials
 from .source2.resouce_types.valve_model import ValveCompiledModel
 from .source_shared.content_manager import ContentManager
-from .utilities.path_utilities import backwalk_file_resolver
+from .utilities.path_utilities import backwalk_file_resolver, find_vtx_cm
 
 
 def get_parent(collection):
@@ -69,7 +69,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                     mld_file = content_manager.find_file(prop_path)
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
-                        vtx_file = content_manager.find_file(prop_path.parent / f'{prop_path.stem}.dx90.vtx')
+                        vtx_file = find_vtx_cm(prop_path, content_manager)
                         model_container = import_model(mld_file, vvd_file, vtx_file, 1.0, False, collection,
                                                        True, True)
 

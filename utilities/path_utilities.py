@@ -23,6 +23,22 @@ def pop_path_front(path: Path):
         return path
 
 
+def find_vtx(mdl_path: Path):
+    possible_vtx_vertsion = [70, 80, 90, 11, 12]
+    for vtx_version in possible_vtx_vertsion[::-1]:
+        path = mdl_path.with_suffix(f'.dx{vtx_version}.vtx')
+        if path.exists():
+            return path
+
+
+def find_vtx_cm(mdl_path: Path, content_manager):
+    possible_vtx_vertsion = [70, 80, 90, 11, 12]
+    for vtx_version in possible_vtx_vertsion[::-1]:
+        path = content_manager.find_file(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
+        if path:
+            return path
+
+
 def backwalk_file_resolver(current_path, file_to_find):
     current_path = Path(current_path).absolute()
     file_to_find = Path(file_to_find)
@@ -117,7 +133,7 @@ def get_mod_path(path: Path) -> Path:
                 break
             if path.parts[-1] == 'materials':
                 result_path = path.parent
-                if (result_path/'models').exists():
+                if (result_path / 'models').exists():
                     break
             if path.parts[-1] == 'maps':
                 result_path = path.parent

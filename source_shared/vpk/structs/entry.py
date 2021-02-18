@@ -68,4 +68,4 @@ class TitanfallBlock:
 
     def read(self, reader: ByteIO):
         (self.entry_flags, self.texture_flags, self.offset, self.compressed_size,
-         self.uncompressed_size) = reader.read_fmt('IH3Q')
+         self.uncompressed_size) = reader.read_fmt('<IH3Q')
