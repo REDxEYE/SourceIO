@@ -102,26 +102,27 @@ class ContentManager(metaclass=SingletonMeta):
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
 
-    def find_file(self, filepath: str, additional_dir=None, extension=None):
+    def find_file(self, filepath: str, additional_dir=None, extension=None, *, silent=False):
 
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
             new_filepath = new_filepath.with_suffix(extension)
-        logger.info(f'Requesting {new_filepath} file')
+        if not silent:
+            logger.info(f'Requesting {new_filepath} file')
         for mod, submanager in self.content_providers.items():
             file = submanager.find_file(new_filepath)
-            if file is not None:
+            if file is not None and not silent:
                 logger.debug(f'Found in {mod}!')
                 return file
         return None
 
-    def find_texture(self, filepath):
-        return self.find_file(filepath, 'materials', extension='.vtf')
+    def find_texture(self, filepath, *, silent=False):
+        return self.find_file(filepath, 'materials', extension='.vtf', silent=silent)
 
-    def find_material(self, filepath):
-        return self.find_file(filepath, 'materials', extension='.vmt')
+    def find_material(self, filepath, *, silent=False):
+        return self.find_file(filepath, 'materials', extension='.vmt', silent=silent)
 
     def serialize(self):
         serialized = {}

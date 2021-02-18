@@ -3,9 +3,22 @@ from io import BytesIO
 from pathlib import Path, WindowsPath
 from typing import Union, List, Dict
 
+from .structs.entry import TitanfallEntry
 from ...utilities.byte_io_mdl import ByteIO
-
 from .structs import *
+from ...utilities.thirdparty.lzham.lzham import LZHAM
+
+
+def open_vpk(filepath: Union[str, Path]):
+    from struct import unpack
+    with open(filepath, 'rb') as f:
+        magic, version_mj, version_mn = unpack('IHH', f.read(8))
+    if magic != Header.MAGIC:
+        raise Exception('Not a VPK file')
+    if version_mj in [1, 2] and version_mn == 0:
+        return VPKFile(filepath)
+    elif version_mj == 2 and version_mn == 3:
+        return TitanfallVPKFile(filepath)
 
 
 class VPKFile:
@@ -97,4 +110,53 @@ class VPKFile:
             with open(target_archive_path, 'rb') as target_archive:
                 target_archive.seek(entry.offset)
                 reader = BytesIO(entry.preload_data + target_archive.read(entry.size))
+                return reader
+
+
+class TitanfallVPKFile(VPKFile):
+
+    def read(self):
+        reader = self.reader
+        self.header.read(reader)
+        entry = reader.tell()
+        self.read_entries()
+        self.reader.seek(entry + self.header.tree_size)
+
+    def read_entries(self):
+        reader = self.reader
+        while 1:
+            type_name = reader.read_ascii_string()
+            if not type_name:
+                break
+            while 1:
+                directory_name = reader.read_ascii_string()
+                if not directory_name:
+                    break
+                while 1:
+                    file_name = reader.read_ascii_string()
+                    if not file_name:
+                        break
+                    full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
+                    entry = self.entries[full_path] = TitanfallEntry(full_path, reader.tell())
+                    entry.read(reader)
+
+    def read_file(self, entry: TitanfallEntry) -> BytesIO:
+        if not entry.loaded:
+            entry.read(self.reader)
+        if entry.archive_id == 0x7FFF:
+            reader = BytesIO(entry.preload_data)
+            return reader
+        else:
+            archive_name_base = self.filepath.stem[:-3]
+            archive_name_base = 'client_' + archive_name_base.split('_', 1)[-1]
+            target_archive_path = self.filepath.parent / f'{archive_name_base}{entry.archive_id:03d}.vpk'
+            print(f'Reading {entry.file_name} from {target_archive_path}')
+            with open(target_archive_path, 'rb') as target_archive:
+
+                buffer = entry.preload_data
+                for block in entry.blocks:
+                    target_archive.seek(block.offset)
+                    block_data = target_archive.read(block.compressed_size)
+                    buffer += LZHAM.decompress_memory(block_data, block.uncompressed_size, 20, 1 << 0)
+                reader = BytesIO(buffer)
                 return reader
