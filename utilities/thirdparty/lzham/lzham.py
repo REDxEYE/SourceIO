@@ -6,7 +6,7 @@ os.environ['NO_BPY'] = '1'
 from ctypes import CDLL, c_uint32, c_char_p, POINTER, Structure, create_string_buffer, pointer, cast
 from enum import IntEnum, auto
 
-from SourceIO.utilities.singleton import SingletonMeta
+from ....utilities.singleton import SingletonMeta
 
 
 def pointer_to_array(poiter, size, type=ctypes.c_ubyte):
