@@ -82,12 +82,17 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                             collection.collection.objects.link(entity_data_holder)
                         if model_container.armature is not None:
                             armature = model_container.armature
-                            armature.location = obj.location
+                            # armature.location = obj.location
                             armature.rotation_mode = "XYZ"
-                            armature.rotation_euler = obj.rotation_euler
-                            armature.rotation_euler[2] += math.radians(90)
-                            armature.scale = obj.scale
+                            # armature.rotation_euler = obj.rotation_euler
+                            # armature.rotation_euler[2] += math.radians(90)
+                            # armature.scale = obj.scale
                             entity_data_holder.parent = armature
+
+                            bpy.context.view_layer.update()
+                            armature.parent = obj.parent
+                            armature.matrix_world = obj.matrix_world.copy()
+                            armature.rotation_euler[2] += math.radians(90)
                         else:
                             if model_container.objects:
                                 entity_data_holder.parent = model_container.objects[0]
@@ -96,10 +101,14 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                 entity_data_holder.rotation_euler = obj.rotation_euler
                                 entity_data_holder.scale = obj.scale
                             for mesh_obj in model_container.objects:
-                                mesh_obj.location = obj.location
+                                # mesh_obj.location = obj.location
                                 mesh_obj.rotation_mode = "XYZ"
-                                mesh_obj.rotation_euler = obj.rotation_euler
-                                mesh_obj.scale = obj.scale
+                                # mesh_obj.rotation_euler = obj.rotation_euler
+                                # mesh_obj.scale = obj.scale
+
+                                bpy.context.view_layer.update()
+                                mesh_obj.parent = obj.parent
+                                mesh_obj.matrix_world = obj.matrix_world.copy()
                         import_materials(model_container.mdl)
                         skin = custom_prop_data.get('skin', None)
                         if skin:

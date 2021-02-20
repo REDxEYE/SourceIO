@@ -71,9 +71,6 @@ class BSPFile:
     def parse_lump(self, lump_class: Type[Lump], lump_id, lump_name):
         if self.lumps_info[lump_id].size != 0:
             lump = self.lumps_info[lump_id]
-            self.logger.debug(f'Loading {lump_name} lump', 'bps_parser')
-            self.logger.debug(f'\tOffset: {lump.offset}', 'bps_parser')
-            self.logger.debug(f'\tSize: {lump.size}', 'bps_parser')
             parsed_lump = lump_class(self, lump_id).parse()
             self.lumps[lump_id] = parsed_lump
             return parsed_lump

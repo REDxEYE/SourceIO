@@ -1,15 +1,17 @@
+import json
 import math
 import re
 from pathlib import Path
+from pprint import pprint
 from typing import Optional, List, Tuple, Dict, Any
 
 import bpy
 import numpy as np
 
 from .bsp_file import BSPFile
-from .datatypes.face import Face
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
-from .datatypes.model import Model
+from .entities.base_entity_handler import BaseEntityHandler
+from .entities.tf2_entity_handler import TF2EntityHandler
 from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
@@ -57,241 +59,33 @@ class BSP:
         self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
 
         content_manager = ContentManager()
+
+        provider = content_manager.get_content_provider_from_path(self.filepath)
+        if provider.steam_id in [1840, 440]:
+            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+        else:
+            self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection, self.scale)
+
         self.logger.debug('Adding map pack file to content manager')
         content_manager.content_providers[Path(self.filepath).stem] = self.map_file.get_lump('LUMP_PAK')
-
-    def convert_rotation(self, rotation_value):
-        convert_rotation_source1_to_blender(parse_hammer_vector())
-        if self.map_file.steam_app_id == 620:
-            pass
-
-    @staticmethod
-    def gather_vertex_ids(model: Model, faces: List[Face], surf_edges: List[Tuple[int, int]],
-                          edges: List[Tuple[int, int]]):
-        vertex_offset = 0
-        material_ids = []
-        vertex_count = 0
-        for map_face in faces[model.first_face:model.first_face + model.face_count]:
-            vertex_count += map_face.edge_count
-        vertex_ids = np.zeros(vertex_count, dtype=np.uint16)
-        for map_face in faces[model.first_face:model.first_face + model.face_count]:
-            if map_face.disp_info_id != -1:
-                continue
-            first_edge = map_face.first_edge
-            edge_count = map_face.edge_count
-            material_ids.append(map_face.tex_info_id)
-
-            used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
-            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
-            used_edges = edges[np.abs(used_surf_edges)]
-            tmp = np.arange(len(used_edges))
-            face_vertex_ids = used_edges[tmp, reverse]
-            vertex_ids[vertex_offset:vertex_offset + edge_count] = face_vertex_ids
-            vertex_offset += edge_count
-
-        return vertex_ids, material_ids
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump('LUMP_TEXDATA_STRING_TABLE')
         return strings_lump.strings[string_id] or "NO_NAME"
 
-    def load_map_mesh(self):
-        if self.vertex_lump and self.face_lump and self.model_lump:
-            self.load_bmodel(0, 'world_geometry')
-
-    def load_bmodel(self, model_id, model_name, custom_origin=None, parent_collection=None):
-        if custom_origin is None:
-            custom_origin = [0, 0, 0]
-        model = self.model_lump.models[model_id]
-        self.logger.info(f'Loading "{model_name}"')
-        mesh_obj = bpy.data.objects.new(f"{self.filepath.stem}_{model_name}",
-                                        bpy.data.meshes.new(f"{self.filepath.stem}_{model_name}_MESH"))
-        mesh_data = mesh_obj.data
-        if parent_collection is not None:
-            parent_collection.objects.link(mesh_obj)
-        else:
-            self.main_collection.objects.link(mesh_obj)
-        if custom_origin is not None:
-            mesh_obj.location = custom_origin
-        else:
-            mesh_obj.location = model.origin
-
-        faces = []
-        material_indices = []
-
-        surf_edges = self.surf_edge_lump.surf_edges
-        edges = self.edge_lump.edges
-
-        vertex_ids, material_ids = self.gather_vertex_ids(model, self.face_lump.faces, surf_edges, edges)
-        unique_vertex_ids = np.unique(vertex_ids)
-
-        tmp2 = np.searchsorted(unique_vertex_ids, vertex_ids)
-        remapped = dict(zip(vertex_ids, tmp2))
-
-        material_lookup_table = {}
-        for texture_info in sorted(set(material_ids)):
-            texture_info = self.texture_info_lump.texture_info[texture_info]
-            texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
-            material_name = self.get_string(texture_data.name_id)
-            material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-            material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
-
-        uvs_per_face = []
-
-        for map_face in self.face_lump.faces[model.first_face:model.first_face + model.face_count]:
-            if map_face.disp_info_id != -1:
-                continue
-            uvs = {}
-            face = []
-            first_edge = map_face.first_edge
-            edge_count = map_face.edge_count
-
-            texture_info = self.texture_info_lump.texture_info[map_face.tex_info_id]
-            texture_data = self.texture_data_lump.texture_data[texture_info.texture_data_id]
-            tv1, tv2 = texture_info.texture_vectors
-
-            used_surf_edges = surf_edges[first_edge:first_edge + edge_count]
-            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
-            used_edges = edges[np.abs(used_surf_edges)]
-            tmp = np.arange(len(used_edges))
-            face_vertex_ids = used_edges[tmp, reverse]
-
-            uv_vertices = self.vertex_lump.vertices[face_vertex_ids]
-
-            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / texture_data.width
-            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / texture_data.height)
-
-            v_uvs = np.dstack([u, v]).reshape((-1, 2))
-
-            for vertex_id, uv in zip(face_vertex_ids, v_uvs):
-                new_vertex_id = remapped[vertex_id]
-                face.append(new_vertex_id)
-                uvs[new_vertex_id] = uv
-
-            material_indices.append(material_lookup_table[texture_data.name_id])
-            uvs_per_face.append(uvs)
-            faces.append(face[::-1])
-
-        mesh_data.from_pydata(self.vertex_lump.vertices[unique_vertex_ids] * self.scale, [], faces)
-        mesh_data.polygons.foreach_set('material_index', material_indices)
-
-        mesh_data.uv_layers.new()
-        uv_data = mesh_data.uv_layers[0].data
-        for poly in mesh_data.polygons:
-            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-                uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
-
-        return mesh_obj
-
     def load_entities(self):
         entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
         self.entry_cache = {k['targetname']: k for k in entity_lump.entities if 'targetname' in k}
         if entity_lump:
+            entities_json = bpy.data.texts.new(
+                f'{self.filepath.stem}_entities.json')
+            json.dump(entity_lump.entities, entities_json, indent=1)
             for entity_data in entity_lump.entities:
-                entity_class: str = entity_data.get('classname', None)
-                if not entity_class:
-                    continue
-                if entity_class == 'func_fish_pool':
-                    continue
-                if entity_class.startswith('func_'):
-                    self.handle_func_brush(entity_class, entity_data)
-                elif 'trigger' in entity_class:
-                    self.handle_trigger(entity_class, entity_data)
-                elif entity_class.startswith('prop_') or entity_class in ['monster_generic']:
-                    self.handle_model(entity_class, entity_data)
-                elif entity_class == 'item_teamflag':
-                    entity_name = get_entity_name(entity_data)
-                    parent_collection = get_or_create_collection(entity_class, self.main_collection)
-                    location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
-                    rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
-                    self.create_empty(entity_name, location, rotation,
-                                      parent_collection=parent_collection,
-                                      custom_data={'parent_path': str(self.filepath.parent),
-                                                   'prop_path': entity_data['flag_model'],
-                                                   'type': entity_class,
-                                                   'entity': entity_data})
-                elif entity_class == 'light_spot':
-                    self.handle_light_spot(entity_class, entity_data)
-                elif entity_class == 'point_spotlight':
-                    cone = clamp_value((entity_data['spotlightwidth'] / 256) * 180, 1, 180)
-                    entity_data['_light'] = f'{entity_data["rendercolor"]} {entity_data["spotlightlength"]}'
-                    entity_data['_inner_cone'] = cone
-                    entity_data['_cone'] = cone
-                    self.handle_light_spot(entity_class, entity_data)
-                elif entity_class == 'light':
-                    self.handle_light(entity_class, entity_data)
-                elif entity_class == 'light_environment':
-                    self.handle_light_environment(entity_class, entity_data)
-                elif entity_class in ['keyframe_rope', 'move_rope']:
-                    if 'nextkey' not in entity_data:
-                        self.logger.warn(f'Missing "nextkey" in {entity_data}')
-                        continue
-                    self.handle_rope(entity_class, entity_data)
-                elif entity_class == 'env_soundscape':
-                    info_collection = get_or_create_collection('env', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'momentary_rot_button':
-                    self.handle_brush(entity_class, entity_data, self.main_collection)
-                elif entity_class.startswith('item_'):
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class.startswith('weapon_'):
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'logic_auto':
-                    info_collection = get_or_create_collection('logic', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'info_node':
-                    info_collection = get_or_create_collection('info', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'worldspawn':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'sky_camera':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'point_template':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'ambient_generic':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'info_player_start':
-                    info_collection = get_or_create_collection('info', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'aiscripted_schedule':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'filter_activator_name':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'logic_achievement':
-                    info_collection = get_or_create_collection('logic', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'logic_relay':
-                    info_collection = get_or_create_collection('logic', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'ai_script_conditions':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'env_sprite':
-                    info_collection = get_or_create_collection('env', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'phys_pulleyconstraint':
-                    self.handle_general_entity(entity_class, entity_data)
-                elif entity_class == 'env_tonemap_controller':
-                    info_collection = get_or_create_collection('env', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class.startswith('info_'):
-                    info_collection = get_or_create_collection('info', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'env_hudhint':
-                    info_collection = get_or_create_collection('env', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'infodecal':
-                    info_collection = get_or_create_collection('info', self.main_collection)
-                    self.handle_general_entity(entity_class, entity_data, info_collection)
-                elif entity_class == 'path_corner':
-                    self.handle_path_track(entity_class, entity_data)
-                elif entity_class == 'path_track':
-                    self.handle_path_track(entity_class, entity_data)
-                elif entity_class.startswith('npc'):
-                    info_collection = get_or_create_collection('npc', self.main_collection)
-                    self.handle_model(entity_class, entity_data, info_collection)
-                else:
-                    print(f'Unsupported entity type {entity_class}: {entity_data}')
-                    self.handle_general_entity(entity_class, entity_data)
+                if not self.entity_handler.handle_entity(entity_data):
+                    pprint(entity_data)
+            bpy.context.view_layer.update()
+            for entity_data in entity_lump.entities:
+                self.entity_handler.resolve_parents(entity_data)
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')
@@ -311,8 +105,9 @@ class BSP:
                                                    'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    'entity': {
                                                        'type': 'static_prop',
-                                                       'origin': list(prop.origin),
-                                                       'angles': list(prop.rotation),
+                                                       'origin': '{} {} {}'.format(*prop.origin),
+                                                       'angles': '{} {} {}'.format(*prop.rotation),
+                                                       'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    }
                                                    })
 
@@ -495,69 +290,6 @@ class BSP:
             details_info = vbsp.parse()
             print(vbsp_file)
 
-    def get_entity_by_target_name(self, target_name):
-        return self.entry_cache.get(target_name, None)
-
-    def get_entity_by_target(self, target_name):
-        for entry in self.entry_cache.values():
-            if target_name == entry.get('target', ''):
-                return entry
-
-    def handle_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
-        trigger_collection = get_or_create_collection('triggers', self.main_collection)
-        self.handle_brush(entity_class, entity_data, trigger_collection)
-
-    def handle_func_brush(self, entity_class: str, entity_data: Dict[str, Any]):
-        if entity_data.get('model', '').startswith('*'):
-            func_brush_collection = get_or_create_collection('func_brushes', self.main_collection)
-            self.handle_brush(entity_class, entity_data, func_brush_collection)
-
-    def handle_general_entity(self, entity_class: str, entity_data: Dict[str, Any],
-                              parent_collection: bpy.types.Collection = None):
-        origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
-        entity_collection = get_or_create_collection(entity_class, parent_collection or self.main_collection)
-        if 'targetname' not in entity_data:
-            copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
-            entity_name = f'{entity_class}_{entity_data.get("hammerid", copy_count)}'
-        else:
-            entity_name = str(entity_data['targetname'])
-
-        placeholder = bpy.data.objects.new(entity_name, None)
-        placeholder.location = origin
-        placeholder.rotation_euler = angles
-        placeholder['entity_data'] = {'entity': entity_data}
-        entity_collection.objects.link(placeholder)
-
-    def handle_brush(self, entity_class, entity_data, master_collection):
-        entity_name = get_entity_name(entity_data)
-        if 'model' in entity_data and entity_data['model']:
-            parent_collection = get_or_create_collection(entity_class, master_collection)
-            model_id = int(entity_data['model'].replace('*', ''))
-            brush_name = entity_data.get('targetname', f'{entity_class}_{model_id}')
-            location = parse_hammer_vector(entity_data.get('origin', '0 0 0'))
-            location = np.multiply(location, self.scale)
-            mesh_obj = self.load_bmodel(model_id, brush_name, location, parent_collection)
-            mesh_obj['entity_data'] = {'entity': entity_data}
-        else:
-            self.logger.warn(f'{entity_name} does not reference any model, SKIPPING!')
-
-    def handle_model(self, entity_class, entity_data, master_collection=None):
-        entity_name = get_entity_name(entity_data)
-        if 'model' in entity_data:
-            parent_collection = get_or_create_collection(entity_class, master_collection or self.main_collection)
-            location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
-            rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
-            skin = str(entity_data.get('skin', 0))
-            self.create_empty(entity_name, location,
-                              rotation,
-                              parent_collection=parent_collection,
-                              custom_data={'prop_path': entity_data['model'],
-                                           'type': entity_class,
-                                           'scale': self.scale,
-                                           'entity': entity_data,
-                                           'skin': skin})
-
     def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
         if custom_data is None:
             custom_data = {}
@@ -576,187 +308,3 @@ class BSP:
             parent_collection.objects.link(placeholder)
         else:
             self.main_collection.objects.link(placeholder)
-
-    def handle_light_spot(self, entity_class, entity_data):
-        entity_name = get_entity_name(entity_data)
-        parent_collection = get_or_create_collection(entity_class, self.main_collection)
-
-        location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
-        rotation = convert_rotation_source1_to_blender(parse_hammer_vector(entity_data['angles']))
-        rotation[1] = math.radians(90) + rotation[1]
-        rotation[2] = math.radians(180) + rotation[2]
-        color, lumens = self._get_light_data(entity_data)
-        color_max = max(color)
-        lumens *= color_max / 255
-        color = np.divide(color, color_max)
-        inner_cone = float(entity_data['_inner_cone'])
-        cone = float(entity_data['_cone']) * 2
-        watts = (lumens * (1 / math.radians(cone)))
-        radius = (1 - inner_cone / cone)
-        self._load_lights(entity_name, location, rotation, 'SPOT', watts, color, cone, radius,
-                          parent_collection, entity_data)
-
-    def handle_light(self, entity_class, entity_data):
-        entity_name = get_entity_name(entity_data)
-        parent_collection = get_or_create_collection(entity_class, self.main_collection)
-        location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
-        color, lumens = self._get_light_data(entity_data)
-        color_max = max(color)
-        lumens *= color_max / 255
-        color = np.divide(color, color_max)
-        watts = lumens
-
-        self._load_lights(entity_name, location, [0.0, 0.0, 0.0], 'POINT', watts, color, 1,
-                          parent_collection=parent_collection, entity=entity_data)
-
-    def handle_light_environment(self, entity_class, entity_data):
-        entity_name = get_entity_name(entity_data)
-        parent_collection = get_or_create_collection(entity_class, self.main_collection)
-        location = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
-        color, lumens = self._get_light_data(entity_data)
-        color_max = max(color)
-        lumens *= color_max / 255
-        color = np.divide(color, color_max)
-        watts = lumens / 10000
-
-        self._load_lights(entity_name, location, [0.0, 0.0, 0.0], 'SUN', watts, color, 1,
-                          parent_collection=parent_collection, entity=entity_class)
-
-    @staticmethod
-    def _get_light_data(entity_data):
-        color_hrd = parse_hammer_vector(entity_data.get('_lighthdr', '-1 -1 -1 1'))
-        color = parse_hammer_vector(entity_data['_light'])
-        if color_hrd[0] > 0:
-            color = color_hrd
-        if len(color) == 4:
-            lumens = color[-1]
-            color = color[:-1]
-        elif len(color) == 1:
-            color = [color[0], color[0], color[0]]
-            lumens = color[0]
-        else:
-            lumens = 200
-        return color, lumens
-
-    def _load_lights(self, name, location, rotation, light_type, watts, color, core_or_size=0.0, radius=0.25,
-                     parent_collection=None, entity=None):
-        if entity is None:
-            entity = {}
-        lamp = bpy.data.objects.new(f'{light_type}_{name}',
-                                    bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
-        lamp.location = location
-        lamp_data = lamp.data
-        lamp_data.energy = watts * (self.scale / HAMMER_UNIT_TO_METERS) ** 2
-        lamp_data.color = color
-        lamp.rotation_euler = rotation
-        lamp_data.shadow_soft_size = radius
-        lamp.scale *= self.scale
-        lamp['entity'] = entity
-        if light_type == 'SPOT':
-            lamp_data.spot_size = math.radians(core_or_size)
-
-        if parent_collection is not None:
-            parent_collection.objects.link(lamp)
-        else:
-            self.main_collection.objects.link(lamp)
-
-    def handle_rope(self, entity_class, entity_data):
-        entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
-        content_manager = ContentManager()
-        entity_name = get_entity_name(entity_data)
-        parent_collection = get_or_create_collection(entity_class, self.main_collection)
-
-        parent = list(filter(lambda x: x.get('targetname') == entity_data['nextkey'], entity_lump.entities))
-        if len(parent) == 0:
-            self.logger.error(f'Cannot find rope parent \'{entity_data["nextkey"]}\', skipping')
-            return
-        location_start = np.multiply(parse_hammer_vector(entity_data['origin']), self.scale)
-        location_end = np.multiply(parse_hammer_vector(parent[0]['origin']), self.scale)
-
-        curve = bpy.data.curves.new(f'{entity_name}_data', 'CURVE')
-        curve.dimensions = '3D'
-        curve.bevel_depth = entity_data.get('width') / 100
-        curve_object = bpy.data.objects.new(f'{entity_name}', curve)
-        curve_path = curve.splines.new('NURBS')
-
-        parent_collection.objects.link(curve_object)
-
-        slack = entity_data.get('slack', 0)
-
-        point_start = (*location_start, 1)
-        point_end = (*location_end, 1)
-        point_mid = lerp_vec(point_start, point_end, 0.5)
-        point_mid[2] -= sum(slack * 0.0002 for _ in range(slack))
-
-        curve_path.points.add(2)
-        curve_path.points[0].co = point_start
-        curve_path.points[1].co = point_mid
-        curve_path.points[2].co = point_end
-
-        curve_path.use_endpoint_u = True
-
-        material_name = entity_data.get('ropematerial')
-        get_material(material_name, curve_object)
-
-        material_file = content_manager.find_material(material_name)
-        if material_file:
-            material_name = strip_patch_coordinates.sub("", material_name)
-            mat = Source1MaterialLoader(material_file, material_name)
-            mat.create_material()
-
-    def handle_path_track(self, entity_class: str, entity_data: Dict[str, Any]):
-        entity_collection = get_or_create_collection(entity_class, self.main_collection)
-        start_name = entity_data['targetname']
-        points = []
-        visited = []
-        parent_name = start_name
-        while True:
-            parent = self.get_entity_by_target(parent_name)
-            if parent is not None:
-                if parent['targetname'] in visited:
-                    visited.append(parent_name)
-                    break
-                visited.append(parent_name)
-                parent_name = parent['targetname']
-            else:
-                break
-        if bpy.data.objects.get(parent_name, None):
-            return
-
-        next_name = parent_name
-        closed_loop = False
-        while True:
-            child = self.get_entity_by_target_name(next_name)
-            if child:
-                points.append(parse_hammer_vector(child.get('origin', '0 0 0')) * self.scale)
-                if 'target' not in child:
-                    self.logger.warn(f'Entity {next_name} does not have target. {entity_data}')
-                    break
-                if child['target'] == parent_name:
-                    closed_loop = True
-                    break
-                elif child['target'] == child['targetname']:
-                    break
-                next_name = child['target']
-            else:
-                break
-
-        line = self._create_lines(parent_name, points, closed_loop)
-        line['entity_data'] = {'entity': entity_data}
-        entity_collection.objects.link(line)
-
-    def _create_lines(self, name, points, closed=False, line_type='POLY'):
-        line_data = bpy.data.curves.new(name=f'{name}_data', type='CURVE')
-        line_data.dimensions = '3D'
-        line_data.fill_mode = 'FULL'
-        line_data.bevel_depth = 0
-
-        polyline = line_data.splines.new('POLY')
-        polyline.use_cyclic_u = closed
-        polyline.points.add(len(points) - 1)
-        for idx in range(len(points)):
-            polyline.points[idx].co = tuple(points[idx]) + (1.0,)
-
-        line = bpy.data.objects.new(f'{name}', line_data)
-        line.location = [0, 0, 0]
-        return line
