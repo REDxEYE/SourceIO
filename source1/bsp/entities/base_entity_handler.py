@@ -600,7 +600,11 @@ class BaseEntityHandler:
         self._handled_paths.append(next.targetname)
         parts = [next]
         while True:
-            next, next_raw = self._get_entity_by_name(next.target)
+
+            next_2, next_raw_2 = self._get_entity_by_name(next.target)
+            if next_2.target == next.targetname:
+                break
+            next, next_raw = next_2, next_raw_2
             if next:
                 self._handled_paths.append(next.targetname)
                 if next in parts:
