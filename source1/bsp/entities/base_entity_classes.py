@@ -7,13 +7,24 @@ def parse_float_vector(string):
 
 
 class Base:
+    hammer_id_counter = 0
+
     def __init__(self):
         self.hammer_id = 0
         self.class_name = 'ANY'
 
+    @classmethod
+    def new_hammer_id(cls):
+        new_id = cls.hammer_id_counter
+        cls.hammer_id_counter += 1
+        return new_id
+
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        instance.hammer_id = int(entity_data.get('hammerid'))
+        if 'hammerid' in entity_data:
+            instance.hammer_id = int(entity_data.get('hammerid'))
+        else:  # Titanfall
+            instance.hammer_id = Base.new_hammer_id()
         instance.class_name = entity_data.get('classname')
 
 
@@ -324,6 +335,7 @@ class BaseNPC(Angles, RenderFields, ResponseContext, DamageFilter, Targetname, S
 
 class info_npc_spawn_destination(Targetname, Parentname, Angles):
     icon_sprite = "editor/info_target.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -344,6 +356,7 @@ class info_npc_spawn_destination(Targetname, Parentname, Angles):
 
 class BaseNPCMaker(Targetname, Angles, EnableDisable):
     icon_sprite = "editor/npc_maker.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()
@@ -364,6 +377,7 @@ class BaseNPCMaker(Targetname, Angles, EnableDisable):
 
 class npc_template_maker(BaseNPCMaker):
     icon_sprite = "editor/npc_maker.vmt"
+
     def __init__(self):
         super(BaseNPCMaker).__init__()
         self.origin = [0, 0, 0]
@@ -566,6 +580,7 @@ class worldspawn(Targetname, ResponseContext, worldbase):
 
 class ambient_generic(Targetname):
     icon_sprite = "editor/ambient_generic.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -818,6 +833,7 @@ class game_gib_manager(Targetname):
 
 class env_lightglow(Parentname, Targetname, Angles):
     model = "models/editor/axis_helper_thick.mdl"
+
     def __init__(self):
         super(Parentname).__init__()
         super(Targetname).__init__()
@@ -895,6 +911,7 @@ class env_smokestack(Parentname, Angles):
 
 class env_fade(Targetname):
     icon_sprite = "editor/env_fade"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -928,6 +945,7 @@ class env_player_surface_trigger(Targetname):
 
 class env_tonemap_controller(Targetname):
     icon_sprite = "editor/env_tonemap_controller.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -1109,6 +1127,7 @@ class vgui_screen(vgui_screen_base):
 
 class vgui_slideshow_display(Targetname, Parentname, Angles):
     model = "models/editor/axis_helper_thick.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1335,6 +1354,7 @@ class env_bubbles(Targetname, Parentname):
 
 class env_explosion(Targetname, Parentname):
     icon_sprite = "editor/env_explosion.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1402,6 +1422,7 @@ class env_smoketrail(Targetname, Parentname):
 
 class env_physexplosion(Targetname, Parentname):
     icon_sprite = "editor/env_physexplosion.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1424,6 +1445,7 @@ class env_physexplosion(Targetname, Parentname):
 
 class env_physimpact(Targetname, Parentname):
     icon_sprite = "editor/env_physexplosion.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1446,6 +1468,7 @@ class env_physimpact(Targetname, Parentname):
 
 class env_fire(Targetname, Parentname, EnableDisable):
     icon_sprite = "editor/env_fire"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1474,6 +1497,7 @@ class env_fire(Targetname, Parentname, EnableDisable):
 
 class env_firesource(Targetname, Parentname):
     icon_sprite = "editor/env_firesource"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1526,6 +1550,7 @@ class env_entity_igniter(Targetname):
 
 class env_fog_controller(Targetname, Angles, DXLevelChoice):
     icon_sprite = "editor/fog_controller.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()
@@ -1564,6 +1589,7 @@ class env_fog_controller(Targetname, Angles, DXLevelChoice):
 
 class env_steam(Targetname, Parentname, Angles):
     viewport_model = "models/editor/spot_cone.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1671,6 +1697,7 @@ class env_hudhint(Targetname):
 
 class env_shake(Targetname, Parentname):
     icon_sprite = "editor/env_shake.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1725,6 +1752,7 @@ class env_rotorwash_emitter(Targetname, Parentname):
 
 class gibshooter(gibshooterbase):
     icon_sprite = "editor/gibshooter.vmt"
+
     def __init__(self):
         super(gibshooterbase).__init__()
         self.origin = [0, 0, 0]
@@ -1737,6 +1765,7 @@ class gibshooter(gibshooterbase):
 
 class env_shooter(RenderFields, gibshooterbase):
     icon_sprite = "editor/env_shooter.vmt"
+
     def __init__(self):
         super(gibshooterbase).__init__()
         super(RenderFields).__init__()
@@ -1765,6 +1794,7 @@ class env_shooter(RenderFields, gibshooterbase):
 
 class env_rotorshooter(RenderFields, gibshooterbase):
     icon_sprite = "editor/env_shooter.vmt"
+
     def __init__(self):
         super(gibshooterbase).__init__()
         super(RenderFields).__init__()
@@ -1791,6 +1821,7 @@ class env_rotorshooter(RenderFields, gibshooterbase):
 
 class env_soundscape_proxy(Targetname, Parentname):
     icon_sprite = "editor/env_soundscape.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1809,6 +1840,7 @@ class env_soundscape_proxy(Targetname, Parentname):
 
 class env_soundscape(Targetname, Parentname, EnableDisable):
     icon_sprite = "editor/env_soundscape.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1845,6 +1877,7 @@ class env_soundscape(Targetname, Parentname, EnableDisable):
 
 class env_soundscape_triggerable(env_soundscape):
     icon_sprite = "editor/env_soundscape.vmt"
+
     def __init__(self):
         super(env_soundscape).__init__()
         self.origin = [0, 0, 0]
@@ -1857,6 +1890,7 @@ class env_soundscape_triggerable(env_soundscape):
 
 class env_spark(Targetname, Parentname, Angles):
     icon_sprite = "editor/env_spark.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -1919,6 +1953,7 @@ class env_sprite_oriented(Angles, env_sprite):
 
 class env_wind(Targetname, Angles):
     icon_sprite = "editor/env_wind.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()
@@ -2014,6 +2049,7 @@ class game_weapon_manager(Targetname):
 
 class game_end(Targetname):
     icon_sprite = "editor/game_end.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2071,6 +2107,7 @@ class game_score(Targetname):
 
 class game_text(Targetname):
     icon_sprite = "editor/game_text.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2139,6 +2176,7 @@ class point_message(Targetname, Parentname):
 
 class point_spotlight(Angles, RenderFields, Parentname, DXLevelChoice, Targetname):
     model = "models/editor/cone_helper.mdl"
+
     def __init__(self):
         super(RenderFields).__init__()
         super(Angles).__init__()
@@ -2267,6 +2305,7 @@ class game_zone_player(Targetname, Parentname):
 
 class infodecal(Targetname):
     model = "models/editor/axis_helper_thick.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2283,6 +2322,7 @@ class infodecal(Targetname):
 
 class info_projecteddecal(Angles, Targetname):
     model = "models/editor/axis_helper_thick.mdl"
+
     def __init__(self):
         super(Angles).__init__()
         super(Targetname).__init__()
@@ -2314,6 +2354,7 @@ class info_no_dynamic_shadow(Base):
 
 class info_player_start(PlayerClass, Angles):
     model = "models/editor/playerstart.mdl"
+
     def __init__(self):
         super(PlayerClass).__init__()
         super(Angles).__init__()
@@ -2328,6 +2369,7 @@ class info_player_start(PlayerClass, Angles):
 
 class info_overlay(Targetname):
     model = "models/editor/overlay_helper.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2418,6 +2460,7 @@ class info_intermission(Base):
 
 class info_landmark(Targetname):
     icon_sprite = "editor/info_landmark"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2441,6 +2484,7 @@ class info_null(Targetname):
 
 class info_target(Targetname, Parentname, Angles):
     icon_sprite = "editor/info_target.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -2457,6 +2501,7 @@ class info_target(Targetname, Parentname, Angles):
 
 class info_particle_system(Targetname, Parentname, Angles):
     model = "models/editor/cone_helper.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -2619,6 +2664,7 @@ class info_particle_system(Targetname, Parentname, Angles):
 
 class phys_ragdollmagnet(Targetname, Parentname, Angles, EnableDisable):
     icon_sprite = "editor/info_target.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -2645,6 +2691,7 @@ class phys_ragdollmagnet(Targetname, Parentname, Angles, EnableDisable):
 
 class info_lighting(Targetname):
     icon_sprite = "editor/info_lighting.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2657,6 +2704,7 @@ class info_lighting(Targetname):
 
 class info_teleport_destination(Targetname, Parentname, Angles, PlayerClass):
     model = "models/editor/playerstart.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -2675,6 +2723,7 @@ class info_teleport_destination(Targetname, Parentname, Angles, PlayerClass):
 
 class info_node(Node):
     model = "models/editor/ground_node.mdl"
+
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -2687,6 +2736,7 @@ class info_node(Node):
 
 class info_node_hint(Targetname, HintNode, Angles):
     model = "models/editor/ground_node_hint.mdl"
+
     def __init__(self):
         super(HintNode).__init__()
         super(Targetname).__init__()
@@ -2703,6 +2753,7 @@ class info_node_hint(Targetname, HintNode, Angles):
 
 class info_node_air(Node):
     model = "models/editor/air_node.mdl"
+
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -2717,6 +2768,7 @@ class info_node_air(Node):
 
 class info_node_air_hint(Angles, Targetname, HintNode):
     model = "models/editor/air_node_hint.mdl"
+
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2735,6 +2787,7 @@ class info_node_air_hint(Angles, Targetname, HintNode):
 
 class info_hint(Targetname, HintNode, Angles):
     model = "models/editor/node_hint.mdl"
+
     def __init__(self):
         super(HintNode).__init__()
         super(Targetname).__init__()
@@ -2812,6 +2865,7 @@ class info_radial_link_controller(Targetname, Parentname):
 
 class info_node_climb(Targetname, HintNode, Angles):
     model = "models/editor/climb_node.mdl"
+
     def __init__(self):
         super(HintNode).__init__()
         super(Targetname).__init__()
@@ -2828,6 +2882,7 @@ class info_node_climb(Targetname, HintNode, Angles):
 
 class light(Targetname, Light):
     icon_sprite = "editor/light.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Light).__init__()
@@ -2846,6 +2901,7 @@ class light(Targetname, Light):
 
 class light_environment(Angles):
     icon_sprite = "editor/light_env.vmt"
+
     def __init__(self):
         super(Angles).__init__()
         self.origin = [0, 0, 0]
@@ -2901,6 +2957,7 @@ class light_spot(Targetname, Light, Angles):
 
 class light_dynamic(Targetname, Parentname, Angles):
     icon_sprite = "editor/light.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -2935,6 +2992,7 @@ class light_dynamic(Targetname, Parentname, Angles):
 
 class shadow_control(Targetname):
     icon_sprite = "editor/shadow_control.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2955,6 +3013,7 @@ class shadow_control(Targetname):
 
 class color_correction(Targetname, EnableDisable):
     icon_sprite = "editor/color_correction.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(EnableDisable).__init__()
@@ -3226,6 +3285,7 @@ class RopeKeyFrame(DXLevelChoice):
 
 class keyframe_rope(Targetname, Parentname, RopeKeyFrame, KeyFrame):
     model = "models/editor/axis_helper_thick.mdl"
+
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Targetname).__init__()
@@ -3242,6 +3302,7 @@ class keyframe_rope(Targetname, Parentname, RopeKeyFrame, KeyFrame):
 
 class move_rope(Targetname, Parentname, RopeKeyFrame, KeyFrame):
     model = "models/editor/axis_helper.mdl"
+
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Targetname).__init__()
@@ -3255,7 +3316,8 @@ class move_rope(Targetname, Parentname, RopeKeyFrame, KeyFrame):
         Parentname.from_dict(instance, entity_data)
         RopeKeyFrame.from_dict(instance, entity_data)
         KeyFrame.from_dict(instance, entity_data)
-        instance.PositionInterpolator = entity_data.get('positioninterpolator', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.PositionInterpolator = entity_data.get('positioninterpolator',
+                                                        "CHOICES NOT SUPPORTED")  # Type: choices
 
 
 class Button(Base):
@@ -3525,6 +3587,7 @@ class prop_door_rotating(Angles, Parentname, Global, Targetname, Studiomodel):
 
 class env_cubemap(Base):
     icon_sprite = "editor/env_cubemap.vmt"
+
     def __init__(self):
         super().__init__()
         self.origin = [0, 0, 0]
@@ -3684,6 +3747,7 @@ class env_effectscript(Targetname, Parentname, Angles):
 
 class logic_auto(Base):
     icon_sprite = "editor/logic_auto.vmt"
+
     def __init__(self):
         super().__init__()
         self.origin = [0, 0, 0]
@@ -3698,6 +3762,7 @@ class logic_auto(Base):
 
 class point_viewcontrol(Targetname, Parentname, Angles):
     viewport_model = "models/editor/camera.mdl"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -3761,6 +3826,7 @@ class point_posecontroller(Targetname):
 
 class logic_compare(Targetname):
     icon_sprite = "editor/logic_compare.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -3777,6 +3843,7 @@ class logic_compare(Targetname):
 
 class logic_branch(Targetname):
     icon_sprite = "editor/logic_branch.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -3834,6 +3901,7 @@ class logic_branch_listener(Targetname):
 
 class logic_case(Targetname):
     icon_sprite = "editor/logic_case.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -3878,6 +3946,7 @@ class logic_case(Targetname):
 
 class logic_multicompare(Targetname):
     icon_sprite = "editor/logic_multicompare.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -3894,6 +3963,7 @@ class logic_multicompare(Targetname):
 
 class logic_relay(Targetname, EnableDisable):
     icon_sprite = "editor/logic_relay.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(EnableDisable).__init__()
@@ -3908,6 +3978,7 @@ class logic_relay(Targetname, EnableDisable):
 
 class logic_timer(Targetname, EnableDisable):
     icon_sprite = "editor/logic_timer.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(EnableDisable).__init__()
@@ -3990,6 +4061,7 @@ class logic_collision_pair(Targetname):
 
 class env_microphone(Targetname, Parentname, EnableDisable):
     icon_sprite = "editor/env_microphone.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(Parentname).__init__()
@@ -4060,6 +4132,7 @@ class math_colorblend(Targetname):
 
 class math_counter(Targetname, EnableDisable):
     icon_sprite = "editor/math_counter.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         super(EnableDisable).__init__()
@@ -4104,7 +4177,8 @@ class logic_navigation(Targetname):
     def from_dict(instance, entity_data: dict):
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.target = entity_data.get('target', None)  # Set to none due to bug in BlackMesa base.fgd file  # Type: target_destination
+        instance.target = entity_data.get('target',
+                                          None)  # Set to none due to bug in BlackMesa base.fgd file  # Type: target_destination
         instance.navprop = entity_data.get('navprop', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
@@ -4225,6 +4299,7 @@ class BaseFilter(Targetname):
 
 class filter_multi(BaseFilter):
     icon_sprite = "editor/filter_multiple.vmt"
+
     def __init__(self):
         super(BaseFilter).__init__()
         self.filtertype = None  # Type: choices
@@ -4247,6 +4322,7 @@ class filter_multi(BaseFilter):
 
 class filter_activator_name(BaseFilter):
     icon_sprite = "editor/filter_name.vmt"
+
     def __init__(self):
         super(BaseFilter).__init__()
         self.filtername = None  # Type: target_destination
@@ -4259,6 +4335,7 @@ class filter_activator_name(BaseFilter):
 
 class filter_activator_class(BaseFilter):
     icon_sprite = "editor/filter_class.vmt"
+
     def __init__(self):
         super(BaseFilter).__init__()
         self.filterclass = None  # Type: string
@@ -4271,6 +4348,7 @@ class filter_activator_class(BaseFilter):
 
 class filter_activator_mass_greater(BaseFilter):
     icon_sprite = "editor/filter_class.vmt"
+
     def __init__(self):
         super(BaseFilter).__init__()
         self.filtermass = None  # Type: float
@@ -4294,6 +4372,7 @@ class filter_damage_type(BaseFilter):
 
 class filter_enemy(BaseFilter):
     icon_sprite = "editor/filter_class.vmt"
+
     def __init__(self):
         super(BaseFilter).__init__()
         self.filtername = None  # Type: string
@@ -4472,7 +4551,8 @@ class func_physbox(RenderFields, Origin, BreakableBrush):
         instance.overridescript = entity_data.get('overridescript', None)  # Type: string
         instance.damagetoenablemotion = int(entity_data.get('damagetoenablemotion', 0))  # Type: integer
         instance.forcetoenablemotion = float(entity_data.get('forcetoenablemotion', 0))  # Type: float
-        instance.preferredcarryangles = parse_float_vector(entity_data.get('preferredcarryangles', "0 0 0"))  # Type: vector
+        instance.preferredcarryangles = parse_float_vector(
+            entity_data.get('preferredcarryangles', "0 0 0"))  # Type: vector
         instance.notsolid = entity_data.get('notsolid', None)  # Type: choices
 
 
@@ -4654,6 +4734,7 @@ class phys_hinge(TwoObjectPhysics):
 
 class phys_ballsocket(TwoObjectPhysics):
     icon_sprite = "editor/phys_ballsocket.vmt"
+
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4666,6 +4747,7 @@ class phys_ballsocket(TwoObjectPhysics):
 
 class phys_constraint(TwoObjectPhysics):
     model = "models/editor/axis_helper.mdl"
+
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4678,6 +4760,7 @@ class phys_constraint(TwoObjectPhysics):
 
 class phys_pulleyconstraint(TwoObjectPhysics):
     model = "models/editor/axis_helper.mdl"
+
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4696,6 +4779,7 @@ class phys_pulleyconstraint(TwoObjectPhysics):
 
 class phys_slideconstraint(TwoObjectPhysics):
     model = "models/editor/axis_helper.mdl"
+
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4734,6 +4818,7 @@ class phys_slideconstraint(TwoObjectPhysics):
 
 class phys_lengthconstraint(TwoObjectPhysics):
     model = "models/editor/axis_helper.mdl"
+
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4747,11 +4832,13 @@ class phys_lengthconstraint(TwoObjectPhysics):
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.addlength = float(entity_data.get('addlength', 0))  # Type: float
         instance.minlength = float(entity_data.get('minlength', 0))  # Type: float
-        instance.attachpoint = entity_data.get('attachpoint', None)  # Set to none due to bug in BlackMesa base.fgd file  # Type: vecline
+        instance.attachpoint = entity_data.get('attachpoint',
+                                               None)  # Set to none due to bug in BlackMesa base.fgd file  # Type: vecline
 
 
 class phys_ragdollconstraint(TwoObjectPhysics):
     model = "models/editor/axis_helper.mdl"
+
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4955,7 +5042,8 @@ class BaseFadeProp(Base):
         instance.fadescale = float(entity_data.get('fadescale', 1))  # Type: float
 
 
-class prop_dynamic_base(BreakableProp, Angles, RenderFields, Parentname, Global, BaseFadeProp, DXLevelChoice, Studiomodel):
+class prop_dynamic_base(BreakableProp, Angles, RenderFields, Parentname, Global, BaseFadeProp, DXLevelChoice,
+                        Studiomodel):
     def __init__(self):
         super(BreakableProp).__init__()
         super(RenderFields).__init__()
@@ -5513,6 +5601,7 @@ class func_traincontrols(Parentname, Global):
 
 class tanktrain_aitarget(Targetname):
     icon_sprite = "editor/tanktrain_aitarget.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -5529,6 +5618,7 @@ class tanktrain_aitarget(Targetname):
 
 class tanktrain_ai(Targetname):
     icon_sprite = "editor/tanktrain_ai.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -5850,6 +5940,7 @@ class ai_speechfilter(Targetname, ResponseContext, EnableDisable):
 
 class water_lod_control(Targetname):
     icon_sprite = "editor/waterlodcontrol.vmt"
+
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -5947,6 +6038,7 @@ class material_modify_control(Parentname, Targetname):
 
 class point_devshot_camera(Angles):
     viewport_model = "models/editor/camera.mdl"
+
     def __init__(self):
         super(Angles).__init__()
         self.origin = [0, 0, 0]
@@ -6173,7 +6265,6 @@ class trigger_apply_impulse(Trigger):
         Trigger.from_dict(instance, entity_data)
         instance.impulse_dir = parse_float_vector(entity_data.get('impulse_dir', "0 0 0"))  # Type: angle
         instance.force = float(entity_data.get('force', 300))  # Type: float
-
 
 
 entity_class_handle = {

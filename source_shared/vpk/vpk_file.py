@@ -96,6 +96,8 @@ class VPKFile:
     def find_file(self, full_path: Union[Path, str]):
         if type(full_path) in [WindowsPath, Path]:
             full_path = full_path.as_posix().lower()
+        else:
+            full_path = Path(full_path).as_posix().lower()
         return self.entries.get(full_path, None)
 
     def read_file(self, entry: Entry) -> BytesIO:

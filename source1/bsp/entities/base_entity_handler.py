@@ -11,7 +11,7 @@ from mathutils import Vector, Euler
 from .base_entity_classes import func_door, worldspawn, prop_dynamic, parse_float_vector, BasePropPhysics, \
     prop_physics_override, func_brush, func_lod, trigger_hurt, trigger_multiple, func_tracktrain, point_spotlight, \
     light_spot, Base, Targetname, env_lightglow, env_sun, light_environment, env_sprite, light, prop_dynamic_override, \
-    logic_relay, move_rope, keyframe_rope, trigger_once, path_track
+    logic_relay, move_rope, keyframe_rope, trigger_once, path_track, infodecal
 from .base_entity_classes import entity_class_handle as base_entity_classes
 from ..bsp_file import BSPFile
 from ..datatypes.face import Face
@@ -292,13 +292,13 @@ class BaseEntityHandler:
             entity_object = self._get_class(entity_class)
             entity_object.from_dict(entity_object, entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
-            try:
-                handler_function(entity_object, entity_data)
-            except Exception as e:
-                import traceback
-                self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
-                self.logger.error(traceback.format_exc())
-                return False
+            # try:
+            handler_function(entity_object, entity_data)
+            # except Exception as e:
+            #     import traceback
+            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
+            #     self.logger.error(traceback.format_exc())
+            #     return False
             return True
         return False
 
@@ -403,6 +403,8 @@ class BaseEntityHandler:
     def handle_prop_physics(self, entity: prop_physics_override, entity_raw: dict):
         obj = self._handle_base_prop_physics(entity, entity_raw)
         self._put_into_collection('prop_physics', obj)
+
+    # def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
 
     def handle_light_spot(self, entity: light_spot, entity_raw: dict):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
@@ -631,6 +633,14 @@ class BaseEntityHandler:
 
     def handle_env_sun(self, entity: env_sun, entity_raw: dict):
         pass
+
+    def handle_infodecal(self, entity: infodecal, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        setattr(entity, 'icon_sprite', entity.texture)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('infodecal', obj)
 
     # META ENTITIES (no import required)
     def handle_keyframe_rope(self, entity: env_sun, entity_raw: dict):

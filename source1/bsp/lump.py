@@ -6,6 +6,7 @@ from lzma import decompress as lzma_decompress
 from typing import List
 
 from ...utilities.byte_io_mdl import ByteIO
+from ...utilities.math_utilities import sizeof_fmt
 
 
 class LumpTag:
@@ -49,21 +50,33 @@ class LumpInfo:
             self.size = reader.read_int32()
             self.version = reader.read_int32()
             self.magic = reader.read_uint32()
-
+        print(self)
     def __repr__(self):
-        return f"<{self.id} o:{self.offset} s:{self.size}>"
+        return f"<{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size} bytes)>"
 
 
 class Lump:
     tags: List[LumpTag] = []
 
+    @classmethod
+    def all_subclasses(cls):
+        return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
+
     def __init__(self, bsp, lump_id):
         from .bsp_file import BSPFile
         self._bsp: BSPFile = bsp
         self._lump: LumpInfo = bsp.lumps_info[lump_id]
-        self._bsp.reader.seek(self._lump.offset)
-        if self._lump.compressed:
+        self.reader = ByteIO()
+
+        base_path = self._bsp.filepath.parent
+        lump_path = base_path / f'{self._bsp.filepath.name}.{lump_id:04x}.bsp_lump'
+        if lump_path.exists():
+            reader = ByteIO(lump_path)
+        else:
+            self._bsp.reader.seek(self._lump.offset)
             reader = self._bsp.reader
+        if self._lump.compressed:
+
             lzma_id = reader.read_fourcc()
             assert lzma_id == "LZMA", f"Unknown compressed header({lzma_id})"
             decompressed_size = reader.read_uint32()
@@ -81,7 +94,12 @@ class Lump:
             )
             assert self.reader.size() == decompressed_size, 'Compressed lump size does not match expected'
         else:
-            self.reader = ByteIO(self._bsp.reader.read(self._lump.size))
+            self.reader = ByteIO(reader.read(self._lump.size))
+
+        with self.reader.save_current_pos():
+            if not lump_path.exists():
+                with lump_path.open('wb') as f:
+                    f.write(reader.read(-1))
 
     def parse(self):
         return self

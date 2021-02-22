@@ -5,7 +5,6 @@ from mathutils import Euler
 
 from ....utilities.math_utilities import HAMMER_UNIT_TO_METERS
 from .base_entity_handler import BaseEntityHandler
-from .base_entity_classes import entity_class_handle as base_entity_classes, func_tracktrain
 from .tf_entity_classes import entity_class_handle as tf2_entity_handlers, func_respawnroom, func_regenerate, \
     func_respawnroomvisualizer, item_healthkit_small, parse_float_vector, info_player_teamspawn, info_observer_point, \
     item_healthkit_medium, item_healthkit_full, item_ammopack_full, item_ammopack_small, item_ammopack_medium, \
@@ -15,8 +14,7 @@ from ..bsp_file import BSPFile
 
 
 class TF2EntityHandler(BaseEntityHandler):
-    entity_lookup_table = base_entity_classes
-    entity_lookup_table.update(tf2_entity_handlers)
+    entity_lookup_table = tf2_entity_handlers
 
     def __init__(self, bsp_file: BSPFile, parent_collection, world_scale: float = HAMMER_UNIT_TO_METERS):
         super().__init__(bsp_file, parent_collection, world_scale)

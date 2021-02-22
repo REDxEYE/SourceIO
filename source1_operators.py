@@ -5,7 +5,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
-from .source1.bsp.import_bsp import BSP
+from .source1.bsp.import_bsp import BSP,open_bsp
 from .source1.dmx.dmx import Session
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture

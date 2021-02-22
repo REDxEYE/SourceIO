@@ -43,9 +43,7 @@ class TitanfallEntry(Entry):
 
     def read(self, reader: ByteIO):
         reader.seek(self._entry_offset)
-        self.crc32 = reader.read_uint32()
-        self.preload_data_size = reader.read_uint16()
-        self.archive_id = reader.read_uint16()
+        self.crc32, self.preload_data_size, self.archive_id = reader.read_fmt('<I2H')
         while True:
             block = TitanfallBlock()
             block.read(reader)

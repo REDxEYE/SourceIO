@@ -1,7 +1,7 @@
 from typing import List
 
 from .. import Lump, lump_tag
-from ..datatypes.texture_data import TextureData
+from ..datatypes.texture_data import TextureData, RespawnTextureData
 from ..datatypes.texture_info import TextureInfo
 
 
@@ -29,5 +29,8 @@ class TextureDataLump(Lump):
     def parse(self):
         reader = self.reader
         while reader:
-            self.texture_data.append(TextureData(self, self._bsp).parse(reader))
+            if self._bsp.version < 29:
+                self.texture_data.append(TextureData(self, self._bsp).parse(reader))
+            else:
+                self.texture_data.append(RespawnTextureData(self, self._bsp).parse(reader))
         return self

@@ -28,3 +28,16 @@ class Model(Primitive):
         if lump:
             return lump.nodes[self.head_node]
         return None
+
+
+class RespawnModel(Model):
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
+        self.first_mesh = 0
+        self.mesh_count = 0
+
+    def parse(self, reader: ByteIO):
+        self.mins = reader.read_fmt('3f')
+        self.maxs = reader.read_fmt('3f')
+        self.first_mesh, self.mesh_count = reader.read_fmt('2I')
+        return self

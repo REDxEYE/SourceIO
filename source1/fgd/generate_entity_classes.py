@@ -24,7 +24,8 @@ def collect_parents(parent: FgdEntity):
 
 def main():
     # fgd_path = r"F:\SteamLibrary\steamapps\common\Black Mesa\bin\bms.fgd"
-    fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\tf.fgd"
+    # fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\tf.fgd"
+    fgd_path = r"F:\SteamLibrary\steamapps\common\Half-Life 2\bin\halflife2.fgd"
     ContentManager().scan_for_content(fgd_path)
     fgd: Fgd = FgdParse(fgd_path)
     processed_classes = []
@@ -39,24 +40,36 @@ def parse_float_vector(string):
 
 
 class Base:
+    hammer_id_counter = 0
+
     def __init__(self):
         self.hammer_id = 0
         self.class_name = 'ANY'
 
+    @classmethod
+    def new_hammer_id(cls):
+        new_id = cls.hammer_id_counter
+        cls.hammer_id_counter += 1
+        return new_id
+
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        instance.hammer_id = int(entity_data.get('hammerid'))
+        if 'hammerid' in entity_data:
+            instance.hammer_id = int(entity_data.get('hammerid'))
+        else:  # Titanfall
+            instance.hammer_id = Base.new_hammer_id()
         instance.class_name = entity_data.get('classname')
 \n\n"""
 
     entity_classes = fgd.entities
     include: Fgd
-    for include in fgd.includes:
-        for entity in include.entities:
-            if entity in entity_classes:
-                entity_classes.pop(entity_classes.index(entity))
+    # for include in fgd.includes:
+    #     for entity in include.entities:
+    #         if entity in entity_classes:
+    #             entity_classes.pop(entity_classes.index(entity))
     entity_class: FgdEntity
     for entity_class in entity_classes:
+        print(entity_class.name)
         if entity_class.name in processed_classes:
             continue
         buffer += f'class {entity_class.name}'
@@ -183,7 +196,7 @@ class Base:
     for entity_class in processed_classes:
         buffer += f'\n    \'{entity_class}\': {entity_class},'
     buffer += '\n}'
-    print(ContentManager().get_content_provider_from_path(fgd_path))
+    # print(ContentManager().get_content_provider_from_path(fgd_path))
     output_name = Path(fgd_path).stem
     with open(f'../bsp/entities/{output_name}_entity_classes.py', 'w') as f:
         f.write(buffer)

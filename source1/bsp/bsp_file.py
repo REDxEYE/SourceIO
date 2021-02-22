@@ -16,12 +16,27 @@ from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureDataLump, TextureInfoLump
 from .lumps.vertex_lump import VertexLump
 from .lumps.vertex_normal_lump import VertexNormalLump
+from .lumps.mesh_lump import MeshLump
+from .lumps.material_sort_lump import MaterialSortLump
+from .lumps.face_indices_lump import IndicesLump
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...source_shared.content_manager import ContentManager
 
 from ...utilities.byte_io_mdl import ByteIO
 
 log_manager = BPYLoggingManager()
+
+
+def open_bsp(filepath):
+    from struct import unpack
+    assert Path(filepath).exists()
+    with open(filepath, 'rb') as f:
+        magic, version = unpack('4sI', f.read(8))
+
+    if magic == b'VBSP':
+        return BSPFile(filepath)
+    elif magic == b'rBSP':
+        return RespawnBSPFile(filepath)
 
 
 class BSPFile:
@@ -56,7 +71,7 @@ class BSPFile:
         if lump_name in self.lumps:
             return self.lumps[lump_name]
         else:
-            for sub in Lump.__subclasses__():
+            for sub in Lump.all_subclasses():
                 sub: Type[Lump]
                 for dep in sub.tags:
                     if dep.lump_name == lump_name:
@@ -74,3 +89,22 @@ class BSPFile:
             parsed_lump = lump_class(self, lump_id).parse()
             self.lumps[lump_id] = parsed_lump
             return parsed_lump
+
+
+class RespawnBSPFile(BSPFile):
+
+    def __init__(self, filepath: str):
+        super().__init__(filepath)
+
+    def parse(self):
+        reader = self.reader
+        magic = reader.read_fourcc()
+        assert magic == 'rBSP'
+        self.version = reader.read_uint32()
+        self.revision = reader.read_uint32()
+        last_lump = reader.read_uint32()
+
+        for lump_id in range(last_lump+1):
+            lump = LumpInfo(lump_id)
+            lump.parse(reader, False)
+            self.lumps_info.append(lump)

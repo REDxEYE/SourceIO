@@ -32,31 +32,42 @@ class StaticProp:
         self.flags_ex = 0
         self.uniform_scale = 0.0
 
+        self.unk_vector = []
+
     def parse(self, reader: ByteIO, version: int):
-        if version >= 4:
+        if version == 12:
             self.origin = reader.read_fmt('3f')
             self.rotation = reader.read_fmt('3f')
-            self.prop_type, self.first_leaf, self.leaf_count = reader.read_fmt('3H')
-            self.solid, self.flags = reader.read_fmt('2B')
+            self.prop_type = reader.read_int16()
+            reader.skip(4 + 2)
             self.skin = reader.read_int32()
-            self.fade_min_dist, self.fade_max_dist = reader.read_fmt('2f')
+            reader.skip(12 * 4)
+            pass
+        else:
+            if version >= 4:
+                self.origin = reader.read_fmt('3f')
+                self.rotation = reader.read_fmt('3f')
+                self.prop_type, self.first_leaf, self.leaf_count = reader.read_fmt('3H')
+                self.solid, self.flags = reader.read_fmt('2B')
+                self.skin = reader.read_int32()
+                self.fade_min_dist, self.fade_max_dist = reader.read_fmt('2f')
 
-            self.lighting_origin = reader.read_fmt('3f')
-        if version >= 5:
-            self.forced_fade_scale = reader.read_float()
-        if version in [6, 7]:
-            self.min_dx_level, self.max_dx_level = reader.read_fmt('2H')
-        if version >= 8:
-            self.min_cpu_level, self.max_cpu_level, self.min_gpu_level, self.max_gpu_level = reader.read_fmt('4B')
-        if version >= 7:
-            self.diffuse_modulation = reader.read_fmt('4B')
-        if version in [9, 10]:
-            self.disable_x360 = reader.read_uint32()
-        if version > 10:
-            self.flags_ex = reader.read_uint32()
-        if version >= 11:
-            reader.skip(4)
-            self.uniform_scale = reader.read_float()
+                self.lighting_origin = reader.read_fmt('3f')
+            if version >= 5:
+                self.forced_fade_scale = reader.read_float()
+            if version in [6, 7]:
+                self.min_dx_level, self.max_dx_level = reader.read_fmt('2H')
+            if version >= 8:
+                self.min_cpu_level, self.max_cpu_level, self.min_gpu_level, self.max_gpu_level = reader.read_fmt('4B')
+            if version >= 7:
+                self.diffuse_modulation = reader.read_fmt('4B')
+            if version in [9, 10]:
+                self.disable_x360 = reader.read_uint32()
+            if version > 10:
+                self.flags_ex = reader.read_uint32()
+            if version >= 11:
+                reader.skip(4)
+                self.uniform_scale = reader.read_float()
 
 
 class StaticPropLump:
@@ -72,8 +83,11 @@ class StaticPropLump:
             self.model_names.append(reader.read_ascii_string(128))
         for _ in range(reader.read_int32()):
             self.leafs.append(reader.read_uint16())
+        if self._glump_info.version == 12:
+            unk1 = reader.read_int32()
+            unk2 = reader.read_int32()
         prop_count = reader.read_int32()
-        for _ in range(prop_count):
+        for i in range(prop_count):
             prop = StaticProp()
             prop.parse(reader, self._glump_info.version)
             self.static_props.append(prop)

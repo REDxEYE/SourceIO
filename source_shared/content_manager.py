@@ -17,11 +17,15 @@ logger = log_manager.get_logger('content_manager')
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
         self.content_providers: Dict[str, ContentProviderBase] = {}
+        self._titanfall_mode = False
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
 
         source_game_path = Path(source_game_path)
         if source_game_path.suffix == '.vpk':
+            if self._titanfall_mode:
+                if 'english' not in str(source_game_path):
+                    return
             if f'{source_game_path.parent.stem}_{source_game_path.stem}' in self.content_providers:
                 return
             vpk_path = source_game_path
@@ -38,6 +42,8 @@ class ContentManager(metaclass=SingletonMeta):
             gameinfos = root_path.glob('*gameinfo*.txt')
             for gameinfo in gameinfos:
                 sub_manager = Source1GameinfoContentProvider(gameinfo)
+                if sub_manager.data['game'] == 'Titanfall':
+                    self._titanfall_mode = True
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
@@ -74,13 +80,15 @@ class ContentManager(metaclass=SingletonMeta):
                 self.content_providers[name] = sub_manager
             elif path.endswith('.txt'):
                 sub_manager = Source1GameinfoContentProvider(Path(path))
+                if sub_manager.data['game'] == 'Titanfall':
+                    self._titanfall_mode = True
                 self.content_providers[name] = sub_manager
             elif path.endswith('.gi'):
                 sub_manager = Source2GameinfoContentProvider(Path(path))
                 self.content_providers[name] = sub_manager
             elif path.endswith('.bsp'):
-                from ..source1.bsp.bsp_file import BSPFile
-                bsp = BSPFile(path)
+                from ..source1.bsp.bsp_file import open_bsp
+                bsp = open_bsp(path)
                 bsp.parse()
                 pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:

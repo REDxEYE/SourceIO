@@ -31,3 +31,13 @@ class TextureData(Primitive):
         return None
 
 
+class RespawnTextureData(TextureData):
+
+    def __init__(self, lump, bsp):
+        super().__init__(lump, bsp)
+        self.unk1 = 0
+
+    def parse(self, reader: ByteIO):
+        super().parse(reader)
+        self.unk1 = reader.read_int32()
+        return self
