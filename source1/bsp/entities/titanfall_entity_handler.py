@@ -5,7 +5,7 @@ import bpy
 import numpy as np
 from typing import List
 
-from SourceIO.bpy_utilities.utils import get_material
+from ....bpy_utilities.utils import get_material
 from ..datatypes.material_sort import MaterialSort
 from ..datatypes.mesh import Mesh, VertexType
 from ..datatypes.model import RespawnModel

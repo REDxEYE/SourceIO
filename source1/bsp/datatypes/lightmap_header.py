@@ -1,5 +1,5 @@
-from SourceIO.source1.bsp.datatypes.primitive import Primitive
-from SourceIO.utilities.byte_io_mdl import ByteIO
+from .primitive import Primitive
+from ....utilities.byte_io_mdl import ByteIO
 
 
 class LightmapHeader(Primitive):
