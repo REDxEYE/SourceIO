@@ -21,6 +21,7 @@ from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
 from .lumps.mesh_lump import MeshLump
+from .lumps.lightmap_header_lump import LightmapHeadersLump
 from .lumps.pak_lump import PakLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump

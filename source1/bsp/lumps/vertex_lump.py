@@ -44,9 +44,9 @@ class BumpLitVertexLump(Lump):
             ('vpi', np.uint32, (1,)),
             ('vni', np.uint32, (1,)),
             ('uv', np.float32, (2,)),
-            ('unk1', np.uint32, (1,)),
-            ('uv1', np.float32, (2,)),
+            ('unk1', np.int32, (1,)),
             ('uv_lm', np.float32, (2,)),
+            ('uv1', np.float32, (2,)),
             ('unk2', np.uint32, (2,)),
         ]
     )

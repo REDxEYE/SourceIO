@@ -19,6 +19,8 @@ from .lumps.vertex_normal_lump import VertexNormalLump
 from .lumps.mesh_lump import MeshLump
 from .lumps.material_sort_lump import MaterialSortLump
 from .lumps.face_indices_lump import IndicesLump
+from .lumps.lightmap_header_lump import LightmapHeadersLump
+from .lumps.lightmap_lump import LightmapDataSkyLump
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...source_shared.content_manager import ContentManager
 
