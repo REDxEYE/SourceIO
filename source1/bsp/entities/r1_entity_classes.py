@@ -1,4 +1,4 @@
-from SourceIO.source1.bsp.entities.base_entity_classes import Parentname, Global, EnableDisable, Light, keyframe_rope, \
+from .base_entity_classes import Parentname, Global, EnableDisable, Light, keyframe_rope, \
     move_rope, prop_dynamic
 
 
