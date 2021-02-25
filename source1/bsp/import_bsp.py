@@ -83,17 +83,11 @@ class BSP:
 
     def load_entities(self):
         entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
-        self.entry_cache = {k['targetname']: k for k in entity_lump.entities if 'targetname' in k}
         if entity_lump:
             entities_json = bpy.data.texts.new(
                 f'{self.filepath.stem}_entities.json')
             json.dump(entity_lump.entities, entities_json, indent=1)
-            for entity_data in entity_lump.entities:
-                if not self.entity_handler.handle_entity(entity_data):
-                    pprint(entity_data)
-            bpy.context.view_layer.update()
-            for entity_data in entity_lump.entities:
-                self.entity_handler.resolve_parents(entity_data)
+        self.entity_handler.load_entities()
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')

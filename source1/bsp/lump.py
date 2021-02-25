@@ -50,7 +50,7 @@ class LumpInfo:
             self.size = reader.read_int32()
             self.version = reader.read_int32()
             self.magic = reader.read_uint32()
-        print(self)
+
     def __repr__(self):
         return f"<{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size} bytes)>"
 

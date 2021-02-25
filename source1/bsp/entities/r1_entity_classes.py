@@ -1,3 +1,7 @@
+from SourceIO.source1.bsp.entities.base_entity_classes import Parentname, Global, EnableDisable, Light, keyframe_rope, \
+    move_rope, prop_dynamic
+
+
 def parse_int_vector(string):
     return [int(val) for val in string.split(' ')]
 
@@ -26,6 +30,28 @@ class Base:
         else:  # Titanfall
             instance.hammer_id = Base.new_hammer_id()
         instance.class_name = entity_data.get('classname')
+
+
+class Angles(Base):
+    def __init__(self):
+        super().__init__()
+        self.angles = [0.0, 0.0, 0.0]  # Type: angle
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+        instance.angles = parse_float_vector(entity_data.get('angles', "0 0 0"))  # Type: angle
+
+
+class Origin(Base):
+    def __init__(self):
+        super().__init__()
+        self.origin = None  # Type: origin
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))  # Type: origin
 
 
 class Targetname(Base):
@@ -102,8 +128,242 @@ class worldspawn(Targetname, ResponseContext, worldbase):
         worldbase.from_dict(instance, entity_data)
 
 
+class func_window_hint(Origin):
+    def __init__(self):
+        super(Origin).__init__()
+        self.model = ''
+        self.halfheight = 0
+        self.halfwidth = 0
+        self.right = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Origin.from_dict(instance, entity_data)
+        instance.model = entity_data.get('model', None)
+        instance.halfheight = int(entity_data.get('halfheight', None))
+        instance.halfwidth = int(entity_data.get('halfwidth', None))
+        instance.right = parse_float_vector(entity_data.get('right', '0 0 0'))
+
+
+class TriggerOnce(Parentname, Origin, Global, EnableDisable, Targetname):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Origin).__init__()
+        super(Global).__init__()
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+        self.filtername = None  # Type: filterclass
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
+        Global.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
+
+
+class Trigger(TriggerOnce):
+    def __init__(self):
+        super(TriggerOnce).__init__()
+        super(Parentname).__init__()
+        super(Origin).__init__()
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        TriggerOnce.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+
+
+class trigger_indoor_area(Trigger):
+    pass
+
+
+class trigger_capture_point(Trigger):
+    pass
+
+
+class trigger_out_of_bounds(Trigger):
+    pass
+
+
+class trigger_soundscape(Trigger):
+    pass
+
+
+class light(Targetname, Light):
+    icon_sprite = "editor/light.vmt"
+
+    def __init__(self):
+        super(Targetname).__init__()
+        super(Light).__init__()
+        self.origin = [0, 0, 0]
+        self.target = None  # Type: target_destination
+        self._distance = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        Light.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance._distance = int(entity_data.get('_distance', 0))  # Type: integer
+
+
+class light_environment(Angles):
+    icon_sprite = "editor/light_env.vmt"
+
+    def __init__(self):
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.pitch = None  # Type: integer
+        self._light = [255, 255, 255, 200]  # Type: color255
+        self._ambient = [255, 255, 255, 20]  # Type: color255
+        self._lightHDR = [-1, -1, -1, 1]  # Type: color255
+        self._lightscaleHDR = 1  # Type: float
+        self._ambientHDR = [-1, -1, -1, 1]  # Type: color255
+        self._AmbientScaleHDR = 1  # Type: float
+        self.SunSpreadAngle = None  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.pitch = float(entity_data.get('pitch', 0))  # Type: float
+        instance._light = parse_int_vector(entity_data.get('_light', "255 255 255 200"))  # Type: color255
+        instance._ambient = parse_int_vector(entity_data.get('_ambient', "255 255 255 20"))  # Type: color255
+        instance._lightHDR = parse_int_vector(entity_data.get('_lighthdr', "-1 -1 -1 1"))  # Type: color255
+        instance._lightscaleHDR = float(entity_data.get('_lightscalehdr', 1))  # Type: float
+        instance._ambientHDR = parse_int_vector(entity_data.get('_ambienthdr', "-1 -1 -1 1"))  # Type: color255
+        instance._AmbientScaleHDR = float(entity_data.get('_ambientscalehdr', 1))  # Type: float
+        instance.SunSpreadAngle = float(entity_data.get('sunspreadangle', 0))  # Type: float
+
+
+class trigger_hurt(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        super(Targetname).__init__()
+        self.master = None  # Type: string
+        self.damage = 10  # Type: integer
+        self.damagecap = 20  # Type: integer
+        self.damagetype = None  # Type: choices
+        self.damagemodel = None  # Type: choices
+        self.nodmgforce = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.master = entity_data.get('master', None)  # Type: string
+        instance.damage = int(entity_data.get('damage', 10))  # Type: integer
+        instance.damagecap = int(entity_data.get('damagecap', 20))  # Type: integer
+        instance.damagetype = entity_data.get('damagetype', None)  # Type: choices
+        instance.damagemodel = entity_data.get('damagemodel', None)  # Type: choices
+        instance.nodmgforce = entity_data.get('nodmgforce', None)  # Type: choices
+
+
+class light_spot(Targetname, Light, Angles):
+    def __init__(self):
+        super(Targetname).__init__()
+        super(Light).__init__()
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.target = None  # Type: target_destination
+        self._inner_cone = 30  # Type: integer
+        self._cone = 45  # Type: integer
+        self._exponent = 1  # Type: integer
+        self._distance = None  # Type: integer
+        self.pitch = -90  # Type: angle_negative_pitch
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        Light.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance._inner_cone = int(entity_data.get('_inner_cone', 30))  # Type: integer
+        instance._cone = int(entity_data.get('_cone', 45))  # Type: integer
+        instance._exponent = int(entity_data.get('_exponent', 1))  # Type: integer
+        instance._distance = int(entity_data.get('_distance', 0))  # Type: integer
+        instance.pitch = float(entity_data.get('pitch', -90))  # Type: angle_negative_pitch
+
+
+class light_dynamic(Targetname, Parentname, Angles):
+    icon_sprite = "editor/light.vmt"
+
+    def __init__(self):
+        super(Targetname).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.target = None  # Type: target_destination
+        self._light = [255, 255, 255, 200]  # Type: color255
+        self.brightness = None  # Type: integer
+        self._inner_cone = 30  # Type: integer
+        self._cone = 45  # Type: integer
+        self.pitch = -90  # Type: integer
+        self.distance = 120  # Type: float
+        self.spotlight_radius = 80  # Type: float
+        self.style = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance._light = parse_int_vector(entity_data.get('_light', "255 255 255 200"))  # Type: color255
+        instance.brightness = int(entity_data.get('brightness', 0))  # Type: integer
+        instance._inner_cone = int(entity_data.get('_inner_cone', 30))  # Type: integer
+        instance._cone = int(entity_data.get('_cone', 45))  # Type: integer
+        instance.pitch = int(entity_data.get('pitch', -90))  # Type: integer
+        instance.distance = float(entity_data.get('distance', 120))  # Type: float
+        instance.spotlight_radius = float(entity_data.get('spotlight_radius', 80))  # Type: float
+        instance.style = entity_data.get('style', None)  # Type: choices
+
+
 entity_class_handle = {
 
     'worldbase': worldbase,
     'worldspawn': worldspawn,
+    'func_window_hint': func_window_hint,
+    'trigger_indoor_area': trigger_indoor_area,
+    'trigger_capture_point': trigger_capture_point,
+    'trigger_out_of_bounds': trigger_out_of_bounds,
+    'trigger_soundscape': trigger_soundscape,
+    'info_particle_system': Base,  # TODO
+    'info_node': Base,  # TODO
+    'info_target': Base,  # TODO
+    'info_hint': Base,  # TODO
+    'info_target_clientside': Base,  # TODO
+    'info_node_safe_hint': Base,  # TODO
+    'info_node_cover_stand': Base,  # TODO
+    'info_spawnpoint_dropship_start': Base,  # TODO
+    'info_spawnpoint_titan_start': Base,  # TODO
+    'info_spawnpoint_droppod_start': Base,  # TODO
+    'info_spawnpoint_droppod': Base,  # TODO
+    'info_spawnpoint_human_start': Base,  # TODO
+    'info_spawnpoint_human': Base,  # TODO
+    'info_spawnpoint_titan': Base,  # TODO
+    'info_frontline': Base,  # TODO
+    'info_hardpoint': Base,  # TODO
+    'ambient_generic': Base,  # TODO
+    'traverse': Base,  # TODO
+    'assault_assaultpoint': Base,  # TODO
+    'trigger_hurt': trigger_hurt,
+    'light': light,
+    'light_environment': light_environment,
+    'light_spot': light_spot,
+    'light_dynamic': light_dynamic,
+    'keyframe_rope': keyframe_rope,
+    'move_rope': move_rope,
+    'prop_dynamic': prop_dynamic,
 }

@@ -1,5 +1,7 @@
 import math
 from collections import defaultdict
+from itertools import chain
+from pprint import pprint
 
 import bpy
 import numpy as np
@@ -12,7 +14,8 @@ from ..datatypes.model import RespawnModel
 from ..datatypes.texture_data import TextureData
 from ..datatypes.texture_info import TextureInfo
 from ..entities.base_entity_handler import BaseEntityHandler
-from ..entities.r1_entity_classes import entity_class_handle, worldspawn
+from ..entities.r1_entity_classes import entity_class_handle, worldspawn, func_window_hint, trigger_indoor_area, \
+    trigger_capture_point, trigger_out_of_bounds, trigger_soundscape, Base
 
 
 class TitanfallEntityHandler(BaseEntityHandler):
@@ -159,8 +162,146 @@ class TitanfallEntityHandler(BaseEntityHandler):
 
         return objs
 
+    def _set_location_and_scale(self, obj, location, additional_scale=1.0):
+        if isinstance(obj, list):
+            for o in obj:
+                super()._set_location_and_scale(o, location, additional_scale)
+        else:
+            super()._set_location_and_scale(obj, location, additional_scale)
+
+    def _set_location(self, obj, location):
+        if isinstance(obj, list):
+            for o in obj:
+                super()._set_location(o, location)
+        else:
+            super()._set_location(obj, location)
+
+    @staticmethod
+    def _set_parent_if_exist(obj, parent_name):
+        if isinstance(obj, list):
+            for o in obj:
+                BaseEntityHandler._set_parent_if_exist(o, parent_name)
+        else:
+            BaseEntityHandler._set_parent_if_exist(obj, parent_name)
+
+    def _put_into_collection(self, name, obj):
+        if isinstance(obj, list):
+            for o in obj:
+                super()._put_into_collection(name, o)
+        else:
+            super()._put_into_collection(name, obj)
+
+    def _set_entity_data(self, obj, entity_raw: dict):
+        if isinstance(obj, list):
+            for o in obj:
+                super()._set_entity_data(o, entity_raw)
+        else:
+            super()._set_entity_data(obj, entity_raw)
+
+    def load_entities(self):
+        entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
+        additional_entity_lump = self._bsp.get_lump('LUMP_ENTITYPARTITIONS')
+        for entity_data in chain(entity_lump.entities, additional_entity_lump.entities):
+            if not self.handle_entity(entity_data):
+                pprint(entity_data)
+        # bpy.context.view_layer.update()
+        # for entity_data in entity_lump.entities:
+        #     self.resolve_parents(entity_data)
+        pass
+
     def handle_worldspawn(self, entity: worldspawn, entity_raw: dict):
         world = self._load_brush_model(0, 'world_geometry')
         for obj in world:
             self._set_entity_data(obj, {'entity': entity_raw})
             self.parent_collection.objects.link(obj)
+
+    def handle_func_window_hint(self, entity: func_window_hint, entity_raw: dict):
+        obj = self._create_empty(f'func_window_hint_{entity.hammer_id}')
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('func_window_hint', obj)
+        pass
+
+    def handle_trigger_indoor_area(self, entity: trigger_indoor_area, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        world = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(world, {'entity': entity_raw})
+        self._set_location(world, entity.origin)
+        self._put_into_collection('trigger_indoor_area', world)
+
+    def handle_trigger_capture_point(self, entity: trigger_capture_point, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        obj = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._set_location(obj, entity.origin)
+        self._put_into_collection('trigger_capture_point', obj)
+
+    def handle_trigger_out_of_bounds(self, entity: trigger_out_of_bounds, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        obj = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._set_location(obj, entity.origin)
+        self._put_into_collection('trigger_out_of_bounds', obj)
+
+    def handle_trigger_soundscape(self, entity: trigger_soundscape, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        obj = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._set_location(obj, entity.origin)
+        self._put_into_collection('trigger_soundscape', obj)
+
+    def handle_info_particle_system(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_node(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_node_cover_stand(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_dropship_start(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_titan(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_titan_start(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_droppod(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_droppod_start(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_human(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_spawnpoint_human_start(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_frontline(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_ambient_generic(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_traverse(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_hardpoint(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_assault_assaultpoint(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_target(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_hint(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_target_clientside(self, entity: Base, entity_raw: dict):
+        pass
+
+    def handle_info_node_safe_hint(self, entity: Base, entity_raw: dict):
+        pass

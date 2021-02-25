@@ -12,5 +12,5 @@ class MaterialSort(Primitive):
         self.vertex_offset = 0
 
     def parse(self, reader: ByteIO):
-        self.texdata_index, self.lightmap_header_index, self.unk_1, self.vertex_offset = reader.read_fmt('<2H2I')
+        self.texdata_index, self.lightmap_header_index, self.unk_1, self.vertex_offset = reader.read_fmt('<Hh2I')
         return self

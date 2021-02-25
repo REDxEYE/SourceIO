@@ -159,6 +159,9 @@ class TitanfallVPKFile(VPKFile):
                 for block in entry.blocks:
                     target_archive.seek(block.offset)
                     block_data = target_archive.read(block.compressed_size)
-                    buffer += LZHAM.decompress_memory(block_data, block.uncompressed_size, 20, 1 << 0)
+                    if block.compressed_size == block.uncompressed_size:
+                        buffer += block_data
+                    else:
+                        buffer += LZHAM.decompress_memory(block_data, block.uncompressed_size, 20, 1 << 0)
                 reader = BytesIO(buffer)
                 return reader

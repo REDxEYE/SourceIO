@@ -1,6 +1,7 @@
 import math
 import re
 from pathlib import Path
+from pprint import pprint
 from typing import List, Tuple, Optional
 
 import numpy as np
@@ -285,6 +286,16 @@ class BaseEntityHandler:
             if entity.targetname and entity.targetname in bpy.data.objects:
                 obj = bpy.data.objects[entity.targetname]
                 self._set_parent_if_exist(obj, entity.parentname)
+
+    def load_entities(self):
+        entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
+        for entity_data in entity_lump.entities:
+            if not self.handle_entity(entity_data):
+                pprint(entity_data)
+        bpy.context.view_layer.update()
+        for entity_data in entity_lump.entities:
+            self.resolve_parents(entity_data)
+        pass
 
     def handle_entity(self, entity_data):
         entity_class = entity_data['classname']

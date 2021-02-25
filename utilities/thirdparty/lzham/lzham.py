@@ -15,15 +15,15 @@ def pointer_to_array(poiter, size, type=ctypes.c_ubyte):
 
 class DecompressStatus(IntEnum):
     NotFinished = 0
-    HasMoreOutput = auto()
-    NeedsMoreInput = auto()
+    HasMoreOutput = 1
+    NeedsMoreInput = 2
     Success = 3
-    Failure = auto()
-    DestinationBufferTooSmall = auto()
-    ExpectedMoreRawBytes = auto()
-    BadCode = auto()
-    Adler32 = auto()
-    BadRawBlock = auto()
+    Failure = 4
+    DestinationBufferTooSmall = 5
+    ExpectedMoreRawBytes = 6
+    BadCode = 7
+    Adler32 = 8
+    BadRawBlock = 9
     BadCompBlockSyncCheck = auto()
     BadZlibHeader = auto()
     NeedSeedBytes = auto()
