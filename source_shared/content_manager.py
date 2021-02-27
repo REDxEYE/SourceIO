@@ -42,7 +42,7 @@ class ContentManager(metaclass=SingletonMeta):
             gameinfos = root_path.glob('*gameinfo*.txt')
             for gameinfo in gameinfos:
                 sub_manager = Source1GameinfoContentProvider(gameinfo)
-                if sub_manager.data['game'] == 'Titanfall':
+                if sub_manager.data.get('game', None) == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {root_path.stem}')

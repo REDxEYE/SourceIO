@@ -11,7 +11,7 @@ class VertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertices = np.frombuffer(reader.read(self._lump.size), np.float32, self._lump.size // 4)
+        self.vertices = np.frombuffer(reader.read(), np.float32)
         self.vertices = self.vertices.reshape((-1, 3))
         return self
 
@@ -33,7 +33,7 @@ class UnLitVertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertex_info = np.frombuffer(reader.read(self._lump.size), self._dtype)
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
         return self
 
 
@@ -57,7 +57,7 @@ class BumpLitVertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertex_info = np.frombuffer(reader.read(self._lump.size), self._dtype)
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
         return self
 
 
@@ -77,7 +77,7 @@ class UnlitTSVertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertex_info = np.frombuffer(reader.read(self._lump.size), self._dtype)
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
         return self
 
 
@@ -97,7 +97,7 @@ class BlinnPhongVertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertex_info = np.frombuffer(reader.read(self._lump.size), self._dtype)
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
         return self
 
 
@@ -119,7 +119,7 @@ class R5VertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertex_info = np.frombuffer(reader.read(self._lump.size), self._dtype)
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
         return self
 
 
@@ -140,5 +140,5 @@ class R7VertexLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertex_info = np.frombuffer(reader.read(self._lump.size), self._dtype)
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
         return self

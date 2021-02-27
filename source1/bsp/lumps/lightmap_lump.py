@@ -11,6 +11,6 @@ class LightmapDataSkyLump(Lump):
 
     def parse(self):
         reader = self.reader
-        self.lightmap_data = np.frombuffer(reader.read(self._lump.size), np.uint8)
+        self.lightmap_data = np.frombuffer(reader.read(), np.uint8)
         self.lightmap_data = self.lightmap_data.reshape((-1, 4))
         return self

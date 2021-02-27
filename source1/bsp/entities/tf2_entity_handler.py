@@ -51,7 +51,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
     def handle_trigger_capture_area(self, entity: trigger_capture_area, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
-        mesh_object = self._load_brush_model(model_id, entity.targetname)
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('trigger_capture_area', mesh_object)
 

@@ -12,7 +12,7 @@ from mathutils import Vector, Euler
 from .base_entity_classes import func_door, worldspawn, prop_dynamic, parse_float_vector, BasePropPhysics, \
     prop_physics_override, func_brush, func_lod, trigger_hurt, trigger_multiple, func_tracktrain, point_spotlight, \
     light_spot, Base, Targetname, env_lightglow, env_sun, light_environment, env_sprite, light, prop_dynamic_override, \
-    logic_relay, move_rope, keyframe_rope, trigger_once, path_track, infodecal
+    logic_relay, move_rope, keyframe_rope, trigger_once, path_track, infodecal, prop_physics_multiplayer
 from .base_entity_classes import entity_class_handle as base_entity_classes
 from ..bsp_file import BSPFile
 from ..datatypes.face import Face
@@ -82,6 +82,8 @@ class BaseEntityHandler:
         if not self._entity_by_name_cache:
             self._entity_by_name_cache = {e['targetname']: e for e in self._entites if 'targetname' in e}
         entity = self._entity_by_name_cache.get(name, None)
+        if entity is None:
+            return None, None
         entity_class = self._get_class(entity['classname'])
         entity_class.from_dict(entity_class, entity)
         return entity_class, entity
@@ -415,6 +417,10 @@ class BaseEntityHandler:
         obj = self._handle_base_prop_physics(entity, entity_raw)
         self._put_into_collection('prop_physics', obj)
 
+    def handle_prop_physics_multiplayer(self, entity: prop_physics_multiplayer, entity_raw: dict):
+        obj = self._handle_base_prop_physics(entity, entity_raw)
+        self._put_into_collection('prop_physics', obj)
+
     # def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
 
     def handle_light_spot(self, entity: light_spot, entity_raw: dict):
@@ -615,7 +621,7 @@ class BaseEntityHandler:
         while True:
 
             next_2, next_raw_2 = self._get_entity_by_name(next.target)
-            if next_2.target == next.targetname:
+            if next_2 is None or next_2.target == next.targetname:
                 break
             next, next_raw = next_2, next_raw_2
             if next:

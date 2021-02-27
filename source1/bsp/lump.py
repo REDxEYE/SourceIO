@@ -75,31 +75,33 @@ class Lump:
         else:
             self._bsp.reader.seek(self._lump.offset)
             reader = self._bsp.reader
+
         if self._lump.compressed:
-
-            lzma_id = reader.read_fourcc()
-            assert lzma_id == "LZMA", f"Unknown compressed header({lzma_id})"
-            decompressed_size = reader.read_uint32()
-            compressed_size = reader.read_uint32()
-            prob_byte = reader.read_int8()
-            dict_size = reader.read_uint32()
-
-            lc = prob_byte % 9
-            props = int(prob_byte / 9)
-            pb = int(props / 5)
-            lp = props % 5
-            my_filters = [{"id": lzma.FILTER_LZMA2, "dict_size": dict_size, "pb": pb, "lp": lp, "lc": lc}, ]
-            self.reader = ByteIO(
-                lzma_decompress(reader.read(compressed_size), lzma.FORMAT_RAW, filters=my_filters)
-            )
-            assert self.reader.size() == decompressed_size, 'Compressed lump size does not match expected'
+            self.reader = self.decompress_lump(reader)
         else:
             self.reader = ByteIO(reader.read(self._lump.size))
 
-        with self.reader.save_current_pos():
-            if not lump_path.exists():
-                with lump_path.open('wb') as f:
-                    f.write(self.reader.read(-1))
+        # with self.reader.save_current_pos():
+        #     if not lump_path.exists():
+        #         with lump_path.open('wb') as f:
+        #             f.write(self.reader.read(-1))
+
+    @staticmethod
+    def decompress_lump(reader: ByteIO):
+        lzma_id = reader.read_fourcc()
+        assert lzma_id == "LZMA", f"Unknown compressed header({lzma_id})"
+        decompressed_size = reader.read_uint32()
+        compressed_size = reader.read_uint32()
+        filters = lzma._decode_filter_properties(lzma.FILTER_LZMA1, reader.read(5))
+        decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=[filters])
+        decompressed = decompressor.decompress(reader.read(compressed_size))
+
+        if len(decompressed) > decompressed_size:
+            decompressed = decompressed[:decompressed_size]
+        new_reader = ByteIO(decompressed)
+        assert new_reader.size() == decompressed_size, 'Compressed lump size does not match expected'
+
+        return new_reader
 
     def parse(self):
         return self

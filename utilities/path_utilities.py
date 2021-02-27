@@ -119,27 +119,19 @@ class NonSourceInstall:
 
 def get_mod_path(path: Path) -> Path:
     _path = path
-    result_path = path
-    if 'models' in path.parts or 'materials' in path.parts or 'maps' in path.parts:
-        while len(path.parts) > 1:
-            if path.parts[-1] == 'models' and path.parts[-2] == 'materials':
-                result_path = path.parent.parent
-                break
-            if path.parts[-1] == 'models':
-                result_path = path.parent
-                break
-            if path.parts[-1] == 'materials':
-                result_path = path.parent
-                if (result_path / 'models').exists():
-                    break
-            if path.parts[-1] == 'maps':
-                result_path = path.parent
-                break
-            if len(path.parts) == 1:
-                result_path = _path
-                break
-            path = path.parent
-    return result_path
+    while len(path.parts) > 1:
+        if (path / 'models').exists():
+            return path
+        elif (path / 'materials').exists():
+            return path
+        elif (path / 'maps').exists():
+            return path
+        elif (path / 'elements').exists():
+            return path
+        if len(path.parts) == 1:
+            return _path
+        path = path.parent
+    return _path
 
 
 def is_valid_path(path: str):

@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Iterable
 
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
@@ -125,7 +126,7 @@ class VertexLitGeneric(Source1ShaderBase):
                 color_mix.blend_type = 'MULTIPLY'
                 self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
                 color = (self.color or self.color2)
-                if sum(color) > 3:
+                if isinstance(color, Iterable) and sum(color) > 3:
                     color = list(np.divide(color, 255))
                 color_mix.inputs['Color2'].default_value = (*color, 1.0)
                 color_mix.inputs['Fac'].default_value = 1.0

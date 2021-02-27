@@ -28,7 +28,19 @@ class GameLump(Lump):
             print(f'GLump "{lump.id}" offset: {relative_offset} size: {lump.size} ')
             with reader.save_current_pos():
                 reader.seek(relative_offset)
-                game_lump_reader = ByteIO(reader.read(lump.size))
+                if lump.flags == 1:
+                    curr_index = self.game_lumps_info.index(lump)
+                    if curr_index + 1 != len(self.game_lumps_info):
+                        next_offset = self.game_lumps_info[curr_index + 1].offset - self._lump.offset
+                    else:
+                        next_offset = self._lump.size - relative_offset
+                    compressed_size = next_offset - relative_offset
+                    buffer = reader.read(compressed_size)
+                    game_lump_reader = Lump.decompress_lump(ByteIO(buffer))
+                else:
+                    game_lump_reader = ByteIO(reader.read(lump.size))
+
+                pass  # TODO
             if lump.id == 'sprp':
                 game_lump = StaticPropLump(lump)
                 game_lump.parse(game_lump_reader)

@@ -37,7 +37,7 @@ class DispVert(Lump):
 
     def parse(self):
         reader = self.reader
-        self.vertices = np.frombuffer(reader.read(self._lump.size), self.dtype)
+        self.vertices = np.frombuffer(reader.read(), self.dtype)
 
         self.transformed_vertices = self.vertices['position'] * self.vertices['dist']
 
@@ -62,5 +62,5 @@ class DispMultiblend(Lump):
     def parse(self):
         reader = self.reader
         assert self._lump.size % self.dtype.itemsize == 0
-        self.blends = np.frombuffer(reader.read(self._lump.size), self.dtype)
+        self.blends = np.frombuffer(reader.read(), self.dtype)
         return self
