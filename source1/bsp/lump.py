@@ -99,7 +99,7 @@ class Lump:
         with self.reader.save_current_pos():
             if not lump_path.exists():
                 with lump_path.open('wb') as f:
-                    f.write(reader.read(-1))
+                    f.write(self.reader.read(-1))
 
     def parse(self):
         return self
