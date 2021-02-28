@@ -171,7 +171,7 @@ class BaseEntityHandler:
         obj['entity_data'] = entity_raw
 
     def _get_entity_name(self, entity: Targetname):
-        return entity.targetname or f'{entity.class_name}_{entity.hammer_id}'
+        return str(entity.targetname) or f'{entity.class_name}_{entity.hammer_id}'
 
     def _put_into_collection(self, name, obj):
         parent_collection = get_or_create_collection(name, self.parent_collection)
@@ -285,7 +285,7 @@ class BaseEntityHandler:
         entity = self._get_class(entity_raw['classname'])
         entity.from_dict(entity, entity_raw)
         if hasattr(entity, 'targetname') and hasattr(entity, 'parentname'):
-            if entity.targetname and entity.targetname in bpy.data.objects:
+            if entity.targetname and str(entity.targetname) in bpy.data.objects:
                 obj = bpy.data.objects[entity.targetname]
                 self._set_parent_if_exist(obj, entity.parentname)
 
