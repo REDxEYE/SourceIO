@@ -3,8 +3,12 @@ import os.path
 from pathlib import Path
 from typing import List
 
-from ...utilities.valve_utils import GameInfoFile
-from ...utilities import datamodel
+from .active_clip import ActiveClip
+from .base_element import BaseElement
+from ....source_shared.content_manager import ContentManager
+from ....utilities.datamodel import Element
+from ....utilities.valve_utils import GameInfoFile
+from ....utilities import datamodel
 
 
 def find_by_name_n_type(array, name, elem_type):
@@ -165,73 +169,38 @@ class Light(Entity):
                                                            *self.color)
 
 
-class Session:
+class Session(BaseElement):
 
-    def _get_proj_root(self, path: Path):
-        if path.parts[-1] == 'game':
-            return path.parent
-        else:
-            return self._get_proj_root(path.parent)
+    @staticmethod
+    def find_map(map_name):
+        return ContentManager().find_file(map_name, additional_dir='maps')
 
-    def find_map(self, map_name):
-        for game in self.gameinfo:
-            maps_folder = os.path.join(self.sfm_path, 'game', game, 'maps')
-            all_maps = os.listdir(maps_folder)
-            if map_name in all_maps:
-                return os.path.join(maps_folder, map_name)
-        else:
-            sys.stderr.write('Can\'t find map {}'.format(map_name))
-            return ""
+    @staticmethod
+    def find_model(model: str):
+        return ContentManager().find_file(model)
 
-    def find_model(self, model: str):
-        return self.gameinfo.find_file(model, extention='.mdl', use_recursive=True)
+    def __init__(self, element: Element):
+        super().__init__(element)
 
-    def __init__(self, filepath, game_dir=None):
-        Entity.set_root(self)
-        self.sfm_path = game_dir
+    @property
+    def active_clip(self):
+        return ActiveClip(self._element['activeClip'])
 
-        self.dmx = datamodel.load(filepath)
-        self.filepath = Path(filepath)
-        if not self.sfm_path:
-            game_dir = self._get_proj_root(self.filepath)
-            self.sfm_path = game_dir
-        os.environ['VProject'] = str(game_dir)
-        self.gameinfo = None
-        gameinfo_path = Path(game_dir) / 'gameinfo.txt'
-        if gameinfo_path.is_file():
-            self.gameinfo = GameInfoFile(gameinfo_path)
-        self.entities = []  # type: List[Entity]
-        self.session = self.dmx.root
-        self.map = ''
+    @property
+    def misc_bin(self):
+        return self._element['miscBin']
 
-    def parse(self):
-        active_clip = self.session.activeClip
-        self.map = active_clip.mapname
-        sub_clip_track_group = active_clip.subClipTrackGroup
-        tracks = sub_clip_track_group.tracks[0]
-        film_clip = tracks.children[0]
-        animation_sets = film_clip.animationSets
-        for anim_set in animation_sets:  # type: datamodel.Element
-            channel_set = \
-                list(filter(lambda a: a.type == 'DmeChannelsClip', self.dmx.find_elements(name=anim_set.name)))[0]
-            if anim_set.get('gameModel', False):
-                entity = Model(anim_set, channel_set)
-            elif anim_set.get('camera', False):
-                entity = Camera(anim_set, channel_set)
-            elif anim_set.get('light', False):
-                entity = Light(anim_set, channel_set)
-            else:
-                entity = Entity(anim_set, channel_set)
-            self.entities.append(entity)
+    @property
+    def camera_bin(self):
+        return self._element['cameraBin']
 
-    # def load_map(self):
-    #     try:
-    #         import BSP_import
-    #     except:
-    #         return
-    #     map = self.find_map(self.map)
-    #     if map:
-    #         BSP_import.mesh(map, False, os.path.join(self.sfm_path, 'game', 'usermod'), False)
+    @property
+    def clip_bin(self):
+        return self._element['clipBin']
+
+    @property
+    def settings(self):
+        return self._element['settings']
 
     @staticmethod
     def get_root_transform(controls: List[datamodel.Element]):
@@ -256,44 +225,44 @@ class Session:
                 print('Loading model', entity.name)
                 self.load_model(entity)
 
-    def load_model(self, entity: Model):
-        from SourceIO.source1.mdl.mdl2model import Source2Blender
-        import bpy, mathutils
-        model = entity.model_file
-        # rot = mathutils.Quaternion(entity.orientation_q)
-        # rot = rot.to_euler('XZY')
-        # rot.x, rot.y, rot.z = rot.y, rot.x, rot.z
-        # rot.x = math.pi / 2 - rot.x
-        # rot.z = rot.z - math.pi / 2
-        bl_model = Source2Blender(model, False, self.sfm_path, custom_name=entity.name)
-        bl_model.load(False)
-        rot = mathutils.Quaternion(entity.orientation_q).to_euler('XYZ')
-        rot.y = rot.y - math.pi
-        # rot.z = rot.z - math.pi
-        rot = rot.to_quaternion()
-        bl_model.armature_obj.location = entity.position
-        bl_model.armature_obj.rotation_mode = "QUATERNION"
-        bl_model.armature_obj.rotation_quaternion = rot
-        ob = bl_model.armature_obj
-        bpy.ops.object.select_all(action="DESELECT")
-        ob.select_set(True)
-        bpy.context.view_layer.objects.active = ob
-        bpy.ops.object.mode_set(mode='POSE')
-        for bone_ in entity.bones:  # type: Bone
-            print(bone_)
-            bone = ob.pose.bones.get(bone_.name)
-            if bone:
-                rot = mathutils.Quaternion()
-                rot.x, rot.y, rot.z, rot.w = bone_.rotation_q
-                # rot.x,rot.y,rot.z,rot.w = bone_.valueOrientation
-                rot = rot.to_euler('YXZ')
-                mat = mathutils.Matrix.Translation(bone_.position) @ rot.to_matrix().to_4x4()
-                bone.matrix_basis.identity()
-                bone.matrix = bone.parent.matrix @ mat if bone.parent else mat
-            else:
-                print("Missing", bone_.name, "bone")
-        bpy.ops.object.mode_set(mode='OBJECT')
-    #
+    # def load_model(self, entity: Model):
+    #     from SourceIO.source1.mdl.mdl2model import Source2Blender
+    #     import bpy, mathutils
+    #     model = entity.model_file
+    #     # rot = mathutils.Quaternion(entity.orientation_q)
+    #     # rot = rot.to_euler('XZY')
+    #     # rot.x, rot.y, rot.z = rot.y, rot.x, rot.z
+    #     # rot.x = math.pi / 2 - rot.x
+    #     # rot.z = rot.z - math.pi / 2
+    #     bl_model = Source2Blender(model, False, self.sfm_path, custom_name=entity.name)
+    #     bl_model.load(False)
+    #     rot = mathutils.Quaternion(entity.orientation_q).to_euler('XYZ')
+    #     rot.y = rot.y - math.pi
+    #     # rot.z = rot.z - math.pi
+    #     rot = rot.to_quaternion()
+    #     bl_model.armature_obj.location = entity.position
+    #     bl_model.armature_obj.rotation_mode = "QUATERNION"
+    #     bl_model.armature_obj.rotation_quaternion = rot
+    #     ob = bl_model.armature_obj
+    #     bpy.ops.object.select_all(action="DESELECT")
+    #     ob.select_set(True)
+    #     bpy.context.view_layer.objects.active = ob
+    #     bpy.ops.object.mode_set(mode='POSE')
+    #     for bone_ in entity.bones:  # type: Bone
+    #         print(bone_)
+    #         bone = ob.pose.bones.get(bone_.name)
+    #         if bone:
+    #             rot = mathutils.Quaternion()
+    #             rot.x, rot.y, rot.z, rot.w = bone_.rotation_q
+    #             # rot.x,rot.y,rot.z,rot.w = bone_.valueOrientation
+    #             rot = rot.to_euler('YXZ')
+    #             mat = mathutils.Matrix.Translation(bone_.position) @ rot.to_matrix().to_4x4()
+    #             bone.matrix_basis.identity()
+    #             bone.matrix = bone.parent.matrix @ mat if bone.parent else mat
+    #         else:
+    #             print("Missing", bone_.name, "bone")
+    #     bpy.ops.object.mode_set(mode='OBJECT')
+    # #
     # def load_lights(self):
     #     for aset, cset in self.lights:  # type: datamodel.Element,datamodel.Element
     #         transform = self.get_element(aset.controls, 'transform', 'DmeTransformControl')
