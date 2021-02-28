@@ -1,8 +1,4 @@
 import lzma
-from enum import IntEnum
-
-from lzma import decompress as lzma_decompress
-
 from typing import List
 
 from ...utilities.byte_io_mdl import ByteIO
@@ -70,38 +66,52 @@ class Lump:
 
         base_path = self._bsp.filepath.parent
         lump_path = base_path / f'{self._bsp.filepath.name}.{lump_id:04x}.bsp_lump'
+
         if lump_path.exists():
-            reader = ByteIO(lump_path)
-        else:
-            self._bsp.reader.seek(self._lump.offset)
-            reader = self._bsp.reader
+            self.reader = ByteIO(lump_path)
+            return
 
-        if self._lump.compressed:
-            self.reader = self.decompress_lump(reader)
-        else:
+        reader = self._bsp.reader
+        reader.seek(self._lump.offset)
+
+        if not self._lump.compressed:
             self.reader = ByteIO(reader.read(self._lump.size))
+        else:
+            self.reader = Lump.decompress_lump(reader)
 
-        # with self.reader.save_current_pos():
-        #     if not lump_path.exists():
-        #         with lump_path.open('wb') as f:
-        #             f.write(self.reader.read(-1))
-
-    @staticmethod
-    def decompress_lump(reader: ByteIO):
-        lzma_id = reader.read_fourcc()
-        assert lzma_id == "LZMA", f"Unknown compressed header({lzma_id})"
-        decompressed_size = reader.read_uint32()
-        compressed_size = reader.read_uint32()
-        filters = lzma._decode_filter_properties(lzma.FILTER_LZMA1, reader.read(5))
-        decompressor = lzma.LZMADecompressor(format=lzma.FORMAT_RAW, filters=[filters])
-        decompressed = decompressor.decompress(reader.read(compressed_size))
-
-        if len(decompressed) > decompressed_size:
-            decompressed = decompressed[:decompressed_size]
-        new_reader = ByteIO(decompressed)
-        assert new_reader.size() == decompressed_size, 'Compressed lump size does not match expected'
-
-        return new_reader
+        with self.reader.save_current_pos():
+            with lump_path.open('wb') as f:
+                f.write(self.reader.read(-1))
 
     def parse(self):
         return self
+
+    # noinspection PyUnresolvedReferences,PyProtectedMember
+    @staticmethod
+    def decompress_lump(reader: ByteIO) -> ByteIO:
+        magic = reader.read_fourcc()
+        assert magic == 'LZMA', f'Invalid LZMA compressed header: {magic}'
+
+        decompressed_size = reader.read_uint32()
+        compressed_size = reader.read_uint32()
+        filter_properties = lzma._decode_filter_properties(lzma.FILTER_LZMA1, reader.read(5))
+
+        compressed_buffer = reader.read(compressed_size)
+        decompressed_buffer = bytearray()
+
+        while True:
+            decompressor = lzma.LZMADecompressor(lzma.FORMAT_RAW, filters=(filter_properties,))
+            try:
+                result = decompressor.decompress(compressed_buffer)
+            except lzma.LZMAError:
+                if not decompressed_buffer:
+                    raise  # Error on the first iteration; bail out.
+                break  # Leftover data is not a valid LZMA/XZ stream; ignore it.
+            decompressed_buffer.extend(result)
+            compressed_buffer = decompressor.unused_data
+            if not compressed_buffer:
+                break
+            assert decompressor.eof, 'Compressed data ended before the end-of-stream marker was reached'
+
+        assert decompressed_size == len(decompressed_buffer), 'Decompressed data does not match the expected size'
+        return ByteIO(decompressed_buffer)
