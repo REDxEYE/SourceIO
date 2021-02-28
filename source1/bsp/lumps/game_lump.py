@@ -1,10 +1,10 @@
 from typing import List
 
+from .. import Lump, lump_tag
+from ..datatypes.game_lump_header import GameLumpHeader
 from ..datatypes.gamelumps.detail_prop_lump import DetailPropLump
 from ..datatypes.gamelumps.static_prop_lump import StaticPropLump
 from ....utilities.byte_io_mdl import ByteIO
-from .. import Lump, lump_tag
-from ..datatypes.game_lump_header import GameLumpHeader
 
 
 @lump_tag(35, 'LUMP_GAME_LUMP')
@@ -20,10 +20,11 @@ class GameLump(Lump):
         reader = self.reader
         self.lump_count = reader.read_uint32()
         for _ in range(self.lump_count):
-            self.game_lumps_info.append(GameLumpHeader(self, self._bsp).parse(reader))
-        for lump in self.game_lumps_info:
-            if lump.size == 0:
+            lump = GameLumpHeader(self, self._bsp).parse(reader)
+            if not lump.id:
                 continue
+            self.game_lumps_info.append(lump)
+        for lump in self.game_lumps_info:
             relative_offset = lump.offset - self._lump.offset
             print(f'GLump "{lump.id}" offset: {relative_offset} size: {lump.size} ')
             with reader.save_current_pos():
@@ -33,7 +34,7 @@ class GameLump(Lump):
                     if curr_index + 1 != len(self.game_lumps_info):
                         next_offset = self.game_lumps_info[curr_index + 1].offset - self._lump.offset
                     else:
-                        next_offset = self._lump.size - relative_offset
+                        next_offset = self._lump.size
                     compressed_size = next_offset - relative_offset
                     buffer = reader.read(compressed_size)
                     game_lump_reader = Lump.decompress_lump(ByteIO(buffer))
