@@ -8,13 +8,13 @@ Our Discord server https://discord.gg/SF82W6aZ67
 # Supported formats (v3.9.3):
 
 ## Source 1
-| File Type | Contents                          | Import             | Export           |
-| ------    | ------                            | ------             | ------           |
-| .MDL      | Model                             | :heavy_check_mark: | :x:              |
-| .BSP      | Map Files (Compiled)              | :heavy_check_mark: | Not Planned      |
-| .VMF      | Map Files (Hammer Format)         | Not Planned        | Not Planned      |
-| .VTF      | Textures                          | :heavy_check_mark: | :x:              |
-| .VMT      | Materials                         | :heavy_check_mark: | :x:              |
+| File Type | Contents                          | Import             | Export            |
+| ------    | ------                            | ------             | ------            |
+| .MDL      | Model                             | :heavy_check_mark: | :x:               |
+| .BSP      | Map Files (Compiled)              | :heavy_check_mark: | Not Planned       |
+| .VMF      | Map Files (Hammer Format)         | Not Planned        | Not Planned       |
+| .VTF      | Textures                          | :heavy_check_mark: | :heavy_check_mark:|
+| .VMT      | Materials                         | :heavy_check_mark: | :x:               |
 
 ## Source 2
 | File Type | Contents                          | Import | Export |
