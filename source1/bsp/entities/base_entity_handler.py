@@ -171,7 +171,10 @@ class BaseEntityHandler:
         obj['entity_data'] = entity_raw
 
     def _get_entity_name(self, entity: Targetname):
-        return str(entity.targetname) or f'{entity.class_name}_{entity.hammer_id}'
+        if entity.targetname:
+            return str(entity.targetname)
+        else:
+            return f'{entity.class_name}_{entity.hammer_id}'
 
     def _put_into_collection(self, name, obj):
         parent_collection = get_or_create_collection(name, self.parent_collection)
@@ -605,18 +608,21 @@ class BaseEntityHandler:
         top_parent = entity
         top_parent_raw = entity_raw
         self._handled_paths.append(top_parent.targetname)
+        parents = []
         while True:
             parent = list(
                 filter(
                     lambda e: e.get('target', None) == top_parent.targetname and e['classname'] == 'path_track',
                     self._entites
                 ))
-            if parent:
+            if parent and parent[0]['targetname'] not in parents:
+                parents.append(parent[0]['targetname'])
                 top_parent, top_parent_raw = self._get_entity_by_name(parent[0]['targetname'])
             else:
                 break
         next, next_raw = top_parent, top_parent_raw
         self._handled_paths.append(next.targetname)
+        handled = []
         parts = [next]
         while True:
 
@@ -624,7 +630,8 @@ class BaseEntityHandler:
             if next_2 is None or next_2.target == next.targetname:
                 break
             next, next_raw = next_2, next_raw_2
-            if next:
+            if next and next.targetname not in handled:
+                handled.append(next.targetname)
                 self._handled_paths.append(next.targetname)
                 if next in parts:
                     parts.append(next)
