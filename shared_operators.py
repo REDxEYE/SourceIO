@@ -187,7 +187,8 @@ class SourceIOUtils_PT_panel(UITools, bpy.types.Panel):
     bl_idname = "source_io.utils"
 
     def draw(self, context):
-        self.layout.label(text="SourceIO Utils")
+        pass
+        # self.layout.label(text="SourceIO Utils")
 
 
 class Placeholders_PT_panel(UITools, bpy.types.Panel):

@@ -1,6 +1,7 @@
 import lzma
 from typing import List
 
+from source_shared.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.math_utilities import sizeof_fmt
 
@@ -64,12 +65,14 @@ class Lump:
         self._lump: LumpInfo = bsp.lumps_info[lump_id]
         self.reader = ByteIO()
 
-        base_path = self._bsp.filepath.parent
-        lump_path = base_path / f'{self._bsp.filepath.name}.{lump_id:04x}.bsp_lump'
+        if ContentManager()._titanfall_mode:
 
-        if lump_path.exists():
-            self.reader = ByteIO(lump_path)
-            return
+            base_path = self._bsp.filepath.parent
+            lump_path = base_path / f'{self._bsp.filepath.name}.{lump_id:04x}.bsp_lump'
+
+            if lump_path.exists():
+                self.reader = ByteIO(lump_path)
+                return
 
         reader = self._bsp.reader
         reader.seek(self._lump.offset)
@@ -78,10 +81,6 @@ class Lump:
             self.reader = ByteIO(reader.read(self._lump.size))
         else:
             self.reader = Lump.decompress_lump(reader)
-
-        with self.reader.save_current_pos():
-            with lump_path.open('wb') as f:
-                f.write(self.reader.read(-1))
 
     def parse(self):
         return self
