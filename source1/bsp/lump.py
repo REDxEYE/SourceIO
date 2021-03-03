@@ -1,7 +1,7 @@
 import lzma
 from typing import List
 
-from source_shared.content_manager import ContentManager
+from ...source_shared.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.math_utilities import sizeof_fmt
 
@@ -66,7 +66,6 @@ class Lump:
         self.reader = ByteIO()
 
         if ContentManager()._titanfall_mode:
-
             base_path = self._bsp.filepath.parent
             lump_path = base_path / f'{self._bsp.filepath.name}.{lump_id:04x}.bsp_lump'
 
