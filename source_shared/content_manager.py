@@ -127,6 +127,21 @@ class ContentManager(metaclass=SingletonMeta):
                 return file
         return None
 
+    def find_path(self, filepath: str, additional_dir=None, extension=None, *, silent=False):
+        new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
+        if additional_dir:
+            new_filepath = Path(additional_dir, new_filepath)
+        if extension:
+            new_filepath = new_filepath.with_suffix(extension)
+        if not silent:
+            logger.info(f'Requesting {new_filepath} file')
+        for mod, submanager in self.content_providers.items():
+            file = submanager.find_path(new_filepath)
+            if file is not None:
+                if not silent:
+                    logger.debug(f'Found in {mod}!')
+                return file
+        return None
     def find_texture(self, filepath, *, silent=False):
         return self.find_file(filepath, 'materials', extension='.vtf', silent=silent)
 

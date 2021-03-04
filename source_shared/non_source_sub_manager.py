@@ -7,3 +7,8 @@ class NonSourceContentProvider(ContentProviderBase):
         file = backwalk_file_resolver(self.filepath, filepath)
         if file:
             return file.open('rb')
+
+    def find_path(self, filepath: str):
+        file = backwalk_file_resolver(self.filepath, filepath)
+        if file:
+            return file

@@ -27,7 +27,7 @@ if not NO_BPY:
 
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
-        # DMXImporter_OT_operator,
+                                    DMXImporter_OT_operator,
                                     VTFExport_OT_operator,
                                     VTFImport_OT_operator,
                                     VMTImport_OT_operator,
@@ -69,8 +69,8 @@ if not NO_BPY:
                             icon_value=vtf_icon.icon_id)
             layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
                             icon_value=vmt_icon.icon_id)
+            layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
             layout.separator()
-            # layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
                             icon_value=model_doc_icon.icon_id)
             layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)",
@@ -135,7 +135,7 @@ if not NO_BPY:
         # Source1 stuff
         MDLImport_OT_operator,
         BSPImport_OT_operator,
-        # DMXImporter_OT_operator,
+        DMXImporter_OT_operator,
         VTFExport_OT_operator,
         VTFImport_OT_operator,
         VMTImport_OT_operator,

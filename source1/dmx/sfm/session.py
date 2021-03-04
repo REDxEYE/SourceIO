@@ -3,11 +3,10 @@ import os.path
 from pathlib import Path
 from typing import List
 
-from .active_clip import ActiveClip
+from .film_clip import FilmClip
 from .base_element import BaseElement
 from ....source_shared.content_manager import ContentManager
 from ....utilities.datamodel import Element
-from ....utilities.valve_utils import GameInfoFile
 from ....utilities import datamodel
 
 
@@ -184,7 +183,7 @@ class Session(BaseElement):
 
     @property
     def active_clip(self):
-        return ActiveClip(self._element['activeClip'])
+        return FilmClip(self._element['activeClip'])
 
     @property
     def misc_bin(self):
@@ -196,7 +195,7 @@ class Session(BaseElement):
 
     @property
     def clip_bin(self):
-        return self._element['clipBin']
+        return [FilmClip(clip) for clip in self._element['clipBin']]
 
     @property
     def settings(self):

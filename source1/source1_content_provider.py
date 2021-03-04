@@ -60,6 +60,12 @@ class GameinfoContentProvider(ContentProviderBase):
 
     def find_file(self, filepath: str, additional_dir=None,
                   extension=None):
+        path = self.find_path(filepath, additional_dir, extension)
+        if path:
+            return path.open('rb')
+
+    def find_path(self, filepath: str, additional_dir=None,
+                  extension=None):
         filepath = Path(str(filepath).strip("\\/"))
 
         new_filepath = filepath
@@ -69,6 +75,6 @@ class GameinfoContentProvider(ContentProviderBase):
             new_filepath = new_filepath.with_suffix(extension)
         new_filepath = self.modname_dir / new_filepath
         if new_filepath.exists():
-            return new_filepath.open('rb')
+            return new_filepath
         else:
             return None

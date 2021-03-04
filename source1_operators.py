@@ -6,6 +6,7 @@ from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProp
 
 from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from .source1.bsp.import_bsp import BSP
+from .source1.dmx.load_sfm_session import load_session
 from .source1.dmx.sfm.session import Session
 from .source1.vtf.export_vtf import export_texture
 from .source1.vtf.import_vtf import import_texture
@@ -120,16 +121,8 @@ class DMXImporter_OT_operator(bpy.types.Operator):
 
     def execute(self, context):
         directory = Path(self.filepath).parent.absolute()
-        preferences = context.preferences
-        addon_prefs = preferences.addons['SourceIO'].preferences
-        print(addon_prefs)
-        sfm_path = self.project_dir if self.project_dir else addon_prefs.sfm_path
         for file in self.files:
-            importer = Session(str(directory / file.name), sfm_path)
-            importer.parse()
-            importer.load_scene()
-            # importer.load_lights()
-            # importer.create_cameras()
+            load_session(directory / file.name, 1)
         return {'FINISHED'}
 
     def invoke(self, context, event):
