@@ -96,7 +96,6 @@ class BSPImport_OT_operator(bpy.types.Operator):
         bsp_map.load_entities()
         bsp_map.load_static_props()
         bsp_map.load_overlays()
-        bsp_map.rotate_infodecals()
         # bsp_map.load_detail_props()
         if self.import_textures:
             bsp_map.load_materials()

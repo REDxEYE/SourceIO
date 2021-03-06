@@ -659,28 +659,26 @@ class BaseEntityHandler:
         pass
 
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
-        
-        #obj = self._create_empty(self._get_entity_name(entity))
-
         material_name = Path(entity.texture).name
-
         material_file = ContentManager().find_material(filepath=entity.texture)
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
             mat = Source1MaterialLoader(material_file, material_name)
             mat.create_material()
         
-        
-        tex_name = bpy.data.materials[material_name].node_tree.nodes["$basetexture"].image.name
-        size = bpy.data.images[tex_name].size
+        tex_name = Path(mat.vmt.material_data['$basetexture']).name
+        if bpy.data.images[tex_name]:
+            size = bpy.data.images[tex_name].size
+        else:
+            size = [128, 128]
 
-        xCor = size[0]/8
-        zCor = size[1]/8
+        x_cor = size[0]/8
+        z_cor = size[1]/8
         verts = [
-            [-xCor, 0, -zCor],
-            [xCor, 0, -zCor],
-            [xCor, 0, zCor],
-            [-xCor, 0, zCor]
+            [-x_cor, 0, -z_cor],
+            [x_cor, 0, -z_cor],
+            [x_cor, 0, z_cor],
+            [-x_cor, 0, z_cor]
             ]
         
         mesh = bpy.data.meshes.new(entity.class_name+str(entity.hammer_id))

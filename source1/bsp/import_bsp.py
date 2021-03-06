@@ -1,6 +1,6 @@
 import json
 import math
-from mathutils import Vector, Quaternion
+from mathutils import Vector, Quaternion, Matrix
 import re
 from pathlib import Path
 from pprint import pprint
@@ -288,11 +288,9 @@ class BSP:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
             for overlay in overlays:
-                verts = np.array(overlay.UVPoints).reshape((4,3))
+                verts = np.array(overlay.uv_points).reshape((4,3))
                 for vert in verts:
-                    temp = vert[1]
-                    vert[1] = vert[2]
-                    vert[2] = temp
+                    vert[1], vert[2] = vert[2], vert[1]
                 mesh = bpy.data.meshes.new("info_overlay"+str(overlay.id))
                 mesh_obj = bpy.data.objects.new("info_overlay"+str(overlay.id),mesh)
                 mesh_data = mesh_obj.data
@@ -317,63 +315,66 @@ class BSP:
                 uv_data[3].uv[0] = max(overlay.U) #max
                 uv_data[3].uv[1] = min(overlay.V) #min
 
-                bpy.ops.object.select_all(action='DESELECT')
-                mesh_obj.select_set(True)
-                bpy.context.view_layer.objects.active = mesh_obj
-                bpy.ops.object.mode_set(mode='EDIT')
-                bpy.ops.mesh.select_all(action='SELECT')
+                mesh_data.flip_normals()
 
-                bpy.ops.mesh.flip_normals()
-                bpy.ops.object.mode_set()
-
-                
                 origin = list(overlay.origin)
                 mesh_obj.location = np.multiply(origin,self.scale)
 
                 mesh_obj.scale *= self.scale
 
-                matId = self.texture_info_lump.texture_info[overlay.texinfo].texture_data_id
+                matId = self.texture_info_lump.texture_info[overlay.tex_info].texture_data_id
 
                 material_name = self.get_string(matId)
                 material_name = strip_patch_coordinates.sub("", material_name)[-63:]
                 get_material(material_name, mesh_obj)
 
-                thisNorm = list(overlay.basisNormal)
+                this_norm = list(overlay.basis_normal)
                 
-                thisRot = Vector(thisNorm).to_track_quat('-Y','Z')
+                this_rot = Vector(this_norm).to_track_quat('-Y','Z')
                 mesh_obj.rotation_mode = 'QUATERNION'
-                mesh_obj.rotation_quaternion = thisRot
+                mesh_obj.rotation_quaternion = this_rot
 
-                for pos in range(0,2):
-                    for i in range(0,3):
-                        mesh_obj.location[i] = mesh_obj.location[i] + (self.scale*pos*thisNorm[i])
+                for pos in range(2):
+                    for i in range(3):
+                        mesh_obj.location[i] = mesh_obj.location[i] + (self.scale*pos*this_norm[i])
                 
-                bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-                mesh_obj.select_set(False)
+                mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
+                mesh_obj.data.transform(mesh_mx)
+                
+                scale_obj = list(mesh_obj.scale)
+                scale_mx = Matrix()
+                for i in range(3):
+                    scale_mx[i][i] = scale_obj[i]
+                
+                applymx = Matrix.Translation(mesh_obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
+                mesh_obj.matrix_world = applymx
+
+                self._rotate_infodecals()
     
-    def rotate_infodecals(self):
+    def _rotate_infodecals(self):
         for obj in bpy.data.collections['infodecal'].all_objects:
             world_obj = bpy.data.objects['world_geometry']
             func_distnace = float("inf")
             func_name = ''
-            for func in bpy.data.collections['func_brush'].all_objects:
-                calc_distance = Vector(obj.location - func.location).length
-                if calc_distance<=func_distnace:
-                    func_distnace = calc_distance
-                    func_name = func.name
+            for func in bpy.data.objects:
+                if func.type == 'MESH' and func != world_obj and func != obj:
+                    calc_distance = Vector(obj.location - func.location).length
+                    if calc_distance<=func_distnace:
+                        func_distnace = calc_distance
+                        func_name = func.name
                 
             func_obj = bpy.data.objects[func_name]
             directions = [[1,0,0],[0,1,0],[0,0,1],[-1,0,0],[0,-1,0],[0,0,-1]]
             rays_hits = []
-            for dirF in directions:
-                rayF = func.ray_cast(obj.location, (dirF[0], dirF[1], dirF[2]))
-                if (rayF[0]):
+            for dir_f in directions:
+                rayF = func.ray_cast(obj.location, (dir_f[0], dir_f[1], dir_f[2]))
+                if rayF[0]:
                     element = [rayF[0], rayF[1], rayF[2] ,rayF[3]]
                     rays_hits.append(element)
 
-            for dirW in directions:
-                rayW = world_obj.ray_cast(obj.location,(dirW[0], dirW[1], dirW[2]))
-                if (rayW[0]):
+            for dir_w in directions:
+                rayW = world_obj.ray_cast(obj.location,(dir_w[0], dir_w[1], dir_w[2]))
+                if rayW[0]:
                     element = [rayW[0], rayW[1], rayW[2] ,rayW[3]]
                     rays_hits.append(element)
 
@@ -393,10 +394,16 @@ class BSP:
             obj.rotation_mode = 'QUATERNION'
             obj.rotation_quaternion = that_normal
 
-            bpy.ops.object.select_all(action='DESELECT')
-            obj.select_set(True)
-            bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-            obj.select_set(False)
+            mesh_mx = obj.rotation_quaternion.to_matrix().to_4x4()
+            obj.data.transform(mesh_mx)
+            
+            scale_obj = list(obj.scale)
+            scale_mx = Matrix()
+            for i in range(3):
+                scale_mx[i][i] = scale_obj[i]
+            
+            applymx = Matrix.Translation(obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
+            obj.matrix_world = applymx
 
 
     def load_detail_props(self):
