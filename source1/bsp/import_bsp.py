@@ -1,5 +1,6 @@
 import json
 import math
+from mathutils import Vector, Quaternion
 import re
 from pathlib import Path
 from pprint import pprint
@@ -17,6 +18,7 @@ from .entities.titanfall_entity_handler import TitanfallEntityHandler
 from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
+from .lumps.overlay_lump import OverlayLump
 from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
@@ -279,6 +281,123 @@ class BSP:
             material_name = self.get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]
             get_material(material_name, mesh_obj)
+
+    def load_overlays(self):
+        info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
+        if info_overlay_lump:
+            parent_collection = get_or_create_collection('info_overlays', self.main_collection)
+            overlays = info_overlay_lump.overlays
+            for overlay in overlays:
+                verts = np.array(overlay.UVPoints).reshape((4,3))
+                for vert in verts:
+                    temp = vert[1]
+                    vert[1] = vert[2]
+                    vert[2] = temp
+                mesh = bpy.data.meshes.new("info_overlay"+str(overlay.id))
+                mesh_obj = bpy.data.objects.new("info_overlay"+str(overlay.id),mesh)
+                mesh_data = mesh_obj.data
+                if parent_collection is not None:
+                    parent_collection.objects.link(mesh_obj)
+                else:
+                    self.main_collection.objects.link(mesh_obj)
+
+                mesh_data.from_pydata(verts,[],[[0,1,2,3]])
+
+                uv_data = mesh_data.uv_layers.new().data
+
+                uv_data[0].uv[0] = min(overlay.U) #min
+                uv_data[0].uv[1] = min(overlay.V) #min
+
+                uv_data[1].uv[0] = min(overlay.U) #min
+                uv_data[1].uv[1] = max(overlay.V) #max
+
+                uv_data[2].uv[0] = max(overlay.U) #max
+                uv_data[2].uv[1] = max(overlay.V) #max
+
+                uv_data[3].uv[0] = max(overlay.U) #max
+                uv_data[3].uv[1] = min(overlay.V) #min
+
+                bpy.ops.object.select_all(action='DESELECT')
+                mesh_obj.select_set(True)
+                bpy.context.view_layer.objects.active = mesh_obj
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.select_all(action='SELECT')
+
+                bpy.ops.mesh.flip_normals()
+                bpy.ops.object.mode_set()
+
+                
+                origin = list(overlay.origin)
+                mesh_obj.location = np.multiply(origin,self.scale)
+
+                mesh_obj.scale *= self.scale
+
+                matId = self.texture_info_lump.texture_info[overlay.texinfo].texture_data_id
+
+                material_name = self.get_string(matId)
+                material_name = strip_patch_coordinates.sub("", material_name)[-63:]
+                get_material(material_name, mesh_obj)
+
+                thisNorm = list(overlay.basisNormal)
+                
+                thisRot = Vector(thisNorm).to_track_quat('-Y','Z')
+                mesh_obj.rotation_mode = 'QUATERNION'
+                mesh_obj.rotation_quaternion = thisRot
+
+                for pos in range(0,2):
+                    for i in range(0,3):
+                        mesh_obj.location[i] = mesh_obj.location[i] + (self.scale*pos*thisNorm[i])
+                
+                bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+                mesh_obj.select_set(False)
+    
+    def rotate_infodecals(self):
+        for obj in bpy.data.collections['infodecal'].all_objects:
+            world_obj = bpy.data.objects['world_geometry']
+            func_distnace = float("inf")
+            func_name = ''
+            for func in bpy.data.collections['func_brush'].all_objects:
+                calc_distance = Vector(obj.location - func.location).length
+                if calc_distance<=func_distnace:
+                    func_distnace = calc_distance
+                    func_name = func.name
+                
+            func_obj = bpy.data.objects[func_name]
+            directions = [[1,0,0],[0,1,0],[0,0,1],[-1,0,0],[0,-1,0],[0,0,-1]]
+            rays_hits = []
+            for dirF in directions:
+                rayF = func.ray_cast(obj.location, (dirF[0], dirF[1], dirF[2]))
+                if (rayF[0]):
+                    element = [rayF[0], rayF[1], rayF[2] ,rayF[3]]
+                    rays_hits.append(element)
+
+            for dirW in directions:
+                rayW = world_obj.ray_cast(obj.location,(dirW[0], dirW[1], dirW[2]))
+                if (rayW[0]):
+                    element = [rayW[0], rayW[1], rayW[2] ,rayW[3]]
+                    rays_hits.append(element)
+
+            length_list = {}
+            for ray in rays_hits:
+                length = Vector(obj.location - ray[1]).length
+                length_list.update({length:ray[2]})
+
+            find_min_len = min(length_list.items(), key=lambda x: x[0])
+            that_normal = find_min_len[1]
+
+            for pos in range(0,2):
+                    for i in range(0,3):
+                        obj.location[i] = obj.location[i] + (0.1*self.scale*pos*that_normal[i])
+            
+            that_normal = Vector(that_normal).to_track_quat('-Y','Z')
+            obj.rotation_mode = 'QUATERNION'
+            obj.rotation_quaternion = that_normal
+
+            bpy.ops.object.select_all(action='DESELECT')
+            obj.select_set(True)
+            bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+            obj.select_set(False)
+
 
     def load_detail_props(self):
         content_manager = ContentManager()
