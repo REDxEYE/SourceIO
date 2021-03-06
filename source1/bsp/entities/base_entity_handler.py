@@ -35,9 +35,13 @@ log_manager = BPYLoggingManager()
 def gather_vertex_ids(model: Model, faces: List[Face], surf_edges: np.ndarray, edges: np.ndarray):
     vertex_offset = 0
     material_ids = []
-    vertex_count = 0
-    for map_face in faces[model.first_face:model.first_face + model.face_count]:
-        vertex_count += map_face.edge_count
+    vertex_count = sum(
+        map_face.edge_count
+        for map_face in faces[
+            model.first_face : model.first_face + model.face_count
+        ]
+    )
+
     vertex_ids = np.zeros(vertex_count, dtype=np.uint16)
     for map_face in faces[model.first_face:model.first_face + model.face_count]:
         if map_face.disp_info_id != -1:
@@ -58,11 +62,11 @@ def gather_vertex_ids(model: Model, faces: List[Face], surf_edges: np.ndarray, e
 
 
 def _srgb2lin(s: float) -> float:
-    if s <= 0.0404482362771082:
-        lin = s / 12.92
-    else:
-        lin = pow(((s + 0.055) / 1.055), 2.4)
-    return lin
+    return (
+        s / 12.92
+        if s <= 0.0404482362771082
+        else pow(((s + 0.055) / 1.055), 2.4)
+    )
 
 
 class BaseEntityHandler:
@@ -208,7 +212,6 @@ class BaseEntityHandler:
         if parent_name is None:
             return
         if parent_name in bpy.data.objects:
-            pass
             before = obj.matrix_world.copy()
             obj.parent = bpy.data.objects[parent_name]
             obj.matrix_world = before
@@ -279,18 +282,21 @@ class BaseEntityHandler:
 
     def _get_class(self, class_name):
         if class_name in self.entity_lookup_table:
-            entity_object = self.entity_lookup_table[class_name]()
-            return entity_object
+            return self.entity_lookup_table[class_name]()
         else:
             return Base()
 
     def resolve_parents(self, entity_raw: dict):
         entity = self._get_class(entity_raw['classname'])
         entity.from_dict(entity, entity_raw)
-        if hasattr(entity, 'targetname') and hasattr(entity, 'parentname'):
-            if entity.targetname and str(entity.targetname) in bpy.data.objects:
-                obj = bpy.data.objects[entity.targetname]
-                self._set_parent_if_exist(obj, entity.parentname)
+        if (
+            hasattr(entity, 'targetname')
+            and hasattr(entity, 'parentname')
+            and entity.targetname
+            and str(entity.targetname) in bpy.data.objects
+        ):
+            obj = bpy.data.objects[entity.targetname]
+            self._set_parent_if_exist(obj, entity.parentname)
 
     def load_entities(self):
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
@@ -300,7 +306,6 @@ class BaseEntityHandler:
         bpy.context.view_layer.update()
         for entity_data in entity_lump.entities:
             self.resolve_parents(entity_data)
-        pass
 
     def handle_entity(self, entity_data):
         entity_class = entity_data['classname']
@@ -630,16 +635,15 @@ class BaseEntityHandler:
             if next_2 is None or next_2.target == next.targetname:
                 break
             next, next_raw = next_2, next_raw_2
-            if next and next.targetname not in handled:
-                handled.append(next.targetname)
-                self._handled_paths.append(next.targetname)
-                if next in parts:
-                    parts.append(next)
-                    break
+            if not next or next.targetname in handled:
+                break
+            handled.append(next.targetname)
+            self._handled_paths.append(next.targetname)
+            if next in parts:
                 parts.append(next)
-                if not next.target:
-                    break
-            else:
+                break
+            parts.append(next)
+            if not next.target:
                 break
         self.logger.warn(f'Path_track: {len(parts)}')
         closed = parts[0] == parts[-1]
