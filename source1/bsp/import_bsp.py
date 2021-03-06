@@ -284,6 +284,7 @@ class BSP:
 
     def load_overlays(self):
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
+        provider = ContentManager().get_content_provider_from_path(self.filepath)
         if info_overlay_lump:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
@@ -338,72 +339,81 @@ class BSP:
                     for i in range(3):
                         mesh_obj.location[i] = mesh_obj.location[i] + (self.scale*pos*this_norm[i])
                 
-                mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
-                mesh_obj.data.transform(mesh_mx)
-                
-                scale_obj = list(mesh_obj.scale)
-                scale_mx = Matrix()
-                for i in range(3):
-                    scale_mx[i][i] = scale_obj[i]
-                
-                applymx = Matrix.Translation(mesh_obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
-                mesh_obj.matrix_world = applymx
+                if provider.steam_id in [1840, 440]: 
+                    mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
+                    mesh_obj.data.transform(mesh_mx)
+                    
+                    scale_obj = list(mesh_obj.scale)
+                    scale_mx = Matrix()
+                    for i in range(3):
+                        scale_mx[i][i] = scale_obj[i]
+                    applymx = Matrix.Translation(mesh_obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
+                    mesh_obj.matrix_world = applymx
 
                 self._rotate_infodecals()
     
     def _rotate_infodecals(self):
-        for obj in bpy.data.collections['infodecal'].all_objects:
-            world_obj = bpy.data.objects['world_geometry']
-            func_distnace = float("inf")
-            func_name = ''
-            for func in bpy.data.objects:
-                if func.type == 'MESH' and func != world_obj and func != obj:
-                    calc_distance = Vector(obj.location - func.location).length
-                    if calc_distance<=func_distnace:
-                        func_distnace = calc_distance
-                        func_name = func.name
+        provider = ContentManager().get_content_provider_from_path(self.filepath)
+        if 'infodecal' in bpy.data.collections:
+            for obj in bpy.data.collections['infodecal'].all_objects:
+                world_obj = bpy.data.objects['world_geometry']
+                func_distnace = float("inf")
+                func_name = ''
+                for func in bpy.data.objects:
+                    if func.type == 'MESH' and func != world_obj and func != obj and func.data.polygons:
+                        calc_distance = Vector(obj.location - func.location).length
+                        if calc_distance <= func_distnace:
+                            func_distnace = calc_distance
+                            func_name = func.name
+
+                    
+                directions = [[1,0,0],[0,1,0],[0,0,1],[-1,0,0],[0,-1,0],[0,0,-1]]
+                rays_hits = []
+                if func_name in bpy.data.objects:
+                    func_obj = bpy.data.objects[func_name]
+                    for dir_f in directions:
+                        try:
+                            rayF = func.ray_cast(obj.location, (dir_f[0], dir_f[1], dir_f[2]))
+                            if rayF[0]:
+                                element = [rayF[0], rayF[1], rayF[2] ,rayF[3]]
+                                rays_hits.append(element)
+                        except:
+                            pass
+                        
+
+                for dir_w in directions:
+                    rayW = world_obj.ray_cast(obj.location,(dir_w[0], dir_w[1], dir_w[2]))
+                    if rayW[0]:
+                        element = [rayW[0], rayW[1], rayW[2] ,rayW[3]]
+                        rays_hits.append(element)
+
+                length_list = {}
+                for ray in rays_hits:
+                    length = Vector(obj.location - ray[1]).length
+                    length_list.update({length:ray[2]})
+
+                find_min_len = min(length_list.items(), key=lambda x: x[0])
+                that_normal = find_min_len[1]
+
+                for pos in range(0,2):
+                        for i in range(0,3):
+                            obj.location[i] = obj.location[i] + (0.1*self.scale*pos*that_normal[i])
                 
-            func_obj = bpy.data.objects[func_name]
-            directions = [[1,0,0],[0,1,0],[0,0,1],[-1,0,0],[0,-1,0],[0,0,-1]]
-            rays_hits = []
-            for dir_f in directions:
-                rayF = func.ray_cast(obj.location, (dir_f[0], dir_f[1], dir_f[2]))
-                if rayF[0]:
-                    element = [rayF[0], rayF[1], rayF[2] ,rayF[3]]
-                    rays_hits.append(element)
+                that_normal = Vector(that_normal).to_track_quat('-Y','Z')
+                obj.rotation_mode = 'QUATERNION'
+                obj.rotation_quaternion = that_normal
 
-            for dir_w in directions:
-                rayW = world_obj.ray_cast(obj.location,(dir_w[0], dir_w[1], dir_w[2]))
-                if rayW[0]:
-                    element = [rayW[0], rayW[1], rayW[2] ,rayW[3]]
-                    rays_hits.append(element)
-
-            length_list = {}
-            for ray in rays_hits:
-                length = Vector(obj.location - ray[1]).length
-                length_list.update({length:ray[2]})
-
-            find_min_len = min(length_list.items(), key=lambda x: x[0])
-            that_normal = find_min_len[1]
-
-            for pos in range(0,2):
-                    for i in range(0,3):
-                        obj.location[i] = obj.location[i] + (0.1*self.scale*pos*that_normal[i])
-            
-            that_normal = Vector(that_normal).to_track_quat('-Y','Z')
-            obj.rotation_mode = 'QUATERNION'
-            obj.rotation_quaternion = that_normal
-
-            mesh_mx = obj.rotation_quaternion.to_matrix().to_4x4()
-            obj.data.transform(mesh_mx)
-            
-            scale_obj = list(obj.scale)
-            scale_mx = Matrix()
-            for i in range(3):
-                scale_mx[i][i] = scale_obj[i]
-            
-            applymx = Matrix.Translation(obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
-            obj.matrix_world = applymx
+                if provider.steam_id in [1840, 440]:
+                    mesh_mx = obj.rotation_quaternion.to_matrix().to_4x4()
+                    obj.data.transform(mesh_mx)
+                    
+                    scale_obj = list(obj.scale)
+                    scale_mx = Matrix()
+                    for i in range(3):
+                        scale_mx[i][i] = scale_obj[i]
+                    
+                    applymx = Matrix.Translation(obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
+                    obj.matrix_world = applymx
 
 
     def load_detail_props(self):

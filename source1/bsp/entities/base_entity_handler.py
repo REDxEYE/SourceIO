@@ -667,7 +667,7 @@ class BaseEntityHandler:
             mat.create_material()
         
         tex_name = Path(mat.vmt.material_data['$basetexture']).name
-        if bpy.data.images[tex_name]:
+        if tex_name in bpy.data.images:
             size = bpy.data.images[tex_name].size
         else:
             size = [128, 128]
