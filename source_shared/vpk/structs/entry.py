@@ -22,11 +22,12 @@ class Entry:
         reader.seek(self._entry_offset)
         (self.crc32, self.preload_data_size, self.archive_id, self.offset, self.size) = reader.read_fmt('I2H2I')
 
+        if reader.read_uint16() != 0xFFFF:
+            raise NotImplementedError('Invalid terminator')
+
         if self.preload_data_size > 0:
             self.preload_data = reader.read(self.preload_data_size)
 
-        if reader.read_uint16() != 0xFFFF:
-            raise NotImplementedError('Invalid terminator')
         self.loaded = True
 
     def __repr__(self):
