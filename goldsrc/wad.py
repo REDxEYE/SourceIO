@@ -9,7 +9,7 @@ def make_texture(indices, palette, use_alpha: bool = False):
     new_palete = np.full((len(palette), 4), 255, dtype=np.uint8)
     new_palete[:, :3] = palette
 
-    colors = new_palete[indices]
+    colors = new_palete[np.array(indices)]
     colors = colors.astype(np.float32)
 
     if use_alpha:
