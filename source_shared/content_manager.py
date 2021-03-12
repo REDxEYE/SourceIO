@@ -80,7 +80,7 @@ class ContentManager(metaclass=SingletonMeta):
                 self.content_providers[name] = sub_manager
             elif path.endswith('.txt'):
                 sub_manager = Source1GameinfoContentProvider(Path(path))
-                if sub_manager.data['game'] == 'Titanfall':
+                if sub_manager.data.get('game',None) == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[name] = sub_manager
             elif path.endswith('.gi'):
