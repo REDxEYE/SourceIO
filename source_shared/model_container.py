@@ -1,4 +1,5 @@
-from typing import List, Optional
+from collections import defaultdict
+from typing import List, Optional, Dict
 import bpy
 
 from ..source1.mdl.mdl_file import Mdl as S1Mdl
@@ -11,6 +12,7 @@ class ModelContainer:
     def __init__(self):
         self.armature: Optional[bpy.types.Object] = None
         self.objects: List[bpy.types.Object] = []
+        self.bodygroups: Dict[str, List[bpy.types.Object]] = defaultdict(list)
 
 
 class GoldSrcModelContainer(ModelContainer):
@@ -25,4 +27,4 @@ class Source1ModelContainer(ModelContainer):
         self.mdl: S1Mdl = mdl
         self.vvd: Vvd = vvd
         self.vtx: Vtx = vtx
-        self.collection = None
+        self.attachments = []

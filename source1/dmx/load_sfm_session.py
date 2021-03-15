@@ -12,7 +12,7 @@ from ...utilities.path_utilities import find_vtx, backwalk_file_resolver, find_v
 from .sfm import open_session
 from .sfm.camera import Camera
 from ..bsp.import_bsp import BSP
-from ..mdl.import_mdl import import_model, import_materials
+from ..mdl.import_mdl import import_model, import_materials, put_into_collections
 
 
 def _convert_quat(quat):
@@ -26,8 +26,9 @@ def import_gamemodel(mdl_path, scale=HAMMER_UNIT_TO_METERS):
     if mld_file:
         vvd_file = ContentManager().find_file(mdl_path.with_suffix('.vvd'))
         vtx_file = find_vtx_cm(mdl_path, ContentManager())
-        model_container = import_model(mld_file, vvd_file, vtx_file, scale, False, None, True, True)
+        model_container = import_model(mld_file, vvd_file, vtx_file, scale, False, True)
         # import_materials(model_container.mdl)
+        put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=True)
         return model_container
 
 
@@ -79,7 +80,8 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_MET
             erot = qrot.to_euler('YXZ')
             new_rot = Euler([math.pi, 0, 0])
             new_rot.rotate(erot)
-            mat = Matrix.Translation(Vector(animset.game_model.transform.position) * scale) @ new_rot.to_matrix().to_4x4()
+            mat = Matrix.Translation(
+                Vector(animset.game_model.transform.position) * scale) @ new_rot.to_matrix().to_4x4()
             container.armature.matrix_basis.identity()
             container.armature.matrix_world = mat
         else:

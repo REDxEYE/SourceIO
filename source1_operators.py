@@ -5,6 +5,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from .bpy_utilities.utils import get_new_unique_collection
 from .source1.bsp.import_bsp import BSP
 from .source1.dmx.load_sfm_session import load_session
 from .source1.dmx.sfm.session import Session
@@ -15,7 +16,7 @@ from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 from .utilities.path_utilities import backwalk_file_resolver, find_vtx
 
 
-# noinspection PyUnresolvedReferences,PyPep8Naming
+# noinspection PyPep8Naming
 class MDLImport_OT_operator(bpy.types.Operator):
     """Load Source Engine MDL models"""
     bl_idname = "source_io.mdl"
@@ -28,6 +29,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
+    bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
@@ -43,7 +45,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
-        from .source1.mdl.import_mdl import import_model, import_materials
+        from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections
         for file in self.files:
             mdl_path = directory / file.name
             vtx_file = find_vtx(mdl_path)
@@ -51,6 +53,8 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
             model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), self.scale,
                                            self.create_flex_drivers)
+
+            put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
 
             if self.import_textures:
                 try:

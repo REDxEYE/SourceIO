@@ -63,12 +63,12 @@ def get_slice(data: [Iterable, Sized], start, count=None):
     return data[start:start + count]
 
 
-def create_armature(mdl: Mdl, collection, scale=1.0):
+def create_armature(mdl: Mdl, scale=1.0):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
     armature_obj.show_in_front = True
-    collection.objects.link(armature_obj)
+    bpy.context.scene.collection.objects.link(armature_obj)
 
     armature_obj.select_set(True)
     bpy.context.view_layer.objects.active = armature_obj
@@ -97,13 +97,12 @@ def create_armature(mdl: Mdl, collection, scale=1.0):
     bpy.ops.pose.armature_apply()
     bpy.ops.object.mode_set(mode='OBJECT')
 
+    bpy.context.scene.collection.objects.unlink(armature_obj)
     return armature_obj
 
 
 def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, scale=1.0,
-                 create_drivers=False, parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
-    if parent_collection is None:
-        parent_collection = bpy.context.scene.collection
+                 create_drivers=False, re_use_meshes=False):
     mdl = Mdl(mdl_file)
     mdl.read()
     vvd = Vvd(vvd_file)
@@ -115,10 +114,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
-    model_name = Path(mdl.header.name).stem + '_MODEL'
 
-    master_collection = get_new_unique_collection(model_name, parent_collection)
-    container.collection = master_collection
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
     if mdl.flex_names:
@@ -126,15 +122,10 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
         vac.process_data()
 
     if not static_prop:
-        armature = create_armature(mdl, master_collection, scale)
+        armature = create_armature(mdl, scale)
         container.armature = armature
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
-        if disable_collection_sort:
-            body_part_collection = master_collection
-        else:
-            body_part_collection = get_new_unique_collection(body_part.name, master_collection)
-
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
 
             if model.vertex_count == 0:
@@ -164,7 +155,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                 mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
                 mesh_obj['active_skin'] = '0'
                 mesh_obj['model_type'] = 's1'
-            body_part_collection.objects.link(mesh_obj)
+
             if not static_prop:
                 modifier = mesh_obj.modifiers.new(
                     type="ARMATURE", name="Armature")
@@ -172,6 +163,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                 mesh_obj.parent = armature
 
             container.objects.append(mesh_obj)
+            container.bodygroups[body_part.name].append(mesh_obj)
 
             if used_copy:
                 continue
@@ -189,7 +181,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
             mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
             mesh_data.use_auto_smooth = True
 
-            material_remapper = np.zeros((material_indices_array.max()+1,), dtype=np.uint32)
+            material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
                 material_remapper[mat_id] = get_material(mat_name[-63:], mesh_obj)
@@ -232,10 +224,32 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
     if mdl.attachments:
-        attachment_collection = get_new_unique_collection(f'{model_name}_attachments', master_collection)
-        create_attachments(mdl, armature if not static_prop else container.objects[0], scale, attachment_collection)
+        attachments = create_attachments(mdl, armature if not static_prop else container.objects[0], scale)
+        container.attachments.extend(attachments)
 
     return container
+
+
+def put_into_collections(model_container: Source1ModelContainer, model_name,
+                         parent_collection=None, bodygroup_grouping=False):
+    master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
+
+    for bodygroup_name, meshes in model_container.bodygroups.items():
+        if bodygroup_grouping:
+            body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
+        else:
+            body_part_collection = master_collection
+
+        for mesh in meshes:
+            body_part_collection.objects.link(mesh)
+    if model_container.armature:
+        master_collection.objects.link(model_container.armature)
+
+    if model_container.attachments:
+        attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
+        for attachment in model_container.attachments:
+            attachments_collection.objects.link(attachment)
+    return master_collection
 
 
 def create_flex_drivers(obj, mdl: Mdl):
@@ -279,10 +293,10 @@ def create_flex_drivers(obj, mdl: Mdl):
         logger.debug(f'{target} {expr}')
 
 
-def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale, parent_collection: bpy.types.Collection):
+def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
+    attachments = []
     for attachment in mdl.attachments:
         empty = bpy.data.objects.new(attachment.name, None)
-        parent_collection.objects.link(empty)
         pos = Vector(attachment.pos) * scale
         rot = Euler(attachment.rot)
         empty.matrix_basis.identity()
@@ -294,6 +308,8 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale, parent_colle
             empty.parent_bone = bone.name
         empty.location = pos
         empty.rotation_euler = rot
+        attachments.append(empty)
+    return attachments
 
 
 def import_materials(mdl):

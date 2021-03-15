@@ -19,7 +19,6 @@ from ..datatypes.face import Face
 from ..datatypes.model import Model
 from ..datatypes.texture_data import TextureData
 from ..datatypes.texture_info import TextureInfo
-from ...mdl.import_mdl import import_model
 from ...vmt.valve_material import VMT
 from ...vtf.import_vtf import import_texture
 from ....bpy_utilities.logging import BPYLoggingManager

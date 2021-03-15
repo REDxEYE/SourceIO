@@ -3,8 +3,8 @@ from pathlib import Path
 
 import bpy
 
-from .bpy_utilities.utils import get_or_create_collection
-from .source1.mdl.import_mdl import import_model, import_materials
+from .bpy_utilities.utils import get_or_create_collection, get_new_unique_collection
+from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections
 from .source2.resouce_types.valve_model import ValveCompiledModel
 from .source_shared.content_manager import ContentManager
 from .utilities.path_utilities import backwalk_file_resolver, find_vtx_cm
@@ -35,8 +35,6 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                 model_type = Path(custom_prop_data['prop_path']).suffix
                 parent = get_parent(obj.users_collection[0])
                 collection = get_or_create_collection(custom_prop_data['type'], parent)
-                # collection = (bpy.data.collections.get(custom_prop_data['type'], None) or
-                #               bpy.data.collections.new(custom_prop_data['type']))
 
                 if model_type in ['.vmdl_c', '.vmdl_c']:
                     mld_file = content_manager.find_file(custom_prop_data['prop_path'])
@@ -70,23 +68,18 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model(mld_file, vvd_file, vtx_file, 1.0, False, collection,
-                                                       True, True)
+                        model_container = import_model(mld_file, vvd_file, vtx_file, 1.0, False, True)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                         entity_data_holder['entity_data'] = {}
                         entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
-                        if model_container.collection:
-                            model_container.collection.objects.link(entity_data_holder)
-                        else:
-                            collection.collection.objects.link(entity_data_holder)
+
+                        master_collection = put_into_collections(model_container, prop_path.stem, collection, False)
+                        master_collection.objects.link(entity_data_holder)
+
                         if model_container.armature is not None:
                             armature = model_container.armature
-                            # armature.location = obj.location
                             armature.rotation_mode = "XYZ"
-                            # armature.rotation_euler = obj.rotation_euler
-                            # armature.rotation_euler[2] += math.radians(90)
-                            # armature.scale = obj.scale
                             entity_data_holder.parent = armature
 
                             bpy.context.view_layer.update()
@@ -101,11 +94,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                 entity_data_holder.rotation_euler = obj.rotation_euler
                                 entity_data_holder.scale = obj.scale
                             for mesh_obj in model_container.objects:
-                                # mesh_obj.location = obj.location
                                 mesh_obj.rotation_mode = "XYZ"
-                                # mesh_obj.rotation_euler = obj.rotation_euler
-                                # mesh_obj.scale = obj.scale
-
                                 bpy.context.view_layer.update()
                                 mesh_obj.parent = obj.parent
                                 mesh_obj.matrix_world = obj.matrix_world.copy()
