@@ -658,13 +658,40 @@ class BaseEntityHandler:
         pass
 
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        material_name = Path(entity.texture).name
+        material_file = ContentManager().find_material(filepath=entity.texture)
+        if material_file:
+            material_name = strip_patch_coordinates.sub("", material_name)
+            mat = Source1MaterialLoader(material_file, material_name)
+            mat.create_material()
+        
+        tex_name = Path(mat.vmt.material_data['$basetexture']).name
+        if tex_name in bpy.data.images:
+            size = bpy.data.images[tex_name].size
+        else:
+            size = [128, 128]
+
+        x_cor = size[0]/8
+        z_cor = size[1]/8
+        verts = [
+            [-x_cor, 0, -z_cor],
+            [x_cor, 0, -z_cor],
+            [x_cor, 0, z_cor],
+            [-x_cor, 0, z_cor]
+            ]
+        
+        mesh = bpy.data.meshes.new(entity.class_name+str(entity.hammer_id))
+        obj = bpy.data.objects.new(entity.class_name+str(entity.hammer_id), mesh)
+        mesh_data = obj.data
+        mesh_data.from_pydata(verts,[],[[0,1,2,3]])
+
+        uv_data = mesh_data.uv_layers.new().data
+        get_material(material_name,obj)
+        
         self._set_location_and_scale(obj, entity.origin)
-        setattr(entity, 'icon_sprite', entity.texture)
-        self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('infodecal', obj)
-
+        
     # META ENTITIES (no import required)
     def handle_keyframe_rope(self, entity: env_sun, entity_raw: dict):
         pass
