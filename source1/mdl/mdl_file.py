@@ -47,6 +47,34 @@ class Mdl(Base):
         self.sequences = []  # type:List[Sequence]
         self.anim_block = _AnimBlocks()
 
+        self.bone_table_by_name = []
+
+    @staticmethod
+    def calculate_crc(buffer):
+        correct_buffer_size = math.ceil(len(buffer) / 4) * 4
+        buffer += b'\x00' * (correct_buffer_size - len(buffer))
+
+        buffer: np.ndarray = np.frombuffer(buffer, np.uint32).copy()
+
+        orig_checksum = buffer[2]
+        buffer[8 // 4] = 0
+        buffer[76 // 4] = 0
+        buffer[1432 // 4:1432 // 4 + 2] = 0
+        buffer[1520 // 4:(1520 + 36) // 4] = 0
+        buffer[1604 // 4] = 0
+        with open('shit.bin', 'wb') as f:
+            f.write(buffer.tobytes())
+
+        new_checksum = 0
+        for i in range(buffer.shape[0]):
+            tmp = buffer[i] + (new_checksum >> 27 & 1)
+
+            new_checksum = (tmp & 0xFFFFFFFF) + ((2 * new_checksum) & 0xFFFFFFFF)
+            new_checksum &= 0xFFFFFFFF
+            print(f'{i * 4 + 4}: {new_checksum:08x} : {new_checksum}')
+            buffer[2] = new_checksum
+        print(orig_checksum, new_checksum)
+
     def read(self):
         self.header.read(self.reader)
 
@@ -129,12 +157,18 @@ class Mdl(Base):
         #     seq = Sequence()
         #     seq.read(self.reader)
         #     self.sequences.append(seq)
-        #
+
         # self.anim_block.name = self.reader.read_from_offset(self.header.anim_block_name_offset,
         #                                                     self.reader.read_ascii_string)
         # self.reader.seek(self.header.anim_block_offset)
         # for _ in range(self.header.anim_block_count):
         #     self.anim_block.blocks.append(self.reader.read_fmt('2i'))
+        #
+        # if self.header.bone_table_by_name_offset and self.bones:
+        #     self.reader.seek(self.header.bone_table_by_name_offset)
+        #     self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
+
+        # for anim
 
     def rebuild_flex_rules(self):
         rules = {}

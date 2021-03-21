@@ -284,42 +284,48 @@ class BSP:
 
     def load_overlays(self):
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
+        faces_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_FACES')
+        planes_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_PLANES')
         provider = ContentManager().get_content_provider_from_path(self.filepath)
         if info_overlay_lump:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
             for overlay in overlays:
-                verts = np.array(overlay.uv_points).reshape((4,3))
+
+                # placement_faces = [faces_lump.faces[face_id] for face_id in overlay.ofaces[:overlay.face_count]]
+                # placement_face = placement_faces[0]
+                # plane = planes_lump.planes[placement_face.plane_index]
+
+                verts: np.ndarray = np.array(overlay.uv_points).reshape((4, 3))
                 for vert in verts:
                     vert[1], vert[2] = vert[2], vert[1]
-                mesh = bpy.data.meshes.new("info_overlay"+str(overlay.id))
-                mesh_obj = bpy.data.objects.new("info_overlay"+str(overlay.id),mesh)
+                mesh = bpy.data.meshes.new(f"info_overlay_{overlay.id}")
+                mesh_obj = bpy.data.objects.new(f"info_overlay_{overlay.id}", mesh)
                 mesh_data = mesh_obj.data
                 if parent_collection is not None:
                     parent_collection.objects.link(mesh_obj)
                 else:
                     self.main_collection.objects.link(mesh_obj)
 
-                mesh_data.from_pydata(verts,[],[[0,1,2,3]])
+                mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
                 uv_data = mesh_data.uv_layers.new().data
 
-                uv_data[0].uv[0] = min(overlay.U) #min
-                uv_data[0].uv[1] = min(overlay.V) #min
+                uv_data[0].uv[0] = min(overlay.U)  # min
+                uv_data[0].uv[1] = min(overlay.V)  # min
 
-                uv_data[1].uv[0] = min(overlay.U) #min
-                uv_data[1].uv[1] = max(overlay.V) #max
+                uv_data[1].uv[0] = min(overlay.U)  # min
+                uv_data[1].uv[1] = max(overlay.V)  # max
 
-                uv_data[2].uv[0] = max(overlay.U) #max
-                uv_data[2].uv[1] = max(overlay.V) #max
+                uv_data[2].uv[0] = max(overlay.U)  # max
+                uv_data[2].uv[1] = max(overlay.V)  # max
 
-                uv_data[3].uv[0] = max(overlay.U) #max
-                uv_data[3].uv[1] = min(overlay.V) #min
+                uv_data[3].uv[0] = max(overlay.U)  # max
+                uv_data[3].uv[1] = min(overlay.V)  # min
 
                 mesh_data.flip_normals()
 
-                origin = list(overlay.origin)
-                mesh_obj.location = np.multiply(origin,self.scale)
+                mesh_obj.location = np.multiply(overlay.origin, self.scale)
 
                 mesh_obj.scale *= self.scale
 
@@ -330,19 +336,19 @@ class BSP:
                 get_material(material_name, mesh_obj)
 
                 this_norm = list(overlay.basis_normal)
-                
-                this_rot = Vector(this_norm).to_track_quat('-Y','Z')
+
+                this_rot = Vector(this_norm).to_track_quat('-Y', 'Z')
                 mesh_obj.rotation_mode = 'QUATERNION'
                 mesh_obj.rotation_quaternion = this_rot
 
                 for pos in range(2):
                     for i in range(3):
-                        mesh_obj.location[i] = mesh_obj.location[i] + (self.scale*pos*this_norm[i])
-                
-                if provider.steam_id in [1840, 440]: 
+                        mesh_obj.location[i] = mesh_obj.location[i] + (self.scale * pos * this_norm[i])
+
+                if provider.steam_id in [1840, 440]:
                     mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
                     mesh_obj.data.transform(mesh_mx)
-                    
+
                     scale_obj = list(mesh_obj.scale)
                     scale_mx = Matrix()
                     for i in range(3):
@@ -351,7 +357,7 @@ class BSP:
                     mesh_obj.matrix_world = applymx
 
                 self._rotate_infodecals()
-    
+
     def _rotate_infodecals(self):
         provider = ContentManager().get_content_provider_from_path(self.filepath)
         if 'infodecal' in bpy.data.collections:
@@ -366,8 +372,7 @@ class BSP:
                             func_distnace = calc_distance
                             func_name = func.name
 
-                    
-                directions = [[1,0,0],[0,1,0],[0,0,1],[-1,0,0],[0,-1,0],[0,0,-1]]
+                directions = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]]
                 rays_hits = []
                 if func_name in bpy.data.objects:
                     func_obj = bpy.data.objects[func_name]
@@ -375,46 +380,44 @@ class BSP:
                         try:
                             rayF = func.ray_cast(obj.location, (dir_f[0], dir_f[1], dir_f[2]))
                             if rayF[0]:
-                                element = [rayF[0], rayF[1], rayF[2] ,rayF[3]]
+                                element = [rayF[0], rayF[1], rayF[2], rayF[3]]
                                 rays_hits.append(element)
                         except:
                             pass
-                        
 
                 for dir_w in directions:
-                    rayW = world_obj.ray_cast(obj.location,(dir_w[0], dir_w[1], dir_w[2]))
+                    rayW = world_obj.ray_cast(obj.location, (dir_w[0], dir_w[1], dir_w[2]))
                     if rayW[0]:
-                        element = [rayW[0], rayW[1], rayW[2] ,rayW[3]]
+                        element = [rayW[0], rayW[1], rayW[2], rayW[3]]
                         rays_hits.append(element)
 
                 length_list = {}
                 for ray in rays_hits:
                     length = Vector(obj.location - ray[1]).length
-                    length_list.update({length:ray[2]})
+                    length_list.update({length: ray[2]})
 
                 find_min_len = min(length_list.items(), key=lambda x: x[0])
                 that_normal = find_min_len[1]
 
-                for pos in range(0,2):
-                        for i in range(0,3):
-                            obj.location[i] = obj.location[i] + (0.1*self.scale*pos*that_normal[i])
-                
-                that_normal = Vector(that_normal).to_track_quat('-Y','Z')
+                for pos in range(0, 2):
+                    for i in range(0, 3):
+                        obj.location[i] = obj.location[i] + (0.1 * self.scale * pos * that_normal[i])
+
+                that_normal = Vector(that_normal).to_track_quat('-Y', 'Z')
                 obj.rotation_mode = 'QUATERNION'
                 obj.rotation_quaternion = that_normal
 
                 if provider.steam_id in [1840, 440]:
                     mesh_mx = obj.rotation_quaternion.to_matrix().to_4x4()
                     obj.data.transform(mesh_mx)
-                    
+
                     scale_obj = list(obj.scale)
                     scale_mx = Matrix()
                     for i in range(3):
                         scale_mx[i][i] = scale_obj[i]
-                    
+
                     applymx = Matrix.Translation(obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
                     obj.matrix_world = applymx
-
 
     def load_detail_props(self):
         content_manager = ContentManager()

@@ -1,5 +1,8 @@
+from typing import List
+
 from .primitive import Primitive
 from ....utilities.byte_io_mdl import ByteIO
+
 
 class Overlay(Primitive):
     def __init__(self, lump, bsp):
@@ -13,6 +16,14 @@ class Overlay(Primitive):
         self.uv_points = []
         self.origin = []
         self.basis_normal = []
+
+    @property
+    def face_count(self):
+        return self.face_count_and_render_order & 0b0011111111111111
+
+    @property
+    def render_order(self):
+        return self.face_count_and_render_order >> 14
 
     def parse(self, reader: ByteIO):
         self.id = reader.read_int32()

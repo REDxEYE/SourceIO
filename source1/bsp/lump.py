@@ -110,6 +110,6 @@ class Lump:
             if not compressed_buffer:
                 break
             assert decompressor.eof, 'Compressed data ended before the end-of-stream marker was reached'
-
+        decompressed_buffer = decompressed_buffer[:decompressed_size]
         assert decompressed_size == len(decompressed_buffer), 'Decompressed data does not match the expected size'
         return ByteIO(decompressed_buffer)
