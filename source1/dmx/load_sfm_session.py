@@ -30,6 +30,7 @@ def import_gamemodel(mdl_path, scale=HAMMER_UNIT_TO_METERS):
         # import_materials(model_container.mdl)
         put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=True)
         return model_container
+    return None
 
 
 def create_camera(dme_camera: Camera, scale=HAMMER_UNIT_TO_METERS):
@@ -73,6 +74,9 @@ def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, s
 def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_METERS):
     if animset.game_model:
         container = import_gamemodel(animset.game_model.model_name, scale)
+        if container is None:
+            print(f'Failed to load {animset.name} model')
+            return None
         if container.armature:
             qrot = Quaternion()
             qrot.w, qrot.x, qrot.y, qrot.z = animset.game_model.transform.orientation
@@ -80,8 +84,9 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_MET
             erot = qrot.to_euler('YXZ')
             new_rot = Euler([math.pi, 0, 0])
             new_rot.rotate(erot)
-            mat = Matrix.Translation(
-                Vector(animset.game_model.transform.position) * scale) @ new_rot.to_matrix().to_4x4()
+            mat: Matrix = new_rot.to_matrix().to_4x4() @ Matrix.Translation(
+                Vector(animset.game_model.transform.position) * scale)  # @ new_rot.to_matrix().to_4x4()
+            # mat.rotate(new_rot)
             container.armature.matrix_basis.identity()
             container.armature.matrix_world = mat
         else:
@@ -92,8 +97,9 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_MET
                 erot = qrot.to_euler('YXZ')
                 new_rot = Euler([math.pi, 0, 0])
                 new_rot.rotate(erot)
-                mat = Matrix.Translation(
-                    Vector(animset.game_model.transform.position) * scale) @ new_rot.to_matrix().to_4x4()
+                mat = new_rot.to_matrix().to_4x4() @ Matrix.Translation(
+                    Vector(animset.game_model.transform.position) * scale)  # @ new_rot.to_matrix().to_4x4()
+                # mat.rotate(new_rot)
                 obj.matrix_basis.identity()
                 obj.matrix_world = mat
         _apply_transforms(container, animset, scale)
