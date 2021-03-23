@@ -5,6 +5,7 @@ from mathutils import Vector, Quaternion, Matrix, Euler
 
 from .sfm.animation_set import AnimationSet
 from .sfm.film_clip import FilmClip
+from .sfm_utils import *
 from ...source_shared.content_manager import ContentManager
 from ...source_shared.model_container import Source1ModelContainer
 from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
@@ -40,9 +41,9 @@ def create_camera(dme_camera: Camera, scale=HAMMER_UNIT_TO_METERS):
     bpy.context.scene.collection.objects.link(camera_obj)
 
     camera_obj.location = Vector(dme_camera.transform.position) * scale
+    camera_obj.rotation_mode = 'QUATERNION'
     camera_obj.rotation_quaternion = Quaternion(dme_camera.transform.orientation)
     camera.lens = dme_camera.milliliters
-    camera_obj.rotation_mode = 'QUATERNION'
 
 
 def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, scale=HAMMER_UNIT_TO_METERS):
@@ -52,7 +53,7 @@ def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, s
         elif control.type == 'DmeTransformControl':
             bone_name = control.name
             tmp = control['valuePosition']
-            pos = Vector(tmp)
+            pos = Vector(tmp) * scale
             rot = _convert_quat(control['valueOrientation'])
             if container.armature:
                 arm = container.armature
@@ -66,7 +67,7 @@ def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, s
                     if not bone.parent:
                         pos = arm.data.bones.get(bone_name).head - pos
                     # new_rot = Euler([math.pi / 2, 0, 0]).rotate(erot)
-                    mat = Matrix.Translation(pos * scale) @ erot.to_matrix().to_4x4()
+                    mat = Matrix.Translation(pos) @ erot.to_matrix().to_4x4()
                     bone.matrix_basis.identity()
                     bone.matrix = bone.parent.matrix @ mat if bone.parent else mat
 
@@ -78,30 +79,20 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_MET
             print(f'Failed to load {animset.name} model')
             return None
         if container.armature:
-            qrot = Quaternion()
-            qrot.w, qrot.x, qrot.y, qrot.z = animset.game_model.transform.orientation
-            # rot.x,rot.y,rot.z,rot.w = bone_.valueOrientation
-            erot = qrot.to_euler('YXZ')
-            new_rot = Euler([math.pi, 0, 0])
-            new_rot.rotate(erot)
-            mat: Matrix = new_rot.to_matrix().to_4x4() @ Matrix.Translation(
-                Vector(animset.game_model.transform.position) * scale)  # @ new_rot.to_matrix().to_4x4()
-            # mat.rotate(new_rot)
-            container.armature.matrix_basis.identity()
-            container.armature.matrix_world = mat
+
+            qrot = convert_source_rotation(animset.game_model.transform.orientation)
+            pos = convert_source_position(animset.game_model.transform.position)
+
+            container.armature.location = pos * scale
+            container.armature.rotation_quaternion = qrot
+            # _apply_bone_transforms(animset, container, scale)
+
         else:
             for obj in container.objects:
-                qrot = Quaternion()
-                qrot.w, qrot.x, qrot.y, qrot.z = animset.game_model.transform.orientation
-                # rot.x,rot.y,rot.z,rot.w = bone_.valueOrientation
-                erot = qrot.to_euler('YXZ')
-                new_rot = Euler([math.pi, 0, 0])
-                new_rot.rotate(erot)
-                mat = new_rot.to_matrix().to_4x4() @ Matrix.Translation(
-                    Vector(animset.game_model.transform.position) * scale)  # @ new_rot.to_matrix().to_4x4()
-                # mat.rotate(new_rot)
-                obj.matrix_basis.identity()
-                obj.matrix_world = mat
+                qrot = convert_source_rotation(animset.game_model.transform.orientation)
+                pos = convert_source_position(animset.game_model.transform.position)
+                obj.location = pos * scale
+                obj.rotation_quaternion = qrot
         _apply_transforms(container, animset, scale)
 
 
