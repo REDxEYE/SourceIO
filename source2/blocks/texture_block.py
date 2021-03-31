@@ -6,7 +6,18 @@ from ...utilities.byte_io_mdl import ByteIO
 from .dummy import DataBlock
 
 # noinspection PyUnresolvedReferences
-from ..utils.PySourceIOUtils import *
+try:
+    from ..utils.PySourceIOUtils import *
+    from ..utils.PySourceIOUtils import lz4_decompress as uncompress
+
+    NO_SOURCE_IO_UTILS = False
+except ImportError:
+    NO_SOURCE_IO_UTILS = True
+    from ..utils.lz4 import uncompress as uncompress_tmp
+
+
+    def uncompress(a, _b, _c):
+        return uncompress_tmp(a)
 
 
 class VTexFlags(IntFlag):
@@ -196,7 +207,7 @@ class TEXR(DataBlock):
                 reader.skip(self.calculate_buffer_size_for_mip(i))
         if compressed_size >= uncompressed_size:
             return reader.read(uncompressed_size)
-        data = lz4_decompress(reader.read(compressed_size), compressed_size, uncompressed_size)
+        data = uncompress(reader.read(compressed_size), compressed_size, uncompressed_size)
         assert len(data) == uncompressed_size, "Uncompressed data size != expected uncompressed size"
         return data
 
@@ -210,6 +221,8 @@ class TEXR(DataBlock):
             return reader
 
     def read_image(self, flip=True):
+        if NO_SOURCE_IO_UTILS:
+            return
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
@@ -245,6 +258,3 @@ class TEXR(DataBlock):
             data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_dxt5(data, self.width, self.height, flip)
             self.image_data = data
-
-    def get_rgb_and_alpha(self):
-        return extract_alpha(self.image_data, len(self.image_data))
