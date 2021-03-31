@@ -34,3 +34,7 @@ class PakLump(Lump):
         if new_filepath is not None:
             return BytesIO(self.zip_file.open(new_filepath, 'r').read())
         return None
+
+    @property
+    def steam_id(self):
+        return -1
