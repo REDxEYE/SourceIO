@@ -152,7 +152,7 @@ class ContentManager(metaclass=SingletonMeta):
         serialized = {}
         for name, sub_manager in self.content_providers.items():
             name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
-            serialized[name] = str(sub_manager.filepath)
+            serialized[name[:63]] = str(sub_manager.filepath)
 
         return serialized
 
