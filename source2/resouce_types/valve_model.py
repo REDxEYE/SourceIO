@@ -23,6 +23,8 @@ class ValveCompiledModel(ValveCompiledFile):
 
     def __init__(self, path_or_file, re_use_meshes=False):
         super().__init__(path_or_file)
+        if isinstance(path_or_file, (Path, str)):
+            ContentManager().scan_for_content(path_or_file)
         self.re_use_meshes = re_use_meshes
         self.strip_from_name = ''
         self.lod_collections = {}
@@ -73,7 +75,7 @@ class ValveCompiledModel(ValveCompiledFile):
                         buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                         name = mesh_ref_path.stem
                         vmorf_actual_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
-                                                                  None)  # type:Path
+                                                                         None)  # type:Path
                         morph_block = None
                         if vmorf_actual_path:
                             vmorf_path = content_manager.find_file(vmorf_actual_path)
@@ -149,8 +151,9 @@ class ValveCompiledModel(ValveCompiledFile):
 
                 if data_block.data['m_materialGroups']:
                     default_skin = data_block.data['m_materialGroups'][0]
-                    mat_id = default_skin['m_materials'].index(draw_call['m_material'])
-                    if mat_id != -1:
+
+                    if draw_call['m_material'] in default_skin['m_materials']:
+                        mat_id = default_skin['m_materials'].index(draw_call['m_material'])
                         mat_groups = {}
                         for skin_group in data_block.data['m_materialGroups']:
                             mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
@@ -158,10 +161,12 @@ class ValveCompiledModel(ValveCompiledFile):
                         mesh_obj['active_skin'] = 'default'
                         mesh_obj['skin_groups'] = mat_groups
 
-                        material_name = Path(mat_groups['default']).stem
+
                 else:
                     mesh_obj['active_skin'] = 'default'
                     mesh_obj['skin_groups'] = []
+
+                material_name = Path(draw_call['m_material']).stem
                 mesh = mesh_obj.data  # type:bpy.types.Mesh
 
                 self.objects.append(mesh_obj)
