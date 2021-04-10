@@ -12,7 +12,7 @@ class DATA(DataBlock):
         if reader.size():
             with reader.save_current_pos():
                 fourcc = reader.read(4)
-            if tuple(fourcc) == (0x56, 0x4B, 0x56, 0x03) or tuple(fourcc) == (0x01, 0x33, 0x56, 0x4B):
+            if tuple(fourcc) in BinaryKeyValue.KNOWN_SIGNATURES:
                 kv = BinaryKeyValue(self.info_block)
                 kv.read(reader)
                 self.data = kv.kv

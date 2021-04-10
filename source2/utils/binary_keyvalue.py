@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 
 import numpy as np
 
@@ -16,7 +16,7 @@ except ImportError:
         return uncompress_tmp(a)
 
 
-class KVFlag(IntEnum):
+class KVFlag(IntFlag):
     Nothing = 0
     Resource = 1
     DeferredResource = 2
@@ -56,6 +56,10 @@ class BinaryKeyValue:
         0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
     KV3_SIG = (0x56, 0x4B, 0x56, 0x03)
     VKV3_SIG = (0x01, 0x33, 0x56, 0x4B)
+    VKV3_v2_SIG = (0x02, 0x33, 0x56, 0x4B)
+
+    KNOWN_SIGNATURES = [KV3_SIG, VKV3_SIG, VKV3_v2_SIG]
+
     indent = 0
 
     def __init__(self, block_info: InfoBlock = None):
@@ -80,13 +84,19 @@ class BinaryKeyValue:
         self.int_buffer = ByteIO()
         self.double_buffer = ByteIO()
 
+        self.block_data = ByteIO()
+        self.block_sizes = []
+        self.next_block_id = 0
+
     def read(self, reader: ByteIO):
         fourcc = reader.read(4)
-        assert tuple(fourcc) in [self.KV3_SIG, self.VKV3_SIG], 'Invalid KV Signature'
+        assert tuple(fourcc) in self.KNOWN_SIGNATURES, 'Invalid KV Signature'
         if tuple(fourcc) == self.VKV3_SIG:
+            self.read_v1(reader)
+        if tuple(fourcc) == self.VKV3_v2_SIG:
             self.read_v2(reader)
         elif tuple(fourcc) == self.KV3_SIG:
-            self.read_v1(reader)
+            self.read_v3(reader)
 
     def block_decompress(self, reader):
         self.flags = reader.read(4)
@@ -125,7 +135,7 @@ class BinaryKeyValue:
         self.buffer.write_bytes(data)
         self.buffer.seek(0)
 
-    def read_v1(self, reader):
+    def read_v3(self, reader):
         encoding = reader.read(16)
         assert tuple(encoding) in [
             self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED,
@@ -155,7 +165,7 @@ class BinaryKeyValue:
         self.buffer.close()
         del self.buffer
 
-    def read_v2(self, reader: ByteIO):
+    def read_v1(self, reader: ByteIO):
         fmt = reader.read(16)
         assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
@@ -213,6 +223,88 @@ class BinaryKeyValue:
         self.double_buffer.close()
         del self.double_buffer
 
+    def read_v2(self, reader: ByteIO):
+        fmt = reader.read(16)
+        assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+
+        compression_method = reader.read_uint32()
+        something = reader.read_uint32()
+        self.bin_blob_count = reader.read_uint32()
+        self.int_count = reader.read_uint32()
+        self.double_count = reader.read_uint32()
+
+        reader.skip(8)
+
+        uncompressed_size = reader.read_uint32()
+        compressed_size = reader.read_uint32()
+        block_count = reader.read_uint32()
+        block_total_size = reader.read_uint32()
+
+        if compression_method == 0:
+            if something != 0:
+                raise NotImplementedError('Unknown compression method in KV3 v2 block')
+            self.buffer.write_bytes(reader.read(compressed_size))
+        elif compression_method == 1:
+
+            if something != 0x40000000:
+                raise NotImplementedError('Unknown compression method in KV3 v2 block')
+
+            data = reader.read(compressed_size)
+            u_data = uncompress(data, compressed_size, uncompressed_size)
+            assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
+            self.buffer.write_bytes(u_data)
+        else:
+            raise NotImplementedError("Unknown KV3 compression method")
+
+        self.buffer.seek(0)
+
+        self.byte_buffer.write_bytes(self.buffer.read(self.bin_blob_count))
+        self.byte_buffer.seek(0)
+
+        if self.buffer.tell() % 4 != 0:
+            self.buffer.seek(self.buffer.tell() + (4 - (self.buffer.tell() % 4)))
+
+        self.int_buffer.write_bytes(self.buffer.read(self.int_count * 4))
+        self.int_buffer.seek(0)
+
+        if self.buffer.tell() % 8 != 0:
+            self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
+
+        self.double_buffer.write_bytes(self.buffer.read(self.double_count * 8))
+        self.double_buffer.seek(0)
+
+        for _ in range(self.int_buffer.read_uint32()):
+            self.strings.append(self.buffer.read_ascii_string())
+
+        types_len = self.buffer.size() - self.buffer.tell() - (4 + (block_count * 2) + (block_count * 4))
+
+        for _ in range(types_len):
+            self.types.append(self.buffer.read_uint8())
+        if block_count == 0:
+            assert self.buffer.read_uint32() == 0xFFEEDD00, 'Invalid terminator'
+            self.parse(self.buffer, self.kv, True)
+            self.kv = self.kv[0]
+        else:
+            self.block_sizes = [self.buffer.read_uint32() for _ in range(block_count)]
+            assert self.buffer.read_uint32() == 0xFFEEDD00, 'Invalid terminator'
+            for uncompressed_block_size in self.block_sizes:
+                compressed_block_size = self.buffer.read_uint16()
+                data = reader.read(compressed_size)
+                data = uncompress(data, compressed_block_size, uncompressed_block_size)
+                self.block_data.write_bytes(data)
+            self.block_data.seek(0)
+            self.parse(self.buffer, self.kv, True)
+            self.kv = self.kv[0]
+
+        self.buffer.close()
+        del self.buffer
+        self.byte_buffer.close()
+        del self.byte_buffer
+        self.int_buffer.close()
+        del self.int_buffer
+        self.double_buffer.close()
+        del self.double_buffer
+
     def read_type(self, reader: ByteIO):
         if self.types:
             data_type = self.types[self.current_type]
@@ -231,7 +323,10 @@ class BinaryKeyValue:
         return KVType(data_type), flag_info
 
     def parse(self, reader: ByteIO, parent=None, in_array=False):
-        name = None if in_array else self.strings[self.int_buffer.read_uint32()]
+        name = None
+        if not in_array:
+            str_id = self.int_buffer.read_uint32()
+            name = self.strings[str_id] if str_id != -1 else ""
         data_type, flag_info = self.read_type(reader)
         self.read_value(name, reader, data_type, parent, in_array)
 
@@ -312,8 +407,13 @@ class BinaryKeyValue:
                 tmp = np.array(tmp, dtype=np.float64)
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
-            size = self.int_buffer.read_uint32()
-            add(self.byte_buffer.read(size))
+            if self.block_data.size() != 0:
+                data = self.block_data.read(self.block_sizes[self.next_block_id])
+                self.next_block_id += 1
+                add(data)
+            else:
+                size = self.int_buffer.read_uint32()
+                add(self.byte_buffer.read(size))
             return
         else:
             raise NotImplementedError("Unknown KVType.{}".format(data_type.name))

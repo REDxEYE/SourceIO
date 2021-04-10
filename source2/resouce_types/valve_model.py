@@ -62,30 +62,29 @@ class ValveCompiledModel(ValveCompiledFile):
                 if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
                     continue
                 mesh_ref_path = self.available_resources.get(mesh_ref, None)  # type:Path
-                if not mesh_ref_path:
-                    continue
-                mesh_ref_file = content_manager.find_file(mesh_ref_path)
-                if mesh_ref_file:
-                    mesh = ValveCompiledFile(mesh_ref_file)
-                    self.available_resources.update(mesh.available_resources)
-                    mesh.read_block_info()
-                    mesh.check_external_resources()
-                    mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
-                    buffer_block = mesh.get_data_block(block_name="VBIB")[0]
-                    name = mesh_ref_path.stem
-                    vmorf_actual_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
-                                                              None)  # type:Path
-                    morph_block = None
-                    if vmorf_actual_path:
-                        vmorf_path = content_manager.find_file(vmorf_actual_path)
-                        if vmorf_path is not None:
-                            morph = ValveCompiledMorph(vmorf_path)
-                            morph.read_block_info()
-                            morph.check_external_resources()
-                            morph_block = morph.get_data_block(block_name="DATA")[0]
-                    self.build_mesh(name, armature, collection,
-                                    mesh_data_block, buffer_block, data_block, morph_block,
-                                    invert_uv, mesh_index)
+                if mesh_ref_path:
+                    mesh_ref_file = content_manager.find_file(mesh_ref_path)
+                    if mesh_ref_file:
+                        mesh = ValveCompiledFile(mesh_ref_file)
+                        self.available_resources.update(mesh.available_resources)
+                        mesh.read_block_info()
+                        mesh.check_external_resources()
+                        mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
+                        buffer_block = mesh.get_data_block(block_name="VBIB")[0]
+                        name = mesh_ref_path.stem
+                        vmorf_actual_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
+                                                                  None)  # type:Path
+                        morph_block = None
+                        if vmorf_actual_path:
+                            vmorf_path = content_manager.find_file(vmorf_actual_path)
+                            if vmorf_path is not None:
+                                morph = ValveCompiledMorph(vmorf_path)
+                                morph.read_block_info()
+                                morph.check_external_resources()
+                                morph_block = morph.get_data_block(block_name="DATA")[0]
+                        self.build_mesh(name, armature, collection,
+                                        mesh_data_block, buffer_block, data_block, morph_block,
+                                        invert_uv, mesh_index)
         else:
             control_block = self.get_data_block(block_name="CTRL")[0]
             e_meshes = control_block.data['embedded_meshes']
