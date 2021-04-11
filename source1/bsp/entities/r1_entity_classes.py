@@ -3,11 +3,11 @@ from .base_entity_classes import Parentname, Global, EnableDisable, Light, keyfr
 
 
 def parse_int_vector(string):
-    return [int(val) for val in string.split(' ')]
+    return [int(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 def parse_float_vector(string):
-    return [float(val) for val in string.split(' ')]
+    return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 class Base:

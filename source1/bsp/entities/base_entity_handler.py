@@ -219,7 +219,7 @@ class BaseEntityHandler:
             if not icon_material_file:
                 return
             vmt = VMT(icon_material_file)
-            texture = ContentManager().find_texture(vmt.material_data['$basetexture'], silent=True)
+            texture = ContentManager().find_texture(vmt.get_param('$basetexture', None), silent=True)
             if not texture:
                 return
             obj.empty_display_type = 'IMAGE'
@@ -573,7 +573,7 @@ class BaseEntityHandler:
 
         curve = bpy.data.curves.new(self._get_entity_name(entity), 'CURVE')
         curve.dimensions = '3D'
-        curve.bevel_depth = entity.Width / 100
+        curve.bevel_depth = float(entity.Width) / 100
         curve_object = bpy.data.objects.new(self._get_entity_name(entity), curve)
         curve_path = curve.splines.new('NURBS')
 
@@ -665,7 +665,7 @@ class BaseEntityHandler:
             mat = Source1MaterialLoader(material_file, material_name)
             mat.create_material()
 
-            tex_name = Path(mat.vmt.material_data['$basetexture']).name
+            tex_name = Path(mat.vmt.get_param('$basetexture', None)).name
             if tex_name in bpy.data.images:
                 size = bpy.data.images[tex_name].size
             else:

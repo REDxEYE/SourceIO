@@ -36,6 +36,16 @@ class Base:
         instance.class_name = entity_data.get('classname')
 
 
+class Empty(Base):
+    def __init__(self):
+        super().__init__()
+        pass
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+
+
 class Angles(Base):
     def __init__(self):
         super().__init__()
@@ -237,11 +247,11 @@ class ResponseContext(Base):
         instance.ResponseContext = entity_data.get('responsecontext', None)  # Type: string
 
 
-class Breakable(DamageFilter, Targetname, Shadow):
+class Breakable(Shadow, Targetname, DamageFilter):
     def __init__(self):
-        super(DamageFilter).__init__()
-        super(Targetname).__init__()
         super(Shadow).__init__()
+        super(Targetname).__init__()
+        super(DamageFilter).__init__()
         self.ExplodeDamage = None  # Type: float
         self.ExplodeRadius = None  # Type: float
         self.PerformanceMode = None  # Type: choices
@@ -249,16 +259,16 @@ class Breakable(DamageFilter, Targetname, Shadow):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DamageFilter.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         Shadow.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        DamageFilter.from_dict(instance, entity_data)
         instance.ExplodeDamage = float(entity_data.get('explodedamage', 0))  # Type: float
         instance.ExplodeRadius = float(entity_data.get('exploderadius', 0))  # Type: float
         instance.PerformanceMode = entity_data.get('performancemode', None)  # Type: choices
         instance.BreakModelMessage = entity_data.get('breakmodelmessage', None)  # Type: string
 
 
-class BreakableBrush(Breakable, Parentname, Global):
+class BreakableBrush(Parentname, Global, Breakable):
     def __init__(self):
         super(Breakable).__init__()
         super(Parentname).__init__()
@@ -276,9 +286,9 @@ class BreakableBrush(Breakable, Parentname, Global):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Breakable.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
+        Breakable.from_dict(instance, entity_data)
         instance.propdata = entity_data.get('propdata', None)  # Type: choices
         instance.health = parse_source_value(entity_data.get('health', 1))  # Type: integer
         instance.material = entity_data.get('material', None)  # Type: choices
@@ -302,11 +312,11 @@ class BreakableProp(Breakable):
         instance.pressuredelay = float(entity_data.get('pressuredelay', 0))  # Type: float
 
 
-class BaseNPC(ResponseContext, Shadow, DamageFilter, Angles, RenderFields, Targetname):
+class BaseNPC(Shadow, RenderFields, ResponseContext, DamageFilter, Angles, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
-        super(ResponseContext).__init__()
         super(Shadow).__init__()
+        super(ResponseContext).__init__()
         super(DamageFilter).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
@@ -323,11 +333,11 @@ class BaseNPC(ResponseContext, Shadow, DamageFilter, Angles, RenderFields, Targe
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        ResponseContext.from_dict(instance, entity_data)
         Shadow.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        ResponseContext.from_dict(instance, entity_data)
         DamageFilter.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
-        RenderFields.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.target = entity_data.get('target', None)  # Type: target_destination
         instance.squadname = entity_data.get('squadname', None)  # Type: string
@@ -339,6 +349,15 @@ class BaseNPC(ResponseContext, Shadow, DamageFilter, Angles, RenderFields, Targe
         instance.enemyfilter = entity_data.get('enemyfilter', None)  # Type: target_destination
         instance.ignoreunseenenemies = entity_data.get('ignoreunseenenemies', None)  # Type: choices
         instance.physdamagescale = float(entity_data.get('physdamagescale', 1.0))  # Type: float
+
+
+class BaseNPCAssault(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
 
 
 class info_npc_spawn_destination(Parentname, Angles, Targetname):
@@ -361,24 +380,26 @@ class info_npc_spawn_destination(Parentname, Angles, Targetname):
         instance.RenameNPC = entity_data.get('renamenpc', None)  # Type: string
 
 
-class BaseNPCMaker(EnableDisable, Angles, Targetname):
+class BaseNPCMaker(Angles, Targetname, EnableDisable):
     icon_sprite = "editor/npc_maker.vmt"
     def __init__(self):
-        super(EnableDisable).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.MaxNPCCount = 1  # Type: integer
         self.SpawnFrequency = "5"  # Type: string
         self.MaxLiveChildren = 5  # Type: integer
+        self.ForceScheduleOnSpawn = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.MaxNPCCount = parse_source_value(entity_data.get('maxnpccount', 1))  # Type: integer
         instance.SpawnFrequency = entity_data.get('spawnfrequency', "5")  # Type: string
         instance.MaxLiveChildren = parse_source_value(entity_data.get('maxlivechildren', 5))  # Type: integer
+        instance.ForceScheduleOnSpawn = entity_data.get('forcescheduleonspawn', None)  # Type: string
 
 
 class npc_template_maker(BaseNPCMaker):
@@ -495,40 +516,40 @@ class HintNode(Node):
         instance.MaximumState = entity_data.get('maximumstate', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class TriggerOnce(EnableDisable, Global, Origin, Targetname, Parentname):
+class TriggerOnce(Global, Origin, EnableDisable, Parentname, Targetname):
     def __init__(self):
-        super(EnableDisable).__init__()
         super(Global).__init__()
         super(Origin).__init__()
-        super(Targetname).__init__()
+        super(EnableDisable).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self.filtername = None  # Type: filterclass
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
         Origin.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
 
 
 class Trigger(TriggerOnce):
     def __init__(self):
         super(TriggerOnce).__init__()
-        super(EnableDisable).__init__()
         super(Origin).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         super(Parentname).__init__()
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
         Origin.from_dict(instance, entity_data)
-        TriggerOnce.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        TriggerOnce.from_dict(instance, entity_data)
 
 
 class worldbase(Base):
@@ -538,6 +559,7 @@ class worldbase(Base):
         self.skyname = "sky_day01_01"  # Type: string
         self.chaptertitle = None  # Type: string
         self.startdark = None  # Type: choices
+        self.underwaterparticle = "CHOICES NOT SUPPORTED"  # Type: choices
         self.gametitle = None  # Type: choices
         self.newunit = None  # Type: choices
         self.maxoccludeearea = 0  # Type: float
@@ -557,6 +579,7 @@ class worldbase(Base):
         instance.skyname = entity_data.get('skyname', "sky_day01_01")  # Type: string
         instance.chaptertitle = entity_data.get('chaptertitle', None)  # Type: string
         instance.startdark = entity_data.get('startdark', None)  # Type: choices
+        instance.underwaterparticle = entity_data.get('underwaterparticle', "CHOICES NOT SUPPORTED")  # Type: choices
         instance.gametitle = entity_data.get('gametitle', None)  # Type: choices
         instance.newunit = entity_data.get('newunit', None)  # Type: choices
         instance.maxoccludeearea = float(entity_data.get('maxoccludeearea', 0))  # Type: float
@@ -570,17 +593,17 @@ class worldbase(Base):
         instance.coldworld = entity_data.get('coldworld', None)  # Type: choices
 
 
-class worldspawn(worldbase, ResponseContext, Targetname):
+class worldspawn(worldbase, Targetname, ResponseContext):
     def __init__(self):
         super(worldbase).__init__()
-        super(ResponseContext).__init__()
         super(Targetname).__init__()
+        super(ResponseContext).__init__()
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         worldbase.from_dict(instance, entity_data)
-        ResponseContext.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        ResponseContext.from_dict(instance, entity_data)
 
 
 class ambient_generic(Targetname):
@@ -605,6 +628,7 @@ class ambient_generic(Targetname):
         self.cspinup = None  # Type: integer
         self.radius = "1250"  # Type: string
         self.SourceEntityName = None  # Type: target_destination
+        self.m_bDontModifyPitchVolOnSpawn = None  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -627,6 +651,7 @@ class ambient_generic(Targetname):
         instance.cspinup = parse_source_value(entity_data.get('cspinup', 0))  # Type: integer
         instance.radius = entity_data.get('radius', "1250")  # Type: string
         instance.SourceEntityName = entity_data.get('sourceentityname', None)  # Type: target_destination
+        instance.m_bDontModifyPitchVolOnSpawn = entity_data.get('m_bdontmodifypitchvolonspawn', None)  # Type: choices
 
 
 class func_lod(Targetname):
@@ -835,11 +860,11 @@ class game_gib_manager(Targetname):
         instance.allownewgibs = entity_data.get('allownewgibs', None)  # Type: choices
 
 
-class env_lightglow(Angles, Parentname, Targetname):
+class env_lightglow(Parentname, Angles, Targetname):
     model = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
-        super(Angles).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
         self.rendercolor = [255, 255, 255]  # Type: color255
@@ -853,8 +878,8 @@ class env_lightglow(Angles, Parentname, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.rendercolor = parse_int_vector(entity_data.get('rendercolor', "255 255 255"))  # Type: color255
@@ -867,10 +892,10 @@ class env_lightglow(Angles, Parentname, Targetname):
         instance.HDRColorScale = float(entity_data.get('hdrcolorscale', 1.0))  # Type: float
 
 
-class env_smokestack(Angles, Parentname):
+class env_smokestack(Parentname, Angles):
     def __init__(self):
-        super(Angles).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.origin = [0, 0, 0]
         self.targetname = None  # Type: target_source
         self.InitialState = None  # Type: choices
@@ -891,8 +916,8 @@ class env_smokestack(Angles, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.targetname = entity_data.get('targetname', None)  # Type: target_source
         instance.InitialState = entity_data.get('initialstate', None)  # Type: choices
@@ -950,11 +975,27 @@ class env_tonemap_controller(Targetname):
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
+        self.bUseNextGenBloom = None  # Type: choices
+        self.bUseCusBloomNG_Threshold = None  # Type: choices
+        self.fCusBloomNG_Threshold = None  # Type: float
+        self.bUseCusBloomNG_tintExponent = None  # Type: choices
+        self.m_fCustomBloomNextGen_r = 1.0  # Type: float
+        self.m_fCustomBloomNextGen_g = 1.0  # Type: float
+        self.m_fCustomBloomNextGen_b = 1.0  # Type: float
+        self.m_fCusBloomNG_exponent = 1.0  # Type: float
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.bUseNextGenBloom = entity_data.get('busenextgenbloom', None)  # Type: choices
+        instance.bUseCusBloomNG_Threshold = entity_data.get('busecusbloomng_threshold', None)  # Type: choices
+        instance.fCusBloomNG_Threshold = float(entity_data.get('fcusbloomng_threshold', 0))  # Type: float
+        instance.bUseCusBloomNG_tintExponent = entity_data.get('busecusbloomng_tintexponent', None)  # Type: choices
+        instance.m_fCustomBloomNextGen_r = float(entity_data.get('m_fcustombloomnextgen_r', 1.0))  # Type: float
+        instance.m_fCustomBloomNextGen_g = float(entity_data.get('m_fcustombloomnextgen_g', 1.0))  # Type: float
+        instance.m_fCustomBloomNextGen_b = float(entity_data.get('m_fcustombloomnextgen_b', 1.0))  # Type: float
+        instance.m_fCusBloomNG_exponent = float(entity_data.get('m_fcusbloomng_exponent', 1.0))  # Type: float
 
 
 class func_useableladder(Parentname, Targetname):
@@ -1029,20 +1070,20 @@ class func_areaportalwindow(Targetname):
         instance.PortalVersion = parse_source_value(entity_data.get('portalversion', 1))  # Type: integer
 
 
-class func_wall(Shadow, Targetname, Global, RenderFields):
+class func_wall(RenderFields, Global, Shadow, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
+        super(Global).__init__()
         super(Shadow).__init__()
         super(Targetname).__init__()
-        super(Global).__init__()
         self._minlight = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
+        RenderFields.from_dict(instance, entity_data)
+        Global.from_dict(instance, entity_data)
         Shadow.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
-        Global.from_dict(instance, entity_data)
-        RenderFields.from_dict(instance, entity_data)
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
 
 
@@ -1059,16 +1100,16 @@ class func_clip_vphysics(EnableDisable, Targetname):
         instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
 
 
-class func_brush(EnableDisable, Shadow, Inputfilter, Global, Origin, RenderFields, Targetname, Parentname):
+class func_brush(Global, Shadow, RenderFields, Origin, EnableDisable, Inputfilter, Parentname, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
-        super(EnableDisable).__init__()
-        super(Shadow).__init__()
-        super(Inputfilter).__init__()
         super(Global).__init__()
+        super(Shadow).__init__()
         super(Origin).__init__()
-        super(Targetname).__init__()
+        super(EnableDisable).__init__()
+        super(Inputfilter).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self._minlight = None  # Type: string
         self.Solidity = None  # Type: choices
         self.excludednpc = None  # Type: string
@@ -1078,14 +1119,14 @@ class func_brush(EnableDisable, Shadow, Inputfilter, Global, Origin, RenderField
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Shadow.from_dict(instance, entity_data)
-        Inputfilter.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        Inputfilter.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
         instance.Solidity = entity_data.get('solidity', None)  # Type: choices
         instance.excludednpc = entity_data.get('excludednpc', None)  # Type: string
@@ -1126,12 +1167,12 @@ class vgui_screen(vgui_screen_base):
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
 
-class vgui_slideshow_display(Parentname, Angles, Targetname):
+class vgui_slideshow_display(Angles, Targetname, Parentname):
     model = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
-        super(Parentname).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
+        super(Parentname).__init__()
         self.origin = [0, 0, 0]
         self.displaytext = None  # Type: string
         self.directory = "slideshow"  # Type: string
@@ -1144,9 +1185,9 @@ class vgui_slideshow_display(Parentname, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.displaytext = entity_data.get('displaytext', None)  # Type: string
         instance.directory = entity_data.get('directory', "slideshow")  # Type: string
@@ -1158,13 +1199,13 @@ class vgui_slideshow_display(Parentname, Angles, Targetname):
         instance.height = parse_source_value(entity_data.get('height', 128))  # Type: integer
 
 
-class cycler(Angles, RenderFields, Targetname, Parentname):
+class cycler(RenderFields, Targetname, Parentname, Angles):
     def __init__(self):
         super(RenderFields).__init__()
-        super(Angles).__init__()
         super(RenderFxChoices).__init__()
         super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.origin = [0, 0, 0]
         self.model = None  # Type: studio
         self.skin = None  # Type: integer
@@ -1172,11 +1213,11 @@ class cycler(Angles, RenderFields, Targetname, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
         RenderFxChoices.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.model = entity_data.get('model', None)  # Type: studio
         instance.skin = parse_source_value(entity_data.get('skin', 0))  # Type: integer
@@ -1234,6 +1275,7 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         self.LightningEnd = None  # Type: target_destination
         self.decalname = "Bigshot"  # Type: string
         self.HDRColorScale = 1.0  # Type: float
+        self.dissolvetype = "CHOICES NOT SUPPORTED"  # Type: choices
         self.TouchType = None  # Type: choices
         self.filtername = None  # Type: filterclass
 
@@ -1259,6 +1301,7 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         instance.LightningEnd = entity_data.get('lightningend', None)  # Type: target_destination
         instance.decalname = entity_data.get('decalname', "Bigshot")  # Type: string
         instance.HDRColorScale = float(entity_data.get('hdrcolorscale', 1.0))  # Type: float
+        instance.dissolvetype = entity_data.get('dissolvetype', "CHOICES NOT SUPPORTED")  # Type: choices
         instance.TouchType = entity_data.get('touchtype', None)  # Type: choices
         instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
 
@@ -1463,12 +1506,12 @@ class env_physimpact(Parentname, Targetname):
         instance.directionentityname = entity_data.get('directionentityname', None)  # Type: target_destination
 
 
-class env_fire(Parentname, EnableDisable, Targetname):
+class env_fire(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/env_fire"
     def __init__(self):
         super(Parentname).__init__()
-        super(EnableDisable).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
         self.health = 30  # Type: integer
         self.firesize = 64  # Type: integer
@@ -1480,8 +1523,8 @@ class env_fire(Parentname, EnableDisable, Targetname):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.health = parse_source_value(entity_data.get('health', 30))  # Type: integer
         instance.firesize = parse_source_value(entity_data.get('firesize', 64))  # Type: integer
@@ -1635,6 +1678,7 @@ class env_laser(Parentname, RenderFxChoices, Targetname):
         self.TextureScroll = 35  # Type: integer
         self.framestart = None  # Type: integer
         self.damage = "100"  # Type: string
+        self.decalname = "FadingScorch"  # Type: string
         self.dissolvetype = "CHOICES NOT SUPPORTED"  # Type: choices
 
     @staticmethod
@@ -1653,6 +1697,7 @@ class env_laser(Parentname, RenderFxChoices, Targetname):
         instance.TextureScroll = parse_source_value(entity_data.get('texturescroll', 35))  # Type: integer
         instance.framestart = parse_source_value(entity_data.get('framestart', 0))  # Type: integer
         instance.damage = entity_data.get('damage', "100")  # Type: string
+        instance.decalname = entity_data.get('decalname', "FadingScorch")  # Type: string
         instance.dissolvetype = entity_data.get('dissolvetype', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
@@ -1767,6 +1812,10 @@ class env_shooter(gibshooterbase, RenderFields):
         self.nogibshadows = None  # Type: choices
         self.gibgravityscale = 1  # Type: float
         self.massoverride = 0  # Type: float
+        self.bloodcolor = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.touchkill = None  # Type: choices
+        self.gibdamage = 0  # Type: float
+        self.gibsound = None  # Type: sound
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -1780,6 +1829,10 @@ class env_shooter(gibshooterbase, RenderFields):
         instance.nogibshadows = entity_data.get('nogibshadows', None)  # Type: choices
         instance.gibgravityscale = float(entity_data.get('gibgravityscale', 1))  # Type: float
         instance.massoverride = float(entity_data.get('massoverride', 0))  # Type: float
+        instance.bloodcolor = entity_data.get('bloodcolor', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.touchkill = entity_data.get('touchkill', None)  # Type: choices
+        instance.gibdamage = float(entity_data.get('gibdamage', 0))  # Type: float
+        instance.gibsound = entity_data.get('gibsound', None)  # Type: sound
 
 
 class env_rotorshooter(gibshooterbase, RenderFields):
@@ -1826,12 +1879,12 @@ class env_soundscape_proxy(Parentname, Targetname):
         instance.radius = parse_source_value(entity_data.get('radius', 128))  # Type: integer
 
 
-class env_soundscape(Parentname, EnableDisable, Targetname):
+class env_soundscape(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/env_soundscape.vmt"
     def __init__(self):
         super(Parentname).__init__()
-        super(EnableDisable).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
         self.radius = 128  # Type: integer
         self.soundscape = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -1847,8 +1900,8 @@ class env_soundscape(Parentname, EnableDisable, Targetname):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.radius = parse_source_value(entity_data.get('radius', 128))  # Type: integer
         instance.soundscape = entity_data.get('soundscape', "CHOICES NOT SUPPORTED")  # Type: choices
@@ -1896,12 +1949,12 @@ class env_spark(Parentname, Angles, Targetname):
         instance.TrailLength = entity_data.get('traillength', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class env_sprite(Parentname, DXLevelChoice, Targetname, RenderFields):
+class env_sprite(Parentname, Targetname, DXLevelChoice, RenderFields):
     def __init__(self):
         super(RenderFields).__init__()
         super(Parentname).__init__()
-        super(DXLevelChoice).__init__()
         super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
         self.origin = [0, 0, 0]
         self.framerate = "10.0"  # Type: string
         self.model = "sprites/glow01.spr"  # Type: sprite
@@ -1912,8 +1965,8 @@ class env_sprite(Parentname, DXLevelChoice, Targetname, RenderFields):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        DXLevelChoice.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.framerate = entity_data.get('framerate', "10.0")  # Type: string
@@ -2001,8 +2054,8 @@ class BaseSpeaker(ResponseContext, Targetname):
         super(Targetname).__init__()
         self.delaymin = "15"  # Type: string
         self.delaymax = "135"  # Type: string
-        self.rulescript = None  # Type: string
-        self.concept = None  # Type: string
+        self.rulescript = "scripts/talker/announcements.txt"  # Type: string
+        self.concept = "announcement"  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -2010,8 +2063,8 @@ class BaseSpeaker(ResponseContext, Targetname):
         Targetname.from_dict(instance, entity_data)
         instance.delaymin = entity_data.get('delaymin', "15")  # Type: string
         instance.delaymax = entity_data.get('delaymax', "135")  # Type: string
-        instance.rulescript = entity_data.get('rulescript', None)  # Type: string
-        instance.concept = entity_data.get('concept', None)  # Type: string
+        instance.rulescript = entity_data.get('rulescript', "scripts/talker/announcements.txt")  # Type: string
+        instance.concept = entity_data.get('concept', "announcement")  # Type: string
 
 
 class game_weapon_manager(Targetname):
@@ -2124,16 +2177,16 @@ class game_text(Targetname):
         instance.master = entity_data.get('master', None)  # Type: string
 
 
-class point_enable_motion_fixup(Angles, Parentname):
+class point_enable_motion_fixup(Parentname, Angles):
     def __init__(self):
-        super(Angles).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.origin = [0, 0, 0]
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
 
@@ -2156,29 +2209,27 @@ class point_message(Parentname, Targetname):
         instance.developeronly = entity_data.get('developeronly', None)  # Type: choices
 
 
-class point_spotlight(DXLevelChoice, Angles, RenderFields, Targetname, Parentname):
+class point_spotlight(RenderFields, Targetname, Parentname, Angles, DXLevelChoice):
     model = "models/editor/cone_helper.mdl"
     def __init__(self):
         super(RenderFields).__init__()
-        super(DXLevelChoice).__init__()
-        super(Angles).__init__()
         super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
+        super(DXLevelChoice).__init__()
         self.origin = [0, 0, 0]
-        self.IgnoreSolid = None  # Type: choices
         self.spotlightlength = 500  # Type: integer
         self.spotlightwidth = 50  # Type: integer
         self.HDRColorScale = 1.0  # Type: float
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DXLevelChoice.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.IgnoreSolid = entity_data.get('ignoresolid', None)  # Type: choices
         instance.spotlightlength = parse_source_value(entity_data.get('spotlightlength', 500))  # Type: integer
         instance.spotlightwidth = parse_source_value(entity_data.get('spotlightwidth', 50))  # Type: integer
         instance.HDRColorScale = float(entity_data.get('hdrcolorscale', 1.0))  # Type: float
@@ -2481,7 +2532,8 @@ class info_particle_system(Parentname, Angles, Targetname):
         super(Angles).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
-        self.effect_name = None  # Type: string
+        self.orientation_follows_viewer = None  # Type: choices
+        self.effect_name = None  # Type: particlesystem
         self.start_active = None  # Type: choices
         self.flag_as_weather = None  # Type: choices
         self.cpoint1 = None  # Type: target_destination
@@ -2561,7 +2613,8 @@ class info_particle_system(Parentname, Angles, Targetname):
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.effect_name = entity_data.get('effect_name', None)  # Type: string
+        instance.orientation_follows_viewer = entity_data.get('orientation_follows_viewer', None)  # Type: choices
+        instance.effect_name = entity_data.get('effect_name', None)  # Type: particlesystem
         instance.start_active = entity_data.get('start_active', None)  # Type: choices
         instance.flag_as_weather = entity_data.get('flag_as_weather', None)  # Type: choices
         instance.cpoint1 = entity_data.get('cpoint1', None)  # Type: target_destination
@@ -2636,13 +2689,13 @@ class info_particle_system(Parentname, Angles, Targetname):
         instance.cpoint7_parent = parse_source_value(entity_data.get('cpoint7_parent', 0))  # Type: integer
 
 
-class phys_ragdollmagnet(EnableDisable, Parentname, Angles, Targetname):
+class phys_ragdollmagnet(EnableDisable, Angles, Targetname, Parentname):
     icon_sprite = "editor/info_target.vmt"
     def __init__(self):
         super(EnableDisable).__init__()
-        super(Parentname).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
+        super(Parentname).__init__()
         self.origin = [0, 0, 0]
         self.axis = None  # Type: vecline
         self.radius = 512  # Type: float
@@ -2652,9 +2705,9 @@ class phys_ragdollmagnet(EnableDisable, Parentname, Angles, Targetname):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         EnableDisable.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.axis = entity_data.get('axis', None)  # Type: vecline
         instance.radius = float(entity_data.get('radius', 512))  # Type: float
@@ -2704,7 +2757,7 @@ class info_node(Node):
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
 
-class info_node_hint(HintNode, Angles, Targetname):
+class info_node_hint(Angles, HintNode, Targetname):
     model = "models/editor/ground_node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
@@ -2714,8 +2767,8 @@ class info_node_hint(HintNode, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        HintNode.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        HintNode.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
@@ -2734,7 +2787,7 @@ class info_node_air(Node):
         instance.nodeheight = parse_source_value(entity_data.get('nodeheight', 0))  # Type: integer
 
 
-class info_node_air_hint(HintNode, Angles, Targetname):
+class info_node_air_hint(Angles, HintNode, Targetname):
     model = "models/editor/air_node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
@@ -2745,14 +2798,14 @@ class info_node_air_hint(HintNode, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        HintNode.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        HintNode.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.nodeheight = parse_source_value(entity_data.get('nodeheight', 0))  # Type: integer
 
 
-class info_hint(HintNode, Angles, Targetname):
+class info_hint(Angles, HintNode, Targetname):
     model = "models/editor/node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
@@ -2762,8 +2815,8 @@ class info_hint(HintNode, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        HintNode.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        HintNode.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
@@ -2829,7 +2882,7 @@ class info_radial_link_controller(Parentname, Targetname):
         instance.radius = float(entity_data.get('radius', 120))  # Type: float
 
 
-class info_node_climb(HintNode, Angles, Targetname):
+class info_node_climb(Angles, HintNode, Targetname):
     model = "models/editor/climb_node.mdl"
     def __init__(self):
         super(HintNode).__init__()
@@ -2839,10 +2892,617 @@ class info_node_climb(HintNode, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
         HintNode.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_cascade_light(EnableDisable, Targetname):
+    icon_sprite = "editor/shadow_control.vmt"
+    def __init__(self):
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.angles = "50 40 0"  # Type: string
+        self.color = [255, 255, 255, 1]  # Type: color255
+        self.maxshadowdistance = 400  # Type: float
+        self.uselightenvangles = 1  # Type: integer
+        self.LightRadius1 = 0.001  # Type: float
+        self.LightRadius2 = 0.001  # Type: float
+        self.LightRadius3 = 0.001  # Type: float
+        self.Depthbias1 = 0.00025  # Type: float
+        self.Depthbias2 = 0.00005  # Type: float
+        self.Depthbias3 = 0.00005  # Type: float
+        self.Slopescaledepthbias1 = 2.0  # Type: float
+        self.Slopescaledepthbias2 = 2.0  # Type: float
+        self.Slopescaledepthbias3 = 2.0  # Type: float
+        self.ViewModelDepthbias = 0.000009  # Type: float
+        self.ViewModelSlopescaledepthbias = 0.9  # Type: float
+        self.CSMVolumeMode = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.angles = entity_data.get('angles', "50 40 0")  # Type: string
+        instance.color = parse_int_vector(entity_data.get('color', "255 255 255 1"))  # Type: color255
+        instance.maxshadowdistance = float(entity_data.get('maxshadowdistance', 400))  # Type: float
+        instance.uselightenvangles = parse_source_value(entity_data.get('uselightenvangles', 1))  # Type: integer
+        instance.LightRadius1 = float(entity_data.get('lightradius1', 0.001))  # Type: float
+        instance.LightRadius2 = float(entity_data.get('lightradius2', 0.001))  # Type: float
+        instance.LightRadius3 = float(entity_data.get('lightradius3', 0.001))  # Type: float
+        instance.Depthbias1 = float(entity_data.get('depthbias1', 0.00025))  # Type: float
+        instance.Depthbias2 = float(entity_data.get('depthbias2', 0.00005))  # Type: float
+        instance.Depthbias3 = float(entity_data.get('depthbias3', 0.00005))  # Type: float
+        instance.Slopescaledepthbias1 = float(entity_data.get('slopescaledepthbias1', 2.0))  # Type: float
+        instance.Slopescaledepthbias2 = float(entity_data.get('slopescaledepthbias2', 2.0))  # Type: float
+        instance.Slopescaledepthbias3 = float(entity_data.get('slopescaledepthbias3', 2.0))  # Type: float
+        instance.ViewModelDepthbias = float(entity_data.get('viewmodeldepthbias', 0.000009))  # Type: float
+        instance.ViewModelSlopescaledepthbias = float(entity_data.get('viewmodelslopescaledepthbias', 0.9))  # Type: float
+        instance.CSMVolumeMode = entity_data.get('csmvolumemode', None)  # Type: choices
+
+
+class newLight_Dir(Parentname, Angles, Targetname):
+    icon_sprite = "editor/light_new.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.LightEnvEnabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.PushbackDist = 9999999  # Type: float
+        self.EnableGodRays = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.Density = 1.0  # Type: float
+        self.Weight = 1.0  # Type: float
+        self.Decay = 1.0  # Type: float
+        self.Exposure = 2.5  # Type: float
+        self.DistFactor = 1.0  # Type: float
+        self.DiskRadius = 0.02  # Type: float
+        self.DiskInnerSizePercent = 0.75  # Type: float
+        self.ColorInner = [128, 200, 255, 255]  # Type: color255
+        self.ColorOuter = [255, 255, 164, 255]  # Type: color255
+        self.ColorRays = [200, 200, 255, 255]  # Type: color255
+        self.m_bUseToneMapRays = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.LightEnvEnabled = entity_data.get('lightenvenabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.PushbackDist = float(entity_data.get('pushbackdist', 9999999))  # Type: float
+        instance.EnableGodRays = entity_data.get('enablegodrays', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.Density = float(entity_data.get('density', 1.0))  # Type: float
+        instance.Weight = float(entity_data.get('weight', 1.0))  # Type: float
+        instance.Decay = float(entity_data.get('decay', 1.0))  # Type: float
+        instance.Exposure = float(entity_data.get('exposure', 2.5))  # Type: float
+        instance.DistFactor = float(entity_data.get('distfactor', 1.0))  # Type: float
+        instance.DiskRadius = float(entity_data.get('diskradius', 0.02))  # Type: float
+        instance.DiskInnerSizePercent = float(entity_data.get('diskinnersizepercent', 0.75))  # Type: float
+        instance.ColorInner = parse_int_vector(entity_data.get('colorinner', "128 200 255 255"))  # Type: color255
+        instance.ColorOuter = parse_int_vector(entity_data.get('colorouter', "255 255 164 255"))  # Type: color255
+        instance.ColorRays = parse_int_vector(entity_data.get('colorrays', "200 200 255 255"))  # Type: color255
+        instance.m_bUseToneMapRays = entity_data.get('m_busetonemaprays', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class newLight_Point(Parentname, Targetname):
+    icon_sprite = "editor/light_new.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.Enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.style = None  # Type: choices
+        self.LightColorAmbient = [0, 0, 0, 0]  # Type: color255
+        self.LightColor = [255, 255, 255, 1]  # Type: color255
+        self.Intensity = 8000  # Type: float
+        self.SpecMultiplier = 1  # Type: float
+        self.Range = 1000  # Type: float
+        self.LightType = None  # Type: choices
+        self.HasShadow = None  # Type: choices
+        self.ShadowLod = None  # Type: choices
+        self.ShadowFaceX = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ShadowFaceX_Minus = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ShadowFaceY = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ShadowFaceY_Minus = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ShadowFaceZ = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ShadowFaceZ_Minus = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.NearZ = 2  # Type: float
+        self.DepthBias = 0.0002  # Type: float
+        self.SlopeDepthBias = 0.2  # Type: float
+        self.NormalBias = 1.0  # Type: float
+        self.ShadowRadius = -1.0  # Type: float
+        self.bTexLight = None  # Type: choices
+        self.texName = None  # Type: string
+        self.bNegLight = None  # Type: choices
+        self.LightnGodRayMode = None  # Type: choices
+        self.EnableGodRays = None  # Type: choices
+        self.Density = 1.0  # Type: float
+        self.Weight = 1.0  # Type: float
+        self.Decay = 1.0  # Type: float
+        self.Exposure = 2.5  # Type: float
+        self.DistFactor = 1.0  # Type: float
+        self.DiskRadius = 0.02  # Type: float
+        self.ColorInner = [128, 200, 255, 255]  # Type: color255
+        self.ColorRays = [200, 200, 255, 255]  # Type: color255
+        self.GodRaysType = None  # Type: choices
+        self.DiskInnerSizePercent = 0.75  # Type: float
+        self.ColorOuter = [255, 255, 164, 1]  # Type: color255
+        self.Ell_FR_ConstA = 0.9  # Type: float
+        self.Ell_FR_ConstB = 0.1  # Type: float
+        self.Ell_SR_ConstA = 0.9  # Type: float
+        self.Ell_SR_ConstB = 0.1  # Type: float
+        self.Ell_RRF_ConstA = 0.9  # Type: float
+        self.Ell_RRF_ConstB = 0.1  # Type: float
+        self.RotSpeed = 3.14  # Type: float
+        self.RotPatternFreq = 10.0  # Type: float
+        self.m_bEnableWorldSpace = None  # Type: choices
+        self.m_fAlphaDiskInner = 1  # Type: float
+        self.m_fAlphaDiskOuter = 1  # Type: float
+        self.m_bUseToneMapRays = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bUseToneMapDisk = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_Brush = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_StaticProp = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_DynProps = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_Trans = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.Enabled = entity_data.get('enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.style = entity_data.get('style', None)  # Type: choices
+        instance.LightColorAmbient = parse_int_vector(entity_data.get('lightcolorambient', "0 0 0 0"))  # Type: color255
+        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 255 255 1"))  # Type: color255
+        instance.Intensity = float(entity_data.get('intensity', 8000))  # Type: float
+        instance.SpecMultiplier = float(entity_data.get('specmultiplier', 1))  # Type: float
+        instance.Range = float(entity_data.get('range', 1000))  # Type: float
+        instance.LightType = entity_data.get('lighttype', None)  # Type: choices
+        instance.HasShadow = entity_data.get('hasshadow', None)  # Type: choices
+        instance.ShadowLod = entity_data.get('shadowlod', None)  # Type: choices
+        instance.ShadowFaceX = entity_data.get('shadowfacex', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ShadowFaceX_Minus = entity_data.get('shadowfacex_minus', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ShadowFaceY = entity_data.get('shadowfacey', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ShadowFaceY_Minus = entity_data.get('shadowfacey_minus', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ShadowFaceZ = entity_data.get('shadowfacez', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ShadowFaceZ_Minus = entity_data.get('shadowfacez_minus', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.NearZ = float(entity_data.get('nearz', 2))  # Type: float
+        instance.DepthBias = float(entity_data.get('depthbias', 0.0002))  # Type: float
+        instance.SlopeDepthBias = float(entity_data.get('slopedepthbias', 0.2))  # Type: float
+        instance.NormalBias = float(entity_data.get('normalbias', 1.0))  # Type: float
+        instance.ShadowRadius = float(entity_data.get('shadowradius', -1.0))  # Type: float
+        instance.bTexLight = entity_data.get('btexlight', None)  # Type: choices
+        instance.texName = entity_data.get('texname', None)  # Type: string
+        instance.bNegLight = entity_data.get('bneglight', None)  # Type: choices
+        instance.LightnGodRayMode = entity_data.get('lightngodraymode', None)  # Type: choices
+        instance.EnableGodRays = entity_data.get('enablegodrays', None)  # Type: choices
+        instance.Density = float(entity_data.get('density', 1.0))  # Type: float
+        instance.Weight = float(entity_data.get('weight', 1.0))  # Type: float
+        instance.Decay = float(entity_data.get('decay', 1.0))  # Type: float
+        instance.Exposure = float(entity_data.get('exposure', 2.5))  # Type: float
+        instance.DistFactor = float(entity_data.get('distfactor', 1.0))  # Type: float
+        instance.DiskRadius = float(entity_data.get('diskradius', 0.02))  # Type: float
+        instance.ColorInner = parse_int_vector(entity_data.get('colorinner', "128 200 255 255"))  # Type: color255
+        instance.ColorRays = parse_int_vector(entity_data.get('colorrays', "200 200 255 255"))  # Type: color255
+        instance.GodRaysType = entity_data.get('godraystype', None)  # Type: choices
+        instance.DiskInnerSizePercent = float(entity_data.get('diskinnersizepercent', 0.75))  # Type: float
+        instance.ColorOuter = parse_int_vector(entity_data.get('colorouter', "255 255 164 1"))  # Type: color255
+        instance.Ell_FR_ConstA = float(entity_data.get('ell_fr_consta', 0.9))  # Type: float
+        instance.Ell_FR_ConstB = float(entity_data.get('ell_fr_constb', 0.1))  # Type: float
+        instance.Ell_SR_ConstA = float(entity_data.get('ell_sr_consta', 0.9))  # Type: float
+        instance.Ell_SR_ConstB = float(entity_data.get('ell_sr_constb', 0.1))  # Type: float
+        instance.Ell_RRF_ConstA = float(entity_data.get('ell_rrf_consta', 0.9))  # Type: float
+        instance.Ell_RRF_ConstB = float(entity_data.get('ell_rrf_constb', 0.1))  # Type: float
+        instance.RotSpeed = float(entity_data.get('rotspeed', 3.14))  # Type: float
+        instance.RotPatternFreq = float(entity_data.get('rotpatternfreq', 10.0))  # Type: float
+        instance.m_bEnableWorldSpace = entity_data.get('m_benableworldspace', None)  # Type: choices
+        instance.m_fAlphaDiskInner = float(entity_data.get('m_falphadiskinner', 1))  # Type: float
+        instance.m_fAlphaDiskOuter = float(entity_data.get('m_falphadiskouter', 1))  # Type: float
+        instance.m_bUseToneMapRays = entity_data.get('m_busetonemaprays', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bUseToneMapDisk = entity_data.get('m_busetonemapdisk', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_Brush = entity_data.get('m_bsro_brush', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_StaticProp = entity_data.get('m_bsro_staticprop', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_DynProps = entity_data.get('m_bsro_dynprops', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_Trans = entity_data.get('m_bsro_trans', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class newLight_Spot(Parentname, Angles, Targetname):
+    icon_sprite = "editor/light_new.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.ReverseDir = None  # Type: choices
+        self.Enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.style = None  # Type: choices
+        self.LightColorAmbient = [0, 0, 0, 0]  # Type: color255
+        self.LightColor = [255, 255, 255, 1]  # Type: color255
+        self.Intensity = 8000  # Type: float
+        self.SpecMultiplier = 1  # Type: float
+        self.Range = 1000  # Type: float
+        self.phi = 60  # Type: float
+        self.theta = 30  # Type: float
+        self.angularFallOff = 2  # Type: float
+        self.LightType = None  # Type: choices
+        self.HasShadow = None  # Type: choices
+        self.ShadowLod = None  # Type: choices
+        self.NearZ = 2  # Type: float
+        self.DepthBias = 0.0002  # Type: float
+        self.SlopeDepthBias = 0.2  # Type: float
+        self.NormalBias = 1.0  # Type: float
+        self.ShadowFOV = 0  # Type: float
+        self.ShadowRadius = -1.0  # Type: float
+        self.bTexLight = None  # Type: choices
+        self.texName = None  # Type: string
+        self.TexCookieFramesX = 1  # Type: integer
+        self.TexCookieFramesY = 1  # Type: integer
+        self.TexCookieFps = None  # Type: float
+        self.bTexCookieScrollMode = None  # Type: choices
+        self.fScrollSpeedU = None  # Type: float
+        self.fScrollSpeedV = None  # Type: float
+        self.bNegLight = None  # Type: choices
+        self.m_bSRO_Brush = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_StaticProp = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_DynProps = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bSRO_Trans = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.ReverseDir = entity_data.get('reversedir', None)  # Type: choices
+        instance.Enabled = entity_data.get('enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.style = entity_data.get('style', None)  # Type: choices
+        instance.LightColorAmbient = parse_int_vector(entity_data.get('lightcolorambient', "0 0 0 0"))  # Type: color255
+        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 255 255 1"))  # Type: color255
+        instance.Intensity = float(entity_data.get('intensity', 8000))  # Type: float
+        instance.SpecMultiplier = float(entity_data.get('specmultiplier', 1))  # Type: float
+        instance.Range = float(entity_data.get('range', 1000))  # Type: float
+        instance.phi = float(entity_data.get('phi', 60))  # Type: float
+        instance.theta = float(entity_data.get('theta', 30))  # Type: float
+        instance.angularFallOff = float(entity_data.get('angularfalloff', 2))  # Type: float
+        instance.LightType = entity_data.get('lighttype', None)  # Type: choices
+        instance.HasShadow = entity_data.get('hasshadow', None)  # Type: choices
+        instance.ShadowLod = entity_data.get('shadowlod', None)  # Type: choices
+        instance.NearZ = float(entity_data.get('nearz', 2))  # Type: float
+        instance.DepthBias = float(entity_data.get('depthbias', 0.0002))  # Type: float
+        instance.SlopeDepthBias = float(entity_data.get('slopedepthbias', 0.2))  # Type: float
+        instance.NormalBias = float(entity_data.get('normalbias', 1.0))  # Type: float
+        instance.ShadowFOV = float(entity_data.get('shadowfov', 0))  # Type: float
+        instance.ShadowRadius = float(entity_data.get('shadowradius', -1.0))  # Type: float
+        instance.bTexLight = entity_data.get('btexlight', None)  # Type: choices
+        instance.texName = entity_data.get('texname', None)  # Type: string
+        instance.TexCookieFramesX = parse_source_value(entity_data.get('texcookieframesx', 1))  # Type: integer
+        instance.TexCookieFramesY = parse_source_value(entity_data.get('texcookieframesy', 1))  # Type: integer
+        instance.TexCookieFps = float(entity_data.get('texcookiefps', 0))  # Type: float
+        instance.bTexCookieScrollMode = entity_data.get('btexcookiescrollmode', None)  # Type: choices
+        instance.fScrollSpeedU = float(entity_data.get('fscrollspeedu', 0))  # Type: float
+        instance.fScrollSpeedV = float(entity_data.get('fscrollspeedv', 0))  # Type: float
+        instance.bNegLight = entity_data.get('bneglight', None)  # Type: choices
+        instance.m_bSRO_Brush = entity_data.get('m_bsro_brush', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_StaticProp = entity_data.get('m_bsro_staticprop', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_DynProps = entity_data.get('m_bsro_dynprops', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bSRO_Trans = entity_data.get('m_bsro_trans', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class godrays_settings(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.TargetGodRays = None  # Type: string
+        self.TransitionTime = None  # Type: integer
+        self.LightType = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.EnableGodRays = 1  # Type: integer
+        self.Density = 1.0  # Type: float
+        self.Weight = 1.0  # Type: float
+        self.Decay = 1.0  # Type: float
+        self.Exposure = 2.5  # Type: float
+        self.DistFactor = 1.0  # Type: float
+        self.DiskRadius = 0.02  # Type: float
+        self.DiskInnerSizePercent = 0.75  # Type: float
+        self.ColorInner = [128, 200, 255, 1]  # Type: color255
+        self.ColorOuter = [255, 255, 164, 1]  # Type: color255
+        self.ColorRays = [200, 200, 255, 1]  # Type: color255
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.TargetGodRays = entity_data.get('targetgodrays', None)  # Type: string
+        instance.TransitionTime = parse_source_value(entity_data.get('transitiontime', 0))  # Type: integer
+        instance.LightType = entity_data.get('lighttype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.EnableGodRays = parse_source_value(entity_data.get('enablegodrays', 1))  # Type: integer
+        instance.Density = float(entity_data.get('density', 1.0))  # Type: float
+        instance.Weight = float(entity_data.get('weight', 1.0))  # Type: float
+        instance.Decay = float(entity_data.get('decay', 1.0))  # Type: float
+        instance.Exposure = float(entity_data.get('exposure', 2.5))  # Type: float
+        instance.DistFactor = float(entity_data.get('distfactor', 1.0))  # Type: float
+        instance.DiskRadius = float(entity_data.get('diskradius', 0.02))  # Type: float
+        instance.DiskInnerSizePercent = float(entity_data.get('diskinnersizepercent', 0.75))  # Type: float
+        instance.ColorInner = parse_int_vector(entity_data.get('colorinner', "128 200 255 1"))  # Type: color255
+        instance.ColorOuter = parse_int_vector(entity_data.get('colorouter', "255 255 164 1"))  # Type: color255
+        instance.ColorRays = parse_int_vector(entity_data.get('colorrays', "200 200 255 1"))  # Type: color255
+
+
+class newLights_settings(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.TargetNewLightEntity = None  # Type: string
+        self.TransitionTime = None  # Type: integer
+        self.LightType = None  # Type: choices
+        self.Enabled = 1  # Type: integer
+        self.LightColorAmbient = [0, 0, 0, 0]  # Type: color255
+        self.LightColor = [255, 255, 255, 1]  # Type: color255
+        self.style = None  # Type: choices
+        self.Intensity = 8000  # Type: float
+        self.SpecMultiplier = 1  # Type: float
+        self.Range = 1000  # Type: float
+        self.falloffQuadratic = None  # Type: float
+        self.falloffLinear = None  # Type: float
+        self.falloffConstant = 1  # Type: float
+        self.phi = 60  # Type: float
+        self.theta = 30  # Type: float
+        self.angularFallOff = 2  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.TargetNewLightEntity = entity_data.get('targetnewlightentity', None)  # Type: string
+        instance.TransitionTime = parse_source_value(entity_data.get('transitiontime', 0))  # Type: integer
+        instance.LightType = entity_data.get('lighttype', None)  # Type: choices
+        instance.Enabled = parse_source_value(entity_data.get('enabled', 1))  # Type: integer
+        instance.LightColorAmbient = parse_int_vector(entity_data.get('lightcolorambient', "0 0 0 0"))  # Type: color255
+        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 255 255 1"))  # Type: color255
+        instance.style = entity_data.get('style', None)  # Type: choices
+        instance.Intensity = float(entity_data.get('intensity', 8000))  # Type: float
+        instance.SpecMultiplier = float(entity_data.get('specmultiplier', 1))  # Type: float
+        instance.Range = float(entity_data.get('range', 1000))  # Type: float
+        instance.falloffQuadratic = float(entity_data.get('falloffquadratic', 0))  # Type: float
+        instance.falloffLinear = float(entity_data.get('fallofflinear', 0))  # Type: float
+        instance.falloffConstant = float(entity_data.get('falloffconstant', 1))  # Type: float
+        instance.phi = float(entity_data.get('phi', 60))  # Type: float
+        instance.theta = float(entity_data.get('theta', 30))  # Type: float
+        instance.angularFallOff = float(entity_data.get('angularfalloff', 2))  # Type: float
+
+
+class newlights_gbuffersettings(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.Enable4WaysFastPath = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.DisableGbufferOnSecondaryCams = None  # Type: choices
+        self.DisableGbufferOnRefractions = None  # Type: choices
+        self.DisableGbufferOnReflections = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.Enable4WaysFastPath = entity_data.get('enable4waysfastpath', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.DisableGbufferOnSecondaryCams = entity_data.get('disablegbufferonsecondarycams', None)  # Type: choices
+        instance.DisableGbufferOnRefractions = entity_data.get('disablegbufferonrefractions', None)  # Type: choices
+        instance.DisableGbufferOnReflections = entity_data.get('disablegbufferonreflections', None)  # Type: choices
+
+
+class newLights_Spawner(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.LightType = None  # Type: choices
+        self.NumLights = 100  # Type: integer
+        self.NumLightsInRow = 10  # Type: integer
+        self.LightRange = 250  # Type: float
+        self.LightIntensity = 4000  # Type: float
+        self.RowSpaceing = 100  # Type: float
+        self.ColSpacing = 100  # Type: float
+        self.RandomColor = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.LightColor = [255, 255, 255, 1]  # Type: color255
+        self.SpawnDir_Forward = [1.0, 0.0, 0.0]  # Type: vector
+        self.SpawnDir_Right = [0.0, 1.0, 0.0]  # Type: vector
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.LightType = entity_data.get('lighttype', None)  # Type: choices
+        instance.NumLights = parse_source_value(entity_data.get('numlights', 100))  # Type: integer
+        instance.NumLightsInRow = parse_source_value(entity_data.get('numlightsinrow', 10))  # Type: integer
+        instance.LightRange = float(entity_data.get('lightrange', 250))  # Type: float
+        instance.LightIntensity = float(entity_data.get('lightintensity', 4000))  # Type: float
+        instance.RowSpaceing = float(entity_data.get('rowspaceing', 100))  # Type: float
+        instance.ColSpacing = float(entity_data.get('colspacing', 100))  # Type: float
+        instance.RandomColor = entity_data.get('randomcolor', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 255 255 1"))  # Type: color255
+        instance.SpawnDir_Forward = parse_float_vector(entity_data.get('spawndir_forward', "1.0 0.0 0.0"))  # Type: vector
+        instance.SpawnDir_Right = parse_float_vector(entity_data.get('spawndir_right', "0.0 1.0 0.0"))  # Type: vector
+
+
+class newxog_global(Parentname, Targetname):
+    icon_sprite = "editor/xog_global.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.Enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.XogType = None  # Type: choices
+        self.skyColor = [0, 0, 255, 255]  # Type: color255
+        self.skyBlendFactor = 0.4  # Type: float
+        self.colorMode = None  # Type: choices
+        self.texName = None  # Type: string
+        self.colorTop = [255, 0, 0, 255]  # Type: color255
+        self.colorBottom = [0, 255, 0, 255]  # Type: color255
+        self.distStart = 50  # Type: float
+        self.distEnd = 2000  # Type: float
+        self.distDensity = 1.0  # Type: float
+        self.opacityOffsetTop = None  # Type: float
+        self.opacityOffsetBottom = None  # Type: float
+        self.htZStart = None  # Type: float
+        self.htZEnd = 400  # Type: float
+        self.htZColStart = None  # Type: float
+        self.htZColEnd = 400  # Type: float
+        self.noise1ScrollSpeed = None  # Failed to parse value type due to could not convert string to float: '0.006,'  # Type: vector
+        self.noise1Tiling = [0.34, 0.34, 0.34, 0.0]  # Type: vector
+        self.noise2ScrollSpeed = None  # Failed to parse value type due to could not convert string to float: '0.0035,'  # Type: vector
+        self.noise2Tiling = [0.24, 0.24, 0.24, 0.0]  # Type: vector
+        self.noiseContrast = 1.0  # Type: float
+        self.noiseMultiplier = 1.0  # Type: float
+        self.RadiusX = None  # Type: float
+        self.RadiusY = None  # Type: float
+        self.RadiusZ = None  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.Enabled = entity_data.get('enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.XogType = entity_data.get('xogtype', None)  # Type: choices
+        instance.skyColor = parse_int_vector(entity_data.get('skycolor', "0 0 255 255"))  # Type: color255
+        instance.skyBlendFactor = float(entity_data.get('skyblendfactor', 0.4))  # Type: float
+        instance.colorMode = entity_data.get('colormode', None)  # Type: choices
+        instance.texName = entity_data.get('texname', None)  # Type: string
+        instance.colorTop = parse_int_vector(entity_data.get('colortop', "255 0 0 255"))  # Type: color255
+        instance.colorBottom = parse_int_vector(entity_data.get('colorbottom', "0 255 0 255"))  # Type: color255
+        instance.distStart = float(entity_data.get('diststart', 50))  # Type: float
+        instance.distEnd = float(entity_data.get('distend', 2000))  # Type: float
+        instance.distDensity = float(entity_data.get('distdensity', 1.0))  # Type: float
+        instance.opacityOffsetTop = float(entity_data.get('opacityoffsettop', 0))  # Type: float
+        instance.opacityOffsetBottom = float(entity_data.get('opacityoffsetbottom', 0))  # Type: float
+        instance.htZStart = float(entity_data.get('htzstart', 0))  # Type: float
+        instance.htZEnd = float(entity_data.get('htzend', 400))  # Type: float
+        instance.htZColStart = float(entity_data.get('htzcolstart', 0))  # Type: float
+        instance.htZColEnd = float(entity_data.get('htzcolend', 400))  # Type: float
+        instance.noise1ScrollSpeed = parse_float_vector(entity_data.get('noise1scrollspeed', "0.007 0.006, -0.01 0.0"))  # Type: vector
+        instance.noise1Tiling = parse_float_vector(entity_data.get('noise1tiling', "0.34 0.34 0.34 0.0"))  # Type: vector
+        instance.noise2ScrollSpeed = parse_float_vector(entity_data.get('noise2scrollspeed', "0.0035, 0.003, -0.005 0.0"))  # Type: vector
+        instance.noise2Tiling = parse_float_vector(entity_data.get('noise2tiling', "0.24 0.24 0.24 0.0"))  # Type: vector
+        instance.noiseContrast = float(entity_data.get('noisecontrast', 1.0))  # Type: float
+        instance.noiseMultiplier = float(entity_data.get('noisemultiplier', 1.0))  # Type: float
+        instance.RadiusX = float(entity_data.get('radiusx', 0))  # Type: float
+        instance.RadiusY = float(entity_data.get('radiusy', 0))  # Type: float
+        instance.RadiusZ = float(entity_data.get('radiusz', 0))  # Type: float
+
+
+class newxog_settings(Parentname, Targetname):
+    icon_sprite = "editor/xog_settings.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.TargetNewLightEntity = None  # Type: string
+        self.TransitionTime = None  # Type: integer
+        self.Enabled = 1  # Type: integer
+        self.skyColorTop = [112, 104, 255, 255]  # Type: color255
+        self.skyBlendType = None  # Type: integer
+        self.skyBlendFactor = 0.25  # Type: float
+        self.colorTop = [61, 255, 235, 255]  # Type: color255
+        self.colorBottom = [255, 62, 235, 255]  # Type: color255
+        self.distStart = 50  # Type: float
+        self.distEnd = 2000  # Type: float
+        self.distDensity = 1.0  # Type: float
+        self.opacityOffsetTop = None  # Type: float
+        self.opacityOffsetBottom = None  # Type: float
+        self.htZStart = None  # Type: float
+        self.htZEnd = 2000  # Type: float
+        self.htZColStart = None  # Type: float
+        self.htZColEnd = 400  # Type: float
+        self.noise1ScrollSpeed = [0.007, 0.006, -0.01, 0.0]  # Type: vector
+        self.noise1Tiling = [0.34, 0.34, 0.34, 0.0]  # Type: vector
+        self.noise2ScrollSpeed = [0.0035, 0.003, -0.005, 0.0]  # Type: vector
+        self.noise2Tiling = [0.24, 0.24, 0.24, 0.0]  # Type: vector
+        self.noiseContrast = 1.0  # Type: float
+        self.noiseMultiplier = 1.0  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.TargetNewLightEntity = entity_data.get('targetnewlightentity', None)  # Type: string
+        instance.TransitionTime = parse_source_value(entity_data.get('transitiontime', 0))  # Type: integer
+        instance.Enabled = parse_source_value(entity_data.get('enabled', 1))  # Type: integer
+        instance.skyColorTop = parse_int_vector(entity_data.get('skycolortop', "112 104 255 255"))  # Type: color255
+        instance.skyBlendType = parse_source_value(entity_data.get('skyblendtype', 0))  # Type: integer
+        instance.skyBlendFactor = float(entity_data.get('skyblendfactor', 0.25))  # Type: float
+        instance.colorTop = parse_int_vector(entity_data.get('colortop', "61 255 235 255"))  # Type: color255
+        instance.colorBottom = parse_int_vector(entity_data.get('colorbottom', "255 62 235 255"))  # Type: color255
+        instance.distStart = float(entity_data.get('diststart', 50))  # Type: float
+        instance.distEnd = float(entity_data.get('distend', 2000))  # Type: float
+        instance.distDensity = float(entity_data.get('distdensity', 1.0))  # Type: float
+        instance.opacityOffsetTop = float(entity_data.get('opacityoffsettop', 0))  # Type: float
+        instance.opacityOffsetBottom = float(entity_data.get('opacityoffsetbottom', 0))  # Type: float
+        instance.htZStart = float(entity_data.get('htzstart', 0))  # Type: float
+        instance.htZEnd = float(entity_data.get('htzend', 2000))  # Type: float
+        instance.htZColStart = float(entity_data.get('htzcolstart', 0))  # Type: float
+        instance.htZColEnd = float(entity_data.get('htzcolend', 400))  # Type: float
+        instance.noise1ScrollSpeed = parse_float_vector(entity_data.get('noise1scrollspeed', "0.007 0.006 -0.01 0.0"))  # Type: vector
+        instance.noise1Tiling = parse_float_vector(entity_data.get('noise1tiling', "0.34 0.34 0.34 0.0"))  # Type: vector
+        instance.noise2ScrollSpeed = parse_float_vector(entity_data.get('noise2scrollspeed', "0.0035 0.003 -0.005 0.0"))  # Type: vector
+        instance.noise2Tiling = parse_float_vector(entity_data.get('noise2tiling', "0.24 0.24 0.24 0.0"))  # Type: vector
+        instance.noiseContrast = float(entity_data.get('noisecontrast', 1.0))  # Type: float
+        instance.noiseMultiplier = float(entity_data.get('noisemultiplier', 1.0))  # Type: float
+
+
+class newxog_volume(TriggerOnce):
+    def __init__(self):
+        super(TriggerOnce).__init__()
+        self.Enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.XogType = None  # Type: choices
+        self.colorMode = None  # Type: choices
+        self.texName = None  # Type: string
+        self.colorTop = [255, 0, 0, 255]  # Type: color255
+        self.colorBottom = [0, 255, 0, 255]  # Type: color255
+        self.distStart = 50  # Type: float
+        self.distEnd = 2000  # Type: float
+        self.distDensity = 1.0  # Type: float
+        self.opacityOffsetTop = None  # Type: float
+        self.opacityOffsetBottom = None  # Type: float
+        self.htZStart = None  # Type: float
+        self.htZEnd = 400  # Type: float
+        self.htZColStart = None  # Type: float
+        self.htZColEnd = 400  # Type: float
+        self.noise1ScrollSpeed = [0.01095, 0.00855, -0.02265, 0.0]  # Type: vector
+        self.noise1Tiling = [1.32, 1.32, 1.32, 0.0]  # Type: vector
+        self.noise2ScrollSpeed = [0.00525, 0.00495, -0.0075, 0.0]  # Type: vector
+        self.noise2Tiling = [0.96, 0.96, 0.96, 0.0]  # Type: vector
+        self.noiseContrast = 1.0  # Type: float
+        self.noiseMultiplier = 1.0  # Type: float
+        self.EnableVol_Height = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        TriggerOnce.from_dict(instance, entity_data)
+        instance.Enabled = entity_data.get('enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.XogType = entity_data.get('xogtype', None)  # Type: choices
+        instance.colorMode = entity_data.get('colormode', None)  # Type: choices
+        instance.texName = entity_data.get('texname', None)  # Type: string
+        instance.colorTop = parse_int_vector(entity_data.get('colortop', "255 0 0 255"))  # Type: color255
+        instance.colorBottom = parse_int_vector(entity_data.get('colorbottom', "0 255 0 255"))  # Type: color255
+        instance.distStart = float(entity_data.get('diststart', 50))  # Type: float
+        instance.distEnd = float(entity_data.get('distend', 2000))  # Type: float
+        instance.distDensity = float(entity_data.get('distdensity', 1.0))  # Type: float
+        instance.opacityOffsetTop = float(entity_data.get('opacityoffsettop', 0))  # Type: float
+        instance.opacityOffsetBottom = float(entity_data.get('opacityoffsetbottom', 0))  # Type: float
+        instance.htZStart = float(entity_data.get('htzstart', 0))  # Type: float
+        instance.htZEnd = float(entity_data.get('htzend', 400))  # Type: float
+        instance.htZColStart = float(entity_data.get('htzcolstart', 0))  # Type: float
+        instance.htZColEnd = float(entity_data.get('htzcolend', 400))  # Type: float
+        instance.noise1ScrollSpeed = parse_float_vector(entity_data.get('noise1scrollspeed', "0.01095 0.00855 -0.02265 0.0"))  # Type: vector
+        instance.noise1Tiling = parse_float_vector(entity_data.get('noise1tiling', "1.32 1.32 1.32 0.0"))  # Type: vector
+        instance.noise2ScrollSpeed = parse_float_vector(entity_data.get('noise2scrollspeed', "0.00525 0.00495 -0.0075 0.0"))  # Type: vector
+        instance.noise2Tiling = parse_float_vector(entity_data.get('noise2tiling', "0.96 0.96 0.96 0.0"))  # Type: vector
+        instance.noiseContrast = float(entity_data.get('noisecontrast', 1.0))  # Type: float
+        instance.noiseMultiplier = float(entity_data.get('noisemultiplier', 1.0))  # Type: float
+        instance.EnableVol_Height = entity_data.get('enablevol_height', None)  # Type: choices
 
 
 class light(Light, Targetname):
@@ -2891,10 +3551,10 @@ class light_environment(Angles):
         instance.SunSpreadAngle = float(entity_data.get('sunspreadangle', 0))  # Type: float
 
 
-class light_spot(Light, Angles, Targetname):
+class light_spot(Angles, Light, Targetname):
     def __init__(self):
-        super(Light).__init__()
         super(Angles).__init__()
+        super(Light).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
         self.target = None  # Type: target_destination
@@ -2906,8 +3566,8 @@ class light_spot(Light, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Light.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        Light.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.target = entity_data.get('target', None)  # Type: target_destination
@@ -2960,7 +3620,8 @@ class shadow_control(Targetname):
         self.angles = "80 30 0"  # Type: string
         self.color = [128, 128, 128]  # Type: color255
         self.distance = 75  # Type: float
-        self.disableallshadows = None  # Type: choices
+        self.disableallshadows = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ForceBlobShadows = "CHOICES NOT SUPPORTED"  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -2969,7 +3630,8 @@ class shadow_control(Targetname):
         instance.angles = entity_data.get('angles', "80 30 0")  # Type: string
         instance.color = parse_int_vector(entity_data.get('color', "128 128 128"))  # Type: color255
         instance.distance = float(entity_data.get('distance', 75))  # Type: float
-        instance.disableallshadows = entity_data.get('disableallshadows', None)  # Type: choices
+        instance.disableallshadows = entity_data.get('disableallshadows', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ForceBlobShadows = entity_data.get('forceblobshadows', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
 class color_correction(EnableDisable, Targetname):
@@ -2984,6 +3646,7 @@ class color_correction(EnableDisable, Targetname):
         self.filename = None  # Type: string
         self.fadeInDuration = 0.0  # Type: float
         self.fadeOutDuration = 0.0  # Type: float
+        self.exclusive = None  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -2996,6 +3659,22 @@ class color_correction(EnableDisable, Targetname):
         instance.filename = entity_data.get('filename', None)  # Type: string
         instance.fadeInDuration = float(entity_data.get('fadeinduration', 0.0))  # Type: float
         instance.fadeOutDuration = float(entity_data.get('fadeoutduration', 0.0))  # Type: float
+        instance.exclusive = entity_data.get('exclusive', None)  # Type: choices
+
+
+class fog_volume(EnableDisable, Targetname):
+    def __init__(self):
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+        self.FogName = None  # Type: target_destination
+        self.ColorCorrectionName = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.FogName = entity_data.get('fogname', None)  # Type: target_destination
+        instance.ColorCorrectionName = entity_data.get('colorcorrectionname', None)  # Type: target_destination
 
 
 class color_correction_volume(EnableDisable, Targetname):
@@ -3039,12 +3718,12 @@ class Mover(Base):
         instance.PositionInterpolator = entity_data.get('positioninterpolator', None)  # Type: choices
 
 
-class func_movelinear(Parentname, Origin, Targetname, RenderFields):
+class func_movelinear(Parentname, Targetname, Origin, RenderFields):
     def __init__(self):
         super(RenderFields).__init__()
         super(Parentname).__init__()
-        super(Origin).__init__()
         super(Targetname).__init__()
+        super(Origin).__init__()
         self.movedir = [0.0, 0.0, 0.0]  # Type: angle
         self.startposition = None  # Type: float
         self.speed = 100  # Type: integer
@@ -3056,8 +3735,8 @@ class func_movelinear(Parentname, Origin, Targetname, RenderFields):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
         instance.movedir = parse_float_vector(entity_data.get('movedir', "0 0 0"))  # Type: angle
         instance.startposition = float(entity_data.get('startposition', 0))  # Type: float
@@ -3068,41 +3747,43 @@ class func_movelinear(Parentname, Origin, Targetname, RenderFields):
         instance.stopsound = entity_data.get('stopsound', None)  # Type: sound
 
 
-class func_water_analog(Parentname, Origin, Targetname):
+class func_water_analog(Parentname, Targetname, Origin):
     def __init__(self):
         super(Parentname).__init__()
-        super(Origin).__init__()
         super(Targetname).__init__()
+        super(Origin).__init__()
         self.movedir = [0.0, 0.0, 0.0]  # Type: angle
         self.startposition = None  # Type: float
         self.speed = 100  # Type: integer
         self.movedistance = 100  # Type: float
         self.startsound = None  # Type: sound
         self.stopsound = None  # Type: sound
+        self.WaterMaterial = "liquids/c4a1_water_green"  # Type: material
         self.WaveHeight = "3.0"  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         instance.movedir = parse_float_vector(entity_data.get('movedir', "0 0 0"))  # Type: angle
         instance.startposition = float(entity_data.get('startposition', 0))  # Type: float
         instance.speed = parse_source_value(entity_data.get('speed', 100))  # Type: integer
         instance.movedistance = float(entity_data.get('movedistance', 100))  # Type: float
         instance.startsound = entity_data.get('startsound', None)  # Type: sound
         instance.stopsound = entity_data.get('stopsound', None)  # Type: sound
+        instance.WaterMaterial = entity_data.get('watermaterial', "liquids/c4a1_water_green")  # Type: material
         instance.WaveHeight = entity_data.get('waveheight', "3.0")  # Type: string
 
 
-class func_rotating(Shadow, Angles, Origin, RenderFields, Targetname, Parentname):
+class func_rotating(Shadow, RenderFields, Origin, Targetname, Parentname, Angles):
     def __init__(self):
         super(RenderFields).__init__()
         super(Shadow).__init__()
-        super(Angles).__init__()
         super(Origin).__init__()
         super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.maxspeed = 100  # Type: integer
         self.fanfriction = 20  # Type: integer
         self.message = None  # Type: sound
@@ -3114,11 +3795,11 @@ class func_rotating(Shadow, Angles, Origin, RenderFields, Targetname, Parentname
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Shadow.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.maxspeed = parse_source_value(entity_data.get('maxspeed', 100))  # Type: integer
         instance.fanfriction = parse_source_value(entity_data.get('fanfriction', 20))  # Type: integer
         instance.message = entity_data.get('message', None)  # Type: sound
@@ -3128,15 +3809,15 @@ class func_rotating(Shadow, Angles, Origin, RenderFields, Targetname, Parentname
         instance.solidbsp = entity_data.get('solidbsp', None)  # Type: choices
 
 
-class func_platrot(Shadow, Angles, Origin, BasePlat, RenderFields, Targetname, Parentname):
+class func_platrot(Shadow, RenderFields, BasePlat, Origin, Targetname, Parentname, Angles):
     def __init__(self):
         super(RenderFields).__init__()
         super(Shadow).__init__()
-        super(Angles).__init__()
-        super(Origin).__init__()
         super(BasePlat).__init__()
+        super(Origin).__init__()
         super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.noise1 = None  # Type: sound
         self.noise2 = None  # Type: sound
         self.speed = 50  # Type: integer
@@ -3147,12 +3828,12 @@ class func_platrot(Shadow, Angles, Origin, BasePlat, RenderFields, Targetname, P
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Shadow.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        BasePlat.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
+        BasePlat.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.noise1 = entity_data.get('noise1', None)  # Type: sound
         instance.noise2 = entity_data.get('noise2', None)  # Type: sound
         instance.speed = parse_source_value(entity_data.get('speed', 50))  # Type: integer
@@ -3161,42 +3842,42 @@ class func_platrot(Shadow, Angles, Origin, BasePlat, RenderFields, Targetname, P
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
 
 
-class keyframe_track(Parentname, Angles, Targetname, KeyFrame):
+class keyframe_track(Parentname, Angles, KeyFrame, Targetname):
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
-        super(Targetname).__init__()
         super(KeyFrame).__init__()
+        super(Targetname).__init__()
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         KeyFrame.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
 
 
-class move_keyframed(Parentname, Mover, Targetname, KeyFrame):
+class move_keyframed(Parentname, Mover, KeyFrame, Targetname):
     def __init__(self):
         super(Parentname).__init__()
         super(Mover).__init__()
-        super(Targetname).__init__()
         super(KeyFrame).__init__()
+        super(Targetname).__init__()
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
         Mover.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         KeyFrame.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
 
 
-class move_track(Parentname, Mover, Targetname, KeyFrame):
+class move_track(Parentname, Mover, KeyFrame, Targetname):
     def __init__(self):
         super(Parentname).__init__()
         super(Mover).__init__()
-        super(Targetname).__init__()
         super(KeyFrame).__init__()
+        super(Targetname).__init__()
         self.WheelBaseLength = 50  # Type: integer
         self.Damage = None  # Type: integer
         self.NoRotate = None  # Type: choices
@@ -3205,8 +3886,8 @@ class move_track(Parentname, Mover, Targetname, KeyFrame):
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
         Mover.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         KeyFrame.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.WheelBaseLength = parse_source_value(entity_data.get('wheelbaselength', 50))  # Type: integer
         instance.Damage = parse_source_value(entity_data.get('damage', 0))  # Type: integer
         instance.NoRotate = entity_data.get('norotate', None)  # Type: choices
@@ -3243,36 +3924,36 @@ class RopeKeyFrame(DXLevelChoice):
         instance.NoWind = entity_data.get('nowind', None)  # Type: choices
 
 
-class keyframe_rope(Parentname, Targetname, KeyFrame, RopeKeyFrame):
+class keyframe_rope(Parentname, KeyFrame, Targetname, RopeKeyFrame):
     model = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Parentname).__init__()
-        super(Targetname).__init__()
         super(KeyFrame).__init__()
+        super(Targetname).__init__()
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         KeyFrame.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         RopeKeyFrame.from_dict(instance, entity_data)
 
 
-class move_rope(Parentname, Targetname, KeyFrame, RopeKeyFrame):
+class move_rope(Parentname, KeyFrame, Targetname, RopeKeyFrame):
     model = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Parentname).__init__()
-        super(Targetname).__init__()
         super(KeyFrame).__init__()
+        super(Targetname).__init__()
         self.PositionInterpolator = "CHOICES NOT SUPPORTED"  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         KeyFrame.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         RopeKeyFrame.from_dict(instance, entity_data)
         instance.PositionInterpolator = entity_data.get('positioninterpolator', "CHOICES NOT SUPPORTED")  # Type: choices
 
@@ -3287,14 +3968,14 @@ class Button(Base):
         Base.from_dict(instance, entity_data)
 
 
-class func_button(Button, DamageFilter, Origin, RenderFields, Targetname, Parentname):
+class func_button(RenderFields, Button, Origin, DamageFilter, Parentname, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
         super(Button).__init__()
-        super(DamageFilter).__init__()
         super(Origin).__init__()
-        super(Targetname).__init__()
+        super(DamageFilter).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self.movedir = [0.0, 0.0, 0.0]  # Type: angle
         self.speed = 5  # Type: integer
         self.health = None  # Type: integer
@@ -3310,12 +3991,12 @@ class func_button(Button, DamageFilter, Origin, RenderFields, Targetname, Parent
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Button.from_dict(instance, entity_data)
-        DamageFilter.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        Button.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
+        DamageFilter.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.movedir = parse_float_vector(entity_data.get('movedir', "0 0 0"))  # Type: angle
         instance.speed = parse_source_value(entity_data.get('speed', 5))  # Type: integer
         instance.health = parse_source_value(entity_data.get('health', 0))  # Type: integer
@@ -3330,15 +4011,25 @@ class func_button(Button, DamageFilter, Origin, RenderFields, Targetname, Parent
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
 
 
-class func_rot_button(Button, EnableDisable, Angles, Global, Origin, Targetname, Parentname):
+class func_detail_blocker(Empty):
     def __init__(self):
-        super(Button).__init__()
-        super(EnableDisable).__init__()
-        super(Angles).__init__()
+        super(Empty).__init__()
+        pass
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Empty.from_dict(instance, entity_data)
+
+
+class func_rot_button(Global, Button, Origin, Targetname, EnableDisable, Parentname, Angles):
+    def __init__(self):
         super(Global).__init__()
+        super(Button).__init__()
         super(Origin).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.master = None  # Type: string
         self.speed = 50  # Type: integer
         self.health = None  # Type: integer
@@ -3349,13 +4040,13 @@ class func_rot_button(Button, EnableDisable, Angles, Global, Origin, Targetname,
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Button.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
+        Button.from_dict(instance, entity_data)
         Origin.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.master = entity_data.get('master', None)  # Type: string
         instance.speed = parse_source_value(entity_data.get('speed', 50))  # Type: integer
         instance.health = parse_source_value(entity_data.get('health', 0))  # Type: integer
@@ -3365,13 +4056,13 @@ class func_rot_button(Button, EnableDisable, Angles, Global, Origin, Targetname,
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
 
 
-class momentary_rot_button(Angles, Origin, RenderFields, Targetname, Parentname):
+class momentary_rot_button(RenderFields, Origin, Targetname, Parentname, Angles):
     def __init__(self):
         super(RenderFields).__init__()
-        super(Angles).__init__()
         super(Origin).__init__()
         super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.speed = 50  # Type: integer
         self.master = None  # Type: string
         self.sounds = None  # Type: choices
@@ -3384,11 +4075,11 @@ class momentary_rot_button(Angles, Origin, RenderFields, Targetname, Parentname)
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.speed = parse_source_value(entity_data.get('speed', 50))  # Type: integer
         instance.master = entity_data.get('master', None)  # Type: string
         instance.sounds = entity_data.get('sounds', None)  # Type: choices
@@ -3400,13 +4091,13 @@ class momentary_rot_button(Angles, Origin, RenderFields, Targetname, Parentname)
         instance.solidbsp = entity_data.get('solidbsp', None)  # Type: choices
 
 
-class Door(Shadow, Global, RenderFields, Targetname, Parentname):
+class Door(Global, Shadow, RenderFields, Parentname, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
-        super(Shadow).__init__()
         super(Global).__init__()
-        super(Targetname).__init__()
+        super(Shadow).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self.speed = 100  # Type: integer
         self.master = None  # Type: string
         self.noise1 = None  # Type: sound
@@ -3430,11 +4121,11 @@ class Door(Shadow, Global, RenderFields, Targetname, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Shadow.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.speed = parse_source_value(entity_data.get('speed', 100))  # Type: integer
         instance.master = entity_data.get('master', None)  # Type: string
         instance.noise1 = entity_data.get('noise1', None)  # Type: sound
@@ -3457,7 +4148,7 @@ class Door(Shadow, Global, RenderFields, Targetname, Parentname):
         instance.loopmovesound = entity_data.get('loopmovesound', None)  # Type: choices
 
 
-class func_door(Origin, Door):
+class func_door(Door, Origin):
     def __init__(self):
         super(Door).__init__()
         super(Origin).__init__()
@@ -3466,36 +4157,36 @@ class func_door(Origin, Door):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Origin.from_dict(instance, entity_data)
         Door.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         instance.movedir = parse_float_vector(entity_data.get('movedir', "0 0 0"))  # Type: angle
         instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
 
 
-class func_door_rotating(Origin, Angles, Door):
+class func_door_rotating(Angles, Door, Origin):
     def __init__(self):
         super(Door).__init__()
-        super(Origin).__init__()
         super(Angles).__init__()
+        super(Origin).__init__()
         self.distance = 90  # Type: integer
         self.solidbsp = None  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Origin.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Door.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         instance.distance = parse_source_value(entity_data.get('distance', 90))  # Type: integer
         instance.solidbsp = entity_data.get('solidbsp', None)  # Type: choices
 
 
-class prop_door_rotating(Angles, Global, Targetname, Studiomodel, Parentname):
+class prop_door_rotating(Global, Targetname, Studiomodel, Parentname, Angles):
     def __init__(self):
-        super(Angles).__init__()
         super(Global).__init__()
         super(Targetname).__init__()
         super(Studiomodel).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
         self.origin = [0, 0, 0]
         self.slavename = None  # Type: target_destination
         self.hardware = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -3517,11 +4208,11 @@ class prop_door_rotating(Angles, Global, Targetname, Studiomodel, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         Studiomodel.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.slavename = entity_data.get('slavename', None)  # Type: target_destination
         instance.hardware = entity_data.get('hardware', "CHOICES NOT SUPPORTED")  # Type: choices
@@ -3583,18 +4274,18 @@ class BModelParticleSpawner(Base):
         instance.Frozen = entity_data.get('frozen', None)  # Type: choices
 
 
-class func_dustmotes(Targetname, BModelParticleSpawner):
+class func_dustmotes(BModelParticleSpawner, Targetname):
     def __init__(self):
-        super(Targetname).__init__()
         super(BModelParticleSpawner).__init__()
+        super(Targetname).__init__()
         self.SizeMin = "10"  # Type: string
         self.SizeMax = "20"  # Type: string
         self.Alpha = 255  # Type: integer
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
         BModelParticleSpawner.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.SizeMin = entity_data.get('sizemin', "10")  # Type: string
         instance.SizeMax = entity_data.get('sizemax', "20")  # Type: string
         instance.Alpha = parse_source_value(entity_data.get('alpha', 255))  # Type: integer
@@ -3627,18 +4318,18 @@ class func_smokevolume(Targetname):
         instance.Density = float(entity_data.get('density', 1))  # Type: float
 
 
-class func_dustcloud(Targetname, BModelParticleSpawner):
+class func_dustcloud(BModelParticleSpawner, Targetname):
     def __init__(self):
-        super(Targetname).__init__()
         super(BModelParticleSpawner).__init__()
+        super(Targetname).__init__()
         self.Alpha = 30  # Type: integer
         self.SizeMin = "100"  # Type: string
         self.SizeMax = "200"  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
         BModelParticleSpawner.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.Alpha = parse_source_value(entity_data.get('alpha', 30))  # Type: integer
         instance.SizeMin = entity_data.get('sizemin', "100")  # Type: string
         instance.SizeMax = entity_data.get('sizemax', "200")  # Type: string
@@ -3715,12 +4406,12 @@ class logic_auto(Base):
         instance.globalstate = entity_data.get('globalstate', None)  # Type: choices
 
 
-class point_viewcontrol(Parentname, Angles, Targetname):
+class point_viewcontrol(Angles, Targetname, Parentname):
     viewport_model = "models/editor/camera.mdl"
     def __init__(self):
-        super(Parentname).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
+        super(Parentname).__init__()
         self.origin = [0, 0, 0]
         self.target = None  # Type: target_destination
         self.targetattachment = None  # Type: string
@@ -3733,9 +4424,9 @@ class point_viewcontrol(Parentname, Angles, Targetname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.target = entity_data.get('target', None)  # Type: target_destination
         instance.targetattachment = entity_data.get('targetattachment', None)  # Type: string
@@ -4007,12 +4698,12 @@ class logic_collision_pair(Targetname):
         instance.startdisabled = entity_data.get('startdisabled', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class env_microphone(Parentname, EnableDisable, Targetname):
+class env_microphone(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/env_microphone.vmt"
     def __init__(self):
         super(Parentname).__init__()
-        super(EnableDisable).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
         self.target = None  # Type: target_destination
         self.SpeakerName = None  # Type: target_destination
@@ -4025,8 +4716,8 @@ class env_microphone(Parentname, EnableDisable, Targetname):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.target = entity_data.get('target', None)  # Type: target_destination
         instance.SpeakerName = entity_data.get('speakername', None)  # Type: target_destination
@@ -4264,6 +4955,18 @@ class filter_multi(BaseFilter):
         instance.Filter05 = entity_data.get('filter05', None)  # Type: filterclass
 
 
+class filter_activator_model(BaseFilter):
+    icon_sprite = "editor/filter_name.vmt"
+    def __init__(self):
+        super(BaseFilter).__init__()
+        self.model = None  # Type: studio
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFilter.from_dict(instance, entity_data)
+        instance.model = entity_data.get('model', None)  # Type: studio
+
+
 class filter_activator_name(BaseFilter):
     icon_sprite = "editor/filter_name.vmt"
     def __init__(self):
@@ -4329,11 +5032,11 @@ class filter_enemy(BaseFilter):
         instance.filter_max_per_enemy = parse_source_value(entity_data.get('filter_max_per_enemy', 0))  # Type: integer
 
 
-class point_anglesensor(Parentname, EnableDisable, Targetname):
+class point_anglesensor(Parentname, Targetname, EnableDisable):
     def __init__(self):
         super(Parentname).__init__()
-        super(EnableDisable).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
         self.target = None  # Type: target_destination
         self.lookatname = None  # Type: target_destination
@@ -4343,8 +5046,8 @@ class point_anglesensor(Parentname, EnableDisable, Targetname):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.target = entity_data.get('target', None)  # Type: target_destination
         instance.lookatname = entity_data.get('lookatname', None)  # Type: target_destination
@@ -4390,21 +5093,21 @@ class point_velocitysensor(Targetname):
         instance.enabled = entity_data.get('enabled', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class point_proximity_sensor(Parentname, EnableDisable, Angles, Targetname):
+class point_proximity_sensor(Parentname, Angles, Targetname, EnableDisable):
     def __init__(self):
         super(Parentname).__init__()
-        super(EnableDisable).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
         self.target = None  # Type: target_destination
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.target = entity_data.get('target', None)  # Type: target_destination
 
@@ -4462,13 +5165,13 @@ class point_playermoveconstraint(Targetname):
         instance.speedfactor = float(entity_data.get('speedfactor', 0.15))  # Type: float
 
 
-class func_physbox(BreakableBrush, RenderFields, Origin):
+class func_physbox(RenderFields, BreakableBrush, Origin):
     def __init__(self):
         super(BreakableBrush).__init__()
         super(RenderFields).__init__()
         super(Shadow).__init__()
-        super(Targetname).__init__()
         super(Origin).__init__()
+        super(Targetname).__init__()
         self._minlight = None  # Type: string
         self.Damagetype = None  # Type: choices
         self.massScale = 0  # Type: float
@@ -4481,10 +5184,10 @@ class func_physbox(BreakableBrush, RenderFields, Origin):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Shadow.from_dict(instance, entity_data)
-        BreakableBrush.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        BreakableBrush.from_dict(instance, entity_data)
         Origin.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
         instance.Damagetype = entity_data.get('damagetype', None)  # Type: choices
         instance.massScale = float(entity_data.get('massscale', 0))  # Type: float
@@ -4829,7 +5532,7 @@ class ForceController(Targetname):
         instance.forcetime = entity_data.get('forcetime', "0")  # Type: string
 
 
-class phys_thruster(ForceController, Angles):
+class phys_thruster(Angles, ForceController):
     def __init__(self):
         super(ForceController).__init__()
         super(Angles).__init__()
@@ -4838,8 +5541,8 @@ class phys_thruster(ForceController, Angles):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        ForceController.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        ForceController.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.force = entity_data.get('force', "0")  # Type: string
 
@@ -4880,12 +5583,12 @@ class phys_motor(Targetname):
         instance.attach1 = entity_data.get('attach1', None)  # Type: target_destination
 
 
-class phys_magnet(Parentname, Angles, Targetname, Studiomodel):
+class phys_magnet(Parentname, Studiomodel, Angles, Targetname):
     def __init__(self):
         super(Parentname).__init__()
+        super(Studiomodel).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
-        super(Studiomodel).__init__()
         self.origin = [0, 0, 0]
         self.forcelimit = 0  # Type: float
         self.torquelimit = 0  # Type: float
@@ -4896,9 +5599,9 @@ class phys_magnet(Parentname, Angles, Targetname, Studiomodel):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
-        Studiomodel.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.forcelimit = float(entity_data.get('forcelimit', 0))  # Type: float
         instance.torquelimit = float(entity_data.get('torquelimit', 0))  # Type: float
@@ -4918,10 +5621,10 @@ class prop_detail_base(Base):
         instance.model = entity_data.get('model', None)  # Type: studio
 
 
-class prop_static_base(DXLevelChoice, Angles):
+class prop_static_base(Angles, DXLevelChoice):
     def __init__(self):
-        super(DXLevelChoice).__init__()
         super(Angles).__init__()
+        super(DXLevelChoice).__init__()
         self.model = None  # Type: studio
         self.skin = None  # Type: integer
         self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -4940,8 +5643,8 @@ class prop_static_base(DXLevelChoice, Angles):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DXLevelChoice.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
         instance.model = entity_data.get('model', None)  # Type: studio
         instance.skin = parse_source_value(entity_data.get('skin', 0))  # Type: integer
         instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
@@ -4974,16 +5677,16 @@ class BaseFadeProp(Base):
         instance.fadescale = float(entity_data.get('fadescale', 1))  # Type: float
 
 
-class prop_dynamic_base(DXLevelChoice, BaseFadeProp, BreakableProp, Angles, Global, RenderFields, Studiomodel, Parentname):
+class prop_dynamic_base(Global, BreakableProp, RenderFields, BaseFadeProp, Studiomodel, Parentname, Angles, DXLevelChoice):
     def __init__(self):
         super(BreakableProp).__init__()
         super(RenderFields).__init__()
-        super(DXLevelChoice).__init__()
-        super(BaseFadeProp).__init__()
-        super(Angles).__init__()
         super(Global).__init__()
+        super(BaseFadeProp).__init__()
         super(Studiomodel).__init__()
         super(Parentname).__init__()
+        super(Angles).__init__()
+        super(DXLevelChoice).__init__()
         self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
         self.DefaultAnim = None  # Type: string
         self.RandomAnimation = None  # Type: choices
@@ -4995,14 +5698,14 @@ class prop_dynamic_base(DXLevelChoice, BaseFadeProp, BreakableProp, Angles, Glob
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DXLevelChoice.from_dict(instance, entity_data)
-        BaseFadeProp.from_dict(instance, entity_data)
-        BreakableProp.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
+        BreakableProp.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
         Studiomodel.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
         instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
         instance.DefaultAnim = entity_data.get('defaultanim', None)  # Type: string
         instance.RandomAnimation = entity_data.get('randomanimation', None)  # Type: choices
@@ -5035,17 +5738,44 @@ class prop_static(prop_static_base):
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
 
-class prop_dynamic(prop_dynamic_base, EnableDisable):
+class prop_dynamic(EnableDisable, prop_dynamic_base):
     def __init__(self):
         super(prop_dynamic_base).__init__()
         super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
+        self.IgnoreNPCCollisions = None  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        prop_dynamic_base.from_dict(instance, entity_data)
         EnableDisable.from_dict(instance, entity_data)
+        prop_dynamic_base.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.IgnoreNPCCollisions = entity_data.get('ignorenpccollisions', None)  # Type: choices
+
+
+class prop_dynamic_playertouch(EnableDisable, prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        super(EnableDisable).__init__()
+        self.origin = [0, 0, 0]
+        self.IgnoreNPCCollisions = None  # Type: choices
+        self.health = None  # Type: integer
+        self.m_szParticlesOnBreak = None  # Type: string
+        self.m_szSoundOnBreak = None  # Type: string
+        self.m_FDamageToPlayerOnTouch = 20  # Type: float
+        self.fGluonDmgMultiplier = 1.0  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.IgnoreNPCCollisions = entity_data.get('ignorenpccollisions', None)  # Type: choices
+        instance.health = parse_source_value(entity_data.get('health', 0))  # Type: integer
+        instance.m_szParticlesOnBreak = entity_data.get('m_szparticlesonbreak', None)  # Type: string
+        instance.m_szSoundOnBreak = entity_data.get('m_szsoundonbreak', None)  # Type: string
+        instance.m_FDamageToPlayerOnTouch = float(entity_data.get('m_fdamagetoplayerontouch', 20))  # Type: float
+        instance.fGluonDmgMultiplier = float(entity_data.get('fgluondmgmultiplier', 1.0))  # Type: float
 
 
 class prop_dynamic_override(prop_dynamic_base):
@@ -5061,15 +5791,15 @@ class prop_dynamic_override(prop_dynamic_base):
         instance.health = parse_source_value(entity_data.get('health', 0))  # Type: integer
 
 
-class BasePropPhysics(DXLevelChoice, BaseFadeProp, BreakableProp, Angles, Global, Studiomodel):
+class BasePropPhysics(Global, BreakableProp, BaseFadeProp, Studiomodel, Angles, DXLevelChoice):
     def __init__(self):
         super(BreakableProp).__init__()
-        super(DXLevelChoice).__init__()
-        super(BaseFadeProp).__init__()
-        super(Angles).__init__()
         super(Global).__init__()
+        super(BaseFadeProp).__init__()
         super(Studiomodel).__init__()
+        super(Angles).__init__()
         super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
         self.minhealthdmg = None  # Type: integer
         self.shadowcastdist = None  # Type: integer
         self.physdamagescale = 0.1  # Type: float
@@ -5081,16 +5811,18 @@ class BasePropPhysics(DXLevelChoice, BaseFadeProp, BreakableProp, Angles, Global
         self.damagetoenablemotion = None  # Type: integer
         self.forcetoenablemotion = None  # Type: float
         self.puntsound = None  # Type: sound
+        self.physicsdamagescale = 1.0  # Type: float
+        self.physicsdamagelimit = 0  # Type: float
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DXLevelChoice.from_dict(instance, entity_data)
-        BaseFadeProp.from_dict(instance, entity_data)
-        BreakableProp.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
+        BreakableProp.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
         Studiomodel.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
         instance.minhealthdmg = parse_source_value(entity_data.get('minhealthdmg', 0))  # Type: integer
         instance.shadowcastdist = parse_source_value(entity_data.get('shadowcastdist', 0))  # Type: integer
         instance.physdamagescale = float(entity_data.get('physdamagescale', 0.1))  # Type: float
@@ -5102,6 +5834,8 @@ class BasePropPhysics(DXLevelChoice, BaseFadeProp, BreakableProp, Angles, Global
         instance.damagetoenablemotion = parse_source_value(entity_data.get('damagetoenablemotion', 0))  # Type: integer
         instance.forcetoenablemotion = float(entity_data.get('forcetoenablemotion', 0))  # Type: float
         instance.puntsound = entity_data.get('puntsound', None)  # Type: sound
+        instance.physicsdamagescale = float(entity_data.get('physicsdamagescale', 1.0))  # Type: float
+        instance.physicsdamagelimit = float(entity_data.get('physicsdamagelimit', 0))  # Type: float
 
 
 class prop_physics_override(BasePropPhysics):
@@ -5117,7 +5851,7 @@ class prop_physics_override(BasePropPhysics):
         instance.health = parse_source_value(entity_data.get('health', 0))  # Type: integer
 
 
-class prop_physics(BasePropPhysics, RenderFields):
+class prop_physics(RenderFields, BasePropPhysics):
     def __init__(self):
         super(BasePropPhysics).__init__()
         super(RenderFields).__init__()
@@ -5125,9 +5859,26 @@ class prop_physics(BasePropPhysics, RenderFields):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        BasePropPhysics.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
+        BasePropPhysics.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class prop_physics_teleprop(RenderFields, BasePropPhysics):
+    def __init__(self):
+        super(BasePropPhysics).__init__()
+        super(RenderFields).__init__()
+        self.origin = [0, 0, 0]
+        self.m_bHammerEntity = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_szOwnnerPortalName = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        RenderFields.from_dict(instance, entity_data)
+        BasePropPhysics.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.m_bHammerEntity = entity_data.get('m_bhammerentity', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_szOwnnerPortalName = entity_data.get('m_szownnerportalname', None)  # Type: string
 
 
 class prop_physics_multiplayer(prop_physics):
@@ -5143,27 +5894,58 @@ class prop_physics_multiplayer(prop_physics):
         instance.physicsmode = entity_data.get('physicsmode', None)  # Type: choices
 
 
-class prop_ragdoll(DXLevelChoice, BaseFadeProp, EnableDisable, Angles, Studiomodel, Targetname):
+class prop_ragdoll(BaseFadeProp, EnableDisable, Studiomodel, Angles, Targetname, DXLevelChoice):
     def __init__(self):
-        super(DXLevelChoice).__init__()
         super(BaseFadeProp).__init__()
         super(EnableDisable).__init__()
-        super(Angles).__init__()
         super(Studiomodel).__init__()
+        super(Angles).__init__()
         super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
         self.origin = [0, 0, 0]
+        self.MimicName = None  # Type: string
         self.angleOverride = None  # Type: string
+        self.health = 100  # Type: integer
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DXLevelChoice.from_dict(instance, entity_data)
         BaseFadeProp.from_dict(instance, entity_data)
         EnableDisable.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
         Studiomodel.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.MimicName = entity_data.get('mimicname', None)  # Type: string
         instance.angleOverride = entity_data.get('angleoverride', None)  # Type: string
+        instance.health = parse_source_value(entity_data.get('health', 100))  # Type: integer
+
+
+class prop_ragdoll_original(BaseFadeProp, EnableDisable, Studiomodel, Angles, Targetname, DXLevelChoice):
+    def __init__(self):
+        super(BaseFadeProp).__init__()
+        super(EnableDisable).__init__()
+        super(Studiomodel).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.MimicName = None  # Type: string
+        self.angleOverride = None  # Type: string
+        self.health = 100  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFadeProp.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.MimicName = entity_data.get('mimicname', None)  # Type: string
+        instance.angleOverride = entity_data.get('angleoverride', None)  # Type: string
+        instance.health = parse_source_value(entity_data.get('health', 100))  # Type: integer
 
 
 class prop_dynamic_ornament(prop_dynamic_base):
@@ -5205,7 +5987,7 @@ class func_occluder(Targetname):
         instance.StartActive = entity_data.get('startactive', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class func_breakable(Origin, BreakableBrush, RenderFields):
+class func_breakable(RenderFields, BreakableBrush, Origin):
     def __init__(self):
         super(BreakableBrush).__init__()
         super(RenderFields).__init__()
@@ -5217,16 +5999,16 @@ class func_breakable(Origin, BreakableBrush, RenderFields):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Shadow.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        BreakableBrush.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        BreakableBrush.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         instance.minhealthdmg = parse_source_value(entity_data.get('minhealthdmg', 0))  # Type: integer
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
         instance.physdamagescale = float(entity_data.get('physdamagescale', 1.0))  # Type: float
 
 
-class func_breakable_surf(BreakableBrush, RenderFields):
+class func_breakable_surf(RenderFields, BreakableBrush):
     def __init__(self):
         super(BreakableBrush).__init__()
         super(RenderFields).__init__()
@@ -5236,9 +6018,9 @@ class func_breakable_surf(BreakableBrush, RenderFields):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
+        RenderFields.from_dict(instance, entity_data)
         Shadow.from_dict(instance, entity_data)
         BreakableBrush.from_dict(instance, entity_data)
-        RenderFields.from_dict(instance, entity_data)
         instance.fragility = parse_source_value(entity_data.get('fragility', 100))  # Type: integer
         instance.surfacetype = entity_data.get('surfacetype', None)  # Type: choices
 
@@ -5283,22 +6065,22 @@ class func_viscluster(Base):
         Base.from_dict(instance, entity_data)
 
 
-class func_illusionary(Shadow, Origin, RenderFields, Targetname, Parentname):
+class func_illusionary(Shadow, RenderFields, Origin, Parentname, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
         super(Shadow).__init__()
         super(Origin).__init__()
-        super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self._minlight = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Shadow.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance._minlight = entity_data.get('_minlight', None)  # Type: string
 
 
@@ -5328,12 +6110,12 @@ class func_wall_toggle(func_wall):
         func_wall.from_dict(instance, entity_data)
 
 
-class func_guntarget(Parentname, Targetname, Global, RenderFields):
+class func_guntarget(Parentname, Global, Targetname, RenderFields):
     def __init__(self):
         super(RenderFields).__init__()
         super(Parentname).__init__()
-        super(Targetname).__init__()
         super(Global).__init__()
+        super(Targetname).__init__()
         self.speed = 100  # Type: integer
         self.target = None  # Type: target_destination
         self.health = None  # Type: integer
@@ -5342,8 +6124,8 @@ class func_guntarget(Parentname, Targetname, Global, RenderFields):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
         instance.speed = parse_source_value(entity_data.get('speed', 100))  # Type: integer
         instance.target = entity_data.get('target', None)  # Type: target_destination
@@ -5383,13 +6165,13 @@ class PlatSounds(Base):
         instance.volume = entity_data.get('volume', "0.85")  # Type: string
 
 
-class Trackchange(PlatSounds, Global, RenderFields, Targetname, Parentname):
+class Trackchange(Global, RenderFields, PlatSounds, Parentname, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
-        super(PlatSounds).__init__()
         super(Global).__init__()
-        super(Targetname).__init__()
+        super(PlatSounds).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self.height = None  # Type: integer
         self.rotation = None  # Type: integer
         self.train = None  # Type: target_destination
@@ -5399,11 +6181,11 @@ class Trackchange(PlatSounds, Global, RenderFields, Targetname, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        PlatSounds.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        PlatSounds.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.height = parse_source_value(entity_data.get('height', 0))  # Type: integer
         instance.rotation = parse_source_value(entity_data.get('rotation', 0))  # Type: integer
         instance.train = entity_data.get('train', None)  # Type: target_destination
@@ -5412,14 +6194,14 @@ class Trackchange(PlatSounds, Global, RenderFields, Targetname, Parentname):
         instance.speed = parse_source_value(entity_data.get('speed', 0))  # Type: integer
 
 
-class BaseTrain(Shadow, Global, Origin, RenderFields, Targetname, Parentname):
+class BaseTrain(Global, Shadow, RenderFields, Origin, Parentname, Targetname):
     def __init__(self):
         super(RenderFields).__init__()
-        super(Shadow).__init__()
         super(Global).__init__()
+        super(Shadow).__init__()
         super(Origin).__init__()
-        super(Targetname).__init__()
         super(Parentname).__init__()
+        super(Targetname).__init__()
         self.target = None  # Type: target_destination
         self.startspeed = 100  # Type: integer
         self.speed = None  # Type: integer
@@ -5442,12 +6224,12 @@ class BaseTrain(Shadow, Global, Origin, RenderFields, Targetname, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Shadow.from_dict(instance, entity_data)
         Global.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
         RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.target = entity_data.get('target', None)  # Type: target_destination
         instance.startspeed = parse_source_value(entity_data.get('startspeed', 100))  # Type: integer
         instance.speed = parse_source_value(entity_data.get('speed', 0))  # Type: integer
@@ -5710,6 +6492,17 @@ class trigger_multiple(Trigger):
         instance.wait = parse_source_value(entity_data.get('wait', 1))  # Type: integer
 
 
+class trigger_csm_volume(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        self.wait = 1  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        instance.wait = parse_source_value(entity_data.get('wait', 1))  # Type: integer
+
+
 class trigger_once(TriggerOnce):
     def __init__(self):
         super(TriggerOnce).__init__()
@@ -5726,6 +6519,7 @@ class trigger_look(Trigger):
         self.LookTime = "0.5"  # Type: string
         self.FieldOfView = "0.9"  # Type: string
         self.Timeout = 0  # Type: float
+        self.NotLookingFrequency = 0.5  # Type: float
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -5734,6 +6528,7 @@ class trigger_look(Trigger):
         instance.LookTime = entity_data.get('looktime', "0.5")  # Type: string
         instance.FieldOfView = entity_data.get('fieldofview', "0.9")  # Type: string
         instance.Timeout = float(entity_data.get('timeout', 0))  # Type: float
+        instance.NotLookingFrequency = float(entity_data.get('notlookingfrequency', 0.5))  # Type: float
 
 
 class trigger_push(Trigger):
@@ -5751,7 +6546,7 @@ class trigger_push(Trigger):
         instance.alternateticksfix = float(entity_data.get('alternateticksfix', 0))  # Type: float
 
 
-class trigger_wind(Angles, Trigger):
+class trigger_wind(Trigger, Angles):
     def __init__(self):
         super(Trigger).__init__()
         super(Angles).__init__()
@@ -5763,8 +6558,8 @@ class trigger_wind(Angles, Trigger):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
         Trigger.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
         instance.Speed = parse_source_value(entity_data.get('speed', 200))  # Type: integer
         instance.SpeedNoise = parse_source_value(entity_data.get('speednoise', 0))  # Type: integer
         instance.DirectionNoise = parse_source_value(entity_data.get('directionnoise', 10))  # Type: integer
@@ -5772,20 +6567,20 @@ class trigger_wind(Angles, Trigger):
         instance.HoldNoise = parse_source_value(entity_data.get('holdnoise', 0))  # Type: integer
 
 
-class trigger_impact(Origin, Angles, Targetname):
+class trigger_impact(Angles, Targetname, Origin):
     def __init__(self):
-        super(Origin).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
+        super(Origin).__init__()
         self.Magnitude = 200  # Type: float
         self.noise = 0.1  # Type: float
         self.viewkick = 0.05  # Type: float
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Origin.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
         instance.Magnitude = float(entity_data.get('magnitude', 200))  # Type: float
         instance.noise = float(entity_data.get('noise', 0.1))  # Type: float
         instance.viewkick = float(entity_data.get('viewkick', 0.05))  # Type: float
@@ -5817,17 +6612,6 @@ class trigger_teleport(Trigger):
         instance.landmark = entity_data.get('landmark', None)  # Type: target_destination
 
 
-class trigger_teleport_relative(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        self.teleportoffset = [0.0, 0.0, 0.0]  # Type: vector
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        instance.teleportoffset = parse_float_vector(entity_data.get('teleportoffset', "0 0 0"))  # Type: vector
-
-
 class trigger_transition(Targetname):
     def __init__(self):
         super(Targetname).__init__()
@@ -5846,11 +6630,11 @@ class trigger_serverragdoll(Targetname):
         Targetname.from_dict(instance, entity_data)
 
 
-class ai_speechfilter(ResponseContext, EnableDisable, Targetname):
+class ai_speechfilter(ResponseContext, Targetname, EnableDisable):
     def __init__(self):
         super(ResponseContext).__init__()
-        super(EnableDisable).__init__()
         super(Targetname).__init__()
+        super(EnableDisable).__init__()
         self.origin = [0, 0, 0]
         self.subject = None  # Type: target_destination
         self.IdleModifier = 1.0  # Type: float
@@ -5859,8 +6643,8 @@ class ai_speechfilter(ResponseContext, EnableDisable, Targetname):
     @staticmethod
     def from_dict(instance, entity_data: dict):
         ResponseContext.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.subject = entity_data.get('subject', None)  # Type: target_destination
         instance.IdleModifier = float(entity_data.get('idlemodifier', 1.0))  # Type: float
@@ -5921,7 +6705,7 @@ class logic_measure_movement(Targetname):
         instance.MeasureType = entity_data.get('measuretype', None)  # Type: choices
 
 
-class npc_furniture(BaseNPC, Parentname):
+class npc_furniture(Parentname, BaseNPC):
     def __init__(self):
         super(BaseNPC).__init__()
         super(Parentname).__init__()
@@ -5930,8 +6714,8 @@ class npc_furniture(BaseNPC, Parentname):
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        BaseNPC.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.model = entity_data.get('model', None)  # Type: studio
 
@@ -5980,16 +6764,17 @@ class point_devshot_camera(Angles):
         instance.FOV = parse_source_value(entity_data.get('fov', 75))  # Type: integer
 
 
-class logic_playerproxy(DamageFilter, Targetname):
+class logic_playerproxy(Targetname, DamageFilter):
+    icon_sprite = "editor/playerproxy.vmt"
     def __init__(self):
-        super(DamageFilter).__init__()
         super(Targetname).__init__()
+        super(DamageFilter).__init__()
         self.origin = [0, 0, 0]
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        DamageFilter.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
+        DamageFilter.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
 
@@ -6020,41 +6805,6 @@ class env_spritetrail(Parentname, Targetname):
         instance.rendermode = entity_data.get('rendermode', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class env_projectedtexture(Parentname, Angles, Targetname):
-    def __init__(self):
-        super(Parentname).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.target = None  # Type: target_destination
-        self.lightfov = 90.0  # Type: float
-        self.nearz = 4.0  # Type: float
-        self.farz = 750.0  # Type: float
-        self.enableshadows = None  # Type: choices
-        self.shadowquality = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.lightonlytarget = None  # Type: choices
-        self.lightworld = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.lightcolor = [255, 255, 255, 200]  # Type: color255
-        self.cameraspace = None  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.target = entity_data.get('target', None)  # Type: target_destination
-        instance.lightfov = float(entity_data.get('lightfov', 90.0))  # Type: float
-        instance.nearz = float(entity_data.get('nearz', 4.0))  # Type: float
-        instance.farz = float(entity_data.get('farz', 750.0))  # Type: float
-        instance.enableshadows = entity_data.get('enableshadows', None)  # Type: choices
-        instance.shadowquality = entity_data.get('shadowquality', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.lightonlytarget = entity_data.get('lightonlytarget', None)  # Type: choices
-        instance.lightworld = entity_data.get('lightworld', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.lightcolor = parse_int_vector(entity_data.get('lightcolor', "255 255 255 200"))  # Type: color255
-        instance.cameraspace = parse_source_value(entity_data.get('cameraspace', 0))  # Type: integer
-
-
 class func_reflective_glass(func_brush):
     def __init__(self):
         super(func_brush).__init__()
@@ -6075,22 +6825,22 @@ class env_particle_performance_monitor(Targetname):
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
 
 
-class npc_puppet(BaseNPC, Parentname, Studiomodel):
+class npc_puppet(Parentname, Studiomodel, BaseNPC):
     def __init__(self):
         super(BaseNPC).__init__()
         super(Parentname).__init__()
-        super(Targetname).__init__()
         super(Studiomodel).__init__()
+        super(Targetname).__init__()
         self.origin = [0, 0, 0]
         self.animationtarget = None  # Type: target_source
         self.attachmentname = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        BaseNPC.from_dict(instance, entity_data)
         Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
         Studiomodel.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.animationtarget = entity_data.get('animationtarget', None)  # Type: target_source
         instance.attachmentname = entity_data.get('attachmentname', None)  # Type: string
@@ -6119,7 +6869,7 @@ class func_instance(Angles):
         self.origin = [0, 0, 0]
         self.targetname = None  # Type: target_source
         self.file = None  # Type: instance_file
-        self.fixup_style = None  # Type: choices
+        self.fixup_style = "CHOICES NOT SUPPORTED"  # Type: choices
         self.replace01 = None  # Type: instance_variable
         self.replace02 = None  # Type: instance_variable
         self.replace03 = None  # Type: instance_variable
@@ -6137,7 +6887,7 @@ class func_instance(Angles):
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
         instance.targetname = entity_data.get('targetname', None)  # Type: target_source
         instance.file = entity_data.get('file', None)  # Type: instance_file
-        instance.fixup_style = entity_data.get('fixup_style', None)  # Type: choices
+        instance.fixup_style = entity_data.get('fixup_style', "CHOICES NOT SUPPORTED")  # Type: choices
         instance.replace01 = entity_data.get('replace01', None)  # Type: instance_variable
         instance.replace02 = entity_data.get('replace02', None)  # Type: instance_variable
         instance.replace03 = entity_data.get('replace03', None)  # Type: instance_variable
@@ -6181,6 +6931,3771 @@ class func_instance_parms(Base):
         instance.parm10 = entity_data.get('parm10', None)  # Type: instance_parm
 
 
+class func_instance_io_proxy(Base):
+    icon_sprite = "editor/func_instance_parms.vmt"
+    def __init__(self):
+        super().__init__()
+        self.origin = [0, 0, 0]
+        self.targetname = None  # Type: target_source
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.targetname = entity_data.get('targetname', None)  # Type: target_source
+
+
+class TalkNPC(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.UseSentence = None  # Type: string
+        self.UnUseSentence = None  # Type: string
+        self.DontUseSpeechSemaphore = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.UseSentence = entity_data.get('usesentence', None)  # Type: string
+        instance.UnUseSentence = entity_data.get('unusesentence', None)  # Type: string
+        instance.DontUseSpeechSemaphore = entity_data.get('dontusespeechsemaphore', None)  # Type: choices
+
+
+class PlayerCompanion(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.AlwaysTransition = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.DontPickupWeapons = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.GameEndAlly = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.AlwaysTransition = entity_data.get('alwaystransition', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.DontPickupWeapons = entity_data.get('dontpickupweapons', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.GameEndAlly = entity_data.get('gameendally', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class RappelNPC(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.waitingtorappel = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.waitingtorappel = entity_data.get('waitingtorappel', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class trigger_physics_trap(Angles, Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        super(Angles).__init__()
+        self.dissolvetype = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Trigger.from_dict(instance, entity_data)
+        instance.dissolvetype = entity_data.get('dissolvetype', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class trigger_weapon_dissolve(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        self.emittername = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        instance.emittername = entity_data.get('emittername', None)  # Type: target_destination
+
+
+class trigger_weapon_strip(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        self.KillWeapons = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        instance.KillWeapons = entity_data.get('killweapons', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_crow(BaseNPC):
+    model = "models/crow.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.deaf = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.deaf = entity_data.get('deaf', None)  # Type: choices
+
+
+class npc_seagull(BaseNPC):
+    model = "models/seagull.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.deaf = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.deaf = entity_data.get('deaf', None)  # Type: choices
+
+
+class npc_pigeon(BaseNPC):
+    model = "models/pigeon.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.deaf = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.deaf = entity_data.get('deaf', None)  # Type: choices
+
+
+class npc_bullseye(Parentname, BaseNPC):
+    icon_sprite = "editor/bullseye.vmt"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(Parentname).__init__()
+        self.health = 35  # Type: integer
+        self.minangle = "360"  # Type: string
+        self.mindist = "0"  # Type: string
+        self.autoaimradius = 0  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
+        instance.health = parse_source_value(entity_data.get('health', 35))  # Type: integer
+        instance.minangle = entity_data.get('minangle', "360")  # Type: string
+        instance.mindist = entity_data.get('mindist', "0")  # Type: string
+        instance.autoaimradius = float(entity_data.get('autoaimradius', 0))  # Type: float
+
+
+class npc_enemyfinder(Parentname, BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(Parentname).__init__()
+        self.FieldOfView = "0.2"  # Type: string
+        self.MinSearchDist = None  # Type: integer
+        self.MaxSearchDist = 2048  # Type: integer
+        self.freepass_timetotrigger = None  # Type: float
+        self.freepass_duration = None  # Type: float
+        self.freepass_movetolerance = 120  # Type: float
+        self.freepass_refillrate = 0.5  # Type: float
+        self.freepass_peektime = None  # Type: float
+        self.StartOn = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
+        instance.FieldOfView = entity_data.get('fieldofview', "0.2")  # Type: string
+        instance.MinSearchDist = parse_source_value(entity_data.get('minsearchdist', 0))  # Type: integer
+        instance.MaxSearchDist = parse_source_value(entity_data.get('maxsearchdist', 2048))  # Type: integer
+        instance.freepass_timetotrigger = float(entity_data.get('freepass_timetotrigger', 0))  # Type: float
+        instance.freepass_duration = float(entity_data.get('freepass_duration', 0))  # Type: float
+        instance.freepass_movetolerance = float(entity_data.get('freepass_movetolerance', 120))  # Type: float
+        instance.freepass_refillrate = float(entity_data.get('freepass_refillrate', 0.5))  # Type: float
+        instance.freepass_peektime = float(entity_data.get('freepass_peektime', 0))  # Type: float
+        instance.StartOn = entity_data.get('starton', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class env_gunfire(Parentname, Targetname, EnableDisable):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        super(EnableDisable).__init__()
+        self.origin = [0, 0, 0]
+        self.target = None  # Type: target_destination
+        self.minburstsize = 2  # Type: integer
+        self.maxburstsize = 7  # Type: integer
+        self.minburstdelay = 2  # Type: float
+        self.maxburstdelay = 5  # Type: float
+        self.rateoffire = 10  # Type: float
+        self.spread = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.bias = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.collisions = None  # Type: choices
+        self.shootsound = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.tracertype = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance.minburstsize = parse_source_value(entity_data.get('minburstsize', 2))  # Type: integer
+        instance.maxburstsize = parse_source_value(entity_data.get('maxburstsize', 7))  # Type: integer
+        instance.minburstdelay = float(entity_data.get('minburstdelay', 2))  # Type: float
+        instance.maxburstdelay = float(entity_data.get('maxburstdelay', 5))  # Type: float
+        instance.rateoffire = float(entity_data.get('rateoffire', 10))  # Type: float
+        instance.spread = entity_data.get('spread', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.bias = entity_data.get('bias', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.collisions = entity_data.get('collisions', None)  # Type: choices
+        instance.shootsound = entity_data.get('shootsound', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.tracertype = entity_data.get('tracertype', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class ai_goal_operator(EnableDisable, Targetname):
+    def __init__(self):
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.actor = None  # Type: target_name_or_class
+        self.target = None  # Type: target_destination
+        self.contexttarget = None  # Type: target_destination
+        self.state = None  # Type: choices
+        self.moveto = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.actor = entity_data.get('actor', None)  # Type: target_name_or_class
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance.contexttarget = entity_data.get('contexttarget', None)  # Type: target_destination
+        instance.state = entity_data.get('state', None)  # Type: choices
+        instance.moveto = entity_data.get('moveto', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class info_darknessmode_lightsource(EnableDisable, Targetname):
+    def __init__(self):
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.LightRadius = 256.0  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.LightRadius = float(entity_data.get('lightradius', 256.0))  # Type: float
+
+
+class monster_generic(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(RenderFields).__init__()
+        super(Shadow).__init__()
+        self.origin = [0, 0, 0]
+        self.model = None  # Type: studio
+        self.body = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.model = entity_data.get('model', None)  # Type: studio
+        instance.body = parse_source_value(entity_data.get('body', 0))  # Type: integer
+
+
+class generic_actor(BaseNPC, Parentname):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(RenderFields).__init__()
+        super(Shadow).__init__()
+        super(Parentname).__init__()
+        self.origin = [0, 0, 0]
+        self.model = None  # Type: studio
+        self.hull_name = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.model = entity_data.get('model', None)  # Type: studio
+        instance.hull_name = entity_data.get('hull_name', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class cycler_actor(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(RenderFields).__init__()
+        super(Shadow).__init__()
+        self.origin = [0, 0, 0]
+        self.model = None  # Type: studio
+        self.Sentence = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.model = entity_data.get('model', None)  # Type: studio
+        instance.Sentence = entity_data.get('sentence', None)  # Type: string
+
+
+class npc_maker(BaseNPCMaker):
+    icon_sprite = "editor/npc_maker.vmt"
+    def __init__(self):
+        super(BaseNPCMaker).__init__()
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.NPCType = None  # Type: npcclass
+        self.NPCTargetname = None  # Type: string
+        self.NPCSquadname = None  # Type: string
+        self.NPCHintGroup = None  # Type: string
+        self.additionalequipment = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPCMaker.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.NPCType = entity_data.get('npctype', None)  # Type: npcclass
+        instance.NPCTargetname = entity_data.get('npctargetname', None)  # Type: string
+        instance.NPCSquadname = entity_data.get('npcsquadname', None)  # Type: string
+        instance.NPCHintGroup = entity_data.get('npchintgroup', None)  # Type: string
+        instance.additionalequipment = entity_data.get('additionalequipment', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class player_control(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+
+
+class BaseScripted(Parentname, Angles, Targetname):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.m_iszEntity = None  # Type: target_destination
+        self.m_iszIdle = None  # Type: string
+        self.m_iszEntry = None  # Type: string
+        self.m_iszPlay = None  # Type: string
+        self.m_iszPostIdle = None  # Type: string
+        self.m_iszCustomMove = None  # Type: string
+        self.m_bLoopActionSequence = None  # Type: choices
+        self.m_bNoBlendedMovement = None  # Type: choices
+        self.m_bSynchPostIdles = None  # Type: choices
+        self.m_flRadius = None  # Type: integer
+        self.m_flRepeat = None  # Type: integer
+        self.m_fMoveTo = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_iszNextScript = None  # Type: target_destination
+        self.m_bIgnoreGravity = None  # Type: choices
+        self.m_bDisableNPCCollisions = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.m_iszEntity = entity_data.get('m_iszentity', None)  # Type: target_destination
+        instance.m_iszIdle = entity_data.get('m_iszidle', None)  # Type: string
+        instance.m_iszEntry = entity_data.get('m_iszentry', None)  # Type: string
+        instance.m_iszPlay = entity_data.get('m_iszplay', None)  # Type: string
+        instance.m_iszPostIdle = entity_data.get('m_iszpostidle', None)  # Type: string
+        instance.m_iszCustomMove = entity_data.get('m_iszcustommove', None)  # Type: string
+        instance.m_bLoopActionSequence = entity_data.get('m_bloopactionsequence', None)  # Type: choices
+        instance.m_bNoBlendedMovement = entity_data.get('m_bnoblendedmovement', None)  # Type: choices
+        instance.m_bSynchPostIdles = entity_data.get('m_bsynchpostidles', None)  # Type: choices
+        instance.m_flRadius = parse_source_value(entity_data.get('m_flradius', 0))  # Type: integer
+        instance.m_flRepeat = parse_source_value(entity_data.get('m_flrepeat', 0))  # Type: integer
+        instance.m_fMoveTo = entity_data.get('m_fmoveto', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_iszNextScript = entity_data.get('m_isznextscript', None)  # Type: target_destination
+        instance.m_bIgnoreGravity = entity_data.get('m_bignoregravity', None)  # Type: choices
+        instance.m_bDisableNPCCollisions = entity_data.get('m_bdisablenpccollisions', None)  # Type: choices
+
+
+class scripted_sentence(Targetname):
+    icon_sprite = "editor/scripted_sentence.vmt"
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.sentence = None  # Type: string
+        self.entity = None  # Type: string
+        self.delay = "0"  # Type: string
+        self.radius = 512  # Type: integer
+        self.refire = "3"  # Type: string
+        self.listener = None  # Type: string
+        self.volume = "10"  # Type: string
+        self.attenuation = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.sentence = entity_data.get('sentence', None)  # Type: string
+        instance.entity = entity_data.get('entity', None)  # Type: string
+        instance.delay = entity_data.get('delay', "0")  # Type: string
+        instance.radius = parse_source_value(entity_data.get('radius', 512))  # Type: integer
+        instance.refire = entity_data.get('refire', "3")  # Type: string
+        instance.listener = entity_data.get('listener', None)  # Type: string
+        instance.volume = entity_data.get('volume', "10")  # Type: string
+        instance.attenuation = entity_data.get('attenuation', None)  # Type: choices
+
+
+class scripted_target(Parentname, Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.StartDisabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_iszEntity = None  # Type: npcclass
+        self.m_flRadius = None  # Type: integer
+        self.MoveSpeed = 5  # Type: integer
+        self.PauseDuration = None  # Type: integer
+        self.EffectDuration = 2  # Type: integer
+        self.target = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.StartDisabled = entity_data.get('startdisabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_iszEntity = entity_data.get('m_iszentity', None)  # Type: npcclass
+        instance.m_flRadius = parse_source_value(entity_data.get('m_flradius', 0))  # Type: integer
+        instance.MoveSpeed = parse_source_value(entity_data.get('movespeed', 5))  # Type: integer
+        instance.PauseDuration = parse_source_value(entity_data.get('pauseduration', 0))  # Type: integer
+        instance.EffectDuration = parse_source_value(entity_data.get('effectduration', 2))  # Type: integer
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+
+
+class ai_relationship(Targetname):
+    icon_sprite = "editor/ai_relationship.vmt"
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.subject = None  # Type: target_name_or_class
+        self.target = None  # Type: target_name_or_class
+        self.disposition = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.radius = None  # Type: float
+        self.rank = None  # Type: integer
+        self.StartActive = None  # Type: choices
+        self.Reciprocal = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.subject = entity_data.get('subject', None)  # Type: target_name_or_class
+        instance.target = entity_data.get('target', None)  # Type: target_name_or_class
+        instance.disposition = entity_data.get('disposition', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.radius = float(entity_data.get('radius', 0))  # Type: float
+        instance.rank = parse_source_value(entity_data.get('rank', 0))  # Type: integer
+        instance.StartActive = entity_data.get('startactive', None)  # Type: choices
+        instance.Reciprocal = entity_data.get('reciprocal', None)  # Type: choices
+
+
+class ai_ally_manager(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.maxallies = 5  # Type: integer
+        self.maxmedics = 1  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.maxallies = parse_source_value(entity_data.get('maxallies', 5))  # Type: integer
+        instance.maxmedics = parse_source_value(entity_data.get('maxmedics', 1))  # Type: integer
+
+
+class LeadGoalBase(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.actor = None  # Type: target_name_or_class
+        self.goal = None  # Type: string
+        self.WaitPointName = None  # Type: target_destination
+        self.WaitDistance = None  # Type: float
+        self.LeadDistance = 64  # Type: float
+        self.RetrieveDistance = 96  # Type: float
+        self.SuccessDistance = 0  # Type: float
+        self.Run = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.Retrieve = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ComingBackWaitForSpeak = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.RetrieveWaitForSpeak = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.DontSpeakStart = None  # Type: choices
+        self.LeadDuringCombat = None  # Type: choices
+        self.GagLeader = None  # Type: choices
+        self.AttractPlayerConceptModifier = None  # Type: string
+        self.WaitOverConceptModifier = None  # Type: string
+        self.ArrivalConceptModifier = None  # Type: string
+        self.PostArrivalConceptModifier = None  # Type: string
+        self.SuccessConceptModifier = None  # Type: string
+        self.FailureConceptModifier = None  # Type: string
+        self.ComingBackConceptModifier = None  # Type: string
+        self.RetrieveConceptModifier = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.actor = entity_data.get('actor', None)  # Type: target_name_or_class
+        instance.goal = entity_data.get('goal', None)  # Type: string
+        instance.WaitPointName = entity_data.get('waitpointname', None)  # Type: target_destination
+        instance.WaitDistance = float(entity_data.get('waitdistance', 0))  # Type: float
+        instance.LeadDistance = float(entity_data.get('leaddistance', 64))  # Type: float
+        instance.RetrieveDistance = float(entity_data.get('retrievedistance', 96))  # Type: float
+        instance.SuccessDistance = float(entity_data.get('successdistance', 0))  # Type: float
+        instance.Run = entity_data.get('run', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.Retrieve = entity_data.get('retrieve', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ComingBackWaitForSpeak = entity_data.get('comingbackwaitforspeak', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.RetrieveWaitForSpeak = entity_data.get('retrievewaitforspeak', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.DontSpeakStart = entity_data.get('dontspeakstart', None)  # Type: choices
+        instance.LeadDuringCombat = entity_data.get('leadduringcombat', None)  # Type: choices
+        instance.GagLeader = entity_data.get('gagleader', None)  # Type: choices
+        instance.AttractPlayerConceptModifier = entity_data.get('attractplayerconceptmodifier', None)  # Type: string
+        instance.WaitOverConceptModifier = entity_data.get('waitoverconceptmodifier', None)  # Type: string
+        instance.ArrivalConceptModifier = entity_data.get('arrivalconceptmodifier', None)  # Type: string
+        instance.PostArrivalConceptModifier = entity_data.get('postarrivalconceptmodifier', None)  # Type: string
+        instance.SuccessConceptModifier = entity_data.get('successconceptmodifier', None)  # Type: string
+        instance.FailureConceptModifier = entity_data.get('failureconceptmodifier', None)  # Type: string
+        instance.ComingBackConceptModifier = entity_data.get('comingbackconceptmodifier', None)  # Type: string
+        instance.RetrieveConceptModifier = entity_data.get('retrieveconceptmodifier', None)  # Type: string
+
+
+class ai_goal_lead(LeadGoalBase):
+    icon_sprite = "editor/ai_goal_lead.vmt"
+    def __init__(self):
+        super(LeadGoalBase).__init__()
+        self.origin = [0, 0, 0]
+        self.SearchType = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        LeadGoalBase.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.SearchType = entity_data.get('searchtype', None)  # Type: choices
+
+
+class ai_goal_lead_weapon(LeadGoalBase):
+    icon_sprite = "editor/ai_goal_lead.vmt"
+    def __init__(self):
+        super(LeadGoalBase).__init__()
+        self.origin = [0, 0, 0]
+        self.WeaponName = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.MissingWeaponConceptModifier = None  # Type: string
+        self.SearchType = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        LeadGoalBase.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.WeaponName = entity_data.get('weaponname', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.MissingWeaponConceptModifier = entity_data.get('missingweaponconceptmodifier', None)  # Type: string
+        instance.SearchType = entity_data.get('searchtype', None)  # Type: choices
+
+
+class FollowGoal(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.actor = None  # Type: target_name_or_class
+        self.goal = None  # Type: string
+        self.SearchType = None  # Type: choices
+        self.StartActive = None  # Type: choices
+        self.MaximumState = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.Formation = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.actor = entity_data.get('actor', None)  # Type: target_name_or_class
+        instance.goal = entity_data.get('goal', None)  # Type: string
+        instance.SearchType = entity_data.get('searchtype', None)  # Type: choices
+        instance.StartActive = entity_data.get('startactive', None)  # Type: choices
+        instance.MaximumState = entity_data.get('maximumstate', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.Formation = entity_data.get('formation', None)  # Type: choices
+
+
+class ai_goal_follow(FollowGoal):
+    icon_sprite = "editor/ai_goal_follow.vmt"
+    def __init__(self):
+        super(FollowGoal).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        FollowGoal.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class ai_goal_injured_follow(FollowGoal):
+    icon_sprite = "editor/ai_goal_follow.vmt"
+    def __init__(self):
+        super(FollowGoal).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        FollowGoal.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_detail_controller(Angles):
+    def __init__(self):
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.fademindist = 400  # Type: float
+        self.fademaxdist = 1200  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.fademindist = float(entity_data.get('fademindist', 400))  # Type: float
+        instance.fademaxdist = float(entity_data.get('fademaxdist', 1200))  # Type: float
+
+
+class env_global(EnvGlobal):
+    def __init__(self):
+        super(EnvGlobal).__init__()
+        self.origin = [0, 0, 0]
+        self.globalstate = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnvGlobal.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.globalstate = entity_data.get('globalstate', None)  # Type: choices
+
+
+class BaseCharger(Angles, BaseFadeProp, Targetname):
+    def __init__(self):
+        super(Angles).__init__()
+        super(BaseFadeProp).__init__()
+        super(Targetname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+
+
+class item_healthcharger(BaseCharger):
+    model = "models/props_blackmesa/health_charger.mdl"
+    def __init__(self):
+        super(BaseCharger).__init__()
+        self.origin = [0, 0, 0]
+        self.charge = 50  # Type: float
+        self.skintype = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseCharger.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.charge = float(entity_data.get('charge', 50))  # Type: float
+        instance.skintype = entity_data.get('skintype', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class item_suitcharger(BaseCharger):
+    model = "models/props_blackmesa/hev_charger.mdl"
+    def __init__(self):
+        super(BaseCharger).__init__()
+        self.origin = [0, 0, 0]
+        self.charge = 75  # Type: float
+        self.skintype = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseCharger.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.charge = float(entity_data.get('charge', 75))  # Type: float
+        instance.skintype = entity_data.get('skintype', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class BasePickup(Angles, BaseFadeProp, Shadow, Targetname):
+    def __init__(self):
+        super(Angles).__init__()
+        super(BaseFadeProp).__init__()
+        super(Shadow).__init__()
+        super(Targetname).__init__()
+        self.respawntime = 15  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.respawntime = float(entity_data.get('respawntime', 15))  # Type: float
+
+
+class item_weapon_357(BasePickup):
+    model = "models/weapons/w_357.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_crowbar(BasePickup):
+    model = "models/weapons/w_crowbar.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_crossbow(BasePickup):
+    model = "models/weapons/w_crossbow.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_frag(BasePickup):
+    model = "models/weapons/w_grenade.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_glock(BasePickup):
+    model = "models/weapons/w_glock.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_gluon(BasePickup):
+    model = "models/weapons/w_egon_pickup.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_hivehand(BasePickup):
+    model = "models/weapons/w_hgun.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_mp5(BasePickup):
+    model = "models/weapons/w_mp5.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_shotgun(BasePickup):
+    model = "models/weapons/w_shotgun.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_rpg(BasePickup):
+    model = "models/weapons/w_rpg.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_satchel(BasePickup):
+    model = "models/weapons/w_satchel.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_snark(BasePickup):
+    model = "models/xenians/snarknest.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_tau(BasePickup):
+    model = "models/weapons/w_gauss.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_weapon_tripmine(BasePickup):
+    model = "models/weapons/w_tripmine.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_357(BasePickup):
+    model = "models/weapons/w_357ammobox.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_crossbow(BasePickup):
+    model = "models/weapons/w_crossbow_clip.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_glock(BasePickup):
+    model = "models/weapons/w_9mmclip.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_energy(BasePickup):
+    model = "models/weapons/w_gaussammo.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_mp5(BasePickup):
+    model = "models/weapons/w_9mmARclip.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_shotgun(BasePickup):
+    model = "models/weapons/w_shotbox.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_grenade_mp5(BasePickup):
+    model = "models/weapons/w_argrenade.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_grenade_rpg(BasePickup):
+    model = "models/weapons/w_rpgammo.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_ammo_canister(BasePickup):
+    model = "models/weapons/w_weaponbox.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+        self.AmmoGlock = None  # Type: integer
+        self.AmmoMp5 = None  # Type: integer
+        self.Ammo357 = None  # Type: integer
+        self.AmmoBolt = None  # Type: integer
+        self.AmmoBuckshot = None  # Type: integer
+        self.AmmoEnergy = None  # Type: integer
+        self.AmmoMp5Grenade = None  # Type: integer
+        self.AmmoRPG = None  # Type: integer
+        self.AmmoSatchel = None  # Type: integer
+        self.AmmoSnark = None  # Type: integer
+        self.AmmoTripmine = None  # Type: integer
+        self.AmmoFrag = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.AmmoGlock = parse_source_value(entity_data.get('ammoglock', 0))  # Type: integer
+        instance.AmmoMp5 = parse_source_value(entity_data.get('ammomp5', 0))  # Type: integer
+        instance.Ammo357 = parse_source_value(entity_data.get('ammo357', 0))  # Type: integer
+        instance.AmmoBolt = parse_source_value(entity_data.get('ammobolt', 0))  # Type: integer
+        instance.AmmoBuckshot = parse_source_value(entity_data.get('ammobuckshot', 0))  # Type: integer
+        instance.AmmoEnergy = parse_source_value(entity_data.get('ammoenergy', 0))  # Type: integer
+        instance.AmmoMp5Grenade = parse_source_value(entity_data.get('ammomp5grenade', 0))  # Type: integer
+        instance.AmmoRPG = parse_source_value(entity_data.get('ammorpg', 0))  # Type: integer
+        instance.AmmoSatchel = parse_source_value(entity_data.get('ammosatchel', 0))  # Type: integer
+        instance.AmmoSnark = parse_source_value(entity_data.get('ammosnark', 0))  # Type: integer
+        instance.AmmoTripmine = parse_source_value(entity_data.get('ammotripmine', 0))  # Type: integer
+        instance.AmmoFrag = parse_source_value(entity_data.get('ammofrag', 0))  # Type: integer
+
+
+class item_ammo_crate(Angles, BaseFadeProp, Targetname):
+    model = "models/items/ammocrate_rockets.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(BaseFadeProp).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.model = "models/items/ammocrate_rockets.mdl"  # Type: studio
+        self.AmmoType = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.isDynamicMoving = None  # Type: integer
+        self.AmmoCount = 1  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.model = entity_data.get('model', "models/items/ammocrate_rockets.mdl")  # Type: studio
+        instance.AmmoType = entity_data.get('ammotype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.isDynamicMoving = parse_source_value(entity_data.get('isdynamicmoving', 0))  # Type: integer
+        instance.AmmoCount = parse_source_value(entity_data.get('ammocount', 1))  # Type: integer
+
+
+class item_suit(BasePickup):
+    model = "models/props_am/hev_suit.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_battery(BasePickup):
+    model = "models/weapons/w_battery.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class item_healthkit(BasePickup):
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+        self.model = "models/weapons/w_medkit.mdl"  # Type: studio
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.model = entity_data.get('model', "models/weapons/w_medkit.mdl")  # Type: studio
+
+
+class item_longjump(BasePickup):
+    model = "models/weapons/w_longjump.mdl"
+    def __init__(self):
+        super(BasePickup).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePickup.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class BaseGrenade(Angles, Shadow, Targetname):
+    def __init__(self):
+        super(Angles).__init__()
+        super(Shadow).__init__()
+        super(Targetname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+
+
+class grenade_satchel(BaseGrenade):
+    model = "models/weapons/w_satchel.mdl"
+    def __init__(self):
+        super(BaseGrenade).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseGrenade.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class grenade_tripmine(BaseGrenade):
+    model = "models/weapons/w_tripmine.mdl"
+    def __init__(self):
+        super(BaseGrenade).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseGrenade.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class BaseSentry(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_plantlight(BaseNPC):
+    model = "models/props_xen/xen_protractinglight.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.planttype = None  # Type: choices
+        self.ICanTakeDamage = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.LightColor = [255, 223, 43, 255]  # Type: color255
+        self.Intensity = 1000  # Type: float
+        self.Range = 500  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.planttype = entity_data.get('planttype', None)  # Type: choices
+        instance.ICanTakeDamage = entity_data.get('icantakedamage', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 223 43 255"))  # Type: color255
+        instance.Intensity = float(entity_data.get('intensity', 1000))  # Type: float
+        instance.Range = float(entity_data.get('range', 500))  # Type: float
+
+
+class npc_plantlight_stalker(Base):
+    model = "models/props_xen/xen_plantlightstalker.mdl"
+    def __init__(self):
+        super().__init__()
+        self.origin = [0, 0, 0]
+        self.planttype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.ICanTakeDamage = None  # Type: choices
+        self.LightColor = [255, 223, 43, 255]  # Type: color255
+        self.Intensity = 1000  # Type: float
+        self.Range = 500  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.planttype = entity_data.get('planttype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.ICanTakeDamage = entity_data.get('icantakedamage', None)  # Type: choices
+        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 223 43 255"))  # Type: color255
+        instance.Intensity = float(entity_data.get('intensity', 1000))  # Type: float
+        instance.Range = float(entity_data.get('range', 500))  # Type: float
+
+
+class npc_puffballfungus(BaseNPC):
+    model = "models/props_xen/xen_puffballfungus.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.RangeOuter = 500  # Type: float
+        self.RangeInner = 250  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.RangeOuter = float(entity_data.get('rangeouter', 500))  # Type: float
+        instance.RangeInner = float(entity_data.get('rangeinner', 250))  # Type: float
+
+
+class npc_xentree(BaseNPC):
+    model = "models/props_xen/foliage/hacker_tree.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_protozoan(BaseNPC):
+    model = "models/xenians/protozoan.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_sentry_ceiling(BaseSentry):
+    model = "models/npcs/sentry_ceiling.mdl"
+    def __init__(self):
+        super(BaseSentry).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseSentry.from_dict(instance, entity_data)
+
+
+class npc_sentry_ground(BaseSentry):
+    model = "models/npcs/sentry_ground.mdl"
+    def __init__(self):
+        super(BaseSentry).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseSentry.from_dict(instance, entity_data)
+
+
+class npc_xenturret(BaseNPC):
+    model = "models/props_xen/xen_turret.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.RangeOuter = 999999  # Type: float
+        self.RangeInner = 99999  # Type: float
+        self.m_Color = [255, 255, 255]  # Type: color255
+        self.nShield = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.RangeOuter = float(entity_data.get('rangeouter', 999999))  # Type: float
+        instance.RangeInner = float(entity_data.get('rangeinner', 99999))  # Type: float
+        instance.m_Color = parse_int_vector(entity_data.get('m_color', "255 255 255"))  # Type: color255
+        instance.nShield = parse_source_value(entity_data.get('nshield', 0))  # Type: integer
+
+
+class npc_alien_slave_dummy(BaseNPC):
+    model = "models/vortigaunt_slave.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.passive = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.bPlayTeleportAnimOnSpawn = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.passive = entity_data.get('passive', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.bPlayTeleportAnimOnSpawn = entity_data.get('bplayteleportanimonspawn', None)  # Type: choices
+
+
+class npc_alien_slave(BaseNPC):
+    model = "models/vortigaunt_slave.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.passive = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.bPlayTeleportAnimOnSpawn = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.passive = entity_data.get('passive', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.bPlayTeleportAnimOnSpawn = entity_data.get('bplayteleportanimonspawn', None)  # Type: choices
+
+
+class npc_xort(BaseNPC):
+    model = "models/vortigaunt_slave.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.XortState = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_nFearLevel = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_nDamageCallEveryone = -1  # Type: integer
+        self.m_fDamageCallRadius = -1  # Type: float
+        self.m_nAlertCallEveryone = -1  # Type: integer
+        self.m_fAlertCallRadius = -1  # Type: float
+        self.FearNodesGroupName = None  # Type: string
+        self.HealNodesGroupName = None  # Type: string
+        self.bPlayTeleportAnimOnSpawn = None  # Type: choices
+        self.bMakeThemStationary = None  # Type: choices
+        self.bDisableSpells = None  # Type: choices
+        self.CanUseHealingNodes = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.CanUseFearNodes = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.PossesBreakCooldownOVerride = None  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.XortState = entity_data.get('xortstate', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_nFearLevel = entity_data.get('m_nfearlevel', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_nDamageCallEveryone = parse_source_value(entity_data.get('m_ndamagecalleveryone', -1))  # Type: integer
+        instance.m_fDamageCallRadius = float(entity_data.get('m_fdamagecallradius', -1))  # Type: float
+        instance.m_nAlertCallEveryone = parse_source_value(entity_data.get('m_nalertcalleveryone', -1))  # Type: integer
+        instance.m_fAlertCallRadius = float(entity_data.get('m_falertcallradius', -1))  # Type: float
+        instance.FearNodesGroupName = entity_data.get('fearnodesgroupname', None)  # Type: string
+        instance.HealNodesGroupName = entity_data.get('healnodesgroupname', None)  # Type: string
+        instance.bPlayTeleportAnimOnSpawn = entity_data.get('bplayteleportanimonspawn', None)  # Type: choices
+        instance.bMakeThemStationary = entity_data.get('bmakethemstationary', None)  # Type: choices
+        instance.bDisableSpells = entity_data.get('bdisablespells', None)  # Type: choices
+        instance.CanUseHealingNodes = entity_data.get('canusehealingnodes', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.CanUseFearNodes = entity_data.get('canusefearnodes', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.PossesBreakCooldownOVerride = float(entity_data.get('possesbreakcooldownoverride', 0))  # Type: float
+
+
+class npc_xortEB(BaseNPC):
+    model = "models/vortigaunt_slave.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.XortState = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_nFearLevel = None  # Type: choices
+        self.m_nDamageCallEveryone = -1  # Type: integer
+        self.m_fDamageCallRadius = -1  # Type: float
+        self.m_nAlertCallEveryone = -1  # Type: integer
+        self.m_fAlertCallRadius = -1  # Type: float
+        self.FearNodesGroupName = None  # Type: string
+        self.HealNodesGroupName = None  # Type: string
+        self.bPlayTeleportAnimOnSpawn = None  # Type: choices
+        self.bDisableSpells = None  # Type: choices
+        self.CanUseHealingNodes = None  # Type: choices
+        self.CanUseFearNodes = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.XortState = entity_data.get('xortstate', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_nFearLevel = entity_data.get('m_nfearlevel', None)  # Type: choices
+        instance.m_nDamageCallEveryone = parse_source_value(entity_data.get('m_ndamagecalleveryone', -1))  # Type: integer
+        instance.m_fDamageCallRadius = float(entity_data.get('m_fdamagecallradius', -1))  # Type: float
+        instance.m_nAlertCallEveryone = parse_source_value(entity_data.get('m_nalertcalleveryone', -1))  # Type: integer
+        instance.m_fAlertCallRadius = float(entity_data.get('m_falertcallradius', -1))  # Type: float
+        instance.FearNodesGroupName = entity_data.get('fearnodesgroupname', None)  # Type: string
+        instance.HealNodesGroupName = entity_data.get('healnodesgroupname', None)  # Type: string
+        instance.bPlayTeleportAnimOnSpawn = entity_data.get('bplayteleportanimonspawn', None)  # Type: choices
+        instance.bDisableSpells = entity_data.get('bdisablespells', None)  # Type: choices
+        instance.CanUseHealingNodes = entity_data.get('canusehealingnodes', None)  # Type: choices
+        instance.CanUseFearNodes = entity_data.get('canusefearnodes', None)  # Type: choices
+
+
+class npc_headcrab(Parentname, BaseNPC):
+    model = "models/headcrabclassic.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(Parentname).__init__()
+        self.startburrowed = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
+        instance.startburrowed = entity_data.get('startburrowed', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_headcrab_fast(BaseNPC):
+    model = "models/Headcrab.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_headcrab_black(BaseNPC):
+    model = "models/Headcrabblack.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_headcrab_baby(BaseNPC):
+    model = "models/xenians/bebcrab.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_barnacle(BaseNPC):
+    model = "models/barnacle.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.RestDist = 16  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.RestDist = float(entity_data.get('restdist', 16))  # Type: float
+
+
+class npc_beneathticle(BaseNPC):
+    model = "models/xenians/barnacle_underwater.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.TongueLength = None  # Type: float
+        self.TonguePullSpeed = None  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.TongueLength = float(entity_data.get('tonguelength', 0))  # Type: float
+        instance.TonguePullSpeed = float(entity_data.get('tonguepullspeed', 0))  # Type: float
+
+
+class npc_bullsquid(BaseNPCAssault):
+    model = "models/xenians/bullsquid.mdl"
+    def __init__(self):
+        super(BaseNPCAssault).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPCAssault.from_dict(instance, entity_data)
+
+
+class npc_bullsquid_melee(BaseNPCAssault):
+    model = "models/xenians/bullsquid.mdl"
+    def __init__(self):
+        super(BaseNPCAssault).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPCAssault.from_dict(instance, entity_data)
+
+
+class npc_houndeye(BaseNPCAssault):
+    model = "models/xenians/houndeye.mdl"
+    def __init__(self):
+        super(BaseNPCAssault).__init__()
+        self.m_bEnableMemoryUpdateEveryFrame = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPCAssault.from_dict(instance, entity_data)
+        instance.m_bEnableMemoryUpdateEveryFrame = entity_data.get('m_benablememoryupdateeveryframe', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_houndeye_suicide(npc_houndeye):
+    model = "models/xenians/houndeye_suicide.mdl"
+    def __init__(self):
+        super(npc_houndeye).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        npc_houndeye.from_dict(instance, entity_data)
+
+
+class npc_houndeye_knockback(npc_houndeye):
+    model = "models/xenians/houndeye_knockback.mdl"
+    def __init__(self):
+        super(npc_houndeye).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        npc_houndeye.from_dict(instance, entity_data)
+
+
+class npc_human_assassin(BaseNPC):
+    model = "models/humans/hassassin.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class BaseMarine(RappelNPC, BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(RappelNPC).__init__()
+        self.NumGrenades = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.additionalequipment = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        RappelNPC.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
+        instance.NumGrenades = entity_data.get('numgrenades', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.additionalequipment = entity_data.get('additionalequipment', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_human_commander(BaseMarine):
+    model = "models/humans/marine.mdl"
+    def __init__(self):
+        super(BaseMarine).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseMarine.from_dict(instance, entity_data)
+
+
+class npc_human_grunt(BaseMarine):
+    model = "models/humans/marine.mdl"
+    def __init__(self):
+        super(BaseMarine).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseMarine.from_dict(instance, entity_data)
+
+
+class npc_human_medic(BaseMarine):
+    model = "models/humans/marine.mdl"
+    def __init__(self):
+        super(BaseMarine).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseMarine.from_dict(instance, entity_data)
+
+
+class npc_human_grenadier(BaseMarine):
+    model = "models/humans/marine.mdl"
+    def __init__(self):
+        super(BaseMarine).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseMarine.from_dict(instance, entity_data)
+
+
+class npc_alien_controller(BaseNPC):
+    model = "models/xenians/controller.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_xontroller(BaseNPC):
+    model = "models/xenians/controller.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.mainbehaviortreename = None  # Type: string
+        self.assaultbehaviortreename = None  # Type: string
+        self.preferred_pawns_group_01 = None  # Type: target_destination
+        self.preferred_pawns_group_02 = None  # Type: target_destination
+        self.preferred_pawns_group_03 = None  # Type: target_destination
+        self.preferred_pawns_group_04 = None  # Type: target_destination
+        self.preferred_pawns_group_05 = None  # Type: target_destination
+        self.preferred_pawns_group_06 = None  # Type: target_destination
+        self.preferred_pawns_group_07 = None  # Type: target_destination
+        self.preferred_pawns_group_08 = None  # Type: target_destination
+        self.preferred_pawns_group_09 = None  # Type: target_destination
+        self.preferred_pawns_group_10 = None  # Type: target_destination
+        self.preferred_pawns_group_11 = None  # Type: target_destination
+        self.preferred_pawns_group_12 = None  # Type: target_destination
+        self.preferred_pawns_group_13 = None  # Type: target_destination
+        self.preferred_pawns_group_14 = None  # Type: target_destination
+        self.preferred_pawns_group_15 = None  # Type: target_destination
+        self.preferred_pawns_group_16 = None  # Type: target_destination
+        self.select_preferred_pawns_only = None  # Type: choices
+        self.mindcontrol_attacks_disabled = None  # Type: choices
+        self.attack_mode_energy_enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.attack_mode_cluster_enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.attack_mode_brainwash_enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.attack_mode_throw_enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.attack_mode_smash_enabled = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.mainbehaviortreename = entity_data.get('mainbehaviortreename', None)  # Type: string
+        instance.assaultbehaviortreename = entity_data.get('assaultbehaviortreename', None)  # Type: string
+        instance.preferred_pawns_group_01 = entity_data.get('preferred_pawns_group_01', None)  # Type: target_destination
+        instance.preferred_pawns_group_02 = entity_data.get('preferred_pawns_group_02', None)  # Type: target_destination
+        instance.preferred_pawns_group_03 = entity_data.get('preferred_pawns_group_03', None)  # Type: target_destination
+        instance.preferred_pawns_group_04 = entity_data.get('preferred_pawns_group_04', None)  # Type: target_destination
+        instance.preferred_pawns_group_05 = entity_data.get('preferred_pawns_group_05', None)  # Type: target_destination
+        instance.preferred_pawns_group_06 = entity_data.get('preferred_pawns_group_06', None)  # Type: target_destination
+        instance.preferred_pawns_group_07 = entity_data.get('preferred_pawns_group_07', None)  # Type: target_destination
+        instance.preferred_pawns_group_08 = entity_data.get('preferred_pawns_group_08', None)  # Type: target_destination
+        instance.preferred_pawns_group_09 = entity_data.get('preferred_pawns_group_09', None)  # Type: target_destination
+        instance.preferred_pawns_group_10 = entity_data.get('preferred_pawns_group_10', None)  # Type: target_destination
+        instance.preferred_pawns_group_11 = entity_data.get('preferred_pawns_group_11', None)  # Type: target_destination
+        instance.preferred_pawns_group_12 = entity_data.get('preferred_pawns_group_12', None)  # Type: target_destination
+        instance.preferred_pawns_group_13 = entity_data.get('preferred_pawns_group_13', None)  # Type: target_destination
+        instance.preferred_pawns_group_14 = entity_data.get('preferred_pawns_group_14', None)  # Type: target_destination
+        instance.preferred_pawns_group_15 = entity_data.get('preferred_pawns_group_15', None)  # Type: target_destination
+        instance.preferred_pawns_group_16 = entity_data.get('preferred_pawns_group_16', None)  # Type: target_destination
+        instance.select_preferred_pawns_only = entity_data.get('select_preferred_pawns_only', None)  # Type: choices
+        instance.mindcontrol_attacks_disabled = entity_data.get('mindcontrol_attacks_disabled', None)  # Type: choices
+        instance.attack_mode_energy_enabled = entity_data.get('attack_mode_energy_enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.attack_mode_cluster_enabled = entity_data.get('attack_mode_cluster_enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.attack_mode_brainwash_enabled = entity_data.get('attack_mode_brainwash_enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.attack_mode_throw_enabled = entity_data.get('attack_mode_throw_enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.attack_mode_smash_enabled = entity_data.get('attack_mode_smash_enabled', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_alien_grunt_unarmored(BaseNPC):
+    model = "models/xenians/agrunt_unarmored.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_alien_grunt_melee(BaseNPC):
+    model = "models/xenians/agrunt_unarmored.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_alien_grunt(BaseNPC):
+    model = "models/xenians/agrunt.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_alien_grunt_elite(BaseNPC):
+    model = "models/xenians/agrunt.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_xen_grunt(BaseNPC):
+    model = "models/xenians/agrunt.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.mainbehaviortreename = None  # Type: string
+        self.assaultbehaviortreename = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.mainbehaviortreename = entity_data.get('mainbehaviortreename', None)  # Type: string
+        instance.assaultbehaviortreename = entity_data.get('assaultbehaviortreename', None)  # Type: string
+
+
+class npc_cockroach(BaseNPC):
+    model = "models/fauna/roach.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_flyer_flock(BaseNPC):
+    model = "models/xenians/flock.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_gargantua(BaseNPCAssault):
+    model = "models/xenians/garg.mdl"
+    def __init__(self):
+        super(BaseNPCAssault).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPCAssault.from_dict(instance, entity_data)
+
+
+class info_bigmomma(Node):
+    model = "models/editor/ground_node.mdl"
+    def __init__(self):
+        super(Node).__init__()
+        self.origin = [0, 0, 0]
+        self.m_flRadius = 1  # Type: float
+        self.m_flDelay = 1  # Type: float
+        self.reachtarget = None  # Type: target_destination
+        self.reachsequence = "0"  # Type: string
+        self.presequence = "0"  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Node.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.m_flRadius = float(entity_data.get('m_flradius', 1))  # Type: float
+        instance.m_flDelay = float(entity_data.get('m_fldelay', 1))  # Type: float
+        instance.reachtarget = entity_data.get('reachtarget', None)  # Type: target_destination
+        instance.reachsequence = entity_data.get('reachsequence', "0")  # Type: string
+        instance.presequence = entity_data.get('presequence', "0")  # Type: string
+
+
+class npc_gonarch(Studiomodel, BaseNPC):
+    model = "models/xenians/gonarch.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        super(Studiomodel).__init__()
+        self.cavernbreed = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.shovetargets = None  # Type: string
+        self.taunttargets = None  # Type: string
+        self.covertargetsHI = None  # Type: string
+        self.attacktargetsHI = None  # Type: string
+        self.m_tGSState = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.bTouchKillActive = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Studiomodel.from_dict(instance, entity_data)
+        BaseNPC.from_dict(instance, entity_data)
+        instance.cavernbreed = entity_data.get('cavernbreed', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.shovetargets = entity_data.get('shovetargets', None)  # Type: string
+        instance.taunttargets = entity_data.get('taunttargets', None)  # Type: string
+        instance.covertargetsHI = entity_data.get('covertargetshi', None)  # Type: string
+        instance.attacktargetsHI = entity_data.get('attacktargetshi', None)  # Type: string
+        instance.m_tGSState = entity_data.get('m_tgsstate', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.bTouchKillActive = entity_data.get('btouchkillactive', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class env_gon_mortar_area(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.Radius = 100  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.Radius = float(entity_data.get('radius', 100))  # Type: float
+
+
+class npc_generic(BaseNPC):
+    model = "models/gman.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_gman(BaseNPC):
+    model = "models/gman.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_ichthyosaur(BaseNPC):
+    model = "models/ichthyosaur.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_maintenance(BaseNPC):
+    model = "models/humans/maintenance/maintenance_1.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_nihilanth(BaseNPC):
+    model = "models/xenians/nihilanth.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.m_tNHState = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.m_tNHState = parse_source_value(entity_data.get('m_tnhstate', 0))  # Type: integer
+
+
+class prop_nihi_shield(Angles, Studiomodel, Targetname):
+    def __init__(self):
+        super(Angles).__init__()
+        super(Studiomodel).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.m_fStartHP = 1500  # Type: float
+        self.m_szGaurdedEntityName = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.m_fStartHP = float(entity_data.get('m_fstarthp', 1500))  # Type: float
+        instance.m_szGaurdedEntityName = entity_data.get('m_szgaurdedentityname', None)  # Type: string
+
+
+class nihilanth_pylon(prop_dynamic_base):
+    viewport_model = "models/props_xen/nil_pylon.mdl"
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.bHealNihi = 1  # Type: integer
+        self.bHealShield = 1  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.bHealNihi = parse_source_value(entity_data.get('bhealnihi', 1))  # Type: integer
+        instance.bHealShield = parse_source_value(entity_data.get('bhealshield', 1))  # Type: integer
+
+
+class BMBaseHelicopter(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.InitialSpeed = "0"  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.InitialSpeed = entity_data.get('initialspeed', "0")  # Type: string
+
+
+class npc_manta(BMBaseHelicopter):
+    model = "models/xenians/manta_jet.mdl"
+    def __init__(self):
+        super(BMBaseHelicopter).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BMBaseHelicopter.from_dict(instance, entity_data)
+
+
+class prop_xen_grunt_pod(Global, BreakableProp, RenderFields, BaseFadeProp, Studiomodel, Parentname, Angles, DXLevelChoice):
+    def __init__(self):
+        super(BreakableProp).__init__()
+        super(RenderFields).__init__()
+        super(Global).__init__()
+        super(BaseFadeProp).__init__()
+        super(Studiomodel).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.MyCustomMass = None  # Type: float
+        self.SetBodyGroup = None  # Type: integer
+        self.lightingorigin = None  # Type: target_destination
+        self.SpawnEntityName = "npc_alien_grunt_melee"  # Type: string
+        self.EnablePodLight = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.EnablePodShadows = None  # Type: choices
+        self.PodLightColor = [232, 251, 0]  # Type: color255
+        self.ShouldKeepUpright = None  # Type: choices
+        self.TargetEntityToIgnore01 = None  # Type: target_destination
+        self.TargetEntityToIgnore02 = None  # Type: target_destination
+        self.TargetEntityToIgnore03 = None  # Type: target_destination
+        self.TargetEntityToIgnore04 = None  # Type: target_destination
+        self.TargetEntityToIgnore05 = None  # Type: target_destination
+        self.TargetEntityToIgnore06 = None  # Type: target_destination
+        self.TargetEntityToIgnore07 = None  # Type: target_destination
+        self.TargetEntityToIgnore08 = None  # Type: target_destination
+        self.TargetEntityToIgnore09 = None  # Type: target_destination
+        self.TargetEntityToIgnore10 = None  # Type: target_destination
+        self.TargetEntityToIgnore11 = None  # Type: target_destination
+        self.TargetEntityToIgnore12 = None  # Type: target_destination
+        self.TargetEntityToIgnore13 = None  # Type: target_destination
+        self.TargetEntityToIgnore14 = None  # Type: target_destination
+        self.TargetEntityToIgnore15 = None  # Type: target_destination
+        self.TargetEntityToIgnore16 = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Global.from_dict(instance, entity_data)
+        BreakableProp.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.MyCustomMass = float(entity_data.get('mycustommass', 0))  # Type: float
+        instance.SetBodyGroup = parse_source_value(entity_data.get('setbodygroup', 0))  # Type: integer
+        instance.lightingorigin = entity_data.get('lightingorigin', None)  # Type: target_destination
+        instance.SpawnEntityName = entity_data.get('spawnentityname', "npc_alien_grunt_melee")  # Type: string
+        instance.EnablePodLight = entity_data.get('enablepodlight', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.EnablePodShadows = entity_data.get('enablepodshadows', None)  # Type: choices
+        instance.PodLightColor = parse_int_vector(entity_data.get('podlightcolor', "232 251 0"))  # Type: color255
+        instance.ShouldKeepUpright = entity_data.get('shouldkeepupright', None)  # Type: choices
+        instance.TargetEntityToIgnore01 = entity_data.get('targetentitytoignore01', None)  # Type: target_destination
+        instance.TargetEntityToIgnore02 = entity_data.get('targetentitytoignore02', None)  # Type: target_destination
+        instance.TargetEntityToIgnore03 = entity_data.get('targetentitytoignore03', None)  # Type: target_destination
+        instance.TargetEntityToIgnore04 = entity_data.get('targetentitytoignore04', None)  # Type: target_destination
+        instance.TargetEntityToIgnore05 = entity_data.get('targetentitytoignore05', None)  # Type: target_destination
+        instance.TargetEntityToIgnore06 = entity_data.get('targetentitytoignore06', None)  # Type: target_destination
+        instance.TargetEntityToIgnore07 = entity_data.get('targetentitytoignore07', None)  # Type: target_destination
+        instance.TargetEntityToIgnore08 = entity_data.get('targetentitytoignore08', None)  # Type: target_destination
+        instance.TargetEntityToIgnore09 = entity_data.get('targetentitytoignore09', None)  # Type: target_destination
+        instance.TargetEntityToIgnore10 = entity_data.get('targetentitytoignore10', None)  # Type: target_destination
+        instance.TargetEntityToIgnore11 = entity_data.get('targetentitytoignore11', None)  # Type: target_destination
+        instance.TargetEntityToIgnore12 = entity_data.get('targetentitytoignore12', None)  # Type: target_destination
+        instance.TargetEntityToIgnore13 = entity_data.get('targetentitytoignore13', None)  # Type: target_destination
+        instance.TargetEntityToIgnore14 = entity_data.get('targetentitytoignore14', None)  # Type: target_destination
+        instance.TargetEntityToIgnore15 = entity_data.get('targetentitytoignore15', None)  # Type: target_destination
+        instance.TargetEntityToIgnore16 = entity_data.get('targetentitytoignore16', None)  # Type: target_destination
+
+
+class prop_xen_grunt_pod_dynamic(Global, BreakableProp, RenderFields, BaseFadeProp, Studiomodel, Parentname, Angles, DXLevelChoice):
+    def __init__(self):
+        super(BreakableProp).__init__()
+        super(RenderFields).__init__()
+        super(Global).__init__()
+        super(BaseFadeProp).__init__()
+        super(Studiomodel).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.MyCustomMass = None  # Type: float
+        self.SetBodyGroup = None  # Type: integer
+        self.lightingorigin = None  # Type: target_destination
+        self.SpawnEntityName = "npc_alien_grunt_melee"  # Type: string
+        self.PodLightColor = [232, 251, 0]  # Type: color255
+        self.EnablePodLight = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.EnablePodShadows = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Global.from_dict(instance, entity_data)
+        BreakableProp.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.MyCustomMass = float(entity_data.get('mycustommass', 0))  # Type: float
+        instance.SetBodyGroup = parse_source_value(entity_data.get('setbodygroup', 0))  # Type: integer
+        instance.lightingorigin = entity_data.get('lightingorigin', None)  # Type: target_destination
+        instance.SpawnEntityName = entity_data.get('spawnentityname', "npc_alien_grunt_melee")  # Type: string
+        instance.PodLightColor = parse_int_vector(entity_data.get('podlightcolor', "232 251 0"))  # Type: color255
+        instance.EnablePodLight = entity_data.get('enablepodlight', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.EnablePodShadows = entity_data.get('enablepodshadows', None)  # Type: choices
+
+
+class prop_xen_int_barrel(Global, BreakableProp, RenderFields, BaseFadeProp, Studiomodel, Parentname, Angles, DXLevelChoice):
+    def __init__(self):
+        super(BreakableProp).__init__()
+        super(RenderFields).__init__()
+        super(Global).__init__()
+        super(BaseFadeProp).__init__()
+        super(Studiomodel).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.SetBodyGroup = None  # Type: integer
+        self.lightingorigin = None  # Type: target_destination
+        self.EnablePodLight = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.EnablePodShadows = None  # Type: choices
+        self.PodLightColor = [232, 251, 0]  # Type: color255
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Global.from_dict(instance, entity_data)
+        BreakableProp.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.SetBodyGroup = parse_source_value(entity_data.get('setbodygroup', 0))  # Type: integer
+        instance.lightingorigin = entity_data.get('lightingorigin', None)  # Type: target_destination
+        instance.EnablePodLight = entity_data.get('enablepodlight', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.EnablePodShadows = entity_data.get('enablepodshadows', None)  # Type: choices
+        instance.PodLightColor = parse_int_vector(entity_data.get('podlightcolor', "232 251 0"))  # Type: color255
+
+
+class prop_barrel_cactus(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = None  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+        self.lightRadius = 400  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', None)  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+        instance.lightRadius = float(entity_data.get('lightradius', 400))  # Type: float
+
+
+class prop_barrel_cactus_semilarge(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+        self.lightRadius = 400  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+        instance.lightRadius = float(entity_data.get('lightradius', 400))  # Type: float
+
+
+class prop_barrel_cactus_adolescent(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+
+
+class prop_barrel_cactus_infant(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+
+
+class prop_barrel_cactus_exploder(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+
+
+class prop_barrel_interloper(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+        self.lightRadius = 400  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+        instance.lightRadius = float(entity_data.get('lightradius', 400))  # Type: float
+
+
+class prop_barrel_interloper_small(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.cactustype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.m_bOverrideModel = None  # Type: choices
+        self.m_bDisableGibs = None  # Type: choices
+        self.lightRadius = 400  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.cactustype = entity_data.get('cactustype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.m_bOverrideModel = entity_data.get('m_boverridemodel', None)  # Type: choices
+        instance.m_bDisableGibs = entity_data.get('m_bdisablegibs', None)  # Type: choices
+        instance.lightRadius = float(entity_data.get('lightradius', 400))  # Type: float
+
+
+class npc_apache(BMBaseHelicopter):
+    model = "models/props_vehicles/apache.mdl"
+    def __init__(self):
+        super(BMBaseHelicopter).__init__()
+        self.bNerfedFireCone = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BMBaseHelicopter.from_dict(instance, entity_data)
+        instance.bNerfedFireCone = entity_data.get('bnerfedfirecone', None)  # Type: choices
+
+
+class npc_osprey(BMBaseHelicopter):
+    model = "models/props_vehicles/osprey.mdl"
+    def __init__(self):
+        super(BMBaseHelicopter).__init__()
+        self.NPCTemplate1 = None  # Type: target_destination
+        self.NPCTemplate2 = None  # Type: target_destination
+        self.NPCTemplate3 = None  # Type: target_destination
+        self.NPCTemplate4 = None  # Type: target_destination
+        self.NPCTemplate5 = None  # Type: target_destination
+        self.NPCTemplate6 = None  # Type: target_destination
+        self.NPCTemplate7 = None  # Type: target_destination
+        self.NPCTemplate8 = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BMBaseHelicopter.from_dict(instance, entity_data)
+        instance.NPCTemplate1 = entity_data.get('npctemplate1', None)  # Type: target_destination
+        instance.NPCTemplate2 = entity_data.get('npctemplate2', None)  # Type: target_destination
+        instance.NPCTemplate3 = entity_data.get('npctemplate3', None)  # Type: target_destination
+        instance.NPCTemplate4 = entity_data.get('npctemplate4', None)  # Type: target_destination
+        instance.NPCTemplate5 = entity_data.get('npctemplate5', None)  # Type: target_destination
+        instance.NPCTemplate6 = entity_data.get('npctemplate6', None)  # Type: target_destination
+        instance.NPCTemplate7 = entity_data.get('npctemplate7', None)  # Type: target_destination
+        instance.NPCTemplate8 = entity_data.get('npctemplate8', None)  # Type: target_destination
+
+
+class npc_rat(BaseNPC):
+    model = "models/fauna/rat.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class BaseColleague(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.expressiontype = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.CanSpeakWhileScripting = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.AlwaysTransition = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.GameEndAlly = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.expressiontype = entity_data.get('expressiontype', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.CanSpeakWhileScripting = entity_data.get('canspeakwhilescripting', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.AlwaysTransition = entity_data.get('alwaystransition', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.GameEndAlly = entity_data.get('gameendally', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_human_security(Parentname, TalkNPC, BaseColleague):
+    model = "models/humans/guard.mdl"
+    def __init__(self):
+        super(TalkNPC).__init__()
+        super(BaseColleague).__init__()
+        super(Parentname).__init__()
+        self.additionalequipment = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        TalkNPC.from_dict(instance, entity_data)
+        BaseColleague.from_dict(instance, entity_data)
+        instance.additionalequipment = entity_data.get('additionalequipment', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_human_scientist_kleiner(Parentname, TalkNPC, BaseColleague):
+    model = "models/humans/scientist_kliener.mdl"
+    def __init__(self):
+        super(TalkNPC).__init__()
+        super(BaseColleague).__init__()
+        super(Parentname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        TalkNPC.from_dict(instance, entity_data)
+        BaseColleague.from_dict(instance, entity_data)
+
+
+class npc_human_scientist_eli(Parentname, TalkNPC, BaseColleague):
+    model = "models/humans/scientist_eli.mdl"
+    def __init__(self):
+        super(TalkNPC).__init__()
+        super(BaseColleague).__init__()
+        super(Parentname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        TalkNPC.from_dict(instance, entity_data)
+        BaseColleague.from_dict(instance, entity_data)
+
+
+class npc_human_scientist(Parentname, TalkNPC, BaseColleague):
+    model = "models/humans/scientist.mdl"
+    def __init__(self):
+        super(TalkNPC).__init__()
+        super(BaseColleague).__init__()
+        super(Parentname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        TalkNPC.from_dict(instance, entity_data)
+        BaseColleague.from_dict(instance, entity_data)
+
+
+class npc_human_scientist_female(Parentname, TalkNPC, BaseColleague):
+    model = "models/humans/scientist_female.mdl"
+    def __init__(self):
+        super(TalkNPC).__init__()
+        super(BaseColleague).__init__()
+        super(Parentname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        TalkNPC.from_dict(instance, entity_data)
+        BaseColleague.from_dict(instance, entity_data)
+
+
+class npc_xentacle(BaseNPC):
+    model = "models/xenians/xentacle.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.radius = 320  # Type: integer
+        self.target01 = None  # Type: target_destination
+        self.target02 = None  # Type: target_destination
+        self.target03 = None  # Type: target_destination
+        self.target04 = None  # Type: target_destination
+        self.target05 = None  # Type: target_destination
+        self.target06 = None  # Type: target_destination
+        self.target07 = None  # Type: target_destination
+        self.target08 = None  # Type: target_destination
+        self.target09 = None  # Type: target_destination
+        self.target10 = None  # Type: target_destination
+        self.target11 = None  # Type: target_destination
+        self.target12 = None  # Type: target_destination
+        self.target13 = None  # Type: target_destination
+        self.target14 = None  # Type: target_destination
+        self.target15 = None  # Type: target_destination
+        self.target16 = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.radius = parse_source_value(entity_data.get('radius', 320))  # Type: integer
+        instance.target01 = entity_data.get('target01', None)  # Type: target_destination
+        instance.target02 = entity_data.get('target02', None)  # Type: target_destination
+        instance.target03 = entity_data.get('target03', None)  # Type: target_destination
+        instance.target04 = entity_data.get('target04', None)  # Type: target_destination
+        instance.target05 = entity_data.get('target05', None)  # Type: target_destination
+        instance.target06 = entity_data.get('target06', None)  # Type: target_destination
+        instance.target07 = entity_data.get('target07', None)  # Type: target_destination
+        instance.target08 = entity_data.get('target08', None)  # Type: target_destination
+        instance.target09 = entity_data.get('target09', None)  # Type: target_destination
+        instance.target10 = entity_data.get('target10', None)  # Type: target_destination
+        instance.target11 = entity_data.get('target11', None)  # Type: target_destination
+        instance.target12 = entity_data.get('target12', None)  # Type: target_destination
+        instance.target13 = entity_data.get('target13', None)  # Type: target_destination
+        instance.target14 = entity_data.get('target14', None)  # Type: target_destination
+        instance.target15 = entity_data.get('target15', None)  # Type: target_destination
+        instance.target16 = entity_data.get('target16', None)  # Type: target_destination
+
+
+class npc_tentacle(BaseNPC):
+    model = "models/xenians/tentacle.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_snark(BaseNPC):
+    model = "models/xenians/snark.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.m_fLifeTime = 14  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.m_fLifeTime = float(entity_data.get('m_flifetime', 14))  # Type: float
+
+
+class npc_sniper(BaseNPC):
+    model = "models/combine_soldier.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.radius = None  # Type: integer
+        self.misses = None  # Type: integer
+        self.beambrightness = 100  # Type: integer
+        self.shootZombiesInChest = None  # Type: choices
+        self.shielddistance = 64  # Type: float
+        self.shieldradius = 48  # Type: float
+        self.PaintInterval = 1  # Type: float
+        self.PaintIntervalVariance = 0.75  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.radius = parse_source_value(entity_data.get('radius', 0))  # Type: integer
+        instance.misses = parse_source_value(entity_data.get('misses', 0))  # Type: integer
+        instance.beambrightness = parse_source_value(entity_data.get('beambrightness', 100))  # Type: integer
+        instance.shootZombiesInChest = entity_data.get('shootzombiesinchest', None)  # Type: choices
+        instance.shielddistance = float(entity_data.get('shielddistance', 64))  # Type: float
+        instance.shieldradius = float(entity_data.get('shieldradius', 48))  # Type: float
+        instance.PaintInterval = float(entity_data.get('paintinterval', 1))  # Type: float
+        instance.PaintIntervalVariance = float(entity_data.get('paintintervalvariance', 0.75))  # Type: float
+
+
+class info_target_helicoptercrash(Parentname, Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class info_dlightmap_update(Parentname, Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class info_timescale_controller(Parentname, Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class info_stopallsounds(Parentname, Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class info_player_deathmatch(Angles, PlayerClass, Targetname):
+    model = "models/editor/playerstart.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(PlayerClass).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.itemstogive = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        PlayerClass.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.itemstogive = entity_data.get('itemstogive', None)  # Type: string
+
+
+class info_player_marine(Angles, PlayerClass, Targetname):
+    model = "models/Player/mp_marine.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(PlayerClass).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.itemstogive = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        PlayerClass.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.itemstogive = entity_data.get('itemstogive', None)  # Type: string
+
+
+class info_player_scientist(Angles, PlayerClass, Targetname):
+    model = "models/Player/mp_scientist_hev.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(PlayerClass).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.itemstogive = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        PlayerClass.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.itemstogive = entity_data.get('itemstogive', None)  # Type: string
+
+
+class material_timer(Parentname, Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.length = 30  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.length = float(entity_data.get('length', 30))  # Type: float
+
+
+class xen_portal(Base):
+    def __init__(self):
+        super().__init__()
+        self.origin = [0, 0, 0]
+        self.size = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.sound = "XenPortal.Sound"  # Type: sound
+        self.jump_distance = 0  # Type: float
+        self.jump_hmaxspeed = 200  # Type: float
+        self.min_delay = 0  # Type: float
+        self.max_delay = 0  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.size = entity_data.get('size', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.sound = entity_data.get('sound', "XenPortal.Sound")  # Type: sound
+        instance.jump_distance = float(entity_data.get('jump_distance', 0))  # Type: float
+        instance.jump_hmaxspeed = float(entity_data.get('jump_hmaxspeed', 200))  # Type: float
+        instance.min_delay = float(entity_data.get('min_delay', 0))  # Type: float
+        instance.max_delay = float(entity_data.get('max_delay', 0))  # Type: float
+
+
+class env_introcredits(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.startactive = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.startactive = entity_data.get('startactive', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class env_particle_beam(Parentname, Targetname):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.particlebeam = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.target = None  # Type: target_destination
+        self.damage = 1  # Type: float
+        self.damagetick = 0.1  # Type: float
+        self.burntrail = "effects/gluon_burn_trail.vmt"  # Type: material
+        self.burntrail_life = 4  # Type: float
+        self.burntrail_size = 16  # Type: float
+        self.burntrail_text = 0.01  # Type: float
+        self.burntrail_flags = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.particlebeam = entity_data.get('particlebeam', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance.damage = float(entity_data.get('damage', 1))  # Type: float
+        instance.damagetick = float(entity_data.get('damagetick', 0.1))  # Type: float
+        instance.burntrail = entity_data.get('burntrail', "effects/gluon_burn_trail.vmt")  # Type: material
+        instance.burntrail_life = float(entity_data.get('burntrail_life', 4))  # Type: float
+        instance.burntrail_size = float(entity_data.get('burntrail_size', 16))  # Type: float
+        instance.burntrail_text = float(entity_data.get('burntrail_text', 0.01))  # Type: float
+        instance.burntrail_flags = entity_data.get('burntrail_flags', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class env_particle_tesla(Parentname, Targetname):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.particletesla = "tesla_lc_core"  # Type: string
+        self.frequency = 0.1  # Type: float
+        self.mincount = 2  # Type: integer
+        self.maxcount = 4  # Type: integer
+        self.range = 2048  # Type: integer
+        self.life = -1  # Type: float
+        self.min = [-1.0, -1.0, -1.0]  # Type: vector
+        self.max = [1.0, 1.0, 1.0]  # Type: vector
+        self.decalname = "ZapScorch"  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.particletesla = entity_data.get('particletesla', "tesla_lc_core")  # Type: string
+        instance.frequency = float(entity_data.get('frequency', 0.1))  # Type: float
+        instance.mincount = parse_source_value(entity_data.get('mincount', 2))  # Type: integer
+        instance.maxcount = parse_source_value(entity_data.get('maxcount', 4))  # Type: integer
+        instance.range = parse_source_value(entity_data.get('range', 2048))  # Type: integer
+        instance.life = float(entity_data.get('life', -1))  # Type: float
+        instance.min = parse_float_vector(entity_data.get('min', "-1 -1 -1"))  # Type: vector
+        instance.max = parse_float_vector(entity_data.get('max', "1 1 1"))  # Type: vector
+        instance.decalname = entity_data.get('decalname', "ZapScorch")  # Type: string
+
+
+class env_xen_portal(xen_portal, npc_maker):
+    icon_sprite = "Editor/Xen_Portal"
+    def __init__(self):
+        super(npc_maker).__init__()
+        super(xen_portal).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        xen_portal.from_dict(instance, entity_data)
+        npc_maker.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_xen_portal_template(npc_template_maker, xen_portal):
+    icon_sprite = "Editor/Xen_Portal"
+    def __init__(self):
+        super(npc_template_maker).__init__()
+        super(xen_portal).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        npc_template_maker.from_dict(instance, entity_data)
+        xen_portal.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_pinch(Parentname, Targetname):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.timer = 1.8  # Type: float
+        self.startsize = 10  # Type: float
+        self.endsize = 30  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.timer = float(entity_data.get('timer', 1.8))  # Type: float
+        instance.startsize = float(entity_data.get('startsize', 10))  # Type: float
+        instance.endsize = float(entity_data.get('endsize', 30))  # Type: float
+
+
+class env_dispenser(Parentname, Targetname):
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.spawnmodel = "models/props_junk/popcan01a.mdl"  # Type: studio
+        self.spawnangles = None  # Failed to parse value type due to could not convert string to float: 'Orientation'  # Type: angle
+        self.capacity = 15  # Type: integer
+        self.skinmin = None  # Type: integer
+        self.skinmax = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.spawnmodel = entity_data.get('spawnmodel', "models/props_junk/popcan01a.mdl")  # Type: studio
+        instance.spawnangles = parse_float_vector(entity_data.get('spawnangles', "Orientation of the model at spawn (Y Z X)"))  # Type: angle
+        instance.capacity = parse_source_value(entity_data.get('capacity', 15))  # Type: integer
+        instance.skinmin = parse_source_value(entity_data.get('skinmin', 0))  # Type: integer
+        instance.skinmax = parse_source_value(entity_data.get('skinmax', 0))  # Type: integer
+
+
+class item_crate(BasePropPhysics):
+    def __init__(self):
+        super(BasePropPhysics).__init__()
+        super(BaseFadeProp).__init__()
+        super(DamageFilter).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.scriptpreset = None  # Type: choices
+        self.spawnonbreak = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFadeProp.from_dict(instance, entity_data)
+        BasePropPhysics.from_dict(instance, entity_data)
+        DamageFilter.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.scriptpreset = entity_data.get('scriptpreset', None)  # Type: choices
+        instance.spawnonbreak = entity_data.get('spawnonbreak', None)  # Type: string
+
+
+class func_50cal(Base):
+    def __init__(self):
+        super().__init__()
+        pass
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+
+
+class func_tow(Base):
+    def __init__(self):
+        super().__init__()
+        pass
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+
+
+class func_tow_mp(Base):
+    def __init__(self):
+        super().__init__()
+        pass
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Base.from_dict(instance, entity_data)
+
+
+class func_conveyor_bms(Parentname, Shadow, Targetname, RenderFields):
+    def __init__(self):
+        super(RenderFields).__init__()
+        super(Parentname).__init__()
+        super(Shadow).__init__()
+        super(Targetname).__init__()
+        self.direction = [0.0, 0.0, 0.0]  # Type: angle
+        self.speed = "150"  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Shadow.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        instance.direction = parse_float_vector(entity_data.get('direction', "0 0 0"))  # Type: angle
+        instance.speed = entity_data.get('speed', "150")  # Type: string
+
+
+class item_tow_missile(BasePropPhysics):
+    model = "models/props_marines/tow_missile_projectile.mdl"
+    def __init__(self):
+        super(BasePropPhysics).__init__()
+        super(BaseFadeProp).__init__()
+        super(DamageFilter).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFadeProp.from_dict(instance, entity_data)
+        BasePropPhysics.from_dict(instance, entity_data)
+        DamageFilter.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_mortar_launcher(Targetname):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.firedelay = 1  # Type: integer
+        self.rateoffire = 10  # Type: float
+        self.radius = 128  # Type: float
+        self.target = None  # Type: target_destination
+        self.grenadeentityname = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.apexheightratio = 1  # Type: float
+        self.pathoption = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.fireshellscount = 1  # Type: integer
+        self.override_damage = -1  # Type: float
+        self.override_damageradius = -1  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.firedelay = parse_source_value(entity_data.get('firedelay', 1))  # Type: integer
+        instance.rateoffire = float(entity_data.get('rateoffire', 10))  # Type: float
+        instance.radius = float(entity_data.get('radius', 128))  # Type: float
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance.grenadeentityname = entity_data.get('grenadeentityname', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.apexheightratio = float(entity_data.get('apexheightratio', 1))  # Type: float
+        instance.pathoption = entity_data.get('pathoption', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.fireshellscount = parse_source_value(entity_data.get('fireshellscount', 1))  # Type: integer
+        instance.override_damage = float(entity_data.get('override_damage', -1))  # Type: float
+        instance.override_damageradius = float(entity_data.get('override_damageradius', -1))  # Type: float
+
+
+class env_mortar_controller(Angles, Targetname):
+    model = "models/props_st/airstrike_map.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.MortarLauncher = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.MortarLauncher = entity_data.get('mortarlauncher', None)  # Type: target_destination
+
+
+class npc_abrams(BaseNPC):
+    model = "models/props_vehicles/abrams.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+        self.enableminiguns = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.enablebodyrotation = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+        instance.enableminiguns = entity_data.get('enableminiguns', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.enablebodyrotation = entity_data.get('enablebodyrotation', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class npc_lav(BaseNPC):
+    model = "models/props_vehicles/lav.mdl"
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class env_tram_screen(Angles, Targetname, Origin):
+    icon_sprite = "editor/info_target.vmt"
+    def __init__(self):
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        super(Origin).__init__()
+        self.origin = [0, 0, 0]
+        self.panelname = None  # Type: string
+        self.functrainname = None  # Type: target_destination
+        self.propname = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        Origin.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.panelname = entity_data.get('panelname', None)  # Type: string
+        instance.functrainname = entity_data.get('functrainname', None)  # Type: target_destination
+        instance.propname = entity_data.get('propname', None)  # Type: target_destination
+
+
+class prop_retinalscanner(prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        self.origin = [0, 0, 0]
+        self.locked = None  # Type: choices
+        self.nextlockeduse = 4  # Type: float
+        self.nextunlockeduse = 4  # Type: float
+        self.lockedsound = None  # Type: sound
+        self.unlockedsound = None  # Type: sound
+        self.lockedusesound = None  # Type: sound
+        self.unlockedusesound = None  # Type: sound
+        self.lockedusevox = None  # Type: sound
+        self.unlockedusevox = None  # Type: sound
+        self.delaylockedvox = None  # Type: float
+        self.delayunlockedvox = None  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.locked = entity_data.get('locked', None)  # Type: choices
+        instance.nextlockeduse = float(entity_data.get('nextlockeduse', 4))  # Type: float
+        instance.nextunlockeduse = float(entity_data.get('nextunlockeduse', 4))  # Type: float
+        instance.lockedsound = entity_data.get('lockedsound', None)  # Type: sound
+        instance.unlockedsound = entity_data.get('unlockedsound', None)  # Type: sound
+        instance.lockedusesound = entity_data.get('lockedusesound', None)  # Type: sound
+        instance.unlockedusesound = entity_data.get('unlockedusesound', None)  # Type: sound
+        instance.lockedusevox = entity_data.get('lockedusevox', None)  # Type: sound
+        instance.unlockedusevox = entity_data.get('unlockedusevox', None)  # Type: sound
+        instance.delaylockedvox = float(entity_data.get('delaylockedvox', 0))  # Type: float
+        instance.delayunlockedvox = float(entity_data.get('delayunlockedvox', 0))  # Type: float
+
+
+class prop_physics_respawnable(prop_physics):
+    def __init__(self):
+        super(prop_physics).__init__()
+        self.origin = [0, 0, 0]
+        self.RespawnTime = 60  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        prop_physics.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.RespawnTime = float(entity_data.get('respawntime', 60))  # Type: float
+
+
+class prop_scalable(EnableDisable, prop_dynamic_base):
+    def __init__(self):
+        super(prop_dynamic_base).__init__()
+        super(EnableDisable).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        prop_dynamic_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class logic_parent(Targetname):
+    icon_sprite = "editor/logic_auto.vmt"
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_xen_pushpad(Targetname):
+    model = "models/xenians/jump_pad.mdl"
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.nextjumpdelta = 0.5  # Type: float
+        self.target = None  # Type: target_destination
+        self.height = 512  # Type: float
+        self.disableshadows = None  # Type: choices
+        self.m_bMuteME = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.nextjumpdelta = float(entity_data.get('nextjumpdelta', 0.5))  # Type: float
+        instance.target = entity_data.get('target', None)  # Type: target_destination
+        instance.height = float(entity_data.get('height', 512))  # Type: float
+        instance.disableshadows = entity_data.get('disableshadows', None)  # Type: choices
+        instance.m_bMuteME = entity_data.get('m_bmuteme', None)  # Type: choices
+
+
+class trigger_gargantua_shake(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        super(Targetname).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+
+
+class trigger_lift(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        super(Targetname).__init__()
+        self.liftaccel = 100  # Type: float
+        self.clampspeed = 512  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.liftaccel = float(entity_data.get('liftaccel', 100))  # Type: float
+        instance.clampspeed = float(entity_data.get('clampspeed', 512))  # Type: float
+
+
+class trigger_weaponfire(trigger_multiple):
+    def __init__(self):
+        super(trigger_multiple).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        trigger_multiple.from_dict(instance, entity_data)
+
+
+class func_minefield(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        super(Targetname).__init__()
+        self.minecount = 25  # Type: integer
+        self.ranx = 35  # Type: float
+        self.rany = 35  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.minecount = parse_source_value(entity_data.get('minecount', 25))  # Type: integer
+        instance.ranx = float(entity_data.get('ranx', 35))  # Type: float
+        instance.rany = float(entity_data.get('rany', 35))  # Type: float
+
+
+class func_friction(Trigger):
+    def __init__(self):
+        super(Trigger).__init__()
+        self.modifier = 100  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Trigger.from_dict(instance, entity_data)
+        instance.modifier = float(entity_data.get('modifier', 100))  # Type: float
+
+
+class prop_train_awesome(Shadow, Global, RenderFields, BaseFadeProp, Parentname, Angles, Targetname, DXLevelChoice):
+    model = "models/props_vehicles/oar_awesome_tram.mdl"
+    def __init__(self):
+        super(RenderFields).__init__()
+        super(Shadow).__init__()
+        super(Global).__init__()
+        super(BaseFadeProp).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.bTrainDisabled = None  # Type: choices
+        self.lightingorigin = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Shadow.from_dict(instance, entity_data)
+        Global.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.bTrainDisabled = entity_data.get('btraindisabled', None)  # Type: choices
+        instance.lightingorigin = entity_data.get('lightingorigin', None)  # Type: target_destination
+
+
+class prop_train_apprehension(Shadow, Global, RenderFields, BaseFadeProp, Parentname, Angles, Targetname, DXLevelChoice):
+    model = "models/props_vehicles/oar_tram.mdl"
+    def __init__(self):
+        super(RenderFields).__init__()
+        super(Shadow).__init__()
+        super(Global).__init__()
+        super(BaseFadeProp).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.solid = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.bTrainDisabled = None  # Type: choices
+        self.lightingorigin = None  # Type: target_destination
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Shadow.from_dict(instance, entity_data)
+        Global.from_dict(instance, entity_data)
+        RenderFields.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.solid = entity_data.get('solid', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.bTrainDisabled = entity_data.get('btraindisabled', None)  # Type: choices
+        instance.lightingorigin = entity_data.get('lightingorigin', None)  # Type: target_destination
+
+
+class BaseZombie(BaseNPC):
+    def __init__(self):
+        super(BaseNPC).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseNPC.from_dict(instance, entity_data)
+
+
+class npc_zombie_scientist(BaseZombie):
+    model = "models/zombies/zombie_sci.mdl"
+    def __init__(self):
+        super(BaseZombie).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseZombie.from_dict(instance, entity_data)
+
+
+class npc_zombie_scientist_torso(BaseZombie):
+    model = "models/zombies/zombie_sci_torso.mdl"
+    def __init__(self):
+        super(BaseZombie).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseZombie.from_dict(instance, entity_data)
+
+
+class npc_zombie_security(BaseZombie):
+    model = "models/zombies/zombie_guard.mdl"
+    def __init__(self):
+        super(BaseZombie).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseZombie.from_dict(instance, entity_data)
+
+
+class npc_zombie_grunt(BaseZombie):
+    model = "models/zombies/zombie_grunt.mdl"
+    def __init__(self):
+        super(BaseZombie).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseZombie.from_dict(instance, entity_data)
+
+
+class npc_zombie_grunt_torso(BaseZombie):
+    model = "models/zombies/zombie_grunt_torso.mdl"
+    def __init__(self):
+        super(BaseZombie).__init__()
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseZombie.from_dict(instance, entity_data)
+
+
+class npc_zombie_hev(BaseZombie):
+    model = "models/zombies/zombie_hev.mdl"
+    def __init__(self):
+        super(BaseZombie).__init__()
+        self.flashlight_status = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.FlashLight_Shadows = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseZombie.from_dict(instance, entity_data)
+        instance.flashlight_status = entity_data.get('flashlight_status', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.FlashLight_Shadows = entity_data.get('flashlight_shadows', None)  # Type: choices
+
+
+class filter_damage_class(BaseFilter):
+    def __init__(self):
+        super(BaseFilter).__init__()
+        self.filterclass = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFilter.from_dict(instance, entity_data)
+        instance.filterclass = entity_data.get('filterclass', None)  # Type: string
+
+
+class filter_activator_flag(BaseFilter):
+    def __init__(self):
+        super(BaseFilter).__init__()
+        self.flag = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFilter.from_dict(instance, entity_data)
+        instance.flag = entity_data.get('flag', None)  # Type: choices
+
+
+class filter_activator_team(BaseFilter):
+    def __init__(self):
+        super(BaseFilter).__init__()
+        self.filterteam = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFilter.from_dict(instance, entity_data)
+        instance.filterteam = entity_data.get('filterteam', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class prop_flare(BasePropPhysics):
+    def __init__(self):
+        super(BasePropPhysics).__init__()
+        super(BaseFadeProp).__init__()
+        super(DamageFilter).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFadeProp.from_dict(instance, entity_data)
+        BasePropPhysics.from_dict(instance, entity_data)
+        DamageFilter.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class prop_surgerybot(Angles, Targetname):
+    viewport_model = "models/props_questionableethics/qe_surgery_bot_main.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.startactive = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.startactive = entity_data.get('startactive', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class env_xen_healpool(Angles, Studiomodel, Targetname):
+    model = "models/props_Xen/xen_healingpool_full.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        super(Studiomodel).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.healRate = 5  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.healRate = float(entity_data.get('healrate', 5))  # Type: float
+
+
+class env_xen_healshower(env_xen_healpool):
+    def __init__(self):
+        super(env_xen_healpool).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        env_xen_healpool.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class prop_web_burnable(Angles, Studiomodel, Targetname):
+    def __init__(self):
+        super(Angles).__init__()
+        super(Studiomodel).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.m_fBurnTime = 2  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.m_fBurnTime = float(entity_data.get('m_fburntime', 2))  # Type: float
+
+
+class prop_charger_base(Angles, Studiomodel, Targetname):
+    def __init__(self):
+        super(Angles).__init__()
+        super(Studiomodel).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.radius = 128  # Type: float
+        self.chargerate = 1  # Type: float
+        self.chargeamount = 10  # Type: float
+        self.warmuptime = 5  # Type: float
+        self.cooldowntime = 5  # Type: float
+        self.warmlightcolor = [245, 154, 52]  # Type: color255
+        self.coollightcolor = [128, 255, 255]  # Type: color255
+        self.lightpos = [0.0, 0.0, 0.0]  # Type: vector
+        self.lightintensity = 16000  # Type: float
+        self.lightrange = 512  # Type: float
+        self.bPlayIdleSounds = "CHOICES NOT SUPPORTED"  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.radius = float(entity_data.get('radius', 128))  # Type: float
+        instance.chargerate = float(entity_data.get('chargerate', 1))  # Type: float
+        instance.chargeamount = float(entity_data.get('chargeamount', 10))  # Type: float
+        instance.warmuptime = float(entity_data.get('warmuptime', 5))  # Type: float
+        instance.cooldowntime = float(entity_data.get('cooldowntime', 5))  # Type: float
+        instance.warmlightcolor = parse_int_vector(entity_data.get('warmlightcolor', "245 154 52"))  # Type: color255
+        instance.coollightcolor = parse_int_vector(entity_data.get('coollightcolor', "128 255 255"))  # Type: color255
+        instance.lightpos = parse_float_vector(entity_data.get('lightpos', "0 0 0"))  # Type: vector
+        instance.lightintensity = float(entity_data.get('lightintensity', 16000))  # Type: float
+        instance.lightrange = float(entity_data.get('lightrange', 512))  # Type: float
+        instance.bPlayIdleSounds = entity_data.get('bplayidlesounds', "CHOICES NOT SUPPORTED")  # Type: choices
+
+
+class prop_hev_charger(Parentname, prop_charger_base):
+    def __init__(self):
+        super(prop_charger_base).__init__()
+        super(Parentname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        prop_charger_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class prop_radiation_charger(Parentname, prop_charger_base):
+    def __init__(self):
+        super(prop_charger_base).__init__()
+        super(Parentname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        prop_charger_base.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class camera_satellite(Parentname, Angles):
+    viewport_model = "models/editor/camera.mdl"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.rendertarget = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.targetname = None  # Type: target_source
+        self.FOV = 90  # Type: float
+        self.UseScreenAspectRatio = None  # Type: choices
+        self.fogEnable = None  # Type: choices
+        self.fogColor = [0, 0, 0]  # Type: color255
+        self.fogStart = 2048  # Type: float
+        self.fogEnd = 4096  # Type: float
+        self.fogMaxDensity = 1  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.rendertarget = entity_data.get('rendertarget', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.targetname = entity_data.get('targetname', None)  # Type: target_source
+        instance.FOV = float(entity_data.get('fov', 90))  # Type: float
+        instance.UseScreenAspectRatio = entity_data.get('usescreenaspectratio', None)  # Type: choices
+        instance.fogEnable = entity_data.get('fogenable', None)  # Type: choices
+        instance.fogColor = parse_int_vector(entity_data.get('fogcolor', "0 0 0"))  # Type: color255
+        instance.fogStart = float(entity_data.get('fogstart', 2048))  # Type: float
+        instance.fogEnd = float(entity_data.get('fogend', 4096))  # Type: float
+        instance.fogMaxDensity = float(entity_data.get('fogmaxdensity', 1))  # Type: float
+
+
+class logic_achievement(EnableDisable, Targetname):
+    def __init__(self):
+        super(EnableDisable).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.AchievementEvent = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        EnableDisable.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.AchievementEvent = entity_data.get('achievementevent', None)  # Type: choices
+
+
+class ai_goal_throw_prop(Targetname):
+    icon_sprite = "editor/ai_goal_standoff.vmt"
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.actor = None  # Type: target_name_or_class
+        self.SearchType = None  # Type: choices
+        self.StartActive = None  # Type: choices
+        self.PropName = None  # Type: string
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.actor = entity_data.get('actor', None)  # Type: target_name_or_class
+        instance.SearchType = entity_data.get('searchtype', None)  # Type: choices
+        instance.StartActive = entity_data.get('startactive', None)  # Type: choices
+        instance.PropName = entity_data.get('propname', None)  # Type: string
+
+
+class info_observer_menu(Angles):
+    viewport_model = "models/editor/camera.mdl"
+    def __init__(self):
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.observerid = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.observerid = parse_source_value(entity_data.get('observerid', 0))  # Type: integer
+
+
+class game_round_win(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.team = None  # Type: choices
+        self.force_map_reset = "CHOICES NOT SUPPORTED"  # Type: choices
+        self.switch_teams = None  # Type: choices
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.team = entity_data.get('team', None)  # Type: choices
+        instance.force_map_reset = entity_data.get('force_map_reset', "CHOICES NOT SUPPORTED")  # Type: choices
+        instance.switch_teams = entity_data.get('switch_teams', None)  # Type: choices
+
+
+class game_round_start(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class game_mp_gamerules(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class mp_round_time(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.WarmupTime = None  # Type: integer
+        self.RoundTime = None  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.WarmupTime = parse_source_value(entity_data.get('warmuptime', 0))  # Type: integer
+        instance.RoundTime = parse_source_value(entity_data.get('roundtime', 0))  # Type: integer
+
+
+class env_gravity(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class env_godrays_controller(Targetname):
+    def __init__(self):
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.Density = 0.5  # Type: float
+        self.Decay = 0.5  # Type: float
+        self.Weight = 1.0  # Type: float
+        self.Exposure = 0.20  # Type: float
+        self.DensityUW = 0.5  # Type: float
+        self.DecayUW = 0.5  # Type: float
+        self.WeightUW = 1.0  # Type: float
+        self.ExposureUW = 0.20  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.Density = float(entity_data.get('density', 0.5))  # Type: float
+        instance.Decay = float(entity_data.get('decay', 0.5))  # Type: float
+        instance.Weight = float(entity_data.get('weight', 1.0))  # Type: float
+        instance.Exposure = float(entity_data.get('exposure', 0.20))  # Type: float
+        instance.DensityUW = float(entity_data.get('densityuw', 0.5))  # Type: float
+        instance.DecayUW = float(entity_data.get('decayuw', 0.5))  # Type: float
+        instance.WeightUW = float(entity_data.get('weightuw', 1.0))  # Type: float
+        instance.ExposureUW = float(entity_data.get('exposureuw', 0.20))  # Type: float
+
+
+class misc_dead_hev(BaseFadeProp, EnableDisable, Studiomodel, Angles, Targetname, DXLevelChoice):
+    def __init__(self):
+        super(BaseFadeProp).__init__()
+        super(EnableDisable).__init__()
+        super(Studiomodel).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        super(DXLevelChoice).__init__()
+        self.origin = [0, 0, 0]
+        self.spritecolor = [255, 0, 0, 200]  # Type: color255
+        self.lightcolor = [255, 0, 0, 4]  # Type: color255
+        self.lightradius = 64  # Type: integer
+        self.attachmentname = "eyes"  # Type: string
+        self.health = 100  # Type: integer
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BaseFadeProp.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        DXLevelChoice.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.spritecolor = parse_int_vector(entity_data.get('spritecolor', "255 0 0 200"))  # Type: color255
+        instance.lightcolor = parse_int_vector(entity_data.get('lightcolor', "255 0 0 4"))  # Type: color255
+        instance.lightradius = parse_source_value(entity_data.get('lightradius', 64))  # Type: integer
+        instance.attachmentname = entity_data.get('attachmentname', "eyes")  # Type: string
+        instance.health = parse_source_value(entity_data.get('health', 100))  # Type: integer
+
+
+class env_lensflare(Parentname, Angles, Targetname):
+    icon_sprite = "editor/lensflare.vmt"
+    def __init__(self):
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        super(Targetname).__init__()
+        self.origin = [0, 0, 0]
+        self.FlareFile = None  # Type: string
+        self.FlareAttenuation = 0.0  # Type: float
+        self.FlareType = None  # Type: choices
+        self.FlareStyle = None  # Type: choices
+        self.GlowProxySize = 2.0  # Type: float
+        self.Flare01_texture = None  # Type: string
+        self.Flare01_params = None  # Type: string
+        self.Flare01_intensity = None  # Type: vector
+        self.Flare01_sizes = None  # Type: vector
+        self.Flare01_color = None  # Type: color255
+        self.Flare02_texture = None  # Type: string
+        self.Flare02_params = None  # Type: string
+        self.Flare02_intensity = None  # Type: vector
+        self.Flare02_sizes = None  # Type: vector
+        self.Flare02_color = None  # Type: color255
+        self.Flare03_texture = None  # Type: string
+        self.Flare03_params = None  # Type: string
+        self.Flare03_intensity = None  # Type: vector
+        self.Flare03_sizes = None  # Type: vector
+        self.Flare03_color = None  # Type: color255
+        self.Flare04_texture = None  # Type: string
+        self.Flare04_params = None  # Type: string
+        self.Flare04_intensity = None  # Type: vector
+        self.Flare04_sizes = None  # Type: vector
+        self.Flare04_color = None  # Type: color255
+        self.Flare05_texture = None  # Type: string
+        self.Flare05_params = None  # Type: string
+        self.Flare05_intensity = None  # Type: vector
+        self.Flare05_sizes = None  # Type: vector
+        self.Flare05_color = None  # Type: color255
+        self.Flare06_texture = None  # Type: string
+        self.Flare06_params = None  # Type: string
+        self.Flare06_intensity = None  # Type: vector
+        self.Flare06_sizes = None  # Type: vector
+        self.Flare06_color = None  # Type: color255
+        self.Flare07_texture = None  # Type: string
+        self.Flare07_params = None  # Type: string
+        self.Flare07_intensity = None  # Type: vector
+        self.Flare07_sizes = None  # Type: vector
+        self.Flare07_color = None  # Type: color255
+        self.Flare08_texture = None  # Type: string
+        self.Flare08_params = None  # Type: string
+        self.Flare08_intensity = None  # Type: vector
+        self.Flare08_sizes = None  # Type: vector
+        self.Flare08_color = None  # Type: color255
+        self.Flare09_texture = None  # Type: string
+        self.Flare09_params = None  # Type: string
+        self.Flare09_intensity = None  # Type: vector
+        self.Flare09_sizes = None  # Type: vector
+        self.Flare09_color = None  # Type: color255
+        self.Flare10_texture = None  # Type: string
+        self.Flare10_params = None  # Type: string
+        self.Flare10_intensity = None  # Type: vector
+        self.Flare10_sizes = None  # Type: vector
+        self.Flare10_color = None  # Type: color255
+        self.Flare11_texture = None  # Type: string
+        self.Flare11_params = None  # Type: string
+        self.Flare11_intensity = None  # Type: vector
+        self.Flare11_sizes = None  # Type: vector
+        self.Flare11_color = None  # Type: color255
+        self.Flare12_texture = None  # Type: string
+        self.Flare12_params = None  # Type: string
+        self.Flare12_intensity = None  # Type: vector
+        self.Flare12_sizes = None  # Type: vector
+        self.Flare12_color = None  # Type: color255
+        self.Flare13_texture = None  # Type: string
+        self.Flare13_params = None  # Type: string
+        self.Flare13_intensity = None  # Type: vector
+        self.Flare13_sizes = None  # Type: vector
+        self.Flare13_color = None  # Type: color255
+        self.Flare14_texture = None  # Type: string
+        self.Flare14_params = None  # Type: string
+        self.Flare14_intensity = None  # Type: vector
+        self.Flare14_sizes = None  # Type: vector
+        self.Flare14_color = None  # Type: color255
+        self.Flare15_texture = None  # Type: string
+        self.Flare15_params = None  # Type: string
+        self.Flare15_intensity = None  # Type: vector
+        self.Flare15_sizes = None  # Type: vector
+        self.Flare15_color = None  # Type: color255
+        self.Flare16_texture = None  # Type: string
+        self.Flare16_params = None  # Type: string
+        self.Flare16_intensity = None  # Type: vector
+        self.Flare16_sizes = None  # Type: vector
+        self.Flare16_color = None  # Type: color255
+        self.Flare17_texture = None  # Type: string
+        self.Flare17_params = None  # Type: string
+        self.Flare17_intensity = None  # Type: vector
+        self.Flare17_sizes = None  # Type: vector
+        self.Flare17_color = None  # Type: color255
+        self.Flare18_texture = None  # Type: string
+        self.Flare18_params = None  # Type: string
+        self.Flare18_intensity = None  # Type: vector
+        self.Flare18_sizes = None  # Type: vector
+        self.Flare18_color = None  # Type: color255
+        self.Flare19_texture = None  # Type: string
+        self.Flare19_params = None  # Type: string
+        self.Flare19_intensity = None  # Type: vector
+        self.Flare19_sizes = None  # Type: vector
+        self.Flare19_color = None  # Type: color255
+        self.Flare20_texture = None  # Type: string
+        self.Flare20_params = None  # Type: string
+        self.Flare20_intensity = None  # Type: vector
+        self.Flare20_sizes = None  # Type: vector
+        self.Flare20_color = None  # Type: color255
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        Targetname.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.FlareFile = entity_data.get('flarefile', None)  # Type: string
+        instance.FlareAttenuation = float(entity_data.get('flareattenuation', 0.0))  # Type: float
+        instance.FlareType = entity_data.get('flaretype', None)  # Type: choices
+        instance.FlareStyle = entity_data.get('flarestyle', None)  # Type: choices
+        instance.GlowProxySize = float(entity_data.get('glowproxysize', 2.0))  # Type: float
+        instance.Flare01_texture = entity_data.get('flare01_texture', None)  # Type: string
+        instance.Flare01_params = entity_data.get('flare01_params', None)  # Type: string
+        instance.Flare01_intensity = parse_float_vector(entity_data.get('flare01_intensity', "0 0 0"))  # Type: vector
+        instance.Flare01_sizes = parse_float_vector(entity_data.get('flare01_sizes', "0 0 0"))  # Type: vector
+        instance.Flare01_color = parse_int_vector(entity_data.get('flare01_color', "0 0 0"))  # Type: color255
+        instance.Flare02_texture = entity_data.get('flare02_texture', None)  # Type: string
+        instance.Flare02_params = entity_data.get('flare02_params', None)  # Type: string
+        instance.Flare02_intensity = parse_float_vector(entity_data.get('flare02_intensity', "0 0 0"))  # Type: vector
+        instance.Flare02_sizes = parse_float_vector(entity_data.get('flare02_sizes', "0 0 0"))  # Type: vector
+        instance.Flare02_color = parse_int_vector(entity_data.get('flare02_color', "0 0 0"))  # Type: color255
+        instance.Flare03_texture = entity_data.get('flare03_texture', None)  # Type: string
+        instance.Flare03_params = entity_data.get('flare03_params', None)  # Type: string
+        instance.Flare03_intensity = parse_float_vector(entity_data.get('flare03_intensity', "0 0 0"))  # Type: vector
+        instance.Flare03_sizes = parse_float_vector(entity_data.get('flare03_sizes', "0 0 0"))  # Type: vector
+        instance.Flare03_color = parse_int_vector(entity_data.get('flare03_color', "0 0 0"))  # Type: color255
+        instance.Flare04_texture = entity_data.get('flare04_texture', None)  # Type: string
+        instance.Flare04_params = entity_data.get('flare04_params', None)  # Type: string
+        instance.Flare04_intensity = parse_float_vector(entity_data.get('flare04_intensity', "0 0 0"))  # Type: vector
+        instance.Flare04_sizes = parse_float_vector(entity_data.get('flare04_sizes', "0 0 0"))  # Type: vector
+        instance.Flare04_color = parse_int_vector(entity_data.get('flare04_color', "0 0 0"))  # Type: color255
+        instance.Flare05_texture = entity_data.get('flare05_texture', None)  # Type: string
+        instance.Flare05_params = entity_data.get('flare05_params', None)  # Type: string
+        instance.Flare05_intensity = parse_float_vector(entity_data.get('flare05_intensity', "0 0 0"))  # Type: vector
+        instance.Flare05_sizes = parse_float_vector(entity_data.get('flare05_sizes', "0 0 0"))  # Type: vector
+        instance.Flare05_color = parse_int_vector(entity_data.get('flare05_color', "0 0 0"))  # Type: color255
+        instance.Flare06_texture = entity_data.get('flare06_texture', None)  # Type: string
+        instance.Flare06_params = entity_data.get('flare06_params', None)  # Type: string
+        instance.Flare06_intensity = parse_float_vector(entity_data.get('flare06_intensity', "0 0 0"))  # Type: vector
+        instance.Flare06_sizes = parse_float_vector(entity_data.get('flare06_sizes', "0 0 0"))  # Type: vector
+        instance.Flare06_color = parse_int_vector(entity_data.get('flare06_color', "0 0 0"))  # Type: color255
+        instance.Flare07_texture = entity_data.get('flare07_texture', None)  # Type: string
+        instance.Flare07_params = entity_data.get('flare07_params', None)  # Type: string
+        instance.Flare07_intensity = parse_float_vector(entity_data.get('flare07_intensity', "0 0 0"))  # Type: vector
+        instance.Flare07_sizes = parse_float_vector(entity_data.get('flare07_sizes', "0 0 0"))  # Type: vector
+        instance.Flare07_color = parse_int_vector(entity_data.get('flare07_color', "0 0 0"))  # Type: color255
+        instance.Flare08_texture = entity_data.get('flare08_texture', None)  # Type: string
+        instance.Flare08_params = entity_data.get('flare08_params', None)  # Type: string
+        instance.Flare08_intensity = parse_float_vector(entity_data.get('flare08_intensity', "0 0 0"))  # Type: vector
+        instance.Flare08_sizes = parse_float_vector(entity_data.get('flare08_sizes', "0 0 0"))  # Type: vector
+        instance.Flare08_color = parse_int_vector(entity_data.get('flare08_color', "0 0 0"))  # Type: color255
+        instance.Flare09_texture = entity_data.get('flare09_texture', None)  # Type: string
+        instance.Flare09_params = entity_data.get('flare09_params', None)  # Type: string
+        instance.Flare09_intensity = parse_float_vector(entity_data.get('flare09_intensity', "0 0 0"))  # Type: vector
+        instance.Flare09_sizes = parse_float_vector(entity_data.get('flare09_sizes', "0 0 0"))  # Type: vector
+        instance.Flare09_color = parse_int_vector(entity_data.get('flare09_color', "0 0 0"))  # Type: color255
+        instance.Flare10_texture = entity_data.get('flare10_texture', None)  # Type: string
+        instance.Flare10_params = entity_data.get('flare10_params', None)  # Type: string
+        instance.Flare10_intensity = parse_float_vector(entity_data.get('flare10_intensity', "0 0 0"))  # Type: vector
+        instance.Flare10_sizes = parse_float_vector(entity_data.get('flare10_sizes', "0 0 0"))  # Type: vector
+        instance.Flare10_color = parse_int_vector(entity_data.get('flare10_color', "0 0 0"))  # Type: color255
+        instance.Flare11_texture = entity_data.get('flare11_texture', None)  # Type: string
+        instance.Flare11_params = entity_data.get('flare11_params', None)  # Type: string
+        instance.Flare11_intensity = parse_float_vector(entity_data.get('flare11_intensity', "0 0 0"))  # Type: vector
+        instance.Flare11_sizes = parse_float_vector(entity_data.get('flare11_sizes', "0 0 0"))  # Type: vector
+        instance.Flare11_color = parse_int_vector(entity_data.get('flare11_color', "0 0 0"))  # Type: color255
+        instance.Flare12_texture = entity_data.get('flare12_texture', None)  # Type: string
+        instance.Flare12_params = entity_data.get('flare12_params', None)  # Type: string
+        instance.Flare12_intensity = parse_float_vector(entity_data.get('flare12_intensity', "0 0 0"))  # Type: vector
+        instance.Flare12_sizes = parse_float_vector(entity_data.get('flare12_sizes', "0 0 0"))  # Type: vector
+        instance.Flare12_color = parse_int_vector(entity_data.get('flare12_color', "0 0 0"))  # Type: color255
+        instance.Flare13_texture = entity_data.get('flare13_texture', None)  # Type: string
+        instance.Flare13_params = entity_data.get('flare13_params', None)  # Type: string
+        instance.Flare13_intensity = parse_float_vector(entity_data.get('flare13_intensity', "0 0 0"))  # Type: vector
+        instance.Flare13_sizes = parse_float_vector(entity_data.get('flare13_sizes', "0 0 0"))  # Type: vector
+        instance.Flare13_color = parse_int_vector(entity_data.get('flare13_color', "0 0 0"))  # Type: color255
+        instance.Flare14_texture = entity_data.get('flare14_texture', None)  # Type: string
+        instance.Flare14_params = entity_data.get('flare14_params', None)  # Type: string
+        instance.Flare14_intensity = parse_float_vector(entity_data.get('flare14_intensity', "0 0 0"))  # Type: vector
+        instance.Flare14_sizes = parse_float_vector(entity_data.get('flare14_sizes', "0 0 0"))  # Type: vector
+        instance.Flare14_color = parse_int_vector(entity_data.get('flare14_color', "0 0 0"))  # Type: color255
+        instance.Flare15_texture = entity_data.get('flare15_texture', None)  # Type: string
+        instance.Flare15_params = entity_data.get('flare15_params', None)  # Type: string
+        instance.Flare15_intensity = parse_float_vector(entity_data.get('flare15_intensity', "0 0 0"))  # Type: vector
+        instance.Flare15_sizes = parse_float_vector(entity_data.get('flare15_sizes', "0 0 0"))  # Type: vector
+        instance.Flare15_color = parse_int_vector(entity_data.get('flare15_color', "0 0 0"))  # Type: color255
+        instance.Flare16_texture = entity_data.get('flare16_texture', None)  # Type: string
+        instance.Flare16_params = entity_data.get('flare16_params', None)  # Type: string
+        instance.Flare16_intensity = parse_float_vector(entity_data.get('flare16_intensity', "0 0 0"))  # Type: vector
+        instance.Flare16_sizes = parse_float_vector(entity_data.get('flare16_sizes', "0 0 0"))  # Type: vector
+        instance.Flare16_color = parse_int_vector(entity_data.get('flare16_color', "0 0 0"))  # Type: color255
+        instance.Flare17_texture = entity_data.get('flare17_texture', None)  # Type: string
+        instance.Flare17_params = entity_data.get('flare17_params', None)  # Type: string
+        instance.Flare17_intensity = parse_float_vector(entity_data.get('flare17_intensity', "0 0 0"))  # Type: vector
+        instance.Flare17_sizes = parse_float_vector(entity_data.get('flare17_sizes', "0 0 0"))  # Type: vector
+        instance.Flare17_color = parse_int_vector(entity_data.get('flare17_color', "0 0 0"))  # Type: color255
+        instance.Flare18_texture = entity_data.get('flare18_texture', None)  # Type: string
+        instance.Flare18_params = entity_data.get('flare18_params', None)  # Type: string
+        instance.Flare18_intensity = parse_float_vector(entity_data.get('flare18_intensity', "0 0 0"))  # Type: vector
+        instance.Flare18_sizes = parse_float_vector(entity_data.get('flare18_sizes', "0 0 0"))  # Type: vector
+        instance.Flare18_color = parse_int_vector(entity_data.get('flare18_color', "0 0 0"))  # Type: color255
+        instance.Flare19_texture = entity_data.get('flare19_texture', None)  # Type: string
+        instance.Flare19_params = entity_data.get('flare19_params', None)  # Type: string
+        instance.Flare19_intensity = parse_float_vector(entity_data.get('flare19_intensity', "0 0 0"))  # Type: vector
+        instance.Flare19_sizes = parse_float_vector(entity_data.get('flare19_sizes', "0 0 0"))  # Type: vector
+        instance.Flare19_color = parse_int_vector(entity_data.get('flare19_color', "0 0 0"))  # Type: color255
+        instance.Flare20_texture = entity_data.get('flare20_texture', None)  # Type: string
+        instance.Flare20_params = entity_data.get('flare20_params', None)  # Type: string
+        instance.Flare20_intensity = parse_float_vector(entity_data.get('flare20_intensity', "0 0 0"))  # Type: vector
+        instance.Flare20_sizes = parse_float_vector(entity_data.get('flare20_sizes', "0 0 0"))  # Type: vector
+        instance.Flare20_color = parse_int_vector(entity_data.get('flare20_color', "0 0 0"))  # Type: color255
+
+
+class env_fumer(Targetname, BaseFadeProp, EnableDisable, Studiomodel, Parentname, Angles):
+    def __init__(self):
+        super(Targetname).__init__()
+        super(BaseFadeProp).__init__()
+        super(EnableDisable).__init__()
+        super(Studiomodel).__init__()
+        super(Parentname).__init__()
+        super(Angles).__init__()
+        self.origin = [0, 0, 0]
+        self.DetectionRadius = 128  # Type: float
+        self.ExplodeRaius = 128  # Type: float
+        self.ExplodeDmg = 30  # Type: float
+        self.ExplodeForce = 1  # Type: float
+        self.FlameTime = 10  # Type: float
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        Targetname.from_dict(instance, entity_data)
+        BaseFadeProp.from_dict(instance, entity_data)
+        EnableDisable.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
+        Parentname.from_dict(instance, entity_data)
+        Angles.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.DetectionRadius = float(entity_data.get('detectionradius', 128))  # Type: float
+        instance.ExplodeRaius = float(entity_data.get('exploderaius', 128))  # Type: float
+        instance.ExplodeDmg = float(entity_data.get('explodedmg', 30))  # Type: float
+        instance.ExplodeForce = float(entity_data.get('explodeforce', 1))  # Type: float
+        instance.FlameTime = float(entity_data.get('flametime', 10))  # Type: float
+
+
 class trigger_apply_impulse(Trigger):
     def __init__(self):
         super(Trigger).__init__()
@@ -6194,1447 +10709,13 @@ class trigger_apply_impulse(Trigger):
         instance.force = float(entity_data.get('force', 300))  # Type: float
 
 
-class TeamNum(Base):
-    def __init__(self):
-        super().__init__()
-        self.TeamNum = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.TeamNum = entity_data.get('teamnum', None)  # Type: choices
-
-
-class MatchSummary(Base):
-    def __init__(self):
-        super().__init__()
-        self.MatchSummary = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.MatchSummary = entity_data.get('matchsummary', None)  # Type: choices
-
-
-class FadeDistance(Base):
-    def __init__(self):
-        super().__init__()
-        self.fademindist = -1  # Type: float
-        self.fademaxdist = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.fademindist = float(entity_data.get('fademindist', -1))  # Type: float
-        instance.fademaxdist = float(entity_data.get('fademaxdist', 0))  # Type: float
-
-
-class GameType(Base):
-    def __init__(self):
-        super().__init__()
-        self.GameType = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.GameType = entity_data.get('gametype', None)  # Type: choices
-
-
-class Condition(Base):
-    def __init__(self):
-        super().__init__()
-        self.condition = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.condition = entity_data.get('condition', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class PlayerTouch(Base):
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-
-
-class Toggle(Base):
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-
-
-class tf_gamerules(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.hud_type = None  # Type: choices
-        self.ctf_overtime = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.hud_type = entity_data.get('hud_type', None)  # Type: choices
-        instance.ctf_overtime = entity_data.get('ctf_overtime', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class info_player_teamspawn(EnableDisable, TeamNum, Angles, MatchSummary, Targetname):
-    model = "models/editor/playerstart.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Angles).__init__()
-        super(MatchSummary).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.controlpoint = None  # Type: target_destination
-        self.SpawnMode = None  # Type: choices
-        self.round_bluespawn = None  # Type: target_destination
-        self.round_redspawn = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        MatchSummary.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.controlpoint = entity_data.get('controlpoint', None)  # Type: target_destination
-        instance.SpawnMode = entity_data.get('spawnmode', None)  # Type: choices
-        instance.round_bluespawn = entity_data.get('round_bluespawn', None)  # Type: target_destination
-        instance.round_redspawn = entity_data.get('round_redspawn', None)  # Type: target_destination
-
-
-class game_forcerespawn(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_teamflag(EnableDisable, TeamNum, Angles, GameType, Targetname, Parentname):
-    model = "models/flag/briefcase.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Angles).__init__()
-        super(GameType).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-        self.origin = [0, 0, 0]
-        self.ReturnTime = 60  # Type: integer
-        self.NeutralType = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.ScoringType = None  # Type: choices
-        self.flag_model = "models/flag/briefcase.mdl"  # Type: string
-        self.flag_icon = "../hud/objectives_flagpanel_carried"  # Type: string
-        self.flag_paper = "player_intel_papertrail"  # Type: string
-        self.flag_trail = "flagtrail"  # Type: string
-        self.trail_effect = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.VisibleWhenDisabled = None  # Type: choices
-        self.ShotClockMode = None  # Type: choices
-        self.PointValue = None  # Type: integer
-        self.ReturnBetweenWaves = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.tags = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        GameType.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.ReturnTime = parse_source_value(entity_data.get('returntime', 60))  # Type: integer
-        instance.NeutralType = entity_data.get('neutraltype', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.ScoringType = entity_data.get('scoringtype', None)  # Type: choices
-        instance.flag_model = entity_data.get('flag_model', "models/flag/briefcase.mdl")  # Type: string
-        instance.flag_icon = entity_data.get('flag_icon', "../hud/objectives_flagpanel_carried")  # Type: string
-        instance.flag_paper = entity_data.get('flag_paper', "player_intel_papertrail")  # Type: string
-        instance.flag_trail = entity_data.get('flag_trail', "flagtrail")  # Type: string
-        instance.trail_effect = entity_data.get('trail_effect', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.VisibleWhenDisabled = entity_data.get('visiblewhendisabled', None)  # Type: choices
-        instance.ShotClockMode = entity_data.get('shotclockmode', None)  # Type: choices
-        instance.PointValue = parse_source_value(entity_data.get('pointvalue', 0))  # Type: integer
-        instance.ReturnBetweenWaves = entity_data.get('returnbetweenwaves', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.tags = entity_data.get('tags', None)  # Type: string
-
-
-class point_intermission(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class info_observer_point(EnableDisable, TeamNum, Angles, Targetname, Parentname):
-    viewport_model = "models/editor/camera.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-        self.origin = [0, 0, 0]
-        self.associated_team_entity = None  # Type: target_destination
-        self.defaultwelcome = None  # Type: choices
-        self.fov = None  # Type: float
-        self.match_summary = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.associated_team_entity = entity_data.get('associated_team_entity', None)  # Type: target_destination
-        instance.defaultwelcome = entity_data.get('defaultwelcome', None)  # Type: choices
-        instance.fov = float(entity_data.get('fov', 0))  # Type: float
-        instance.match_summary = entity_data.get('match_summary', None)  # Type: choices
-
-
-class game_round_win(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.TeamNum = None  # Type: choices
-        self.force_map_reset = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.switch_teams = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.TeamNum = entity_data.get('teamnum', None)  # Type: choices
-        instance.force_map_reset = entity_data.get('force_map_reset', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.switch_teams = entity_data.get('switch_teams', None)  # Type: choices
-
-
-class team_round_timer(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.timer_length = 600  # Type: integer
-        self.max_length = None  # Type: integer
-        self.start_paused = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.show_time_remaining = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.setup_length = None  # Type: integer
-        self.reset_time = None  # Type: choices
-        self.auto_countdown = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.show_in_hud = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.timer_length = parse_source_value(entity_data.get('timer_length', 600))  # Type: integer
-        instance.max_length = parse_source_value(entity_data.get('max_length', 0))  # Type: integer
-        instance.start_paused = entity_data.get('start_paused', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.show_time_remaining = entity_data.get('show_time_remaining', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.setup_length = parse_source_value(entity_data.get('setup_length', 0))  # Type: integer
-        instance.reset_time = entity_data.get('reset_time', None)  # Type: choices
-        instance.auto_countdown = entity_data.get('auto_countdown', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.show_in_hud = entity_data.get('show_in_hud', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class Item(EnableDisable, TeamNum, Toggle, Angles, FadeDistance, PlayerTouch, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Toggle).__init__()
-        super(Angles).__init__()
-        super(FadeDistance).__init__()
-        super(PlayerTouch).__init__()
-        super(Targetname).__init__()
-        self.powerup_model = None  # Type: string
-        self.AutoMaterialize = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        FadeDistance.from_dict(instance, entity_data)
-        PlayerTouch.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.powerup_model = entity_data.get('powerup_model', None)  # Type: string
-        instance.AutoMaterialize = entity_data.get('automaterialize', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class item_healthkit_full(Item):
-    model = "models/items/medkit_large.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_healthkit_small(Item):
-    model = "models/items/medkit_small.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_healthkit_medium(Item):
-    model = "models/items/medkit_medium.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_ammopack_full(Item):
-    model = "models/items/ammopack_large.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_ammopack_small(Item):
-    model = "models/items/ammopack_small.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_ammopack_medium(Item):
-    model = "models/items/ammopack_medium.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_spell_pickup(Item):
-    model = "models/props_halloween/hwn_spellbook_flying.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-        self.tier = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.tier = entity_data.get('tier', None)  # Type: choices
-
-
-class item_bonuspack(EnableDisable, TeamNum, Toggle, Angles, FadeDistance, PlayerTouch, Targetname):
-    model = "models/crafting/moustachium.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Toggle).__init__()
-        super(Angles).__init__()
-        super(FadeDistance).__init__()
-        super(PlayerTouch).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.powerup_model = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        FadeDistance.from_dict(instance, entity_data)
-        PlayerTouch.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.powerup_model = entity_data.get('powerup_model', None)  # Type: string
-
-
-class tf_halloween_pickup(Item, Parentname):
-    model = "models/items/target_duck.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        super(Parentname).__init__()
-        self.origin = [0, 0, 0]
-        self.pickup_sound = None  # Type: string
-        self.pickup_particle = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.pickup_sound = entity_data.get('pickup_sound', None)  # Type: string
-        instance.pickup_particle = entity_data.get('pickup_particle', None)  # Type: string
-
-
-class info_powerup_spawn(EnableDisable, Targetname):
-    model = "models/pickups/pickup_powerup_regen.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class item_powerup_crit(EnableDisable, Targetname):
-    model = "models/pickups/pickup_powerup_crit.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class item_powerup_uber(EnableDisable, Targetname):
-    model = "models/pickups/pickup_powerup_uber.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class filter_activator_tfteam(TeamNum, BaseFilter):
-    icon_sprite = "editor/filter_team.vmt"
-    def __init__(self):
-        super(BaseFilter).__init__()
-        super(TeamNum).__init__()
-        self.controlpoint = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        TeamNum.from_dict(instance, entity_data)
-        BaseFilter.from_dict(instance, entity_data)
-        instance.controlpoint = entity_data.get('controlpoint', None)  # Type: target_destination
-
-
-class filter_tf_player_can_cap(TeamNum, BaseFilter):
-    icon_sprite = "editor/filter_team.vmt"
-    def __init__(self):
-        super(BaseFilter).__init__()
-        super(TeamNum).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        TeamNum.from_dict(instance, entity_data)
-        BaseFilter.from_dict(instance, entity_data)
-
-
-class filter_tf_damaged_by_weapon_in_slot(BaseFilter):
-    def __init__(self):
-        super(BaseFilter).__init__()
-        self.weaponSlot = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseFilter.from_dict(instance, entity_data)
-        instance.weaponSlot = entity_data.get('weaponslot', None)  # Type: choices
-
-
-class filter_tf_condition(Condition, BaseFilter):
-    def __init__(self):
-        super(BaseFilter).__init__()
-        super(Condition).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Condition.from_dict(instance, entity_data)
-        BaseFilter.from_dict(instance, entity_data)
-
-
-class filter_tf_class(BaseFilter):
-    icon_sprite = "editor/filter_class.vmt"
-    def __init__(self):
-        super(BaseFilter).__init__()
-        self.tfclass = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseFilter.from_dict(instance, entity_data)
-        instance.tfclass = entity_data.get('tfclass', None)  # Type: choices
-
-
-class func_capturezone(EnableDisable, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.capturepoint = 1  # Type: integer
-        self.capture_delay = 1.1  # Type: float
-        self.capture_delay_offset = 0.025  # Type: float
-        self.shouldBlock = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.capturepoint = parse_source_value(entity_data.get('capturepoint', 1))  # Type: integer
-        instance.capture_delay = float(entity_data.get('capture_delay', 1.1))  # Type: float
-        instance.capture_delay_offset = float(entity_data.get('capture_delay_offset', 0.025))  # Type: float
-        instance.shouldBlock = entity_data.get('shouldblock', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class func_flagdetectionzone(Parentname, EnableDisable, Targetname, TeamNum):
-    def __init__(self):
-        super(Parentname).__init__()
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.alarm = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.alarm = entity_data.get('alarm', None)  # Type: choices
-
-
-class func_nogrenades(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-
-
-class func_achievement(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.zone_id = None  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.zone_id = parse_source_value(entity_data.get('zone_id', 0))  # Type: integer
-
-
-class func_nobuild(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.AllowSentry = None  # Type: choices
-        self.AllowDispenser = None  # Type: choices
-        self.AllowTeleporters = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.AllowSentry = entity_data.get('allowsentry', None)  # Type: choices
-        instance.AllowDispenser = entity_data.get('allowdispenser', None)  # Type: choices
-        instance.AllowTeleporters = entity_data.get('allowteleporters', None)  # Type: choices
-
-
-class func_croc(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.filtername = None  # Type: filterclass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
-
-
-class func_suggested_build(EnableDisable, TeamNum, Toggle, Targetname, Origin):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(Origin).__init__()
-        self.object_type = None  # Type: choices
-        self.face_entity = None  # Type: target_destination
-        self.face_entity_fov = 90  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        instance.object_type = entity_data.get('object_type', None)  # Type: choices
-        instance.face_entity = entity_data.get('face_entity', None)  # Type: target_destination
-        instance.face_entity_fov = float(entity_data.get('face_entity_fov', 90))  # Type: float
-
-
-class func_regenerate(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.associatedmodel = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.associatedmodel = entity_data.get('associatedmodel', None)  # Type: target_destination
-
-
-class func_powerupvolume(Trigger, Toggle, TeamNum):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Trigger.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-
-
-class func_respawnflag(EnableDisable, Toggle, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-
-
-class func_respawnroom(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-
-
-class func_flag_alert(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.playsound = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.alert_delay = 10  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.playsound = entity_data.get('playsound', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.alert_delay = parse_source_value(entity_data.get('alert_delay', 10))  # Type: integer
-
-
-class func_respawnroomvisualizer(EnableDisable, Shadow, Inputfilter, Global, Origin, RenderFields, Targetname, Parentname):
-    def __init__(self):
-        super(RenderFields).__init__()
-        super(EnableDisable).__init__()
-        super(Shadow).__init__()
-        super(Inputfilter).__init__()
-        super(Global).__init__()
-        super(Origin).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-        self.respawnroomname = None  # Type: target_destination
-        self.Solidity = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.vrad_brush_cast_shadows = None  # Type: choices
-        self.solid_to_enemies = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Shadow.from_dict(instance, entity_data)
-        Inputfilter.from_dict(instance, entity_data)
-        Global.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.respawnroomname = entity_data.get('respawnroomname', None)  # Type: target_destination
-        instance.Solidity = entity_data.get('solidity', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.vrad_brush_cast_shadows = entity_data.get('vrad_brush_cast_shadows', None)  # Type: choices
-        instance.solid_to_enemies = entity_data.get('solid_to_enemies', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class func_forcefield(EnableDisable, TeamNum, Origin, RenderFields, Targetname, Parentname):
-    def __init__(self):
-        super(RenderFields).__init__()
-        super(EnableDisable).__init__()
-        super(TeamNum).__init__()
-        super(Origin).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        RenderFields.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-
-
-class func_changeclass(EnableDisable, Toggle, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-
-
-class game_intro_viewpoint(Angles):
-    viewport_model = "models/editor/camera.mdl"
-    def __init__(self):
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-        self.TeamNum = None  # Type: choices
-        self.step_number = 1  # Type: integer
-        self.time_delay = 12  # Type: float
-        self.hint_message = None  # Type: string
-        self.event_to_fire = None  # Type: string
-        self.event_delay = 3  # Type: float
-        self.event_data_int = None  # Type: integer
-        self.fov = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.TeamNum = entity_data.get('teamnum', None)  # Type: choices
-        instance.step_number = parse_source_value(entity_data.get('step_number', 1))  # Type: integer
-        instance.time_delay = float(entity_data.get('time_delay', 12))  # Type: float
-        instance.hint_message = entity_data.get('hint_message', None)  # Type: string
-        instance.event_to_fire = entity_data.get('event_to_fire', None)  # Type: string
-        instance.event_delay = float(entity_data.get('event_delay', 3))  # Type: float
-        instance.event_data_int = parse_source_value(entity_data.get('event_data_int', 0))  # Type: integer
-        instance.fov = float(entity_data.get('fov', 0))  # Type: float
-
-
-class func_proprrespawnzone(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-
-
-class team_control_point(EnableDisable, Parentname, Angles, Targetname):
-    model = "models/effects/cappoint_hologram.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Parentname).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.point_start_locked = None  # Type: choices
-        self.point_printname = "TODO: Set Name"  # Type: string
-        self.point_group = None  # Type: integer
-        self.point_default_owner = None  # Type: choices
-        self.point_index = None  # Type: integer
-        self.point_warn_on_cap = None  # Type: choices
-        self.point_warn_sound = "ControlPoint.CaptureWarn"  # Type: string
-        self.random_owner_on_restart = None  # Type: choices
-        self.team_timedpoints_2 = None  # Type: integer
-        self.team_timedpoints_3 = None  # Type: integer
-        self.team_capsound_0 = None  # Type: sound
-        self.team_capsound_2 = None  # Type: sound
-        self.team_capsound_3 = None  # Type: sound
-        self.team_model_0 = "models/effects/cappoint_hologram.mdl"  # Type: studio
-        self.team_model_2 = "models/effects/cappoint_hologram.mdl"  # Type: studio
-        self.team_model_3 = "models/effects/cappoint_hologram.mdl"  # Type: studio
-        self.team_bodygroup_0 = 3  # Type: integer
-        self.team_bodygroup_2 = 1  # Type: integer
-        self.team_bodygroup_3 = 1  # Type: integer
-        self.team_icon_0 = "sprites/obj_icons/icon_obj_neutral"  # Type: material
-        self.team_icon_2 = "sprites/obj_icons/icon_obj_red"  # Type: material
-        self.team_icon_3 = "sprites/obj_icons/icon_obj_blu"  # Type: material
-        self.team_overlay_0 = None  # Type: material
-        self.team_overlay_2 = None  # Type: material
-        self.team_overlay_3 = None  # Type: material
-        self.team_previouspoint_2_0 = None  # Type: target_source
-        self.team_previouspoint_2_1 = None  # Type: target_source
-        self.team_previouspoint_2_2 = None  # Type: target_source
-        self.team_previouspoint_3_0 = None  # Type: target_source
-        self.team_previouspoint_3_1 = None  # Type: target_source
-        self.team_previouspoint_3_2 = None  # Type: target_source
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.point_start_locked = entity_data.get('point_start_locked', None)  # Type: choices
-        instance.point_printname = entity_data.get('point_printname', "TODO: Set Name")  # Type: string
-        instance.point_group = parse_source_value(entity_data.get('point_group', 0))  # Type: integer
-        instance.point_default_owner = entity_data.get('point_default_owner', None)  # Type: choices
-        instance.point_index = parse_source_value(entity_data.get('point_index', 0))  # Type: integer
-        instance.point_warn_on_cap = entity_data.get('point_warn_on_cap', None)  # Type: choices
-        instance.point_warn_sound = entity_data.get('point_warn_sound', "ControlPoint.CaptureWarn")  # Type: string
-        instance.random_owner_on_restart = entity_data.get('random_owner_on_restart', None)  # Type: choices
-        instance.team_timedpoints_2 = parse_source_value(entity_data.get('team_timedpoints_2', 0))  # Type: integer
-        instance.team_timedpoints_3 = parse_source_value(entity_data.get('team_timedpoints_3', 0))  # Type: integer
-        instance.team_capsound_0 = entity_data.get('team_capsound_0', None)  # Type: sound
-        instance.team_capsound_2 = entity_data.get('team_capsound_2', None)  # Type: sound
-        instance.team_capsound_3 = entity_data.get('team_capsound_3', None)  # Type: sound
-        instance.team_model_0 = entity_data.get('team_model_0', "models/effects/cappoint_hologram.mdl")  # Type: studio
-        instance.team_model_2 = entity_data.get('team_model_2', "models/effects/cappoint_hologram.mdl")  # Type: studio
-        instance.team_model_3 = entity_data.get('team_model_3', "models/effects/cappoint_hologram.mdl")  # Type: studio
-        instance.team_bodygroup_0 = parse_source_value(entity_data.get('team_bodygroup_0', 3))  # Type: integer
-        instance.team_bodygroup_2 = parse_source_value(entity_data.get('team_bodygroup_2', 1))  # Type: integer
-        instance.team_bodygroup_3 = parse_source_value(entity_data.get('team_bodygroup_3', 1))  # Type: integer
-        instance.team_icon_0 = entity_data.get('team_icon_0', "sprites/obj_icons/icon_obj_neutral")  # Type: material
-        instance.team_icon_2 = entity_data.get('team_icon_2', "sprites/obj_icons/icon_obj_red")  # Type: material
-        instance.team_icon_3 = entity_data.get('team_icon_3', "sprites/obj_icons/icon_obj_blu")  # Type: material
-        instance.team_overlay_0 = entity_data.get('team_overlay_0', None)  # Type: material
-        instance.team_overlay_2 = entity_data.get('team_overlay_2', None)  # Type: material
-        instance.team_overlay_3 = entity_data.get('team_overlay_3', None)  # Type: material
-        instance.team_previouspoint_2_0 = entity_data.get('team_previouspoint_2_0', None)  # Type: target_source
-        instance.team_previouspoint_2_1 = entity_data.get('team_previouspoint_2_1', None)  # Type: target_source
-        instance.team_previouspoint_2_2 = entity_data.get('team_previouspoint_2_2', None)  # Type: target_source
-        instance.team_previouspoint_3_0 = entity_data.get('team_previouspoint_3_0', None)  # Type: target_source
-        instance.team_previouspoint_3_1 = entity_data.get('team_previouspoint_3_1', None)  # Type: target_source
-        instance.team_previouspoint_3_2 = entity_data.get('team_previouspoint_3_2', None)  # Type: target_source
-
-
-class team_control_point_round(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.cpr_printname = None  # Type: string
-        self.cpr_priority = None  # Type: integer
-        self.cpr_cp_names = None  # Type: string
-        self.cpr_restrict_team_cap_win = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.cpr_printname = entity_data.get('cpr_printname', None)  # Type: string
-        instance.cpr_priority = parse_source_value(entity_data.get('cpr_priority', 0))  # Type: integer
-        instance.cpr_cp_names = entity_data.get('cpr_cp_names', None)  # Type: string
-        instance.cpr_restrict_team_cap_win = entity_data.get('cpr_restrict_team_cap_win', None)  # Type: choices
-
-
-class team_control_point_master(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.team_base_icon_2 = "sprites/obj_icons/icon_base_red"  # Type: material
-        self.team_base_icon_3 = "sprites/obj_icons/icon_base_blu"  # Type: material
-        self.caplayout = None  # Type: string
-        self.custom_position_x = -1  # Type: float
-        self.custom_position_y = -1  # Type: float
-        self.cpm_restrict_team_cap_win = None  # Type: choices
-        self.switch_teams = None  # Type: choices
-        self.score_style = None  # Type: choices
-        self.play_all_rounds = None  # Type: choices
-        self.partial_cap_points_rate = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.team_base_icon_2 = entity_data.get('team_base_icon_2', "sprites/obj_icons/icon_base_red")  # Type: material
-        instance.team_base_icon_3 = entity_data.get('team_base_icon_3', "sprites/obj_icons/icon_base_blu")  # Type: material
-        instance.caplayout = entity_data.get('caplayout', None)  # Type: string
-        instance.custom_position_x = float(entity_data.get('custom_position_x', -1))  # Type: float
-        instance.custom_position_y = float(entity_data.get('custom_position_y', -1))  # Type: float
-        instance.cpm_restrict_team_cap_win = entity_data.get('cpm_restrict_team_cap_win', None)  # Type: choices
-        instance.switch_teams = entity_data.get('switch_teams', None)  # Type: choices
-        instance.score_style = entity_data.get('score_style', None)  # Type: choices
-        instance.play_all_rounds = entity_data.get('play_all_rounds', None)  # Type: choices
-        instance.partial_cap_points_rate = float(entity_data.get('partial_cap_points_rate', 0))  # Type: float
-
-
-class trigger_capture_area(EnableDisable, Parentname, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Parentname).__init__()
-        super(Targetname).__init__()
-        self.area_cap_point = None  # Type: target_source
-        self.team_cancap_2 = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.team_cancap_3 = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.team_startcap_2 = 1  # Type: integer
-        self.team_startcap_3 = 1  # Type: integer
-        self.team_numcap_2 = 1  # Type: integer
-        self.team_numcap_3 = 1  # Type: integer
-        self.team_spawn_2 = None  # Type: integer
-        self.team_spawn_3 = None  # Type: integer
-        self.area_time_to_cap = 5  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.area_cap_point = entity_data.get('area_cap_point', None)  # Type: target_source
-        instance.team_cancap_2 = entity_data.get('team_cancap_2', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.team_cancap_3 = entity_data.get('team_cancap_3', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.team_startcap_2 = parse_source_value(entity_data.get('team_startcap_2', 1))  # Type: integer
-        instance.team_startcap_3 = parse_source_value(entity_data.get('team_startcap_3', 1))  # Type: integer
-        instance.team_numcap_2 = parse_source_value(entity_data.get('team_numcap_2', 1))  # Type: integer
-        instance.team_numcap_3 = parse_source_value(entity_data.get('team_numcap_3', 1))  # Type: integer
-        instance.team_spawn_2 = parse_source_value(entity_data.get('team_spawn_2', 0))  # Type: integer
-        instance.team_spawn_3 = parse_source_value(entity_data.get('team_spawn_3', 0))  # Type: integer
-        instance.area_time_to_cap = parse_source_value(entity_data.get('area_time_to_cap', 5))  # Type: integer
-
-
-class team_train_watcher(EnableDisable, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.origin = [0, 0, 0]
-        self.train_can_recede = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.train_recede_time = None  # Type: integer
-        self.handle_train_movement = None  # Type: choices
-        self.speed_forward_modifier = 1  # Type: float
-        self.env_spark_name = None  # Type: string
-        self.train = None  # Type: target_destination
-        self.start_node = None  # Type: target_destination
-        self.goal_node = None  # Type: target_destination
-        self.linked_pathtrack_1 = None  # Type: target_destination
-        self.linked_cp_1 = None  # Type: target_destination
-        self.linked_pathtrack_2 = None  # Type: target_destination
-        self.linked_cp_2 = None  # Type: target_destination
-        self.linked_pathtrack_3 = None  # Type: target_destination
-        self.linked_cp_3 = None  # Type: target_destination
-        self.linked_pathtrack_4 = None  # Type: target_destination
-        self.linked_cp_4 = None  # Type: target_destination
-        self.linked_pathtrack_5 = None  # Type: target_destination
-        self.linked_cp_5 = None  # Type: target_destination
-        self.linked_pathtrack_6 = None  # Type: target_destination
-        self.linked_cp_6 = None  # Type: target_destination
-        self.linked_pathtrack_7 = None  # Type: target_destination
-        self.linked_cp_7 = None  # Type: target_destination
-        self.linked_pathtrack_8 = None  # Type: target_destination
-        self.linked_cp_8 = None  # Type: target_destination
-        self.hud_min_speed_level_1 = 30  # Type: float
-        self.hud_min_speed_level_2 = 60  # Type: float
-        self.hud_min_speed_level_3 = 90  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.train_can_recede = entity_data.get('train_can_recede', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.train_recede_time = parse_source_value(entity_data.get('train_recede_time', 0))  # Type: integer
-        instance.handle_train_movement = entity_data.get('handle_train_movement', None)  # Type: choices
-        instance.speed_forward_modifier = float(entity_data.get('speed_forward_modifier', 1))  # Type: float
-        instance.env_spark_name = entity_data.get('env_spark_name', None)  # Type: string
-        instance.train = entity_data.get('train', None)  # Type: target_destination
-        instance.start_node = entity_data.get('start_node', None)  # Type: target_destination
-        instance.goal_node = entity_data.get('goal_node', None)  # Type: target_destination
-        instance.linked_pathtrack_1 = entity_data.get('linked_pathtrack_1', None)  # Type: target_destination
-        instance.linked_cp_1 = entity_data.get('linked_cp_1', None)  # Type: target_destination
-        instance.linked_pathtrack_2 = entity_data.get('linked_pathtrack_2', None)  # Type: target_destination
-        instance.linked_cp_2 = entity_data.get('linked_cp_2', None)  # Type: target_destination
-        instance.linked_pathtrack_3 = entity_data.get('linked_pathtrack_3', None)  # Type: target_destination
-        instance.linked_cp_3 = entity_data.get('linked_cp_3', None)  # Type: target_destination
-        instance.linked_pathtrack_4 = entity_data.get('linked_pathtrack_4', None)  # Type: target_destination
-        instance.linked_cp_4 = entity_data.get('linked_cp_4', None)  # Type: target_destination
-        instance.linked_pathtrack_5 = entity_data.get('linked_pathtrack_5', None)  # Type: target_destination
-        instance.linked_cp_5 = entity_data.get('linked_cp_5', None)  # Type: target_destination
-        instance.linked_pathtrack_6 = entity_data.get('linked_pathtrack_6', None)  # Type: target_destination
-        instance.linked_cp_6 = entity_data.get('linked_cp_6', None)  # Type: target_destination
-        instance.linked_pathtrack_7 = entity_data.get('linked_pathtrack_7', None)  # Type: target_destination
-        instance.linked_cp_7 = entity_data.get('linked_cp_7', None)  # Type: target_destination
-        instance.linked_pathtrack_8 = entity_data.get('linked_pathtrack_8', None)  # Type: target_destination
-        instance.linked_cp_8 = entity_data.get('linked_cp_8', None)  # Type: target_destination
-        instance.hud_min_speed_level_1 = float(entity_data.get('hud_min_speed_level_1', 30))  # Type: float
-        instance.hud_min_speed_level_2 = float(entity_data.get('hud_min_speed_level_2', 60))  # Type: float
-        instance.hud_min_speed_level_3 = float(entity_data.get('hud_min_speed_level_3', 90))  # Type: float
-
-
-class game_text_tf(Targetname):
-    icon_sprite = "editor/game_text.vmt"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.message = None  # Type: string
-        self.icon = None  # Type: string
-        self.display_to_team = None  # Type: choices
-        self.background = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.message = entity_data.get('message', None)  # Type: string
-        instance.icon = entity_data.get('icon', None)  # Type: string
-        instance.display_to_team = entity_data.get('display_to_team', None)  # Type: choices
-        instance.background = entity_data.get('background', None)  # Type: choices
-
-
-class BaseObject(Base):
-    def __init__(self):
-        super().__init__()
-        self.TeamNum = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.TeamNum = entity_data.get('teamnum', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class obj_dispenser(Parentname, BaseObject, Angles, Targetname):
-    model = "models/buildables/dispenser_light.mdl"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.defaultupgrade = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.defaultupgrade = entity_data.get('defaultupgrade', None)  # Type: choices
-
-
-class obj_sentrygun(Parentname, BaseObject, Angles, Targetname):
-    model = "models/buildables/sentry3.mdl"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.defaultupgrade = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.defaultupgrade = entity_data.get('defaultupgrade', None)  # Type: choices
-
-
-class obj_teleporter(Parentname, BaseObject, Angles, Targetname):
-    model = "models/buildables/teleporter_light.mdl"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.defaultupgrade = None  # Type: choices
-        self.teleporterType = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.matchingTeleporter = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.defaultupgrade = entity_data.get('defaultupgrade', None)  # Type: choices
-        instance.teleporterType = entity_data.get('teleportertype', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.matchingTeleporter = entity_data.get('matchingteleporter', None)  # Type: target_destination
-
-
-class bot_hint_sentrygun(EnableDisable, BaseObject, Angles, Targetname, Parentname):
-    model = "models/buildables/sentry3.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-        self.origin = [0, 0, 0]
-        self.sequence = 5  # Type: integer
-        self.sticky = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.sequence = parse_source_value(entity_data.get('sequence', 5))  # Type: integer
-        instance.sticky = entity_data.get('sticky', None)  # Type: choices
-
-
-class bot_hint_teleporter_exit(EnableDisable, BaseObject, Angles, Targetname, Parentname):
-    model = "models/buildables/teleporter_blueprint_exit.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class bot_hint_engineer_nest(EnableDisable, BaseObject, Angles, Targetname, Parentname):
-    model = "models/bots/engineer/bot_engineer.mdl"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        super(Parentname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class bot_hint_sniper_spot(Parentname, BaseObject, Angles, Targetname):
-    model = "models/player/sniper.mdl"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(BaseObject).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.radius = 100  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.radius = float(entity_data.get('radius', 100))  # Type: float
-
-
-class mapobj_cart_dispenser(Parentname, BaseObject, Targetname):
-    icon_sprite = "editor/bullseye.vmt"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(BaseObject).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.touch_trigger = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        BaseObject.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.touch_trigger = entity_data.get('touch_trigger', None)  # Type: target_destination
-
-
-class dispenser_touch_trigger(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(Parentname).__init__()
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-
-
-class tf_logic_arena(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.CapEnableDelay = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.CapEnableDelay = float(entity_data.get('capenabledelay', 0))  # Type: float
-
-
-class tf_logic_competitive(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_mannpower(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class bot_controller(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.TeamNum = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.bot_class = None  # Type: choices
-        self.bot_name = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.TeamNum = entity_data.get('teamnum', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.bot_class = entity_data.get('bot_class', None)  # Type: choices
-        instance.bot_name = entity_data.get('bot_name', None)  # Type: string
-
-
-class tf_logic_training_mode(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.nextMap = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.nextMap = entity_data.get('nextmap', None)  # Type: choices
-
-
-class boss_alpha(Angles, Targetname):
-    def __init__(self):
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class base_boss(Parentname, Angles, Targetname, TeamNum):
-    def __init__(self):
-        super(Parentname).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.origin = [0, 0, 0]
-        self.health = 1000  # Type: integer
-        self.model = "models/bots/boss_bot/boss_tank.mdl"  # Type: string
-        self.speed = 75  # Type: float
-        self.start_disabled = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.health = parse_source_value(entity_data.get('health', 1000))  # Type: integer
-        instance.model = entity_data.get('model', "models/bots/boss_bot/boss_tank.mdl")  # Type: string
-        instance.speed = float(entity_data.get('speed', 75))  # Type: float
-        instance.start_disabled = entity_data.get('start_disabled', None)  # Type: choices
-
-
-class tank_boss(base_boss):
-    def __init__(self):
-        super(base_boss).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        base_boss.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_multiple_escort(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_koth(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.timer_length = 180  # Type: integer
-        self.unlock_point = 30  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.timer_length = parse_source_value(entity_data.get('timer_length', 180))  # Type: integer
-        instance.unlock_point = parse_source_value(entity_data.get('unlock_point', 30))  # Type: integer
-
-
-class tf_robot_destruction_robot_spawn(Parentname, Angles, Targetname):
-    model = "models/bots/bot_worker/bot_worker_a.mdl"
+class info_nihilanth_summon(Parentname, Angles, Targetname):
+    icon_sprite = "editor/info_target.vmt"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
-        self.health = 500  # Type: integer
-        self.gibs = None  # Type: integer
-        self.type = None  # Type: choices
-        self.spawngroup = None  # Type: target_source
-        self.startpath = None  # Type: target_source
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
@@ -7642,1133 +10723,358 @@ class tf_robot_destruction_robot_spawn(Parentname, Angles, Targetname):
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.health = parse_source_value(entity_data.get('health', 500))  # Type: integer
-        instance.gibs = parse_source_value(entity_data.get('gibs', 0))  # Type: integer
-        instance.type = entity_data.get('type', None)  # Type: choices
-        instance.spawngroup = entity_data.get('spawngroup', None)  # Type: target_source
-        instance.startpath = entity_data.get('startpath', None)  # Type: target_source
 
 
-class tf_robot_destruction_spawn_group(Targetname):
+class point_weaponstrip(Targetname):
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
-        self.respawn_time = None  # Type: float
-        self.group_number = None  # Type: integer
-        self.team_number = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.hud_icon = "../HUD/hud_bot_worker_outline_blue"  # Type: string
-        self.respawn_reduction_scale = None  # Type: float
+        self.Weapon = "CHOICES NOT SUPPORTED"  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.respawn_time = float(entity_data.get('respawn_time', 0))  # Type: float
-        instance.group_number = parse_source_value(entity_data.get('group_number', 0))  # Type: integer
-        instance.team_number = entity_data.get('team_number', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.hud_icon = entity_data.get('hud_icon', "../HUD/hud_bot_worker_outline_blue")  # Type: string
-        instance.respawn_reduction_scale = float(entity_data.get('respawn_reduction_scale', 0))  # Type: float
+        instance.Weapon = entity_data.get('weapon', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class RobotDestruction(Base):
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-
-
-class tf_logic_robot_destruction(RobotDestruction, Targetname):
-    def __init__(self):
-        super(RobotDestruction).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.score_interval = 1  # Type: float
-        self.loser_respawn_bonus_per_bot = None  # Type: float
-        self.red_respawn_time = 10  # Type: float
-        self.blue_respawn_time = 10  # Type: float
-        self.max_points = 200  # Type: integer
-        self.finale_length = 30  # Type: float
-        self.res_file = "resource/UI/HudObjectiveRobotDestruction.res"  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        RobotDestruction.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.score_interval = float(entity_data.get('score_interval', 1))  # Type: float
-        instance.loser_respawn_bonus_per_bot = float(entity_data.get('loser_respawn_bonus_per_bot', 0))  # Type: float
-        instance.red_respawn_time = float(entity_data.get('red_respawn_time', 10))  # Type: float
-        instance.blue_respawn_time = float(entity_data.get('blue_respawn_time', 10))  # Type: float
-        instance.max_points = parse_source_value(entity_data.get('max_points', 200))  # Type: integer
-        instance.finale_length = float(entity_data.get('finale_length', 30))  # Type: float
-        instance.res_file = entity_data.get('res_file', "resource/UI/HudObjectiveRobotDestruction.res")  # Type: string
-
-
-class tf_logic_player_destruction(Targetname):
+class misc_marionettist(Targetname):
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
-        self.prop_model_name = "models/flag/flag.mdl"  # Type: studio
-        self.prop_drop_sound = None  # Type: sound
-        self.prop_pickup_sound = None  # Type: sound
-        self.red_respawn_time = 10  # Type: float
-        self.blue_respawn_time = 10  # Type: float
-        self.min_points = 10  # Type: integer
-        self.points_per_player = 5  # Type: integer
-        self.finale_length = 30  # Type: float
-        self.res_file = "resource/UI/HudObjectivePlayerDestruction.res"  # Type: string
-        self.flag_reset_delay = 60  # Type: integer
-        self.heal_distance = 450  # Type: integer
+        self.innerdestinationradius = 32  # Type: integer
+        self.innerpullspeed = 448  # Type: integer
+        self.outerdestinationradius = 128  # Type: integer
+        self.outerpullspeed = 512  # Type: integer
+        self.ignorecollisions = None  # Type: choices
+        self.target01 = None  # Type: target_destination
+        self.target02 = None  # Type: target_destination
+        self.target03 = None  # Type: target_destination
+        self.target04 = None  # Type: target_destination
+        self.target05 = None  # Type: target_destination
+        self.target06 = None  # Type: target_destination
+        self.target07 = None  # Type: target_destination
+        self.target08 = None  # Type: target_destination
+        self.target09 = None  # Type: target_destination
+        self.target10 = None  # Type: target_destination
+        self.target11 = None  # Type: target_destination
+        self.target12 = None  # Type: target_destination
+        self.target13 = None  # Type: target_destination
+        self.target14 = None  # Type: target_destination
+        self.target15 = None  # Type: target_destination
+        self.target16 = None  # Type: target_destination
+        self.soundscriptstart = None  # Type: string
+        self.soundscriptloop = None  # Type: string
+        self.soundscriptend = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.prop_model_name = entity_data.get('prop_model_name', "models/flag/flag.mdl")  # Type: studio
-        instance.prop_drop_sound = entity_data.get('prop_drop_sound', None)  # Type: sound
-        instance.prop_pickup_sound = entity_data.get('prop_pickup_sound', None)  # Type: sound
-        instance.red_respawn_time = float(entity_data.get('red_respawn_time', 10))  # Type: float
-        instance.blue_respawn_time = float(entity_data.get('blue_respawn_time', 10))  # Type: float
-        instance.min_points = parse_source_value(entity_data.get('min_points', 10))  # Type: integer
-        instance.points_per_player = parse_source_value(entity_data.get('points_per_player', 5))  # Type: integer
-        instance.finale_length = float(entity_data.get('finale_length', 30))  # Type: float
-        instance.res_file = entity_data.get('res_file', "resource/UI/HudObjectivePlayerDestruction.res")  # Type: string
-        instance.flag_reset_delay = parse_source_value(entity_data.get('flag_reset_delay', 60))  # Type: integer
-        instance.heal_distance = parse_source_value(entity_data.get('heal_distance', 450))  # Type: integer
+        instance.innerdestinationradius = parse_source_value(entity_data.get('innerdestinationradius', 32))  # Type: integer
+        instance.innerpullspeed = parse_source_value(entity_data.get('innerpullspeed', 448))  # Type: integer
+        instance.outerdestinationradius = parse_source_value(entity_data.get('outerdestinationradius', 128))  # Type: integer
+        instance.outerpullspeed = parse_source_value(entity_data.get('outerpullspeed', 512))  # Type: integer
+        instance.ignorecollisions = entity_data.get('ignorecollisions', None)  # Type: choices
+        instance.target01 = entity_data.get('target01', None)  # Type: target_destination
+        instance.target02 = entity_data.get('target02', None)  # Type: target_destination
+        instance.target03 = entity_data.get('target03', None)  # Type: target_destination
+        instance.target04 = entity_data.get('target04', None)  # Type: target_destination
+        instance.target05 = entity_data.get('target05', None)  # Type: target_destination
+        instance.target06 = entity_data.get('target06', None)  # Type: target_destination
+        instance.target07 = entity_data.get('target07', None)  # Type: target_destination
+        instance.target08 = entity_data.get('target08', None)  # Type: target_destination
+        instance.target09 = entity_data.get('target09', None)  # Type: target_destination
+        instance.target10 = entity_data.get('target10', None)  # Type: target_destination
+        instance.target11 = entity_data.get('target11', None)  # Type: target_destination
+        instance.target12 = entity_data.get('target12', None)  # Type: target_destination
+        instance.target13 = entity_data.get('target13', None)  # Type: target_destination
+        instance.target14 = entity_data.get('target14', None)  # Type: target_destination
+        instance.target15 = entity_data.get('target15', None)  # Type: target_destination
+        instance.target16 = entity_data.get('target16', None)  # Type: target_destination
+        instance.soundscriptstart = entity_data.get('soundscriptstart', None)  # Type: string
+        instance.soundscriptloop = entity_data.get('soundscriptloop', None)  # Type: string
+        instance.soundscriptend = entity_data.get('soundscriptend', None)  # Type: string
 
 
-class trigger_rd_vault_trigger(Trigger, TeamNum):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(TeamNum).__init__()
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-
-
-class tf_logic_medieval(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_cp_timer(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.controlpoint = None  # Type: target_destination
-        self.timer_length = 60  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.controlpoint = entity_data.get('controlpoint', None)  # Type: target_destination
-        instance.timer_length = parse_source_value(entity_data.get('timer_length', 60))  # Type: integer
-
-
-class tf_logic_hybrid_ctf_cp(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_raid(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_boss_battle(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_mann_vs_machine(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_logic_holiday(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.holiday_type = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.tauntInHell = None  # Type: choices
-        self.allowHaunting = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.holiday_type = entity_data.get('holiday_type', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.tauntInHell = entity_data.get('tauntinhell', None)  # Type: choices
-        instance.allowHaunting = entity_data.get('allowhaunting', None)  # Type: choices
-
-
-class func_upgradestation(EnableDisable, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-
-
-class bot_generator(Angles, Targetname):
+class misc_xen_healing_pylon(Angles, Studiomodel, Targetname):
     def __init__(self):
         super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-        self._class = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.count = 1  # Type: integer
-        self.maxActive = 1  # Type: integer
-        self.interval = None  # Type: float
-        self.action_point = None  # Type: target_destination
-        self.initial_command = None  # Type: choices
-        self.suppressFire = None  # Type: choices
-        self.disableDodge = None  # Type: choices
-        self.actionOnDeath = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.spectateOnDeath = None  # Type: choices
-        self.useTeamSpawnPoint = None  # Type: choices
-        self.retainBuildings = None  # Type: choices
-        self.difficulty = None  # Type: choices
-        self.spawnOnlyWhenTriggered = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance._class = entity_data.get('class', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.count = parse_source_value(entity_data.get('count', 1))  # Type: integer
-        instance.maxActive = parse_source_value(entity_data.get('maxactive', 1))  # Type: integer
-        instance.interval = float(entity_data.get('interval', 0))  # Type: float
-        instance.action_point = entity_data.get('action_point', None)  # Type: target_destination
-        instance.initial_command = entity_data.get('initial_command', None)  # Type: choices
-        instance.suppressFire = entity_data.get('suppressfire', None)  # Type: choices
-        instance.disableDodge = entity_data.get('disabledodge', None)  # Type: choices
-        instance.actionOnDeath = entity_data.get('actionondeath', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.spectateOnDeath = entity_data.get('spectateondeath', None)  # Type: choices
-        instance.useTeamSpawnPoint = entity_data.get('useteamspawnpoint', None)  # Type: choices
-        instance.retainBuildings = entity_data.get('retainbuildings', None)  # Type: choices
-        instance.difficulty = entity_data.get('difficulty', None)  # Type: choices
-        instance.spawnOnlyWhenTriggered = entity_data.get('spawnonlywhentriggered', None)  # Type: choices
-
-
-class bot_roster(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowClassChanges = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowScout = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowSniper = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowSoldier = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowDemoman = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowMedic = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowHeavy = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowPyro = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowSpy = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowEngineer = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowClassChanges = entity_data.get('allowclasschanges', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowScout = entity_data.get('allowscout', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowSniper = entity_data.get('allowsniper', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowSoldier = entity_data.get('allowsoldier', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowDemoman = entity_data.get('allowdemoman', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowMedic = entity_data.get('allowmedic', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowHeavy = entity_data.get('allowheavy', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowPyro = entity_data.get('allowpyro', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowSpy = entity_data.get('allowspy', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowEngineer = entity_data.get('allowengineer', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class bot_action_point(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.next_action_point = None  # Type: target_destination
-        self.desired_distance = 5  # Type: float
-        self.stay_time = None  # Type: float
-        self.command = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.next_action_point = entity_data.get('next_action_point', None)  # Type: target_destination
-        instance.desired_distance = float(entity_data.get('desired_distance', 5))  # Type: float
-        instance.stay_time = float(entity_data.get('stay_time', 0))  # Type: float
-        instance.command = entity_data.get('command', None)  # Type: choices
-
-
-class bot_proxy(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.bot_name = "TFBot"  # Type: string
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-        self._class = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.spawn_on_start = None  # Type: choices
-        self.respawn_interval = None  # Type: float
-        self.action_point = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.bot_name = entity_data.get('bot_name', "TFBot")  # Type: string
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance._class = entity_data.get('class', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.spawn_on_start = entity_data.get('spawn_on_start', None)  # Type: choices
-        instance.respawn_interval = float(entity_data.get('respawn_interval', 0))  # Type: float
-        instance.action_point = entity_data.get('action_point', None)  # Type: target_destination
-
-
-class tf_spawner(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.count = 1  # Type: integer
-        self.maxActive = 1  # Type: integer
-        self.interval = None  # Type: float
-        self.template = None  # Type: target_destination
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.count = parse_source_value(entity_data.get('count', 1))  # Type: integer
-        instance.maxActive = parse_source_value(entity_data.get('maxactive', 1))  # Type: integer
-        instance.interval = float(entity_data.get('interval', 0))  # Type: float
-        instance.template = entity_data.get('template', None)  # Type: target_destination
-
-
-class tf_template_stun_drone(EnableDisable, Angles, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class func_nav_blocker(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.teamToBlock = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.affectsFlow = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.teamToBlock = entity_data.get('teamtoblock', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.affectsFlow = entity_data.get('affectsflow', None)  # Type: choices
-
-
-class func_nav_avoid(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.tags = None  # Type: string
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.start_disabled = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.tags = entity_data.get('tags', None)  # Type: string
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.start_disabled = entity_data.get('start_disabled', None)  # Type: choices
-
-
-class func_nav_prefer(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.tags = None  # Type: string
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.start_disabled = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.tags = entity_data.get('tags', None)  # Type: string
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.start_disabled = entity_data.get('start_disabled', None)  # Type: choices
-
-
-class func_nav_prerequisite(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(Targetname).__init__()
-        self.Task = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.Entity = None  # Type: target_destination
-        self.Value = None  # Type: float
-        self.start_disabled = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.Task = entity_data.get('task', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.Entity = entity_data.get('entity', None)  # Type: target_destination
-        instance.Value = float(entity_data.get('value', 0))  # Type: float
-        instance.start_disabled = entity_data.get('start_disabled', None)  # Type: choices
-
-
-class func_tfbot_hint(EnableDisable, Origin, Targetname):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Origin).__init__()
-        super(Targetname).__init__()
-        self.team = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.hint = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.team = entity_data.get('team', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.hint = entity_data.get('hint', None)  # Type: choices
-
-
-class trigger_stun(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(Targetname).__init__()
-        self.trigger_delay = None  # Type: float
-        self.stun_duration = None  # Type: float
-        self.move_speed_reduction = None  # Type: float
-        self.stun_type = None  # Type: choices
-        self.stun_effects = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.trigger_delay = float(entity_data.get('trigger_delay', 0))  # Type: float
-        instance.stun_duration = float(entity_data.get('stun_duration', 0))  # Type: float
-        instance.move_speed_reduction = float(entity_data.get('move_speed_reduction', 0))  # Type: float
-        instance.stun_type = entity_data.get('stun_type', None)  # Type: choices
-        instance.stun_effects = entity_data.get('stun_effects', None)  # Type: choices
-
-
-class entity_spawn_point(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.spawn_manager_name = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.spawn_manager_name = entity_data.get('spawn_manager_name', None)  # Type: string
-
-
-class entity_spawn_manager(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.entity_name = None  # Type: string
-        self.entity_count = None  # Type: integer
-        self.respawn_time = None  # Type: integer
-        self.drop_to_ground = None  # Type: choices
-        self.random_rotation = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.entity_name = entity_data.get('entity_name', None)  # Type: string
-        instance.entity_count = parse_source_value(entity_data.get('entity_count', 0))  # Type: integer
-        instance.respawn_time = parse_source_value(entity_data.get('respawn_time', 0))  # Type: integer
-        instance.drop_to_ground = entity_data.get('drop_to_ground', None)  # Type: choices
-        instance.random_rotation = entity_data.get('random_rotation', None)  # Type: choices
-
-
-class tf_pumpkin_bomb(Item):
-    model = "models/props_halloween/pumpkin_explode.mdl"
-    def __init__(self):
-        super(Item).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Item.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_generic_bomb(Studiomodel, Origin, Angles, Targetname):
-    def __init__(self):
-        super(Studiomodel).__init__()
-        super(Origin).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.damage = 50  # Type: float
-        self.radius = 100  # Type: float
-        self.health = 1  # Type: integer
-        self.explode_particle = None  # Type: string
-        self.sound = None  # Type: sound
-        self.friendlyfire = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Studiomodel.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.damage = float(entity_data.get('damage', 50))  # Type: float
-        instance.radius = float(entity_data.get('radius', 100))  # Type: float
-        instance.health = parse_source_value(entity_data.get('health', 1))  # Type: integer
-        instance.explode_particle = entity_data.get('explode_particle', None)  # Type: string
-        instance.sound = entity_data.get('sound', None)  # Type: sound
-        instance.friendlyfire = entity_data.get('friendlyfire', None)  # Type: choices
-
-
-class training_annotation(Targetname):
-    model = "models/extras/info_speech.mdl"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.display_text = "<Add Text Here>"  # Type: string
-        self.lifetime = None  # Type: float
-        self.offset = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.display_text = entity_data.get('display_text', "<Add Text Here>")  # Type: string
-        instance.lifetime = float(entity_data.get('lifetime', 0))  # Type: float
-        instance.offset = float(entity_data.get('offset', 0))  # Type: float
-
-
-class training_prop_dynamic(prop_dynamic):
-    def __init__(self):
-        super(prop_dynamic).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        prop_dynamic.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class trigger_ignite_arrows(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(Parentname).__init__()
-        super(Origin).__init__()
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        Trigger.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-
-
-class wheel_of_doom(Parentname, Angles, Targetname):
-    model = "models/editor/cone_helper.mdl"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.effect_duration = 30  # Type: float
-        self.has_spiral = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.effect_duration = float(entity_data.get('effect_duration', 30))  # Type: float
-        instance.has_spiral = entity_data.get('has_spiral', None)  # Type: choices
-
-
-class point_populator_interface(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_point_weapon_mimic(Parentname, Angles, Targetname):
-    model = "models/editor/cone_helper.mdl"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(Angles).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.WeaponType = None  # Type: choices
-        self.FireSound = None  # Type: string
-        self.ParticleEffect = None  # Type: string
-        self.ModelOverride = None  # Type: string
-        self.ModelScale = 1  # Type: float
-        self.SpeedMin = 1000  # Type: float
-        self.SpeedMax = 1000  # Type: float
-        self.Damage = 75  # Type: float
-        self.SplashRadius = 50  # Type: float
-        self.SpreadAngle = 0  # Type: float
-        self.Crits = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.WeaponType = entity_data.get('weapontype', None)  # Type: choices
-        instance.FireSound = entity_data.get('firesound', None)  # Type: string
-        instance.ParticleEffect = entity_data.get('particleeffect', None)  # Type: string
-        instance.ModelOverride = entity_data.get('modeloverride', None)  # Type: string
-        instance.ModelScale = float(entity_data.get('modelscale', 1))  # Type: float
-        instance.SpeedMin = float(entity_data.get('speedmin', 1000))  # Type: float
-        instance.SpeedMax = float(entity_data.get('speedmax', 1000))  # Type: float
-        instance.Damage = float(entity_data.get('damage', 75))  # Type: float
-        instance.SplashRadius = float(entity_data.get('splashradius', 50))  # Type: float
-        instance.SpreadAngle = float(entity_data.get('spreadangle', 0))  # Type: float
-        instance.Crits = entity_data.get('crits', None)  # Type: choices
-
-
-class tf_point_nav_interface(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class trigger_timer_door(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        self.door_name = None  # Type: string
-        self.area_cap_point = None  # Type: target_source
-        self.team_cancap_2 = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.team_cancap_3 = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.team_startcap_2 = 1  # Type: integer
-        self.team_startcap_3 = 1  # Type: integer
-        self.team_numcap_2 = 1  # Type: integer
-        self.team_numcap_3 = 1  # Type: integer
-        self.team_spawn_2 = None  # Type: integer
-        self.team_spawn_3 = None  # Type: integer
-        self.area_time_to_cap = 5  # Type: integer
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        instance.door_name = entity_data.get('door_name', None)  # Type: string
-        instance.area_cap_point = entity_data.get('area_cap_point', None)  # Type: target_source
-        instance.team_cancap_2 = entity_data.get('team_cancap_2', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.team_cancap_3 = entity_data.get('team_cancap_3', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.team_startcap_2 = parse_source_value(entity_data.get('team_startcap_2', 1))  # Type: integer
-        instance.team_startcap_3 = parse_source_value(entity_data.get('team_startcap_3', 1))  # Type: integer
-        instance.team_numcap_2 = parse_source_value(entity_data.get('team_numcap_2', 1))  # Type: integer
-        instance.team_numcap_3 = parse_source_value(entity_data.get('team_numcap_3', 1))  # Type: integer
-        instance.team_spawn_2 = parse_source_value(entity_data.get('team_spawn_2', 0))  # Type: integer
-        instance.team_spawn_3 = parse_source_value(entity_data.get('team_spawn_3', 0))  # Type: integer
-        instance.area_time_to_cap = parse_source_value(entity_data.get('area_time_to_cap', 5))  # Type: integer
-
-
-class trigger_bot_tag(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        self.tags = None  # Type: string
-        self.add = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        instance.tags = entity_data.get('tags', None)  # Type: string
-        instance.add = entity_data.get('add', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class filter_tf_bot_has_tag(BaseFilter):
-    def __init__(self):
-        super(BaseFilter).__init__()
-        self.tags = None  # Type: string
-        self.require_all_tags = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseFilter.from_dict(instance, entity_data)
-        instance.tags = entity_data.get('tags', None)  # Type: string
-        instance.require_all_tags = entity_data.get('require_all_tags', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class trigger_add_tf_player_condition(Condition, Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(Condition).__init__()
-        self.duration = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Condition.from_dict(instance, entity_data)
-        Trigger.from_dict(instance, entity_data)
-        instance.duration = float(entity_data.get('duration', 0))  # Type: float
-
-
-class trigger_remove_tf_player_condition(Condition, Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(Condition).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Condition.from_dict(instance, entity_data)
-        Trigger.from_dict(instance, entity_data)
-
-
-class hightower_teleport_vortex(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.target_base_name = None  # Type: string
-        self.lifetime = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.target_base_name = entity_data.get('target_base_name', None)  # Type: string
-        instance.lifetime = float(entity_data.get('lifetime', 0))  # Type: float
-
-
-class tf_zombie_spawner(Targetname):
-    model = "models/bots/skeleton_sniper/skeleton_sniper.mdl"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.zombie_lifetime = None  # Type: float
-        self.max_zombies = 1  # Type: integer
-        self.infinite_zombies = None  # Type: choices
-        self.zombie_type = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.zombie_lifetime = float(entity_data.get('zombie_lifetime', 0))  # Type: float
-        instance.max_zombies = parse_source_value(entity_data.get('max_zombies', 1))  # Type: integer
-        instance.infinite_zombies = entity_data.get('infinite_zombies', None)  # Type: choices
-        instance.zombie_type = entity_data.get('zombie_type', None)  # Type: choices
-
-
-class halloween_zapper(Parentname, Targetname):
-    icon_sprite = "editor/bullseye.vmt"
-    def __init__(self):
-        super(Parentname).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.touch_trigger = None  # Type: target_destination
-        self.ParticleEffect = None  # Type: string
-        self.ZapperType = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Parentname.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.touch_trigger = entity_data.get('touch_trigger', None)  # Type: target_destination
-        instance.ParticleEffect = entity_data.get('particleeffect', None)  # Type: string
-        instance.ZapperType = entity_data.get('zappertype', None)  # Type: choices
-
-
-class trigger_player_respawn_override(Toggle, Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        super(EnableDisable).__init__()
-        super(Toggle).__init__()
-        super(Targetname).__init__()
-        self.RespawnTime = -1  # Type: float
-        self.RespawnName = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Toggle.from_dict(instance, entity_data)
-        Trigger.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.RespawnTime = float(entity_data.get('respawntime', -1))  # Type: float
-        instance.RespawnName = entity_data.get('respawnname', None)  # Type: string
-
-
-class prop_soccer_ball(Studiomodel, Targetname):
-    def __init__(self):
         super(Studiomodel).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
-        self.trigger_name = None  # Type: string
+        self.max_health = 200  # Type: integer
+        self.can_be_damaged_only_healing = None  # Type: choices
+        self.danger_recovering_duration = 5.0  # Type: float
+        self.healing_request_duration = 5.0  # Type: float
+        self.healing_request_hp_per_tick = 16  # Type: integer
+        self.healing_request_tick_delta = 0.125  # Type: float
+        self.healing_beam_attachment_name = None  # Type: string
+        self.healing_beam_spread_radius = 16.0  # Type: float
+        self.healing_beam_sprite_model = "sprites/rollermine_shock.vmt"  # Type: sprite
+        self.healing_beam_noise_amplitude = 4.0  # Type: float
+        self.healing_beam_starting_width = 8.0  # Type: float
+        self.healing_beam_ending_width = 32.0  # Type: float
+        self.healing_beam_color = [255, 255, 255, 255]  # Type: color255
+        self.healing_beam_starting_pfx = "gloun_zap"  # Type: string
+        self.healing_beam_ending_pfx = "gloun_zap"  # Type: string
+        self.pylon_sequence_opening = "deploy"  # Type: string
+        self.pylon_sequence_opened_idle = "idle_deploy"  # Type: string
+        self.pylon_sequence_closing = "retract"  # Type: string
+        self.pylon_sequence_closed_idle = "idle_retract"  # Type: string
+        self.pylon_sequence_dying = "explode"  # Type: string
+        self.pylon_sequence_died_idle = "idle_explode"  # Type: string
+        self.trace_targetname_filter = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
+        Angles.from_dict(instance, entity_data)
         Studiomodel.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.trigger_name = entity_data.get('trigger_name', None)  # Type: string
+        instance.max_health = parse_source_value(entity_data.get('max_health', 200))  # Type: integer
+        instance.can_be_damaged_only_healing = entity_data.get('can_be_damaged_only_healing', None)  # Type: choices
+        instance.danger_recovering_duration = float(entity_data.get('danger_recovering_duration', 5.0))  # Type: float
+        instance.healing_request_duration = float(entity_data.get('healing_request_duration', 5.0))  # Type: float
+        instance.healing_request_hp_per_tick = parse_source_value(entity_data.get('healing_request_hp_per_tick', 16))  # Type: integer
+        instance.healing_request_tick_delta = float(entity_data.get('healing_request_tick_delta', 0.125))  # Type: float
+        instance.healing_beam_attachment_name = entity_data.get('healing_beam_attachment_name', None)  # Type: string
+        instance.healing_beam_spread_radius = float(entity_data.get('healing_beam_spread_radius', 16.0))  # Type: float
+        instance.healing_beam_sprite_model = entity_data.get('healing_beam_sprite_model', "sprites/rollermine_shock.vmt")  # Type: sprite
+        instance.healing_beam_noise_amplitude = float(entity_data.get('healing_beam_noise_amplitude', 4.0))  # Type: float
+        instance.healing_beam_starting_width = float(entity_data.get('healing_beam_starting_width', 8.0))  # Type: float
+        instance.healing_beam_ending_width = float(entity_data.get('healing_beam_ending_width', 32.0))  # Type: float
+        instance.healing_beam_color = parse_int_vector(entity_data.get('healing_beam_color', "255 255 255 255"))  # Type: color255
+        instance.healing_beam_starting_pfx = entity_data.get('healing_beam_starting_pfx', "gloun_zap")  # Type: string
+        instance.healing_beam_ending_pfx = entity_data.get('healing_beam_ending_pfx', "gloun_zap")  # Type: string
+        instance.pylon_sequence_opening = entity_data.get('pylon_sequence_opening', "deploy")  # Type: string
+        instance.pylon_sequence_opened_idle = entity_data.get('pylon_sequence_opened_idle', "idle_deploy")  # Type: string
+        instance.pylon_sequence_closing = entity_data.get('pylon_sequence_closing', "retract")  # Type: string
+        instance.pylon_sequence_closed_idle = entity_data.get('pylon_sequence_closed_idle', "idle_retract")  # Type: string
+        instance.pylon_sequence_dying = entity_data.get('pylon_sequence_dying', "explode")  # Type: string
+        instance.pylon_sequence_died_idle = entity_data.get('pylon_sequence_died_idle', "idle_explode")  # Type: string
+        instance.trace_targetname_filter = entity_data.get('trace_targetname_filter', None)  # Type: string
 
 
-class MiniGame(Base):
+class misc_xen_shield(Angles, Targetname):
     def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-
-
-class tf_logic_minigames(MiniGame, Targetname):
-    def __init__(self):
-        super(MiniGame).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        MiniGame.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_base_minigame(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.RedSpawn = None  # Type: target_source
-        self.BlueSpawn = None  # Type: target_source
-        self.InRandomPool = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.MaxScore = 5  # Type: integer
-        self.hud_res_file = None  # Type: string
-        self.your_team_score_sound = None  # Type: string
-        self.enemy_team_score_sound = None  # Type: string
-        self.ScoreType = None  # Type: choices
-        self.SuddenDeathTime = -1  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.RedSpawn = entity_data.get('redspawn', None)  # Type: target_source
-        instance.BlueSpawn = entity_data.get('bluespawn', None)  # Type: target_source
-        instance.InRandomPool = entity_data.get('inrandompool', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.MaxScore = parse_source_value(entity_data.get('maxscore', 5))  # Type: integer
-        instance.hud_res_file = entity_data.get('hud_res_file', None)  # Type: string
-        instance.your_team_score_sound = entity_data.get('your_team_score_sound', None)  # Type: string
-        instance.enemy_team_score_sound = entity_data.get('enemy_team_score_sound', None)  # Type: string
-        instance.ScoreType = entity_data.get('scoretype', None)  # Type: choices
-        instance.SuddenDeathTime = float(entity_data.get('suddendeathtime', -1))  # Type: float
-
-
-class tf_halloween_minigame(tf_base_minigame):
-    def __init__(self):
-        super(tf_base_minigame).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.MinigameType = "CHOICES NOT SUPPORTED"  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        tf_base_minigame.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.MinigameType = entity_data.get('minigametype', "CHOICES NOT SUPPORTED")  # Type: choices
-
-
-class tf_halloween_minigame_falling_platforms(tf_halloween_minigame):
-    def __init__(self):
-        super(tf_halloween_minigame).__init__()
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        tf_halloween_minigame.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class halloween_fortune_teller(Origin, Angles, Targetname):
-    model = "models/bots/merasmus/merasmas_misfortune_teller.mdl"
-    def __init__(self):
-        super(Origin).__init__()
         super(Angles).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
-        self.red_teleport = None  # Type: string
-        self.blue_teleport = None  # Type: string
+        self.panel_modelname_template = "models/xenians/shield/pentagonal.hexecontahedron/nihilanth/panel.%03d.mdl"  # Type: string
+        self.panels_amount = 60  # Type: integer
+        self.max_health_for_panel = 75  # Type: integer
+        self.max_health = 3000  # Type: integer
+        self.healing_per_tick_for_panel = 2  # Type: integer
+        self.healing_tick_delta_for_panel = 0.125  # Type: float
+        self.healing_request_cooldown = 7.5  # Type: float
+        self.hp_amount_to_request_heal = 0.85  # Type: float
+        self.pylon01 = None  # Type: target_destination
+        self.pylon02 = None  # Type: target_destination
+        self.pylon03 = None  # Type: target_destination
+        self.pylon04 = None  # Type: target_destination
+        self.pylon05 = None  # Type: target_destination
+        self.pylon06 = None  # Type: target_destination
+        self.pylon07 = None  # Type: target_destination
+        self.pylon08 = None  # Type: target_destination
+        self.pylon09 = None  # Type: target_destination
+        self.pylon10 = None  # Type: target_destination
+        self.pylon11 = None  # Type: target_destination
+        self.pylon12 = None  # Type: target_destination
+        self.pylon13 = None  # Type: target_destination
+        self.pylon14 = None  # Type: target_destination
+        self.pylon15 = None  # Type: target_destination
+        self.pylon16 = None  # Type: target_destination
+        self.angular_velocity_value01 = [5.0, 30.0, 15.0]  # Type: angle
+        self.angular_velocity_value02 = [-25.0, 45.0, -5.0]  # Type: angle
+        self.angular_velocity_value03 = [5.0, 60.0, 15.0]  # Type: angle
+        self.angular_velocity_value04 = [25.0, 45.0, 0.0]  # Type: angle
+        self.angular_velocity_value05 = [-5.0, 15.0, -15.0]  # Type: angle
+        self.angular_velocity_value06 = None  # Type: angle
+        self.angular_velocity_value07 = None  # Type: angle
+        self.angular_velocity_value08 = None  # Type: angle
+        self.angular_velocity_value09 = None  # Type: angle
+        self.angular_velocity_value10 = None  # Type: angle
+        self.angular_velocity_value11 = None  # Type: angle
+        self.angular_velocity_value12 = None  # Type: angle
+        self.angular_velocity_value13 = None  # Type: angle
+        self.angular_velocity_value14 = None  # Type: angle
+        self.angular_velocity_value15 = None  # Type: angle
+        self.angular_velocity_value16 = None  # Type: angle
+        self.angular_velocity_values_used = 5  # Type: integer
+        self.health_color01 = [1.0, 0.0, 0.0]  # Type: color1
+        self.health_color02 = [1.0, 1.0, 0.0]  # Type: color1
+        self.health_color03 = [0.0, 1.0, 0.0]  # Type: color1
+        self.health_color04 = [0.0, 1.0, 1.0]  # Type: color1
+        self.health_color05 = [0.0, 0.0, 1.0]  # Type: color1
+        self.health_color06 = None  # Type: color1
+        self.health_color07 = None  # Type: color1
+        self.health_color08 = None  # Type: color1
+        self.health_color09 = None  # Type: color1
+        self.health_color10 = None  # Type: color1
+        self.health_color11 = None  # Type: color1
+        self.health_color12 = None  # Type: color1
+        self.health_color13 = None  # Type: color1
+        self.health_color14 = None  # Type: color1
+        self.health_color15 = None  # Type: color1
+        self.health_color16 = None  # Type: color1
+        self.health_colors_used = 5  # Type: integer
+        self.intro_for_panel_minimum = 2.5  # Type: float
+        self.intro_for_panel_maximum = 5.0  # Type: float
+        self.pause_for_panel_minimum = 0.5  # Type: float
+        self.pause_for_panel_maximum = 2.5  # Type: float
+        self.death_for_panel = 1.5  # Type: float
+        self.per_panel_color_scheme = None  # Type: choices
+        self.no_impact_on_alive_pylons = "CHOICES NOT SUPPORTED"  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Origin.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.red_teleport = entity_data.get('red_teleport', None)  # Type: string
-        instance.blue_teleport = entity_data.get('blue_teleport', None)  # Type: string
+        instance.panel_modelname_template = entity_data.get('panel_modelname_template', "models/xenians/shield/pentagonal.hexecontahedron/nihilanth/panel.%03d.mdl")  # Type: string
+        instance.panels_amount = parse_source_value(entity_data.get('panels_amount', 60))  # Type: integer
+        instance.max_health_for_panel = parse_source_value(entity_data.get('max_health_for_panel', 75))  # Type: integer
+        instance.max_health = parse_source_value(entity_data.get('max_health', 3000))  # Type: integer
+        instance.healing_per_tick_for_panel = parse_source_value(entity_data.get('healing_per_tick_for_panel', 2))  # Type: integer
+        instance.healing_tick_delta_for_panel = float(entity_data.get('healing_tick_delta_for_panel', 0.125))  # Type: float
+        instance.healing_request_cooldown = float(entity_data.get('healing_request_cooldown', 7.5))  # Type: float
+        instance.hp_amount_to_request_heal = float(entity_data.get('hp_amount_to_request_heal', 0.85))  # Type: float
+        instance.pylon01 = entity_data.get('pylon01', None)  # Type: target_destination
+        instance.pylon02 = entity_data.get('pylon02', None)  # Type: target_destination
+        instance.pylon03 = entity_data.get('pylon03', None)  # Type: target_destination
+        instance.pylon04 = entity_data.get('pylon04', None)  # Type: target_destination
+        instance.pylon05 = entity_data.get('pylon05', None)  # Type: target_destination
+        instance.pylon06 = entity_data.get('pylon06', None)  # Type: target_destination
+        instance.pylon07 = entity_data.get('pylon07', None)  # Type: target_destination
+        instance.pylon08 = entity_data.get('pylon08', None)  # Type: target_destination
+        instance.pylon09 = entity_data.get('pylon09', None)  # Type: target_destination
+        instance.pylon10 = entity_data.get('pylon10', None)  # Type: target_destination
+        instance.pylon11 = entity_data.get('pylon11', None)  # Type: target_destination
+        instance.pylon12 = entity_data.get('pylon12', None)  # Type: target_destination
+        instance.pylon13 = entity_data.get('pylon13', None)  # Type: target_destination
+        instance.pylon14 = entity_data.get('pylon14', None)  # Type: target_destination
+        instance.pylon15 = entity_data.get('pylon15', None)  # Type: target_destination
+        instance.pylon16 = entity_data.get('pylon16', None)  # Type: target_destination
+        instance.angular_velocity_value01 = parse_float_vector(entity_data.get('angular_velocity_value01', "5.0 30.0 15.0"))  # Type: angle
+        instance.angular_velocity_value02 = parse_float_vector(entity_data.get('angular_velocity_value02', "-25.0 45.0 -5.0"))  # Type: angle
+        instance.angular_velocity_value03 = parse_float_vector(entity_data.get('angular_velocity_value03', "5.0 60.0 15.0"))  # Type: angle
+        instance.angular_velocity_value04 = parse_float_vector(entity_data.get('angular_velocity_value04', "25.0 45.0 0.0"))  # Type: angle
+        instance.angular_velocity_value05 = parse_float_vector(entity_data.get('angular_velocity_value05', "-5.0 15.0 -15.0"))  # Type: angle
+        instance.angular_velocity_value06 = parse_float_vector(entity_data.get('angular_velocity_value06', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value07 = parse_float_vector(entity_data.get('angular_velocity_value07', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value08 = parse_float_vector(entity_data.get('angular_velocity_value08', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value09 = parse_float_vector(entity_data.get('angular_velocity_value09', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value10 = parse_float_vector(entity_data.get('angular_velocity_value10', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value11 = parse_float_vector(entity_data.get('angular_velocity_value11', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value12 = parse_float_vector(entity_data.get('angular_velocity_value12', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value13 = parse_float_vector(entity_data.get('angular_velocity_value13', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value14 = parse_float_vector(entity_data.get('angular_velocity_value14', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value15 = parse_float_vector(entity_data.get('angular_velocity_value15', "0 0 0"))  # Type: angle
+        instance.angular_velocity_value16 = parse_float_vector(entity_data.get('angular_velocity_value16', "0 0 0"))  # Type: angle
+        instance.angular_velocity_values_used = parse_source_value(entity_data.get('angular_velocity_values_used', 5))  # Type: integer
+        instance.health_color01 = parse_float_vector(entity_data.get('health_color01', "1.0 0.0 0.0"))  # Type: color1
+        instance.health_color02 = parse_float_vector(entity_data.get('health_color02', "1.0 1.0 0.0"))  # Type: color1
+        instance.health_color03 = parse_float_vector(entity_data.get('health_color03', "0.0 1.0 0.0"))  # Type: color1
+        instance.health_color04 = parse_float_vector(entity_data.get('health_color04', "0.0 1.0 1.0"))  # Type: color1
+        instance.health_color05 = parse_float_vector(entity_data.get('health_color05', "0.0 0.0 1.0"))  # Type: color1
+        instance.health_color06 = parse_float_vector(entity_data.get('health_color06', "0 0 0"))  # Type: color1
+        instance.health_color07 = parse_float_vector(entity_data.get('health_color07', "0 0 0"))  # Type: color1
+        instance.health_color08 = parse_float_vector(entity_data.get('health_color08', "0 0 0"))  # Type: color1
+        instance.health_color09 = parse_float_vector(entity_data.get('health_color09', "0 0 0"))  # Type: color1
+        instance.health_color10 = parse_float_vector(entity_data.get('health_color10', "0 0 0"))  # Type: color1
+        instance.health_color11 = parse_float_vector(entity_data.get('health_color11', "0 0 0"))  # Type: color1
+        instance.health_color12 = parse_float_vector(entity_data.get('health_color12', "0 0 0"))  # Type: color1
+        instance.health_color13 = parse_float_vector(entity_data.get('health_color13', "0 0 0"))  # Type: color1
+        instance.health_color14 = parse_float_vector(entity_data.get('health_color14', "0 0 0"))  # Type: color1
+        instance.health_color15 = parse_float_vector(entity_data.get('health_color15', "0 0 0"))  # Type: color1
+        instance.health_color16 = parse_float_vector(entity_data.get('health_color16', "0 0 0"))  # Type: color1
+        instance.health_colors_used = parse_source_value(entity_data.get('health_colors_used', 5))  # Type: integer
+        instance.intro_for_panel_minimum = float(entity_data.get('intro_for_panel_minimum', 2.5))  # Type: float
+        instance.intro_for_panel_maximum = float(entity_data.get('intro_for_panel_maximum', 5.0))  # Type: float
+        instance.pause_for_panel_minimum = float(entity_data.get('pause_for_panel_minimum', 0.5))  # Type: float
+        instance.pause_for_panel_maximum = float(entity_data.get('pause_for_panel_maximum', 2.5))  # Type: float
+        instance.death_for_panel = float(entity_data.get('death_for_panel', 1.5))  # Type: float
+        instance.per_panel_color_scheme = entity_data.get('per_panel_color_scheme', None)  # Type: choices
+        instance.no_impact_on_alive_pylons = entity_data.get('no_impact_on_alive_pylons', "CHOICES NOT SUPPORTED")  # Type: choices
 
 
-class tf_teleport_location(Origin, Angles, Targetname):
+class prop_physics_psychokinesis(BasePropPhysics):
     def __init__(self):
-        super(Origin).__init__()
+        super(BasePropPhysics).__init__()
+        self.origin = [0, 0, 0]
+
+    @staticmethod
+    def from_dict(instance, entity_data: dict):
+        BasePropPhysics.from_dict(instance, entity_data)
+        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+
+
+class nihiportalsbase(Angles, Studiomodel, Targetname):
+    def __init__(self):
         super(Angles).__init__()
+        super(Studiomodel).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
+        self.m_fTimeToActivate = None  # Type: float
+        self.m_fTimeToDie = 9000  # Type: float
+        self.m_bManualAwake = None  # Type: choices
+        self.m_bLightNeeded = None  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Origin.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.m_fTimeToActivate = float(entity_data.get('m_ftimetoactivate', 0))  # Type: float
+        instance.m_fTimeToDie = float(entity_data.get('m_ftimetodie', 9000))  # Type: float
+        instance.m_bManualAwake = entity_data.get('m_bmanualawake', None)  # Type: choices
+        instance.m_bLightNeeded = entity_data.get('m_blightneeded', None)  # Type: choices
 
 
-class func_passtime_goal(EnableDisable, Origin, Targetname, TeamNum):
+class nihiportals_teleprops(Angles, Studiomodel, Targetname):
     def __init__(self):
-        super(EnableDisable).__init__()
-        super(Origin).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.points = 1  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.points = float(entity_data.get('points', 1))  # Type: float
-
-
-class info_passtime_ball_spawn(EnableDisable, Targetname, TeamNum):
-    icon_sprite = "editor/passtime_ball_spawner.vmt"
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class passtime_logic(Targetname):
-    icon_sprite = "editor/passtime_master.vmt"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.num_sections = None  # Type: integer
-        self.ball_spawn_countdown = 15  # Type: integer
-        self.max_pass_range = None  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.num_sections = parse_source_value(entity_data.get('num_sections', 0))  # Type: integer
-        instance.ball_spawn_countdown = parse_source_value(entity_data.get('ball_spawn_countdown', 15))  # Type: integer
-        instance.max_pass_range = float(entity_data.get('max_pass_range', 0))  # Type: float
-
-
-class func_passtime_goalie_zone(EnableDisable, Targetname, TeamNum):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        super(Targetname).__init__()
-        super(TeamNum).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        Targetname.from_dict(instance, entity_data)
-        TeamNum.from_dict(instance, entity_data)
-
-
-class func_passtime_no_ball_zone(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-
-
-class trigger_passtime_ball(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-
-
-class trigger_catapult(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        self.playerSpeed = 450  # Type: float
-        self.physicsSpeed = 450  # Type: float
-        self.useThresholdCheck = None  # Type: integer
-        self.entryAngleTolerance = 0.0  # Type: float
-        self.useExactVelocity = None  # Type: integer
-        self.exactVelocityChoiceType = None  # Type: choices
-        self.lowerThreshold = 0.15  # Type: float
-        self.upperThreshold = 0.30  # Type: float
-        self.launchDirection = [0.0, 0.0, 0.0]  # Type: angle
-        self.launchTarget = None  # Type: target_destination
-        self.onlyVelocityCheck = None  # Type: integer
-        self.applyAngularImpulse = 1  # Type: integer
-        self.AirCtrlSupressionTime = -1.0  # Type: float
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        instance.playerSpeed = float(entity_data.get('playerspeed', 450))  # Type: float
-        instance.physicsSpeed = float(entity_data.get('physicsspeed', 450))  # Type: float
-        instance.useThresholdCheck = parse_source_value(entity_data.get('usethresholdcheck', 0))  # Type: integer
-        instance.entryAngleTolerance = float(entity_data.get('entryangletolerance', 0.0))  # Type: float
-        instance.useExactVelocity = parse_source_value(entity_data.get('useexactvelocity', 0))  # Type: integer
-        instance.exactVelocityChoiceType = entity_data.get('exactvelocitychoicetype', None)  # Type: choices
-        instance.lowerThreshold = float(entity_data.get('lowerthreshold', 0.15))  # Type: float
-        instance.upperThreshold = float(entity_data.get('upperthreshold', 0.30))  # Type: float
-        instance.launchDirection = parse_float_vector(entity_data.get('launchdirection', "0 0 0"))  # Type: angle
-        instance.launchTarget = entity_data.get('launchtarget', None)  # Type: target_destination
-        instance.onlyVelocityCheck = parse_source_value(entity_data.get('onlyvelocitycheck', 0))  # Type: integer
-        instance.applyAngularImpulse = parse_source_value(entity_data.get('applyangularimpulse', 1))  # Type: integer
-        instance.AirCtrlSupressionTime = float(entity_data.get('airctrlsupressiontime', -1.0))  # Type: float
-
-
-class trigger_ignite(Trigger):
-    def __init__(self):
-        super(Trigger).__init__()
-        self.burn_duration = 5  # Type: float
-        self.damage_percent_per_second = 10  # Type: float
-        self.ignite_particle_name = None  # Type: string
-        self.ignite_sound_name = None  # Type: string
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Trigger.from_dict(instance, entity_data)
-        instance.burn_duration = float(entity_data.get('burn_duration', 5))  # Type: float
-        instance.damage_percent_per_second = float(entity_data.get('damage_percent_per_second', 10))  # Type: float
-        instance.ignite_particle_name = entity_data.get('ignite_particle_name', None)  # Type: string
-        instance.ignite_sound_name = entity_data.get('ignite_sound_name', None)  # Type: string
-
-
-class tf_halloween_gift_spawn_location(Origin, Angles, Targetname):
-    def __init__(self):
-        super(Origin).__init__()
         super(Angles).__init__()
+        super(Studiomodel).__init__()
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
+        self.m_fTimeToActivate = None  # Type: float
+        self.m_fTimeToDie = 9000  # Type: float
+        self.m_bManualAwake = None  # Type: choices
+        self.m_bLightNeeded = None  # Type: choices
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
-        Origin.from_dict(instance, entity_data)
         Angles.from_dict(instance, entity_data)
+        Studiomodel.from_dict(instance, entity_data)
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+        instance.m_fTimeToActivate = float(entity_data.get('m_ftimetoactivate', 0))  # Type: float
+        instance.m_fTimeToDie = float(entity_data.get('m_ftimetodie', 9000))  # Type: float
+        instance.m_bManualAwake = entity_data.get('m_bmanualawake', None)  # Type: choices
+        instance.m_bLightNeeded = entity_data.get('m_blightneeded', None)  # Type: choices
 
 
-class tf_logic_on_holiday(Targetname):
-    icon_sprite = "editor/logic_auto.vmt"
+class music_track(Targetname):
+    icon_sprite = "editor/ambient_generic.vmt"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
+        self.track_script_sound = None  # Type: sound
+        self.next_track_entity = None  # Type: string
 
     @staticmethod
     def from_dict(instance, entity_data: dict):
         Targetname.from_dict(instance, entity_data)
         instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-
-
-class tf_glow(EnableDisable):
-    def __init__(self):
-        super(EnableDisable).__init__()
-        self.origin = [0, 0, 0]
-        self.targetname = None  # Type: target_source
-        self.target = None  # Type: target_destination
-        self.GlowColor = [255, 0, 0, 255]  # Type: color255
-        self.Mode = None  # Type: choices
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        EnableDisable.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.targetname = entity_data.get('targetname', None)  # Type: target_source
-        instance.target = entity_data.get('target', None)  # Type: target_destination
-        instance.GlowColor = parse_int_vector(entity_data.get('glowcolor', "255 0 0 255"))  # Type: color255
-        instance.Mode = entity_data.get('mode', None)  # Type: choices
+        instance.track_script_sound = entity_data.get('track_script_sound', None)  # Type: sound
+        instance.next_track_entity = entity_data.get('next_track_entity', None)  # Type: string
 
 
 
 entity_class_handle = {
+    'Empty': Empty,
     'Angles': Angles,
     'Origin': Origin,
     'Studiomodel': Studiomodel,
@@ -8790,6 +11096,7 @@ entity_class_handle = {
     'BreakableBrush': BreakableBrush,
     'BreakableProp': BreakableProp,
     'BaseNPC': BaseNPC,
+    'BaseNPCAssault': BaseNPCAssault,
     'info_npc_spawn_destination': info_npc_spawn_destination,
     'BaseNPCMaker': BaseNPCMaker,
     'npc_template_maker': npc_template_maker,
@@ -8902,12 +11209,24 @@ entity_class_handle = {
     'info_node_link_controller': info_node_link_controller,
     'info_radial_link_controller': info_radial_link_controller,
     'info_node_climb': info_node_climb,
+    'env_cascade_light': env_cascade_light,
+    'newLight_Dir': newLight_Dir,
+    'newLight_Point': newLight_Point,
+    'newLight_Spot': newLight_Spot,
+    'godrays_settings': godrays_settings,
+    'newLights_settings': newLights_settings,
+    'newlights_gbuffersettings': newlights_gbuffersettings,
+    'newLights_Spawner': newLights_Spawner,
+    'newxog_global': newxog_global,
+    'newxog_settings': newxog_settings,
+    'newxog_volume': newxog_volume,
     'light': light,
     'light_environment': light_environment,
     'light_spot': light_spot,
     'light_dynamic': light_dynamic,
     'shadow_control': shadow_control,
     'color_correction': color_correction,
+    'fog_volume': fog_volume,
     'color_correction_volume': color_correction_volume,
     'KeyFrame': KeyFrame,
     'Mover': Mover,
@@ -8923,6 +11242,7 @@ entity_class_handle = {
     'move_rope': move_rope,
     'Button': Button,
     'func_button': func_button,
+    'func_detail_blocker': func_detail_blocker,
     'func_rot_button': func_rot_button,
     'momentary_rot_button': momentary_rot_button,
     'Door': Door,
@@ -8961,6 +11281,7 @@ entity_class_handle = {
     'env_entity_maker': env_entity_maker,
     'BaseFilter': BaseFilter,
     'filter_multi': filter_multi,
+    'filter_activator_model': filter_activator_model,
     'filter_activator_name': filter_activator_name,
     'filter_activator_class': filter_activator_class,
     'filter_activator_mass_greater': filter_activator_mass_greater,
@@ -9001,12 +11322,15 @@ entity_class_handle = {
     'prop_detail': prop_detail,
     'prop_static': prop_static,
     'prop_dynamic': prop_dynamic,
+    'prop_dynamic_playertouch': prop_dynamic_playertouch,
     'prop_dynamic_override': prop_dynamic_override,
     'BasePropPhysics': BasePropPhysics,
     'prop_physics_override': prop_physics_override,
     'prop_physics': prop_physics,
+    'prop_physics_teleprop': prop_physics_teleprop,
     'prop_physics_multiplayer': prop_physics_multiplayer,
     'prop_ragdoll': prop_ragdoll,
+    'prop_ragdoll_original': prop_ragdoll_original,
     'prop_dynamic_ornament': prop_dynamic_ornament,
     'func_areaportal': func_areaportal,
     'func_occluder': func_occluder,
@@ -9040,6 +11364,7 @@ entity_class_handle = {
     'trigger_hurt': trigger_hurt,
     'trigger_remove': trigger_remove,
     'trigger_multiple': trigger_multiple,
+    'trigger_csm_volume': trigger_csm_volume,
     'trigger_once': trigger_once,
     'trigger_look': trigger_look,
     'trigger_push': trigger_push,
@@ -9047,7 +11372,6 @@ entity_class_handle = {
     'trigger_impact': trigger_impact,
     'trigger_proximity': trigger_proximity,
     'trigger_teleport': trigger_teleport,
-    'trigger_teleport_relative': trigger_teleport_relative,
     'trigger_transition': trigger_transition,
     'trigger_serverragdoll': trigger_serverragdoll,
     'ai_speechfilter': ai_speechfilter,
@@ -9060,153 +11384,233 @@ entity_class_handle = {
     'point_devshot_camera': point_devshot_camera,
     'logic_playerproxy': logic_playerproxy,
     'env_spritetrail': env_spritetrail,
-    'env_projectedtexture': env_projectedtexture,
     'func_reflective_glass': func_reflective_glass,
     'env_particle_performance_monitor': env_particle_performance_monitor,
     'npc_puppet': npc_puppet,
     'point_gamestats_counter': point_gamestats_counter,
     'func_instance': func_instance,
     'func_instance_parms': func_instance_parms,
-    'trigger_apply_impulse': trigger_apply_impulse,
-    'TeamNum': TeamNum,
-    'MatchSummary': MatchSummary,
-    'FadeDistance': FadeDistance,
-    'GameType': GameType,
-    'Condition': Condition,
-    'PlayerTouch': PlayerTouch,
-    'Toggle': Toggle,
-    'tf_gamerules': tf_gamerules,
-    'info_player_teamspawn': info_player_teamspawn,
-    'game_forcerespawn': game_forcerespawn,
-    'item_teamflag': item_teamflag,
-    'point_intermission': point_intermission,
-    'info_observer_point': info_observer_point,
+    'func_instance_io_proxy': func_instance_io_proxy,
+    'TalkNPC': TalkNPC,
+    'PlayerCompanion': PlayerCompanion,
+    'RappelNPC': RappelNPC,
+    'trigger_physics_trap': trigger_physics_trap,
+    'trigger_weapon_dissolve': trigger_weapon_dissolve,
+    'trigger_weapon_strip': trigger_weapon_strip,
+    'npc_crow': npc_crow,
+    'npc_seagull': npc_seagull,
+    'npc_pigeon': npc_pigeon,
+    'npc_bullseye': npc_bullseye,
+    'npc_enemyfinder': npc_enemyfinder,
+    'env_gunfire': env_gunfire,
+    'ai_goal_operator': ai_goal_operator,
+    'info_darknessmode_lightsource': info_darknessmode_lightsource,
+    'monster_generic': monster_generic,
+    'generic_actor': generic_actor,
+    'cycler_actor': cycler_actor,
+    'npc_maker': npc_maker,
+    'player_control': player_control,
+    'BaseScripted': BaseScripted,
+    'scripted_sentence': scripted_sentence,
+    'scripted_target': scripted_target,
+    'ai_relationship': ai_relationship,
+    'ai_ally_manager': ai_ally_manager,
+    'LeadGoalBase': LeadGoalBase,
+    'ai_goal_lead': ai_goal_lead,
+    'ai_goal_lead_weapon': ai_goal_lead_weapon,
+    'FollowGoal': FollowGoal,
+    'ai_goal_follow': ai_goal_follow,
+    'ai_goal_injured_follow': ai_goal_injured_follow,
+    'env_detail_controller': env_detail_controller,
+    'env_global': env_global,
+    'BaseCharger': BaseCharger,
+    'item_healthcharger': item_healthcharger,
+    'item_suitcharger': item_suitcharger,
+    'BasePickup': BasePickup,
+    'item_weapon_357': item_weapon_357,
+    'item_weapon_crowbar': item_weapon_crowbar,
+    'item_weapon_crossbow': item_weapon_crossbow,
+    'item_weapon_frag': item_weapon_frag,
+    'item_weapon_glock': item_weapon_glock,
+    'item_weapon_gluon': item_weapon_gluon,
+    'item_weapon_hivehand': item_weapon_hivehand,
+    'item_weapon_mp5': item_weapon_mp5,
+    'item_weapon_shotgun': item_weapon_shotgun,
+    'item_weapon_rpg': item_weapon_rpg,
+    'item_weapon_satchel': item_weapon_satchel,
+    'item_weapon_snark': item_weapon_snark,
+    'item_weapon_tau': item_weapon_tau,
+    'item_weapon_tripmine': item_weapon_tripmine,
+    'item_ammo_357': item_ammo_357,
+    'item_ammo_crossbow': item_ammo_crossbow,
+    'item_ammo_glock': item_ammo_glock,
+    'item_ammo_energy': item_ammo_energy,
+    'item_ammo_mp5': item_ammo_mp5,
+    'item_ammo_shotgun': item_ammo_shotgun,
+    'item_grenade_mp5': item_grenade_mp5,
+    'item_grenade_rpg': item_grenade_rpg,
+    'item_ammo_canister': item_ammo_canister,
+    'item_ammo_crate': item_ammo_crate,
+    'item_suit': item_suit,
+    'item_battery': item_battery,
+    'item_healthkit': item_healthkit,
+    'item_longjump': item_longjump,
+    'BaseGrenade': BaseGrenade,
+    'grenade_satchel': grenade_satchel,
+    'grenade_tripmine': grenade_tripmine,
+    'BaseSentry': BaseSentry,
+    'npc_plantlight': npc_plantlight,
+    'npc_plantlight_stalker': npc_plantlight_stalker,
+    'npc_puffballfungus': npc_puffballfungus,
+    'npc_xentree': npc_xentree,
+    'npc_protozoan': npc_protozoan,
+    'npc_sentry_ceiling': npc_sentry_ceiling,
+    'npc_sentry_ground': npc_sentry_ground,
+    'npc_xenturret': npc_xenturret,
+    'npc_alien_slave_dummy': npc_alien_slave_dummy,
+    'npc_alien_slave': npc_alien_slave,
+    'npc_xort': npc_xort,
+    'npc_xortEB': npc_xortEB,
+    'npc_headcrab': npc_headcrab,
+    'npc_headcrab_fast': npc_headcrab_fast,
+    'npc_headcrab_black': npc_headcrab_black,
+    'npc_headcrab_baby': npc_headcrab_baby,
+    'npc_barnacle': npc_barnacle,
+    'npc_beneathticle': npc_beneathticle,
+    'npc_bullsquid': npc_bullsquid,
+    'npc_bullsquid_melee': npc_bullsquid_melee,
+    'npc_houndeye': npc_houndeye,
+    'npc_houndeye_suicide': npc_houndeye_suicide,
+    'npc_houndeye_knockback': npc_houndeye_knockback,
+    'npc_human_assassin': npc_human_assassin,
+    'BaseMarine': BaseMarine,
+    'npc_human_commander': npc_human_commander,
+    'npc_human_grunt': npc_human_grunt,
+    'npc_human_medic': npc_human_medic,
+    'npc_human_grenadier': npc_human_grenadier,
+    'npc_alien_controller': npc_alien_controller,
+    'npc_xontroller': npc_xontroller,
+    'npc_alien_grunt_unarmored': npc_alien_grunt_unarmored,
+    'npc_alien_grunt_melee': npc_alien_grunt_melee,
+    'npc_alien_grunt': npc_alien_grunt,
+    'npc_alien_grunt_elite': npc_alien_grunt_elite,
+    'npc_xen_grunt': npc_xen_grunt,
+    'npc_cockroach': npc_cockroach,
+    'npc_flyer_flock': npc_flyer_flock,
+    'npc_gargantua': npc_gargantua,
+    'info_bigmomma': info_bigmomma,
+    'npc_gonarch': npc_gonarch,
+    'env_gon_mortar_area': env_gon_mortar_area,
+    'npc_generic': npc_generic,
+    'npc_gman': npc_gman,
+    'npc_ichthyosaur': npc_ichthyosaur,
+    'npc_maintenance': npc_maintenance,
+    'npc_nihilanth': npc_nihilanth,
+    'prop_nihi_shield': prop_nihi_shield,
+    'nihilanth_pylon': nihilanth_pylon,
+    'BMBaseHelicopter': BMBaseHelicopter,
+    'npc_manta': npc_manta,
+    'prop_xen_grunt_pod': prop_xen_grunt_pod,
+    'prop_xen_grunt_pod_dynamic': prop_xen_grunt_pod_dynamic,
+    'prop_xen_int_barrel': prop_xen_int_barrel,
+    'prop_barrel_cactus': prop_barrel_cactus,
+    'prop_barrel_cactus_semilarge': prop_barrel_cactus_semilarge,
+    'prop_barrel_cactus_adolescent': prop_barrel_cactus_adolescent,
+    'prop_barrel_cactus_infant': prop_barrel_cactus_infant,
+    'prop_barrel_cactus_exploder': prop_barrel_cactus_exploder,
+    'prop_barrel_interloper': prop_barrel_interloper,
+    'prop_barrel_interloper_small': prop_barrel_interloper_small,
+    'npc_apache': npc_apache,
+    'npc_osprey': npc_osprey,
+    'npc_rat': npc_rat,
+    'BaseColleague': BaseColleague,
+    'npc_human_security': npc_human_security,
+    'npc_human_scientist_kleiner': npc_human_scientist_kleiner,
+    'npc_human_scientist_eli': npc_human_scientist_eli,
+    'npc_human_scientist': npc_human_scientist,
+    'npc_human_scientist_female': npc_human_scientist_female,
+    'npc_xentacle': npc_xentacle,
+    'npc_tentacle': npc_tentacle,
+    'npc_snark': npc_snark,
+    'npc_sniper': npc_sniper,
+    'info_target_helicoptercrash': info_target_helicoptercrash,
+    'info_dlightmap_update': info_dlightmap_update,
+    'info_timescale_controller': info_timescale_controller,
+    'info_stopallsounds': info_stopallsounds,
+    'info_player_deathmatch': info_player_deathmatch,
+    'info_player_marine': info_player_marine,
+    'info_player_scientist': info_player_scientist,
+    'material_timer': material_timer,
+    'xen_portal': xen_portal,
+    'env_introcredits': env_introcredits,
+    'env_particle_beam': env_particle_beam,
+    'env_particle_tesla': env_particle_tesla,
+    'env_xen_portal': env_xen_portal,
+    'env_xen_portal_template': env_xen_portal_template,
+    'env_pinch': env_pinch,
+    'env_dispenser': env_dispenser,
+    'item_crate': item_crate,
+    'func_50cal': func_50cal,
+    'func_tow': func_tow,
+    'func_tow_mp': func_tow_mp,
+    'func_conveyor_bms': func_conveyor_bms,
+    'item_tow_missile': item_tow_missile,
+    'env_mortar_launcher': env_mortar_launcher,
+    'env_mortar_controller': env_mortar_controller,
+    'npc_abrams': npc_abrams,
+    'npc_lav': npc_lav,
+    'env_tram_screen': env_tram_screen,
+    'prop_retinalscanner': prop_retinalscanner,
+    'prop_physics_respawnable': prop_physics_respawnable,
+    'prop_scalable': prop_scalable,
+    'logic_parent': logic_parent,
+    'env_xen_pushpad': env_xen_pushpad,
+    'trigger_gargantua_shake': trigger_gargantua_shake,
+    'trigger_lift': trigger_lift,
+    'trigger_weaponfire': trigger_weaponfire,
+    'func_minefield': func_minefield,
+    'func_friction': func_friction,
+    'prop_train_awesome': prop_train_awesome,
+    'prop_train_apprehension': prop_train_apprehension,
+    'BaseZombie': BaseZombie,
+    'npc_zombie_scientist': npc_zombie_scientist,
+    'npc_zombie_scientist_torso': npc_zombie_scientist_torso,
+    'npc_zombie_security': npc_zombie_security,
+    'npc_zombie_grunt': npc_zombie_grunt,
+    'npc_zombie_grunt_torso': npc_zombie_grunt_torso,
+    'npc_zombie_hev': npc_zombie_hev,
+    'filter_damage_class': filter_damage_class,
+    'filter_activator_flag': filter_activator_flag,
+    'filter_activator_team': filter_activator_team,
+    'prop_flare': prop_flare,
+    'prop_surgerybot': prop_surgerybot,
+    'env_xen_healpool': env_xen_healpool,
+    'env_xen_healshower': env_xen_healshower,
+    'prop_web_burnable': prop_web_burnable,
+    'prop_charger_base': prop_charger_base,
+    'prop_hev_charger': prop_hev_charger,
+    'prop_radiation_charger': prop_radiation_charger,
+    'camera_satellite': camera_satellite,
+    'logic_achievement': logic_achievement,
+    'ai_goal_throw_prop': ai_goal_throw_prop,
+    'info_observer_menu': info_observer_menu,
     'game_round_win': game_round_win,
-    'team_round_timer': team_round_timer,
-    'Item': Item,
-    'item_healthkit_full': item_healthkit_full,
-    'item_healthkit_small': item_healthkit_small,
-    'item_healthkit_medium': item_healthkit_medium,
-    'item_ammopack_full': item_ammopack_full,
-    'item_ammopack_small': item_ammopack_small,
-    'item_ammopack_medium': item_ammopack_medium,
-    'tf_spell_pickup': tf_spell_pickup,
-    'item_bonuspack': item_bonuspack,
-    'tf_halloween_pickup': tf_halloween_pickup,
-    'info_powerup_spawn': info_powerup_spawn,
-    'item_powerup_crit': item_powerup_crit,
-    'item_powerup_uber': item_powerup_uber,
-    'filter_activator_tfteam': filter_activator_tfteam,
-    'filter_tf_player_can_cap': filter_tf_player_can_cap,
-    'filter_tf_damaged_by_weapon_in_slot': filter_tf_damaged_by_weapon_in_slot,
-    'filter_tf_condition': filter_tf_condition,
-    'filter_tf_class': filter_tf_class,
-    'func_capturezone': func_capturezone,
-    'func_flagdetectionzone': func_flagdetectionzone,
-    'func_nogrenades': func_nogrenades,
-    'func_achievement': func_achievement,
-    'func_nobuild': func_nobuild,
-    'func_croc': func_croc,
-    'func_suggested_build': func_suggested_build,
-    'func_regenerate': func_regenerate,
-    'func_powerupvolume': func_powerupvolume,
-    'func_respawnflag': func_respawnflag,
-    'func_respawnroom': func_respawnroom,
-    'func_flag_alert': func_flag_alert,
-    'func_respawnroomvisualizer': func_respawnroomvisualizer,
-    'func_forcefield': func_forcefield,
-    'func_changeclass': func_changeclass,
-    'game_intro_viewpoint': game_intro_viewpoint,
-    'func_proprrespawnzone': func_proprrespawnzone,
-    'team_control_point': team_control_point,
-    'team_control_point_round': team_control_point_round,
-    'team_control_point_master': team_control_point_master,
-    'trigger_capture_area': trigger_capture_area,
-    'team_train_watcher': team_train_watcher,
-    'game_text_tf': game_text_tf,
-    'BaseObject': BaseObject,
-    'obj_dispenser': obj_dispenser,
-    'obj_sentrygun': obj_sentrygun,
-    'obj_teleporter': obj_teleporter,
-    'bot_hint_sentrygun': bot_hint_sentrygun,
-    'bot_hint_teleporter_exit': bot_hint_teleporter_exit,
-    'bot_hint_engineer_nest': bot_hint_engineer_nest,
-    'bot_hint_sniper_spot': bot_hint_sniper_spot,
-    'mapobj_cart_dispenser': mapobj_cart_dispenser,
-    'dispenser_touch_trigger': dispenser_touch_trigger,
-    'tf_logic_arena': tf_logic_arena,
-    'tf_logic_competitive': tf_logic_competitive,
-    'tf_logic_mannpower': tf_logic_mannpower,
-    'bot_controller': bot_controller,
-    'tf_logic_training_mode': tf_logic_training_mode,
-    'boss_alpha': boss_alpha,
-    'base_boss': base_boss,
-    'tank_boss': tank_boss,
-    'tf_logic_multiple_escort': tf_logic_multiple_escort,
-    'tf_logic_koth': tf_logic_koth,
-    'tf_robot_destruction_robot_spawn': tf_robot_destruction_robot_spawn,
-    'tf_robot_destruction_spawn_group': tf_robot_destruction_spawn_group,
-    'RobotDestruction': RobotDestruction,
-    'tf_logic_robot_destruction': tf_logic_robot_destruction,
-    'tf_logic_player_destruction': tf_logic_player_destruction,
-    'trigger_rd_vault_trigger': trigger_rd_vault_trigger,
-    'tf_logic_medieval': tf_logic_medieval,
-    'tf_logic_cp_timer': tf_logic_cp_timer,
-    'tf_logic_hybrid_ctf_cp': tf_logic_hybrid_ctf_cp,
-    'tf_logic_raid': tf_logic_raid,
-    'tf_logic_boss_battle': tf_logic_boss_battle,
-    'tf_logic_mann_vs_machine': tf_logic_mann_vs_machine,
-    'tf_logic_holiday': tf_logic_holiday,
-    'func_upgradestation': func_upgradestation,
-    'bot_generator': bot_generator,
-    'bot_roster': bot_roster,
-    'bot_action_point': bot_action_point,
-    'bot_proxy': bot_proxy,
-    'tf_spawner': tf_spawner,
-    'tf_template_stun_drone': tf_template_stun_drone,
-    'func_nav_blocker': func_nav_blocker,
-    'func_nav_avoid': func_nav_avoid,
-    'func_nav_prefer': func_nav_prefer,
-    'func_nav_prerequisite': func_nav_prerequisite,
-    'func_tfbot_hint': func_tfbot_hint,
-    'trigger_stun': trigger_stun,
-    'entity_spawn_point': entity_spawn_point,
-    'entity_spawn_manager': entity_spawn_manager,
-    'tf_pumpkin_bomb': tf_pumpkin_bomb,
-    'tf_generic_bomb': tf_generic_bomb,
-    'training_annotation': training_annotation,
-    'training_prop_dynamic': training_prop_dynamic,
-    'trigger_ignite_arrows': trigger_ignite_arrows,
-    'wheel_of_doom': wheel_of_doom,
-    'point_populator_interface': point_populator_interface,
-    'tf_point_weapon_mimic': tf_point_weapon_mimic,
-    'tf_point_nav_interface': tf_point_nav_interface,
-    'trigger_timer_door': trigger_timer_door,
-    'trigger_bot_tag': trigger_bot_tag,
-    'filter_tf_bot_has_tag': filter_tf_bot_has_tag,
-    'trigger_add_tf_player_condition': trigger_add_tf_player_condition,
-    'trigger_remove_tf_player_condition': trigger_remove_tf_player_condition,
-    'hightower_teleport_vortex': hightower_teleport_vortex,
-    'tf_zombie_spawner': tf_zombie_spawner,
-    'halloween_zapper': halloween_zapper,
-    'trigger_player_respawn_override': trigger_player_respawn_override,
-    'prop_soccer_ball': prop_soccer_ball,
-    'MiniGame': MiniGame,
-    'tf_logic_minigames': tf_logic_minigames,
-    'tf_base_minigame': tf_base_minigame,
-    'tf_halloween_minigame': tf_halloween_minigame,
-    'tf_halloween_minigame_falling_platforms': tf_halloween_minigame_falling_platforms,
-    'halloween_fortune_teller': halloween_fortune_teller,
-    'tf_teleport_location': tf_teleport_location,
-    'func_passtime_goal': func_passtime_goal,
-    'info_passtime_ball_spawn': info_passtime_ball_spawn,
-    'passtime_logic': passtime_logic,
-    'func_passtime_goalie_zone': func_passtime_goalie_zone,
-    'func_passtime_no_ball_zone': func_passtime_no_ball_zone,
-    'trigger_passtime_ball': trigger_passtime_ball,
-    'trigger_catapult': trigger_catapult,
-    'trigger_ignite': trigger_ignite,
-    'tf_halloween_gift_spawn_location': tf_halloween_gift_spawn_location,
-    'tf_logic_on_holiday': tf_logic_on_holiday,
-    'tf_glow': tf_glow,
+    'game_round_start': game_round_start,
+    'game_mp_gamerules': game_mp_gamerules,
+    'mp_round_time': mp_round_time,
+    'env_gravity': env_gravity,
+    'env_godrays_controller': env_godrays_controller,
+    'misc_dead_hev': misc_dead_hev,
+    'env_lensflare': env_lensflare,
+    'env_fumer': env_fumer,
+    'trigger_apply_impulse': trigger_apply_impulse,
+    'info_nihilanth_summon': info_nihilanth_summon,
+    'point_weaponstrip': point_weaponstrip,
+    'misc_marionettist': misc_marionettist,
+    'misc_xen_healing_pylon': misc_xen_healing_pylon,
+    'misc_xen_shield': misc_xen_shield,
+    'prop_physics_psychokinesis': prop_physics_psychokinesis,
+    'nihiportalsbase': nihiportalsbase,
+    'nihiportals_teleprops': nihiportals_teleprops,
+    'music_track': music_track,
 }
