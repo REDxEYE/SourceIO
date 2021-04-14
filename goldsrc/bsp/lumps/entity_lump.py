@@ -11,8 +11,7 @@ class EntityLump(Lump):
         self.values: List[Dict[str, str]] = []
 
     def parse(self):
-        entities = self.buffer.read(self.info.length)
-        entities = entities[:entities.index(b'\x00')].decode()
+        entities = self.buffer.read_ascii_string(self.info.length)
         entity = {}
         for line in entities.splitlines():
             if line == '{' or len(line) == 0:

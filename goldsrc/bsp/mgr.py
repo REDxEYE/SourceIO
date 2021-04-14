@@ -67,21 +67,17 @@ class GoldSrcContentManager(metaclass=SingletonMeta):
     def add_game_resource_root(self, path: Path):
         if path not in self.game_resource_roots:
             resource_path = self.game_root / path
-            if not Path.exists(resource_path):
-                resource_path = self.game_root_mod / path
-            if not Path.exists(resource_path):
-                resource_path = self.game_root / 'valve' / path
-            if not Path.exists(resource_path):
-                print(f'Invalid resource root path: {resource_path}')
+            try:
+                if not Path.exists(resource_path):
+                    resource_path = self.game_root_mod / path
+                if not Path.exists(resource_path):
+                    resource_path = self.game_root / 'valve' / path
+                if not Path.exists(resource_path):
+                    print(f'Invalid resource root path: {resource_path}')
+                    return
+            except OSError as e:
+                # May be security-related or invalid path-related error, log and ignore
+                print(f'Cannot access resource {resource_path}: {e}')
                 return
             self.game_resource_roots.append(resource_path)
             print(f'Added resource root: {path}')
-
-
-def main():
-    manager = GoldSrcContentManager(Path(r'E:\GoldSRC\Half-Life\valve\maps\c0a0.bsp'))
-    print(manager)
-
-
-if __name__ == '__main__':
-    main()
