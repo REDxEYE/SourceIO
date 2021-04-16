@@ -22,7 +22,7 @@ class StudioTexture(Base):
         self.flags = MdlTextureFlag(0)
         self.width = 0
         self.height = 0
-        self.index = 0
+        self.offset = 0
         self.data = np.array([])
 
     def read(self, reader: ByteIO):
@@ -30,11 +30,18 @@ class StudioTexture(Base):
         self.flags = MdlTextureFlag(reader.read_uint32())
         self.width = reader.read_uint32()
         self.height = reader.read_uint32()
-        self.index = reader.read_uint32()
+        self.offset = reader.read_uint32()
 
         with reader.save_current_pos():
-            reader.seek(self.index)
+            reader.seek(self.offset)
             indices = np.frombuffer(reader.read(self.width * self.height), np.uint8)
             palette = np.frombuffer(reader.read(256 * 3), np.uint8).reshape((-1, 3))
-            palette = np.insert(palette, 3, 255, 1) / 255
-            self.data = np.flip(palette[indices].reshape((self.height, self.width, 4)), 0).reshape((-1, 4))
+            palette = np.insert(palette, 3, 255, 1)
+            colors = palette[indices].astype(np.float32)
+            if '{' in self.name:
+                transparency_key = palette[-1]
+                alpha = np.where((colors == transparency_key).all(axis=1))[0]
+                colors[alpha] = [0, 0, 0, 0]
+            self.data = np.flip(colors.reshape((self.height, self.width, 4)), 0).reshape((-1, 4))
+
+            self.data = self.data / 255

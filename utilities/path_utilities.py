@@ -24,7 +24,7 @@ def pop_path_front(path: Path):
 
 
 def find_vtx(mdl_path: Path):
-    possible_vtx_vertsion = [70, 80, 90, 11, 12]
+    possible_vtx_vertsion = [70, 80, 11, 90, 12]
     for vtx_version in possible_vtx_vertsion[::-1]:
         path = mdl_path.with_suffix(f'.dx{vtx_version}.vtx')
         if path.exists():
@@ -32,7 +32,7 @@ def find_vtx(mdl_path: Path):
 
 
 def find_vtx_cm(mdl_path: Path, content_manager):
-    possible_vtx_vertsion = [70, 80, 90, 11, 12]
+    possible_vtx_vertsion = [70, 80, 11, 12, 90]
     for vtx_version in possible_vtx_vertsion[::-1]:
         path = content_manager.find_file(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
         if path:
@@ -120,13 +120,13 @@ class NonSourceInstall:
 def get_mod_path(path: Path) -> Path:
     _path = path
     while len(path.parts) > 1:
-        if (path / 'models').exists():
+        if (path / 'maps').exists():
             return path
         elif (path / 'materials').exists():
             return path
-        elif (path / 'maps').exists():
-            return path
         elif (path / 'elements').exists():
+            return path
+        elif (path / 'models').exists() and path.parts[-2] != 'materials' and path.parts[-1] != 'materials':
             return path
         if len(path.parts) == 1:
             return _path

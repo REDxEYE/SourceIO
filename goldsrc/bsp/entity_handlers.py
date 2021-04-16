@@ -48,6 +48,8 @@ entity_handlers = {
     'monster_sitting_scientist': partial(handle_model_prop, Path('models/scientist.mdl')),
     'monster_barney': partial(handle_model_prop, Path('models/barney.mdl')),
     'monster_gman': partial(handle_model_prop, Path('models/gman.mdl')),
+    'monster_faceless': partial(handle_model_prop, Path('models/Faceless.mdl')),
     'monster_generic': handle_generic_model_prop,
     'cycler': handle_generic_model_prop,
+    'env_model': handle_generic_model_prop,
 }

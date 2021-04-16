@@ -237,6 +237,8 @@ class BSP:
                     self.load_trigger(entity_class, entity)
                 elif entity_class.startswith('func'):
                     self.load_brush(entity_class, entity)
+                elif entity_class == 'inter_door':
+                    self.load_brush(entity_class, entity)
                 elif entity_class == 'light_spot':
                     self.load_light_spot(entity_class, entity)
                 elif entity_class == 'light':

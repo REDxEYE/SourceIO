@@ -13,7 +13,8 @@ def make_texture(indices, palette, use_alpha: bool = False):
     colors = colors.astype(np.float32)
 
     if use_alpha:
-        alpha = np.where(colors == [0, 0, 255, 0])[0]
+        transparency_key = new_palete[-1]
+        alpha = np.where((colors == transparency_key).all(axis=1))[0]
         colors[alpha] = [0, 0, 0, 0]
 
     return np.divide(colors, 255)
@@ -98,8 +99,8 @@ class WadFile:
 
 
 def main():
-    wad_file = WadFile(Path(r'E:\GoldSRC\Half-Life\gearbox\OPFOR.wad'))
-    wad_texture = wad_file.entries['{GRASS1'].read_texture()
+    wad_file = WadFile(Path(r"D:\SteamLibrary\steamapps\common\Cry of Fear\cryoffear\cof_new.wad"))
+    wad_texture = wad_file.entries['{C2_HISSGALLER'].read_texture()
     return
 
 
