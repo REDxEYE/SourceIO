@@ -2,8 +2,11 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from ...utilities.singleton import SingletonMeta
 from ..wad import WadFile, WadEntry
+from ...bpy_utilities.logging import BPYLoggingManager
+from ...utilities.singleton import SingletonMeta
+
+log_manager = BPYLoggingManager()
 
 
 class GoldSrcContentManager(metaclass=SingletonMeta):
@@ -15,13 +18,14 @@ class GoldSrcContentManager(metaclass=SingletonMeta):
         self.game_resource_roots: List[Path] = []
         self.game_root: Path = Path('')
         self.game_root_mod: Path = Path('')
+        self.logger = log_manager.get_logger(self.__class__.__name__)
 
     def scan_for_content(self, path: Path):
         while True:
             if Path.exists(path / 'liblist.gam'):
                 self.game_root: Path = path.parent
                 self.game_root_mod = path
-                print(f'Found game root: {self.game_root} ({self.game_root_mod})')
+                self.logger.info(f'Found game root: {self.game_root} ({self.game_root_mod})')
                 break
             elif len(path.parts) == 1:
                 self.game_root: Path = Path(path.parent.parent)
@@ -30,7 +34,7 @@ class GoldSrcContentManager(metaclass=SingletonMeta):
             path = path.parent
 
         if self.game_root is None:
-            print('Cannot find game directory path')
+            self.logger.warn('Cannot find game directory path')
 
         for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
             self.add_game_resource_root(self.game_root / 'valve' / default_resource)
@@ -60,28 +64,23 @@ class GoldSrcContentManager(metaclass=SingletonMeta):
             if resource is not None:
                 return resource
 
-        print(f'Cannot find file {name}')
-
+        self.logger.error(f'Cannot find file {name}')
         return None
 
     def add_game_resource_root(self, path: Path):
         if path not in self.game_resource_roots:
             resource_path = self.game_root / path
-            if not Path.exists(resource_path):
-                resource_path = self.game_root_mod / path
-            if not Path.exists(resource_path):
-                resource_path = self.game_root / 'valve' / path
-            if not Path.exists(resource_path):
-                print(f'Invalid resource root path: {resource_path}')
+            try:
+                if not Path.exists(resource_path):
+                    resource_path = self.game_root_mod / path
+                if not Path.exists(resource_path):
+                    resource_path = self.game_root / 'valve' / path
+                if not Path.exists(resource_path):
+                    self.logger.warn(f'Invalid resource root path: {resource_path}')
+                    return
+            except OSError as e:
+                # May be security-related or invalid path-related error, log and ignore
+                self.logger.warn(f'Cannot access resource {resource_path}: {e}')
                 return
             self.game_resource_roots.append(resource_path)
-            print(f'Added resource root: {path}')
-
-
-def main():
-    manager = GoldSrcContentManager(Path(r'E:\GoldSRC\Half-Life\valve\maps\c0a0.bsp'))
-    print(manager)
-
-
-if __name__ == '__main__':
-    main()
+            self.logger.info(f'Added resource root: {path}')
