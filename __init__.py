@@ -10,7 +10,7 @@ custom_icons = {}
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE, ShadelessFox",
-    "version": (3, 11, 4),
+    "version": (3, 12, 0),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine assets",
     "description": "GoldSrc/Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
@@ -45,7 +45,7 @@ if not NO_BPY:
                                    ChangeSkin_OT_operator,
                                    LoadEntity_OT_operator,
                                    )
-
+    from .bpy_utilities.export_nodes import register_nodes, unregister_nodes
 
     # noinspection PyPep8Naming
     class SourceIO_MT_Menu(bpy.types.Menu):
@@ -165,6 +165,7 @@ if not NO_BPY:
     def register():
         register_custom_icon()
         register_()
+        register_nodes()
         VTFLib()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
         bpy.types.IMAGE_MT_image.append(export)
@@ -175,6 +176,7 @@ if not NO_BPY:
         bpy.types.IMAGE_MT_image.remove(export)
         vtf_lib = VTFLib()
         vtf_lib.shutdown()
+        unregister_nodes()
         SingletonMeta.cleanup()
         del vtf_lib
         unregister_custom_icon()
