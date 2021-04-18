@@ -50,10 +50,13 @@ class MDLImport_OT_operator(bpy.types.Operator):
             mdl_path = directory / file.name
             vtx_file = find_vtx(mdl_path)
             vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
-
-            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), self.scale,
+            vvc_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvc')
+            model_container = import_model(mdl_path.open('rb'),
+                                           vvd_file.open('rb'),
+                                           vtx_file.open('rb'),
+                                           vvc_file.open('rb') if vvc_file.exists() else None,
+                                           self.scale,
                                            self.create_flex_drivers)
-
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
 
             if self.import_textures:

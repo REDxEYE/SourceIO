@@ -2,8 +2,8 @@ from typing import List, Dict
 
 import numpy as np
 
-from .structs.header import Header
-from .structs.fixup import Fixup
+from .header import Header
+from .fixup import Fixup
 from ...source_shared.base import Base
 from ...utilities.byte_io_mdl import ByteIO
 
@@ -57,3 +57,4 @@ class Vvd(Base):
 
         else:
             self.lod_data[0][:] = self._vertices[:]
+        pass

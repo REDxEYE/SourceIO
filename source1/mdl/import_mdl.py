@@ -13,7 +13,8 @@ from .vertex_animation_cache import VertexAnimationCache
 from ..vtx.structs.mesh import Mesh as VtxMesh
 from ..vtx.structs.model import ModelLod as VtxModel
 from ..vtx.vtx import Vtx
-from ..vvd.vvd import Vvd
+from ..vvd import Vvd
+from ..vvc import Vvc
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.utils import get_material, get_new_unique_collection
@@ -101,12 +102,17 @@ def create_armature(mdl: Mdl, scale=1.0):
     return armature_obj
 
 
-def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, scale=1.0,
+def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc_file: BinaryIO = None, scale=1.0,
                  create_drivers=False, re_use_meshes=False):
     mdl = Mdl(mdl_file)
     mdl.read()
     vvd = Vvd(vvd_file)
     vvd.read()
+    if vvc_file is not None:
+        vvc = Vvc(vvc_file)
+        vvc.read()
+    else:
+        vvc = None
     vtx = Vtx(vtx_file)
     vtx.read()
 
@@ -188,14 +194,25 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, sca
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
 
-            mesh_data.uv_layers.new()
-            uv_data = mesh_data.uv_layers[0].data
+            uv_data = mesh_data.uv_layers.new()
 
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
             mesh_data.loops.foreach_get('vertex_index', vertex_indices)
             uvs = vertices['uv']
             uvs[:, 1] = 1 - uvs[:, 1]
-            uv_data.foreach_set('uv', uvs[vertex_indices].flatten())
+            uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
+            if vvc is not None:
+                model_uvs2 = get_slice(vvc.secondary_uv, model.vertex_offset, model.vertex_count)
+                uvs2 = model_uvs2[vtx_vertices]
+                uv_data = mesh_data.uv_layers.new(name='UV2')
+                uvs2[:, 1] = 1 - uvs2[:, 1]
+                uv_data.data.foreach_set('uv', uvs2[vertex_indices].flatten())
+
+                model_colors = get_slice(vvc.color_data, model.vertex_offset, model.vertex_count)
+                colors = model_colors[vtx_vertices]
+
+                vc = mesh_data.vertex_colors.new()
+                vc.data.foreach_set('color', colors[vertex_indices].flatten())
 
             if not static_prop:
                 weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}

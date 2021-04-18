@@ -1,7 +1,7 @@
 import numpy as np
 
 from ...source_shared.base import Base
-from ..vvd.vvd import Vvd
+from ..vvd import Vvd
 from .mdl_file import Mdl
 from .structs.mesh import Mesh
 
