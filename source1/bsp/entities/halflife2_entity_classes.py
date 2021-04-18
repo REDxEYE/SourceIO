@@ -8431,7 +8431,7 @@ class scripted_sequence(BaseScripted, DXLevelChoice):
 
 
 class aiscripted_schedule(Targetname):
-    icon_sprite = "editor/aiscripted_schedule"
+    icon_sprite = "editor/aiscripted_schedule.vmt"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]

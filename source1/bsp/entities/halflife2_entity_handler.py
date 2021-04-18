@@ -1,7 +1,7 @@
 import math
 
 from mathutils import Euler
-
+import bpy
 from .base_entity_handler import BaseEntityHandler
 from .halflife2_entity_classes import *
 
@@ -40,6 +40,10 @@ class HalfLifeEntityHandler(BaseEntityHandler):
     def handle_prop_vehicle_airboat(self, entity: prop_vehicle_airboat, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
         self._put_into_collection('prop_vehicle_airboat', obj)
+
+    def handle_prop_vehicle_apc(self, entity: prop_vehicle_apc, entity_raw: dict):
+        obj = self._handle_enity_with_model(entity, entity_raw)
+        self._put_into_collection('prop_vehicle_apc', obj)
 
     def handle_prop_vehicle_prisoner_pod(self, entity: prop_vehicle_prisoner_pod, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
@@ -204,6 +208,10 @@ class HalfLifeEntityHandler(BaseEntityHandler):
     def handle_npc_blob(self, entity: npc_blob, entity_raw: dict):
         obj = self._handle_npc(entity, entity_raw)
         self._put_into_collection('npc_blob', obj)
+
+    def handle_npc_citizen(self, entity: npc_citizen, entity_raw: dict):
+        obj = self._handle_npc(entity, entity_raw)
+        self._put_into_collection('npc_citizen', obj)
 
     def handle_npc_grenade_frag(self, entity: npc_grenade_frag, entity_raw: dict):
         obj = self._handle_npc(entity, entity_raw)
@@ -448,3 +456,46 @@ class HalfLifeEntityHandler(BaseEntityHandler):
     def handle_info_target_gunshipcrash(self, entity: info_target_gunshipcrash, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
         self._put_into_collection('info_target_gunshipcrash', obj)
+
+    def handle_ai_relationship(self, entity: ai_relationship, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('ai_relationship', obj)
+
+    def handle_ai_goal_actbusy(self, entity: ai_goal_actbusy, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('ai_goal_actbusy', obj)
+
+    def handle_ai_goal_standoff(self, entity: ai_goal_standoff, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('ai_goal_standoff', obj)
+
+    def handle_aiscripted_schedule(self, entity: aiscripted_schedule, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('aiscripted_schedule', obj)
+
+    def handle_env_speaker(self, entity: env_speaker, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('env_speaker', obj)
+
+    def handle_env_entity_maker(self, entity: env_entity_maker, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_rotation(obj, entity.angles)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('env_entity_maker', obj)

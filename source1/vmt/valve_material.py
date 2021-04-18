@@ -1,44 +1,42 @@
 from ...source_shared.content_manager import ContentManager
 from ...bpy_utilities.logging import BPYLoggingManager
-from ...utilities.keyvalues import KVParser
+from .vmt_parser import VMTParser
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('valve_material')
 
 
+# TODO: remove this and just use VMTParser with ported PATCH material support
 class VMT:
     def __init__(self, file_object):
-        KVParser.set_strict_parsing_mode(True)
-        kv_parser = KVParser('VMT', file_object.read(-1).decode('latin', errors='replace'))
+
         try:
-            self.shader, self.material_data = kv_parser.parse()
-            self.shader = self.shader.lower()
+            self.material: VMTParser = VMTParser(file_object)
         except ValueError as e:
-            self.shader = '<invalid>'
-            self.material_data = {}
-            logger.warn(f'Cannot parse material file: {e}')
-        KVParser.set_strict_parsing_mode(False)
+            self.material: VMTParser = VMTParser("invalid{}")
+            logger.warn(f'Cannot parse material file due to: {e}')
+
+    @property
+    def shader(self):
+        return self.material.header
 
     def get_param(self, name, default):
-        return self.material_data.get(name, default)
+        return self.material.get_raw_data().get(name, default)
 
     def parse(self):
         content_manager = ContentManager()
-        if self.shader == 'patch':
-            original_material = content_manager.find_file(self.material_data['include'])
+        if self.material.header == 'patch':
+            original_material = content_manager.find_file(self.material.get_string('include'))
+            logger.info(f'Got "Patch" material, applying patch to {self.material.get_string("include")}')
             if original_material:
-                KVParser.set_strict_parsing_mode(True)
-                kv_parser = KVParser('VMT', original_material.read(-1).decode())
-                KVParser.set_strict_parsing_mode(False)
-                old_data = self.material_data
-                self.shader, self.material_data = kv_parser.parse()
-                self.shader = self.shader.lower()
-                if 'insert' in old_data:
-                    patch_data = old_data['insert']
-                    self.material_data.update(patch_data)
-                if 'replace' in old_data:
-                    patch_data = old_data['replace']
-                    self.material_data.update(patch_data)
+                new_material = VMTParser(original_material)
+                if 'insert' in self.material.get_raw_data():
+                    patch_data = self.material.get_subblock('insert', {})
+                    new_material.apply_patch(patch_data)
+                if 'replace' in self.material.get_raw_data():
+                    patch_data = self.material.get_subblock('replace', {})
+                    new_material.apply_patch(patch_data)
+                self.material = new_material
             else:
-                print('Failed to find original material')
+                logger.error('Failed to find original material')
                 return

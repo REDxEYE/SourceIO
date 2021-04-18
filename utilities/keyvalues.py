@@ -168,22 +168,25 @@ class KVParser(KVReader):
         if tok is KVToken.STR:
             if not val:
                 return ''
-            if val.startswith('['):
-                val = val.replace('  ', '')
-                return tuple(map(float, val[1:-1].strip().split(' ')))
-            if val.startswith('{'):
-                val = val.replace('  ', '')
-                return tuple(map(int, val[1:-1].strip().split(' ')))
-            if _is_number(val):
-                return _to_number(val)
+            # if val.startswith('['):
+            #     val = val.replace('  ', '')
+            #     return tuple(map(float, val[1:-1].strip().split(' ')))
+            # if val.startswith('{'):
+            #     val = val.replace('  ', '')
+            #     return tuple(map(int, val[1:-1].strip().split(' ')))
+            # if _is_number(val):
+            #     return _to_number(val)
             return val
 
         if tok is KVToken.NUM:
-            val1 = _to_number(val)
+            # val1 = _to_number(val)
+            val1 = val
             val2 = self._match(KVToken.NUM, required=False)
             if val2 is not None:
-                val2 = _to_number(val2[1])
-                val3 = _to_number(self._match(KVToken.NUM)[1])
+                # val2 = _to_number(val2[1])
+                val2 = val2[1]
+                # val3 = _to_number(self._match(KVToken.NUM)[1])
+                val3 = self._match(KVToken.NUM)[1]
                 return val1, val2, val3
             return val1
 
@@ -295,7 +298,7 @@ class KVWriter:
 
 
 if __name__ == '__main__':
-    data = KVParser('<input>', open('gameinfo.txt'))
+    data = KVParser('<input>', open(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\gameinfo.txt").read())
     data = data.parse()
 
     KVWriter(sys.stdout).write(data, 0, True)

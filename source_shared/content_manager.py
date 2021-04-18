@@ -42,7 +42,7 @@ class ContentManager(metaclass=SingletonMeta):
             gameinfos = root_path.glob('*gameinfo*.txt')
             for gameinfo in gameinfos:
                 sub_manager = Source1GameinfoContentProvider(gameinfo)
-                if sub_manager.data.get('game', None) == 'Titanfall':
+                if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {root_path.stem}')
@@ -80,7 +80,7 @@ class ContentManager(metaclass=SingletonMeta):
                 self.content_providers[name] = sub_manager
             elif path.endswith('.txt'):
                 sub_manager = Source1GameinfoContentProvider(Path(path))
-                if sub_manager.data.get('game',None) == 'Titanfall':
+                if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[name] = sub_manager
             elif path.endswith('.gi'):
@@ -142,6 +142,7 @@ class ContentManager(metaclass=SingletonMeta):
                     logger.debug(f'Found in {mod}!')
                 return file
         return None
+
     def find_texture(self, filepath, *, silent=False):
         return self.find_file(filepath, 'materials', extension='.vtf', silent=silent)
 

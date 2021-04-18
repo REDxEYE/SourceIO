@@ -1,5 +1,3 @@
-from array import array
-
 import bpy
 import numpy as np
 

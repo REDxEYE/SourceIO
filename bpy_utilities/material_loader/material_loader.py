@@ -45,8 +45,6 @@ class Source1MaterialLoader(MaterialLoaderBase):
             logger.error(f'Failed to load material, due to {ex} error')
             traceback.print_exc()
             logger.debug(f'Failed material: {self.material_name}:{self.vmt.shader}')
-            self.vmt.shader = 'ERROR'
-            self.vmt.material_data = {}
 
     def create_material(self):
         handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.vmt)

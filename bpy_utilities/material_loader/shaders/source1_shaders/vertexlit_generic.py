@@ -48,65 +48,60 @@ class VertexLitGeneric(Source1ShaderBase):
 
     @property
     def color2(self):
-        color_value = self._vavle_material.get_param('$color2', None)
-        if color_value:
-            if type(color_value) is float:
-                color_value = [color_value, color_value, color_value]
-            elif len(color_value) == 1:
-                color_value = [color_value[0], color_value[0], color_value[0]]
-            else:
-                color_value = [1, 1, 1]
+        color_value, value_type = self._vavle_material.get_vector('$color2', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
         return color_value
 
     @property
     def color(self):
-        color_value = self._vavle_material.get_param('$color', None)
-        if color_value:
-            if type(color_value) is float:
-                color_value = [color_value, color_value, color_value]
-            elif len(color_value) == 1:
-                color_value = [color_value[0], color_value[0], color_value[0]]
-            else:
-                color_value = [1, 1, 1]
+        color_value, value_type = self._vavle_material.get_vector('$color', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
         return color_value
 
     @property
     def translucent(self):
-        return self._vavle_material.get_param('$translucent', 0) == 1
+        return self._vavle_material.get_int('$translucent', 0) == 1
 
     @property
     def alphatest(self):
-        return self._vavle_material.get_param('$alphatest', 0) == 1
+        return self._vavle_material.get_int('$alphatest', 0) == 1
 
     @property
     def additive(self):
-        return self._vavle_material.get_param('$additive', 0) == 1
+        return self._vavle_material.get_int('$additive', 0) == 1
 
     @property
     def phong(self):
-        return self._vavle_material.get_param('$phong', 0) == 1
+        return self._vavle_material.get_int('$phong', 0) == 1
 
     @property
     def selfillum(self):
-        return self._vavle_material.get_param('$selfillum', 0) == 1
+        return self._vavle_material.get_int('$selfillum', 0) == 1
 
     @property
     def phongexponent(self):
-        value = self._vavle_material.get_param('$phongexponent', None)
-        if type(value) not in [int, float]:
-            value = 5.0
+        value = self._vavle_material.get_float('$phongexponent', 5.0)
         return value
 
     @property
     def phongboost(self):
-        value = self._vavle_material.get_param('$phongboost', 1)
-        if type(value) is tuple:
-            value = value[0]
+        value = self._vavle_material.get_float('$phongboost', 1)
         return value
 
     @property
     def phongtint(self):
-        return self._vavle_material.get_param('$phongtint', (1.0, 1.0, 1.0))
+        color_value, value_type = self._vavle_material.get_vector('$phongtint', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+        return color_value
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
@@ -164,10 +159,12 @@ class VertexLitGeneric(Source1ShaderBase):
             if selfillummask is not None:
                 selfillummask_node = self.create_node(Nodes.ShaderNodeTexImage, '$selfillummask')
                 selfillummask_node.image = selfillummask
-                self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
+                if 'Emission Strength' in shader.inputs:
+                    self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
 
             else:
-                self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
+                if 'Emission Strength' in shader.inputs:
+                    self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
             self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
 
         if not self.phong:

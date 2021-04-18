@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+from .gameinfo_parser import GameInfoParser
 from ..utilities.keyvalues import KVParser
 from ..source_shared.content_provider_base import ContentProviderBase
 
@@ -15,19 +16,16 @@ class GameinfoContentProvider(ContentProviderBase):
     def __init__(self, filepath: Path):
         super().__init__(filepath)
         with filepath.open('r') as f:
-            kv = KVParser('GAMEINFO', f.read())
-            root_key, self.data = kv.parse()
-            assert root_key == 'gameinfo', 'Not a gameinfo file'
+            self.gameinfo = GameInfoParser(f)
+            assert self.gameinfo.header == 'gameinfo', 'Not a gameinfo file'
         self.modname_dir: Path = filepath.parent
         self.project_dir: Path = filepath.parent.parent
         self.modname: str = self.modname_dir.stem
 
     @property
     def steam_id(self):
-        fs = self.data.get('filesystem', None)
-        if not fs:
-            return 0
-        return int(fs.get('steamappid', 0))
+        fs = self.gameinfo.file_system
+        return fs.steam_app_id
 
     def get_search_paths(self):
         def convert_path(path_to_convert):
@@ -38,7 +36,7 @@ class GameinfoContentProvider(ContentProviderBase):
             return self.project_dir / path_to_convert
 
         all_search_paths = []
-        for paths in self.data['filesystem']['searchpaths'].values():
+        for paths in self.gameinfo.file_system.search_paths.game:
             if isinstance(paths, list):
                 for path in paths:
                     all_search_paths.append(convert_path(path))

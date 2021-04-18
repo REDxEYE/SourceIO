@@ -19,4 +19,5 @@ class VPKContentProvider(ContentProviderBase):
     def find_path(self, filepath: str):
         entry = self.vpk_archive.find_file(full_path=filepath)
         if entry:
-            raise NotImplementedError('Cannot get path from VPK file')
+            return None
+            # raise NotImplementedError('Cannot get path from VPK file')

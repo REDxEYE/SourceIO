@@ -67,7 +67,9 @@ class BSP:
         content_manager = ContentManager()
 
         provider = content_manager.get_content_provider_from_path(self.filepath)
-        if provider.steam_id in [1840, 440]:
+        if provider.steam_id == 440:
+            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 1840:
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 620 and self.map_file.version == 29:  # Titanfall
             self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)

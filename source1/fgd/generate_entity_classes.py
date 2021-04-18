@@ -8,11 +8,11 @@ from SourceIO.source_shared.content_manager import ContentManager
 
 
 def parse_int_vector(string):
-    return [int(val) for val in string.split(' ')]
+    return [int(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 def parse_float_vector(string):
-    return [float(val) for val in string.split(' ')]
+    return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 def collect_parents(parent: FgdEntity):
@@ -24,19 +24,28 @@ def collect_parents(parent: FgdEntity):
 
 def main():
     # fgd_path = r"F:\SteamLibrary\steamapps\common\Black Mesa\bin\bms.fgd"
-    # fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\tf.fgd"
-    fgd_path = r"F:\SteamLibrary\steamapps\common\Half-Life 2\bin\halflife2.fgd"
+    fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\base.fgd"
+    # fgd_path = r"F:\SteamLibrary\steamapps\common\Half-Life 2\bin\halflife2.fgd"
+    # fgd_path = r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\swarm.fgd"
     ContentManager().scan_for_content(fgd_path)
     fgd: Fgd = FgdParse(fgd_path)
     processed_classes = []
     buffer = ''
 
-    buffer += """def parse_int_vector(string):
-    return [int(val) for val in string.split(' ')]
+    buffer += """
+def parse_source_value(value):
+    if type(value) is str:
+        return float(value) if '.' in value else int(value)
+    else:
+        return value
+
+
+def parse_int_vector(string):
+    return [parse_source_value(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 def parse_float_vector(string):
-    return [float(val) for val in string.split(' ')]
+    return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 class Base:
@@ -166,26 +175,27 @@ class Base:
 
         for prop in entity_class.properties:
             if prop.name not in prop_cache:
-                buffer += f'\n        instance.{prop.name} = '
+                prefix = '\n        '
+                assigment = prefix + f'instance.{prop.name} = '
                 try:
                     if prop.value_type == 'color255':
-                        buffer += f'parse_int_vector(entity_data.get(\'{prop.name.lower()}\', "{prop.default_value or "0 0 0"}"))'
+                        buffer += assigment + f'parse_int_vector(entity_data.get(\'{prop.name.lower()}\', "{prop.default_value or "0 0 0"}"))'
                     elif prop.value_type in ['angle', 'vector', 'color1', 'origin']:
-                        buffer += f'parse_float_vector(entity_data.get(\'{prop.name.lower()}\', "{prop.default_value or "0 0 0"}"))'
+                        buffer += assigment + f'parse_float_vector(entity_data.get(\'{prop.name.lower()}\', "{prop.default_value or "0 0 0"}"))'
                     elif prop.value_type in ['integer', 'node_dest']:
-                        buffer += f'int(entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, 0)}))'
+                        buffer += assigment + f'parse_source_value(entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, 0)}))'
                     elif prop.value_type in ['float', 'angle_negative_pitch']:
-                        buffer += f'float(entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, 0)}))'
+                        buffer += assigment + f'float(entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, 0)}))'
                     elif prop.value_type == 'choices':
-                        buffer += f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
+                        buffer += assigment + f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
                     elif prop.value_type in ['string', 'studio', 'material', 'sprite', 'sound']:
-                        buffer += f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
+                        buffer += assigment + f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
                     elif prop.value_type == 'target_destination' and prop.default_value == 'Name of the entity to set navigation properties on.':
-                        buffer += f'entity_data.get(\'{prop.name.lower()}\', None)  # Set to none due to bug in BlackMesa base.fgd file'
+                        buffer += assigment + f'entity_data.get(\'{prop.name.lower()}\', None)  # Set to none due to bug in BlackMesa base.fgd file'
                     elif prop.value_type == 'vecline' and prop.default_value == 'The position the rope attaches to object 2':
-                        buffer += f'entity_data.get(\'{prop.name.lower()}\', None)  # Set to none due to bug in BlackMesa base.fgd file'
+                        buffer += assigment + f'entity_data.get(\'{prop.name.lower()}\', None)  # Set to none due to bug in BlackMesa base.fgd file'
                     else:
-                        buffer += f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
+                        buffer += assigment + f'entity_data.get(\'{prop.name.lower()}\', {default_prop_cache.get(prop.name, "None")})'
                 except ValueError as ex:
                     buffer += f'None  # Failed to parse value type due to {ex}'
                 buffer += f'  # Type: {prop.value_type}'
