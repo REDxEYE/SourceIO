@@ -151,7 +151,7 @@ class Base:
                         elif prop.value_type == 'vecline' and prop.default_value == 'The position the rope attaches to object 2':
                             buffer += 'None  # Set to none due to bug in BlackMesa base.fgd file'
                         else:
-                            buffer += prop.default_value
+                            buffer += str(prop.default_value)
                     except ValueError as ex:
                         buffer += f'None  # Failed to parse value type due to {ex}'
                     buffer += f'  # Type: {prop.value_type}'
