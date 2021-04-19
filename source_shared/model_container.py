@@ -5,7 +5,7 @@ import bpy
 from ..source1.mdl.mdl_file import Mdl as S1Mdl
 from ..goldsrc.mdl.mdl_file import Mdl as GMdl
 from ..source1.vtx.vtx import Vtx
-from ..source1.vvd.vvd import Vvd
+from ..source1.vvd import Vvd
 
 
 class ModelContainer:
