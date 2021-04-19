@@ -9,18 +9,9 @@ import numpy as np
 import bpy
 from mathutils import Vector, Euler
 
-from .base_entity_classes import func_door, worldspawn, prop_dynamic, parse_float_vector, BasePropPhysics, \
-    prop_physics_override, func_brush, func_lod, trigger_hurt, trigger_multiple, func_tracktrain, point_spotlight, \
-    light_spot, Base, Targetname, env_lightglow, env_sun, light_environment, env_sprite, light, prop_dynamic_override, \
-    logic_relay, move_rope, keyframe_rope, trigger_once, path_track, infodecal, prop_physics_multiplayer, info_node_air, \
-    info_player_start, env_fog_controller, info_node, info_ladder_dismount, npc_template_maker, info_target, \
-    ambient_generic, prop_ragdoll, func_breakable, func_physbox, func_areaportalwindow, func_areaportal, \
-    func_ladderendpoint, func_occluder, func_illusionary, trigger_autosave, shadow_control, water_lod_control, \
-    trigger_changelevel, trigger_push, logic_auto, phys_keepupright, info_landmark, logic_case, info_node_hint, \
-    env_splash, info_node_link_controller, env_physexplosion, func_useableladder, logic_timer, func_door_rotating, \
-    func_water_analog, point_template, filter_activator_class, trigger_look, logic_navigation, sky_camera, env_steam
+from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
-from .halflife2_entity_classes import logic_choreographed_scene, scripted_sequence
+from .halflife2_entity_classes import logic_choreographed_scene, scripted_sequence, path_corner
 from ..bsp_file import BSPFile
 from ..datatypes.face import Face
 from ..datatypes.model import Model
@@ -73,6 +64,8 @@ def _srgb2lin(s: float) -> float:
 
 class BaseEntityHandler:
     entity_lookup_table = base_entity_classes
+
+    light_power_multiplier = 1
 
     def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
@@ -182,8 +175,12 @@ class BaseEntityHandler:
         else:
             return f'{entity.class_name}_{entity.hammer_id}'
 
-    def _put_into_collection(self, name, obj):
-        parent_collection = get_or_create_collection(name, self.parent_collection)
+    def _put_into_collection(self, name, obj, grouping_collection_name=None):
+        if grouping_collection_name is not None:
+            parent_collection = get_or_create_collection(grouping_collection_name, self.parent_collection)
+            parent_collection = get_or_create_collection(name, parent_collection)
+        else:
+            parent_collection = get_or_create_collection(name, self.parent_collection)
         parent_collection.objects.link(obj)
 
     def _apply_light_rotation(self, obj, entity):
@@ -336,7 +333,7 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_water_analog', mesh_object)
+        self._put_into_collection('func_water_analog', mesh_object, 'brushes')
 
     def handle_func_door(self, entity: func_door, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -344,7 +341,27 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_door', mesh_object)
+        self._put_into_collection('func_door', mesh_object, 'brushes')
+
+    def handle_func_button(self, entity: func_button, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        mesh_object.location = entity.origin
+        mesh_object.location *= self.scale
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_button', mesh_object, 'brushes')
+
+    def handle_func_wall(self, entity: func_wall, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_wall', mesh_object, 'brushes')
+
+    def handle_func_clip_vphysics(self, entity: func_clip_vphysics, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_clip_vphysics', mesh_object, 'brushes')
 
     def handle_func_door_rotating(self, entity: func_door_rotating, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -352,7 +369,7 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_door_rotating', mesh_object)
+        self._put_into_collection('func_door_rotating', mesh_object, 'brushes')
 
     def handle_func_breakable(self, entity: func_breakable, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -360,7 +377,7 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_breakable', mesh_object)
+        self._put_into_collection('func_breakable', mesh_object, 'brushes')
 
     def handle_func_physbox(self, entity: func_physbox, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -368,7 +385,7 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_physbox', mesh_object)
+        self._put_into_collection('func_physbox', mesh_object, 'brushes')
 
     def handle_func_illusionary(self, entity: func_illusionary, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -376,7 +393,7 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_illusionary', mesh_object)
+        self._put_into_collection('func_illusionary', mesh_object, 'brushes')
 
     def handle_trigger_push(self, entity: trigger_push, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -384,7 +401,7 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_push', mesh_object)
+        self._put_into_collection('trigger_push', mesh_object, 'triggers')
 
     def handle_trigger_look(self, entity: trigger_look, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -392,34 +409,37 @@ class BaseEntityHandler:
         mesh_object.location = entity.origin
         mesh_object.location *= self.scale
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_look', mesh_object)
+        self._put_into_collection('trigger_look', mesh_object, 'triggers')
 
     def handle_trigger_autosave(self, entity: trigger_autosave, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_autosave', mesh_object)
+        self._put_into_collection('trigger_autosave', mesh_object, 'triggers')
 
     def handle_trigger_changelevel(self, entity: trigger_changelevel, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_changelevel', mesh_object)
+        self._put_into_collection('trigger_changelevel', mesh_object, 'triggers')
 
     def handle_func_lod(self, entity: func_lod, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'func_lod_{entity.hammer_id}')
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_lod', mesh_object)
+        self._put_into_collection('func_lod', mesh_object, 'brushes')
 
     def handle_func_tracktrain(self, entity: func_tracktrain, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location_and_scale(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_tracktrain', mesh_object)
+        self._put_into_collection('func_tracktrain', mesh_object, 'brushes')
 
     def handle_func_occluder(self, entity: func_occluder, entity_raw: dict):
+        pass
+
+    def handle_env_hudhint(self, entity: env_hudhint, entity_raw: dict):
         pass
 
     def handle_func_ladderendpoint(self, entity: func_ladderendpoint, entity_raw: dict):
@@ -439,28 +459,28 @@ class BaseEntityHandler:
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('func_brush', mesh_object)
+        self._put_into_collection('func_brush', mesh_object, 'brushes')
 
     def handle_trigger_hurt(self, entity: trigger_hurt, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_hurt', mesh_object)
+        self._put_into_collection('trigger_hurt', mesh_object, 'triggers')
 
     def handle_trigger_multiple(self, entity: trigger_multiple, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_multiple', mesh_object)
+        self._put_into_collection('trigger_multiple', mesh_object, 'triggers')
 
     def handle_trigger_once(self, entity: trigger_once, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_once', mesh_object)
+        self._put_into_collection('trigger_once', mesh_object, 'triggers')
 
     def handle_worldspawn(self, entity: worldspawn, entity_raw: dict):
         world = self._load_brush_model(0, 'world_geometry')
@@ -480,7 +500,7 @@ class BaseEntityHandler:
 
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, properties)
-        self._put_into_collection('prop_dynamic', obj)
+        self._put_into_collection('prop_dynamic', obj, 'props')
 
     def handle_prop_ragdoll(self, entity: prop_ragdoll, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -494,7 +514,7 @@ class BaseEntityHandler:
 
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, properties)
-        self._put_into_collection('prop_ragdoll', obj)
+        self._put_into_collection('prop_ragdoll', obj, 'props')
 
     def handle_prop_dynamic_override(self, entity: prop_dynamic_override, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -510,19 +530,19 @@ class BaseEntityHandler:
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, properties)
 
-        self._put_into_collection('prop_dynamic_override', obj)
+        self._put_into_collection('prop_dynamic_override', obj, 'props')
 
     def handle_prop_physics_override(self, entity: prop_physics_override, entity_raw: dict):
         obj = self._handle_base_prop_physics(entity, entity_raw)
-        self._put_into_collection('prop_physics_override', obj)
+        self._put_into_collection('prop_physics_override', obj, 'props')
 
     def handle_prop_physics(self, entity: prop_physics_override, entity_raw: dict):
         obj = self._handle_base_prop_physics(entity, entity_raw)
-        self._put_into_collection('prop_physics', obj)
+        self._put_into_collection('prop_physics', obj, 'props')
 
     def handle_prop_physics_multiplayer(self, entity: prop_physics_multiplayer, entity_raw: dict):
         obj = self._handle_base_prop_physics(entity, entity_raw)
-        self._put_into_collection('prop_physics', obj)
+        self._put_into_collection('prop_physics', obj, 'props')
 
     # def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
 
@@ -540,7 +560,7 @@ class BaseEntityHandler:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
         light.color = color
-        light.energy = brightness * (entity._lightscaleHDR if use_sdr else 1) * 10
+        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.light_power_multiplier
         light.spot_size = 2 * math.radians(entity._cone)
         light.spot_blend = 1 - (entity._inner_cone / entity._cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
@@ -621,7 +641,7 @@ class BaseEntityHandler:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
         light.color = color
-        light.energy = brightness * (entity._lightscaleHDR if use_sdr else 1) * 10
+        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.light_power_multiplier
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
@@ -644,20 +664,36 @@ class BaseEntityHandler:
     def handle_env_physexplosion(self, entity: env_physexplosion, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_physexplosion', obj)
+        self._put_into_collection('env_physexplosion', obj, 'environment')
 
     def handle_env_fog_controller(self, entity: env_fog_controller, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_fog_controller', obj)
+        self._put_into_collection('env_fog_controller', obj, 'environment')
 
     def handle_env_splash(self, entity: env_splash, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_splash', obj)
+        self._put_into_collection('env_splash', obj, 'environment')
+
+    def handle_env_shake(self, entity: env_shake, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('env_shake', obj, 'environment')
+
+    def handle_env_tonemap_controller(self, entity: env_tonemap_controller, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('env_tonemap_controller', obj, 'environment')
 
     def handle_water_lod_control(self, entity: water_lod_control, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -673,26 +709,47 @@ class BaseEntityHandler:
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('filter_activator_class', obj)
 
+    def handle_filter_activator_name(self, entity: filter_activator_name, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('filter_activator_name', obj)
+
     def handle_logic_timer(self, entity: logic_timer, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('logic_timer', obj)
+        self._put_into_collection('logic_timer', obj, 'logic')
+
+    def handle_logic_branch(self, entity: logic_branch, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('logic_branch', obj, 'logic')
+
+    def handle_logic_branch_listener(self, entity: logic_branch_listener, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('logic_branch_listener', obj, 'logic')
 
     def handle_logic_navigation(self, entity: logic_navigation, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('logic_navigation', obj)
+        self._put_into_collection('logic_navigation', obj, 'logic')
 
     def handle_logic_relay(self, entity: logic_relay, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('logic_relay', obj)
+        self._put_into_collection('logic_relay', obj, 'logic')
 
     def handle_sky_camera(self, entity: sky_camera, entity_raw: dict):
         obj = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', None)
@@ -706,21 +763,21 @@ class BaseEntityHandler:
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('logic_choreographed_scene', obj)
+        self._put_into_collection('logic_choreographed_scene', obj, 'logic')
 
     def handle_logic_case(self, entity: logic_case, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('logic_case', obj)
+        self._put_into_collection('logic_case', obj, 'logic')
 
     def handle_logic_auto(self, entity: logic_auto, entity_raw: dict):
         obj = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('logic_auto', obj)
+        self._put_into_collection('logic_auto', obj, 'logic')
 
     def handle_info_target(self, entity: info_target, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -777,14 +834,21 @@ class BaseEntityHandler:
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_soundscape_proxy', obj)
+        self._put_into_collection('env_soundscape_proxy', obj, 'environment')
 
-    def handle_env_soundscape(self, entity: logic_relay, entity_raw: dict):
+    def handle_env_soundscape(self, entity: env_soundscape, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_soundscape', obj)
+        self._put_into_collection('env_soundscape', obj, 'environment')
+
+    def handle_env_fade(self, entity: env_fade, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('env_fade', obj, 'environment')
 
     # TODO(ShadelessFox): Handle 2 or more keyframe_rope in a chain
     def handle_move_rope(self, entity: move_rope, entity_raw: dict):

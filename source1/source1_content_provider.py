@@ -18,6 +18,14 @@ class GameinfoContentProvider(ContentProviderBase):
         with filepath.open('r') as f:
             self.gameinfo = GameInfoParser(f)
             assert self.gameinfo.header == 'gameinfo', 'Not a gameinfo file'
+        if filepath.with_name(filepath.stem + '_srgb.txt').exists():
+            with filepath.with_name(filepath.stem + '_srgb.txt').open('r') as f:
+                gameinfo = GameInfoParser(f)
+                assert self.gameinfo.header == 'gameinfo', 'Not a gameinfo file'
+                og_paths = self.gameinfo.file_system.search_paths
+                srgb_paths = gameinfo.file_system.search_paths
+                self.gameinfo.file_system.search_paths._raw_data['game'] = og_paths.game + srgb_paths.game
+
         self.modname_dir: Path = filepath.parent
         self.project_dir: Path = filepath.parent.parent
         self.modname: str = self.modname_dir.stem

@@ -39,23 +39,23 @@ class HalfLifeEntityHandler(BaseEntityHandler):
 
     def handle_prop_vehicle_airboat(self, entity: prop_vehicle_airboat, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
-        self._put_into_collection('prop_vehicle_airboat', obj)
+        self._put_into_collection('prop_vehicle_airboat', obj, 'props')
 
     def handle_prop_vehicle_apc(self, entity: prop_vehicle_apc, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
-        self._put_into_collection('prop_vehicle_apc', obj)
+        self._put_into_collection('prop_vehicle_apc', obj, 'props')
 
     def handle_prop_vehicle_prisoner_pod(self, entity: prop_vehicle_prisoner_pod, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
-        self._put_into_collection('prop_vehicle_prisoner_pod', obj)
+        self._put_into_collection('prop_vehicle_prisoner_pod', obj, 'props')
 
     def handle_prop_vehicle_choreo_generic(self, entity: prop_vehicle_choreo_generic, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
-        self._put_into_collection('prop_vehicle_choreo_generic', obj)
+        self._put_into_collection('prop_vehicle_choreo_generic', obj, 'props')
 
     def handle_prop_coreball(self, entity: prop_coreball, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
-        self._put_into_collection('prop_coreball', obj)
+        self._put_into_collection('prop_coreball', obj, 'props')
 
     def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
         obj = self._handle_item(entity, entity_raw)
@@ -490,7 +490,7 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_speaker', obj)
+        self._put_into_collection('env_speaker', obj, 'environment')
 
     def handle_env_entity_maker(self, entity: env_entity_maker, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -498,4 +498,18 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._set_rotation(obj, entity.angles)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('env_entity_maker', obj)
+        self._put_into_collection('env_entity_maker', obj, 'environment')
+
+    def handle_logic_achievement(self, entity: logic_achievement, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('logic_achievement', obj, 'logic')
+
+    def handle_path_corner(self, entity: path_corner, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('path_corner', obj)

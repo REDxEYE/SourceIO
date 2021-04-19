@@ -13,6 +13,7 @@ from .bsp_file import BSPFile, open_bsp
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 from .entities.base_entity_handler import BaseEntityHandler
 from .entities.halflife2_entity_handler import HalfLifeEntityHandler
+from .entities.portal2_entity_handlers import Portal2EntityHandler
 from .entities.tf2_entity_handler import TF2EntityHandler
 from .entities.titanfall_entity_handler import TitanfallEntityHandler
 from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
@@ -73,6 +74,8 @@ class BSP:
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 620 and self.map_file.version == 29:  # Titanfall
             self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 620 and self.map_file.version != 29:  # Titanfall
+            self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id in [220, 380, 420]:  # Half-life2 and episodes
             self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
         else:
