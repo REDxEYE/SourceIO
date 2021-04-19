@@ -10,7 +10,7 @@ from ..vtx.structs.mesh import Mesh as VtxMesh
 from ..vtx.structs.model import Model as VtxModel
 from ..vtx.structs.model import ModelLod as VtxModelLod
 from ..vtx.vtx import Vtx
-from ..vvd.vvd import Vvd
+from ..vvd import Vvd
 from ...source_shared.content_manager import ContentManager
 from ...utilities import datamodel
 from ...utilities.math_utilities import matrix_to_quat
