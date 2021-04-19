@@ -249,8 +249,11 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
 
 def put_into_collections(model_container: Source1ModelContainer, model_name,
                          parent_collection=None, bodygroup_grouping=False):
-    master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
-
+    static_prop = model_container.armature is None
+    if not static_prop:
+        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
+    else:
+        master_collection = parent_collection or bpy.context.scene.collection
     for bodygroup_name, meshes in model_container.bodygroups.items():
         if bodygroup_grouping:
             body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
