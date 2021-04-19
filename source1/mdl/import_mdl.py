@@ -77,7 +77,7 @@ def create_armature(mdl: Mdl, scale=1.0):
     bpy.ops.object.mode_set(mode='EDIT')
     bl_bones = []
     for bone in mdl.bones:
-        bl_bone = armature.edit_bones.new(bone.name)
+        bl_bone = armature.edit_bones.new(bone.name[-63:])
         bl_bones.append(bl_bone)
 
     for bl_bone, s_bone in zip(bl_bones, mdl.bones):
@@ -88,7 +88,7 @@ def create_armature(mdl: Mdl, scale=1.0):
 
     bpy.ops.object.mode_set(mode='POSE')
     for se_bone in mdl.bones:
-        bl_bone = armature_obj.pose.bones.get(se_bone.name)
+        bl_bone = armature_obj.pose.bones.get(se_bone.name[-63:])
         pos = Vector(se_bone.position) * scale
         rot = Euler(se_bone.rotation)
         mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
