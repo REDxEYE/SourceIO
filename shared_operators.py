@@ -67,8 +67,9 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                     mld_file = content_manager.find_file(prop_path)
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
+                        vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model(mld_file, vvd_file, vtx_file, 1.0, False, True)
+                        model_container = import_model(mld_file, vvd_file, vtx_file, vvc_file, 1.0, False, True)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                         entity_data_holder['entity_data'] = {}

@@ -39,7 +39,10 @@ class ContentManager(metaclass=SingletonMeta):
         if root_path.stem in self.content_providers:
             return
         if is_source:
-            gameinfos = root_path.glob('*gameinfo*.txt')
+            gameinfos = list(root_path.glob('*gameinfo.txt'))
+            if not gameinfos:
+                # for unknown gameinfo like gameinfo_srgb, they are confusing content manager steam id thingie
+                gameinfos = root_path.glob('gameinfo_*.txt')
             for gameinfo in gameinfos:
                 sub_manager = Source1GameinfoContentProvider(gameinfo)
                 if sub_manager.gameinfo.game == 'Titanfall':
@@ -48,6 +51,7 @@ class ContentManager(metaclass=SingletonMeta):
                 logger.info(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
                     self.scan_for_content(mod)
+
             gameinfos = root_path.glob('*gameinfo*.gi')
             for gameinfo in gameinfos:
                 sub_manager = Source2GameinfoContentProvider(gameinfo)

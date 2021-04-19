@@ -54,7 +54,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
             model_container = import_model(mdl_path.open('rb'),
                                            vvd_file.open('rb'),
                                            vtx_file.open('rb'),
-                                           vvc_file.open('rb') if vvc_file.exists() else None,
+                                           vvc_file.open('rb') if vvc_file is not None and vvc_file.exists() else None,
                                            self.scale,
                                            self.create_flex_drivers)
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
