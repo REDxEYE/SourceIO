@@ -65,7 +65,7 @@ def _srgb2lin(s: float) -> float:
 class BaseEntityHandler:
     entity_lookup_table = base_entity_classes
 
-    light_power_multiplier = 1
+    pointlight_power_multiplier = 1
 
     def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
@@ -560,7 +560,7 @@ class BaseEntityHandler:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
         light.color = color
-        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.light_power_multiplier
+        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10)
         light.spot_size = 2 * math.radians(entity._cone)
         light.spot_blend = 1 - (entity._inner_cone / entity._cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
@@ -641,7 +641,7 @@ class BaseEntityHandler:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
         light.color = color
-        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.light_power_multiplier
+        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.pointlight_power_multiplier
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)

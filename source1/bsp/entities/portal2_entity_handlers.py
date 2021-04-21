@@ -11,7 +11,7 @@ class Portal2EntityHandler(HalfLifeEntityHandler):
     entity_lookup_table = hl2_entity_classes
     entity_lookup_table.update(entity_class_handle)
 
-    light_power_multiplier = 1000
+    pointlight_power_multiplier = 1000
 
     def handle_prop_weighted_cube(self, entity: prop_weighted_cube, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
