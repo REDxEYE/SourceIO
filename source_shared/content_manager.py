@@ -76,6 +76,11 @@ class ContentManager(metaclass=SingletonMeta):
                 sub_manager = NonSourceContentProvider(root_path)
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {source_game_path.stem}')
+            else:
+                root_path = root_path.parent
+                sub_manager = NonSourceContentProvider(root_path)
+                self.content_providers[root_path.stem] = sub_manager
+                logger.info(f'Registered sub manager for {source_game_path.stem}')
 
     def deserialize(self, data: Dict[str, str]):
         for name, path in data.items():

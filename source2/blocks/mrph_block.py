@@ -1,4 +1,5 @@
 import struct
+from math import floor
 
 from .data_block import DATA
 import numpy as np
@@ -43,13 +44,13 @@ class MRPH(DATA):
                                                               4),
                                                              dtype=np.float32)
             for n, rect in enumerate(morph_datas['m_morphRectDatas']):
-                rect_width = round(rect['m_flUWidthSrc'] * morph_atlas_data.width)
-                rect_height = round(rect['m_flVHeightSrc'] * morph_atlas_data.height)
+                rect_width = floor(rect['m_flUWidthSrc'] * morph_atlas_data.width)
+                rect_height = floor(rect['m_flVHeightSrc'] * morph_atlas_data.height)
                 dst_x = rect['m_nXLeftDst']
                 dst_y = rect['m_nYTopDst']
                 for c, bundle in enumerate(rect['m_bundleDatas']):
-                    rect_u = round(bundle['m_flULeftSrc'] * morph_atlas_data.width)
-                    rect_v = round(bundle['m_flVTopSrc'] * morph_atlas_data.height)
+                    rect_u = floor(bundle['m_flULeftSrc'] * morph_atlas_data.width)
+                    rect_v = floor(bundle['m_flVTopSrc'] * morph_atlas_data.height)
                     morph_data_rect = raw_flex_data[rect_v:rect_v + rect_height, rect_u:rect_u + rect_width, :]
                     vec_offset = bundle['m_offsets']
                     vec_range = bundle['m_ranges']
