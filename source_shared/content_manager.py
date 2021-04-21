@@ -20,7 +20,8 @@ class ContentManager(metaclass=SingletonMeta):
         self._titanfall_mode = False
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
-
+        if "*LANGUAGE*" in str(source_game_path):
+            return
         source_game_path = Path(source_game_path)
         if source_game_path.suffix == '.vpk':
             if self._titanfall_mode:

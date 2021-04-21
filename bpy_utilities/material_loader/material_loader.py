@@ -14,7 +14,7 @@ from .shaders.source2_shader_base import Source2ShaderBase
 from .shaders.source1_shaders import eyerefract, cable, unlit_generic, lightmap_generic, vertexlit_generic, \
     worldvertextransition, unlittwotexture, lightmapped_4wayblend
 from .shaders.goldsrc_shaders import goldsrc_shader
-from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball, vr_simple, vr_glass
+from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball, vr_simple, vr_glass, hero
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('material_loader')
@@ -84,7 +84,7 @@ class Source2MaterialLoader(MaterialLoaderBase):
     _handlers: Dict[str, Type[Source2ShaderBase]] = dict()
     sub: Type[ShaderBase]
     for sub in Source2ShaderBase.all_subclasses():
-        print(f'Registered GoldSrc material handler for {sub.__name__} shader')
+        print(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
     def __init__(self, source2_material_data, material_name, resources: Dict[Union[str, int], Path]):
