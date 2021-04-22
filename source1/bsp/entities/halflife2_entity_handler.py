@@ -513,3 +513,15 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('path_corner', obj)
+
+    def handle_func_monitor(self, entity: func_monitor, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        mesh_object.location = entity.origin
+        mesh_object.location *= self.scale
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_monitor', mesh_object, 'brushes')
+
+    def handle_generic_actor(self, entity: generic_actor, entity_raw: dict):
+        obj = self._handle_enity_with_model(entity, entity_raw)
+        self._put_into_collection('generic_actor', obj, 'props')

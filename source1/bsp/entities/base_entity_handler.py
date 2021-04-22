@@ -66,6 +66,7 @@ class BaseEntityHandler:
     entity_lookup_table = base_entity_classes
 
     pointlight_power_multiplier = 1
+    spotlight_power_multiplier = 1
 
     def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
@@ -343,6 +344,22 @@ class BaseEntityHandler:
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_door', mesh_object, 'brushes')
 
+    def handle_func_movelinear(self, entity: func_movelinear, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        mesh_object.location = entity.origin
+        mesh_object.location *= self.scale
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_movelinear', mesh_object, 'brushes')
+
+    def handle_func_rotating(self, entity: func_rotating, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        mesh_object.location = entity.origin
+        mesh_object.location *= self.scale
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_rotating', mesh_object, 'brushes')
+
     def handle_func_button(self, entity: func_button, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
@@ -382,32 +399,36 @@ class BaseEntityHandler:
     def handle_func_physbox(self, entity: func_physbox, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_physbox', mesh_object, 'brushes')
 
     def handle_func_illusionary(self, entity: func_illusionary, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_illusionary', mesh_object, 'brushes')
 
     def handle_trigger_push(self, entity: trigger_push, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('trigger_push', mesh_object, 'triggers')
+
+    def handle_trigger_transition(self, entity: trigger_transition, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_location(mesh_object,parse_float_vector(entity_raw['origin']))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('trigger_transition', mesh_object, 'triggers')
 
     def handle_trigger_look(self, entity: trigger_look, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('trigger_look', mesh_object, 'triggers')
 
@@ -467,6 +488,13 @@ class BaseEntityHandler:
         self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('trigger_hurt', mesh_object, 'triggers')
+
+    def handle_trigger_teleport(self, entity: trigger_teleport, entity_raw: dict):
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_location(mesh_object, entity.origin)
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('trigger_teleport', mesh_object, 'triggers')
 
     def handle_trigger_multiple(self, entity: trigger_multiple, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
@@ -560,7 +588,7 @@ class BaseEntityHandler:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
         light.color = color
-        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10)
+        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.spotlight_power_multiplier
         light.spot_size = 2 * math.radians(entity._cone)
         light.spot_blend = 1 - (entity._inner_cone / entity._cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
