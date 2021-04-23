@@ -1,12 +1,12 @@
 import ctypes
 import os
 from pathlib import Path
+import platform
 
-os.environ['NO_BPY'] = '1'
 from ctypes import CDLL, c_uint32, c_char_p, POINTER, Structure, create_string_buffer, pointer, cast
 from enum import IntEnum, auto
 
-from ....utilities.singleton import SingletonMeta
+platform_name = platform.system()
 
 
 def pointer_to_array(poiter, size, type=ctypes.c_ubyte):
@@ -46,8 +46,8 @@ class DecompressionParameters(Structure):
         self.m_struct_size = ctypes.sizeof(self)
 
 
-class LZHAM(metaclass=SingletonMeta):
-    lib = CDLL(str(Path(__file__).parent / 'lzham_x64'))
+class LZHAM():
+    lib = CDLL(str(Path(__file__).absolute().parent / ('lzham_x64'+('.dll' if platform_name=='Windows' else '.so'))))
 
     _get_version = lib.lzham_get_version
     _get_version.argtypes = []
