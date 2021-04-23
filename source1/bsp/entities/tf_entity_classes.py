@@ -1,10 +1,12 @@
 
 def parse_source_value(value):
     if type(value) is str:
-        return float(value) if '.' in value else int(value)
+        value: str
+        if value.replace('.', '', 1).replace('-', '', 1).isdecimal():
+            return float(value) if '.' in value else int(value)
+        return 0
     else:
         return value
-
 
 def parse_int_vector(string):
     return [parse_source_value(val) for val in string.replace('  ', ' ').split(' ')]

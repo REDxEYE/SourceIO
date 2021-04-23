@@ -65,7 +65,7 @@ def _srgb2lin(s: float) -> float:
 class BaseEntityHandler:
     entity_lookup_table = base_entity_classes
 
-    pointlight_power_multiplier = 1
+    pointlight_power_multiplier = 1000
     spotlight_power_multiplier = 1
 
     def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
@@ -77,6 +77,25 @@ class BaseEntityHandler:
         self._entites = self._bsp.get_lump('LUMP_ENTITIES').entities
         self._handled_paths = []
         self._entity_by_name_cache = {}
+
+    def _handle_enity_with_model(self, entity, entity_raw: dict):
+        if hasattr(entity, 'model') and entity.model:
+            model_path = entity.model
+        else:
+            model_path = 'error.mdl'
+        obj = self._create_empty(self._get_entity_name(entity))
+        properties = {'prop_path': model_path,
+                      'type': entity.class_name,
+                      'scale': self.scale,
+                      'entity': entity_raw}
+        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
+                                         math.radians(entity.angles[0]),
+                                         math.radians(entity.angles[1]))))
+
+        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
+        self._set_entity_data(obj, properties)
+
+        return obj
 
     def _get_entity_by_name(self, name):
         if not self._entity_by_name_cache:
@@ -315,12 +334,12 @@ class BaseEntityHandler:
     def handle_entity(self, entity_data):
         entity_class = entity_data['classname']
         if hasattr(self, f'handle_{entity_class}') and entity_class in self.entity_lookup_table:
+            # try:
             entity_object = self._get_class(entity_class)
             entity_object.from_dict(entity_object, entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
-            # try:
             handler_function(entity_object, entity_data)
-            # except Exception as e:
+            # except ValueError as e:
             #     import traceback
             #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
             #     self.logger.error(traceback.format_exc())
@@ -421,7 +440,7 @@ class BaseEntityHandler:
     def handle_trigger_transition(self, entity: trigger_transition, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        self._set_location(mesh_object,parse_float_vector(entity_raw['origin']))
+        self._set_location(mesh_object, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('trigger_transition', mesh_object, 'triggers')
 
@@ -1031,10 +1050,29 @@ class BaseEntityHandler:
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('infodecal', obj)
 
+    def handle_prop_door_rotating(self, entity: prop_door_rotating, entity_raw: dict):
+        obj = self._handle_enity_with_model(entity, entity_raw)
+        self._put_into_collection('prop_door_rotating', obj, 'props')
+
     # META ENTITIES (no import required)
     def handle_keyframe_rope(self, entity: env_sun, entity_raw: dict):
         pass
 
     # TODO
+    def handle_info_particle_system(self, entity: info_particle_system, entity_raw: dict):
+        pass
+
+    def handle_point_hurt(self, entity: point_hurt, entity_raw: dict):
+        pass
+
+    def handle_env_fire(self, entity: env_fire, entity_raw: dict):
+        pass
+
+    def handle_env_physimpact(self, entity: env_physimpact, entity_raw: dict):
+        pass
+
+    def handle_env_explosion(self, entity: env_explosion, entity_raw: dict):
+        pass
+
     def handle_env_sprite(self, entity: env_sprite, entity_raw: dict):
         pass

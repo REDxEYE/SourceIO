@@ -9,25 +9,6 @@ from .halflife2_entity_classes import *
 class HalfLifeEntityHandler(BaseEntityHandler):
     entity_lookup_table = entity_class_handle
 
-    def _handle_enity_with_model(self, entity, entity_raw: dict):
-        if hasattr(entity, 'model') and entity.model:
-            model_path = entity.model
-        else:
-            model_path = 'error.mdl'
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': model_path,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
-
-        return obj
-
     def _handle_item(self, entity: Item, entity_raw: dict):
         return self._handle_enity_with_model(entity, entity_raw)
 
