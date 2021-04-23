@@ -3,9 +3,9 @@ import math
 import bpy
 from mathutils import Euler
 from .swarm_entity_classes import entity_class_handle as swarm_entity_handlers
-from SourceIO.utilities.math_utilities import HAMMER_UNIT_TO_METERS
-from SourceIO.source1.bsp.entities.base_entity_handler import BaseEntityHandler
-from SourceIO.source1.bsp.bsp_file import BSPFile
+from .....utilities.math_utilities import HAMMER_UNIT_TO_METERS
+from .....source1.bsp.entities.base_entity_handler import BaseEntityHandler
+from .....source1.bsp.bsp_file import BSPFile
 
 
 class SwarmEntityHandler(BaseEntityHandler):
