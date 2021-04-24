@@ -33,6 +33,9 @@ class MRPH(DATA):
         height = self.data['m_nHeight']
         encoding_type = self.data['m_nEncodingType']
         lookup_type = self.data['m_nLookupType']
+        if isinstance(encoding_type, tuple):
+            encoding_type = encoding_type[0].split('::')[-1]
+            lookup_type = lookup_type[0].split('::')[-1]
         assert lookup_type == 'LOOKUP_TYPE_VERTEX_ID', "Unknown lookup type"
         assert encoding_type == 'ENCODING_TYPE_OBJECT_SPACE', "Unknown encoding type"
         bundle_types = self.data['m_bundleTypes']

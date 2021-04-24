@@ -247,26 +247,31 @@ class ValveCompiledModel(ValveCompiledFile):
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
                 if morphs_available:
-                    if morph_block.data['m_nLookupType'] == 'LOOKUP_TYPE_VERTEX_ID' and \
-                            morph_block.data['m_nEncodingType'] == 'ENCODING_TYPE_OBJECT_SPACE':
+                    mesh_obj.shape_key_add(name='base')
+                    bundle_types = morph_block.data['m_bundleTypes']
+                    if bundle_types and isinstance(bundle_types[0], tuple):
+                        bundle_types = [b[0] for b in bundle_types]
+                    if 'MORPH_BUNDLE_TYPE_POSITION_SPEED' in bundle_types:
+                        bundle_id = bundle_types.index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                    elif 'BUNDLE_TYPE_POSITION_SPEED' in bundle_types:
+                        bundle_id = bundle_types.index('BUNDLE_TYPE_POSITION_SPEED')
+                    else:
+                        bundle_id = -1
+                    if bundle_id != -1:
+                        for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
+                            print(f"Importing {flex_name} {n + 1}/{len(morph_block.flex_data)}")
+                            if flex_name is None:
+                                continue
 
-                        mesh_obj.shape_key_add(name='base')
-                        bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
-                        if bundle_id != -1:
-                            for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
-                                print(f"Importing {flex_name} {n + 1}/{len(morph_block.flex_data)}")
-                                if flex_name is None:
-                                    continue
-
-                                shape = mesh_obj.shape_key_add(name=flex_name)
-                                vertices = np.zeros((len(mesh.vertices) * 3,), dtype=np.float32)
-                                mesh.vertices.foreach_get('co', vertices)
-                                vertices = vertices.reshape((-1, 3))
-                                pre_computed_data = np.add(
-                                    flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:,
-                                    :3],
-                                    vertices)
-                                shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
+                            shape = mesh_obj.shape_key_add(name=flex_name)
+                            vertices = np.zeros((len(mesh.vertices) * 3,), dtype=np.float32)
+                            mesh.vertices.foreach_get('co', vertices)
+                            vertices = vertices.reshape((-1, 3))
+                            pre_computed_data = np.add(
+                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:,
+                                :3],
+                                vertices)
+                            shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
 
                 global_vertex_offset += vertex_count
 
