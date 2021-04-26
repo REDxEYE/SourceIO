@@ -1,12 +1,12 @@
 import json
 import math
-from mathutils import Vector, Quaternion, Matrix
 import re
 from pathlib import Path
 from pprint import pprint
 from typing import Optional, List, Tuple, Dict, Any
 
 import bpy
+from mathutils import Vector, Quaternion, Matrix
 import numpy as np
 
 from .bsp_file import BSPFile, open_bsp
