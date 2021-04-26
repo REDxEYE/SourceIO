@@ -54,6 +54,7 @@ class Left4dead2EntityHandler(HalfLifeEntityHandler):
     def handle_trigger_auto_crouch(self, entity: trigger_auto_crouch, entity_raw: dict):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'trigger_auto_crouch_{entity.hammer_id}')
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('trigger_auto_crouch', mesh_object, 'brushes')
 
