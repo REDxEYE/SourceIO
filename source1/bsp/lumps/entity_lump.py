@@ -12,7 +12,7 @@ class EntityLump(Lump):
         self.entities = []
 
     def parse(self):
-        parser = KVParser('EntityLump', self.reader.read(-1).decode())
+        parser = KVParser('EntityLump', self.reader.read(-1).decode('latin'))
         entity = parser.parse_value()
         while entity is not None:
             self.entities.append(entity)
