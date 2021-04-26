@@ -18,10 +18,10 @@ def import_texture(name, file_object, update=False):
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
     image_width = vtf_lib.width()
     image_height = vtf_lib.height()
-    rgba_data = vtf_lib.convert_to_rgba8888()
-    rgba_data = vtf_lib.flip_image_external(rgba_data, image_width, image_height)
-
-    pixels = np.divide(rgba_data.contents, 255, dtype=np.float32)
+    image_byte_size = image_height * image_width * 4
+    rgba_data: np.ndarray = np.frombuffer(vtf_lib.convert_to_rgba8888().contents, dtype=np.uint8, count=image_byte_size)
+    rgba_data = rgba_data.reshape((image_height, image_width * 4))
+    pixels = np.divide(np.flipud(rgba_data), 255, dtype=np.float32).flatten()
     try:
         image = bpy.data.images.get(name, None) or bpy.data.images.new(
             name,
@@ -34,7 +34,7 @@ def import_texture(name, file_object, update=False):
         image.file_format = 'TARGA'
 
         if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(pixels.tolist())
+            image.pixels.foreach_set(pixels)
         else:
             image.pixels[:] = pixels.tolist()
         image.pack()
@@ -44,4 +44,3 @@ def import_texture(name, file_object, update=False):
     finally:
         del rgba_data
         vtf_lib.image_destroy()
-    return None
