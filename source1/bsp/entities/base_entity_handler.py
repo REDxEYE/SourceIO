@@ -28,32 +28,6 @@ class BaseEntityHandler(AbstractEntityHandler):
     pointlight_power_multiplier = 1000
     spotlight_power_multiplier = 1
 
-    def load_entities(self):
-        entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
-        for entity_data in entity_lump.entities:
-            if not self.handle_entity(entity_data):
-                pprint(entity_data)
-        bpy.context.view_layer.update()
-        # for entity_data in entity_lump.entities:
-        #     self.resolve_parents(entity_data)
-        pass
-
-    def handle_entity(self, entity_data):
-        entity_class = entity_data['classname']
-        if hasattr(self, f'handle_{entity_class}') and entity_class in self.entity_lookup_table:
-            # try:
-            entity_object = self._get_class(entity_class)
-            entity_object.from_dict(entity_object, entity_data)
-            handler_function = getattr(self, f'handle_{entity_class}')
-            handler_function(entity_object, entity_data)
-            # except ValueError as e:
-            #     import traceback
-            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
-            #     self.logger.error(traceback.format_exc())
-            #     return False
-            return True
-        return False
-
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:
             return
@@ -326,6 +300,9 @@ class BaseEntityHandler(AbstractEntityHandler):
         else:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
+        if entity._cone == 0:
+            entity._cone = 1
+
         light.color = color
         light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.spotlight_power_multiplier
         light.spot_size = 2 * math.radians(entity._cone)
@@ -335,7 +312,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('light_spot', obj)
+        self._put_into_collection('light_spot', obj, 'lights')
 
     def handle_light_environment(self, entity: light_environment, entity_raw: dict):
         light: bpy.types.SunLight = bpy.data.lights.new(f'{entity.class_name}_{entity.hammer_id}', 'SUN')
@@ -382,7 +359,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         bg_node.inputs['Color'].default_value = (color + [1])
         bg_node.inputs['Strength'].default_value = brightness
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('light_environment', obj)
+        self._put_into_collection('light_environment', obj, 'lights')
 
     def handle_light(self, entity: light, entity_raw: dict):
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
@@ -403,7 +380,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('light', obj)
+        self._put_into_collection('light', obj, 'lights')
 
     def handle_info_node_air(self, entity: info_node_air, entity_raw: dict):
         pass
@@ -456,21 +433,21 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('water_lod_control', obj)
+        self._put_into_collection('water_lod_control', obj, 'logic')
 
     def handle_filter_activator_class(self, entity: filter_activator_class, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('filter_activator_class', obj)
+        self._put_into_collection('filter_activator_class', obj, 'logic')
 
     def handle_filter_activator_name(self, entity: filter_activator_name, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('filter_activator_name', obj)
+        self._put_into_collection('filter_activator_name', obj, 'logic')
 
     def handle_logic_timer(self, entity: logic_timer, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -533,28 +510,35 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('info_target', obj)
+        self._put_into_collection('info_target', obj, 'logic')
 
     def handle_ambient_generic(self, entity: ambient_generic, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('ambient_generic', obj)
+        self._put_into_collection('ambient_generic', obj, 'environment')
 
     def handle_npc_template_maker(self, entity: npc_template_maker, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('npc_template_maker', obj)
+        self._put_into_collection('npc_template_maker', obj, "npc")
 
     def handle_point_template(self, entity: point_template, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('point_template', obj)
+        self._put_into_collection('point_template', obj, 'logic')
+
+    def handle_point_clientcommand(self, entity: point_clientcommand, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('point_clientcommand', obj, 'logic')
 
     def handle_info_player_start(self, entity: info_player_start, entity_raw: dict):
         obj = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', None)
@@ -562,14 +546,28 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_rotation(obj, entity.angles)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('info_player_start', obj)
+        self._put_into_collection('info_player_start', obj, 'logic')
 
     def handle_math_counter(self, entity: logic_relay, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, entity.origin)
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('math_counter', obj)
+        self._put_into_collection('math_counter', obj, 'logic')
+
+    def handle_color_correction(self, entity: color_correction, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('color_correction', obj, 'logic')
+
+    def handle_env_wind(self, entity: env_wind, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('env_wind', obj, 'environment')
 
     def handle_env_soundscape_proxy(self, entity: logic_relay, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)

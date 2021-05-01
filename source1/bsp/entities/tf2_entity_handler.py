@@ -79,7 +79,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_healthkit', obj)
+        self._put_into_collection('item_healthkit', obj, 'props')
 
     def handle_item_healthkit_medium(self, entity: item_healthkit_medium, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -93,7 +93,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_healthkit', obj)
+        self._put_into_collection('item_healthkit', obj, 'props')
 
     def handle_item_healthkit_small(self, entity: item_healthkit_small, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -107,7 +107,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_healthkit', obj)
+        self._put_into_collection('item_healthkit', obj, 'props')
 
     def handle_item_ammopack_medium(self, entity: item_ammopack_medium, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -121,7 +121,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_ammopack', obj)
+        self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_item_ammopack_full(self, entity: item_ammopack_full, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -135,7 +135,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_ammopack', obj)
+        self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_item_ammopack_small(self, entity: item_ammopack_small, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -149,7 +149,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_ammopack', obj)
+        self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_team_control_point(self, entity: team_control_point, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -163,7 +163,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('item_ammopack', obj)
+        self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_info_player_teamspawn(self, entity: info_player_teamspawn, entity_raw: dict):
         obj = self._create_empty(self._get_entity_name(entity))
@@ -177,7 +177,7 @@ class TF2EntityHandler(BaseEntityHandler):
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
         self._set_entity_data(obj, properties)
-        self._put_into_collection('info_player_teamspawn', obj)
+        self._put_into_collection('info_player_teamspawn', obj, 'logic')
 
     def handle_info_observer_point(self, entity: info_observer_point, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -185,4 +185,4 @@ class TF2EntityHandler(BaseEntityHandler):
         obj.location *= self.scale
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('info_observer_point', obj)
+        self._put_into_collection('info_observer_point', obj, 'logic')

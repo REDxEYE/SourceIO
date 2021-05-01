@@ -75,6 +75,32 @@ class AbstractEntityHandler:
         self._handled_paths = []
         self._entity_by_name_cache = {}
 
+    def load_entities(self):
+        entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
+        for entity_data in entity_lump.entities:
+            if not self.handle_entity(entity_data):
+                pprint(entity_data)
+        bpy.context.view_layer.update()
+        # for entity_data in entity_lump.entities:
+        #     self.resolve_parents(entity_data)
+        pass
+
+    def handle_entity(self, entity_data):
+        entity_class = entity_data['classname']
+        if hasattr(self, f'handle_{entity_class}') and entity_class in self.entity_lookup_table:
+            # try:
+            entity_object = self._get_class(entity_class)
+            entity_object.from_dict(entity_object, entity_data)
+            handler_function = getattr(self, f'handle_{entity_class}')
+            handler_function(entity_object, entity_data)
+            # except ValueError as e:
+            #     import traceback
+            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
+            #     self.logger.error(traceback.format_exc())
+            #     return False
+            return True
+        return False
+
     def _get_entity_by_name(self, name):
         if not self._entity_by_name_cache:
             self._entity_by_name_cache = {e['targetname']: e for e in self._entites if 'targetname' in e}
