@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fgdtools import FgdEntity, FgdParse, FgdEntityProperty, Fgd
+from valvefgd import FgdEntity, FgdParse, FgdEntityProperty, Fgd
 import os
 
 os.environ['NO_BPY'] = '1'
@@ -24,7 +24,11 @@ def collect_parents(parent: FgdEntity):
 
 def main():
     # fgd_path = r"F:\SteamLibrary\steamapps\common\Black Mesa\bin\bms.fgd"
-    fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\base.fgd"
+    # fgd_path = r"H:\SteamLibrary\SteamApps\common\Team Fortress 2\bin\base.fgd"
+    # fgd_path = r"D:\SteamLibrary\steamapps\common\Portal\bin\portal.fgd"
+    fgd_path = r"D:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\bin\csgo.fgd"
+    # fgd_path = r"H:\SteamLibrary\steamapps\common\Portal 2\bin\portal2.fgd"
+    # fgd_path = r"H:\SteamLibrary\SteamApps\common\Left 4 Dead 2\bin\left4dead2.fgd"
     # fgd_path = r"F:\SteamLibrary\steamapps\common\Half-Life 2\bin\halflife2.fgd"
     # fgd_path = r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\swarm.fgd"
     ContentManager().scan_for_content(fgd_path)
@@ -35,7 +39,10 @@ def main():
     buffer += """
 def parse_source_value(value):
     if type(value) is str:
-        return float(value) if '.' in value else int(value)
+        value: str
+        if value.replace('.', '', 1).replace('-', '', 1).isdecimal():
+            return float(value) if '.' in value else int(value)
+        return 0
     else:
         return value
 
