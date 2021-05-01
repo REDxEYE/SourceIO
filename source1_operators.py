@@ -71,6 +71,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
                 from . import bl_info
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
+        content_manager.flush_cache()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -106,7 +107,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         # bsp_map.load_detail_props()
         if self.import_textures:
             bsp_map.load_materials()
-
+        content_manager.flush_cache()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -180,6 +181,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
     override: BoolProperty(default=False, name='Override existing?')
 
     def execute(self, context):
+        content_manager = ContentManager()
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.absolute()
         else:
@@ -188,6 +190,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
             mat = Source1MaterialLoader((directory / file.name).open('rb'), Path(file.name).stem)
             if mat.create_material() == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
+        content_manager.flush_cache()
         return {'FINISHED'}
 
     def invoke(self, context, event):
