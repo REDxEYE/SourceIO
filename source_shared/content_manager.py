@@ -175,3 +175,7 @@ class ContentManager(metaclass=SingletonMeta):
             if fp_root == cp_root:
                 return content_provider
         return NonSourceContentProvider(filepath.parent)
+
+    def flush_cache(self):
+        for cp in self.content_providers.values():
+            cp.flush_cache()

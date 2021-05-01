@@ -12,9 +12,14 @@ class VPKContentProvider(ContentProviderBase):
         self.vpk_archive.read()
 
     def find_file(self, filepath: str):
+        cached_file = self.get_from_cache(filepath)
+        if cached_file:
+            return cached_file
+
         entry = self.vpk_archive.find_file(full_path=filepath)
         if entry:
-            return self.vpk_archive.read_file(entry)
+            file = self.vpk_archive.read_file(entry)
+            return self.cache_file(filepath, file)
 
     def find_path(self, filepath: str):
         entry = self.vpk_archive.find_file(full_path=filepath)
