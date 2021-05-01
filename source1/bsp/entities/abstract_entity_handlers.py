@@ -266,7 +266,7 @@ class AbstractEntityHandler:
         empty.empty_display_size = 16
         return empty
 
-    def _handle_enity_with_model(self, entity, entity_raw: dict):
+    def _handle_entity_with_model(self, entity, entity_raw: dict):
         if hasattr(entity, 'model') and entity.model:
             model_path = entity.model
         elif hasattr(entity, 'model_') and entity.model_:

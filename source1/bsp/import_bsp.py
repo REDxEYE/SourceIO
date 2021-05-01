@@ -11,13 +11,16 @@ import numpy as np
 
 from .bsp_file import BSPFile, open_bsp
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
+
 from .entities.base_entity_handler import BaseEntityHandler
+from .entities.csgo_entity_handlers import CSGOEntityHandler
 from .entities.halflife2_entity_handler import HalfLifeEntityHandler
 from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
 from .entities.portal_entity_handlers import PortalEntityHandler
 from .entities.portal2_entity_handlers import Portal2EntityHandler
 from .entities.tf2_entity_handler import TF2EntityHandler
 from .entities.titanfall_entity_handler import TitanfallEntityHandler
+
 from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
@@ -25,8 +28,6 @@ from .lumps.overlay_lump import OverlayLump
 from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
-from .lumps.mesh_lump import MeshLump
-from .lumps.lightmap_header_lump import LightmapHeadersLump
 from .lumps.pak_lump import PakLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
@@ -72,8 +73,10 @@ class BSP:
         provider = content_manager.get_content_provider_from_path(self.filepath)
         if provider.steam_id == 440:
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 1840:
+        elif provider.steam_id == 1840:  # SFM
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 730:  # CS:GO
+            self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 550:
             self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 620 and self.map_file.version == 29:  # Titanfall

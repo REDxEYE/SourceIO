@@ -54,9 +54,9 @@ class PortalEntityHandler(HalfLifeEntityHandler):
         self._put_into_collection('trigger_portal_cleanser', mesh_object, 'triggers')
 
     def handle_npc_security_camera(self, entity: npc_security_camera, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('npc_security_camera', obj, 'npc')
 
     def handle_prop_portal(self, entity: prop_portal, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('npc_security_camera', obj, 'props')

@@ -123,17 +123,17 @@ class Portal2EntityHandler(PortalEntityHandler):
         self._put_into_collection('trigger_catapult', mesh_object, 'triggers')
 
     def handle_npc_wheatley_boss(self, entity: npc_wheatley_boss, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('npc_wheatley_boss', obj, 'npc')
 
     def handle_prop_exploding_futbol(self, entity: prop_exploding_futbol, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_exploding_futbol', obj, 'props')
 
     def handle_prop_exploding_futbol_socket(self, entity: prop_exploding_futbol_socket, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_exploding_futbol', obj, 'props')
 
     def handle_prop_exploding_futbol_spawnert(self, entity: prop_exploding_futbol_spawner, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_exploding_futbol_spawner', obj, 'props')

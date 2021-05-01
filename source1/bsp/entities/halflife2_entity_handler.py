@@ -13,13 +13,13 @@ class HalfLifeEntityHandler(BaseEntityHandler):
     entity_lookup_table = local_entity_lookup_table
 
     def _handle_item(self, entity: Item, entity_raw: dict):
-        return self._handle_enity_with_model(entity, entity_raw)
+        return self._handle_entity_with_model(entity, entity_raw)
 
     def _handle_weapon(self, entity: Weapon, entity_raw: dict):
-        return self._handle_enity_with_model(entity, entity_raw)
+        return self._handle_entity_with_model(entity, entity_raw)
 
     def _handle_npc(self, entity: BaseNPC, entity_raw: dict):
-        return self._handle_enity_with_model(entity, entity_raw)
+        return self._handle_entity_with_model(entity, entity_raw)
 
     def handle_logic_choreographed_scene(self, entity: logic_choreographed_scene, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -36,23 +36,23 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('scripted_sequence', obj)
 
     def handle_prop_vehicle_airboat(self, entity: prop_vehicle_airboat, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_vehicle_airboat', obj, 'props')
 
     def handle_prop_vehicle_apc(self, entity: prop_vehicle_apc, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_vehicle_apc', obj, 'props')
 
     def handle_prop_vehicle_prisoner_pod(self, entity: prop_vehicle_prisoner_pod, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_vehicle_prisoner_pod', obj, 'props')
 
     def handle_prop_vehicle_choreo_generic(self, entity: prop_vehicle_choreo_generic, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_vehicle_choreo_generic', obj, 'props')
 
     def handle_prop_coreball(self, entity: prop_coreball, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_coreball', obj, 'props')
 
     def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
@@ -128,19 +128,19 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('item_suit', obj)
 
     def handle_item_ammo_crate(self, entity: item_ammo_crate, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_ammo_crate', obj)
 
     def handle_item_item_crate(self, entity: item_item_crate, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_item_crate', obj)
 
     def handle_item_healthcharger(self, entity: item_healthcharger, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_healthcharger', obj)
 
     def handle_item_suitcharger(self, entity: item_suitcharger, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_suitcharger', obj)
 
     def handle_weapon_crowbar(self, entity: weapon_crowbar, entity_raw: dict):
@@ -200,7 +200,7 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('weapon_annabelle', obj)
 
     def handle_weapon_striderbuster(self, entity: weapon_striderbuster, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('weapon_striderbuster', obj)
 
     def handle_npc_blob(self, entity: npc_blob, entity_raw: dict):
@@ -228,11 +228,11 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('npc_turret_ground', obj)
 
     def handle_npc_turret_ceiling(self, entity: npc_turret_ceiling, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('npc_turret_ceiling', obj)
 
     def handle_npc_turret_floor(self, entity: npc_turret_floor, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('npc_turret_floor', obj)
 
     def handle_npc_vehicledriver(self, entity: npc_vehicledriver, entity_raw: dict):
@@ -436,23 +436,23 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('npc_cscanner', obj)
 
     def handle_npc_antlion_grub(self, entity: npc_antlion_grub, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('npc_antlion_grub', obj)
 
     def handle_grenade_helicopter(self, entity: grenade_helicopter, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('grenade_helicopter', obj)
 
     def handle_combine_mine(self, entity: combine_mine, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('combine_mine', obj)
 
     def handle_info_target_helicopter_crash(self, entity: info_target_helicopter_crash, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('info_target_helicopter_crash', obj)
 
     def handle_info_target_gunshipcrash(self, entity: info_target_gunshipcrash, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('info_target_gunshipcrash', obj)
 
     def handle_ai_relationship(self, entity: ai_relationship, entity_raw: dict):
@@ -523,5 +523,5 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('func_monitor', mesh_object, 'brushes')
 
     def handle_generic_actor(self, entity: generic_actor, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('generic_actor', obj, 'props')

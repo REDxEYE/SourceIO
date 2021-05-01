@@ -288,27 +288,27 @@ class BaseEntityHandler(AbstractEntityHandler):
         self.parent_collection.objects.link(world)
 
     def handle_prop_dynamic(self, entity: prop_dynamic, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_dynamic', obj, 'props')
 
     def handle_prop_ragdoll(self, entity: prop_ragdoll, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_ragdoll', obj, 'props')
 
     def handle_prop_dynamic_override(self, entity: prop_dynamic_override, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_dynamic_override', obj, 'props')
 
     def handle_prop_physics_override(self, entity: prop_physics_override, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_physics_override', obj, 'props')
 
     def handle_prop_physics(self, entity: prop_physics_override, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_physics', obj, 'props')
 
     def handle_prop_physics_multiplayer(self, entity: prop_physics_multiplayer, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_physics', obj, 'props')
 
     # def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
@@ -720,7 +720,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('infodecal', obj)
 
     def handle_prop_door_rotating(self, entity: prop_door_rotating, entity_raw: dict):
-        obj = self._handle_enity_with_model(entity, entity_raw)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_door_rotating', obj, 'props')
 
     # BOGUS ENTITIES
