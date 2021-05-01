@@ -1,0 +1,1 @@
+from . import goldsrc_shader
