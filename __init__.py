@@ -85,6 +85,7 @@ if not NO_BPY:
                             icon_value=crowbar_icon.icon_id)
             layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
+            layout.separator()
             layout.menu(SourceIOUtils_MT_Menu.bl_idname)
 
 
