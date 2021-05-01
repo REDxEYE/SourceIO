@@ -5,9 +5,12 @@ import bpy
 from .base_entity_handler import BaseEntityHandler
 from .halflife2_entity_classes import *
 
+local_entity_lookup_table = BaseEntityHandler.entity_lookup_table.copy()
+local_entity_lookup_table.update(entity_class_handle)
+
 
 class HalfLifeEntityHandler(BaseEntityHandler):
-    entity_lookup_table = entity_class_handle
+    entity_lookup_table = local_entity_lookup_table
 
     def _handle_item(self, entity: Item, entity_raw: dict):
         return self._handle_enity_with_model(entity, entity_raw)
@@ -17,6 +20,20 @@ class HalfLifeEntityHandler(BaseEntityHandler):
 
     def _handle_npc(self, entity: BaseNPC, entity_raw: dict):
         return self._handle_enity_with_model(entity, entity_raw)
+
+    def handle_logic_choreographed_scene(self, entity: logic_choreographed_scene, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('logic_choreographed_scene', obj, 'logic')
+
+    def handle_scripted_sequence(self, entity: scripted_sequence, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, entity.origin)
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('scripted_sequence', obj)
 
     def handle_prop_vehicle_airboat(self, entity: prop_vehicle_airboat, entity_raw: dict):
         obj = self._handle_enity_with_model(entity, entity_raw)
@@ -496,6 +513,8 @@ class HalfLifeEntityHandler(BaseEntityHandler):
         self._put_into_collection('path_corner', obj)
 
     def handle_func_monitor(self, entity: func_monitor, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         mesh_object.location = entity.origin

@@ -933,7 +933,7 @@ class env_dof_controller(Targetname):
 
 
 class env_lightglow(Parentname, Angles, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
 
     def __init__(self):
         super(Parentname).__init__()
@@ -1264,7 +1264,7 @@ class vgui_screen(vgui_screen_base):
 
 
 class vgui_slideshow_display(Targetname, Angles, Parentname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2381,7 +2381,7 @@ class point_message(Targetname, Parentname):
 
 
 class point_spotlight(Targetname, RenderFields, Angles, Parentname):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
 
     def __init__(self):
         super(RenderFields).__init__()
@@ -2536,7 +2536,7 @@ class game_zone_player(Targetname, Parentname):
 
 
 class infodecal(Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2555,7 +2555,7 @@ class infodecal(Targetname):
 
 
 class info_projecteddecal(Targetname, Angles):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2587,7 +2587,7 @@ class info_no_dynamic_shadow(Base):
 
 
 class info_player_start(Angles, PlayerClass):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
 
     def __init__(self):
         super(Angles).__init__()
@@ -2602,7 +2602,7 @@ class info_player_start(Angles, PlayerClass):
 
 
 class info_overlay(Targetname, SystemLevelChoice):
-    model = "models/editor/overlay_helper.mdl"
+    model_ = "models/editor/overlay_helper.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2736,7 +2736,7 @@ class info_target(Targetname, Angles, Parentname):
 
 
 class info_particle_target(Targetname, Angles, Parentname):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2753,7 +2753,7 @@ class info_particle_target(Targetname, Angles, Parentname):
 
 
 class info_particle_system(Targetname, Angles, Parentname):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2956,7 +2956,7 @@ class info_lighting(Targetname):
 
 
 class info_teleport_destination(Targetname, Angles, Parentname, PlayerClass):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -2975,7 +2975,7 @@ class info_teleport_destination(Targetname, Angles, Parentname, PlayerClass):
 
 
 class info_node(Node):
-    model = "models/editor/ground_node.mdl"
+    model_ = "models/editor/ground_node.mdl"
 
     def __init__(self):
         super(Node).__init__()
@@ -2988,7 +2988,7 @@ class info_node(Node):
 
 
 class info_node_hint(Targetname, HintNode, Angles):
-    model = "models/editor/ground_node_hint.mdl"
+    model_ = "models/editor/ground_node_hint.mdl"
 
     def __init__(self):
         super(HintNode).__init__()
@@ -3005,7 +3005,7 @@ class info_node_hint(Targetname, HintNode, Angles):
 
 
 class info_node_air(Node):
-    model = "models/editor/air_node.mdl"
+    model_ = "models/editor/air_node.mdl"
 
     def __init__(self):
         super(Node).__init__()
@@ -3020,7 +3020,7 @@ class info_node_air(Node):
 
 
 class info_node_air_hint(Targetname, HintNode, Angles):
-    model = "models/editor/air_node_hint.mdl"
+    model_ = "models/editor/air_node_hint.mdl"
 
     def __init__(self):
         super(HintNode).__init__()
@@ -3039,7 +3039,7 @@ class info_node_air_hint(Targetname, HintNode, Angles):
 
 
 class info_hint(Targetname, HintNode, Angles):
-    model = "models/editor/node_hint.mdl"
+    model_ = "models/editor/node_hint.mdl"
 
     def __init__(self):
         super(HintNode).__init__()
@@ -3117,7 +3117,7 @@ class info_radial_link_controller(Targetname, Parentname):
 
 
 class info_node_climb(Targetname, HintNode, Angles):
-    model = "models/editor/climb_node.mdl"
+    model_ = "models/editor/climb_node.mdl"
 
     def __init__(self):
         super(HintNode).__init__()
@@ -3564,7 +3564,7 @@ class RopeKeyFrame(SystemLevelChoice):
 
 
 class keyframe_rope(Targetname, RopeKeyFrame, KeyFrame, Parentname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
 
     def __init__(self):
         super(RopeKeyFrame).__init__()
@@ -3581,7 +3581,7 @@ class keyframe_rope(Targetname, RopeKeyFrame, KeyFrame, Parentname):
 
 
 class move_rope(Targetname, RopeKeyFrame, KeyFrame, Parentname):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
 
     def __init__(self):
         super(RopeKeyFrame).__init__()
@@ -5141,7 +5141,7 @@ class phys_ballsocket(TwoObjectPhysics):
 
 
 class phys_constraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
 
     def __init__(self):
         super(TwoObjectPhysics).__init__()
@@ -5154,7 +5154,7 @@ class phys_constraint(TwoObjectPhysics):
 
 
 class phys_pulleyconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
 
     def __init__(self):
         super(TwoObjectPhysics).__init__()
@@ -5173,7 +5173,7 @@ class phys_pulleyconstraint(TwoObjectPhysics):
 
 
 class phys_slideconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
 
     def __init__(self):
         super(TwoObjectPhysics).__init__()
@@ -5212,7 +5212,7 @@ class phys_slideconstraint(TwoObjectPhysics):
 
 
 class phys_lengthconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
 
     def __init__(self):
         super(TwoObjectPhysics).__init__()
@@ -5232,7 +5232,7 @@ class phys_lengthconstraint(TwoObjectPhysics):
 
 
 class phys_ragdollconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
 
     def __init__(self):
         super(TwoObjectPhysics).__init__()
@@ -6886,7 +6886,7 @@ class info_item_position(Targetname, Angles, Parentname):
 
 
 class info_l4d1_survivor_spawn(Targetname):
-    model = "models/survivors/survivor_biker.mdl"
+    model_ = "models/survivors/survivor_biker.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -7486,7 +7486,7 @@ class prop_health_cabinet(EnableDisable, prop_dynamic_base):
 
 
 class info_survivor_position(Targetname, Angles, Parentname):
-    model = "models/survivors/survivor_coach.mdl"
+    model_ = "models/survivors/survivor_coach.mdl"
 
     def __init__(self):
         super(Targetname).__init__()
@@ -7515,7 +7515,7 @@ class info_survivor_position(Targetname, Angles, Parentname):
 
 
 class info_survivor_rescue(Targetname, Angles, PlayerClass):
-    model = "models/survivors/survivor_coach.mdl"
+    model_ = "models/survivors/survivor_coach.mdl"
 
     def __init__(self):
         super(Targetname).__init__()

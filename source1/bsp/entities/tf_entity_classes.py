@@ -838,7 +838,7 @@ class game_gib_manager(Targetname):
 
 
 class env_lightglow(Angles, Parentname, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(Parentname).__init__()
@@ -1129,7 +1129,7 @@ class vgui_screen(vgui_screen_base):
 
 
 class vgui_slideshow_display(Parentname, Angles, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -2159,7 +2159,7 @@ class point_message(Parentname, Targetname):
 
 
 class point_spotlight(DXLevelChoice, Angles, RenderFields, Targetname, Parentname):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
     def __init__(self):
         super(RenderFields).__init__()
         super(DXLevelChoice).__init__()
@@ -2287,7 +2287,7 @@ class game_zone_player(Parentname, Targetname):
 
 
 class infodecal(Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2303,7 +2303,7 @@ class infodecal(Targetname):
 
 
 class info_projecteddecal(Angles, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(Targetname).__init__()
@@ -2334,7 +2334,7 @@ class info_no_dynamic_shadow(Base):
 
 
 class info_player_start(Angles, PlayerClass):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(PlayerClass).__init__()
@@ -2348,7 +2348,7 @@ class info_player_start(Angles, PlayerClass):
 
 
 class info_overlay(Targetname):
-    model = "models/editor/overlay_helper.mdl"
+    model_ = "models/editor/overlay_helper.mdl"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2477,7 +2477,7 @@ class info_target(Parentname, Angles, Targetname):
 
 
 class info_particle_system(Parentname, Angles, Targetname):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -2677,7 +2677,7 @@ class info_lighting(Targetname):
 
 
 class info_teleport_destination(Parentname, Angles, Targetname, PlayerClass):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -2695,7 +2695,7 @@ class info_teleport_destination(Parentname, Angles, Targetname, PlayerClass):
 
 
 class info_node(Node):
-    model = "models/editor/ground_node.mdl"
+    model_ = "models/editor/ground_node.mdl"
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -2707,7 +2707,7 @@ class info_node(Node):
 
 
 class info_node_hint(HintNode, Angles, Targetname):
-    model = "models/editor/ground_node_hint.mdl"
+    model_ = "models/editor/ground_node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2723,7 +2723,7 @@ class info_node_hint(HintNode, Angles, Targetname):
 
 
 class info_node_air(Node):
-    model = "models/editor/air_node.mdl"
+    model_ = "models/editor/air_node.mdl"
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -2737,7 +2737,7 @@ class info_node_air(Node):
 
 
 class info_node_air_hint(HintNode, Angles, Targetname):
-    model = "models/editor/air_node_hint.mdl"
+    model_ = "models/editor/air_node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2755,7 +2755,7 @@ class info_node_air_hint(HintNode, Angles, Targetname):
 
 
 class info_hint(HintNode, Angles, Targetname):
-    model = "models/editor/node_hint.mdl"
+    model_ = "models/editor/node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2832,7 +2832,7 @@ class info_radial_link_controller(Parentname, Targetname):
 
 
 class info_node_climb(HintNode, Angles, Targetname):
-    model = "models/editor/climb_node.mdl"
+    model_ = "models/editor/climb_node.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -3246,7 +3246,7 @@ class RopeKeyFrame(DXLevelChoice):
 
 
 class keyframe_rope(Parentname, Targetname, KeyFrame, RopeKeyFrame):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Parentname).__init__()
@@ -3262,7 +3262,7 @@ class keyframe_rope(Parentname, Targetname, KeyFrame, RopeKeyFrame):
 
 
 class move_rope(Parentname, Targetname, KeyFrame, RopeKeyFrame):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Parentname).__init__()
@@ -4686,7 +4686,7 @@ class phys_ballsocket(TwoObjectPhysics):
 
 
 class phys_constraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4698,7 +4698,7 @@ class phys_constraint(TwoObjectPhysics):
 
 
 class phys_pulleyconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4716,7 +4716,7 @@ class phys_pulleyconstraint(TwoObjectPhysics):
 
 
 class phys_slideconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4754,7 +4754,7 @@ class phys_slideconstraint(TwoObjectPhysics):
 
 
 class phys_lengthconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -4772,7 +4772,7 @@ class phys_lengthconstraint(TwoObjectPhysics):
 
 
 class phys_ragdollconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -6289,7 +6289,7 @@ class tf_gamerules(Targetname):
 
 
 class info_player_teamspawn(EnableDisable, TeamNum, Angles, MatchSummary, Targetname):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
     def __init__(self):
         super(EnableDisable).__init__()
         super(TeamNum).__init__()
@@ -6328,7 +6328,7 @@ class game_forcerespawn(Targetname):
 
 
 class item_teamflag(EnableDisable, TeamNum, Angles, GameType, Targetname, Parentname):
-    model = "models/flag/briefcase.mdl"
+    model_ = "models/flag/briefcase.mdl"
     def __init__(self):
         super(EnableDisable).__init__()
         super(TeamNum).__init__()
@@ -6486,7 +6486,7 @@ class Item(EnableDisable, TeamNum, Toggle, Angles, FadeDistance, PlayerTouch, Ta
 
 
 class item_healthkit_full(Item):
-    model = "models/items/medkit_large.mdl"
+    model_ = "models/items/medkit_large.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6498,7 +6498,7 @@ class item_healthkit_full(Item):
 
 
 class item_healthkit_small(Item):
-    model = "models/items/medkit_small.mdl"
+    model_ = "models/items/medkit_small.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6510,7 +6510,7 @@ class item_healthkit_small(Item):
 
 
 class item_healthkit_medium(Item):
-    model = "models/items/medkit_medium.mdl"
+    model_ = "models/items/medkit_medium.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6522,7 +6522,7 @@ class item_healthkit_medium(Item):
 
 
 class item_ammopack_full(Item):
-    model = "models/items/ammopack_large.mdl"
+    model_ = "models/items/ammopack_large.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6534,7 +6534,7 @@ class item_ammopack_full(Item):
 
 
 class item_ammopack_small(Item):
-    model = "models/items/ammopack_small.mdl"
+    model_ = "models/items/ammopack_small.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6546,7 +6546,7 @@ class item_ammopack_small(Item):
 
 
 class item_ammopack_medium(Item):
-    model = "models/items/ammopack_medium.mdl"
+    model_ = "models/items/ammopack_medium.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6558,7 +6558,7 @@ class item_ammopack_medium(Item):
 
 
 class tf_spell_pickup(Item):
-    model = "models/props_halloween/hwn_spellbook_flying.mdl"
+    model_ = "models/props_halloween/hwn_spellbook_flying.mdl"
     def __init__(self):
         super(Item).__init__()
         self.origin = [0, 0, 0]
@@ -6572,7 +6572,7 @@ class tf_spell_pickup(Item):
 
 
 class item_bonuspack(EnableDisable, TeamNum, Toggle, Angles, FadeDistance, PlayerTouch, Targetname):
-    model = "models/crafting/moustachium.mdl"
+    model_ = "models/crafting/moustachium.mdl"
     def __init__(self):
         super(EnableDisable).__init__()
         super(TeamNum).__init__()
@@ -6598,7 +6598,7 @@ class item_bonuspack(EnableDisable, TeamNum, Toggle, Angles, FadeDistance, Playe
 
 
 class tf_halloween_pickup(Item, Parentname):
-    model = "models/items/target_duck.mdl"
+    model_ = "models/items/target_duck.mdl"
     def __init__(self):
         super(Item).__init__()
         super(Parentname).__init__()
@@ -6616,7 +6616,7 @@ class tf_halloween_pickup(Item, Parentname):
 
 
 class info_powerup_spawn(EnableDisable, Targetname):
-    model = "models/pickups/pickup_powerup_regen.mdl"
+    model_ = "models/pickups/pickup_powerup_regen.mdl"
     def __init__(self):
         super(EnableDisable).__init__()
         super(Targetname).__init__()
@@ -6632,7 +6632,7 @@ class info_powerup_spawn(EnableDisable, Targetname):
 
 
 class item_powerup_crit(EnableDisable, Targetname):
-    model = "models/pickups/pickup_powerup_crit.mdl"
+    model_ = "models/pickups/pickup_powerup_crit.mdl"
     def __init__(self):
         super(EnableDisable).__init__()
         super(Targetname).__init__()

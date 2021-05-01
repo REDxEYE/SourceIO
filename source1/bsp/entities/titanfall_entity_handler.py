@@ -222,6 +222,8 @@ class TitanfallEntityHandler(BaseEntityHandler):
         pass
 
     def handle_trigger_indoor_area(self, entity: trigger_indoor_area, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         world = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(world, {'entity': entity_raw})
@@ -229,6 +231,8 @@ class TitanfallEntityHandler(BaseEntityHandler):
         self._put_into_collection('trigger_indoor_area', world, 'triggers')
 
     def handle_trigger_capture_point(self, entity: trigger_capture_point, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         obj = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(obj, {'entity': entity_raw})
@@ -236,6 +240,8 @@ class TitanfallEntityHandler(BaseEntityHandler):
         self._put_into_collection('trigger_capture_point', obj, 'triggers')
 
     def handle_trigger_out_of_bounds(self, entity: trigger_out_of_bounds, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         obj = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(obj, {'entity': entity_raw})
@@ -243,6 +249,8 @@ class TitanfallEntityHandler(BaseEntityHandler):
         self._put_into_collection('trigger_out_of_bounds', obj, 'triggers')
 
     def handle_trigger_soundscape(self, entity: trigger_soundscape, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         obj = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(obj, {'entity': entity_raw})

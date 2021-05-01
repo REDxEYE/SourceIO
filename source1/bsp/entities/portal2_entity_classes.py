@@ -944,7 +944,7 @@ class env_dof_controller(Targetname):
 
 
 class env_lightglow(Parentname, Angles, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -1192,7 +1192,7 @@ class vgui_screen(vgui_screen_base):
 
 
 class vgui_slideshow_display(Targetname, Angles, Parentname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()
@@ -1224,7 +1224,7 @@ class vgui_slideshow_display(Targetname, Angles, Parentname):
 
 
 class vgui_movie_display(Targetname, Angles, Parentname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()

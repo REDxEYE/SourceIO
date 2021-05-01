@@ -863,7 +863,7 @@ class game_gib_manager(Targetname):
 
 
 class env_lightglow(Parentname, Angles, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -1170,7 +1170,7 @@ class vgui_screen(vgui_screen_base):
 
 
 class vgui_slideshow_display(Angles, Targetname, Parentname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(Targetname).__init__()
@@ -2212,7 +2212,7 @@ class point_message(Parentname, Targetname):
 
 
 class point_spotlight(RenderFields, Targetname, Parentname, Angles, DXLevelChoice):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
     def __init__(self):
         super(RenderFields).__init__()
         super(Targetname).__init__()
@@ -2338,7 +2338,7 @@ class game_zone_player(Parentname, Targetname):
 
 
 class infodecal(Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2354,7 +2354,7 @@ class infodecal(Targetname):
 
 
 class info_projecteddecal(Angles, Targetname):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(Targetname).__init__()
@@ -2385,7 +2385,7 @@ class info_no_dynamic_shadow(Base):
 
 
 class info_player_start(Angles, PlayerClass):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(PlayerClass).__init__()
@@ -2399,7 +2399,7 @@ class info_player_start(Angles, PlayerClass):
 
 
 class info_overlay(Targetname):
-    model = "models/editor/overlay_helper.mdl"
+    model_ = "models/editor/overlay_helper.mdl"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -2528,7 +2528,7 @@ class info_target(Parentname, Angles, Targetname):
 
 
 class info_particle_system(Parentname, Angles, Targetname):
-    model = "models/editor/cone_helper.mdl"
+    model_ = "models/editor/cone_helper.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -2730,7 +2730,7 @@ class info_lighting(Targetname):
 
 
 class info_teleport_destination(Parentname, Angles, Targetname, PlayerClass):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
     def __init__(self):
         super(Parentname).__init__()
         super(Angles).__init__()
@@ -2748,7 +2748,7 @@ class info_teleport_destination(Parentname, Angles, Targetname, PlayerClass):
 
 
 class info_node(Node):
-    model = "models/editor/ground_node.mdl"
+    model_ = "models/editor/ground_node.mdl"
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -2760,7 +2760,7 @@ class info_node(Node):
 
 
 class info_node_hint(Angles, HintNode, Targetname):
-    model = "models/editor/ground_node_hint.mdl"
+    model_ = "models/editor/ground_node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2776,7 +2776,7 @@ class info_node_hint(Angles, HintNode, Targetname):
 
 
 class info_node_air(Node):
-    model = "models/editor/air_node.mdl"
+    model_ = "models/editor/air_node.mdl"
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -2790,7 +2790,7 @@ class info_node_air(Node):
 
 
 class info_node_air_hint(Angles, HintNode, Targetname):
-    model = "models/editor/air_node_hint.mdl"
+    model_ = "models/editor/air_node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2808,7 +2808,7 @@ class info_node_air_hint(Angles, HintNode, Targetname):
 
 
 class info_hint(Angles, HintNode, Targetname):
-    model = "models/editor/node_hint.mdl"
+    model_ = "models/editor/node_hint.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -2885,7 +2885,7 @@ class info_radial_link_controller(Parentname, Targetname):
 
 
 class info_node_climb(Angles, HintNode, Targetname):
-    model = "models/editor/climb_node.mdl"
+    model_ = "models/editor/climb_node.mdl"
     def __init__(self):
         super(HintNode).__init__()
         super(Angles).__init__()
@@ -3927,7 +3927,7 @@ class RopeKeyFrame(DXLevelChoice):
 
 
 class keyframe_rope(Parentname, KeyFrame, Targetname, RopeKeyFrame):
-    model = "models/editor/axis_helper_thick.mdl"
+    model_ = "models/editor/axis_helper_thick.mdl"
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Parentname).__init__()
@@ -3943,7 +3943,7 @@ class keyframe_rope(Parentname, KeyFrame, Targetname, RopeKeyFrame):
 
 
 class move_rope(Parentname, KeyFrame, Targetname, RopeKeyFrame):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(RopeKeyFrame).__init__()
         super(Parentname).__init__()
@@ -5389,7 +5389,7 @@ class phys_ballsocket(TwoObjectPhysics):
 
 
 class phys_constraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -5401,7 +5401,7 @@ class phys_constraint(TwoObjectPhysics):
 
 
 class phys_pulleyconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -5419,7 +5419,7 @@ class phys_pulleyconstraint(TwoObjectPhysics):
 
 
 class phys_slideconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -5457,7 +5457,7 @@ class phys_slideconstraint(TwoObjectPhysics):
 
 
 class phys_lengthconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -5475,7 +5475,7 @@ class phys_lengthconstraint(TwoObjectPhysics):
 
 
 class phys_ragdollconstraint(TwoObjectPhysics):
-    model = "models/editor/axis_helper.mdl"
+    model_ = "models/editor/axis_helper.mdl"
     def __init__(self):
         super(TwoObjectPhysics).__init__()
         self.origin = [0, 0, 0]
@@ -7024,7 +7024,7 @@ class trigger_weapon_strip(Trigger):
 
 
 class npc_crow(BaseNPC):
-    model = "models/crow.mdl"
+    model_ = "models/crow.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.deaf = None  # Type: choices
@@ -7036,7 +7036,7 @@ class npc_crow(BaseNPC):
 
 
 class npc_seagull(BaseNPC):
-    model = "models/seagull.mdl"
+    model_ = "models/seagull.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.deaf = None  # Type: choices
@@ -7048,7 +7048,7 @@ class npc_seagull(BaseNPC):
 
 
 class npc_pigeon(BaseNPC):
-    model = "models/pigeon.mdl"
+    model_ = "models/pigeon.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.deaf = None  # Type: choices
@@ -7587,7 +7587,7 @@ class BaseCharger(Angles, BaseFadeProp, Targetname):
 
 
 class item_healthcharger(BaseCharger):
-    model = "models/props_blackmesa/health_charger.mdl"
+    model_ = "models/props_blackmesa/health_charger.mdl"
     def __init__(self):
         super(BaseCharger).__init__()
         self.origin = [0, 0, 0]
@@ -7603,7 +7603,7 @@ class item_healthcharger(BaseCharger):
 
 
 class item_suitcharger(BaseCharger):
-    model = "models/props_blackmesa/hev_charger.mdl"
+    model_ = "models/props_blackmesa/hev_charger.mdl"
     def __init__(self):
         super(BaseCharger).__init__()
         self.origin = [0, 0, 0]
@@ -7636,7 +7636,7 @@ class BasePickup(Angles, BaseFadeProp, Shadow, Targetname):
 
 
 class item_weapon_357(BasePickup):
-    model = "models/weapons/w_357.mdl"
+    model_ = "models/weapons/w_357.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7648,7 +7648,7 @@ class item_weapon_357(BasePickup):
 
 
 class item_weapon_crowbar(BasePickup):
-    model = "models/weapons/w_crowbar.mdl"
+    model_ = "models/weapons/w_crowbar.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7660,7 +7660,7 @@ class item_weapon_crowbar(BasePickup):
 
 
 class item_weapon_crossbow(BasePickup):
-    model = "models/weapons/w_crossbow.mdl"
+    model_ = "models/weapons/w_crossbow.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7672,7 +7672,7 @@ class item_weapon_crossbow(BasePickup):
 
 
 class item_weapon_frag(BasePickup):
-    model = "models/weapons/w_grenade.mdl"
+    model_ = "models/weapons/w_grenade.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7684,7 +7684,7 @@ class item_weapon_frag(BasePickup):
 
 
 class item_weapon_glock(BasePickup):
-    model = "models/weapons/w_glock.mdl"
+    model_ = "models/weapons/w_glock.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7696,7 +7696,7 @@ class item_weapon_glock(BasePickup):
 
 
 class item_weapon_gluon(BasePickup):
-    model = "models/weapons/w_egon_pickup.mdl"
+    model_ = "models/weapons/w_egon_pickup.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7708,7 +7708,7 @@ class item_weapon_gluon(BasePickup):
 
 
 class item_weapon_hivehand(BasePickup):
-    model = "models/weapons/w_hgun.mdl"
+    model_ = "models/weapons/w_hgun.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7720,7 +7720,7 @@ class item_weapon_hivehand(BasePickup):
 
 
 class item_weapon_mp5(BasePickup):
-    model = "models/weapons/w_mp5.mdl"
+    model_ = "models/weapons/w_mp5.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7732,7 +7732,7 @@ class item_weapon_mp5(BasePickup):
 
 
 class item_weapon_shotgun(BasePickup):
-    model = "models/weapons/w_shotgun.mdl"
+    model_ = "models/weapons/w_shotgun.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7744,7 +7744,7 @@ class item_weapon_shotgun(BasePickup):
 
 
 class item_weapon_rpg(BasePickup):
-    model = "models/weapons/w_rpg.mdl"
+    model_ = "models/weapons/w_rpg.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7756,7 +7756,7 @@ class item_weapon_rpg(BasePickup):
 
 
 class item_weapon_satchel(BasePickup):
-    model = "models/weapons/w_satchel.mdl"
+    model_ = "models/weapons/w_satchel.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7768,7 +7768,7 @@ class item_weapon_satchel(BasePickup):
 
 
 class item_weapon_snark(BasePickup):
-    model = "models/xenians/snarknest.mdl"
+    model_ = "models/xenians/snarknest.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7780,7 +7780,7 @@ class item_weapon_snark(BasePickup):
 
 
 class item_weapon_tau(BasePickup):
-    model = "models/weapons/w_gauss.mdl"
+    model_ = "models/weapons/w_gauss.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7792,7 +7792,7 @@ class item_weapon_tau(BasePickup):
 
 
 class item_weapon_tripmine(BasePickup):
-    model = "models/weapons/w_tripmine.mdl"
+    model_ = "models/weapons/w_tripmine.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7804,7 +7804,7 @@ class item_weapon_tripmine(BasePickup):
 
 
 class item_ammo_357(BasePickup):
-    model = "models/weapons/w_357ammobox.mdl"
+    model_ = "models/weapons/w_357ammobox.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7816,7 +7816,7 @@ class item_ammo_357(BasePickup):
 
 
 class item_ammo_crossbow(BasePickup):
-    model = "models/weapons/w_crossbow_clip.mdl"
+    model_ = "models/weapons/w_crossbow_clip.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7828,7 +7828,7 @@ class item_ammo_crossbow(BasePickup):
 
 
 class item_ammo_glock(BasePickup):
-    model = "models/weapons/w_9mmclip.mdl"
+    model_ = "models/weapons/w_9mmclip.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7840,7 +7840,7 @@ class item_ammo_glock(BasePickup):
 
 
 class item_ammo_energy(BasePickup):
-    model = "models/weapons/w_gaussammo.mdl"
+    model_ = "models/weapons/w_gaussammo.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7852,7 +7852,7 @@ class item_ammo_energy(BasePickup):
 
 
 class item_ammo_mp5(BasePickup):
-    model = "models/weapons/w_9mmARclip.mdl"
+    model_ = "models/weapons/w_9mmARclip.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7864,7 +7864,7 @@ class item_ammo_mp5(BasePickup):
 
 
 class item_ammo_shotgun(BasePickup):
-    model = "models/weapons/w_shotbox.mdl"
+    model_ = "models/weapons/w_shotbox.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7876,7 +7876,7 @@ class item_ammo_shotgun(BasePickup):
 
 
 class item_grenade_mp5(BasePickup):
-    model = "models/weapons/w_argrenade.mdl"
+    model_ = "models/weapons/w_argrenade.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7888,7 +7888,7 @@ class item_grenade_mp5(BasePickup):
 
 
 class item_grenade_rpg(BasePickup):
-    model = "models/weapons/w_rpgammo.mdl"
+    model_ = "models/weapons/w_rpgammo.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7900,7 +7900,7 @@ class item_grenade_rpg(BasePickup):
 
 
 class item_ammo_canister(BasePickup):
-    model = "models/weapons/w_weaponbox.mdl"
+    model_ = "models/weapons/w_weaponbox.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7936,7 +7936,7 @@ class item_ammo_canister(BasePickup):
 
 
 class item_ammo_crate(Angles, BaseFadeProp, Targetname):
-    model = "models/items/ammocrate_rockets.mdl"
+    model_ = "models/items/ammocrate_rockets.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(BaseFadeProp).__init__()
@@ -7960,7 +7960,7 @@ class item_ammo_crate(Angles, BaseFadeProp, Targetname):
 
 
 class item_suit(BasePickup):
-    model = "models/props_am/hev_suit.mdl"
+    model_ = "models/props_am/hev_suit.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7972,7 +7972,7 @@ class item_suit(BasePickup):
 
 
 class item_battery(BasePickup):
-    model = "models/weapons/w_battery.mdl"
+    model_ = "models/weapons/w_battery.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -7997,7 +7997,7 @@ class item_healthkit(BasePickup):
 
 
 class item_longjump(BasePickup):
-    model = "models/weapons/w_longjump.mdl"
+    model_ = "models/weapons/w_longjump.mdl"
     def __init__(self):
         super(BasePickup).__init__()
         self.origin = [0, 0, 0]
@@ -8022,7 +8022,7 @@ class BaseGrenade(Angles, Shadow, Targetname):
 
 
 class grenade_satchel(BaseGrenade):
-    model = "models/weapons/w_satchel.mdl"
+    model_ = "models/weapons/w_satchel.mdl"
     def __init__(self):
         super(BaseGrenade).__init__()
         self.origin = [0, 0, 0]
@@ -8034,7 +8034,7 @@ class grenade_satchel(BaseGrenade):
 
 
 class grenade_tripmine(BaseGrenade):
-    model = "models/weapons/w_tripmine.mdl"
+    model_ = "models/weapons/w_tripmine.mdl"
     def __init__(self):
         super(BaseGrenade).__init__()
         self.origin = [0, 0, 0]
@@ -8055,7 +8055,7 @@ class BaseSentry(BaseNPC):
 
 
 class npc_plantlight(BaseNPC):
-    model = "models/props_xen/xen_protractinglight.mdl"
+    model_ = "models/props_xen/xen_protractinglight.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.planttype = None  # Type: choices
@@ -8075,7 +8075,7 @@ class npc_plantlight(BaseNPC):
 
 
 class npc_plantlight_stalker(Base):
-    model = "models/props_xen/xen_plantlightstalker.mdl"
+    model_ = "models/props_xen/xen_plantlightstalker.mdl"
     def __init__(self):
         super().__init__()
         self.origin = [0, 0, 0]
@@ -8097,7 +8097,7 @@ class npc_plantlight_stalker(Base):
 
 
 class npc_puffballfungus(BaseNPC):
-    model = "models/props_xen/xen_puffballfungus.mdl"
+    model_ = "models/props_xen/xen_puffballfungus.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.RangeOuter = 500  # Type: float
@@ -8111,7 +8111,7 @@ class npc_puffballfungus(BaseNPC):
 
 
 class npc_xentree(BaseNPC):
-    model = "models/props_xen/foliage/hacker_tree.mdl"
+    model_ = "models/props_xen/foliage/hacker_tree.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8121,7 +8121,7 @@ class npc_xentree(BaseNPC):
 
 
 class npc_protozoan(BaseNPC):
-    model = "models/xenians/protozoan.mdl"
+    model_ = "models/xenians/protozoan.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8131,7 +8131,7 @@ class npc_protozoan(BaseNPC):
 
 
 class npc_sentry_ceiling(BaseSentry):
-    model = "models/npcs/sentry_ceiling.mdl"
+    model_ = "models/npcs/sentry_ceiling.mdl"
     def __init__(self):
         super(BaseSentry).__init__()
 
@@ -8141,7 +8141,7 @@ class npc_sentry_ceiling(BaseSentry):
 
 
 class npc_sentry_ground(BaseSentry):
-    model = "models/npcs/sentry_ground.mdl"
+    model_ = "models/npcs/sentry_ground.mdl"
     def __init__(self):
         super(BaseSentry).__init__()
 
@@ -8151,7 +8151,7 @@ class npc_sentry_ground(BaseSentry):
 
 
 class npc_xenturret(BaseNPC):
-    model = "models/props_xen/xen_turret.mdl"
+    model_ = "models/props_xen/xen_turret.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.RangeOuter = 999999  # Type: float
@@ -8169,7 +8169,7 @@ class npc_xenturret(BaseNPC):
 
 
 class npc_alien_slave_dummy(BaseNPC):
-    model = "models/vortigaunt_slave.mdl"
+    model_ = "models/vortigaunt_slave.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.passive = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -8183,7 +8183,7 @@ class npc_alien_slave_dummy(BaseNPC):
 
 
 class npc_alien_slave(BaseNPC):
-    model = "models/vortigaunt_slave.mdl"
+    model_ = "models/vortigaunt_slave.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.passive = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -8197,7 +8197,7 @@ class npc_alien_slave(BaseNPC):
 
 
 class npc_xort(BaseNPC):
-    model = "models/vortigaunt_slave.mdl"
+    model_ = "models/vortigaunt_slave.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.XortState = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -8235,7 +8235,7 @@ class npc_xort(BaseNPC):
 
 
 class npc_xortEB(BaseNPC):
-    model = "models/vortigaunt_slave.mdl"
+    model_ = "models/vortigaunt_slave.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.XortState = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -8269,7 +8269,7 @@ class npc_xortEB(BaseNPC):
 
 
 class npc_headcrab(Parentname, BaseNPC):
-    model = "models/headcrabclassic.mdl"
+    model_ = "models/headcrabclassic.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         super(Parentname).__init__()
@@ -8283,7 +8283,7 @@ class npc_headcrab(Parentname, BaseNPC):
 
 
 class npc_headcrab_fast(BaseNPC):
-    model = "models/Headcrab.mdl"
+    model_ = "models/Headcrab.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8293,7 +8293,7 @@ class npc_headcrab_fast(BaseNPC):
 
 
 class npc_headcrab_black(BaseNPC):
-    model = "models/Headcrabblack.mdl"
+    model_ = "models/Headcrabblack.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8303,7 +8303,7 @@ class npc_headcrab_black(BaseNPC):
 
 
 class npc_headcrab_baby(BaseNPC):
-    model = "models/xenians/bebcrab.mdl"
+    model_ = "models/xenians/bebcrab.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8313,7 +8313,7 @@ class npc_headcrab_baby(BaseNPC):
 
 
 class npc_barnacle(BaseNPC):
-    model = "models/barnacle.mdl"
+    model_ = "models/barnacle.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.RestDist = 16  # Type: float
@@ -8325,7 +8325,7 @@ class npc_barnacle(BaseNPC):
 
 
 class npc_beneathticle(BaseNPC):
-    model = "models/xenians/barnacle_underwater.mdl"
+    model_ = "models/xenians/barnacle_underwater.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.TongueLength = None  # Type: float
@@ -8339,7 +8339,7 @@ class npc_beneathticle(BaseNPC):
 
 
 class npc_bullsquid(BaseNPCAssault):
-    model = "models/xenians/bullsquid.mdl"
+    model_ = "models/xenians/bullsquid.mdl"
     def __init__(self):
         super(BaseNPCAssault).__init__()
 
@@ -8349,7 +8349,7 @@ class npc_bullsquid(BaseNPCAssault):
 
 
 class npc_bullsquid_melee(BaseNPCAssault):
-    model = "models/xenians/bullsquid.mdl"
+    model_ = "models/xenians/bullsquid.mdl"
     def __init__(self):
         super(BaseNPCAssault).__init__()
 
@@ -8359,7 +8359,7 @@ class npc_bullsquid_melee(BaseNPCAssault):
 
 
 class npc_houndeye(BaseNPCAssault):
-    model = "models/xenians/houndeye.mdl"
+    model_ = "models/xenians/houndeye.mdl"
     def __init__(self):
         super(BaseNPCAssault).__init__()
         self.m_bEnableMemoryUpdateEveryFrame = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -8371,7 +8371,7 @@ class npc_houndeye(BaseNPCAssault):
 
 
 class npc_houndeye_suicide(npc_houndeye):
-    model = "models/xenians/houndeye_suicide.mdl"
+    model_ = "models/xenians/houndeye_suicide.mdl"
     def __init__(self):
         super(npc_houndeye).__init__()
 
@@ -8381,7 +8381,7 @@ class npc_houndeye_suicide(npc_houndeye):
 
 
 class npc_houndeye_knockback(npc_houndeye):
-    model = "models/xenians/houndeye_knockback.mdl"
+    model_ = "models/xenians/houndeye_knockback.mdl"
     def __init__(self):
         super(npc_houndeye).__init__()
 
@@ -8391,7 +8391,7 @@ class npc_houndeye_knockback(npc_houndeye):
 
 
 class npc_human_assassin(BaseNPC):
-    model = "models/humans/hassassin.mdl"
+    model_ = "models/humans/hassassin.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8416,7 +8416,7 @@ class BaseMarine(RappelNPC, BaseNPC):
 
 
 class npc_human_commander(BaseMarine):
-    model = "models/humans/marine.mdl"
+    model_ = "models/humans/marine.mdl"
     def __init__(self):
         super(BaseMarine).__init__()
 
@@ -8426,7 +8426,7 @@ class npc_human_commander(BaseMarine):
 
 
 class npc_human_grunt(BaseMarine):
-    model = "models/humans/marine.mdl"
+    model_ = "models/humans/marine.mdl"
     def __init__(self):
         super(BaseMarine).__init__()
 
@@ -8436,7 +8436,7 @@ class npc_human_grunt(BaseMarine):
 
 
 class npc_human_medic(BaseMarine):
-    model = "models/humans/marine.mdl"
+    model_ = "models/humans/marine.mdl"
     def __init__(self):
         super(BaseMarine).__init__()
 
@@ -8446,7 +8446,7 @@ class npc_human_medic(BaseMarine):
 
 
 class npc_human_grenadier(BaseMarine):
-    model = "models/humans/marine.mdl"
+    model_ = "models/humans/marine.mdl"
     def __init__(self):
         super(BaseMarine).__init__()
 
@@ -8456,7 +8456,7 @@ class npc_human_grenadier(BaseMarine):
 
 
 class npc_alien_controller(BaseNPC):
-    model = "models/xenians/controller.mdl"
+    model_ = "models/xenians/controller.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8466,7 +8466,7 @@ class npc_alien_controller(BaseNPC):
 
 
 class npc_xontroller(BaseNPC):
-    model = "models/xenians/controller.mdl"
+    model_ = "models/xenians/controller.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.mainbehaviortreename = None  # Type: string
@@ -8526,7 +8526,7 @@ class npc_xontroller(BaseNPC):
 
 
 class npc_alien_grunt_unarmored(BaseNPC):
-    model = "models/xenians/agrunt_unarmored.mdl"
+    model_ = "models/xenians/agrunt_unarmored.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8536,7 +8536,7 @@ class npc_alien_grunt_unarmored(BaseNPC):
 
 
 class npc_alien_grunt_melee(BaseNPC):
-    model = "models/xenians/agrunt_unarmored.mdl"
+    model_ = "models/xenians/agrunt_unarmored.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8546,7 +8546,7 @@ class npc_alien_grunt_melee(BaseNPC):
 
 
 class npc_alien_grunt(BaseNPC):
-    model = "models/xenians/agrunt.mdl"
+    model_ = "models/xenians/agrunt.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8556,7 +8556,7 @@ class npc_alien_grunt(BaseNPC):
 
 
 class npc_alien_grunt_elite(BaseNPC):
-    model = "models/xenians/agrunt.mdl"
+    model_ = "models/xenians/agrunt.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8566,7 +8566,7 @@ class npc_alien_grunt_elite(BaseNPC):
 
 
 class npc_xen_grunt(BaseNPC):
-    model = "models/xenians/agrunt.mdl"
+    model_ = "models/xenians/agrunt.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.mainbehaviortreename = None  # Type: string
@@ -8580,7 +8580,7 @@ class npc_xen_grunt(BaseNPC):
 
 
 class npc_cockroach(BaseNPC):
-    model = "models/fauna/roach.mdl"
+    model_ = "models/fauna/roach.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8590,7 +8590,7 @@ class npc_cockroach(BaseNPC):
 
 
 class npc_flyer_flock(BaseNPC):
-    model = "models/xenians/flock.mdl"
+    model_ = "models/xenians/flock.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8600,7 +8600,7 @@ class npc_flyer_flock(BaseNPC):
 
 
 class npc_gargantua(BaseNPCAssault):
-    model = "models/xenians/garg.mdl"
+    model_ = "models/xenians/garg.mdl"
     def __init__(self):
         super(BaseNPCAssault).__init__()
 
@@ -8610,7 +8610,7 @@ class npc_gargantua(BaseNPCAssault):
 
 
 class info_bigmomma(Node):
-    model = "models/editor/ground_node.mdl"
+    model_ = "models/editor/ground_node.mdl"
     def __init__(self):
         super(Node).__init__()
         self.origin = [0, 0, 0]
@@ -8632,7 +8632,7 @@ class info_bigmomma(Node):
 
 
 class npc_gonarch(Studiomodel, BaseNPC):
-    model = "models/xenians/gonarch.mdl"
+    model_ = "models/xenians/gonarch.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         super(Studiomodel).__init__()
@@ -8671,7 +8671,7 @@ class env_gon_mortar_area(Targetname):
 
 
 class npc_generic(BaseNPC):
-    model = "models/gman.mdl"
+    model_ = "models/gman.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8681,7 +8681,7 @@ class npc_generic(BaseNPC):
 
 
 class npc_gman(BaseNPC):
-    model = "models/gman.mdl"
+    model_ = "models/gman.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8691,7 +8691,7 @@ class npc_gman(BaseNPC):
 
 
 class npc_ichthyosaur(BaseNPC):
-    model = "models/ichthyosaur.mdl"
+    model_ = "models/ichthyosaur.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8701,7 +8701,7 @@ class npc_ichthyosaur(BaseNPC):
 
 
 class npc_maintenance(BaseNPC):
-    model = "models/humans/maintenance/maintenance_1.mdl"
+    model_ = "models/humans/maintenance/maintenance_1.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -8711,7 +8711,7 @@ class npc_maintenance(BaseNPC):
 
 
 class npc_nihilanth(BaseNPC):
-    model = "models/xenians/nihilanth.mdl"
+    model_ = "models/xenians/nihilanth.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.m_tNHState = None  # Type: integer
@@ -8769,7 +8769,7 @@ class BMBaseHelicopter(BaseNPC):
 
 
 class npc_manta(BMBaseHelicopter):
-    model = "models/xenians/manta_jet.mdl"
+    model_ = "models/xenians/manta_jet.mdl"
     def __init__(self):
         super(BMBaseHelicopter).__init__()
 
@@ -9059,7 +9059,7 @@ class prop_barrel_interloper_small(prop_dynamic_base):
 
 
 class npc_apache(BMBaseHelicopter):
-    model = "models/props_vehicles/apache.mdl"
+    model_ = "models/props_vehicles/apache.mdl"
     def __init__(self):
         super(BMBaseHelicopter).__init__()
         self.bNerfedFireCone = None  # Type: choices
@@ -9071,7 +9071,7 @@ class npc_apache(BMBaseHelicopter):
 
 
 class npc_osprey(BMBaseHelicopter):
-    model = "models/props_vehicles/osprey.mdl"
+    model_ = "models/props_vehicles/osprey.mdl"
     def __init__(self):
         super(BMBaseHelicopter).__init__()
         self.NPCTemplate1 = None  # Type: target_destination
@@ -9097,7 +9097,7 @@ class npc_osprey(BMBaseHelicopter):
 
 
 class npc_rat(BaseNPC):
-    model = "models/fauna/rat.mdl"
+    model_ = "models/fauna/rat.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -9124,7 +9124,7 @@ class BaseColleague(BaseNPC):
 
 
 class npc_human_security(Parentname, TalkNPC, BaseColleague):
-    model = "models/humans/guard.mdl"
+    model_ = "models/humans/guard.mdl"
     def __init__(self):
         super(TalkNPC).__init__()
         super(BaseColleague).__init__()
@@ -9140,7 +9140,7 @@ class npc_human_security(Parentname, TalkNPC, BaseColleague):
 
 
 class npc_human_scientist_kleiner(Parentname, TalkNPC, BaseColleague):
-    model = "models/humans/scientist_kliener.mdl"
+    model_ = "models/humans/scientist_kliener.mdl"
     def __init__(self):
         super(TalkNPC).__init__()
         super(BaseColleague).__init__()
@@ -9154,7 +9154,7 @@ class npc_human_scientist_kleiner(Parentname, TalkNPC, BaseColleague):
 
 
 class npc_human_scientist_eli(Parentname, TalkNPC, BaseColleague):
-    model = "models/humans/scientist_eli.mdl"
+    model_ = "models/humans/scientist_eli.mdl"
     def __init__(self):
         super(TalkNPC).__init__()
         super(BaseColleague).__init__()
@@ -9168,7 +9168,7 @@ class npc_human_scientist_eli(Parentname, TalkNPC, BaseColleague):
 
 
 class npc_human_scientist(Parentname, TalkNPC, BaseColleague):
-    model = "models/humans/scientist.mdl"
+    model_ = "models/humans/scientist.mdl"
     def __init__(self):
         super(TalkNPC).__init__()
         super(BaseColleague).__init__()
@@ -9182,7 +9182,7 @@ class npc_human_scientist(Parentname, TalkNPC, BaseColleague):
 
 
 class npc_human_scientist_female(Parentname, TalkNPC, BaseColleague):
-    model = "models/humans/scientist_female.mdl"
+    model_ = "models/humans/scientist_female.mdl"
     def __init__(self):
         super(TalkNPC).__init__()
         super(BaseColleague).__init__()
@@ -9196,7 +9196,7 @@ class npc_human_scientist_female(Parentname, TalkNPC, BaseColleague):
 
 
 class npc_xentacle(BaseNPC):
-    model = "models/xenians/xentacle.mdl"
+    model_ = "models/xenians/xentacle.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.radius = 320  # Type: integer
@@ -9240,7 +9240,7 @@ class npc_xentacle(BaseNPC):
 
 
 class npc_tentacle(BaseNPC):
-    model = "models/xenians/tentacle.mdl"
+    model_ = "models/xenians/tentacle.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -9250,7 +9250,7 @@ class npc_tentacle(BaseNPC):
 
 
 class npc_snark(BaseNPC):
-    model = "models/xenians/snark.mdl"
+    model_ = "models/xenians/snark.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.m_fLifeTime = 14  # Type: float
@@ -9262,7 +9262,7 @@ class npc_snark(BaseNPC):
 
 
 class npc_sniper(BaseNPC):
-    model = "models/combine_soldier.mdl"
+    model_ = "models/combine_soldier.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.radius = None  # Type: integer
@@ -9344,7 +9344,7 @@ class info_stopallsounds(Parentname, Targetname):
 
 
 class info_player_deathmatch(Angles, PlayerClass, Targetname):
-    model = "models/editor/playerstart.mdl"
+    model_ = "models/editor/playerstart.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(PlayerClass).__init__()
@@ -9362,7 +9362,7 @@ class info_player_deathmatch(Angles, PlayerClass, Targetname):
 
 
 class info_player_marine(Angles, PlayerClass, Targetname):
-    model = "models/Player/mp_marine.mdl"
+    model_ = "models/Player/mp_marine.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(PlayerClass).__init__()
@@ -9380,7 +9380,7 @@ class info_player_marine(Angles, PlayerClass, Targetname):
 
 
 class info_player_scientist(Angles, PlayerClass, Targetname):
-    model = "models/Player/mp_scientist_hev.mdl"
+    model_ = "models/Player/mp_scientist_hev.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(PlayerClass).__init__()
@@ -9654,7 +9654,7 @@ class func_conveyor_bms(Parentname, Shadow, Targetname, RenderFields):
 
 
 class item_tow_missile(BasePropPhysics):
-    model = "models/props_marines/tow_missile_projectile.mdl"
+    model_ = "models/props_marines/tow_missile_projectile.mdl"
     def __init__(self):
         super(BasePropPhysics).__init__()
         super(BaseFadeProp).__init__()
@@ -9706,7 +9706,7 @@ class env_mortar_launcher(Targetname):
 
 
 class env_mortar_controller(Angles, Targetname):
-    model = "models/props_st/airstrike_map.mdl"
+    model_ = "models/props_st/airstrike_map.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(Targetname).__init__()
@@ -9722,7 +9722,7 @@ class env_mortar_controller(Angles, Targetname):
 
 
 class npc_abrams(BaseNPC):
-    model = "models/props_vehicles/abrams.mdl"
+    model_ = "models/props_vehicles/abrams.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
         self.enableminiguns = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -9736,7 +9736,7 @@ class npc_abrams(BaseNPC):
 
 
 class npc_lav(BaseNPC):
-    model = "models/props_vehicles/lav.mdl"
+    model_ = "models/props_vehicles/lav.mdl"
     def __init__(self):
         super(BaseNPC).__init__()
 
@@ -9839,7 +9839,7 @@ class logic_parent(Targetname):
 
 
 class env_xen_pushpad(Targetname):
-    model = "models/xenians/jump_pad.mdl"
+    model_ = "models/xenians/jump_pad.mdl"
     def __init__(self):
         super(Targetname).__init__()
         self.origin = [0, 0, 0]
@@ -9924,7 +9924,7 @@ class func_friction(Trigger):
 
 
 class prop_train_awesome(Shadow, Global, RenderFields, BaseFadeProp, Parentname, Angles, Targetname, DXLevelChoice):
-    model = "models/props_vehicles/oar_awesome_tram.mdl"
+    model_ = "models/props_vehicles/oar_awesome_tram.mdl"
     def __init__(self):
         super(RenderFields).__init__()
         super(Shadow).__init__()
@@ -9956,7 +9956,7 @@ class prop_train_awesome(Shadow, Global, RenderFields, BaseFadeProp, Parentname,
 
 
 class prop_train_apprehension(Shadow, Global, RenderFields, BaseFadeProp, Parentname, Angles, Targetname, DXLevelChoice):
-    model = "models/props_vehicles/oar_tram.mdl"
+    model_ = "models/props_vehicles/oar_tram.mdl"
     def __init__(self):
         super(RenderFields).__init__()
         super(Shadow).__init__()
@@ -9997,7 +9997,7 @@ class BaseZombie(BaseNPC):
 
 
 class npc_zombie_scientist(BaseZombie):
-    model = "models/zombies/zombie_sci.mdl"
+    model_ = "models/zombies/zombie_sci.mdl"
     def __init__(self):
         super(BaseZombie).__init__()
 
@@ -10007,7 +10007,7 @@ class npc_zombie_scientist(BaseZombie):
 
 
 class npc_zombie_scientist_torso(BaseZombie):
-    model = "models/zombies/zombie_sci_torso.mdl"
+    model_ = "models/zombies/zombie_sci_torso.mdl"
     def __init__(self):
         super(BaseZombie).__init__()
 
@@ -10017,7 +10017,7 @@ class npc_zombie_scientist_torso(BaseZombie):
 
 
 class npc_zombie_security(BaseZombie):
-    model = "models/zombies/zombie_guard.mdl"
+    model_ = "models/zombies/zombie_guard.mdl"
     def __init__(self):
         super(BaseZombie).__init__()
 
@@ -10027,7 +10027,7 @@ class npc_zombie_security(BaseZombie):
 
 
 class npc_zombie_grunt(BaseZombie):
-    model = "models/zombies/zombie_grunt.mdl"
+    model_ = "models/zombies/zombie_grunt.mdl"
     def __init__(self):
         super(BaseZombie).__init__()
 
@@ -10037,7 +10037,7 @@ class npc_zombie_grunt(BaseZombie):
 
 
 class npc_zombie_grunt_torso(BaseZombie):
-    model = "models/zombies/zombie_grunt_torso.mdl"
+    model_ = "models/zombies/zombie_grunt_torso.mdl"
     def __init__(self):
         super(BaseZombie).__init__()
 
@@ -10047,7 +10047,7 @@ class npc_zombie_grunt_torso(BaseZombie):
 
 
 class npc_zombie_hev(BaseZombie):
-    model = "models/zombies/zombie_hev.mdl"
+    model_ = "models/zombies/zombie_hev.mdl"
     def __init__(self):
         super(BaseZombie).__init__()
         self.flashlight_status = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -10129,7 +10129,7 @@ class prop_surgerybot(Angles, Targetname):
 
 
 class env_xen_healpool(Angles, Studiomodel, Targetname):
-    model = "models/props_Xen/xen_healingpool_full.mdl"
+    model_ = "models/props_Xen/xen_healingpool_full.mdl"
     def __init__(self):
         super(Angles).__init__()
         super(Studiomodel).__init__()

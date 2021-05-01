@@ -20,36 +20,48 @@ class TF2EntityHandler(BaseEntityHandler):
         super().__init__(bsp_file, parent_collection, world_scale)
 
     def handle_func_nobuild(self, entity: func_nobuild, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'func_nobuild_{entity.hammer_id}')
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_nobuild', mesh_object, 'brushes')
 
     def handle_func_respawnroom(self, entity: func_respawnroom, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_respawnroom', mesh_object, 'brushes')
 
     def handle_func_respawnroomvisualizer(self, entity: func_respawnroomvisualizer, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, entity.respawnroomname)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_respawnroomvisualizer', mesh_object, 'brushes')
 
     def handle_func_regenerate(self, entity: func_regenerate, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, entity.associatedmodel)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_regenerate', mesh_object, 'brushes')
 
     def handle_dispenser_touch_trigger(self, entity: dispenser_touch_trigger, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, entity.targetname)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('dispenser_touch_trigger', mesh_object)
 
     def handle_trigger_capture_area(self, entity: trigger_capture_area, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})

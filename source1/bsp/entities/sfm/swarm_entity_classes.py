@@ -258,7 +258,7 @@ class prop_physics(BasePropPhysics):
 
 
 class info_node(Base):
-    model = "models/editor/ground_node.mdl"
+    model_ = "models/editor/ground_node.mdl"
     def __init__(self):
         super().__init__()
         self.origin = [0, 0, 0]
@@ -457,7 +457,7 @@ class point_combine_ball_launcher(CombineBallSpawners):
 
 
 class npc_grenade_frag(Base):
-    model = "models/Weapons/w_grenade.mdl"
+    model_ = "models/Weapons/w_grenade.mdl"
     def __init__(self):
         super().__init__()
         pass
@@ -468,7 +468,7 @@ class npc_grenade_frag(Base):
 
 
 class npc_combine_cannon(Base):
-    model = "models/combine_soldier.mdl"
+    model_ = "models/combine_soldier.mdl"
     def __init__(self):
         super().__init__()
         self.sightdist = 1024  # Type: float
@@ -480,7 +480,7 @@ class npc_combine_cannon(Base):
 
 
 class npc_combine_camera(Base):
-    model = "models/combine_camera/combine_camera.mdl"
+    model_ = "models/combine_camera/combine_camera.mdl"
     def __init__(self):
         super().__init__()
         self.innerradius = 300  # Type: integer
@@ -498,7 +498,7 @@ class npc_combine_camera(Base):
 
 
 class npc_turret_ground(AlyxInteractable):
-    model = "models/combine_turrets/ground_turret.mdl"
+    model_ = "models/combine_turrets/ground_turret.mdl"
     def __init__(self):
         super(AlyxInteractable).__init__()
         self.origin = [0, 0, 0]
@@ -511,7 +511,7 @@ class npc_turret_ground(AlyxInteractable):
 
 
 class npc_turret_ceiling(Targetname, Angles):
-    model = "models/combine_turrets/ceiling_turret.mdl"
+    model_ = "models/combine_turrets/ceiling_turret.mdl"
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()
@@ -527,7 +527,7 @@ class npc_turret_ceiling(Targetname, Angles):
 
 
 class npc_turret_floor(Targetname, Angles):
-    model = "models/combine_turrets/floor_turret.mdl"
+    model_ = "models/combine_turrets/floor_turret.mdl"
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()
@@ -554,7 +554,7 @@ class VehicleDriverNPC(Base):
 
 
 class npc_vehicledriver(VehicleDriverNPC):
-    model = "models/roller.mdl"
+    model_ = "models/roller.mdl"
     def __init__(self):
         super(VehicleDriverNPC).__init__()
         self.drivermaxspeed = 1  # Type: float
@@ -568,7 +568,7 @@ class npc_vehicledriver(VehicleDriverNPC):
 
 
 class npc_cranedriver(VehicleDriverNPC):
-    model = "models/roller.mdl"
+    model_ = "models/roller.mdl"
     def __init__(self):
         super(VehicleDriverNPC).__init__()
         self.releasepause = None  # Type: float
@@ -580,7 +580,7 @@ class npc_cranedriver(VehicleDriverNPC):
 
 
 class npc_apcdriver(VehicleDriverNPC):
-    model = "models/roller.mdl"
+    model_ = "models/roller.mdl"
     def __init__(self):
         super(VehicleDriverNPC).__init__()
         self.drivermaxspeed = 1  # Type: float
@@ -594,7 +594,7 @@ class npc_apcdriver(VehicleDriverNPC):
 
 
 class npc_rollermine(AlyxInteractable):
-    model = "models/roller.mdl"
+    model_ = "models/roller.mdl"
     def __init__(self):
         super(AlyxInteractable).__init__()
         self.startburied = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -608,7 +608,7 @@ class npc_rollermine(AlyxInteractable):
 
 
 class npc_missiledefense(Base):
-    model = "models/missile_defense.mdl"
+    model_ = "models/missile_defense.mdl"
     def __init__(self):
         super().__init__()
         pass
@@ -619,7 +619,7 @@ class npc_missiledefense(Base):
 
 
 class npc_sniper(Base):
-    model = "models/combine_soldier.mdl"
+    model_ = "models/combine_soldier.mdl"
     def __init__(self):
         super().__init__()
         self.radius = None  # Type: integer
@@ -712,7 +712,7 @@ class prop_thumper(Targetname, Angles):
 
 
 class npc_antlion(Base):
-    model = "models/antlion.mdl"
+    model_ = "models/antlion.mdl"
     def __init__(self):
         super().__init__()
         self.startburrowed = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -732,7 +732,7 @@ class npc_antlion(Base):
 
 
 class npc_antlionguard(Base):
-    model = "models/antlion_guard.mdl"
+    model_ = "models/antlion_guard.mdl"
     def __init__(self):
         super().__init__()
         self.startburrowed = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -752,7 +752,7 @@ class npc_antlionguard(Base):
 
 
 class npc_crow(Base):
-    model = "models/crow.mdl"
+    model_ = "models/crow.mdl"
     def __init__(self):
         super().__init__()
         self.deaf = None  # Type: choices
@@ -764,7 +764,7 @@ class npc_crow(Base):
 
 
 class npc_seagull(Base):
-    model = "models/seagull.mdl"
+    model_ = "models/seagull.mdl"
     def __init__(self):
         super().__init__()
         self.deaf = None  # Type: choices
@@ -776,7 +776,7 @@ class npc_seagull(Base):
 
 
 class npc_pigeon(Base):
-    model = "models/pigeon.mdl"
+    model_ = "models/pigeon.mdl"
     def __init__(self):
         super().__init__()
         self.deaf = None  # Type: choices
@@ -788,7 +788,7 @@ class npc_pigeon(Base):
 
 
 class npc_ichthyosaur(Base):
-    model = "models/ichthyosaur.mdl"
+    model_ = "models/ichthyosaur.mdl"
     def __init__(self):
         super().__init__()
         pass
@@ -810,7 +810,7 @@ class BaseHeadcrab(Base):
 
 
 class npc_headcrab(BaseHeadcrab):
-    model = "models/Headcrabclassic.mdl"
+    model_ = "models/Headcrabclassic.mdl"
     def __init__(self):
         super(BaseHeadcrab).__init__()
 
@@ -820,7 +820,7 @@ class npc_headcrab(BaseHeadcrab):
 
 
 class npc_headcrab_fast(BaseHeadcrab):
-    model = "models/Headcrab.mdl"
+    model_ = "models/Headcrab.mdl"
     def __init__(self):
         super(BaseHeadcrab).__init__()
 
@@ -830,7 +830,7 @@ class npc_headcrab_fast(BaseHeadcrab):
 
 
 class npc_headcrab_black(BaseHeadcrab):
-    model = "models/Headcrabblack.mdl"
+    model_ = "models/Headcrabblack.mdl"
     def __init__(self):
         super(BaseHeadcrab).__init__()
 
@@ -840,7 +840,7 @@ class npc_headcrab_black(BaseHeadcrab):
 
 
 class npc_stalker(Base):
-    model = "models/Stalker.mdl"
+    model_ = "models/Stalker.mdl"
     def __init__(self):
         super().__init__()
         self.BeamPower = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -957,7 +957,7 @@ class npc_citizen(PlayerCompanion, TalkNPC):
 
 
 class npc_fisherman(Base):
-    model = "models/Barney.mdl"
+    model_ = "models/Barney.mdl"
     def __init__(self):
         super().__init__()
         self.ExpressionOverride = None  # Type: string
@@ -969,7 +969,7 @@ class npc_fisherman(Base):
 
 
 class npc_barney(PlayerCompanion, TalkNPC):
-    model = "models/Barney.mdl"
+    model_ = "models/Barney.mdl"
     def __init__(self):
         super(PlayerCompanion).__init__()
         super(TalkNPC).__init__()
@@ -1000,7 +1000,7 @@ class BaseCombine(RappelNPC):
 
 
 class npc_combine_s(BaseCombine):
-    model = "models/Combine_Soldier.mdl"
+    model_ = "models/Combine_Soldier.mdl"
     def __init__(self):
         super(BaseCombine).__init__()
         self.model = "CHOICES NOT SUPPORTED"  # Type: choices
@@ -1016,7 +1016,7 @@ class npc_combine_s(BaseCombine):
 
 
 class npc_launcher(Base):
-    model = "models/junk/w_traffcone.mdl"
+    model_ = "models/junk/w_traffcone.mdl"
     def __init__(self):
         super().__init__()
         self.origin = [0, 0, 0]
@@ -1072,7 +1072,7 @@ class npc_launcher(Base):
 
 
 class npc_hunter(Base):
-    model = "models/hunter.mdl"
+    model_ = "models/hunter.mdl"
     def __init__(self):
         super().__init__()
         self.FollowTarget = None  # Type: target_destination
@@ -1164,7 +1164,7 @@ class env_gunfire(Targetname):
 
 
 class env_headcrabcanister(Targetname, Angles):
-    model = "models/props_combine/headcrabcannister01b.mdl"
+    model_ = "models/props_combine/headcrabcannister01b.mdl"
     def __init__(self):
         super(Targetname).__init__()
         super(Angles).__init__()

@@ -6,52 +6,68 @@ from .left4dead2_entity_classes import *
 from .halflife2_entity_classes import entity_class_handle as hl2_entity_classes
 from .halflife2_entity_handler import HalfLifeEntityHandler
 
+local_entity_lookup_table = HalfLifeEntityHandler.entity_lookup_table.copy()
+local_entity_lookup_table.update(entity_class_handle)
+local_entity_lookup_table['func_simpleladder'] = Base
+local_entity_lookup_table['fog_flooded_basement'] = Base
+
 
 class Left4dead2EntityHandler(HalfLifeEntityHandler):
-    entity_lookup_table = hl2_entity_classes
-    entity_lookup_table.update(entity_class_handle)
-    entity_lookup_table['func_simpleladder'] = Base
-    entity_lookup_table['fog_flooded_basement'] = Base
+    entity_lookup_table = local_entity_lookup_table
 
     pointlight_power_multiplier = 1000
 
     def handle_func_nav_attribute_region(self, entity: func_nav_attribute_region, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_nav_attribute_region', mesh_object, 'brushes')
 
     def handle_func_nav_blocker(self, entity: func_nav_blocker, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_nav_blocker', mesh_object, 'brushes')
 
     def handle_fog_volume(self, entity: fog_volume, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('fog_volume', mesh_object, 'brushes')
 
     def handle_func_simpleladder(self, entity: Base, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'func_simpleladder_{entity.hammer_id}')
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_simpleladder', mesh_object, 'brushes')
 
     def handle_func_detail_blocker(self, entity: func_detail_blocker, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'func_detail_blocker_{entity.hammer_id}')
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_detail_blocker', mesh_object, 'brushes')
 
     def handle_info_changelevel(self, entity: info_changelevel, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'info_changelevel_{entity.hammer_id}')
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('info_changelevel', mesh_object, 'brushes')
 
     def handle_trigger_auto_crouch(self, entity: trigger_auto_crouch, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'trigger_auto_crouch_{entity.hammer_id}')
         self._set_location(mesh_object, entity.origin)
@@ -59,6 +75,8 @@ class Left4dead2EntityHandler(HalfLifeEntityHandler):
         self._put_into_collection('trigger_auto_crouch', mesh_object, 'brushes')
 
     def handle_fog_flooded_basement(self, entity: Base, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, f'fog_flooded_basement_{entity.hammer_id}')
         self._set_entity_data(mesh_object, {'entity': entity_raw})
