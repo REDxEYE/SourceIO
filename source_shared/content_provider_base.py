@@ -16,7 +16,8 @@ class ContentProviderBase:
         raise NotImplementedError('Implement me!')
 
     def cache_file(self, filename, file: BytesIO):
-        self.__cache.append((filename, file))
+        if (filename, file) not in self.__cache:
+            self.__cache.append((filename, file))
         return file
 
     def get_from_cache(self, filename):

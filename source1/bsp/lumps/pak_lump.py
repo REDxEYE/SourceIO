@@ -1,7 +1,7 @@
 from io import BytesIO
 from pathlib import Path, PurePath
 
-from SourceIO.source_shared.content_provider_base import ContentProviderBase
+from ....source_shared.content_provider_base import ContentProviderBase
 from .. import Lump, lump_tag
 import zipfile
 
