@@ -3,6 +3,11 @@ from collections import OrderedDict
 from enum import Enum
 from typing import TextIO
 
+from SourceIO.bpy_utilities.logging import BPYLoggingManager
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('keyvalues')
+
 
 def _is_end(ch: str):
     return ch in '\r\n\0'
@@ -141,7 +146,13 @@ class KVParser(KVReader):
         pairs = []
 
         while self._match(KVToken.STR, required=False, consume=False):
-            pairs.append(self.parse_pair())
+            try:
+                pairs.append(self.parse_pair())
+            except ValueError as e:
+                if not self.strict_mode:
+                    logger.error(f'Skipping malformed keyvalues pair {e}')
+                    continue
+                raise e
 
         self._match(KVToken.END)
 
@@ -193,8 +204,14 @@ class KVParser(KVReader):
         if tok is KVToken.OPEN:
             pairs = OrderedDict()
 
-            while not self._match(KVToken.CLOSE, required=False):
-                key, val = self.parse_pair()
+            while not self._match(KVToken.CLOSE, KVToken.END, required=False):
+                try:
+                    key, val = self.parse_pair()
+                except ValueError as e:
+                    if not self.strict_mode:
+                        logger.error(f'Skipping malformed keyvalues pair {e}')
+                        continue
+                    raise e
 
                 if isinstance(key, list):
                     for sub_key in key:
@@ -206,6 +223,8 @@ class KVParser(KVReader):
                     pairs[key] = val[-1]
                 elif len(val) == 1:
                     pairs[key] = val[0]
+
+            self._match(KVToken.CLOSE, required=self.strict_mode)
 
             return pairs
 
