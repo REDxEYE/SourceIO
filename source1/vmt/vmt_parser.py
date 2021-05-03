@@ -21,9 +21,9 @@ class VMTParser:
         else:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')
 
-        if not self._buffer.strip().endswith('}'):
-            self.logger.debug(f'VMT has has missing closing "}}"')
-            self._buffer += '\n}'
+        # if not self._buffer.strip().endswith('}'):
+        #     self.logger.debug(f'VMT has has missing closing "}}"')
+        #     self._buffer += '\n}'
 
         prev_mode = KVParser.strict_mode
         KVParser.set_strict_parsing_mode(False)
@@ -37,15 +37,15 @@ class VMTParser:
             return default, None
 
         if raw_value[0] == '{':
-            if raw_value[-1] != '}':
-                self.logger.debug(f'Value "{name}" has missing closing "}}"')
-                raw_value += '}'
+            # if raw_value[-1] != '}':
+            #     self.logger.debug(f'Value "{name}" has missing closing "}}"')
+            #     raw_value += '}'
             converter = int
             pass
         elif raw_value[0] == '[':
-            if raw_value[-1] != ']':
-                self.logger.debug(f'Value "{name}" has missing closing "]"')
-                raw_value += ']'
+            # if raw_value[-1] != ']':
+            #     self.logger.debug(f'Value "{name}" has missing closing "]"')
+            #     raw_value += ']'
             converter = float
         else:
             raise ValueError(f'Not a vector value: {raw_value}')
