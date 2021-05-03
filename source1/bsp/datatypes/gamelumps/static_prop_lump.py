@@ -63,7 +63,7 @@ class StaticProp:
                 self.diffuse_modulation = reader.read_fmt('4B')
             if version in [9, 10]:
                 self.disable_x360 = reader.read_uint32()
-            if version > 10:
+            if version >= 10:
                 self.flags_ex = reader.read_uint32()
             if version >= 11:
                 reader.skip(4)
