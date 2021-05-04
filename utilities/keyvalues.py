@@ -3,7 +3,7 @@ from collections import OrderedDict
 from enum import Enum
 from typing import TextIO
 
-from SourceIO.bpy_utilities.logging import BPYLoggingManager
+from ..bpy_utilities.logging import BPYLoggingManager
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('keyvalues')
