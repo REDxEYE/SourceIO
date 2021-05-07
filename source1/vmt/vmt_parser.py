@@ -25,11 +25,8 @@ class VMTParser:
         #     self.logger.debug(f'VMT has has missing closing "}}"')
         #     self._buffer += '\n}'
 
-        prev_mode = KVParser.strict_mode
-        KVParser.set_strict_parsing_mode(False)
-        self._parser = KVParser('<input>', self._buffer)
+        self._parser = KVParser('<input>', self._buffer, single_value=True)
         self.header, self._raw_data = self._parser.parse()
-        KVParser.set_strict_parsing_mode(prev_mode)
 
     def get_vector(self, name, default=(0, 0, 0)):
         raw_value = self._raw_data.get(name, None)

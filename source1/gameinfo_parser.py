@@ -54,11 +54,8 @@ class GameInfoParser:
         else:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')
 
-        prev_mode = KVParser.strict_mode
-        KVParser.set_strict_parsing_mode(False)
         self._parser = KVParser('<input>', self._buffer)
         self.header, self._raw_data = self._parser.parse()
-        KVParser.set_strict_parsing_mode(prev_mode)
 
     @property
     def game(self):

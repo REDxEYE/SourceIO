@@ -39,7 +39,7 @@ class KVToken(Enum):
 
 
 class KVReader:
-    def __init__(self, name: str, data: str):
+    def __init__(self, name: str, data: str, single_value: bool = False):
         self.name = name
         self.data = data
         self._length = len(self.data)
@@ -48,6 +48,7 @@ class KVReader:
         self._column = 1
         self._last = None
         self._last = self._read()
+        self.single_value = single_value
 
     def read(self):
         tok = self._last
@@ -139,9 +140,6 @@ class KVParser(KVReader):
         """Sets parser to use only last value if it's found more that one"""
         cls.strict_mode = value
 
-    def __init__(self, name: str, data: str):
-        super().__init__(name, data)
-
     def parse(self):
         pairs = []
 
@@ -219,7 +217,7 @@ class KVParser(KVReader):
                 else:
                     pairs.setdefault(key, []).append(val)
             for key, val in pairs.items():
-                if self.strict_mode:
+                if self.single_value:
                     pairs[key] = val[-1]
                 elif len(val) == 1:
                     pairs[key] = val[0]
