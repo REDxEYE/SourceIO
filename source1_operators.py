@@ -72,6 +72,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -108,6 +109,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
         if self.import_textures:
             bsp_map.load_materials()
         content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -129,9 +131,13 @@ class DMXImporter_OT_operator(bpy.types.Operator):
     filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
 
     def execute(self, context):
+        content_manager = ContentManager()
         directory = Path(self.filepath).parent.absolute()
         for file in self.files:
             load_session(directory / file.name, 1)
+
+        content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -191,6 +197,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
             if mat.create_material() == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
         content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):

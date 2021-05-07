@@ -69,6 +69,9 @@ class ByteIO:
     def tell(self):
         return self.file.tell()
 
+    def remaining(self):
+        return self.size() - self.tell()
+
     def size(self):
         curr_offset = self.tell()
         self.seek(0, io.SEEK_END)

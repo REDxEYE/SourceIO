@@ -304,8 +304,9 @@ class BSP:
         if info_overlay_lump:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
-            for overlay in overlays:
-
+            ov_count = len(overlays)
+            for n, overlay in enumerate(overlays):
+                print(f'Loading overlays {n+1}/{ov_count}')
                 # placement_faces = [faces_lump.faces[face_id] for face_id in overlay.ofaces[:overlay.face_count]]
                 # placement_face = placement_faces[0]
                 # plane = planes_lump.planes[placement_face.plane_index]

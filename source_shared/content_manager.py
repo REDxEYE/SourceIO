@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union, Dict
+from collections import Counter
 
 from ..bpy_utilities.logging import BPYLoggingManager
 from ..source_shared.non_source_sub_manager import NonSourceContentProvider
@@ -7,7 +8,7 @@ from ..source_shared.content_provider_base import ContentProviderBase
 from ..source_shared.vpk_sub_manager import VPKContentProvider
 from ..source1.source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
 from ..source2.source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
-from ..utilities.path_utilities import get_mod_path
+from ..utilities.path_utilities import get_mod_path, backwalk_file_resolver
 from ..utilities.singleton import SingletonMeta
 
 log_manager = BPYLoggingManager()
@@ -18,11 +19,32 @@ class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
         self.content_providers: Dict[str, ContentProviderBase] = {}
         self._titanfall_mode = False
+        self._steam_id = -1
+
+    def _find_steam_appid(self, path: Path):
+        if self._steam_id != -1:
+            return
+        if path.is_file():
+            path = path.parent
+        file = backwalk_file_resolver(path, 'steam_appid.txt')
+        if file is not None:
+            with file.open('r') as f:
+                try:
+                    value = f.read()
+                    if value.find('\n') >= 0:
+                        value = value[:value.find('\n')]
+                    if value.find('\x00') >= 0:
+                        value = value[:value.find('\x00')]
+                    self._steam_id = int(value.strip())
+                except Exception:
+                    logger.exception('Failed to parse steam id')
+                    self._steam_id = -1
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
         if "*LANGUAGE*" in str(source_game_path):
             return
         source_game_path = Path(source_game_path)
+        self._find_steam_appid(source_game_path)
         if source_game_path.suffix == '.vpk':
             if self._titanfall_mode:
                 if 'english' not in str(source_game_path):
@@ -179,3 +201,16 @@ class ContentManager(metaclass=SingletonMeta):
     def flush_cache(self):
         for cp in self.content_providers.values():
             cp.flush_cache()
+
+    def clean(self):
+        self.content_providers.clear()
+        self._steam_id = -1
+
+    @property
+    def steam_id(self):
+        if self._steam_id != -1:
+            return self._steam_id
+        used_appid = Counter([cm.steam_id for cm in self.content_providers.values() if cm.steam_id > 0])
+        if len(used_appid) == 0:
+            return 0
+        return used_appid.most_common(1)[0][0]

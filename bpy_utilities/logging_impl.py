@@ -98,3 +98,9 @@ class BPYLogger:
         self._add_bpy_file_logger()
         self._filter.function or _get_caller_function()
         self._logger.error(message)
+
+
+    def exception(self, message):
+        self._add_bpy_file_logger()
+        self._filter.function or _get_caller_function()
+        self._logger.exception(message)
