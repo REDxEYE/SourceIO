@@ -229,6 +229,8 @@ class StaticPropLump:
             unk1 = reader.read_int32()
             unk2 = reader.read_int32()
         prop_count = reader.read_int32()
+        if prop_count == 0:
+            return
         prop_size = reader.remaining() // prop_count
         for i in range(prop_count):
             prop = StaticProp()
