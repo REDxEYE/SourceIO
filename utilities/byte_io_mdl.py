@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Union, BinaryIO
 
 
-
 class OffsetOutOfBounds(Exception):
     pass
 
@@ -27,10 +26,6 @@ class ByteIO:
 
     def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
                  open_to_read=True):
-
-        print('PRINTING A TRACEBACK:')
-        print(''.join(traceback.format_stack()))
-
         if hasattr(path_or_file_or_data, 'mode'):
             file = path_or_file_or_data
             self.file = file
@@ -46,14 +41,10 @@ class ByteIO:
             self.file = BytesIO()
 
     def __del__(self):
-        try:
-            print('Closed file', self.file)
-            print('PRINTING A TRACEBACK:')
-            print(''.join(traceback.format_stack()))
-
-            self.close()
-        except:
-            pass
+        print(''.join(traceback.format_stack()))
+        if isinstance(self.file, BytesIO):
+            return
+        self.close()
 
     @property
     def preview(self):
