@@ -2,9 +2,13 @@ import binascii
 import contextlib
 import io
 import struct
+import sys
+import traceback
 from io import BytesIO
 from pathlib import Path
 from typing import Union, BinaryIO
+
+from SourceIO.bpy_utilities.logging_stub import _get_caller_function
 
 
 class OffsetOutOfBounds(Exception):
@@ -24,6 +28,11 @@ class ByteIO:
 
     def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
                  open_to_read=True):
+
+        self.__creator = _get_caller_function()
+        print('PRINTING A TRACEBACK:')
+        print(''.join(traceback.format_stack()))
+
         if hasattr(path_or_file_or_data, 'mode'):
             file = path_or_file_or_data
             self.file = file
@@ -40,8 +49,11 @@ class ByteIO:
 
     def __del__(self):
         try:
+            print('Closed file', self.file, 'File was created in', self.__creator)
+            print('PRINTING A TRACEBACK:')
+            print(''.join(traceback.format_stack()))
+
             self.close()
-            print('Closed file', self.file)
         except:
             pass
 
