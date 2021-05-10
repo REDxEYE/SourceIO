@@ -41,7 +41,6 @@ class ByteIO:
             self.file = BytesIO()
 
     def __del__(self):
-        print(''.join(traceback.format_stack()))
         if isinstance(self.file, BytesIO):
             return
         self.close()

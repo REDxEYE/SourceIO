@@ -14,10 +14,6 @@ def import_texture(name, file_object, update=False):
     vtf_lib = VTFLib.VTFLib()
     logger.info(f'Loading "{name}" texture')
     vtf_lib.image_load_from_buffer(file_object.read())
-    try:
-        file_object.close()
-    except:
-        pass
     if not vtf_lib.image_is_loaded():
         raise Exception("Failed to load texture :{}".format(vtf_lib.get_last_error()))
     image_width = vtf_lib.width()
