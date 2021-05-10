@@ -8,7 +8,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Union, BinaryIO
 
-from SourceIO.bpy_utilities.logging_stub import _get_caller_function
 
 
 class OffsetOutOfBounds(Exception):
@@ -29,7 +28,6 @@ class ByteIO:
     def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
                  open_to_read=True):
 
-        self.__creator = _get_caller_function()
         print('PRINTING A TRACEBACK:')
         print(''.join(traceback.format_stack()))
 
@@ -49,7 +47,7 @@ class ByteIO:
 
     def __del__(self):
         try:
-            print('Closed file', self.file, 'File was created in', self.__creator)
+            print('Closed file', self.file)
             print('PRINTING A TRACEBACK:')
             print(''.join(traceback.format_stack()))
 
