@@ -53,6 +53,8 @@ class VertexLitGeneric(Source1ShaderBase):
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
+        elif len(color_value) > 3:
+            color_value = color_value[:3]
         return color_value
 
     @property
@@ -62,6 +64,8 @@ class VertexLitGeneric(Source1ShaderBase):
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
+        elif len(color_value) > 3:
+            color_value = color_value[:3]
         return color_value
 
     @property
