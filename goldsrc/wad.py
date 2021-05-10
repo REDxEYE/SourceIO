@@ -91,6 +91,9 @@ class WadFile:
             entry = WadEntry(self)
             self.entries[entry.name] = entry
 
+    def __del__(self):
+        self.handle.close()
+
     def get_file(self, name: str) -> Optional[WadEntry]:
         name = name.upper()
         if name in self.entries:

@@ -38,6 +38,13 @@ class ByteIO:
         else:
             self.file = BytesIO()
 
+    def __del__(self):
+        try:
+            self.close()
+            print('Closed file', self.file)
+        except:
+            pass
+
     @property
     def preview(self):
         with self.save_current_pos():
@@ -54,7 +61,7 @@ class ByteIO:
         return "<ByteIO {}/{}>".format(self.tell(), self.size())
 
     def close(self):
-        if hasattr(self.file, 'mode') and 'w' in getattr(self.file, 'mode'):
+        if hasattr(self.file, 'close'):
             self.file.close()
 
     def rewind(self, amount):
@@ -299,6 +306,24 @@ class ByteIO:
 
     def __bool__(self):
         return self.tell() < self.size()
+
+    # EXTENSION
+
+    def read_rle_shorts(self, count):
+        values = []
+        total_count = 0
+        for i in range(count):
+            raw_count, encoded_count = self.read_fmt('2B')
+            vals = self.read_fmt(f'{raw_count}h')
+            for j in range(encoded_count):
+                if total_count == count:
+                    break
+                total_count += 1
+                idx = min(raw_count - 1, j)
+                values.append(vals[idx])
+            if total_count == count:
+                break
+        return values
 
 
 if __name__ == '__main__':
