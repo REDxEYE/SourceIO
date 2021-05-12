@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 from .gameinfo_parser import GameInfoParser
 from ..utilities.keyvalues import KVParser
@@ -64,13 +64,13 @@ class GameinfoContentProvider(ContentProviderBase):
 
         return all_search_paths
 
-    def find_file(self, filepath: str, additional_dir=None,
+    def find_file(self, filepath: Union[str, Path], additional_dir=None,
                   extension=None):
         path = self.find_path(filepath, additional_dir, extension)
         if path:
             return path.open('rb')
 
-    def find_path(self, filepath: str, additional_dir=None,
+    def find_path(self, filepath: Union[str, Path], additional_dir=None,
                   extension=None):
         filepath = Path(str(filepath).strip("\\/"))
 

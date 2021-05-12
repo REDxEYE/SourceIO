@@ -1,6 +1,7 @@
 from collections import deque
 from io import BytesIO
 from pathlib import Path
+from typing import Union
 
 
 class ContentProviderBase:
@@ -9,10 +10,10 @@ class ContentProviderBase:
     def __init__(self, filepath: Path):
         self.filepath = filepath
 
-    def find_file(self, filepath: str):
+    def find_file(self, filepath: Union[str, Path]):
         raise NotImplementedError('Implement me!')
 
-    def find_path(self, filepath: str):
+    def find_path(self, filepath: Union[str, Path]):
         raise NotImplementedError('Implement me!')
 
     def cache_file(self, filename, file: BytesIO):

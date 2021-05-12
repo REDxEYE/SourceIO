@@ -142,7 +142,7 @@ class ContentManager(metaclass=SingletonMeta):
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
 
-    def find_file(self, filepath: str, additional_dir=None, extension=None, *, silent=False):
+    def find_file(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
 
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
         if additional_dir:

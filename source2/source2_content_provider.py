@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 from ..utilities.keyvalues import KVParser
 from ..source_shared.content_provider_base import ContentProviderBase
@@ -58,7 +58,7 @@ class GameinfoContentProvider(ContentProviderBase):
                 all_search_paths.append(vpk_file)
         return all_search_paths
 
-    def find_file(self, filepath: str, additional_dir=None,
+    def find_file(self, filepath: Union[str, Path], additional_dir=None,
                   extension=None):
         filepath = Path(str(filepath).strip("\\/"))
 

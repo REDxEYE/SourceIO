@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path, PurePath
+from typing import Union
 
 from ....source_shared.content_provider_base import ContentProviderBase
 from .. import Lump, lump_tag
@@ -9,7 +10,7 @@ import zipfile
 @lump_tag(40, 'LUMP_PAK')
 class PakLump(Lump, ContentProviderBase):
 
-    def find_path(self, filepath: str):
+    def find_path(self, filepath: Union[str, Path]):
         pass
 
     def __init__(self, bsp, lump_id):
@@ -26,7 +27,7 @@ class PakLump(Lump, ContentProviderBase):
             self._filename_cache = {a.lower(): a for a in self.zip_file.NameToInfo}
         return self
 
-    def find_file(self, filepath: str, additional_dir=None, extension=None):
+    def find_file(self, filepath: Union[str, Path], additional_dir=None, extension=None):
         filepath = Path(str(filepath).strip("\\/"))
 
         new_filepath = filepath
