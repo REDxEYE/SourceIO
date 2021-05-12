@@ -25,6 +25,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
     def execute(self, context):
         content_manager = ContentManager()
         content_manager.deserialize(bpy.context.scene.get('content_manager_data', {}))
+        unique_material_names = True
 
         for obj in context.selected_objects:
             print(f'Loading {obj.name}')
@@ -69,7 +70,8 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model(mld_file, vvd_file, vtx_file, vvc_file, 1.0, False, True)
+                        model_container = import_model(mld_file, vvd_file, vtx_file, vvc_file, 1.0, False, True,
+                                                       unique_material_names=unique_material_names)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                         entity_data_holder['entity_data'] = {}
@@ -99,7 +101,11 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                 bpy.context.view_layer.update()
                                 mesh_obj.parent = obj.parent
                                 mesh_obj.matrix_world = obj.matrix_world.copy()
-                        import_materials(model_container.mdl)
+
+                        for mesh_obj in model_container.objects:
+                            mesh_obj['prop_path'] = custom_prop_data['prop_path']
+
+                        import_materials(model_container.mdl, unique_material_names=unique_material_names)
                         skin = custom_prop_data.get('skin', None)
                         if skin:
                             for model in model_container.objects:
@@ -109,7 +115,16 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                     current_materials = model['skin_groups'][model['active_skin']]
                                     print(skin_materials, current_materials)
                                     for skin_material, current_material in zip(skin_materials, current_materials):
-                                        swap_materials(model, skin_material[-63:], current_material[-63:])
+                                        if unique_material_names:
+                                            skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[-63:]}"[
+                                                            -63:]
+                                            current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[-63:]}"[
+                                                               -63:]
+                                        else:
+                                            skin_material = skin_material[-63:]
+                                            current_material = current_material[-63:]
+
+                                        swap_materials(model, skin_material, current_material)
                                     model['active_skin'] = skin
                                 else:
                                     print(f'Skin {skin} not found')
@@ -141,10 +156,19 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
         return {'FINISHED'}
 
     def handle_s1(self, obj):
+        prop_path = Path(obj['prop_path'])
         skin_materials = obj['skin_groups'][self.skin_name]
         current_materials = obj['skin_groups'][obj['active_skin']]
+        unique_material_names = obj['unique_material_names']
         for skin_material, current_material in zip(skin_materials, current_materials):
-            swap_materials(obj, skin_material[-63:], current_material[-63:])
+            if unique_material_names:
+                skin_material = f"{prop_path.stem}_{skin_material[-63:]}"[-63:]
+                current_material = f"{prop_path.stem}_{current_material[-63:]}"[-63:]
+            else:
+                skin_material = skin_material[-63:]
+                current_material = current_material[-63:]
+
+            swap_materials(obj, skin_material, current_material)
 
     def handle_s2(self, obj):
         skin_material = obj['skin_groups'][self.skin_name]

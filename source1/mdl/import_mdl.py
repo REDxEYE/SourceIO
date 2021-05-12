@@ -103,7 +103,7 @@ def create_armature(mdl: Mdl, scale=1.0):
 
 
 def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc_file: BinaryIO = None, scale=1.0,
-                 create_drivers=False, re_use_meshes=False):
+                 create_drivers=False, re_use_meshes=False, unique_material_names=False):
     mdl = Mdl(mdl_file)
     mdl.read()
     vvd = Vvd(vvd_file)
@@ -167,9 +167,9 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
                     type="ARMATURE", name="Armature")
                 modifier.object = armature
                 mesh_obj.parent = armature
-
             container.objects.append(mesh_obj)
             container.bodygroups[body_part.name].append(mesh_obj)
+            mesh_obj['unique_material_names'] = unique_material_names
 
             if used_copy:
                 continue
@@ -190,7 +190,11 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
-                material_remapper[mat_id] = get_material(mat_name[-63:], mesh_obj)
+                if unique_material_names:
+                    mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
+                else:
+                    mat_name = mat_name[-63:]
+                material_remapper[mat_id] = get_material(mat_name, mesh_obj)
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
 
@@ -332,12 +336,17 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
     return attachments
 
 
-def import_materials(mdl):
+def import_materials(mdl, unique_material_names=False):
     content_manager = ContentManager()
     for material in mdl.materials:
-        if bpy.data.materials.get(material.name[-63:], False):
-            if bpy.data.materials[material.name[-63:]].get('source1_loaded', False):
-                logger.info(f'Skipping loading of {material.name[-63:]} as it already loaded')
+        if unique_material_names:
+            mat_name = f"{Path(mdl.header.name).stem}_{material.name[-63:]}"[-63:]
+        else:
+            mat_name = material.name[-63:]
+
+        if bpy.data.materials.get(mat_name, False):
+            if bpy.data.materials[mat_name].get('source1_loaded', False):
+                logger.info(f'Skipping loading of {mat_name} as it already loaded')
                 continue
         material_path = None
         for mat_path in mdl.materials_paths:
@@ -345,5 +354,5 @@ def import_materials(mdl):
             if material_path:
                 break
         if material_path:
-            new_material = Source1MaterialLoader(material_path, material.name[-63:])
+            new_material = Source1MaterialLoader(material_path, mat_name)
             new_material.create_material()
