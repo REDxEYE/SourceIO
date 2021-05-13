@@ -105,6 +105,7 @@ class DmxModel:
         self._dme_model_transforms = self.dmx.add_element("base", "DmeTransformList", id="transforms SourceIOExport")
         self._dme_model_transforms["transforms"] = datamodel.make_array([], datamodel.Element)
         self._joint_list = datamodel.make_array([], datamodel.Element)
+        self._bone_counter = 0
 
     @property
     def model_name(self):
@@ -174,7 +175,8 @@ class DmxModel:
             bone_name = bone.name
         bone_elem = self.dmx.add_element(bone_name, "DmeJoint", id=bone_name)
         self._joint_list.append(bone_elem)
-        self._bone_ids[bone_name] = len(self._bone_ids)  # in Source 2, index 0 is the DmeModel
+        self._bone_counter += 1
+        self._bone_ids[bone_name] = self._bone_counter  # in Source 2, index 0 is the DmeModel
 
         if not bone:
             rel_mat = np.identity(4)
@@ -242,7 +244,6 @@ class DmxModel:
         balance_width = dimm * (1 - (99.3 / 100))
         balance = model_vertices['vertex'][:, 0]
         balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
-
         vertex_data[keywords['balance']] = datamodel.make_array(balance, float)
         vertex_data[keywords['balance'] + 'Indices'] = datamodel.make_array(vtx_vertices, int)
 
@@ -257,11 +258,16 @@ class DmxModel:
 
         vertex_data[keywords["weight"]] = datamodel.make_array(model_vertices['weight'].flatten(), float)
         new_bone_ids = []
-        for b, w in zip(model_vertices['bone_id'].flatten(), model_vertices['weight'].flatten()):
-            if w != 0.0:
-                b = self._bone_ids[self.mdl.bones[b].name]
-            new_bone_ids.append(b)
-
+        all_bones = [b.name for b in self.mdl.bones]
+        for bs, ws in zip(model_vertices['bone_id'], model_vertices['weight']):
+            for b, w in zip(bs, ws):
+                if w > 0.0:
+                    bone_name = self.mdl.bones[b].name
+                    if bone_name in all_bones:
+                        all_bones.pop(all_bones.index(bone_name))
+                    b = self._bone_ids[bone_name]
+                new_bone_ids.append(b)
+        # assert len(all_bones) == 0, f'Not all bones were used: {all_bones}'
         vertex_data[keywords["weight_indices"]] = datamodel.make_array(new_bone_ids, int)
         dme_face_sets = []
         for face_set in face_sets:

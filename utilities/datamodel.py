@@ -796,7 +796,7 @@ class DataModel:
                 attr = elem[name]
                 self._write(name, suppress_dict=False)
                 self._write(struct.pack("b", _get_dmx_type_id(self.encoding, self.encoding_ver, type(attr))))
-                if attr == None:
+                if attr is None:
                     self._write(-1)
                 else:
                     self._write(attr, elem)
