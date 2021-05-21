@@ -3,6 +3,7 @@ from typing import Iterable, Sized, List
 
 import numpy as np
 
+from utils import sanitize_name
 from ..mdl.mdl_file import Mdl
 from ..mdl.structs.bone import Bone
 from ..mdl.structs.model import Model as MdlModel
@@ -380,7 +381,9 @@ class DmxModel:
         return combination_input_control
 
     def save(self, output_path: Path):
-        self.dmx.write((output_path / Path(self.mdl_model.name.lower()).stem).with_suffix('.dmx'), 'binary', 9)
+        model_name = sanitize_name(self.mdl_model.name.lower())
+        self.dmx.write((output_path / Path(model_name).stem).with_suffix('.dmx'),
+                       'binary', 9)
 
 
 class ModelDecompiler:
