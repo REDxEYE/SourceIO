@@ -1,4 +1,7 @@
-from ....utilities.byte_io_mdl  import ByteIO
+from typing import Optional
+
+from .texture import Material
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 
 
@@ -12,6 +15,7 @@ class Eyeball(Base):
         self.up = []
         self.forward = []
         self.material_id = 0
+        self.material: Optional[Material] = None
 
         self.iris_scale = 0.0
         self.upper_flex_desc = []

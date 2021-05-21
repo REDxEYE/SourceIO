@@ -52,7 +52,7 @@ class VMTParser:
 
     def get_string(self, name, default='invalid'):
         raw_value = self._raw_data.get(name, default)
-        return str(raw_value)
+        return str(raw_value) if raw_value is not None else None
 
     def get_int(self, name, default=0):
         raw_value = self._raw_data.get(name, None)
@@ -64,7 +64,9 @@ class VMTParser:
 
     def get_float(self, name, default=0.0):
         raw_value = self._raw_data.get(name, None)
-        return float(raw_value or default)
+        if raw_value is None:
+            return default
+        return float(raw_value)
 
     def get_subblock(self, name, default=None):
         if default is None:
