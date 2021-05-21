@@ -39,4 +39,4 @@ class VMT:
                 self.material = new_material
             else:
                 logger.error('Failed to find original material')
-                return
+        return self.material

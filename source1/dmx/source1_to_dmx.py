@@ -38,13 +38,16 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
     return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset
 
 
-def merge_meshes(model: MdlModel, vtx_model: VtxModelLod):
+def merge_meshes(model: MdlModel, vtx_model: VtxModelLod, skip_eyeballs=False):
     vtx_vertices = []
     face_sets = []
     acc = 0
     for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
         if not vtx_mesh.strip_groups:
             continue
+        if skip_eyeballs and mesh.material_type == 1:
+            continue
+
         indices, vertices, offset = merge_strip_groups(vtx_mesh)
         indices = np.add(indices, acc)
 
@@ -90,7 +93,8 @@ def normalize_path(path):
 
 
 class DmxModel:
-    def __init__(self, mdl: Mdl, vvd: Vvd, vtx: Vtx, vtx_model: VtxModel, mdl_model: MdlModel):
+    def __init__(self, mdl: Mdl, vvd: Vvd, vtx: Vtx, vtx_model: VtxModel, mdl_model: MdlModel, remove_eyes=False):
+        self._remove_eyes = remove_eyes
         self.mdl = mdl
         self.vvd = vvd
         self.vtx = vtx
@@ -105,6 +109,7 @@ class DmxModel:
         self._dme_model_transforms = self.dmx.add_element("base", "DmeTransformList", id="transforms SourceIOExport")
         self._dme_model_transforms["transforms"] = datamodel.make_array([], datamodel.Element)
         self._joint_list = datamodel.make_array([], datamodel.Element)
+        self._bone_counter = 0
 
     @property
     def model_name(self):
@@ -174,7 +179,8 @@ class DmxModel:
             bone_name = bone.name
         bone_elem = self.dmx.add_element(bone_name, "DmeJoint", id=bone_name)
         self._joint_list.append(bone_elem)
-        self._bone_ids[bone_name] = len(self._bone_ids)  # in Source 2, index 0 is the DmeModel
+        self._bone_counter += 1
+        self._bone_ids[bone_name] = self._bone_counter  # in Source 2, index 0 is the DmeModel
 
         if not bone:
             rel_mat = np.identity(4)
@@ -225,7 +231,7 @@ class DmxModel:
         self._dme_model_transforms['transforms'].append(
             self.make_transform_mat(mesh_name, trfm_mat, f"ob_base_{mesh_name}"))
 
-        vtx_vertices, face_sets = merge_meshes(self.mdl_model, self.vtx_model.model_lods[0])
+        vtx_vertices, face_sets = merge_meshes(self.mdl_model, self.vtx_model.model_lods[0], self._remove_eyes)
 
         keywords = get_dmx_keywords()
 
@@ -258,10 +264,10 @@ class DmxModel:
         vertex_data[keywords["weight"]] = datamodel.make_array(model_vertices['weight'].flatten(), float)
         new_bone_ids = []
         for b, w in zip(model_vertices['bone_id'].flatten(), model_vertices['weight'].flatten()):
-            if w != 0.0:
-                b = self._bone_ids[self.mdl.bones[b].name]
+            if w > 0.0:
+                bone_name = self.mdl.bones[b].name
+                b = self._bone_ids[bone_name]
             new_bone_ids.append(b)
-
         vertex_data[keywords["weight_indices"]] = datamodel.make_array(new_bone_ids, int)
         dme_face_sets = []
         for face_set in face_sets:
@@ -396,7 +402,7 @@ class ModelDecompiler:
         self.dmx_models: List[DmxModel] = []
         self._blank_counter = 0
 
-    def decompile(self):
+    def decompile(self, remove_eyes=False):
         for vtx_body_part, body_part in zip(self.vtx.body_parts, self.mdl.body_parts):
             for vtx_model, mdl_model in zip(vtx_body_part.models, body_part.models):
                 print(f"Decompiling {body_part.name}/{mdl_model.name}")
@@ -405,7 +411,7 @@ class ModelDecompiler:
                 if mdl_model.name == 'blank':
                     mdl_model.name = f'blank_{self._blank_counter}'
                     self._blank_counter += 1
-                dmx_model = DmxModel(self.mdl, self.vvd, self.vtx, vtx_model, mdl_model)
+                dmx_model = DmxModel(self.mdl, self.vvd, self.vtx, vtx_model, mdl_model, remove_eyes)
                 dmx_model.decompile_model()
                 self.dmx_models.append(dmx_model)
 
