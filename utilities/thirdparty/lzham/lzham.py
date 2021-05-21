@@ -47,7 +47,8 @@ class DecompressionParameters(Structure):
 
 
 class LZHAM():
-    lib = CDLL(str(Path(__file__).absolute().parent / ('lzham_x64'+('.dll' if platform_name=='Windows' else '.so'))))
+    lib = CDLL(
+        str(Path(__file__).absolute().parent / ('lzham_x64' + ('.dll' if platform_name == 'Windows' else '.so'))))
 
     _get_version = lib.lzham_get_version
     _get_version.argtypes = []
