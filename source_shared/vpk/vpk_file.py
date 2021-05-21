@@ -17,7 +17,7 @@ def open_vpk(filepath: Union[str, Path]):
         raise Exception('Not a VPK file')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
-    elif version_mj == 2 and version_mn == 3:
+    elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
         return TitanfallVPKFile(filepath)
 
 

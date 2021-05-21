@@ -46,55 +46,58 @@ class DecompressionParameters(Structure):
         self.m_struct_size = ctypes.sizeof(self)
 
 
-class LZHAM():
-    lib = CDLL(
-        str(Path(__file__).absolute().parent / ('lzham_x64' + ('.dll' if platform_name == 'Windows' else '.so'))))
+class LZHAM:
+    try:
+        lib = CDLL(
+            str(Path(__file__).absolute().parent / ('lzham_x64' + ('.dll' if platform_name == 'Windows' else '.so'))))
 
-    _get_version = lib.lzham_get_version
-    _get_version.argtypes = []
-    _get_version.restype = c_uint32
+        _get_version = lib.lzham_get_version
+        _get_version.argtypes = []
+        _get_version.restype = c_uint32
 
-    _compress_init = lib.lzham_compress_init
-    _compress_init.argtypes = [c_char_p]
-    _compress_init.restype = POINTER(c_uint32)
+        _compress_init = lib.lzham_compress_init
+        _compress_init.argtypes = [c_char_p]
+        _compress_init.restype = POINTER(c_uint32)
 
-    _compress_reinit = lib.lzham_compress_reinit
-    _compress_reinit.argtypes = [POINTER(c_uint32)]
-    _compress_reinit.restype = POINTER(c_uint32)
+        _compress_reinit = lib.lzham_compress_reinit
+        _compress_reinit.argtypes = [POINTER(c_uint32)]
+        _compress_reinit.restype = POINTER(c_uint32)
 
-    _compress = lib.lzham_compress
-    _compress.argtypes = [POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_uint32]
-    _compress.restype = c_uint32
+        _compress = lib.lzham_compress
+        _compress.argtypes = [POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_uint32]
+        _compress.restype = c_uint32
 
-    _compress2 = lib.lzham_compress2
-    _compress2.argtypes = [POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_uint32]
-    _compress2.restype = c_uint32
+        _compress2 = lib.lzham_compress2
+        _compress2.argtypes = [POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_uint32]
+        _compress2.restype = c_uint32
 
-    _compress_memory = lib.lzham_compress_memory
-    _compress_memory.argtypes = [c_char_p, c_char_p, POINTER(c_uint32), c_char_p, c_uint32, POINTER(c_uint32)]
-    _compress_memory.restype = c_uint32
+        _compress_memory = lib.lzham_compress_memory
+        _compress_memory.argtypes = [c_char_p, c_char_p, POINTER(c_uint32), c_char_p, c_uint32, POINTER(c_uint32)]
+        _compress_memory.restype = c_uint32
 
-    _compress_deinit = lib.lzham_compress_deinit
-    _compress_deinit.argtypes = [POINTER(c_uint32)]
-    _compress_deinit.restype = c_uint32
+        _compress_deinit = lib.lzham_compress_deinit
+        _compress_deinit.argtypes = [POINTER(c_uint32)]
+        _compress_deinit.restype = c_uint32
 
-    _decompress_init = lib.lzham_decompress_init
-    _decompress_init.argtypes = [POINTER(DecompressionParameters)]
-    _decompress_init.restype = POINTER(c_uint32)
+        _decompress_init = lib.lzham_decompress_init
+        _decompress_init.argtypes = [POINTER(DecompressionParameters)]
+        _decompress_init.restype = POINTER(c_uint32)
 
-    _decompress_reinit = lib.lzham_decompress_reinit
-    _decompress_reinit.argtypes = [POINTER(c_uint32), POINTER(c_uint32)]
-    _decompress_reinit.restype = POINTER(c_uint32)
+        _decompress_reinit = lib.lzham_decompress_reinit
+        _decompress_reinit.argtypes = [POINTER(c_uint32), POINTER(c_uint32)]
+        _decompress_reinit.restype = POINTER(c_uint32)
 
-    _decompress = lib.lzham_decompress
-    _decompress.argtypes = [POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_uint32]
-    _decompress.restype = POINTER(c_uint32)
+        _decompress = lib.lzham_decompress
+        _decompress.argtypes = [POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_char_p, POINTER(c_uint32), c_uint32]
+        _decompress.restype = POINTER(c_uint32)
 
-    _decompress_memory = lib.lzham_decompress_memory
-    _decompress_memory.argtypes = [POINTER(DecompressionParameters), c_char_p, POINTER(c_uint32), c_char_p,
-                                   POINTER(c_uint32),
-                                   POINTER(c_uint32)]
-    _decompress_memory.restype = DecompressStatus
+        _decompress_memory = lib.lzham_decompress_memory
+        _decompress_memory.argtypes = [POINTER(DecompressionParameters), c_char_p, POINTER(c_uint32), c_char_p,
+                                       POINTER(c_uint32),
+                                       POINTER(c_uint32)]
+        _decompress_memory.restype = DecompressStatus
+    except:
+        lib = None
 
     def __init__(self):
         self.decompress_handle = POINTER(c_uint32)()
