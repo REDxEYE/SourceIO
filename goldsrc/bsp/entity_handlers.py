@@ -1,3 +1,4 @@
+import math
 from functools import partial
 from pathlib import Path
 
@@ -11,14 +12,18 @@ from ...utilities.math_utilities import parse_hammer_vector
 content_manager = GoldSrcContentManager()
 
 
-def handle_generic_model_prop(entity_data, scale, parent_collection):
+def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotation=False):
     model_name = Path(entity_data['model'])
-    return handle_model_prop(model_name, entity_data, scale, parent_collection)
+    return handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=fix_rotation)
 
 
-def handle_model_prop(model_name, entity_data, scale, parent_collection):
+def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=False):
     origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * scale
-    angles = parse_hammer_vector(entity_data.get('angles', '0 0 0'))
+    angles = [math.radians(a) for a in parse_hammer_vector(entity_data.get('angles', '0 0 0'))]
+    if fix_rotation:
+        x, y, z = angles
+        y += math.pi / 2
+        angles = [x, z, y]
     target_name = entity_data.get('targetname', entity_data['classname'])
     model_path = content_manager.get_game_resource(str(model_name))
     if model_path:
@@ -51,5 +56,6 @@ entity_handlers = {
     'monster_faceless': partial(handle_model_prop, Path('models/Faceless.mdl')),
     'monster_generic': handle_generic_model_prop,
     'cycler': handle_generic_model_prop,
+    'cycler_sprite': partial(handle_generic_model_prop, fix_rotation=True),
     'env_model': handle_generic_model_prop,
 }
