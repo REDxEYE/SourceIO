@@ -34,18 +34,13 @@ class VMTParser:
             return default, None
 
         if raw_value[0] == '{':
-            # if raw_value[-1] != '}':
-            #     self.logger.debug(f'Value "{name}" has missing closing "}}"')
-            #     raw_value += '}'
             converter = int
             pass
         elif raw_value[0] == '[':
-            # if raw_value[-1] != ']':
-            #     self.logger.debug(f'Value "{name}" has missing closing "]"')
-            #     raw_value += ']'
             converter = float
         else:
-            raise ValueError(f'Not a vector value: {raw_value}')
+            return [float(raw_value)], float
+            # raise ValueError(f'Not a vector value: {raw_value}')
 
         values = raw_value[1:-1].split()
         return tuple(map(converter, values)), converter
@@ -74,7 +69,7 @@ class VMTParser:
         raw_value = self._raw_data.get(name, None)
         return raw_value or default
 
-    def get_param(self, name, default='invalid'):
+    def get_param(self, name, default=None):
         raw_value = self._raw_data.get(name, None)
         return str(raw_value) if raw_value else default
 
