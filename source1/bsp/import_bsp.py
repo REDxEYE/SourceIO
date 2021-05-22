@@ -300,7 +300,6 @@ class BSP:
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
         faces_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_FACES')
         planes_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_PLANES')
-        provider = ContentManager().get_content_provider_from_path(self.filepath)
         if info_overlay_lump:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
@@ -360,7 +359,7 @@ class BSP:
                     for i in range(3):
                         mesh_obj.location[i] = mesh_obj.location[i] + (self.scale * pos * this_norm[i])
 
-                if provider.steam_id in [1840, 440]:
+                if ContentManager().steam_id in [1840, 440]:
                     mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
                     mesh_obj.data.transform(mesh_mx)
 
