@@ -171,6 +171,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
             container.objects.append(mesh_obj)
             container.bodygroups[body_part.name].append(mesh_obj)
             mesh_obj['unique_material_names'] = unique_material_names
+            mesh_obj['prop_path'] = Path(mdl.header.name).stem,
 
             if used_copy:
                 continue
