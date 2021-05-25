@@ -85,12 +85,12 @@ class AbstractEntityHandler:
         #     self.resolve_parents(entity_data)
         pass
 
-    def handle_entity(self, entity_data):
+    def handle_entity(self, entity_data: dict):
         entity_class = entity_data['classname']
         if hasattr(self, f'handle_{entity_class}') and entity_class in self.entity_lookup_table:
             # try:
-            entity_object = self._get_class(entity_class)
-            entity_object.from_dict(entity_object, entity_data)
+            entity_class_obj = self._get_class(entity_class)
+            entity_object = entity_class_obj(entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
             handler_function(entity_object, entity_data)
             # except ValueError as e:
@@ -108,8 +108,8 @@ class AbstractEntityHandler:
         if entity is None:
             return None, None
         entity_class = self._get_class(entity['classname'])
-        entity_class.from_dict(entity_class, entity)
-        return entity_class, entity
+        entity_obj = entity_class(entity)
+        return entity_obj, entity
 
     def _get_string(self, string_id):
         strings: List[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
@@ -271,12 +271,12 @@ class AbstractEntityHandler:
         line.location = [0, 0, 0]
         return line
 
-    def _get_class(self, class_name):
+    def _get_class(self, class_name) -> type(Base):
         if class_name in self.entity_lookup_table:
-            entity_object = self.entity_lookup_table[class_name]()
+            entity_object = self.entity_lookup_table[class_name]
             return entity_object
         else:
-            return Base()
+            return Base
 
     def resolve_parents(self, entity_raw: dict):
         entity = self._get_class(entity_raw['classname'])

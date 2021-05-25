@@ -741,9 +741,6 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_phys_keepupright(self, entity: phys_keepupright, entity_raw: dict):
         pass
 
-    def handle_env_lightglow(self, entity: env_lightglow, entity_raw: dict):
-        pass
-
     def handle_env_sun(self, entity: env_sun, entity_raw: dict):
         pass
 
@@ -752,6 +749,9 @@ class BaseEntityHandler(AbstractEntityHandler):
         pass
 
     # TODO
+    def handle_env_lightglow(self, entity: env_lightglow, entity_raw: dict):
+        pass
+
     def handle_info_particle_system(self, entity: info_particle_system, entity_raw: dict):
         pass
 

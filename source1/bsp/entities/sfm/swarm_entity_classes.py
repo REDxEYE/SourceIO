@@ -20,9 +20,9 @@ def parse_float_vector(string):
 class Base:
     hammer_id_counter = 0
 
-    def __init__(self):
-        self.hammer_id = 0
-        self.class_name = 'ANY'
+    def __init__(self, entity_data: dict):
+        self._hammer_id = -1
+        self._raw_data = entity_data
 
     @classmethod
     def new_hammer_id(cls):
@@ -30,1219 +30,1346 @@ class Base:
         cls.hammer_id_counter += 1
         return new_id
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        if 'hammerid' in entity_data:
-            instance.hammer_id = int(entity_data.get('hammerid'))
-        else:  # Titanfall
-            instance.hammer_id = Base.new_hammer_id()
-        instance.class_name = entity_data.get('classname')
+    @property
+    def class_name(self):
+        return self._raw_data.get('classname')
+        
+    @property
+    def hammer_id(self):
+        if self._hammer_id == -1:
+            if 'hammerid' in self._raw_data:
+                self._hammer_id = int(self._raw_data.get('hammerid'))
+            else:  # Titanfall
+                self._hammer_id = Base.new_hammer_id()
+        return self._hammer_id
 
 
 class Angles(Base):
-    def __init__(self):
-        super().__init__()
-        self.angles = [0.0, 0.0, 0.0]  # Type: angle
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.angles = parse_float_vector(entity_data.get('angles', "0 0 0"))  # Type: angle
+    @property
+    def angles(self):
+        return parse_float_vector(self._raw_data.get('angles', "0 0 0"))
+
 
 
 class Origin(Base):
-    def __init__(self):
-        super().__init__()
-        self.origin = None  # Type: origin
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))  # Type: origin
+    @property
+    def origin(self):
+        return parse_float_vector(self._raw_data.get('origin', None))
+
 
 
 class Targetname(Base):
-    def __init__(self):
-        super().__init__()
-        self.targetname = None  # Type: target_source
-        self.vscripts = None  # Type: scriptlist
-        self.thinkfunction = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.targetname = entity_data.get('targetname', None)  # Type: target_source
-        instance.vscripts = entity_data.get('vscripts', None)  # Type: scriptlist
-        instance.thinkfunction = entity_data.get('thinkfunction', None)  # Type: string
+    @property
+    def targetname(self):
+        return self._raw_data.get('targetname', None)
+
+    @property
+    def vscripts(self):
+        return self._raw_data.get('vscripts', "")
+
+    @property
+    def thinkfunction(self):
+        return self._raw_data.get('thinkfunction', "")
 
 
-class TriggerOnce(Targetname, Origin):
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Origin).__init__()
-        self.filtername = None  # Type: filterclass
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        instance.filtername = entity_data.get('filtername', None)  # Type: filterclass
+class TriggerOnce(Origin, Targetname):
+
+    @property
+    def filtername(self):
+        return self._raw_data.get('filtername', None)
+
 
 
 class worldbase(Base):
-    def __init__(self):
-        super().__init__()
-        self.message = None  # Type: string
-        self.skyname = "blacksky"  # Type: string
-        self.chaptertitle = None  # Type: string
-        self.startdark = None  # Type: boolean
-        self.gametitle = None  # Type: boolean
-        self.newunit = None  # Type: choices
-        self.maxoccludeearea = 0  # Type: float
-        self.minoccluderarea = 0  # Type: float
-        self.maxoccludeearea_x360 = 0  # Type: float
-        self.minoccluderarea_x360 = 0  # Type: float
-        self.maxpropscreenwidth = -1  # Type: float
-        self.minpropscreenwidth = None  # Type: float
-        self.detailvbsp = "detail.vbsp"  # Type: string
-        self.detailmaterial = "detail/detailsprites"  # Type: string
-        self.coldworld = None  # Type: boolean
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.message = entity_data.get('message', None)  # Type: string
-        instance.skyname = entity_data.get('skyname', "blacksky")  # Type: string
-        instance.chaptertitle = entity_data.get('chaptertitle', None)  # Type: string
-        instance.startdark = entity_data.get('startdark', None)  # Type: boolean
-        instance.gametitle = entity_data.get('gametitle', None)  # Type: boolean
-        instance.newunit = entity_data.get('newunit', None)  # Type: choices
-        instance.maxoccludeearea = float(entity_data.get('maxoccludeearea', 0))  # Type: float
-        instance.minoccluderarea = float(entity_data.get('minoccluderarea', 0))  # Type: float
-        instance.maxoccludeearea_x360 = float(entity_data.get('maxoccludeearea_x360', 0))  # Type: float
-        instance.minoccluderarea_x360 = float(entity_data.get('minoccluderarea_x360', 0))  # Type: float
-        instance.maxpropscreenwidth = float(entity_data.get('maxpropscreenwidth', -1))  # Type: float
-        instance.minpropscreenwidth = float(entity_data.get('minpropscreenwidth', 0))  # Type: float
-        instance.detailvbsp = entity_data.get('detailvbsp', "detail.vbsp")  # Type: string
-        instance.detailmaterial = entity_data.get('detailmaterial', "detail/detailsprites")  # Type: string
-        instance.coldworld = entity_data.get('coldworld', None)  # Type: boolean
+    @property
+    def message(self):
+        return self._raw_data.get('message', None)
+
+    @property
+    def skyname(self):
+        return self._raw_data.get('skyname', "blacksky")
+
+    @property
+    def chaptertitle(self):
+        return self._raw_data.get('chaptertitle', "")
+
+    @property
+    def startdark(self):
+        return self._raw_data.get('startdark', "0")
+
+    @property
+    def gametitle(self):
+        return self._raw_data.get('gametitle', "0")
+
+    @property
+    def newunit(self):
+        return self._raw_data.get('newunit', "0")
+
+    @property
+    def maxoccludeearea(self):
+        return parse_source_value(self._raw_data.get('maxoccludeearea', 0))
+
+    @property
+    def minoccluderarea(self):
+        return parse_source_value(self._raw_data.get('minoccluderarea', 0))
+
+    @property
+    def maxoccludeearea_x360(self):
+        return parse_source_value(self._raw_data.get('maxoccludeearea_x360', 0))
+
+    @property
+    def minoccluderarea_x360(self):
+        return parse_source_value(self._raw_data.get('minoccluderarea_x360', 0))
+
+    @property
+    def maxpropscreenwidth(self):
+        return parse_source_value(self._raw_data.get('maxpropscreenwidth', -1))
+
+    @property
+    def minpropscreenwidth(self):
+        return parse_source_value(self._raw_data.get('minpropscreenwidth', 0))
+
+    @property
+    def detailvbsp(self):
+        return self._raw_data.get('detailvbsp', "detail.vbsp")
+
+    @property
+    def detailmaterial(self):
+        return self._raw_data.get('detailmaterial', "detail/detailsprites")
+
+    @property
+    def coldworld(self):
+        return self._raw_data.get('coldworld', "0")
+
 
 
 class env_fire(Targetname):
     icon_sprite = "editor/env_fire"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.health = 30  # Type: integer
-        self.firesize = 64  # Type: integer
-        self.fireattack = 4  # Type: integer
-        self.firetype = None  # Type: choices
-        self.ignitionpoint = 32  # Type: float
-        self.damagescale = 1.0  # Type: float
-        self.LightRadiusScale = 1.0  # Type: float
-        self.LightBrightness = 1  # Type: integer
-        self.LightColor = [255, 255, 255]  # Type: color255
-        self.LoopSound = "d1_town.LargeFireLoop"  # Type: sound
-        self.IgniteSound = "ASW_Flare.IgniteFlare"  # Type: sound
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.health = parse_source_value(entity_data.get('health', 30))  # Type: integer
-        instance.firesize = parse_source_value(entity_data.get('firesize', 64))  # Type: integer
-        instance.fireattack = parse_source_value(entity_data.get('fireattack', 4))  # Type: integer
-        instance.firetype = entity_data.get('firetype', None)  # Type: choices
-        instance.ignitionpoint = float(entity_data.get('ignitionpoint', 32))  # Type: float
-        instance.damagescale = float(entity_data.get('damagescale', 1.0))  # Type: float
-        instance.LightRadiusScale = float(entity_data.get('lightradiusscale', 1.0))  # Type: float
-        instance.LightBrightness = parse_source_value(entity_data.get('lightbrightness', 1))  # Type: integer
-        instance.LightColor = parse_int_vector(entity_data.get('lightcolor', "255 255 255"))  # Type: color255
-        instance.LoopSound = entity_data.get('loopsound', "d1_town.LargeFireLoop")  # Type: sound
-        instance.IgniteSound = entity_data.get('ignitesound', "ASW_Flare.IgniteFlare")  # Type: sound
+    @property
+    def health(self):
+        return parse_source_value(self._raw_data.get('health', 30))
+
+    @property
+    def firesize(self):
+        return parse_source_value(self._raw_data.get('firesize', 64))
+
+    @property
+    def fireattack(self):
+        return parse_source_value(self._raw_data.get('fireattack', 4))
+
+    @property
+    def firetype(self):
+        return self._raw_data.get('firetype', "0")
+
+    @property
+    def ignitionpoint(self):
+        return parse_source_value(self._raw_data.get('ignitionpoint', 32))
+
+    @property
+    def damagescale(self):
+        return parse_source_value(self._raw_data.get('damagescale', 1.0))
+
+    @property
+    def LightRadiusScale(self):
+        return parse_source_value(self._raw_data.get('lightradiusscale', 1.0))
+
+    @property
+    def LightBrightness(self):
+        return parse_source_value(self._raw_data.get('lightbrightness', 1))
+
+    @property
+    def LightColor(self):
+        return parse_int_vector(self._raw_data.get('lightcolor', "255 255 255"))
+
+    @property
+    def LoopSound(self):
+        return self._raw_data.get('loopsound', "d1_town.LargeFireLoop")
+
+    @property
+    def IgniteSound(self):
+        return self._raw_data.get('ignitesound', "ASW_Flare.IgniteFlare")
+
 
 
 class sky_camera(Angles):
-    def __init__(self):
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-        self.scale = 16  # Type: integer
-        self.fogenable = None  # Type: boolean
-        self.fogblend = None  # Type: boolean
-        self.use_angles = None  # Type: boolean
-        self.fogcolor = [255, 255, 255]  # Type: color255
-        self.fogcolor2 = [255, 255, 255]  # Type: color255
-        self.fogdir = "1 0 0"  # Type: string
-        self.fogstart = "500.0"  # Type: string
-        self.fogend = "2000.0"  # Type: string
-        self.targetname = None  # Type: target_source
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.scale = parse_source_value(entity_data.get('scale', 16))  # Type: integer
-        instance.fogenable = entity_data.get('fogenable', None)  # Type: boolean
-        instance.fogblend = entity_data.get('fogblend', None)  # Type: boolean
-        instance.use_angles = entity_data.get('use_angles', None)  # Type: boolean
-        instance.fogcolor = parse_int_vector(entity_data.get('fogcolor', "255 255 255"))  # Type: color255
-        instance.fogcolor2 = parse_int_vector(entity_data.get('fogcolor2', "255 255 255"))  # Type: color255
-        instance.fogdir = entity_data.get('fogdir', "1 0 0")  # Type: string
-        instance.fogstart = entity_data.get('fogstart', "500.0")  # Type: string
-        instance.fogend = entity_data.get('fogend', "2000.0")  # Type: string
-        instance.targetname = entity_data.get('targetname', None)  # Type: target_source
+    @property
+    def scale(self):
+        return parse_source_value(self._raw_data.get('scale', 16))
+
+    @property
+    def fogenable(self):
+        return self._raw_data.get('fogenable', "0")
+
+    @property
+    def fogblend(self):
+        return self._raw_data.get('fogblend', "0")
+
+    @property
+    def use_angles(self):
+        return self._raw_data.get('use_angles', "0")
+
+    @property
+    def fogcolor(self):
+        return parse_int_vector(self._raw_data.get('fogcolor', "255 255 255"))
+
+    @property
+    def fogcolor2(self):
+        return parse_int_vector(self._raw_data.get('fogcolor2', "255 255 255"))
+
+    @property
+    def fogdir(self):
+        return self._raw_data.get('fogdir', "1 0 0")
+
+    @property
+    def fogstart(self):
+        return self._raw_data.get('fogstart', "500.0")
+
+    @property
+    def fogend(self):
+        return self._raw_data.get('fogend', "2000.0")
+
+    @property
+    def targetname(self):
+        return self._raw_data.get('targetname', None)
+
 
 
 class light(Targetname):
     icon_sprite = "editor/light.vmt"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.target = None  # Type: target_destination
-        self._distance = None  # Type: integer
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.target = entity_data.get('target', None)  # Type: target_destination
-        instance._distance = parse_source_value(entity_data.get('_distance', 0))  # Type: integer
+    @property
+    def target(self):
+        return self._raw_data.get('target', None)
+
+    @property
+    def _distance(self):
+        return parse_source_value(self._raw_data.get('_distance', 0))
+
 
 
 class BasePropPhysics(Targetname, Angles):
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        self.minhealthdmg = None  # Type: integer
-        self.shadowcastdist = None  # Type: integer
-        self.physdamagescale = 0.1  # Type: float
-        self.Damagetype = None  # Type: choices
-        self.nodamageforces = None  # Type: boolean
-        self.inertiaScale = 1.0  # Type: float
-        self.massScale = 0  # Type: float
-        self.overridescript = None  # Type: string
-        self.damagetoenablemotion = None  # Type: integer
-        self.forcetoenablemotion = None  # Type: float
-        self.puntsound = None  # Type: sound
-        self.addon = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        instance.minhealthdmg = parse_source_value(entity_data.get('minhealthdmg', 0))  # Type: integer
-        instance.shadowcastdist = parse_source_value(entity_data.get('shadowcastdist', 0))  # Type: integer
-        instance.physdamagescale = float(entity_data.get('physdamagescale', 0.1))  # Type: float
-        instance.Damagetype = entity_data.get('damagetype', None)  # Type: choices
-        instance.nodamageforces = entity_data.get('nodamageforces', None)  # Type: boolean
-        instance.inertiaScale = float(entity_data.get('inertiascale', 1.0))  # Type: float
-        instance.massScale = float(entity_data.get('massscale', 0))  # Type: float
-        instance.overridescript = entity_data.get('overridescript', None)  # Type: string
-        instance.damagetoenablemotion = parse_source_value(entity_data.get('damagetoenablemotion', 0))  # Type: integer
-        instance.forcetoenablemotion = float(entity_data.get('forcetoenablemotion', 0))  # Type: float
-        instance.puntsound = entity_data.get('puntsound', None)  # Type: sound
-        instance.addon = entity_data.get('addon', None)  # Type: string
+    @property
+    def minhealthdmg(self):
+        return parse_source_value(self._raw_data.get('minhealthdmg', 0))
+
+    @property
+    def shadowcastdist(self):
+        return parse_source_value(self._raw_data.get('shadowcastdist', 0))
+
+    @property
+    def physdamagescale(self):
+        return parse_source_value(self._raw_data.get('physdamagescale', 0.1))
+
+    @property
+    def Damagetype(self):
+        return self._raw_data.get('damagetype', "0")
+
+    @property
+    def nodamageforces(self):
+        return self._raw_data.get('nodamageforces', "0")
+
+    @property
+    def inertiaScale(self):
+        return parse_source_value(self._raw_data.get('inertiascale', 1.0))
+
+    @property
+    def massScale(self):
+        return parse_source_value(self._raw_data.get('massscale', 0))
+
+    @property
+    def overridescript(self):
+        return self._raw_data.get('overridescript', "")
+
+    @property
+    def damagetoenablemotion(self):
+        return parse_source_value(self._raw_data.get('damagetoenablemotion', 0))
+
+    @property
+    def forcetoenablemotion(self):
+        return parse_source_value(self._raw_data.get('forcetoenablemotion', 0))
+
+    @property
+    def puntsound(self):
+        return self._raw_data.get('puntsound', None)
+
+    @property
+    def addon(self):
+        return self._raw_data.get('addon', "")
+
 
 
 class prop_physics(BasePropPhysics):
-    def __init__(self):
-        super(BasePropPhysics).__init__()
-        self.origin = [0, 0, 0]
-        self.BulletForceImmune = None  # Type: boolean
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BasePropPhysics.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.BulletForceImmune = entity_data.get('bulletforceimmune', None)  # Type: boolean
+    @property
+    def BulletForceImmune(self):
+        return self._raw_data.get('bulletforceimmune', "0")
+
 
 
 class info_node(Base):
     model_ = "models/editor/ground_node.mdl"
-    def __init__(self):
-        super().__init__()
-        self.origin = [0, 0, 0]
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+    pass
 
 
 class info_node_link(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.StartNode = None  # Type: node_dest
-        self.EndNode = None  # Type: node_dest
-        self.initialstate = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.linktype = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.AllowUse = None  # Type: string
-        self.InvertAllow = None  # Type: boolean
-        self.preciseMovement = None  # Type: boolean
-        self.priority = None  # Type: choices
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.StartNode = parse_source_value(entity_data.get('startnode', 0))  # Type: node_dest
-        instance.EndNode = parse_source_value(entity_data.get('endnode', 0))  # Type: node_dest
-        instance.initialstate = entity_data.get('initialstate', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.linktype = entity_data.get('linktype', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.AllowUse = entity_data.get('allowuse', None)  # Type: string
-        instance.InvertAllow = entity_data.get('invertallow', None)  # Type: boolean
-        instance.preciseMovement = entity_data.get('precisemovement', None)  # Type: boolean
-        instance.priority = entity_data.get('priority', None)  # Type: choices
+    @property
+    def StartNode(self):
+        return parse_source_value(self._raw_data.get('startnode', None))
+
+    @property
+    def EndNode(self):
+        return parse_source_value(self._raw_data.get('endnode', None))
+
+    @property
+    def initialstate(self):
+        return self._raw_data.get('initialstate', "1")
+
+    @property
+    def linktype(self):
+        return self._raw_data.get('linktype', "1")
+
+    @property
+    def AllowUse(self):
+        return self._raw_data.get('allowuse', None)
+
+    @property
+    def InvertAllow(self):
+        return self._raw_data.get('invertallow', "0")
+
+    @property
+    def preciseMovement(self):
+        return self._raw_data.get('precisemovement', "0")
+
+    @property
+    def priority(self):
+        return self._raw_data.get('priority', "0")
+
 
 
 class TalkNPC(Base):
-    def __init__(self):
-        super().__init__()
-        self.UseSentence = None  # Type: string
-        self.UnUseSentence = None  # Type: string
-        self.DontUseSpeechSemaphore = None  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.UseSentence = entity_data.get('usesentence', None)  # Type: string
-        instance.UnUseSentence = entity_data.get('unusesentence', None)  # Type: string
-        instance.DontUseSpeechSemaphore = entity_data.get('dontusespeechsemaphore', None)  # Type: choices
+    @property
+    def UseSentence(self):
+        return self._raw_data.get('usesentence', None)
+
+    @property
+    def UnUseSentence(self):
+        return self._raw_data.get('unusesentence', None)
+
+    @property
+    def DontUseSpeechSemaphore(self):
+        return self._raw_data.get('dontusespeechsemaphore', "0")
+
 
 
 class PlayerCompanion(Base):
-    def __init__(self):
-        super().__init__()
-        self.AlwaysTransition = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.DontPickupWeapons = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.GameEndAlly = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.AlwaysTransition = entity_data.get('alwaystransition', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.DontPickupWeapons = entity_data.get('dontpickupweapons', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.GameEndAlly = entity_data.get('gameendally', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def AlwaysTransition(self):
+        return self._raw_data.get('alwaystransition', "No")
+
+    @property
+    def DontPickupWeapons(self):
+        return self._raw_data.get('dontpickupweapons', "No")
+
+    @property
+    def GameEndAlly(self):
+        return self._raw_data.get('gameendally', "No")
+
 
 
 class RappelNPC(Base):
-    def __init__(self):
-        super().__init__()
-        self.waitingtorappel = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.waitingtorappel = entity_data.get('waitingtorappel', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def waitingtorappel(self):
+        return self._raw_data.get('waitingtorappel', "No")
+
 
 
 class AlyxInteractable(Base):
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
+    pass
 
 
-class CombineBallSpawners(Targetname, Angles, Origin):
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        super(Origin).__init__()
-        self.ballcount = 3  # Type: integer
-        self.minspeed = 300.0  # Type: float
-        self.maxspeed = 600.0  # Type: float
-        self.ballradius = 20.0  # Type: float
-        self.balltype = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.ballrespawntime = 4.0  # Type: float
+class CombineBallSpawners(Origin, Targetname, Angles):
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        Origin.from_dict(instance, entity_data)
-        instance.ballcount = parse_source_value(entity_data.get('ballcount', 3))  # Type: integer
-        instance.minspeed = float(entity_data.get('minspeed', 300.0))  # Type: float
-        instance.maxspeed = float(entity_data.get('maxspeed', 600.0))  # Type: float
-        instance.ballradius = float(entity_data.get('ballradius', 20.0))  # Type: float
-        instance.balltype = entity_data.get('balltype', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.ballrespawntime = float(entity_data.get('ballrespawntime', 4.0))  # Type: float
+    @property
+    def ballcount(self):
+        return parse_source_value(self._raw_data.get('ballcount', 3))
+
+    @property
+    def minspeed(self):
+        return parse_source_value(self._raw_data.get('minspeed', 300.0))
+
+    @property
+    def maxspeed(self):
+        return parse_source_value(self._raw_data.get('maxspeed', 600.0))
+
+    @property
+    def ballradius(self):
+        return parse_source_value(self._raw_data.get('ballradius', 20.0))
+
+    @property
+    def balltype(self):
+        return self._raw_data.get('balltype', "Combine Energy Ball 1")
+
+    @property
+    def ballrespawntime(self):
+        return parse_source_value(self._raw_data.get('ballrespawntime', 4.0))
+
 
 
 class trigger_asw_use_area(Base):
-    def __init__(self):
-        super().__init__()
-        self.usetargetname = None  # Type: target_destination
-        self.playersrequired = 1  # Type: integer
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.usetargetname = entity_data.get('usetargetname', None)  # Type: target_destination
-        instance.playersrequired = parse_source_value(entity_data.get('playersrequired', 1))  # Type: integer
+    @property
+    def usetargetname(self):
+        return self._raw_data.get('usetargetname', None)
+
+    @property
+    def playersrequired(self):
+        return parse_source_value(self._raw_data.get('playersrequired', 1))
+
 
 
 class prop_combine_ball(BasePropPhysics):
-    def __init__(self):
-        super(BasePropPhysics).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BasePropPhysics.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+    pass
 
 
 class trigger_physics_trap(Angles):
-    def __init__(self):
-        super(Angles).__init__()
-        self.dissolvetype = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Angles.from_dict(instance, entity_data)
-        instance.dissolvetype = entity_data.get('dissolvetype', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def dissolvetype(self):
+        return self._raw_data.get('dissolvetype', "Energy")
+
 
 
 class trigger_weapon_dissolve(Base):
-    def __init__(self):
-        super().__init__()
-        self.emittername = None  # Type: target_destination
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.emittername = entity_data.get('emittername', None)  # Type: target_destination
+    @property
+    def emittername(self):
+        return self._raw_data.get('emittername', "")
+
 
 
 class trigger_weapon_strip(Base):
-    def __init__(self):
-        super().__init__()
-        self.KillWeapons = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.KillWeapons = entity_data.get('killweapons', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def KillWeapons(self):
+        return self._raw_data.get('killweapons', "No")
+
 
 
 class func_combine_ball_spawner(CombineBallSpawners):
-    def __init__(self):
-        super(CombineBallSpawners).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        CombineBallSpawners.from_dict(instance, entity_data)
+    pass
 
 
 class point_combine_ball_launcher(CombineBallSpawners):
-    def __init__(self):
-        super(CombineBallSpawners).__init__()
-        self.origin = [0, 0, 0]
-        self.launchconenoise = 0.0  # Type: float
-        self.bullseyename = None  # Type: string
-        self.maxballbounces = 8  # Type: integer
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        CombineBallSpawners.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.launchconenoise = float(entity_data.get('launchconenoise', 0.0))  # Type: float
-        instance.bullseyename = entity_data.get('bullseyename', None)  # Type: string
-        instance.maxballbounces = parse_source_value(entity_data.get('maxballbounces', 8))  # Type: integer
+    @property
+    def launchconenoise(self):
+        return parse_source_value(self._raw_data.get('launchconenoise', 0.0))
+
+    @property
+    def bullseyename(self):
+        return self._raw_data.get('bullseyename', "")
+
+    @property
+    def maxballbounces(self):
+        return parse_source_value(self._raw_data.get('maxballbounces', 8))
+
 
 
 class npc_grenade_frag(Base):
     model_ = "models/Weapons/w_grenade.mdl"
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
+    pass
 
 
 class npc_combine_cannon(Base):
     model_ = "models/combine_soldier.mdl"
-    def __init__(self):
-        super().__init__()
-        self.sightdist = 1024  # Type: float
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.sightdist = float(entity_data.get('sightdist', 1024))  # Type: float
+    @property
+    def sightdist(self):
+        return parse_source_value(self._raw_data.get('sightdist', 1024))
+
 
 
 class npc_combine_camera(Base):
     model_ = "models/combine_camera/combine_camera.mdl"
-    def __init__(self):
-        super().__init__()
-        self.innerradius = 300  # Type: integer
-        self.outerradius = 450  # Type: integer
-        self.minhealthdmg = None  # Type: integer
-        self.defaulttarget = None  # Type: target_destination
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.innerradius = parse_source_value(entity_data.get('innerradius', 300))  # Type: integer
-        instance.outerradius = parse_source_value(entity_data.get('outerradius', 450))  # Type: integer
-        instance.minhealthdmg = parse_source_value(entity_data.get('minhealthdmg', 0))  # Type: integer
-        instance.defaulttarget = entity_data.get('defaulttarget', None)  # Type: target_destination
+    @property
+    def innerradius(self):
+        return parse_source_value(self._raw_data.get('innerradius', 300))
+
+    @property
+    def outerradius(self):
+        return parse_source_value(self._raw_data.get('outerradius', 450))
+
+    @property
+    def minhealthdmg(self):
+        return parse_source_value(self._raw_data.get('minhealthdmg', 0))
+
+    @property
+    def defaulttarget(self):
+        return self._raw_data.get('defaulttarget', "")
+
 
 
 class npc_turret_ground(AlyxInteractable):
     model_ = "models/combine_turrets/ground_turret.mdl"
-    def __init__(self):
-        super(AlyxInteractable).__init__()
-        self.origin = [0, 0, 0]
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        AlyxInteractable.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+    pass
 
 
 class npc_turret_ceiling(Targetname, Angles):
     model_ = "models/combine_turrets/ceiling_turret.mdl"
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-        self.minhealthdmg = None  # Type: integer
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.minhealthdmg = parse_source_value(entity_data.get('minhealthdmg', 0))  # Type: integer
+    @property
+    def minhealthdmg(self):
+        return parse_source_value(self._raw_data.get('minhealthdmg', 0))
+
 
 
 class npc_turret_floor(Targetname, Angles):
     model_ = "models/combine_turrets/floor_turret.mdl"
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-        self.SkinNumber = None  # Type: integer
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.SkinNumber = parse_source_value(entity_data.get('skinnumber', 0))  # Type: integer
+    @property
+    def SkinNumber(self):
+        return parse_source_value(self._raw_data.get('skinnumber', 0))
+
 
 
 class VehicleDriverNPC(Base):
-    def __init__(self):
-        super().__init__()
-        self.vehicle = None  # Type: target_destination
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.vehicle = entity_data.get('vehicle', None)  # Type: target_destination
+    @property
+    def vehicle(self):
+        return self._raw_data.get('vehicle', None)
+
 
 
 class npc_vehicledriver(VehicleDriverNPC):
     model_ = "models/roller.mdl"
-    def __init__(self):
-        super(VehicleDriverNPC).__init__()
-        self.drivermaxspeed = 1  # Type: float
-        self.driverminspeed = None  # Type: float
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        VehicleDriverNPC.from_dict(instance, entity_data)
-        instance.drivermaxspeed = float(entity_data.get('drivermaxspeed', 1))  # Type: float
-        instance.driverminspeed = float(entity_data.get('driverminspeed', 0))  # Type: float
+    @property
+    def drivermaxspeed(self):
+        return parse_source_value(self._raw_data.get('drivermaxspeed', 1))
+
+    @property
+    def driverminspeed(self):
+        return parse_source_value(self._raw_data.get('driverminspeed', 0))
+
 
 
 class npc_cranedriver(VehicleDriverNPC):
     model_ = "models/roller.mdl"
-    def __init__(self):
-        super(VehicleDriverNPC).__init__()
-        self.releasepause = None  # Type: float
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        VehicleDriverNPC.from_dict(instance, entity_data)
-        instance.releasepause = float(entity_data.get('releasepause', 0))  # Type: float
+    @property
+    def releasepause(self):
+        return parse_source_value(self._raw_data.get('releasepause', 0))
+
 
 
 class npc_apcdriver(VehicleDriverNPC):
     model_ = "models/roller.mdl"
-    def __init__(self):
-        super(VehicleDriverNPC).__init__()
-        self.drivermaxspeed = 1  # Type: float
-        self.driverminspeed = None  # Type: float
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        VehicleDriverNPC.from_dict(instance, entity_data)
-        instance.drivermaxspeed = float(entity_data.get('drivermaxspeed', 1))  # Type: float
-        instance.driverminspeed = float(entity_data.get('driverminspeed', 0))  # Type: float
+    @property
+    def drivermaxspeed(self):
+        return parse_source_value(self._raw_data.get('drivermaxspeed', 1))
+
+    @property
+    def driverminspeed(self):
+        return parse_source_value(self._raw_data.get('driverminspeed', 0))
+
 
 
 class npc_rollermine(AlyxInteractable):
     model_ = "models/roller.mdl"
-    def __init__(self):
-        super(AlyxInteractable).__init__()
-        self.startburied = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.uniformsightdist = None  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        AlyxInteractable.from_dict(instance, entity_data)
-        instance.startburied = entity_data.get('startburied', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.uniformsightdist = entity_data.get('uniformsightdist', None)  # Type: choices
+    @property
+    def startburied(self):
+        return self._raw_data.get('startburied', "No")
+
+    @property
+    def uniformsightdist(self):
+        return self._raw_data.get('uniformsightdist', "0")
+
 
 
 class npc_missiledefense(Base):
     model_ = "models/missile_defense.mdl"
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
+    pass
 
 
 class npc_sniper(Base):
     model_ = "models/combine_soldier.mdl"
-    def __init__(self):
-        super().__init__()
-        self.radius = None  # Type: integer
-        self.misses = None  # Type: integer
-        self.beambrightness = 100  # Type: integer
-        self.shootZombiesInChest = None  # Type: choices
-        self.shielddistance = 64  # Type: float
-        self.shieldradius = 48  # Type: float
-        self.PaintInterval = 1  # Type: float
-        self.PaintIntervalVariance = 0.75  # Type: float
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.radius = parse_source_value(entity_data.get('radius', 0))  # Type: integer
-        instance.misses = parse_source_value(entity_data.get('misses', 0))  # Type: integer
-        instance.beambrightness = parse_source_value(entity_data.get('beambrightness', 100))  # Type: integer
-        instance.shootZombiesInChest = entity_data.get('shootzombiesinchest', None)  # Type: choices
-        instance.shielddistance = float(entity_data.get('shielddistance', 64))  # Type: float
-        instance.shieldradius = float(entity_data.get('shieldradius', 48))  # Type: float
-        instance.PaintInterval = float(entity_data.get('paintinterval', 1))  # Type: float
-        instance.PaintIntervalVariance = float(entity_data.get('paintintervalvariance', 0.75))  # Type: float
+    @property
+    def radius(self):
+        return parse_source_value(self._raw_data.get('radius', 0))
+
+    @property
+    def misses(self):
+        return parse_source_value(self._raw_data.get('misses', 0))
+
+    @property
+    def beambrightness(self):
+        return parse_source_value(self._raw_data.get('beambrightness', 100))
+
+    @property
+    def shootZombiesInChest(self):
+        return self._raw_data.get('shootzombiesinchest', "0")
+
+    @property
+    def shielddistance(self):
+        return parse_source_value(self._raw_data.get('shielddistance', 64))
+
+    @property
+    def shieldradius(self):
+        return parse_source_value(self._raw_data.get('shieldradius', 48))
+
+    @property
+    def PaintInterval(self):
+        return parse_source_value(self._raw_data.get('paintinterval', 1))
+
+    @property
+    def PaintIntervalVariance(self):
+        return parse_source_value(self._raw_data.get('paintintervalvariance', 0.75))
+
 
 
 class info_radar_target(Targetname):
     icon_sprite = "editor/info_target.vmt"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.radius = 6000  # Type: float
-        self.type = None  # Type: choices
-        self.mode = None  # Type: choices
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.radius = float(entity_data.get('radius', 6000))  # Type: float
-        instance.type = entity_data.get('type', None)  # Type: choices
-        instance.mode = entity_data.get('mode', None)  # Type: choices
+    @property
+    def radius(self):
+        return parse_source_value(self._raw_data.get('radius', 6000))
+
+    @property
+    def type(self):
+        return self._raw_data.get('type', "0")
+
+    @property
+    def mode(self):
+        return self._raw_data.get('mode', "0")
+
 
 
 class info_target_vehicle_transition(Targetname, Angles):
     icon_sprite = "editor/info_target.vmt"
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+    pass
 
 
 class info_snipertarget(Targetname):
     icon_sprite = "editor/info_target.vmt"
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.speed = 2  # Type: integer
-        self.groupname = None  # Type: string
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.speed = parse_source_value(entity_data.get('speed', 2))  # Type: integer
-        instance.groupname = entity_data.get('groupname', None)  # Type: string
+    @property
+    def speed(self):
+        return parse_source_value(self._raw_data.get('speed', 2))
+
+    @property
+    def groupname(self):
+        return self._raw_data.get('groupname', None)
+
 
 
 class prop_thumper(Targetname, Angles):
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-        self.model = "models/props_combine/CombineThumper002.mdl"  # Type: studio
-        self.dustscale = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.EffectRadius = 1000  # Type: integer
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.model = entity_data.get('model', "models/props_combine/CombineThumper002.mdl")  # Type: studio
-        instance.dustscale = entity_data.get('dustscale', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.EffectRadius = parse_source_value(entity_data.get('effectradius', 1000))  # Type: integer
+    @property
+    def model(self):
+        return self._raw_data.get('model', "models/props_combine/CombineThumper002.mdl")
+
+    @property
+    def dustscale(self):
+        return self._raw_data.get('dustscale', "Small Thumper")
+
+    @property
+    def EffectRadius(self):
+        return parse_source_value(self._raw_data.get('effectradius', 1000))
+
 
 
 class npc_antlion(Base):
     model_ = "models/antlion.mdl"
-    def __init__(self):
-        super().__init__()
-        self.startburrowed = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.radius = 256  # Type: integer
-        self.eludedist = 1024  # Type: integer
-        self.ignorebugbait = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.unburroweffects = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.startburrowed = entity_data.get('startburrowed', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.radius = parse_source_value(entity_data.get('radius', 256))  # Type: integer
-        instance.eludedist = parse_source_value(entity_data.get('eludedist', 1024))  # Type: integer
-        instance.ignorebugbait = entity_data.get('ignorebugbait', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.unburroweffects = entity_data.get('unburroweffects', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def startburrowed(self):
+        return self._raw_data.get('startburrowed', "No")
+
+    @property
+    def radius(self):
+        return parse_source_value(self._raw_data.get('radius', 256))
+
+    @property
+    def eludedist(self):
+        return parse_source_value(self._raw_data.get('eludedist', 1024))
+
+    @property
+    def ignorebugbait(self):
+        return self._raw_data.get('ignorebugbait', "No")
+
+    @property
+    def unburroweffects(self):
+        return self._raw_data.get('unburroweffects', "No")
+
 
 
 class npc_antlionguard(Base):
     model_ = "models/antlion_guard.mdl"
-    def __init__(self):
-        super().__init__()
-        self.startburrowed = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.allowbark = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.cavernbreed = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.incavern = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.shovetargets = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.startburrowed = entity_data.get('startburrowed', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.allowbark = entity_data.get('allowbark', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.cavernbreed = entity_data.get('cavernbreed', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.incavern = entity_data.get('incavern', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.shovetargets = entity_data.get('shovetargets', None)  # Type: string
+    @property
+    def startburrowed(self):
+        return self._raw_data.get('startburrowed', "No")
+
+    @property
+    def allowbark(self):
+        return self._raw_data.get('allowbark', "No")
+
+    @property
+    def cavernbreed(self):
+        return self._raw_data.get('cavernbreed', "No")
+
+    @property
+    def incavern(self):
+        return self._raw_data.get('incavern', "No")
+
+    @property
+    def shovetargets(self):
+        return self._raw_data.get('shovetargets', "")
+
 
 
 class npc_crow(Base):
     model_ = "models/crow.mdl"
-    def __init__(self):
-        super().__init__()
-        self.deaf = None  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.deaf = entity_data.get('deaf', None)  # Type: choices
+    @property
+    def deaf(self):
+        return self._raw_data.get('deaf', "0")
+
 
 
 class npc_seagull(Base):
     model_ = "models/seagull.mdl"
-    def __init__(self):
-        super().__init__()
-        self.deaf = None  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.deaf = entity_data.get('deaf', None)  # Type: choices
+    @property
+    def deaf(self):
+        return self._raw_data.get('deaf', "0")
+
 
 
 class npc_pigeon(Base):
     model_ = "models/pigeon.mdl"
-    def __init__(self):
-        super().__init__()
-        self.deaf = None  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.deaf = entity_data.get('deaf', None)  # Type: choices
+    @property
+    def deaf(self):
+        return self._raw_data.get('deaf', "0")
+
 
 
 class npc_ichthyosaur(Base):
     model_ = "models/ichthyosaur.mdl"
-    def __init__(self):
-        super().__init__()
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
+    pass
 
 
 class BaseHeadcrab(Base):
-    def __init__(self):
-        super().__init__()
-        self.startburrowed = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.startburrowed = entity_data.get('startburrowed', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def startburrowed(self):
+        return self._raw_data.get('startburrowed', "No")
+
 
 
 class npc_headcrab(BaseHeadcrab):
     model_ = "models/Headcrabclassic.mdl"
-    def __init__(self):
-        super(BaseHeadcrab).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseHeadcrab.from_dict(instance, entity_data)
+    pass
 
 
 class npc_headcrab_fast(BaseHeadcrab):
     model_ = "models/Headcrab.mdl"
-    def __init__(self):
-        super(BaseHeadcrab).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseHeadcrab.from_dict(instance, entity_data)
+    pass
 
 
 class npc_headcrab_black(BaseHeadcrab):
     model_ = "models/Headcrabblack.mdl"
-    def __init__(self):
-        super(BaseHeadcrab).__init__()
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseHeadcrab.from_dict(instance, entity_data)
+    pass
 
 
 class npc_stalker(Base):
     model_ = "models/Stalker.mdl"
-    def __init__(self):
-        super().__init__()
-        self.BeamPower = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.BeamPower = entity_data.get('beampower', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def BeamPower(self):
+        return self._raw_data.get('beampower', "Low")
+
 
 
 class npc_bullseye(Base):
     icon_sprite = "editor/bullseye.vmt"
-    def __init__(self):
-        super().__init__()
-        self.health = 35  # Type: integer
-        self.minangle = "360"  # Type: string
-        self.mindist = "0"  # Type: string
-        self.autoaimradius = 0  # Type: float
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.health = parse_source_value(entity_data.get('health', 35))  # Type: integer
-        instance.minangle = entity_data.get('minangle', "360")  # Type: string
-        instance.mindist = entity_data.get('mindist', "0")  # Type: string
-        instance.autoaimradius = float(entity_data.get('autoaimradius', 0))  # Type: float
+    @property
+    def health(self):
+        return parse_source_value(self._raw_data.get('health', 35))
+
+    @property
+    def minangle(self):
+        return self._raw_data.get('minangle', "360")
+
+    @property
+    def mindist(self):
+        return self._raw_data.get('mindist', "0")
+
+    @property
+    def autoaimradius(self):
+        return parse_source_value(self._raw_data.get('autoaimradius', 0))
+
 
 
 class npc_enemyfinder(Base):
-    def __init__(self):
-        super().__init__()
-        self.FieldOfView = "0.2"  # Type: string
-        self.MinSearchDist = None  # Type: integer
-        self.MaxSearchDist = 2048  # Type: integer
-        self.freepass_timetotrigger = None  # Type: float
-        self.freepass_duration = None  # Type: float
-        self.freepass_movetolerance = 120  # Type: float
-        self.freepass_refillrate = 0.5  # Type: float
-        self.freepass_peektime = None  # Type: float
-        self.StartOn = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.FieldOfView = entity_data.get('fieldofview', "0.2")  # Type: string
-        instance.MinSearchDist = parse_source_value(entity_data.get('minsearchdist', 0))  # Type: integer
-        instance.MaxSearchDist = parse_source_value(entity_data.get('maxsearchdist', 2048))  # Type: integer
-        instance.freepass_timetotrigger = float(entity_data.get('freepass_timetotrigger', 0))  # Type: float
-        instance.freepass_duration = float(entity_data.get('freepass_duration', 0))  # Type: float
-        instance.freepass_movetolerance = float(entity_data.get('freepass_movetolerance', 120))  # Type: float
-        instance.freepass_refillrate = float(entity_data.get('freepass_refillrate', 0.5))  # Type: float
-        instance.freepass_peektime = float(entity_data.get('freepass_peektime', 0))  # Type: float
-        instance.StartOn = entity_data.get('starton', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def FieldOfView(self):
+        return self._raw_data.get('fieldofview', "0.2")
+
+    @property
+    def MinSearchDist(self):
+        return parse_source_value(self._raw_data.get('minsearchdist', 0))
+
+    @property
+    def MaxSearchDist(self):
+        return parse_source_value(self._raw_data.get('maxsearchdist', 2048))
+
+    @property
+    def freepass_timetotrigger(self):
+        return parse_source_value(self._raw_data.get('freepass_timetotrigger', 0))
+
+    @property
+    def freepass_duration(self):
+        return parse_source_value(self._raw_data.get('freepass_duration', 0))
+
+    @property
+    def freepass_movetolerance(self):
+        return parse_source_value(self._raw_data.get('freepass_movetolerance', 120))
+
+    @property
+    def freepass_refillrate(self):
+        return parse_source_value(self._raw_data.get('freepass_refillrate', 0.5))
+
+    @property
+    def freepass_peektime(self):
+        return parse_source_value(self._raw_data.get('freepass_peektime', 0))
+
+    @property
+    def StartOn(self):
+        return self._raw_data.get('starton', "1")
+
 
 
 class npc_enemyfinder_combinecannon(Base):
-    def __init__(self):
-        super().__init__()
-        self.FieldOfView = "0.2"  # Type: string
-        self.MinSearchDist = None  # Type: integer
-        self.MaxSearchDist = 2048  # Type: integer
-        self.SnapToEnt = None  # Type: target_destination
-        self.freepass_timetotrigger = None  # Type: float
-        self.freepass_duration = None  # Type: float
-        self.freepass_movetolerance = 120  # Type: float
-        self.freepass_refillrate = 0.5  # Type: float
-        self.freepass_peektime = None  # Type: float
-        self.StartOn = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.FieldOfView = entity_data.get('fieldofview', "0.2")  # Type: string
-        instance.MinSearchDist = parse_source_value(entity_data.get('minsearchdist', 0))  # Type: integer
-        instance.MaxSearchDist = parse_source_value(entity_data.get('maxsearchdist', 2048))  # Type: integer
-        instance.SnapToEnt = entity_data.get('snaptoent', None)  # Type: target_destination
-        instance.freepass_timetotrigger = float(entity_data.get('freepass_timetotrigger', 0))  # Type: float
-        instance.freepass_duration = float(entity_data.get('freepass_duration', 0))  # Type: float
-        instance.freepass_movetolerance = float(entity_data.get('freepass_movetolerance', 120))  # Type: float
-        instance.freepass_refillrate = float(entity_data.get('freepass_refillrate', 0.5))  # Type: float
-        instance.freepass_peektime = float(entity_data.get('freepass_peektime', 0))  # Type: float
-        instance.StartOn = entity_data.get('starton', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def FieldOfView(self):
+        return self._raw_data.get('fieldofview', "0.2")
+
+    @property
+    def MinSearchDist(self):
+        return parse_source_value(self._raw_data.get('minsearchdist', 0))
+
+    @property
+    def MaxSearchDist(self):
+        return parse_source_value(self._raw_data.get('maxsearchdist', 2048))
+
+    @property
+    def SnapToEnt(self):
+        return self._raw_data.get('snaptoent', "")
+
+    @property
+    def freepass_timetotrigger(self):
+        return parse_source_value(self._raw_data.get('freepass_timetotrigger', 0))
+
+    @property
+    def freepass_duration(self):
+        return parse_source_value(self._raw_data.get('freepass_duration', 0))
+
+    @property
+    def freepass_movetolerance(self):
+        return parse_source_value(self._raw_data.get('freepass_movetolerance', 120))
+
+    @property
+    def freepass_refillrate(self):
+        return parse_source_value(self._raw_data.get('freepass_refillrate', 0.5))
+
+    @property
+    def freepass_peektime(self):
+        return parse_source_value(self._raw_data.get('freepass_peektime', 0))
+
+    @property
+    def StartOn(self):
+        return self._raw_data.get('starton', "1")
+
 
 
 class npc_citizen(PlayerCompanion, TalkNPC):
-    def __init__(self):
-        super(PlayerCompanion).__init__()
-        super(TalkNPC).__init__()
-        self.additionalequipment = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.ammosupply = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.ammoamount = 1  # Type: integer
-        self.citizentype = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.expressiontype = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.model = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.ExpressionOverride = None  # Type: string
-        self.notifynavfailblocked = None  # Type: choices
-        self.neverleaveplayersquad = None  # Type: choices
-        self.denycommandconcept = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        PlayerCompanion.from_dict(instance, entity_data)
-        TalkNPC.from_dict(instance, entity_data)
-        instance.additionalequipment = entity_data.get('additionalequipment', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.ammosupply = entity_data.get('ammosupply', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.ammoamount = parse_source_value(entity_data.get('ammoamount', 1))  # Type: integer
-        instance.citizentype = entity_data.get('citizentype', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.expressiontype = entity_data.get('expressiontype', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.model = entity_data.get('model', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.ExpressionOverride = entity_data.get('expressionoverride', None)  # Type: string
-        instance.notifynavfailblocked = entity_data.get('notifynavfailblocked', None)  # Type: choices
-        instance.neverleaveplayersquad = entity_data.get('neverleaveplayersquad', None)  # Type: choices
-        instance.denycommandconcept = entity_data.get('denycommandconcept', None)  # Type: string
+    @property
+    def additionalequipment(self):
+        return self._raw_data.get('additionalequipment', "0")
+
+    @property
+    def ammosupply(self):
+        return self._raw_data.get('ammosupply', "SMG1")
+
+    @property
+    def ammoamount(self):
+        return parse_source_value(self._raw_data.get('ammoamount', 1))
+
+    @property
+    def citizentype(self):
+        return self._raw_data.get('citizentype', "Default")
+
+    @property
+    def expressiontype(self):
+        return self._raw_data.get('expressiontype', "Random")
+
+    @property
+    def model(self):
+        return self._raw_data.get('model', "models/humans/group01/male_01.mdl")
+
+    @property
+    def ExpressionOverride(self):
+        return self._raw_data.get('expressionoverride', None)
+
+    @property
+    def notifynavfailblocked(self):
+        return self._raw_data.get('notifynavfailblocked', "0")
+
+    @property
+    def neverleaveplayersquad(self):
+        return self._raw_data.get('neverleaveplayersquad', "0")
+
+    @property
+    def denycommandconcept(self):
+        return self._raw_data.get('denycommandconcept', "")
+
 
 
 class npc_fisherman(Base):
     model_ = "models/Barney.mdl"
-    def __init__(self):
-        super().__init__()
-        self.ExpressionOverride = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.ExpressionOverride = entity_data.get('expressionoverride', None)  # Type: string
+    @property
+    def ExpressionOverride(self):
+        return self._raw_data.get('expressionoverride', None)
+
 
 
 class npc_barney(PlayerCompanion, TalkNPC):
     model_ = "models/Barney.mdl"
-    def __init__(self):
-        super(PlayerCompanion).__init__()
-        super(TalkNPC).__init__()
-        self.additionalequipment = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.ExpressionOverride = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        PlayerCompanion.from_dict(instance, entity_data)
-        TalkNPC.from_dict(instance, entity_data)
-        instance.additionalequipment = entity_data.get('additionalequipment', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.ExpressionOverride = entity_data.get('expressionoverride', None)  # Type: string
+    @property
+    def additionalequipment(self):
+        return self._raw_data.get('additionalequipment', "weapon_pistol")
+
+    @property
+    def ExpressionOverride(self):
+        return self._raw_data.get('expressionoverride', None)
+
 
 
 class BaseCombine(RappelNPC):
-    def __init__(self):
-        super(RappelNPC).__init__()
-        self.additionalequipment = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.NumGrenades = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.TeleportGrenades = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        RappelNPC.from_dict(instance, entity_data)
-        instance.additionalequipment = entity_data.get('additionalequipment', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.NumGrenades = entity_data.get('numgrenades', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.TeleportGrenades = entity_data.get('teleportgrenades', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def additionalequipment(self):
+        return self._raw_data.get('additionalequipment', "weapon_smg1")
+
+    @property
+    def NumGrenades(self):
+        return self._raw_data.get('numgrenades', "5")
+
+    @property
+    def TeleportGrenades(self):
+        return self._raw_data.get('teleportgrenades', "0")
+
 
 
 class npc_combine_s(BaseCombine):
     model_ = "models/Combine_Soldier.mdl"
-    def __init__(self):
-        super(BaseCombine).__init__()
-        self.model = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.tacticalvariant = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.usemarch = "CHOICES NOT SUPPORTED"  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        BaseCombine.from_dict(instance, entity_data)
-        instance.model = entity_data.get('model', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.tacticalvariant = entity_data.get('tacticalvariant', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.usemarch = entity_data.get('usemarch', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def model(self):
+        return self._raw_data.get('model', "models/combine_soldier.mdl")
+
+    @property
+    def tacticalvariant(self):
+        return self._raw_data.get('tacticalvariant', "0")
+
+    @property
+    def usemarch(self):
+        return self._raw_data.get('usemarch', "0")
+
 
 
 class npc_launcher(Base):
     model_ = "models/junk/w_traffcone.mdl"
-    def __init__(self):
-        super().__init__()
-        self.origin = [0, 0, 0]
-        self.StartOn = None  # Type: choices
-        self.MissileModel = "models/Weapons/wscanner_grenade.mdl"  # Type: studio
-        self.LaunchSound = "npc/waste_scanner/grenade_fire.wav"  # Type: sound
-        self.FlySound = "ambient/objects/machine2.wav"  # Type: sound
-        self.SmokeTrail = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.LaunchSmoke = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.LaunchDelay = 8  # Type: integer
-        self.LaunchSpeed = "200"  # Type: string
-        self.PathCornerName = None  # Type: target_destination
-        self.HomingSpeed = None  # Type: string
-        self.HomingStrength = 10  # Type: integer
-        self.HomingDelay = None  # Type: string
-        self.HomingRampUp = "0.5"  # Type: string
-        self.HomingDuration = "5"  # Type: string
-        self.HomingRampDown = "1.0"  # Type: string
-        self.Gravity = "1.0"  # Type: string
-        self.MinRange = 100  # Type: integer
-        self.MaxRange = 2048  # Type: integer
-        self.SpinMagnitude = None  # Type: string
-        self.SpinSpeed = None  # Type: string
-        self.Damage = "50"  # Type: string
-        self.DamageRadius = "200"  # Type: string
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.StartOn = entity_data.get('starton', None)  # Type: choices
-        instance.MissileModel = entity_data.get('missilemodel', "models/Weapons/wscanner_grenade.mdl")  # Type: studio
-        instance.LaunchSound = entity_data.get('launchsound', "npc/waste_scanner/grenade_fire.wav")  # Type: sound
-        instance.FlySound = entity_data.get('flysound', "ambient/objects/machine2.wav")  # Type: sound
-        instance.SmokeTrail = entity_data.get('smoketrail', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.LaunchSmoke = entity_data.get('launchsmoke', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.LaunchDelay = parse_source_value(entity_data.get('launchdelay', 8))  # Type: integer
-        instance.LaunchSpeed = entity_data.get('launchspeed', "200")  # Type: string
-        instance.PathCornerName = entity_data.get('pathcornername', None)  # Type: target_destination
-        instance.HomingSpeed = entity_data.get('homingspeed', None)  # Type: string
-        instance.HomingStrength = parse_source_value(entity_data.get('homingstrength', 10))  # Type: integer
-        instance.HomingDelay = entity_data.get('homingdelay', None)  # Type: string
-        instance.HomingRampUp = entity_data.get('homingrampup', "0.5")  # Type: string
-        instance.HomingDuration = entity_data.get('homingduration', "5")  # Type: string
-        instance.HomingRampDown = entity_data.get('homingrampdown', "1.0")  # Type: string
-        instance.Gravity = entity_data.get('gravity', "1.0")  # Type: string
-        instance.MinRange = parse_source_value(entity_data.get('minrange', 100))  # Type: integer
-        instance.MaxRange = parse_source_value(entity_data.get('maxrange', 2048))  # Type: integer
-        instance.SpinMagnitude = entity_data.get('spinmagnitude', None)  # Type: string
-        instance.SpinSpeed = entity_data.get('spinspeed', None)  # Type: string
-        instance.Damage = entity_data.get('damage', "50")  # Type: string
-        instance.DamageRadius = entity_data.get('damageradius', "200")  # Type: string
+    @property
+    def StartOn(self):
+        return self._raw_data.get('starton', "0")
+
+    @property
+    def MissileModel(self):
+        return self._raw_data.get('missilemodel', "models/Weapons/wscanner_grenade.mdl")
+
+    @property
+    def LaunchSound(self):
+        return self._raw_data.get('launchsound', "npc/waste_scanner/grenade_fire.wav")
+
+    @property
+    def FlySound(self):
+        return self._raw_data.get('flysound', "ambient/objects/machine2.wav")
+
+    @property
+    def SmokeTrail(self):
+        return self._raw_data.get('smoketrail', "1")
+
+    @property
+    def LaunchSmoke(self):
+        return self._raw_data.get('launchsmoke', "1")
+
+    @property
+    def LaunchDelay(self):
+        return parse_source_value(self._raw_data.get('launchdelay', 8))
+
+    @property
+    def LaunchSpeed(self):
+        return self._raw_data.get('launchspeed', "200")
+
+    @property
+    def PathCornerName(self):
+        return self._raw_data.get('pathcornername', "")
+
+    @property
+    def HomingSpeed(self):
+        return self._raw_data.get('homingspeed', "0")
+
+    @property
+    def HomingStrength(self):
+        return parse_source_value(self._raw_data.get('homingstrength', 10))
+
+    @property
+    def HomingDelay(self):
+        return self._raw_data.get('homingdelay', "0")
+
+    @property
+    def HomingRampUp(self):
+        return self._raw_data.get('homingrampup', "0.5")
+
+    @property
+    def HomingDuration(self):
+        return self._raw_data.get('homingduration', "5")
+
+    @property
+    def HomingRampDown(self):
+        return self._raw_data.get('homingrampdown', "1.0")
+
+    @property
+    def Gravity(self):
+        return self._raw_data.get('gravity', "1.0")
+
+    @property
+    def MinRange(self):
+        return parse_source_value(self._raw_data.get('minrange', 100))
+
+    @property
+    def MaxRange(self):
+        return parse_source_value(self._raw_data.get('maxrange', 2048))
+
+    @property
+    def SpinMagnitude(self):
+        return self._raw_data.get('spinmagnitude', "0")
+
+    @property
+    def SpinSpeed(self):
+        return self._raw_data.get('spinspeed', "0")
+
+    @property
+    def Damage(self):
+        return self._raw_data.get('damage', "50")
+
+    @property
+    def DamageRadius(self):
+        return self._raw_data.get('damageradius', "200")
+
 
 
 class npc_hunter(Base):
     model_ = "models/hunter.mdl"
-    def __init__(self):
-        super().__init__()
-        self.FollowTarget = None  # Type: target_destination
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.FollowTarget = entity_data.get('followtarget', None)  # Type: target_destination
+    @property
+    def FollowTarget(self):
+        return self._raw_data.get('followtarget', "")
+
 
 
 class npc_hunter_maker(Base):
     icon_sprite = "editor/npc_maker.vmt"
-    def __init__(self):
-        super().__init__()
-        self.origin = [0, 0, 0]
-        pass
-
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+    pass
 
 
 class npc_advisor(Base):
-    def __init__(self):
-        super().__init__()
-        self.model = "models/advisor.mdl"  # Type: studio
-        self.levitationarea = None  # Type: string
-        self.levitategoal_bottom = None  # Type: target_destination
-        self.levitategoal_top = None  # Type: target_destination
-        self.staging_ent_names = None  # Type: string
-        self.priority_grab_name = None  # Type: string
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.model = entity_data.get('model', "models/advisor.mdl")  # Type: studio
-        instance.levitationarea = entity_data.get('levitationarea', None)  # Type: string
-        instance.levitategoal_bottom = entity_data.get('levitategoal_bottom', None)  # Type: target_destination
-        instance.levitategoal_top = entity_data.get('levitategoal_top', None)  # Type: target_destination
-        instance.staging_ent_names = entity_data.get('staging_ent_names', None)  # Type: string
-        instance.priority_grab_name = entity_data.get('priority_grab_name', None)  # Type: string
+    @property
+    def model(self):
+        return self._raw_data.get('model', "models/advisor.mdl")
+
+    @property
+    def levitationarea(self):
+        return self._raw_data.get('levitationarea', "")
+
+    @property
+    def levitategoal_bottom(self):
+        return self._raw_data.get('levitategoal_bottom', "")
+
+    @property
+    def levitategoal_top(self):
+        return self._raw_data.get('levitategoal_top', "")
+
+    @property
+    def staging_ent_names(self):
+        return self._raw_data.get('staging_ent_names', "")
+
+    @property
+    def priority_grab_name(self):
+        return self._raw_data.get('priority_grab_name', "")
+
 
 
 class env_sporeexplosion(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.spawnrate = 25  # Type: float
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.spawnrate = float(entity_data.get('spawnrate', 25))  # Type: float
+    @property
+    def spawnrate(self):
+        return parse_source_value(self._raw_data.get('spawnrate', 25))
+
 
 
 class env_gunfire(Targetname):
-    def __init__(self):
-        super(Targetname).__init__()
-        self.origin = [0, 0, 0]
-        self.target = None  # Type: target_destination
-        self.minburstsize = 2  # Type: integer
-        self.maxburstsize = 7  # Type: integer
-        self.minburstdelay = 2  # Type: float
-        self.maxburstdelay = 5  # Type: float
-        self.rateoffire = 10  # Type: float
-        self.spread = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.bias = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.collisions = None  # Type: choices
-        self.shootsound = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.tracertype = "CHOICES NOT SUPPORTED"  # Type: choices
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.target = entity_data.get('target', None)  # Type: target_destination
-        instance.minburstsize = parse_source_value(entity_data.get('minburstsize', 2))  # Type: integer
-        instance.maxburstsize = parse_source_value(entity_data.get('maxburstsize', 7))  # Type: integer
-        instance.minburstdelay = float(entity_data.get('minburstdelay', 2))  # Type: float
-        instance.maxburstdelay = float(entity_data.get('maxburstdelay', 5))  # Type: float
-        instance.rateoffire = float(entity_data.get('rateoffire', 10))  # Type: float
-        instance.spread = entity_data.get('spread', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.bias = entity_data.get('bias', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.collisions = entity_data.get('collisions', None)  # Type: choices
-        instance.shootsound = entity_data.get('shootsound', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.tracertype = entity_data.get('tracertype', "CHOICES NOT SUPPORTED")  # Type: choices
+    @property
+    def target(self):
+        return self._raw_data.get('target', "")
+
+    @property
+    def minburstsize(self):
+        return parse_source_value(self._raw_data.get('minburstsize', 2))
+
+    @property
+    def maxburstsize(self):
+        return parse_source_value(self._raw_data.get('maxburstsize', 7))
+
+    @property
+    def minburstdelay(self):
+        return parse_source_value(self._raw_data.get('minburstdelay', 2))
+
+    @property
+    def maxburstdelay(self):
+        return parse_source_value(self._raw_data.get('maxburstdelay', 5))
+
+    @property
+    def rateoffire(self):
+        return parse_source_value(self._raw_data.get('rateoffire', 10))
+
+    @property
+    def spread(self):
+        return self._raw_data.get('spread', "5")
+
+    @property
+    def bias(self):
+        return self._raw_data.get('bias', "1")
+
+    @property
+    def collisions(self):
+        return self._raw_data.get('collisions', "0")
+
+    @property
+    def shootsound(self):
+        return self._raw_data.get('shootsound', "Weapon_AR2.NPC_Single")
+
+    @property
+    def tracertype(self):
+        return self._raw_data.get('tracertype', "AR2TRACER")
 
 
-class env_headcrabcanister(Targetname, Angles):
+
+class env_headcrabcanister(Angles, Targetname):
     model_ = "models/props_combine/headcrabcannister01b.mdl"
-    def __init__(self):
-        super(Targetname).__init__()
-        super(Angles).__init__()
-        self.origin = [0, 0, 0]
-        self.HeadcrabType = None  # Type: choices
-        self.HeadcrabCount = 6  # Type: integer
-        self.FlightSpeed = 3000  # Type: float
-        self.FlightTime = 5  # Type: float
-        self.StartingHeight = None  # Type: float
-        self.MinSkyboxRefireTime = None  # Type: float
-        self.MaxSkyboxRefireTime = None  # Type: float
-        self.SkyboxCannisterCount = 1  # Type: integer
-        self.Damage = 150  # Type: float
-        self.DamageRadius = 750  # Type: float
-        self.SmokeLifetime = 30  # Type: float
-        self.LaunchPositionName = None  # Type: target_destination
+    @property
+    def origin(self):
+        return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Targetname.from_dict(instance, entity_data)
-        Angles.from_dict(instance, entity_data)
-        instance.origin = parse_float_vector(entity_data.get('origin', "0 0 0"))
-        instance.HeadcrabType = entity_data.get('headcrabtype', None)  # Type: choices
-        instance.HeadcrabCount = parse_source_value(entity_data.get('headcrabcount', 6))  # Type: integer
-        instance.FlightSpeed = float(entity_data.get('flightspeed', 3000))  # Type: float
-        instance.FlightTime = float(entity_data.get('flighttime', 5))  # Type: float
-        instance.StartingHeight = float(entity_data.get('startingheight', 0))  # Type: float
-        instance.MinSkyboxRefireTime = float(entity_data.get('minskyboxrefiretime', 0))  # Type: float
-        instance.MaxSkyboxRefireTime = float(entity_data.get('maxskyboxrefiretime', 0))  # Type: float
-        instance.SkyboxCannisterCount = parse_source_value(entity_data.get('skyboxcannistercount', 1))  # Type: integer
-        instance.Damage = float(entity_data.get('damage', 150))  # Type: float
-        instance.DamageRadius = float(entity_data.get('damageradius', 750))  # Type: float
-        instance.SmokeLifetime = float(entity_data.get('smokelifetime', 30))  # Type: float
-        instance.LaunchPositionName = entity_data.get('launchpositionname', None)  # Type: target_destination
+    @property
+    def HeadcrabType(self):
+        return self._raw_data.get('headcrabtype', "0")
+
+    @property
+    def HeadcrabCount(self):
+        return parse_source_value(self._raw_data.get('headcrabcount', 6))
+
+    @property
+    def FlightSpeed(self):
+        return parse_source_value(self._raw_data.get('flightspeed', 3000))
+
+    @property
+    def FlightTime(self):
+        return parse_source_value(self._raw_data.get('flighttime', 5))
+
+    @property
+    def StartingHeight(self):
+        return parse_source_value(self._raw_data.get('startingheight', 0))
+
+    @property
+    def MinSkyboxRefireTime(self):
+        return parse_source_value(self._raw_data.get('minskyboxrefiretime', 0))
+
+    @property
+    def MaxSkyboxRefireTime(self):
+        return parse_source_value(self._raw_data.get('maxskyboxrefiretime', 0))
+
+    @property
+    def SkyboxCannisterCount(self):
+        return parse_source_value(self._raw_data.get('skyboxcannistercount', 1))
+
+    @property
+    def Damage(self):
+        return parse_source_value(self._raw_data.get('damage', 150))
+
+    @property
+    def DamageRadius(self):
+        return parse_source_value(self._raw_data.get('damageradius', 750))
+
+    @property
+    def SmokeLifetime(self):
+        return parse_source_value(self._raw_data.get('smokelifetime', 30))
+
+    @property
+    def LaunchPositionName(self):
+        return self._raw_data.get('launchpositionname', "")
+
 
 
 class npc_vortigaunt(PlayerCompanion, TalkNPC):
-    def __init__(self):
-        super(PlayerCompanion).__init__()
-        super(TalkNPC).__init__()
-        self.model = "models/vortigaunt.mdl"  # Type: studio
-        self.ArmorRechargeEnabled = "CHOICES NOT SUPPORTED"  # Type: choices
-        self.HealthRegenerateEnabled = None  # Type: choices
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        PlayerCompanion.from_dict(instance, entity_data)
-        TalkNPC.from_dict(instance, entity_data)
-        instance.model = entity_data.get('model', "models/vortigaunt.mdl")  # Type: studio
-        instance.ArmorRechargeEnabled = entity_data.get('armorrechargeenabled', "CHOICES NOT SUPPORTED")  # Type: choices
-        instance.HealthRegenerateEnabled = entity_data.get('healthregenerateenabled', None)  # Type: choices
+    @property
+    def model(self):
+        return self._raw_data.get('model', "models/vortigaunt.mdl")
+
+    @property
+    def ArmorRechargeEnabled(self):
+        return self._raw_data.get('armorrechargeenabled', "1")
+
+    @property
+    def HealthRegenerateEnabled(self):
+        return self._raw_data.get('healthregenerateenabled', "0")
+
 
 
 class npc_spotlight(Base):
-    def __init__(self):
-        super().__init__()
-        self.health = 100  # Type: integer
-        self.YawRange = 90  # Type: integer
-        self.PitchMin = 35  # Type: integer
-        self.PitchMax = 50  # Type: integer
-        self.IdleSpeed = 2  # Type: integer
-        self.AlertSpeed = 5  # Type: integer
-        self.spotlightlength = 500  # Type: integer
-        self.spotlightwidth = 50  # Type: integer
-        self.rendercolor = [255, 255, 255]  # Type: color255
 
-    @staticmethod
-    def from_dict(instance, entity_data: dict):
-        Base.from_dict(instance, entity_data)
-        instance.health = parse_source_value(entity_data.get('health', 100))  # Type: integer
-        instance.YawRange = parse_source_value(entity_data.get('yawrange', 90))  # Type: integer
-        instance.PitchMin = parse_source_value(entity_data.get('pitchmin', 35))  # Type: integer
-        instance.PitchMax = parse_source_value(entity_data.get('pitchmax', 50))  # Type: integer
-        instance.IdleSpeed = parse_source_value(entity_data.get('idlespeed', 2))  # Type: integer
-        instance.AlertSpeed = parse_source_value(entity_data.get('alertspeed', 5))  # Type: integer
-        instance.spotlightlength = parse_source_value(entity_data.get('spotlightlength', 500))  # Type: integer
-        instance.spotlightwidth = parse_source_value(entity_data.get('spotlightwidth', 50))  # Type: integer
-        instance.rendercolor = parse_int_vector(entity_data.get('rendercolor', "255 255 255"))  # Type: color255
+    @property
+    def health(self):
+        return parse_source_value(self._raw_data.get('health', 100))
+
+    @property
+    def YawRange(self):
+        return parse_source_value(self._raw_data.get('yawrange', 90))
+
+    @property
+    def PitchMin(self):
+        return parse_source_value(self._raw_data.get('pitchmin', 35))
+
+    @property
+    def PitchMax(self):
+        return parse_source_value(self._raw_data.get('pitchmax', 50))
+
+    @property
+    def IdleSpeed(self):
+        return parse_source_value(self._raw_data.get('idlespeed', 2))
+
+    @property
+    def AlertSpeed(self):
+        return parse_source_value(self._raw_data.get('alertspeed', 5))
+
+    @property
+    def spotlightlength(self):
+        return parse_source_value(self._raw_data.get('spotlightlength', 500))
+
+    @property
+    def spotlightwidth(self):
+        return parse_source_value(self._raw_data.get('spotlightwidth', 50))
+
+    @property
+    def rendercolor(self):
+        return parse_int_vector(self._raw_data.get('rendercolor', "255 255 255"))
+
 
 
 

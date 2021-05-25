@@ -68,87 +68,27 @@ class TF2EntityHandler(BaseEntityHandler):
         self._put_into_collection('trigger_capture_area', mesh_object, 'triggers')
 
     def handle_item_healthkit_full(self, entity: item_healthkit_full, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.powerup_model or entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_healthkit', obj, 'props')
 
     def handle_item_healthkit_medium(self, entity: item_healthkit_medium, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.powerup_model or entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_healthkit', obj, 'props')
 
     def handle_item_healthkit_small(self, entity: item_healthkit_small, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.powerup_model or entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_healthkit', obj, 'props')
 
     def handle_item_ammopack_medium(self, entity: item_ammopack_medium, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.powerup_model or entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_item_ammopack_full(self, entity: item_ammopack_full, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.powerup_model or entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_item_ammopack_small(self, entity: item_ammopack_small, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.powerup_model or entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_team_control_point(self, entity: team_control_point, entity_raw: dict):
@@ -166,17 +106,7 @@ class TF2EntityHandler(BaseEntityHandler):
         self._put_into_collection('item_ammopack', obj, 'props')
 
     def handle_info_player_teamspawn(self, entity: info_player_teamspawn, entity_raw: dict):
-        obj = self._create_empty(self._get_entity_name(entity))
-        properties = {'prop_path': entity.model,
-                      'type': entity.class_name,
-                      'scale': self.scale,
-                      'entity': entity_raw}
-        obj.rotation_euler.rotate(Euler((math.radians(entity.angles[2]),
-                                         math.radians(entity.angles[0]),
-                                         math.radians(entity.angles[1]))))
-
-        self._set_location_and_scale(obj, parse_float_vector(entity_raw['origin']))
-        self._set_entity_data(obj, properties)
+        obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('info_player_teamspawn', obj, 'logic')
 
     def handle_info_observer_point(self, entity: info_observer_point, entity_raw: dict):
