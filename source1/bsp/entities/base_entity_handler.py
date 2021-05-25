@@ -297,8 +297,8 @@ class BaseEntityHandler:
             if not self.handle_entity(entity_data):
                 pprint(entity_data)
         bpy.context.view_layer.update()
-        for entity_data in entity_lump.entities:
-            self.resolve_parents(entity_data)
+        # for entity_data in entity_lump.entities:
+        #     self.resolve_parents(entity_data)
         pass
 
     def handle_entity(self, entity_data):
