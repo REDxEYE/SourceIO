@@ -50,7 +50,7 @@ class ValveCompiledWorld(ValveCompiledFile):
         data_block = self.get_data_block(block_name='DATA')[0]
         if data_block and data_block.data.get('m_entityLumps', False):
             for elump in data_block.data.get('m_entityLumps'):
-                self.logger.info("Loading entity lump", elump)
+                self.logger.info(f"Loading entity lump {elump}")
                 proper_path = self.available_resources.get(elump, None)
                 if not proper_path:
                     continue
@@ -66,7 +66,7 @@ class ValveCompiledWorld(ValveCompiledFile):
             self.logger.warn(f'Missing {child_lump.filepath} entity lump')
         entity_data_block = child_lump.get_data_block(block_name='DATA')[0]
         for child_lump_path in entity_data_block.data['m_childLumps']:
-            self.logger.info("Loading next child entity lump", child_lump_path)
+            self.logger.info(f"Loading next child entity lump \"{child_lump_path}\"")
             proper_path = child_lump.available_resources.get(child_lump_path, None)
             if not proper_path:
                 continue
@@ -91,12 +91,13 @@ class ValveCompiledWorld(ValveCompiledFile):
             mat_rows: List = static_object['m_vTransform']
             transform_mat = Matrix([mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
             loc, rot, sca = transform_mat.decompose()
+
             custom_data = {'prop_path': str(proper_path),
                            'type': 'static_prop',
                            'scale': self.scale,
                            'entity': static_object,
                            'skin': static_object.get('skin', 'default') or 'default'}
-
+            loc = np.multiply(loc, self.scale)
             self.create_empty(proper_path.stem, loc,
                               rot.to_euler(),
                               sca,

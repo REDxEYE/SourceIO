@@ -30,7 +30,7 @@ class VPKFile:
         self.archive_md5_entries: List[ArchiveMD5Entry] = []
 
         self.entries = {}
-
+        self.tree_offset = 0
         self.tree_hash = b''
         self.archive_md5_hash = b''
         self.file_hash = b''
@@ -40,6 +40,7 @@ class VPKFile:
 
     def read(self):
         reader = self.reader
+
         self.header.read(reader)
         entry = reader.tell()
         self.read_entries()
@@ -61,6 +62,7 @@ class VPKFile:
 
     def read_entries(self):
         reader = self.reader
+        self.tree_offset = reader.tell()
         while 1:
             type_name = reader.read_ascii_string()
             if not type_name:
@@ -104,7 +106,12 @@ class VPKFile:
         if not entry.loaded:
             entry.read(self.reader)
         if entry.archive_id == 0x7FFF:
-            reader = BytesIO(entry.preload_data)
+            data = bytearray(entry.preload_data)
+            with self.reader.save_current_pos():
+                self.reader.seek(entry.offset + self.header.tree_size + self.tree_offset)
+                data.extend(self.reader.read(entry.size))
+
+            reader = BytesIO(data)
             return reader
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'

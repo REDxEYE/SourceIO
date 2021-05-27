@@ -80,6 +80,37 @@ class VWRLDImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+class VPK_VWRLDImport_OT_operator(bpy.types.Operator):
+    """Load Source2 VWRLD"""
+    bl_idname = "source_io.vwrld_vpk"
+    bl_label = "Import Source2 VWRLD file from VPK"
+    bl_options = {'UNDO'}
+
+    filepath: StringProperty(subtype="FILE_PATH")
+    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    filter_glob: StringProperty(default="*.vpk", options={'HIDDEN'})
+
+    invert_uv: BoolProperty(name="invert UV?", default=True)
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+
+    def execute(self, context):
+        vpk_path = Path(self.filepath)
+        assert vpk_path.is_file(), 'Not a file'
+
+        ContentManager().scan_for_content(vpk_path.parent)
+        ContentManager().scan_for_content(vpk_path)
+        world_file = ContentManager().find_file(f'maps/{vpk_path.stem}/world.vwrld_c')
+        assert world_file is not None, "Failed to find world file in selected VPK"
+        world = ValveCompiledWorld(world_file, invert_uv=self.invert_uv, scale=self.scale)
+        world.load(vpk_path.stem)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
 # noinspection PyUnresolvedReferences
 class VMATImport_OT_operator(bpy.types.Operator):
     """Load Source2 material"""

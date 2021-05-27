@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 from .source1.vtf.VTFWrapper.VTFLib import VTFLib
 from .utilities.singleton import SingletonMeta
 
@@ -37,7 +36,9 @@ if not NO_BPY:
     from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
                                     VMDLImport_OT_operator,
-                                    VWRLDImport_OT_operator, DMXCameraImport_OT_operator
+                                    VWRLDImport_OT_operator,
+                                    VPK_VWRLDImport_OT_operator,
+                                    DMXCameraImport_OT_operator
                                     )
     from .shared_operators import (SourceIOUtils_PT_panel,
                                    Placeholders_PT_panel,
@@ -75,6 +76,8 @@ if not NO_BPY:
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
                             icon_value=model_doc_icon.icon_id)
             layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)",
+                            icon_value=vwrld_icon.icon_id)
+            layout.operator(VPK_VWRLDImport_OT_operator.bl_idname, text="Source2 packed map (.vpk)",
                             icon_value=vwrld_icon.icon_id)
             layout.operator(VTEXImport_OT_operator.bl_idname, text="Source2 texture (.vtex)",
                             icon_value=vtex_icon.icon_id)
@@ -147,6 +150,7 @@ if not NO_BPY:
         VMDLImport_OT_operator,
         VTEXImport_OT_operator,
         VMATImport_OT_operator,
+        VPK_VWRLDImport_OT_operator,
         VWRLDImport_OT_operator,
 
         # Addon tools

@@ -33,3 +33,4 @@ class Header:
             pass
         else:
             raise NotImplementedError(f"Bad VPK version ({self.version})")
+
