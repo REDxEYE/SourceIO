@@ -29,7 +29,7 @@ class VPKFile:
         self.header = Header()
         self.archive_md5_entries: List[ArchiveMD5Entry] = []
 
-        self.entries = {}
+        self.entries: Dict[str, Entry] = {}
         self.tree_offset = 0
         self.tree_hash = b''
         self.archive_md5_hash = b''
@@ -37,6 +37,8 @@ class VPKFile:
 
         self.public_key = b''
         self.signature = b''
+
+        self._folders_in_current_dir = set()
 
     def read(self):
         reader = self.reader
@@ -120,6 +122,18 @@ class VPKFile:
                 target_archive.seek(entry.offset)
                 reader = BytesIO(entry.preload_data + target_archive.read(entry.size))
                 return reader
+
+    def files_in_path(self, partial_path):
+        if partial_path is None:
+            self._folders_in_current_dir = set([Path(a).parts[0] for a in self.entries.keys()])
+        else:
+            partial_path = Path(partial_path).as_posix().lower()
+            self._folders_in_current_dir.clear()
+            for filepath in self.entries.keys():
+                tmp = Path(filepath).parent.as_posix().lower()
+                if tmp.startswith(partial_path):
+                    self._folders_in_current_dir.add(Path(filepath).relative_to(partial_path).parts[0])
+        yield from self._folders_in_current_dir
 
 
 class TitanfallVPKFile(VPKFile):

@@ -46,7 +46,15 @@ if not NO_BPY:
                                    ChangeSkin_OT_operator,
                                    LoadEntity_OT_operator,
                                    )
+    from .vpk_operators import (VPKBrowserLoader,
+                                VPKBrowser,
+                                VPKEntry,
+                                FILE_UL_VPKDirList,
+                                VPKButtonUp,
+                                )
+
     from .bpy_utilities.export_nodes import register_nodes, unregister_nodes
+
 
     # noinspection PyPep8Naming
     class SourceIO_MT_Menu(bpy.types.Menu):
@@ -87,6 +95,11 @@ if not NO_BPY:
             layout.operator(GMDLImport_OT_operator.bl_idname, text="GoldSrc model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
             layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
+                            icon_value=bsp_icon.icon_id)
+            layout.separator()
+            layout.operator(VPKBrowserLoader.bl_idname, text="Browse new VPK (.vpk)",
+                            icon_value=bsp_icon.icon_id)
+            layout.operator(VPKBrowser.bl_idname, text="Browse already open VPK (.vpk)",
                             icon_value=bsp_icon.icon_id)
             layout.separator()
             layout.menu(SourceIOUtils_MT_Menu.bl_idname)
@@ -161,7 +174,13 @@ if not NO_BPY:
         Placeholders_PT_panel,
         SkinChanger_PT_panel,
         LoadEntity_OT_operator,
-        ChangeSkin_OT_operator
+        ChangeSkin_OT_operator,
+
+        VPKEntry,
+        VPKButtonUp,
+        VPKBrowserLoader,
+        FILE_UL_VPKDirList,
+        VPKBrowser,
     )
 
     register_, unregister_ = bpy.utils.register_classes_factory(classes)
