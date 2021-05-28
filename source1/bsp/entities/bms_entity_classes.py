@@ -367,7 +367,8 @@ class BaseNPCMaker(Angles, Targetname, EnableDisable):
 
 class npc_template_maker(BaseNPCMaker):
     icon_sprite = "editor/npc_maker.vmt"
- @property  def origin(self):
+    @property
+    def origin(self):
         return parse_int_vector(self._raw_data.get('origin',"0 0 0"))
 
     @property
