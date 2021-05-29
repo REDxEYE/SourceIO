@@ -20,7 +20,7 @@ class VPKFileHandle(metaclass=SingletonMeta):
         self.current_file = None
         self.vpk_archive: Optional[VPKFile] = None
         self._current_dir: Optional[Path] = None
-        self.vpk_browser_link: Optional[VPKBrowser] = None
+        self.vpk_browser_link: Optional[SourceIO_OP_VPKBrowser] = None
 
     def dir_in(self, dir_name):
         if self._current_dir is None:
@@ -58,7 +58,8 @@ class VPKFileHandle(metaclass=SingletonMeta):
         self.vpk_archive.read()
 
 
-class VPKBrowserLoader(bpy.types.Operator):
+# noinspection PyPep8Naming
+class SourceIO_OP_VPKBrowserLoader(bpy.types.Operator):
     """Import whole filearchives directory."""
     bl_idname = "import_scene.vpk"
     bl_label = 'Browse VPK files'
@@ -74,17 +75,18 @@ class VPKBrowserLoader(bpy.types.Operator):
         # TODO: Validate filepath
         VPKFileHandle().open_new(self.filepath)
         VPKFileHandle().dir_root()
-        VPKBrowser.bl_label = Path(self.filepath).name
         bpy.ops.ui.vpk_browser('INVOKE_DEFAULT')
         return {'FINISHED'}
 
 
-class VPKEntry(bpy.types.PropertyGroup):
+# noinspection PyPep8Naming
+class SourceIO_PG_VPKEntry(bpy.types.PropertyGroup):
     name: StringProperty()
     selected: BoolProperty(name="")
 
 
-class VPKButtonUp(bpy.types.Operator):
+# noinspection PyPep8Naming
+class SourceIO_OP_VPKButtonUp(bpy.types.Operator):
     bl_idname = "ui.vpk_browser_up"
     bl_label = "Up"
     bl_options = {'INTERNAL'}
@@ -94,12 +96,13 @@ class VPKButtonUp(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class VPKBrowser(bpy.types.Operator):
+# noinspection PyPep8Naming
+class SourceIO_OP_VPKBrowser(bpy.types.Operator):
     bl_idname = "ui.vpk_browser"
     bl_label = "VPK-browser"
     bl_options = {'INTERNAL'}
 
-    current_dir: CollectionProperty(type=VPKEntry)
+    current_dir: CollectionProperty(type=SourceIO_PG_VPKEntry)
     selected_index: IntProperty(default=0)  # -1 - No-op, -2 - update view
     cur_path: StringProperty(name='Cur')
 
@@ -111,11 +114,9 @@ class VPKBrowser(bpy.types.Operator):
         box = self.layout.box()
         row = box.row()
         row.label(text=VPKFileHandle().get_current_path())
-        row.operator(VPKButtonUp.bl_idname, icon='LOOP_BACK', text='')
+        row.operator(SourceIO_OP_VPKButtonUp.bl_idname, icon='LOOP_BACK', text='')
         self.layout.separator()
         if self.selected_index != -1:
-
-            # TODO: change current directory of archive
             if len(self.current_dir) > 0 and self.selected_index != -2:
                 VPKFileHandle().dir_in(self.current_dir[self.selected_index].name)
             self.current_dir.clear()
@@ -126,22 +127,25 @@ class VPKBrowser(bpy.types.Operator):
                 entry.name = directory
 
             self.selected_index = -1
-        self.layout.template_list("FILE_UL_VPKDirList", "", self, "current_dir", self, "selected_index")
+        self.layout.template_list("SourceIO_UL_VPKDirList", "", self, "current_dir", self, "selected_index")
 
     def execute(self, context):
-        print("execute")
+        for file in self.current_dir:
+            if file.selected:
+                print(file.name)
         return {'FINISHED'}
 
 
-class FILE_UL_VPKDirList(bpy.types.UIList):
+# noinspection PyPep8Naming
+class SourceIO_UL_VPKDirList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         operator = data
-        raf_entry = item
+        vpk_entry = item
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(raf_entry, "name", text="", emboss=False, icon_value=icon)
-            if '.' in raf_entry.name:
-                layout.prop(raf_entry, "selected")
+            layout.prop(vpk_entry, "name", text="", emboss=False, icon_value=icon)
+            if '.' in vpk_entry.name and vpk_entry.name != '..':
+                layout.prop(vpk_entry, "selected")
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
