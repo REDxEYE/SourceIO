@@ -4,7 +4,7 @@ Our Discord server https://discord.gg/SF82W6aZ67
 
 # Used libraries
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
-
+* [BlenderVertexLitGeneric](https://github.com/syborg64/BlenderVertexLitGeneric) Shader nodegroup by [syborg64](https://github.com/syborg64)
 # Supported formats (v3.9.3):
 
 ## Source 1
