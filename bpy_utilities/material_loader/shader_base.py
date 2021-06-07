@@ -5,6 +5,7 @@ import bpy
 import numpy as np
 
 from .node_arranger import nodes_iterate
+from ..utils import append_blend
 from ...bpy_utilities.logging import BPYLoggingManager
 
 
@@ -112,6 +113,27 @@ log_manager = BPYLoggingManager()
 
 class ShaderBase:
     SHADER: str = "Unknown"
+    use_bvlg_status = True
+
+    @classmethod
+    def use_bvlg(cls, status):
+        cls.use_bvlg_status = status
+
+    @staticmethod
+    def load_bvlg_nodes():
+        if "VertexLitGeneric" not in bpy.data.node_groups:
+            current_path = Path(__file__).parent.parent.parent
+            asset_path = current_path / 'assets' / "sycreation-s-default.blend"
+            append_blend(str(asset_path), "node_groups")
+
+    @staticmethod
+    def ensure_length(array: list, length, filler):
+        if len(array) < length:
+            array.extend([filler] * (length - len(array)))
+            return array
+        elif len(array) > length:
+            return array[:length]
+        return array
 
     @classmethod
     def all_subclasses(cls):
@@ -120,6 +142,7 @@ class ShaderBase:
     def __init__(self):
         self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
         self.bpy_material: bpy.types.Material = None
+        self.load_bvlg_nodes()
 
     @staticmethod
     def get_missing_texture(texture_name: str, fill_color: tuple = (1.0, 1.0, 1.0, 1.0)):

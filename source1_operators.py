@@ -31,6 +31,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
+    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
@@ -61,7 +62,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
             if self.import_textures:
                 try:
-                    import_materials(model_container.mdl)
+                    import_materials(model_container.mdl, use_bvlg=self.use_bvlg)
                 except Exception as t_ex:
                     print(f'Failed to import materials, caused by {t_ex}')
                     import traceback

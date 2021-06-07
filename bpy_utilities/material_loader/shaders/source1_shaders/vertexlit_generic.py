@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Iterable
+import bpy
 
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
@@ -48,25 +49,25 @@ class VertexLitGeneric(Source1ShaderBase):
 
     @property
     def color2(self):
-        color_value, value_type = self._vavle_material.get_vector('$color2', [1, 1, 1])
+        color_value, value_type = self._vavle_material.get_vector('$color2', None)
+        if color_value is None:
+            return None
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
-        elif len(color_value) > 3:
-            color_value = color_value[:3]
-        return color_value
+        return self.ensure_length(color_value, 4, 1.0)
 
     @property
     def color(self):
-        color_value, value_type = self._vavle_material.get_vector('$color', [1, 1, 1])
+        color_value, value_type = self._vavle_material.get_vector('$color', None)
+        if color_value is None:
+            return None
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
-        elif len(color_value) > 3:
-            color_value = color_value[:3]
-        return color_value
+        return self.ensure_length(color_value, 4, 1.0)
 
     @property
     def translucent(self):
@@ -87,6 +88,37 @@ class VertexLitGeneric(Source1ShaderBase):
     @property
     def selfillum(self):
         return self._vavle_material.get_int('$selfillum', 0) == 1
+
+    @property
+    def basealphaenvmapmask(self):
+        return self._vavle_material.get_int('$basealphaenvmapmask', 0) == 1
+
+    @property
+    def normalmapalphaphongmask(self):
+        return self._vavle_material.get_int('$normalmapalphaphongmask', 0) == 1
+
+    @property
+    def envmap(self):
+        return self._vavle_material.get_string('$envmap', None) is not None
+
+    @property
+    def envmaptint(self):
+        color_value, value_type = self._vavle_material.get_vector('$envmaptint', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+
+        return self.ensure_length(color_value, 4, 1.0)
+
+    @property
+    def phongfresnelranges(self):
+        value, value_type = self._vavle_material.get_vector('$phongfresnelranges', None)
+        if value is not None:
+            divider = 255 if value_type is int else 1
+            value = list(map(lambda a: a / divider, value))
+            return self.ensure_length(value, 3, 0.1)
+        return None
 
     @property
     def phongexponent(self):
@@ -110,85 +142,123 @@ class VertexLitGeneric(Source1ShaderBase):
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
-
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
-        self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
-
-        basetexture = self.basetexture
-        if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
-
+        if self.use_bvlg_status:
+            group_node = self.create_node(Nodes.ShaderNodeGroup, self.SHADER)
+            group_node.node_tree = bpy.data.node_groups.get("VertexLitGeneric")
+            self.connect_nodes(group_node.outputs['BSDF'], material_output.inputs['Surface'])
+            if self.basetexture:
+                basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
+                basetexture_node.image = self.basetexture
+                self.connect_nodes(basetexture_node.outputs['Color'], group_node.inputs['$basetexture [texture]'])
+                if self.basealphaenvmapmask:
+                    self.connect_nodes(basetexture_node.outputs['Alpha'],
+                                       group_node.inputs['envmapmask [basemap texture alpha]'])
             if self.color or self.color2:
-                color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
-                color_mix.blend_type = 'MULTIPLY'
-                self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
-                color = (self.color or self.color2)
-                if isinstance(color, Iterable) and sum(color) > 3:
-                    color = list(np.divide(color, 255))
-                color_mix.inputs['Color2'].default_value = (*color, 1.0)
-                color_mix.inputs['Fac'].default_value = 1.0
-                self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
-            else:
-                self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
-            if self.translucent or self.alphatest:
-                self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
+                group_node.inputs['$color2 [RGB field]'].devault_value = self.color or self.color2
 
-            if self.additive:
-                basetexture_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-                basetexture_additive_mix_node = self.create_node(Nodes.ShaderNodeMixRGB)
-                self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
-                                 basetexture_additive_mix_node.outputs['Color'])
-                basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
+            if self.envmap:
+                group_node.inputs['$envmap [boolean]'].default_value = 1
+                if self.envmaptint:
+                    group_node.inputs['$envmaptint [RGB field]'].default_value = self.envmaptint
 
-                self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
-                self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
-                self.connect_nodes(basetexture_invert_node.outputs['Color'],
-                                   basetexture_additive_mix_node.inputs['Fac'])
+            if self.bumpmap:
+                bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
+                bumpmap_node.image = self.bumpmap
 
-        bumpmap = self.bumpmap
-        if bumpmap:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
-            bumpmap_node.image = bumpmap
+                self.connect_nodes(bumpmap_node.outputs['Color'], group_node.inputs['$bumpmap [texture]'])
+                if self.normalmapalphaphongmask:
+                    self.connect_nodes(bumpmap_node.outputs['Alpha'],
+                                       group_node.inputs['phongmask [bumpmap texture alpha]'])
 
-            normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+            if self.phong:
+                group_node.inputs['$phong [bool]'].default_value = 1
+                if self.phongboost:
+                    group_node.inputs['$phongboost [value]'].default_value = self.phongboost
+                if self.phongexponent:
+                    group_node.inputs['$phongexponent [value]'].default_value = self.phongexponent
+                if self.phongfresnelranges:
+                    group_node.inputs['$phongfresnelranges'].default_value = self.phongfresnelranges
 
-            self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
-            self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
+            if self.selfillum:
+                group_node.inputs['$selfillum [bool]'].default_value = 1
 
-        if self.selfillum:
-            selfillummask = self.selfillummask
-            basetexture_node = self.get_node('$basetexture')
-            if selfillummask is not None:
-                selfillummask_node = self.create_node(Nodes.ShaderNodeTexImage, '$selfillummask')
-                selfillummask_node.image = selfillummask
-                if 'Emission Strength' in shader.inputs:
-                    self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
 
-            else:
-                if 'Emission Strength' in shader.inputs:
-                    self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
+        else:
+            shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+            self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
-        if not self.phong:
-            shader.inputs['Specular'].default_value = 0
-        elif self.phongboost is not None:
-            shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
-        phongexponenttexture = self.phongexponenttexture
-        if self.phongexponent is not None and phongexponenttexture is None:
-            shader.inputs['Roughness'].default_value = self.clamp_value(self.phongexponent / 256)
-        elif self.phongexponenttexture is not None:
-            phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
-            phongexponenttexture_node.image = phongexponenttexture
-            phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
-            self.connect_nodes(phongexponenttexture_node.outputs['Color'],
-                               phongexponenttexture_split_node.inputs['Image'])
+            basetexture = self.basetexture
+            if basetexture:
+                basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
+                basetexture_node.image = basetexture
 
-            phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-            self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
-                               phongexponenttexture_r_invert_node.inputs['Color'])
-            self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
-                               shader.inputs['Metallic'])
+                if self.color or self.color2:
+                    color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                    color_mix.blend_type = 'MULTIPLY'
+                    self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
+                    color_mix.inputs['Color2'].default_value = (self.color or self.color2)
+                    color_mix.inputs['Fac'].default_value = 1.0
+                    self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
+                else:
+                    self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+                if self.translucent or self.alphatest:
+                    self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
 
-            self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])
+                if self.additive:
+                    basetexture_invert_node = self.create_node(Nodes.ShaderNodeInvert)
+                    basetexture_additive_mix_node = self.create_node(Nodes.ShaderNodeMixRGB)
+                    self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
+                                     basetexture_additive_mix_node.outputs['Color'])
+                    basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
+
+                    self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
+                    self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
+                    self.connect_nodes(basetexture_invert_node.outputs['Color'],
+                                       basetexture_additive_mix_node.inputs['Fac'])
+
+            bumpmap = self.bumpmap
+            if bumpmap:
+                bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
+                bumpmap_node.image = bumpmap
+
+                normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+
+                self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
+                self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
+
+            if self.selfillum:
+                selfillummask = self.selfillummask
+                basetexture_node = self.get_node('$basetexture')
+                if selfillummask is not None:
+                    selfillummask_node = self.create_node(Nodes.ShaderNodeTexImage, '$selfillummask')
+                    selfillummask_node.image = selfillummask
+                    if 'Emission Strength' in shader.inputs:
+                        self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
+
+                else:
+                    if 'Emission Strength' in shader.inputs:
+                        self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
+                self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
+
+            if not self.phong:
+                shader.inputs['Specular'].default_value = 0
+            elif self.phongboost is not None:
+                shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
+            phongexponenttexture = self.phongexponenttexture
+            if self.phongexponent is not None and phongexponenttexture is None:
+                shader.inputs['Roughness'].default_value = self.clamp_value(self.phongexponent / 256)
+            elif self.phongexponenttexture is not None:
+                phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
+                phongexponenttexture_node.image = phongexponenttexture
+                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
+                self.connect_nodes(phongexponenttexture_node.outputs['Color'],
+                                   phongexponenttexture_split_node.inputs['Image'])
+
+                phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
+                self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
+                                   phongexponenttexture_r_invert_node.inputs['Color'])
+                self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
+                                   shader.inputs['Metallic'])
+
+                self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])

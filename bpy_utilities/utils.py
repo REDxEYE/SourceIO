@@ -35,3 +35,9 @@ def get_new_unique_collection(model_name, parent_collection):
     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
                                                  parent_collection)
     return master_collection
+
+
+def append_blend(filepath, type_name, link=False):
+    with bpy.data.libraries.load(filepath, link=link) as (data_from, data_to):
+        setattr(data_to, type_name, [asset for asset in getattr(data_from, type_name)])
+

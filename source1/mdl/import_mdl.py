@@ -18,6 +18,7 @@ from ..vvd import Vvd
 from ..vvc import Vvc
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...bpy_utilities.utils import get_material, get_new_unique_collection
 from ...source_shared.content_manager import ContentManager
 from ...source_shared.model_container import Source1ModelContainer
@@ -338,7 +339,7 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
     return attachments
 
 
-def import_materials(mdl, unique_material_names=False):
+def import_materials(mdl, unique_material_names=False, use_bvlg=False):
     content_manager = ContentManager()
     for material in mdl.materials:
         if unique_material_names:
@@ -356,6 +357,7 @@ def import_materials(mdl, unique_material_names=False):
             if material_path:
                 break
         if material_path:
+            Source1ShaderBase.use_bvlg(use_bvlg)
             new_material = Source1MaterialLoader(material_path, mat_name)
             new_material.create_material()
 
