@@ -155,7 +155,7 @@ class VertexLitGeneric(Source1ShaderBase):
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['envmapmask [basemap texture alpha]'])
             if self.color or self.color2:
-                group_node.inputs['$color2 [RGB field]'].devault_value = self.color or self.color2
+                group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2
 
             if self.envmap:
                 group_node.inputs['$envmap [boolean]'].default_value = 1
