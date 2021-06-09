@@ -42,8 +42,8 @@ class FGDLexer:
         self.buffer = buffer
         self.buffer_name = buffer_name
         self._offset = 0
-        self._line_char_id = 1
-        self._line_id = 1
+        self._line = 1
+        self._column = 1
 
     @property
     def symbol(self):
@@ -64,24 +64,30 @@ class FGDLexer:
         return self.buffer[self._offset:]
 
     @property
-    def line_id(self):
-        return self._line_id
+    def line(self):
+        return self._line
 
     @property
-    def char_id(self):
-        return self._line_char_id
+    def column(self):
+        return self._column
 
-    def advance(self, count=1):
-        buffer = ""
-        for _ in range(count):
-            sym = self.symbol
-            self._line_char_id += 1
-            if sym == '\n':
-                self._line_id += 1
-                self._line_char_id = 1
+    def advance(self):
+        symbol = self.symbol
+        if symbol:
+            if symbol == '\r' and self.next_symbol == '\n':
+                self._offset += 1
+
+            if symbol == '\n' or symbol == '\r':
+                self._line += 1
+                self._column = 1
+            else:
+                self._column += 1
             self._offset += 1
-            buffer += sym
-        return buffer
+        return symbol
+
+    def skip(self, count=1):
+        for _ in range(count):
+            self.advance()
 
     def lex(self):
         while self._offset < len(self.buffer):
@@ -101,30 +107,28 @@ class FGDLexer:
                 while self.symbol.isdigit() or (self.symbol == '-' and self.next_symbol.isdigit()):
                     num_buffer += self.advance()
                 yield FGDToken.NUMERIC, int(num_buffer)
-            elif self.symbol.isidentifier():
+            elif self.symbol.isidentifier() or self.symbol == '@':
                 string_buffer = self.advance()
                 while True:
                     if self.symbol.isspace() or not (self.symbol.isidentifier() or self.symbol.isdigit()):
                         break
                     string_buffer += self.advance()
-                yield FGDToken.IDENTIFIER, string_buffer
-            elif self.symbol == "@" and self.next_symbol.isidentifier():
-                string_buffer = self.advance()
-                while True:
-                    if self.symbol.isspace() or not self.symbol.isidentifier():
-                        break
-                    string_buffer += self.advance()
-                yield FGDToken.KEYWORD, string_buffer
+                if string_buffer.startswith('@'):
+                    yield FGDToken.KEYWORD, string_buffer
+                else:
+                    yield FGDToken.IDENTIFIER, string_buffer
             elif self.symbol == '/' and self.next_symbol == '/':
                 while True:
-                    if self.symbol == '\n':
+                    if self.symbol in '\n\r':
                         break
                     self.advance()
             elif self.symbol == '/' and self.next_symbol == '*':
-                self.advance(2)
+                self.skip(2)
                 while True:
+                    if not self.symbol:
+                        raise FGDLexerException(f"Unexpected EOF in {self.buffer_name}")
                     if self.symbol == '*' and self.next_symbol == '/':
-                        self.advance(2)
+                        self.skip(2)
                         break
                     self.advance()
             elif self.symbol == '{':
@@ -157,7 +161,7 @@ class FGDLexer:
                 yield FGDToken.BSLASH, self.advance()
             else:
                 raise FGDLexerException(
-                    f'Unknown symbol "{self.symbol}" in "{self.buffer_name}" at {self._line_id}:{self._line_char_id}')
+                    f'Unknown symbol "{self.symbol}" in "{self.buffer_name}" at {self._line}:{self._column}')
         yield FGDToken.EOF, None
 
     def __bool__(self):
@@ -200,8 +204,8 @@ class FGDParser:
             self.advance()
             return value
         else:
-            raise FGDParserException(
-                f"Unexpected token {token_type}, got {token}:\"{value}\" in {self._path} at {self._lexer.line_id}:{self._lexer.char_id}")
+            raise FGDParserException(f"Unexpected token {token_type}, got {token}:\"{value}\" "
+                                     f"in {self._path} at {self._lexer.line}:{self._lexer.column}")
 
     def match(self, token_type, consume=False):
         token, value = self.peek()
@@ -230,7 +234,7 @@ class FGDParser:
             else:
                 token, value = self.peek()
                 raise FGDParserException(
-                    f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line_id}:{self._lexer.char_id}")
+                    f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line}:{self._lexer.column}")
 
     def _parse_include(self):
         include = self.expect(FGDToken.STRING)
@@ -330,7 +334,7 @@ class FGDParser:
     def _parse_complex_type(self):
         p1 = self.expect(FGDToken.IDENTIFIER)
         while self.match(FGDToken.COLON, True):
-            p1 += '.' + self.expect(FGDToken.IDENTIFIER)
+            p1 += ':' + self.expect(FGDToken.IDENTIFIER)
         return p1
 
     def _parse_joined_string(self):
@@ -396,20 +400,19 @@ class FGDParser:
                 if not (self.match(FGDToken.STRING) or self.match(FGDToken.NUMERIC) or self.match(FGDToken.COLON)):
                     break
                 self.expect(FGDToken.COLON)
+                value = None  # No value, just 2 ":" symbols
                 if not self.match(FGDToken.COLON):  # We have value
                     if self.match(FGDToken.STRING):  # String can be split by + signs, so we need to account for it
                         value = self._parse_joined_string()
                     elif self.match(FGDToken.NUMERIC):  # any other token
                         value = self.expect(FGDToken.NUMERIC)
-                else:  # No value, just 2 ":" symbols
-                    value = None
                 data.append(value)
             if len(data) == 3:
-                prop['qname'], prop['default'], prop['doc'] = data
+                prop['display_name'], prop['default'], prop['doc'] = data
             elif len(data) == 2:
-                prop['qname'], prop['default'] = data
+                prop['display_name'], prop['default'] = data
             elif len(data) == 1:
-                prop['qname'] = data[0]
+                prop['display_name'] = data[0]
             else:
                 print(data)
 
@@ -463,8 +466,9 @@ class FGDParser:
 
 
 if __name__ == '__main__':
-    # test_file = Path(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
-    test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\base.fgd")
+    test_file = Path(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
+    # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\swarm.fgd")
+    # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\base.fgd")
     ContentManager().scan_for_content(test_file)
     parser = FGDParser(test_file)
     parser.parse()
