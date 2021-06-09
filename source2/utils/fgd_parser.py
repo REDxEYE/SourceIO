@@ -305,8 +305,7 @@ class FGDParser:
         self.expect(FGDToken.EQUALS)
         class_def['name'] = self.expect(FGDToken.IDENTIFIER)
 
-        if self.match(FGDToken.COLON):
-            self.advance()
+        if self.match(FGDToken.COLON, True):
             if self.match(FGDToken.STRING):
                 class_def['doc'] = self._parse_joined_string()
 
@@ -381,14 +380,15 @@ class FGDParser:
         return meta
 
     def _parse_class_param(self, storage):
-        prop = {}
+        prop = {'meta': {}}
         name = self._parse_fully_qualified_identifier()
         self.expect(FGDToken.LPAREN)
         param_type = self._parse_complex_type()
         self.expect(FGDToken.RPAREN)
-
+        if self.match(FGDToken.IDENTIFIER) and self.peek()[1] in ['report', 'readonly']:
+            prop['meta'][self.expect(FGDToken.IDENTIFIER)] = True
         if self.match(FGDToken.LBRACKET, True):
-            prop['meta'] = self._parse_class_param_meta()
+            prop['meta'].update(self._parse_class_param_meta())
 
         data = []
         if self.match(FGDToken.COLON):
@@ -399,21 +399,31 @@ class FGDParser:
                 if not self.match(FGDToken.COLON):  # We have value
                     if self.match(FGDToken.STRING):  # String can be split by + signs, so we need to account for it
                         value = self._parse_joined_string()
-                    else:  # any other token
-                        _, value = self.advance()
+                    elif self.match(FGDToken.NUMERIC):  # any other token
+                        value = self.expect(FGDToken.NUMERIC)
                 else:  # No value, just 2 ":" symbols
                     value = None
                 data.append(value)
+            if len(data) == 3:
+                prop['qname'], prop['default'], prop['doc'] = data
+            elif len(data) == 2:
+                prop['qname'], prop['default'] = data
+            elif len(data) == 1:
+                prop['qname'] = data[0]
+            else:
+                print(data)
+
         if self.match(FGDToken.EQUALS) and "choices" in param_type.lower():
             # parse choices
             self.advance()
             self.expect(FGDToken.LBRACKET)
             choices = {}
             while not self.match(FGDToken.RBRACKET):
-                name = self.expect(FGDToken.STRING) if self.match(FGDToken.STRING) else self.expect(FGDToken.NUMERIC)
+                choice_name = self.expect(FGDToken.STRING) if self.match(FGDToken.STRING) else self.expect(
+                    FGDToken.NUMERIC)
                 self.expect(FGDToken.COLON)
                 value = self.expect(FGDToken.STRING)
-                choices[name] = value
+                choices[choice_name] = value
             self.expect(FGDToken.RBRACKET)
             prop['choices'] = choices
         elif self.match(FGDToken.EQUALS) and 'flags' in param_type.lower():
@@ -424,11 +434,11 @@ class FGDParser:
             while not self.match(FGDToken.RBRACKET):
                 mask = self.expect(FGDToken.NUMERIC)
                 self.expect(FGDToken.COLON)
-                name = self.expect(FGDToken.STRING)
+                flag_name = self.expect(FGDToken.STRING)
                 self.expect(FGDToken.COLON)
                 default = self.expect(FGDToken.NUMERIC)
 
-                flags[name] = (mask, default)
+                flags[flag_name] = (mask, default)
             self.expect(FGDToken.RBRACKET)
             prop['flags'] = flags
         elif self.match(FGDToken.EQUALS) and 'tag_list' in param_type.lower():
@@ -439,22 +449,22 @@ class FGDParser:
             while not self.match(FGDToken.RBRACKET):
                 mask = self.expect(FGDToken.STRING)
                 self.expect(FGDToken.COLON)
-                name = self.expect(FGDToken.STRING)
+                tag_name = self.expect(FGDToken.STRING)
                 self.expect(FGDToken.COLON)
                 default = self.expect(FGDToken.NUMERIC)
 
-                flags[name] = (mask, default)
+                flags[tag_name] = (mask, default)
             self.expect(FGDToken.RBRACKET)
             prop['tag_list'] = flags
 
         prop['name'] = name
         prop['type'] = param_type
-        prop['data'] = data
         storage[name] = prop
 
 
 if __name__ == '__main__':
-    test_file = Path(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
+    # test_file = Path(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
+    test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\base.fgd")
     ContentManager().scan_for_content(test_file)
     parser = FGDParser(test_file)
     parser.parse()
