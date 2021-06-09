@@ -180,6 +180,7 @@ class FGDParser:
         self.excludes = []
         self.pragmas = {}
         self.includes = []
+        self.entity_groups = []
 
     def peek(self):
         if self._last_peek is None:
@@ -202,43 +203,26 @@ class FGDParser:
             raise FGDParserException(
                 f"Unexpected token {token_type}, got {token}:\"{value}\" in {self._path} at {self._lexer.line_id}:{self._lexer.char_id}")
 
-    def match(self, token_type):
+    def match(self, token_type, consume=False):
         token, value = self.peek()
-        return token == token_type
+        if token == token_type:
+            if consume:
+                self.advance()
+            return True
+        return False
 
     def parse(self):
         while self._lexer:
             if self.match(FGDToken.KEYWORD):
                 _, value = self.advance()
                 if value == '@mapsize':
-                    self.expect(FGDToken.LPAREN)
-                    max_x = self.expect(FGDToken.NUMERIC)
-                    self.expect(FGDToken.COMMA)
-                    max_y = self.expect(FGDToken.NUMERIC)
-                    self.expect(FGDToken.RPAREN)
-                    self.pragmas['mapsize'] = (max_x, max_y)
+                    self._parse_mapsize()
                 elif value.lower() == "@include":
-                    include = self.expect(FGDToken.STRING)
-                    file = ContentManager().find_file(include)
-                    if file is not None:
-                        parsed_include = FGDParser(buffer_and_name=(file.read().decode("ascii"), include))
-                        parsed_include.parse()
-                        self.classes.extend(parsed_include.classes)
-                        self.pragmas.update(parsed_include.pragmas)
-                        self.excludes.extend(parsed_include.excludes)
-                        self.includes.append(include)
+                    self._parse_include()
                 elif value.lower() == '@exclude':
                     self.excludes.append(self.expect(FGDToken.IDENTIFIER))
                 elif value.lower() == '@entitygroup':
-                    pragma = self.pragmas[self.expect(FGDToken.STRING)] = {}
-                    if self.match(FGDToken.LBRACE):
-                        self.advance()
-                        while not self.match(FGDToken.RBRACE):
-                            key = self.expect(FGDToken.IDENTIFIER)
-                            self.expect(FGDToken.EQUALS)
-                            value = self.expect(FGDToken.IDENTIFIER)
-                            pragma[key] = value
-                        self.advance()
+                    self._parse_entity_group()
                 elif value.startswith('@') and value.lower().endswith("class"):
                     self._parse_baseclass()
             elif self.match(FGDToken.EOF):
@@ -247,43 +231,76 @@ class FGDParser:
                 token, value = self.peek()
                 raise FGDParserException(
                     f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line_id}:{self._lexer.char_id}")
-            # print(self.advance())
+
+    def _parse_include(self):
+        include = self.expect(FGDToken.STRING)
+        file = ContentManager().find_file(include)
+        if file is not None:
+            parsed_include = FGDParser(buffer_and_name=(file.read().decode("ascii"), include))
+            parsed_include.parse()
+            self.classes.extend(parsed_include.classes)
+            self.pragmas.update(parsed_include.pragmas)
+            self.excludes.extend(parsed_include.excludes)
+            self.entity_groups.extend(parsed_include.entity_groups)
+            self.includes.append(include)
+
+    def _parse_mapsize(self):
+        self.expect(FGDToken.LPAREN)
+        max_x = self.expect(FGDToken.NUMERIC)
+        self.expect(FGDToken.COMMA)
+        max_y = self.expect(FGDToken.NUMERIC)
+        self.expect(FGDToken.RPAREN)
+        self.pragmas['mapsize'] = (max_x, max_y)
+
+    def _parse_entity_group(self):
+        group = {'name': self.expect(FGDToken.STRING), 'meta': {}}
+        if self.match(FGDToken.LBRACE):
+            self.advance()
+            while not self.match(FGDToken.RBRACE):
+                key = self.expect(FGDToken.IDENTIFIER)
+                self.expect(FGDToken.EQUALS)
+                value = self.expect(FGDToken.IDENTIFIER)
+                group['meta'][key] = value
+            self.advance()
+        self.entity_groups.append(group)
 
     def _parse_baseclass(self):
 
         class_def = {'io': {}, 'props': {}, 'bases': [], 'meta_props': {}}
+
         if self.match(FGDToken.IDENTIFIER):
             while not self.match(FGDToken.EQUALS):
-                pre_prop_type = self.expect(FGDToken.IDENTIFIER)
-                if pre_prop_type == 'base':
+                meta_prop_type = self.expect(FGDToken.IDENTIFIER)
+                if meta_prop_type == 'base':
                     class_def['bases'] = self._parse_bases()
-                elif pre_prop_type == 'color':
+
+                elif meta_prop_type == 'color':
                     self.expect(FGDToken.LPAREN)
                     r = self.expect(FGDToken.NUMERIC)
                     g = self.expect(FGDToken.NUMERIC)
                     b = self.expect(FGDToken.NUMERIC)
                     self.expect(FGDToken.RPAREN)
-                    class_def['meta_props'][pre_prop_type] = (r, g, b)
-                elif pre_prop_type == 'metadata':
-                    class_def['meta_props'][pre_prop_type] = {}
+                    class_def['meta_props'][meta_prop_type] = (r, g, b)
+                elif meta_prop_type == 'metadata':
+                    class_def['meta_props'][meta_prop_type] = {}
                     self.expect(FGDToken.LBRACE)
                     while not self.match(FGDToken.RBRACE):
                         key = self.expect(FGDToken.IDENTIFIER)
                         self.expect(FGDToken.EQUALS)
                         value = self.expect(FGDToken.STRING)
-                        class_def['meta_props'][pre_prop_type][key] = value
+                        class_def['meta_props'][meta_prop_type][key] = value
                     self.expect(FGDToken.RBRACE)
                 else:
                     if self.match(FGDToken.LPAREN):
                         self.expect(FGDToken.LPAREN)
-                        class_def['meta_props'][pre_prop_type] = []
+                        class_def['meta_props'][meta_prop_type] = []
                         while not self.match(FGDToken.RPAREN):
-                            class_def['meta_props'][pre_prop_type].append(self.advance()[1])
+                            class_def['meta_props'][meta_prop_type].append(self.advance()[1])
                             if self.match(FGDToken.COMMA):
                                 self.advance()
                         self.expect(FGDToken.RPAREN)
                     else:
-                        class_def['meta_props'][pre_prop_type] = True
+                        class_def['meta_props'][meta_prop_type] = True
 
         self.expect(FGDToken.EQUALS)
         class_def['name'] = self.expect(FGDToken.IDENTIFIER)
@@ -298,44 +315,42 @@ class FGDParser:
             token, ident = self.peek()
             if token == FGDToken.IDENTIFIER and ident in ['input', 'output']:
                 self._parse_class_io(class_def['io'])
-            elif self.match(FGDToken.IDENTIFIER):
-                name = self._parse_fully_qualified_identifier()
-                prop = class_def['props'][name] = {}
-                self._parse_class_param(prop)
+            else:
+
+                self._parse_class_param(class_def['props'])
+
         self.expect(FGDToken.RBRACKET)
         self.classes.append(class_def)
 
     def _parse_fully_qualified_identifier(self):
         p1 = self.expect(FGDToken.IDENTIFIER)
-        while self.match(FGDToken.DOT):
-            self.advance()
+        while self.match(FGDToken.DOT, True):
             p1 += '.' + self.expect(FGDToken.IDENTIFIER)
         return p1
 
-    def _parse_fully_qualified_type(self):
+    def _parse_complex_type(self):
         p1 = self.expect(FGDToken.IDENTIFIER)
-        while self.match(FGDToken.COLON):
-            self.advance()
+        while self.match(FGDToken.COLON, True):
             p1 += '.' + self.expect(FGDToken.IDENTIFIER)
         return p1
 
     def _parse_joined_string(self):
         p1 = self.expect(FGDToken.STRING)
-        while self.match(FGDToken.PLUS):
-            self.advance()
-            p1 += self.expect(FGDToken.STRING)
+        while self.match(FGDToken.PLUS, True):
+            if self.match(FGDToken.STRING):
+                p1 += self.expect(FGDToken.STRING)
+            else:
+                break
         return p1
 
     def _parse_bases(self):
         bases = []
         self.expect(FGDToken.LPAREN)
-        while not self.match(FGDToken.RPAREN):
+        while True:
             bases.append(self.expect(FGDToken.IDENTIFIER))
-            if not self.match(FGDToken.COMMA):
-                self.expect(FGDToken.RPAREN)
+            if not self.match(FGDToken.COMMA, True):
                 break
-            elif self.match(FGDToken.COMMA):
-                self.advance()
+        self.expect(FGDToken.RPAREN)
         return bases
 
     def _parse_class_io(self, storage):
@@ -351,42 +366,45 @@ class FGDParser:
             doc_str = self._parse_joined_string() if self.match(FGDToken.STRING) else None
             storage[name] = {'type': io_type, 'args': args, 'doc': doc_str}
 
-    def _parse_class_param(self, storage):
-        self.expect(FGDToken.LPAREN)
-        param_type = self._parse_fully_qualified_type()
-        self.expect(FGDToken.RPAREN)
+    def _parse_class_param_meta(self):
         meta = {}
-        if self.match(FGDToken.LBRACKET):
-            self.advance()
-            while not self.match(FGDToken.RBRACKET):
-                name = self.expect(FGDToken.IDENTIFIER)
-                if self.match(FGDToken.EQUALS):
-                    self.advance()
-                    value = self.expect(FGDToken.STRING)
-                else:
-                    value = True
-                meta[name] = value
-                if self.match(FGDToken.COMMA):
-                    self.advance()
-            self.expect(FGDToken.RBRACKET)
+        while True:
+            meta_name = self.expect(FGDToken.IDENTIFIER)
+            if self.match(FGDToken.EQUALS, True):
+                value = self.expect(FGDToken.STRING)
+            else:
+                value = True
+            meta[meta_name] = value
+            if not self.match(FGDToken.COMMA, True):
+                break
+        self.expect(FGDToken.RBRACKET)
+        return meta
+
+    def _parse_class_param(self, storage):
+        prop = {}
+        name = self._parse_fully_qualified_identifier()
+        self.expect(FGDToken.LPAREN)
+        param_type = self._parse_complex_type()
+        self.expect(FGDToken.RPAREN)
+
+        if self.match(FGDToken.LBRACKET, True):
+            prop['meta'] = self._parse_class_param_meta()
+
         data = []
         if self.match(FGDToken.COLON):
-            self.advance()
-            while self.match(FGDToken.STRING) or self.match(FGDToken.NUMERIC) or self.match(
-                    FGDToken.COLON) or self.match(FGDToken.PLUS):
-                if self.match(FGDToken.COLON):
-                    self.advance()
-                    continue
-                elif self.match(FGDToken.PLUS):
-                    self.advance()
-                    dt = self.expect(FGDToken.STRING)
-                    while self.match(FGDToken.PLUS):
-                        self.expect(FGDToken.PLUS)
-                        dt += self.expect(FGDToken.STRING)
-                    data.append(dt)
-                else:
-                    data.append(self.advance())
-        if self.match(FGDToken.EQUALS) and param_type.lower() == 'choices':
+            while True:
+                if not (self.match(FGDToken.STRING) or self.match(FGDToken.NUMERIC) or self.match(FGDToken.COLON)):
+                    break
+                self.expect(FGDToken.COLON)
+                if not self.match(FGDToken.COLON):  # We have value
+                    if self.match(FGDToken.STRING):  # String can be split by + signs, so we need to account for it
+                        value = self._parse_joined_string()
+                    else:  # any other token
+                        _, value = self.advance()
+                else:  # No value, just 2 ":" symbols
+                    value = None
+                data.append(value)
+        if self.match(FGDToken.EQUALS) and "choices" in param_type.lower():
             # parse choices
             self.advance()
             self.expect(FGDToken.LBRACKET)
@@ -397,8 +415,8 @@ class FGDParser:
                 value = self.expect(FGDToken.STRING)
                 choices[name] = value
             self.expect(FGDToken.RBRACKET)
-            storage['choices'] = choices
-        elif self.match(FGDToken.EQUALS) and param_type.lower() == 'flags':
+            prop['choices'] = choices
+        elif self.match(FGDToken.EQUALS) and 'flags' in param_type.lower():
             # parse flags
             self.advance()
             self.expect(FGDToken.LBRACKET)
@@ -412,8 +430,8 @@ class FGDParser:
 
                 flags[name] = (mask, default)
             self.expect(FGDToken.RBRACKET)
-            storage['flags'] = flags
-        elif self.match(FGDToken.EQUALS) and param_type.lower() == 'tag_list':
+            prop['flags'] = flags
+        elif self.match(FGDToken.EQUALS) and 'tag_list' in param_type.lower():
             # parse flags
             self.advance()
             self.expect(FGDToken.LBRACKET)
@@ -427,10 +445,12 @@ class FGDParser:
 
                 flags[name] = (mask, default)
             self.expect(FGDToken.RBRACKET)
-            storage['tag_list'] = flags
-        storage['type'] = param_type
-        storage['meta'] = meta
-        storage['data'] = data
+            prop['tag_list'] = flags
+
+        prop['name'] = name
+        prop['type'] = param_type
+        prop['data'] = data
+        storage[name] = prop
 
 
 if __name__ == '__main__':
