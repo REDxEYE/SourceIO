@@ -143,6 +143,7 @@ class ShaderBase:
         self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
         self.bpy_material: bpy.types.Material = None
         self.load_bvlg_nodes()
+        self.do_arrange = True
 
     @staticmethod
     def get_missing_texture(texture_name: str, fill_color: tuple = (1.0, 1.0, 1.0, 1.0)):
@@ -245,5 +246,7 @@ class ShaderBase:
         self.bpy_material['source_loaded'] = True
 
     def align_nodes(self):
+        if not self.do_arrange:
+            return
         nodes_iterate(self.bpy_material.node_tree)
         self.bpy_material.node_tree.nodes.update()

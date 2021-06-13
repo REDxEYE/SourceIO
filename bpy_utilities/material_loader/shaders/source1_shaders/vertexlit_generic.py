@@ -176,6 +176,7 @@ class VertexLitGeneric(Source1ShaderBase):
 
 
         if self.use_bvlg_status:
+            self.do_arrange = False
             if self.alphatest:
                 alphatest_node = self.create_node(Nodes.ShaderNodeGroup, "$alphatest")
                 alphatest_node.node_tree = bpy.data.node_groups.get("$alphatest")
