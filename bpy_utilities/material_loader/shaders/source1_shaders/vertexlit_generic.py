@@ -144,13 +144,11 @@ class VertexLitGeneric(Source1ShaderBase):
 
     @property
     def phongexponent(self):
-        value = self._vavle_material.get_float('$phongexponent', None)
-        return value
+        return self._vavle_material.get_float('$phongexponent', None)
 
     @property
     def phongboost(self):
-        value = self._vavle_material.get_float('$phongboost', 1)
-        return value
+        return self._vavle_material.get_float('$phongboost', 1)
 
     @property
     def phongalbedotint(self):
@@ -218,7 +216,7 @@ class VertexLitGeneric(Source1ShaderBase):
                 bumpmap_node.location = [-800, -220]
                 bumpmap_node.image = self.bumpmap
                 self.connect_nodes(bumpmap_node.outputs['Color'], group_node.inputs['$bumpmap [texture]'])
-            
+
                 if self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
@@ -240,7 +238,7 @@ class VertexLitGeneric(Source1ShaderBase):
                     self.connect_nodes(phongexponent_group_node.outputs['$phongexponent [value]'], group_node.inputs['$phongexponent [value]'])
                     self.connect_nodes(phongexponent_group_node.outputs['rimlight mask'], group_node.inputs['rimlight mask'])
                     phongexponent_group_node.location = [-500, -300]
-                
+
                     if self.phongalbedotint is not None and not self.phongtint:
                         phongexponent_group_node.location = [-550, -300]
                         phongalbedo_node = self.create_node(Nodes.ShaderNodeGroup, "$phongalbedotint")
@@ -323,9 +321,8 @@ class VertexLitGeneric(Source1ShaderBase):
                     if 'Emission Strength' in shader.inputs:
                         self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
 
-                else:
-                    if 'Emission Strength' in shader.inputs:
-                        self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
+                elif 'Emission Strength' in shader.inputs:
+                    self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
 
             if not self.phong:

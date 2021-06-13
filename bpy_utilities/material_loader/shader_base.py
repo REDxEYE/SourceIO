@@ -150,14 +150,13 @@ class ShaderBase:
         assert len(fill_color) == 4, 'Fill color should be in RGBA format'
         if bpy.data.images.get(texture_name, None):
             return bpy.data.images.get(texture_name)
+        image = bpy.data.images.new(texture_name, width=512, height=512, alpha=False)
+        image_data = np.full((512 * 512, 4), fill_color, np.float32).flatten()
+        if bpy.app.version > (2, 83, 0):
+            image.pixels.foreach_set(image_data)
         else:
-            image = bpy.data.images.new(texture_name, width=512, height=512, alpha=False)
-            image_data = np.full((512 * 512, 4), fill_color, np.float32).flatten()
-            if bpy.app.version > (2, 83, 0):
-                image.pixels.foreach_set(image_data)
-            else:
-                image.pixels[:] = image_data
-            return image
+            image.pixels[:] = image_data
+        return image
 
     def load_texture(self, texture_name, texture_path) -> Optional[bpy.types.Image]:
         pass
