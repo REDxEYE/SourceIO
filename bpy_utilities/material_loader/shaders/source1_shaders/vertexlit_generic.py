@@ -178,7 +178,7 @@ class VertexLitGeneric(Source1ShaderBase):
                 if self.phongexponent:
                     group_node.inputs['$phongexponent [value]'].default_value = self.phongexponent
                 if self.phongfresnelranges:
-                    group_node.inputs['$phongfresnelranges'].default_value = self.phongfresnelranges
+                    group_node.inputs['$phongfresnelranges [value field]'].default_value = self.phongfresnelranges
 
             if self.selfillum:
                 group_node.inputs['$selfillum [bool]'].default_value = 1
