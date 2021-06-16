@@ -4,6 +4,7 @@ import bpy
 
 from ..source1.mdl.mdl_file import Mdl as S1Mdl
 from ..goldsrc.mdl.mdl_file import Mdl as GMdl
+from ..source2.resouce_types.valve_model import ValveCompiledModel
 from ..source1.vtx.vtx import Vtx
 from ..source1.vvd import Vvd
 
@@ -27,4 +28,12 @@ class Source1ModelContainer(ModelContainer):
         self.mdl: S1Mdl = mdl
         self.vvd: Vvd = vvd
         self.vtx: Vtx = vtx
+        self.attachments = []
+
+
+class Source2ModelContainer(ModelContainer):
+    def __init__(self, vmdl: ValveCompiledModel):
+        super().__init__()
+        self.vmdl = vmdl
+        self.physics_objects: List[bpy.types.Object] = []
         self.attachments = []

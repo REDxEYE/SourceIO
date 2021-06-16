@@ -3,8 +3,9 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
+from .bpy_utilities.utils import get_new_unique_collection
 from .source2.misc.camera_loader import load_camera
-from .source2.resouce_types.valve_model import ValveCompiledModel
+from .source2.resouce_types.valve_model import ValveCompiledModel, put_into_collections
 from .source2.resouce_types.valve_texture import ValveCompiledTexture
 from .source2.resouce_types.valve_material import ValveCompiledMaterial
 from .source2.resouce_types.valve_world import ValveCompiledWorld
@@ -12,7 +13,6 @@ from .source_shared.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
-# noinspection PyUnresolvedReferences
 class VMDLImport_OT_operator(bpy.types.Operator):
     """Load Source2 VMDL"""
     bl_idname = "source_io.vmdl"
@@ -38,6 +38,9 @@ class VMDLImport_OT_operator(bpy.types.Operator):
             model = ValveCompiledModel(str(directory / file.name))
             model.load_mesh(self.invert_uv)
             model.load_attachments()
+            master_collection = get_new_unique_collection(model.name, bpy.context.scene.collection)
+            put_into_collections(model.container, Path(model.name).stem, master_collection, False)
+
             if self.import_anim:
                 model.load_animations()
         return {'FINISHED'}
