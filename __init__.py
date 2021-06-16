@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from .source1.vtf import is_vtflib_supported
-from .source1.vtf.VTFWrapper.VTFLib import VTFLib
+
 from .utilities.singleton import SingletonMeta
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
@@ -193,11 +193,12 @@ if not NO_BPY:
         register_custom_icon()
         register_()
         register_nodes()
-        VTFLib()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
         if is_vtflib_supported():
+            from .source1.vtf.VTFWrapper.VTFLib import VTFLib
             from .source1_operators import export
+            VTFLib()
             bpy.types.IMAGE_MT_image.append(export)
 
 
@@ -207,8 +208,9 @@ if not NO_BPY:
         if is_vtflib_supported():
             from .source1_operators import export
             bpy.types.IMAGE_MT_image.remove(export)
-        vtf_lib = VTFLib()
-        vtf_lib.shutdown()
+            from .source1.vtf.VTFWrapper.VTFLib import VTFLib
+            vtf_lib = VTFLib()
+            vtf_lib.shutdown()
         unregister_nodes()
         SingletonMeta.cleanup()
         del vtf_lib
