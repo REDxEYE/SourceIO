@@ -1,20 +1,26 @@
 import json
 import math
-from mathutils import Vector, Quaternion, Matrix
 import re
 from pathlib import Path
 from pprint import pprint
 from typing import Optional, List, Tuple, Dict, Any
 
 import bpy
+from mathutils import Vector, Quaternion, Matrix
 import numpy as np
 
 from .bsp_file import BSPFile, open_bsp
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
+
 from .entities.base_entity_handler import BaseEntityHandler
+from .entities.csgo_entity_handlers import CSGOEntityHandler
 from .entities.halflife2_entity_handler import HalfLifeEntityHandler
+from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
+from .entities.portal_entity_handlers import PortalEntityHandler
+from .entities.portal2_entity_handlers import Portal2EntityHandler
 from .entities.tf2_entity_handler import TF2EntityHandler
 from .entities.titanfall_entity_handler import TitanfallEntityHandler
+
 from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
 from .lumps.edge_lump import EdgeLump
 from .lumps.entity_lump import EntityLump
@@ -22,8 +28,6 @@ from .lumps.overlay_lump import OverlayLump
 from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
-from .lumps.mesh_lump import MeshLump
-from .lumps.lightmap_header_lump import LightmapHeadersLump
 from .lumps.pak_lump import PakLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
@@ -67,10 +71,20 @@ class BSP:
         content_manager = ContentManager()
 
         provider = content_manager.get_content_provider_from_path(self.filepath)
-        if provider.steam_id in [1840, 440]:
+        if provider.steam_id == 440:
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 1840:  # SFM
+            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 730:  # CS:GO
+            self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 550:
+            self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 620 and self.map_file.version == 29:  # Titanfall
             self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 400:
+            self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 620 and self.map_file.version != 29:  # Portal 2
+            self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id in [220, 380, 420]:  # Half-life2 and episodes
             self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
         else:
@@ -286,12 +300,12 @@ class BSP:
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
         faces_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_FACES')
         planes_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_PLANES')
-        provider = ContentManager().get_content_provider_from_path(self.filepath)
         if info_overlay_lump:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
-            for overlay in overlays:
-
+            ov_count = len(overlays)
+            for n, overlay in enumerate(overlays):
+                print(f'Loading overlays {n+1}/{ov_count}')
                 # placement_faces = [faces_lump.faces[face_id] for face_id in overlay.ofaces[:overlay.face_count]]
                 # placement_face = placement_faces[0]
                 # plane = planes_lump.planes[placement_face.plane_index]
@@ -345,7 +359,7 @@ class BSP:
                     for i in range(3):
                         mesh_obj.location[i] = mesh_obj.location[i] + (self.scale * pos * this_norm[i])
 
-                if provider.steam_id in [1840, 440]:
+                if ContentManager().steam_id in [1840, 440]:
                     mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
                     mesh_obj.data.transform(mesh_mx)
 

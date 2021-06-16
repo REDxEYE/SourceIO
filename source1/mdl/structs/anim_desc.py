@@ -1,7 +1,10 @@
 from enum import IntFlag
 
-from ....utilities.byte_io_mdl  import ByteIO
+from typing import List
+
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
+from .compressed_vectors import Quat48, Quat64
 
 
 # noinspection SpellCheckingInspection
@@ -25,6 +28,84 @@ class AnimDescFlags(IntFlag):
     EVENT_CLIENT = 0x10000
 
 
+class AnimBoneFlags(IntFlag):
+    RawPos = 0x01
+    RawRot = 0x02
+    AnimPos = 0x04
+    AnimRot = 0x08
+    AnimDelta = 0x10
+    RawRot2 = 0x20
+
+
+class AnimBone:
+
+    def __init__(self, bone_id, flags, frame_count):
+        self.bone_id = bone_id
+        self.flags = flags
+        self.frame_count = frame_count
+        self.quat = []
+        self.pos = []
+        self.quat_anim = []
+        self.vec_rot_anim = []
+        self.pos_anim = []
+
+    @property
+    def is_delta(self):
+        return self.flags & AnimBoneFlags.AnimDelta
+
+    @property
+    def is_raw_pos(self):
+        return self.flags & AnimBoneFlags.RawPos
+
+    @property
+    def is_raw_rot(self):
+        return self.flags & AnimBoneFlags.RawRot
+
+    @property
+    def is_anim_pos(self):
+        return self.flags & AnimBoneFlags.AnimPos
+
+    @property
+    def is_anim_rot(self):
+        return self.flags & AnimBoneFlags.AnimRot
+
+    def read(self, reader: ByteIO):
+        if self.is_raw_rot:
+            self.quat = Quat48.read(reader)
+        if self.is_raw_pos:
+            self.pos = reader.read_fmt('3e')
+        if self.is_anim_rot:
+            entry = reader.tell()
+            offsets = reader.read_fmt('3h')
+            with reader.save_current_pos():
+                rot_frames = [[0, 0, 0] for _ in range(self.frame_count)]
+                for i, offset in enumerate(offsets):
+                    if offset == 0:
+                        continue
+                    reader.seek(entry + offset)
+                    values = reader.read_rle_shorts(self.frame_count)
+                    for f, value in enumerate(values):
+                        rot_frames[f][i] += value
+                        if f > 0 and self.is_delta:
+                            rot_frames[f][i] += values[f - 1]
+            self.vec_rot_anim.extend(rot_frames)
+        if self.is_anim_pos:
+            entry = reader.tell()
+            offsets = reader.read_fmt('3h')
+            with reader.save_current_pos():
+                pos_frames = [[0, 0, 0] for _ in range(self.frame_count)]
+                for i, offset in enumerate(offsets):
+                    if offset == 0:
+                        continue
+                    reader.seek(entry + offset)
+                    values = reader.read_rle_shorts(self.frame_count)
+                    for f, value in enumerate(values):
+                        pos_frames[f][i] += value
+                        if f > 0 and self.is_delta:
+                            pos_frames[f][i] += values[f - 1]
+            self.pos_anim.extend(pos_frames)
+
+
 class AnimDesc(Base):
 
     def __init__(self):
@@ -37,6 +118,12 @@ class AnimDesc(Base):
         self.anim_offset = 0
         self.anim_block_ikrule_offset = 0
 
+        self.movement_count = 0
+        self.movement_offset = 0
+
+        self.local_hierarchy_count = 0
+        self.local_hierarchy_offset = 0
+
         self.section_offset = 0
         self.section_frame_count = 0
         self.span_frame_count = 0
@@ -45,19 +132,19 @@ class AnimDesc(Base):
         self.stall_time = 0
         self.anim_block = 0
 
-        self.animation_frames = []
+        self.anim_bones: List[AnimBone] = []
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.base_prt = reader.read_int32()
-        assert entry == abs(self.base_prt)
+        # assert entry == abs(self.base_prt)
         self.name = reader.read_source1_string(entry)
         self.fps = reader.read_float()
         self.flags = AnimDescFlags(reader.read_int32())
         self.frame_count = reader.read_int32()
 
-        movement_count = reader.read_int32()
-        movement_offset = reader.read_int32()
+        self.movement_count = reader.read_int32()
+        self.movement_offset = reader.read_int32()
 
         ikrule_zeroframe_offset = reader.read_int32()
 
@@ -70,8 +157,8 @@ class AnimDesc(Base):
         ikrule_offset = reader.read_int32()
         self.anim_block_ikrule_offset = reader.read_int32()
 
-        local_hierarchy_count = reader.read_int32()
-        local_hierarchy_offset = reader.read_int32()
+        self.local_hierarchy_count = reader.read_int32()
+        self.local_hierarchy_offset = reader.read_int32()
 
         self.section_offset = reader.read_int32()
         self.section_frame_count = reader.read_int32()
@@ -81,15 +168,31 @@ class AnimDesc(Base):
         self.span_offset = reader.read_int32()
 
         self.stall_time = reader.read_float()
+        # try:
+        #     with reader.save_current_pos():
+        #         self.read_studioanim(reader, entry)
+        # except Exception as ex:
+        #     print(f'Failed to load animations: {ex}:{ex.__cause__}')
 
-        self.read_span_data(reader)
+    def read_studioanim(self, reader: ByteIO, entry):
+        from ..mdl_file import Mdl
+        mdl: Mdl = self.get_value('MDL')
+        curr_offset = self.anim_offset
+        next_offset = -1
+        while next_offset != 0:
+            reader.seek(entry + curr_offset)
+            bone_index = reader.read_int8()
+            bone_flag = reader.read_uint8()
+            next_offset = reader.read_int16()
+            curr_offset += next_offset
 
-        # if self.section_offset != 0 and self.section_frame_count > 0:
-        #     self.read_frames()
-        # else:
-        #     section_id = 0
-        #
-        #     self.read_frames(reader, entry + self.anim_offset, section_id)
+            bone = AnimBone(bone_index, bone_flag, self.frame_count)
+            bone.read(reader)
+            self.anim_bones.append(bone)
+
+    def read_movements(self):
+        if self.movement_count > 0:
+            raise Exception('Movements are not yet supported.')
 
     def read_span_data(self, reader: ByteIO):
         if self.span_count > 0 and self.span_offset != 0:

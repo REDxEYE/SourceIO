@@ -115,7 +115,8 @@ def get_str(file):
     out = b''
     while True:
         b = file.read(1)
-        if b == b'\x00': break
+        if b == b'\x00':
+            break
         out += b
     return out.decode()
 

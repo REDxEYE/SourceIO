@@ -1,3 +1,4 @@
+from itertools import chain
 from pathlib import Path
 
 # noinspection PyUnresolvedReferences
@@ -8,6 +9,7 @@ from mathutils import Vector, Matrix, Quaternion, Euler
 import math
 
 from .valve_material import ValveCompiledMaterial
+from .valve_physics import ValveCompiledPhysics
 from .vavle_morph import ValveCompiledMorph
 from ..utils.decode_animations import parse_anim_data
 from ..blocks.vbib_block import VertexBuffer
@@ -15,46 +17,81 @@ from ..common import convert_normals
 from ..source2 import ValveCompiledFile
 import numpy as np
 
-from ...bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection
+from ...bpy_utilities.utils import get_material, get_new_unique_collection
 from ...source_shared.content_manager import ContentManager
+
+
+def put_into_collections(model_container, model_name,
+                         parent_collection=None, bodygroup_grouping=False):
+    from ...source_shared.model_container import Source2ModelContainer
+    model_container: Source2ModelContainer
+    static_prop = model_container.armature is None and not model_container.physics_objects
+    if static_prop:
+        master_collection = parent_collection or bpy.context.scene.collection
+    else:
+        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
+    for obj in model_container.objects:
+        master_collection.objects.link(obj)
+
+    # for bodygroup_name, meshes in model_container.bodygroups.items():
+    #     if bodygroup_grouping:
+    #         body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
+    #     else:
+    #         body_part_collection = master_collection
+    #
+    #     for mesh in meshes:
+    #         body_part_collection.objects.link(mesh)
+
+    if model_container.armature:
+        for obj in chain(model_container.objects, model_container.physics_objects):
+            obj.parent = model_container.armature
+        master_collection.objects.link(model_container.armature)
+
+    if model_container.physics_objects:
+        phys_collection = get_new_unique_collection(model_name + '_PHYSICS', master_collection)
+        for phys in model_container.physics_objects:
+            phys_collection.objects.link(phys)
+    if model_container.attachments:
+        attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
+        for attachment in model_container.attachments:
+            attachments_collection.objects.link(attachment)
+    return master_collection
 
 
 class ValveCompiledModel(ValveCompiledFile):
 
     def __init__(self, path_or_file, re_use_meshes=False):
+        from ...source_shared.model_container import Source2ModelContainer
+
         super().__init__(path_or_file)
         if isinstance(path_or_file, (Path, str)):
             ContentManager().scan_for_content(path_or_file)
         self.re_use_meshes = re_use_meshes
         self.strip_from_name = ''
         self.lod_collections = {}
-        self.objects = []
         data_block = self.get_data_block(block_name='DATA')
         assert len(data_block) == 1
         data_block = data_block[0]
         self.name = data_block.data['m_name']
-        self.main_collection = None
-        self.armature = None
         self.materials = []
+        self.container = Source2ModelContainer(self)
 
-    def load_mesh(self, invert_uv, strip_from_name='',
-                  parent_collection: bpy.types.Collection = None):
+    def load_mesh(self, invert_uv, strip_from_name=''):
         self.strip_from_name = strip_from_name
         name = self.name.replace(self.strip_from_name, "")
-        self.main_collection = get_or_create_collection(name, parent_collection or bpy.context.scene.collection)
 
         data_block = self.get_data_block(block_name='DATA')[0]
 
         model_skeleton = data_block.data['m_modelSkeleton']
         bone_names = model_skeleton['m_boneName']
         if bone_names:
-            self.armature = self.build_armature()
-            self.objects.append(self.armature)
+            self.container.armature = self.build_armature()
 
-        self.build_meshes(self.main_collection, self.armature, invert_uv)
+        self.build_meshes(self.container.armature, invert_uv)
         self.load_materials()
+        self.load_physics()
 
-    def build_meshes(self, collection, armature, invert_uv: bool = True):
+    def build_meshes(self, armature, invert_uv: bool = True):
         content_manager = ContentManager()
 
         data_block = self.get_data_block(block_name='DATA')[0]
@@ -84,7 +121,7 @@ class ValveCompiledModel(ValveCompiledFile):
                                 morph.read_block_info()
                                 morph.check_external_resources()
                                 morph_block = morph.get_data_block(block_name="DATA")[0]
-                        self.build_mesh(name, armature, collection,
+                        self.build_mesh(name, armature,
                                         mesh_data_block, buffer_block, data_block, morph_block,
                                         invert_uv, mesh_index)
         else:
@@ -105,12 +142,12 @@ class ValveCompiledModel(ValveCompiledFile):
                 buffer_block = self.get_data_block(block_id=buffer_block_index)
                 morph_block = self.get_data_block(block_id=morph_block_index)
 
-                self.build_mesh(name, armature, collection,
+                self.build_mesh(name, armature,
                                 mesh_data_block, buffer_block, data_block, morph_block,
                                 invert_uv, mesh_index)
 
     # //noinspection PyTypeChecker,PyUnresolvedReferences
-    def build_mesh(self, name, armature, collection,
+    def build_mesh(self, name, armature,
                    mesh_data_block, buffer_block, data_block, morph_block,
                    invert_uv,
                    mesh_index):
@@ -125,6 +162,7 @@ class ValveCompiledModel(ValveCompiledFile):
         for scene in mesh_data_block.data["m_sceneObjects"]:
             draw_calls = scene["m_drawCalls"]
             global_vertex_offset = 0
+
             for draw_call in draw_calls:
 
                 self.materials.append(draw_call['m_material'])
@@ -169,8 +207,7 @@ class ValveCompiledModel(ValveCompiledFile):
                 material_name = Path(draw_call['m_material']).stem
                 mesh = mesh_obj.data  # type:bpy.types.Mesh
 
-                self.objects.append(mesh_obj)
-                collection.objects.link(mesh_obj)
+                self.container.objects.append(mesh_obj)
 
                 if armature:
                     modifier = mesh_obj.modifiers.new(
@@ -248,7 +285,15 @@ class ValveCompiledModel(ValveCompiledFile):
                 mesh.use_auto_smooth = True
                 if morphs_available:
                     mesh_obj.shape_key_add(name='base')
-                    bundle_id = morph_block.data['m_bundleTypes'].index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                    bundle_types = morph_block.data['m_bundleTypes']
+                    if bundle_types and isinstance(bundle_types[0], tuple):
+                        bundle_types = [b[0] for b in bundle_types]
+                    if 'MORPH_BUNDLE_TYPE_POSITION_SPEED' in bundle_types:
+                        bundle_id = bundle_types.index('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                    elif 'BUNDLE_TYPE_POSITION_SPEED' in bundle_types:
+                        bundle_id = bundle_types.index('BUNDLE_TYPE_POSITION_SPEED')
+                    else:
+                        bundle_id = -1
                     if bundle_id != -1:
                         for n, (flex_name, flex_data) in enumerate(morph_block.flex_data.items()):
                             print(f"Importing {flex_name} {n + 1}/{len(morph_block.flex_data)}")
@@ -260,7 +305,8 @@ class ValveCompiledModel(ValveCompiledFile):
                             mesh.vertices.foreach_get('co', vertices)
                             vertices = vertices.reshape((-1, 3))
                             pre_computed_data = np.add(
-                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:, :3],
+                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:,
+                                :3],
                                 vertices)
                             shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
 
@@ -277,8 +323,7 @@ class ValveCompiledModel(ValveCompiledFile):
 
         armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.new(self.name + "_ARM_DATA"))
         armature_obj.show_in_front = True
-
-        self.main_collection.objects.link(armature_obj)
+        bpy.context.scene.collection.objects.link(armature_obj)
         bpy.ops.object.select_all(action="DESELECT")
         armature_obj.select_set(True)
         bpy.context.view_layer.objects.active = armature_obj
@@ -325,6 +370,7 @@ class ValveCompiledModel(ValveCompiledFile):
         armature_obj.select_set(True)
         bpy.context.view_layer.objects.active = armature_obj
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=False)
+        bpy.context.scene.collection.objects.unlink(armature_obj)
         return armature_obj
 
     def load_attachments(self):
@@ -334,18 +380,15 @@ class ValveCompiledModel(ValveCompiledFile):
                 if attachment['key'] not in all_attachment:
                     all_attachment[attachment['key']] = attachment['value']
 
-        attachment_collection = bpy.data.collections.get('ATTACHMENTS', None) or bpy.data.collections.new('ATTACHMENTS')
-        if attachment_collection.name not in self.main_collection.children:
-            self.main_collection.children.link(attachment_collection)
         for name, attachment in all_attachment.items():
             empty = bpy.data.objects.new(name, None)
-            attachment_collection.objects.link(empty)
+            self.container.attachments.append(empty)
             pos = attachment['m_vInfluenceOffsets'][0]
             rot = Quaternion(attachment['m_vInfluenceRotations'][0])
             empty.matrix_basis.identity()
 
             if attachment['m_influenceNames'][0]:
-                empty.parent = self.armature
+                empty.parent = self.container.armature
                 empty.parent_type = 'BONE'
                 empty.parent_bone = attachment['m_influenceNames'][0]
             empty.location = Vector([pos[1], pos[0], pos[2]])
@@ -354,14 +397,14 @@ class ValveCompiledModel(ValveCompiledFile):
     def load_animations(self):
         if not self.get_data_block(block_name='CTRL'):
             return
-
-        if self.armature:
-            if not self.armature.animation_data:
-                self.armature.animation_data_create()
+        armature = self.container.armature
+        if armature:
+            if not armature.animation_data:
+                armature.animation_data_create()
 
             bpy.ops.object.select_all(action="DESELECT")
-            self.armature.select_set(True)
-            bpy.context.view_layer.objects.active = self.armature
+            armature.select_set(True)
+            bpy.context.view_layer.objects.active = armature
             bpy.ops.object.mode_set(mode='POSE')
 
             ctrl_block = self.get_data_block(block_name='CTRL')[0]
@@ -375,7 +418,7 @@ class ValveCompiledModel(ValveCompiledFile):
             for animation in animations:
                 print(f"Loading animation {animation.name}")
                 action = bpy.data.actions.new(animation.name)
-                self.armature.animation_data.action = action
+                armature.animation_data.action = action
                 curve_per_bone = {}
                 for bone in bone_array:
                     bone_string = f'pose.bones["{bone["m_name"]}"].'
@@ -405,7 +448,7 @@ class ValveCompiledModel(ValveCompiledFile):
                         bone_pos = Vector([pos[1], pos[0], -pos[2]])
                         bone_rot = Quaternion([-rot[3], -rot[1], -rot[0], rot[2]])
 
-                        bone = self.armature.pose.bones[bone_name]
+                        bone = armature.pose.bones[bone_name]
                         # mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
 
                         if 'Position' in bone_data:
@@ -456,3 +499,18 @@ class ValveCompiledModel(ValveCompiledFile):
                 if file:  # duh
                     material = ValveCompiledMaterial(file)
                     material.load()
+
+    def load_physics(self):
+        data = self.get_data_block(block_name='DATA')[0]
+
+        for phys_file_path in data.data['m_refPhysicsData']:
+            if phys_file_path not in self.available_resources:
+                continue
+            phys_file_path = self.available_resources[phys_file_path]
+            phys_file = ContentManager().find_file(phys_file_path)
+            if not phys_file:
+                continue
+            vphys = ValveCompiledPhysics(phys_file)
+            vphys.parse_meshes()
+            phys_meshes = vphys.build_mesh()
+            self.container.physics_objects.extend(phys_meshes)

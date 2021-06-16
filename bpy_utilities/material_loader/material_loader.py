@@ -11,10 +11,9 @@ from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 from .shaders.source1_shader_base import Source1ShaderBase
 from .shaders.source2_shader_base import Source2ShaderBase
 
-from .shaders.source1_shaders import eyerefract, cable, unlit_generic, lightmap_generic, vertexlit_generic, \
-    worldvertextransition, unlittwotexture, lightmapped_4wayblend
-from .shaders.goldsrc_shaders import goldsrc_shader
-from .shaders.source2_shaders import vr_complex, vr_skin, vr_eyeball, vr_simple, vr_glass
+from .shaders import goldsrc_shaders
+from .shaders import source1_shaders
+from .shaders import source2_shaders
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('material_loader')
@@ -45,8 +44,6 @@ class Source1MaterialLoader(MaterialLoaderBase):
             logger.error(f'Failed to load material, due to {ex} error')
             traceback.print_exc()
             logger.debug(f'Failed material: {self.material_name}:{self.vmt.shader}')
-            self.vmt.shader = 'ERROR'
-            self.vmt.material_data = {}
 
     def create_material(self):
         handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.vmt)
@@ -86,7 +83,7 @@ class Source2MaterialLoader(MaterialLoaderBase):
     _handlers: Dict[str, Type[Source2ShaderBase]] = dict()
     sub: Type[ShaderBase]
     for sub in Source2ShaderBase.all_subclasses():
-        print(f'Registered GoldSrc material handler for {sub.__name__} shader')
+        print(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
     def __init__(self, source2_material_data, material_name, resources: Dict[Union[str, int], Path]):

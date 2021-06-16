@@ -55,8 +55,15 @@ class Model(Base):
                 eyeball = Eyeball()
                 eyeball.read(reader)
                 self.eyeballs.append(eyeball)
+
             reader.seek(entry + mesh_offset, 0)
             for _ in range(mesh_count):
                 mesh = Mesh()
                 mesh.read(reader)
                 self.meshes.append(mesh)
+
+                if mesh.material_type == 1:
+                    mat_id = self.eyeballs[mesh.material_param].material_id = mesh.material_index
+                    mdl = self.get_value("MDL")
+                    assert mdl
+                    self.eyeballs[mesh.material_param].material = mdl.materials[mat_id]

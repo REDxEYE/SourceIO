@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union, Dict
+from collections import Counter
 
 from ..bpy_utilities.logging import BPYLoggingManager
 from ..source_shared.non_source_sub_manager import NonSourceContentProvider
@@ -7,7 +8,7 @@ from ..source_shared.content_provider_base import ContentProviderBase
 from ..source_shared.vpk_sub_manager import VPKContentProvider
 from ..source1.source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
 from ..source2.source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
-from ..utilities.path_utilities import get_mod_path
+from ..utilities.path_utilities import get_mod_path, backwalk_file_resolver
 from ..utilities.singleton import SingletonMeta
 
 log_manager = BPYLoggingManager()
@@ -18,10 +19,32 @@ class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
         self.content_providers: Dict[str, ContentProviderBase] = {}
         self._titanfall_mode = False
+        self._steam_id = -1
+
+    def _find_steam_appid(self, path: Path):
+        if self._steam_id != -1:
+            return
+        if path.is_file():
+            path = path.parent
+        file = backwalk_file_resolver(path, 'steam_appid.txt')
+        if file is not None:
+            with file.open('r') as f:
+                try:
+                    value = f.read()
+                    if value.find('\n') >= 0:
+                        value = value[:value.find('\n')]
+                    if value.find('\x00') >= 0:
+                        value = value[:value.find('\x00')]
+                    self._steam_id = int(value.strip())
+                except Exception:
+                    logger.exception('Failed to parse steam id')
+                    self._steam_id = -1
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
-
+        if "*LANGUAGE*" in str(source_game_path):
+            return
         source_game_path = Path(source_game_path)
+        self._find_steam_appid(source_game_path)
         if source_game_path.suffix == '.vpk':
             if self._titanfall_mode:
                 if 'english' not in str(source_game_path):
@@ -39,15 +62,19 @@ class ContentManager(metaclass=SingletonMeta):
         if root_path.stem in self.content_providers:
             return
         if is_source:
-            gameinfos = root_path.glob('*gameinfo*.txt')
+            gameinfos = list(root_path.glob('*gameinfo.txt'))
+            if not gameinfos:
+                # for unknown gameinfo like gameinfo_srgb, they are confusing content manager steam id thingie
+                gameinfos = root_path.glob('gameinfo_*.txt')
             for gameinfo in gameinfos:
                 sub_manager = Source1GameinfoContentProvider(gameinfo)
-                if sub_manager.data.get('game', None) == 'Titanfall':
+                if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
                     self.scan_for_content(mod)
+
             gameinfos = root_path.glob('*gameinfo*.gi')
             for gameinfo in gameinfos:
                 sub_manager = Source2GameinfoContentProvider(gameinfo)
@@ -72,6 +99,11 @@ class ContentManager(metaclass=SingletonMeta):
                 sub_manager = NonSourceContentProvider(root_path)
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {source_game_path.stem}')
+            else:
+                root_path = root_path.parent
+                sub_manager = NonSourceContentProvider(root_path)
+                self.content_providers[root_path.stem] = sub_manager
+                logger.info(f'Registered sub manager for {source_game_path.stem}')
 
     def deserialize(self, data: Dict[str, str]):
         for name, path in data.items():
@@ -80,7 +112,7 @@ class ContentManager(metaclass=SingletonMeta):
                 self.content_providers[name] = sub_manager
             elif path.endswith('.txt'):
                 sub_manager = Source1GameinfoContentProvider(Path(path))
-                if sub_manager.data.get('game',None) == 'Titanfall':
+                if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[name] = sub_manager
             elif path.endswith('.gi'):
@@ -110,7 +142,7 @@ class ContentManager(metaclass=SingletonMeta):
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
 
-    def find_file(self, filepath: str, additional_dir=None, extension=None, *, silent=False):
+    def find_file(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
 
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
         if additional_dir:
@@ -142,6 +174,7 @@ class ContentManager(metaclass=SingletonMeta):
                     logger.debug(f'Found in {mod}!')
                 return file
         return None
+
     def find_texture(self, filepath, *, silent=False):
         return self.find_file(filepath, 'materials', extension='.vtf', silent=silent)
 
@@ -164,3 +197,20 @@ class ContentManager(metaclass=SingletonMeta):
             if fp_root == cp_root:
                 return content_provider
         return NonSourceContentProvider(filepath.parent)
+
+    def flush_cache(self):
+        for cp in self.content_providers.values():
+            cp.flush_cache()
+
+    def clean(self):
+        self.content_providers.clear()
+        self._steam_id = -1
+
+    @property
+    def steam_id(self):
+        if self._steam_id != -1:
+            return self._steam_id
+        used_appid = Counter([cm.steam_id for cm in self.content_providers.values() if cm.steam_id > 0])
+        if len(used_appid) == 0:
+            return 0
+        return used_appid.most_common(1)[0][0]

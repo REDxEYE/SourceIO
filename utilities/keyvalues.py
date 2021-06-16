@@ -3,6 +3,11 @@ from collections import OrderedDict
 from enum import Enum
 from typing import TextIO
 
+from ..bpy_utilities.logging import BPYLoggingManager
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('keyvalues')
+
 
 def _is_end(ch: str):
     return ch in '\r\n\0'
@@ -34,7 +39,7 @@ class KVToken(Enum):
 
 
 class KVReader:
-    def __init__(self, name: str, data: str):
+    def __init__(self, name: str, data: str, single_value: bool = False):
         self.name = name
         self.data = data
         self._length = len(self.data)
@@ -43,6 +48,7 @@ class KVReader:
         self._column = 1
         self._last = None
         self._last = self._read()
+        self.single_value = single_value
 
     def read(self):
         tok = self._last
@@ -134,14 +140,17 @@ class KVParser(KVReader):
         """Sets parser to use only last value if it's found more that one"""
         cls.strict_mode = value
 
-    def __init__(self, name: str, data: str):
-        super().__init__(name, data)
-
     def parse(self):
         pairs = []
 
         while self._match(KVToken.STR, required=False, consume=False):
-            pairs.append(self.parse_pair())
+            try:
+                pairs.append(self.parse_pair())
+            except ValueError as e:
+                if not self.strict_mode:
+                    logger.error(f'Skipping malformed keyvalues pair {e}')
+                    continue
+                raise e
 
         self._match(KVToken.END)
 
@@ -168,30 +177,39 @@ class KVParser(KVReader):
         if tok is KVToken.STR:
             if not val:
                 return ''
-            if val.startswith('['):
-                val = val.replace('  ', '')
-                return tuple(map(float, val[1:-1].strip().split(' ')))
-            if val.startswith('{'):
-                val = val.replace('  ', '')
-                return tuple(map(int, val[1:-1].strip().split(' ')))
-            if _is_number(val):
-                return _to_number(val)
+            # if val.startswith('['):
+            #     val = val.replace('  ', '')
+            #     return tuple(map(float, val[1:-1].strip().split(' ')))
+            # if val.startswith('{'):
+            #     val = val.replace('  ', '')
+            #     return tuple(map(int, val[1:-1].strip().split(' ')))
+            # if _is_number(val):
+            #     return _to_number(val)
             return val
 
         if tok is KVToken.NUM:
-            val1 = _to_number(val)
+            # val1 = _to_number(val)
+            val1 = val
             val2 = self._match(KVToken.NUM, required=False)
             if val2 is not None:
-                val2 = _to_number(val2[1])
-                val3 = _to_number(self._match(KVToken.NUM)[1])
+                # val2 = _to_number(val2[1])
+                val2 = val2[1]
+                # val3 = _to_number(self._match(KVToken.NUM)[1])
+                val3 = self._match(KVToken.NUM)[1]
                 return val1, val2, val3
             return val1
 
         if tok is KVToken.OPEN:
             pairs = OrderedDict()
 
-            while not self._match(KVToken.CLOSE, required=False):
-                key, val = self.parse_pair()
+            while not self._match(KVToken.CLOSE, KVToken.END, required=False):
+                try:
+                    key, val = self.parse_pair()
+                except ValueError as e:
+                    if not self.strict_mode:
+                        logger.error(f'Skipping malformed keyvalues pair {e}')
+                        continue
+                    raise e
 
                 if isinstance(key, list):
                     for sub_key in key:
@@ -199,10 +217,12 @@ class KVParser(KVReader):
                 else:
                     pairs.setdefault(key, []).append(val)
             for key, val in pairs.items():
-                if self.strict_mode:
+                if self.single_value:
                     pairs[key] = val[-1]
                 elif len(val) == 1:
                     pairs[key] = val[0]
+
+            self._match(KVToken.CLOSE, required=self.strict_mode)
 
             return pairs
 
@@ -295,7 +315,7 @@ class KVWriter:
 
 
 if __name__ == '__main__':
-    data = KVParser('<input>', open('gameinfo.txt'))
+    data = KVParser('<input>', open(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\gameinfo.txt").read())
     data = data.parse()
 
     KVWriter(sys.stdout).write(data, 0, True)

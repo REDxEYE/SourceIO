@@ -126,7 +126,8 @@ def get_mod_path(path: Path) -> Path:
             return path
         elif (path / 'elements').exists():
             return path
-        elif (path / 'models').exists() and path.parts[-2] != 'materials' and path.parts[-1] != 'materials':
+        elif (path / 'models').exists() and path.parts[-1] != 'models' and \
+                path.parts[-2] != 'materials' and path.parts[-1] != 'materials':
             return path
         if len(path.parts) == 1:
             return _path

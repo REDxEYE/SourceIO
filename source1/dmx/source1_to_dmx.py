@@ -10,11 +10,19 @@ from ..vtx.structs.mesh import Mesh as VtxMesh
 from ..vtx.structs.model import Model as VtxModel
 from ..vtx.structs.model import ModelLod as VtxModelLod
 from ..vtx.vtx import Vtx
-from ..vvd.vvd import Vvd
+from ..vvd import Vvd
 from ...source_shared.content_manager import ContentManager
 from ...utilities import datamodel
 from ...utilities.math_utilities import matrix_to_quat
 from ...utilities.path_utilities import find_vtx
+
+
+def sanitize_name(name):
+    return Path(name).stem.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+
+
+def normalize_path(path):
+    return Path(str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\'))
 
 
 def split(array, n=3):
@@ -45,7 +53,7 @@ def merge_meshes(model: MdlModel, vtx_model: VtxModelLod, skip_eyeballs=False):
     for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
         if not vtx_mesh.strip_groups:
             continue
-        if mesh.material_type == 1 and skip_eyeballs:
+        if skip_eyeballs and mesh.material_type == 1:
             continue
 
         indices, vertices, offset = merge_strip_groups(vtx_mesh)
@@ -262,13 +270,11 @@ class DmxModel:
 
         vertex_data[keywords["weight"]] = datamodel.make_array(model_vertices['weight'].flatten(), float)
         new_bone_ids = []
-        all_bones = [b.name for b in self.mdl.bones]
         for b, w in zip(model_vertices['bone_id'].flatten(), model_vertices['weight'].flatten()):
             if w > 0.0:
                 bone_name = self.mdl.bones[b].name
                 b = self._bone_ids[bone_name]
             new_bone_ids.append(b)
-        # assert len(all_bones) == 0, f'Not all bones were used: {all_bones}'
         vertex_data[keywords["weight_indices"]] = datamodel.make_array(new_bone_ids, int)
         dme_face_sets = []
         for face_set in face_sets:
@@ -381,7 +387,9 @@ class DmxModel:
         return combination_input_control
 
     def save(self, output_path: Path):
-        self.dmx.write((output_path / Path(self.mdl_model.name.lower()).stem).with_suffix('.dmx'), 'binary', 9)
+        model_name = sanitize_name(self.mdl_model.name.lower())
+        self.dmx.write((output_path / Path(model_name).stem).with_suffix('.dmx'),
+                       'binary', 9)
 
 
 class ModelDecompiler:

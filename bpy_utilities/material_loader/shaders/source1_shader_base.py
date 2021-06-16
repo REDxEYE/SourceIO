@@ -10,9 +10,9 @@ from ....source1.vtf.import_vtf import import_texture
 class Source1ShaderBase(ShaderBase):
     def __init__(self, valve_material):
         super().__init__()
-        from ....source1.vmt.valve_material import VMT
-        self._vavle_material: VMT = valve_material
-        self._material_data: Dict[str, Any] = self._vavle_material.material_data
+        from ....source1.vmt.vmt_parser import VMTParser
+        self._vavle_material: VMTParser = valve_material.material
+        self._material_data: Dict[str, Any] = self._vavle_material.get_raw_data()
         self.textures = {}
 
     def load_texture(self, texture_name, texture_path):

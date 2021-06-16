@@ -16,6 +16,9 @@ class BspFile:
         self.lumps = {}
         assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
 
+    def __del__(self):
+        return self.handle.close()
+
     def get_lump(self, lump_type: LumpType) -> Optional[Lump]:
         if lump_type not in self.lumps:
             for lump_handler in Lump.__subclasses__():

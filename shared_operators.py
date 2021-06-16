@@ -1,10 +1,15 @@
 import math
+from itertools import chain
 from pathlib import Path
 
 import bpy
 
 from .bpy_utilities.utils import get_or_create_collection, get_new_unique_collection
-from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections
+from .source1.mdl.import_mdl import import_model, import_materials
+
+from .source1.mdl.import_mdl import put_into_collections as s1_put_into_collections
+from .source2.resouce_types.valve_model import put_into_collections as s2_put_into_collections
+
 from .source2.resouce_types.valve_model import ValveCompiledModel
 from .source_shared.content_manager import ContentManager
 from .utilities.path_utilities import backwalk_file_resolver, find_vtx_cm
@@ -25,6 +30,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
     def execute(self, context):
         content_manager = ContentManager()
         content_manager.deserialize(bpy.context.scene.get('content_manager_data', {}))
+        unique_material_names = True
 
         for obj in context.selected_objects:
             print(f'Loading {obj.name}')
@@ -36,17 +42,26 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                 parent = get_parent(obj.users_collection[0])
                 collection = get_or_create_collection(custom_prop_data['type'], parent)
 
-                if model_type in ['.vmdl_c', '.vmdl_c']:
-                    mld_file = content_manager.find_file(custom_prop_data['prop_path'])
-                    if mld_file:
-                        skin = custom_prop_data.get('skin', None)
-                        model = ValveCompiledModel(mld_file)
-                        model.load_mesh(True, parent_collection=collection)
-                        for ob in model.objects:  # type:bpy.types.Object
-                            ob.location = obj.location
-                            ob.rotation_mode = "XYZ"
-                            ob.rotation_euler = obj.rotation_euler
-                            ob.scale = obj.scale
+                if model_type == '.vmdl_c':
+                    vmld_file = content_manager.find_file(custom_prop_data['prop_path'])
+                    if vmld_file:
+                        # skin = custom_prop_data.get('skin', None)
+                        model = ValveCompiledModel(vmld_file)
+                        model.load_mesh(True)
+                        container = model.container
+                        if container.armature:
+                            armature = container.armature
+                            armature.location = obj.location
+                            armature.rotation_mode = "XYZ"
+                            armature.rotation_euler = obj.rotation_euler
+                            armature.scale = obj.scale
+                        else:
+                            for ob in chain(container.objects,
+                                            container.physics_objects):  # type:bpy.types.Object
+                                ob.location = obj.location
+                                ob.rotation_mode = "XYZ"
+                                ob.rotation_euler = obj.rotation_euler
+                                ob.scale = obj.scale
 
                             # if skin:
                             #     if str(skin) in ob['skin_groups']:
@@ -59,22 +74,41 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                             #         ob['active_skin'] = skin
                             #     else:
                             #         print(f'Skin {skin} not found')
+                        master_collection = s2_put_into_collections(container, Path(model.name).stem, collection,
+                                                                    False)
+                        entity_data_holder = bpy.data.objects.new(Path(model.name).stem+'_ENT', None)
+                        entity_data_holder['entity_data'] = {}
+                        entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
+                        if container.armature:
+                            entity_data_holder.parent = container.armature
+                        elif container.objects:
+                            entity_data_holder.parent = container.objects[0]
+                        elif container.physics_objects:
+                            entity_data_holder.parent = container.physics_objects[0]
+                        else:
+                            entity_data_holder.location = obj.location
+                            entity_data_holder.rotation_euler = obj.rotation_euler
+                            entity_data_holder.scale = obj.scale
+
+                        master_collection.objects.link(entity_data_holder)
                         bpy.data.objects.remove(obj)
                     else:
-                        self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}_c' not found!")
+                        self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}' not found!")
                 elif model_type == '.mdl':
                     prop_path = Path(custom_prop_data['prop_path'])
                     mld_file = content_manager.find_file(prop_path)
                     if mld_file:
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
+                        vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model(mld_file, vvd_file, vtx_file, 1.0, False, True)
+                        model_container = import_model(mld_file, vvd_file, vtx_file, vvc_file, 1.0, False, True,
+                                                       unique_material_names=unique_material_names)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                         entity_data_holder['entity_data'] = {}
                         entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
 
-                        master_collection = put_into_collections(model_container, prop_path.stem, collection, False)
+                        master_collection = s1_put_into_collections(model_container, prop_path.stem, collection, False)
                         master_collection.objects.link(entity_data_holder)
 
                         if model_container.armature is not None:
@@ -98,7 +132,11 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                 bpy.context.view_layer.update()
                                 mesh_obj.parent = obj.parent
                                 mesh_obj.matrix_world = obj.matrix_world.copy()
-                        import_materials(model_container.mdl)
+
+                        for mesh_obj in model_container.objects:
+                            mesh_obj['prop_path'] = custom_prop_data['prop_path']
+
+                        import_materials(model_container.mdl, unique_material_names=unique_material_names)
                         skin = custom_prop_data.get('skin', None)
                         if skin:
                             for model in model_container.objects:
@@ -108,7 +146,16 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                     current_materials = model['skin_groups'][model['active_skin']]
                                     print(skin_materials, current_materials)
                                     for skin_material, current_material in zip(skin_materials, current_materials):
-                                        swap_materials(model, skin_material[-63:], current_material[-63:])
+                                        if unique_material_names:
+                                            skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[-63:]}"[
+                                                            -63:]
+                                            current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[-63:]}"[
+                                                               -63:]
+                                        else:
+                                            skin_material = skin_material[-63:]
+                                            current_material = current_material[-63:]
+
+                                        swap_materials(model, skin_material, current_material)
                                     model['active_skin'] = skin
                                 else:
                                     print(f'Skin {skin} not found')
@@ -140,10 +187,19 @@ class ChangeSkin_OT_operator(bpy.types.Operator):
         return {'FINISHED'}
 
     def handle_s1(self, obj):
+        prop_path = Path(obj['prop_path'])
         skin_materials = obj['skin_groups'][self.skin_name]
         current_materials = obj['skin_groups'][obj['active_skin']]
+        unique_material_names = obj['unique_material_names']
         for skin_material, current_material in zip(skin_materials, current_materials):
-            swap_materials(obj, skin_material[-63:], current_material[-63:])
+            if unique_material_names:
+                skin_material = f"{prop_path.stem}_{skin_material[-63:]}"[-63:]
+                current_material = f"{prop_path.stem}_{current_material[-63:]}"[-63:]
+            else:
+                skin_material = skin_material[-63:]
+                current_material = current_material[-63:]
+
+            swap_materials(obj, skin_material, current_material)
 
     def handle_s2(self, obj):
         skin_material = obj['skin_groups'][self.skin_name]

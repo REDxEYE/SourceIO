@@ -1,32 +1,72 @@
+import sys
+from pathlib import Path
 from typing import Dict
 
 from ..utilities.singleton import SingletonMeta
+from logging import getLogger, Formatter, Filter, LogRecord, StreamHandler, DEBUG
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):
     def __init__(self):
         self.loggers: Dict[str, BPYLogger] = {}
+        print('Using Stub logger')
 
     def get_logger(self, name):
+        if name in self.loggers:
+            return self.loggers[name]
         logger = self.loggers[name] = BPYLogger(name)
         return logger
 
 
+def _get_caller_function():
+    import inspect
+    previous_frame = inspect.currentframe().f_back.f_back
+    (filename, line_number,
+     function_name, lines, index) = inspect.getframeinfo(previous_frame)
+    return function_name
+
+
 class BPYLogger:
+    class Filter(Filter):
+        def __init__(self):
+            super().__init__()
+            self.function = None
+
+        def filter(self, record: LogRecord):
+            record.function = self.function or ""
+            return True
+
     def __init__(self, name):
+        self._filter = self.Filter()
+
+        self._logger = getLogger(name)
+        self._logger.addFilter(self._filter)
+        self._logger.handlers.clear()
+        formatter = Formatter('[%(levelname)s]--[%(name)s:%(function)s] %(message)s')
+        sh = StreamHandler(sys.stdout)
+        self._logger.addHandler(sh)
+        for handler in self._logger.handlers:
+            handler.setFormatter(formatter)
+            handler.setLevel(DEBUG)
+        self._logger.setLevel(DEBUG)
         self.name = name
 
-    def log(self, log_level, message, module=None):
-        print(f'[{log_level:8}]--[{f"{module}:" if module is not None else ""}{self.name}] {message}')
+    def debug(self, message):
+        self._filter.function = _get_caller_function()
+        self._logger.debug(message)
+        sys.stdout.flush()
 
-    def debug(self, message, module=None):
-        self.log('DEBUG', message, module)
+    def info(self, message):
+        self._filter.function = _get_caller_function()
+        self._logger.info(message)
+        sys.stdout.flush()
 
-    def info(self, message, module=None):
-        self.log('INFO', message, module)
+    def warn(self, message):
+        self._filter.function = _get_caller_function()
+        self._logger.warning(message)
+        sys.stdout.flush()
 
-    def warn(self, message, module=None):
-        self.log('WARN', message, module)
-
-    def error(self, message, module=None):
-        self.log('ERROR', message, module)
+    def error(self, message):
+        self._filter.function or _get_caller_function()
+        self._logger.error(message)
+        sys.stdout.flush()

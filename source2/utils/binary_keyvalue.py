@@ -113,7 +113,7 @@ class BinaryKeyValue:
                     lookup_size = offset if offset < size else size
 
                     entry = self.buffer.tell()
-                    self.buffer.seek(offset)
+                    self.buffer.seek(entry - offset)
                     data = self.buffer.read(lookup_size)
                     self.buffer.seek(entry)
                     while size > 0:

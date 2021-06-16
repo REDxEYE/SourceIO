@@ -17,7 +17,7 @@ def open_vpk(filepath: Union[str, Path]):
         raise Exception('Not a VPK file')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
-    elif version_mj == 2 and version_mn == 3:
+    elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
         return TitanfallVPKFile(filepath)
 
 
@@ -29,8 +29,8 @@ class VPKFile:
         self.header = Header()
         self.archive_md5_entries: List[ArchiveMD5Entry] = []
 
-        self.entries = {}
-
+        self.entries: Dict[str, Entry] = {}
+        self.tree_offset = 0
         self.tree_hash = b''
         self.archive_md5_hash = b''
         self.file_hash = b''
@@ -38,8 +38,11 @@ class VPKFile:
         self.public_key = b''
         self.signature = b''
 
+        self._folders_in_current_dir = set()
+
     def read(self):
         reader = self.reader
+
         self.header.read(reader)
         entry = reader.tell()
         self.read_entries()
@@ -61,6 +64,7 @@ class VPKFile:
 
     def read_entries(self):
         reader = self.reader
+        self.tree_offset = reader.tell()
         while 1:
             type_name = reader.read_ascii_string()
             if not type_name:
@@ -104,7 +108,12 @@ class VPKFile:
         if not entry.loaded:
             entry.read(self.reader)
         if entry.archive_id == 0x7FFF:
-            reader = BytesIO(entry.preload_data)
+            data = bytearray(entry.preload_data)
+            with self.reader.save_current_pos():
+                self.reader.seek(entry.offset + self.header.tree_size + self.tree_offset)
+                data.extend(self.reader.read(entry.size))
+
+            reader = BytesIO(data)
             return reader
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
@@ -113,6 +122,18 @@ class VPKFile:
                 target_archive.seek(entry.offset)
                 reader = BytesIO(entry.preload_data + target_archive.read(entry.size))
                 return reader
+
+    def files_in_path(self, partial_path):
+        if partial_path is None:
+            self._folders_in_current_dir = set([Path(a).parts[0] for a in self.entries.keys()])
+        else:
+            partial_path = Path(partial_path).as_posix().lower()
+            self._folders_in_current_dir.clear()
+            for filepath in self.entries.keys():
+                tmp = Path(filepath).parent.as_posix().lower()
+                if tmp.startswith(partial_path):
+                    self._folders_in_current_dir.add(Path(filepath).relative_to(partial_path).parts[0])
+        yield from self._folders_in_current_dir
 
 
 class TitanfallVPKFile(VPKFile):

@@ -184,12 +184,12 @@ class TitanfallEntityHandler(BaseEntityHandler):
         else:
             BaseEntityHandler._set_parent_if_exist(obj, parent_name)
 
-    def _put_into_collection(self, name, obj):
+    def _put_into_collection(self, name, obj, grouping_collection_name=None):
         if isinstance(obj, list):
             for o in obj:
-                super()._put_into_collection(name, o)
+                super()._put_into_collection(name, o, grouping_collection_name)
         else:
-            super()._put_into_collection(name, obj)
+            super()._put_into_collection(name, obj, grouping_collection_name)
 
     def _set_entity_data(self, obj, entity_raw: dict):
         if isinstance(obj, list):
@@ -218,36 +218,44 @@ class TitanfallEntityHandler(BaseEntityHandler):
     def handle_func_window_hint(self, entity: func_window_hint, entity_raw: dict):
         obj = self._create_empty(f'func_window_hint_{entity.hammer_id}')
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('func_window_hint', obj)
+        self._put_into_collection('func_window_hint', obj, 'brushes')
         pass
 
     def handle_trigger_indoor_area(self, entity: trigger_indoor_area, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         world = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(world, {'entity': entity_raw})
         self._set_location(world, entity.origin)
-        self._put_into_collection('trigger_indoor_area', world)
+        self._put_into_collection('trigger_indoor_area', world, 'triggers')
 
     def handle_trigger_capture_point(self, entity: trigger_capture_point, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         obj = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(obj, {'entity': entity_raw})
         self._set_location(obj, entity.origin)
-        self._put_into_collection('trigger_capture_point', obj)
+        self._put_into_collection('trigger_capture_point', obj, 'triggers')
 
     def handle_trigger_out_of_bounds(self, entity: trigger_out_of_bounds, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         obj = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(obj, {'entity': entity_raw})
         self._set_location(obj, entity.origin)
-        self._put_into_collection('trigger_out_of_bounds', obj)
+        self._put_into_collection('trigger_out_of_bounds', obj, 'triggers')
 
     def handle_trigger_soundscape(self, entity: trigger_soundscape, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
         model_id = int(entity_raw.get('model')[1:])
         obj = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(obj, {'entity': entity_raw})
         self._set_location(obj, entity.origin)
-        self._put_into_collection('trigger_soundscape', obj)
+        self._put_into_collection('trigger_soundscape', obj, 'triggers')
 
     def handle_info_particle_system(self, entity: Base, entity_raw: dict):
         pass

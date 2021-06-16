@@ -27,10 +27,12 @@ class MDLImport_OT_operator(bpy.types.Operator):
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
+    import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
+    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
@@ -45,29 +47,37 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
-        from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections
+        from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections, import_animations
         for file in self.files:
             mdl_path = directory / file.name
             vtx_file = find_vtx(mdl_path)
             vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
-
-            model_container = import_model(mdl_path.open('rb'), vvd_file.open('rb'), vtx_file.open('rb'), self.scale,
+            vvc_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvc')
+            model_container = import_model(mdl_path.open('rb'),
+                                           vvd_file.open('rb'),
+                                           vtx_file.open('rb'),
+                                           vvc_file.open('rb') if vvc_file is not None and vvc_file.exists() else None,
+                                           self.scale,
                                            self.create_flex_drivers)
-
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
 
             if self.import_textures:
                 try:
-                    import_materials(model_container.mdl)
+                    import_materials(model_container.mdl, use_bvlg=self.use_bvlg)
                 except Exception as t_ex:
                     print(f'Failed to import materials, caused by {t_ex}')
                     import traceback
                     traceback.print_exc()
+            if self.import_animations and model_container.armature:
+                print('Loading animations')
+                import_animations(model_container.mdl, model_container.armature, self.scale)
             if self.write_qc:
                 from .source1.qc.qc import generate_qc
                 from . import bl_info
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
+        content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -86,6 +96,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
+    import_decal: BoolProperty(name="Import decals", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
@@ -99,11 +110,13 @@ class BSPImport_OT_operator(bpy.types.Operator):
         bsp_map.load_disp()
         bsp_map.load_entities()
         bsp_map.load_static_props()
-        bsp_map.load_overlays()
+        if self.import_decal:
+            bsp_map.load_overlays()
         # bsp_map.load_detail_props()
         if self.import_textures:
             bsp_map.load_materials()
-
+        content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -125,9 +138,13 @@ class DMXImporter_OT_operator(bpy.types.Operator):
     filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
 
     def execute(self, context):
+        content_manager = ContentManager()
         directory = Path(self.filepath).parent.absolute()
         for file in self.files:
             load_session(directory / file.name, 1)
+
+        content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -177,6 +194,7 @@ class VMTImport_OT_operator(bpy.types.Operator):
     override: BoolProperty(default=False, name='Override existing?')
 
     def execute(self, context):
+        content_manager = ContentManager()
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.absolute()
         else:
@@ -185,6 +203,8 @@ class VMTImport_OT_operator(bpy.types.Operator):
             mat = Source1MaterialLoader((directory / file.name).open('rb'), Path(file.name).stem)
             if mat.create_material() == 'EXISTS' and not self.override:
                 self.report({'INFO'}, '{} material already exists')
+        content_manager.flush_cache()
+        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):

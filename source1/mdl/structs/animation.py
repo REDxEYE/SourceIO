@@ -1,6 +1,6 @@
 from enum import IntFlag
 
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 
 
@@ -13,6 +13,19 @@ class AnimationFlags(IntFlag):
     RAWROT2 = 0x20  # Quaternion64
 
 
+class AniFrame(Base):
+
+    def __init__(self):
+        self.constant_offset = 0
+        self.frame_offset = 0
+        self.frame_len = 0
+        self.unused = []
+
+        self.bone_flags = []
+        self.bone_constant_info = []
+        self.bone_frame_data_info = []
+
+
 class Animation(Base):
 
     def __init__(self):
@@ -22,5 +35,5 @@ class Animation(Base):
         self.rot = []
         self.pos = []
 
-    def read(self,reader:ByteIO):
+    def read(self, reader: ByteIO):
         pass

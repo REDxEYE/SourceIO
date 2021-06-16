@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 from .source1.vtf.VTFWrapper.VTFLib import VTFLib
 from .utilities.singleton import SingletonMeta
 
@@ -10,7 +9,7 @@ custom_icons = {}
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE, ShadelessFox",
-    "version": (3, 11, 4),
+    "version": (3, 15, 0),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine assets",
     "description": "GoldSrc/Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
@@ -37,7 +36,9 @@ if not NO_BPY:
     from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
                                     VMDLImport_OT_operator,
-                                    VWRLDImport_OT_operator, DMXCameraImport_OT_operator
+                                    VWRLDImport_OT_operator,
+                                    VPK_VWRLDImport_OT_operator,
+                                    DMXCameraImport_OT_operator
                                     )
     from .shared_operators import (SourceIOUtils_PT_panel,
                                    Placeholders_PT_panel,
@@ -45,6 +46,14 @@ if not NO_BPY:
                                    ChangeSkin_OT_operator,
                                    LoadEntity_OT_operator,
                                    )
+    from .vpk_operators import (SourceIO_OP_VPKBrowser,
+                                SourceIO_OP_VPKButtonUp,
+                                SourceIO_OP_VPKBrowserLoader,
+                                SourceIO_UL_VPKDirList,
+                                SourceIO_PG_VPKEntry,
+                                )
+
+    from .bpy_utilities.export_nodes import register_nodes, unregister_nodes
 
 
     # noinspection PyPep8Naming
@@ -76,6 +85,8 @@ if not NO_BPY:
                             icon_value=model_doc_icon.icon_id)
             layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)",
                             icon_value=vwrld_icon.icon_id)
+            layout.operator(VPK_VWRLDImport_OT_operator.bl_idname, text="Source2 packed map (.vpk)",
+                            icon_value=vwrld_icon.icon_id)
             layout.operator(VTEXImport_OT_operator.bl_idname, text="Source2 texture (.vtex)",
                             icon_value=vtex_icon.icon_id)
             layout.operator(VMATImport_OT_operator.bl_idname, text="Source2 material (.vmat)",
@@ -85,6 +96,12 @@ if not NO_BPY:
                             icon_value=crowbar_icon.icon_id)
             layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
+            layout.separator()
+            layout.operator(SourceIO_OP_VPKBrowserLoader.bl_idname, text="Browse new VPK (.vpk)",
+                            icon_value=bsp_icon.icon_id)
+            layout.operator(SourceIO_OP_VPKBrowser.bl_idname, text="Browse already open VPK (.vpk)",
+                            icon_value=bsp_icon.icon_id)
+            layout.separator()
             layout.menu(SourceIOUtils_MT_Menu.bl_idname)
 
 
@@ -146,6 +163,7 @@ if not NO_BPY:
         VMDLImport_OT_operator,
         VTEXImport_OT_operator,
         VMATImport_OT_operator,
+        VPK_VWRLDImport_OT_operator,
         VWRLDImport_OT_operator,
 
         # Addon tools
@@ -156,7 +174,13 @@ if not NO_BPY:
         Placeholders_PT_panel,
         SkinChanger_PT_panel,
         LoadEntity_OT_operator,
-        ChangeSkin_OT_operator
+        ChangeSkin_OT_operator,
+
+        SourceIO_PG_VPKEntry,
+        SourceIO_UL_VPKDirList,
+        SourceIO_OP_VPKButtonUp,
+        SourceIO_OP_VPKBrowserLoader,
+        SourceIO_OP_VPKBrowser,
     )
 
     register_, unregister_ = bpy.utils.register_classes_factory(classes)
@@ -165,6 +189,7 @@ if not NO_BPY:
     def register():
         register_custom_icon()
         register_()
+        register_nodes()
         VTFLib()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
         bpy.types.IMAGE_MT_image.append(export)
@@ -175,6 +200,7 @@ if not NO_BPY:
         bpy.types.IMAGE_MT_image.remove(export)
         vtf_lib = VTFLib()
         vtf_lib.shutdown()
+        unregister_nodes()
         SingletonMeta.cleanup()
         del vtf_lib
         unregister_custom_icon()

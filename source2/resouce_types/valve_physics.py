@@ -24,8 +24,20 @@ class ValveCompiledPhysics(ValveCompiledFile):
         self.hulls = []
         self.meshes = []
 
+    @staticmethod
+    def gather_edges(start_edge_index: int, edges: dict):
+        vertex_ids = [edges[start_edge_index]['m_nOrigin']]
+        next_edge_index = edges[start_edge_index]['m_nNext']
+        while True:
+            if next_edge_index == start_edge_index:
+                break
+            vertex_ids.append(edges[next_edge_index]['m_nOrigin'])
+            next_edge_index = edges[next_edge_index]['m_nNext']
+        return vertex_ids
+
     def parse_meshes(self):
-        for part in self.data_block['m_parts']:
+        data = self.data_block.data
+        for part in data['m_parts']:
             shapes = part['m_rnShape']
             for sphere in shapes['m_spheres']:
                 sphere_data = sphere['m_Sphere']
@@ -33,10 +45,31 @@ class ValveCompiledPhysics(ValveCompiledFile):
             for capsule in shapes['m_capsules']:
                 capsule_data = capsule['m_Capsule']
                 self.capsules.append((capsule_data['m_vCenter'], capsule_data['m_flRadius']))
-            for hull in shapes['m_hulls']:
+            for n, hull in enumerate(shapes['m_hulls']):
                 hull_data = hull['m_Hull']
+                hull_name = hull['m_UserFriendlyName'] or f'hull_{n}'
                 vertices = np.array(hull_data['m_Vertices'], np.float32)
-                faces = np.array(hull_data['m_Faces'].values(), np.int32)
-
+                polygons = []
+                for face in hull_data['m_Faces']:
+                    edges = self.gather_edges(face['m_nEdge'], hull_data['m_Edges'])
+                    polygons.append(edges)
+                self.hulls.append((hull_name, polygons, vertices))
             for mesh in shapes['m_meshes']:
                 mesh_data = mesh['m_Mesh']
+
+    def build_mesh(self):
+        meshes = []
+        for sphere in self.spheres:
+            print(sphere)
+        for capsule in self.capsules:
+            print(capsule)
+        for mesh in self.meshes:
+            print(mesh)
+        for name, polygons, vertices in self.hulls:
+            mesh_data = bpy.data.meshes.new(name=f'{name}_mesh')
+            mesh_obj = bpy.data.objects.new(name=name, object_data=mesh_data)
+
+            mesh_data.from_pydata(vertices, [], polygons)
+            mesh_data.update()
+            meshes.append(mesh_obj)
+        return meshes

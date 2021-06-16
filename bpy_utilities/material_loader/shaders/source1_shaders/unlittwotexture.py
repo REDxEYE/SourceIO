@@ -24,31 +24,30 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def color2(self):
-        color_value = self._vavle_material.get_param('$color2', None)
-        if color_value:
-            if type(color_value) is float:
-                color_value = [color_value, color_value, color_value]
-            elif len(color_value) == 1:
-                color_value = [color_value[0], color_value[0], color_value[0]]
-            else:
-                color_value = [1, 1, 1]
+        color_value, value_type = self._vavle_material.get_vector('$color2', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+        elif len(color_value) > 3:
+            color_value = color_value[:3]
         return color_value
 
     @property
     def color(self):
-        color_value = self._vavle_material.get_param('$color', None)
-        if color_value:
-            if type(color_value) is float:
-                color_value = [color_value, color_value, color_value]
-            elif len(color_value) == 1:
-                color_value = [color_value[0], color_value[0], color_value[0]]
-            else:
-                color_value = [1, 1, 1]
+        color_value, value_type = self._vavle_material.get_vector('$color', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+        elif len(color_value) > 3:
+            color_value = color_value[:3]
         return color_value
+
 
     @property
     def additive(self):
-        return self._vavle_material.get_param('$additive', 0) == 1
+        return self._vavle_material.get_int('$additive', 0) == 1
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
