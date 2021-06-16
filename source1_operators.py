@@ -27,6 +27,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
+    import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
@@ -46,7 +47,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
-        from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections
+        from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections, import_animations
         for file in self.files:
             mdl_path = directory / file.name
             vtx_file = find_vtx(mdl_path)
@@ -67,6 +68,9 @@ class MDLImport_OT_operator(bpy.types.Operator):
                     print(f'Failed to import materials, caused by {t_ex}')
                     import traceback
                     traceback.print_exc()
+            if self.import_animations and model_container.armature:
+                print('Loading animations')
+                import_animations(model_container.mdl, model_container.armature, self.scale)
             if self.write_qc:
                 from .source1.qc.qc import generate_qc
                 from . import bl_info
