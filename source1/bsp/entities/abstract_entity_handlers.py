@@ -10,8 +10,6 @@ import bpy
 from mathutils import Vector, Euler
 
 from .base_entity_classes import *
-from .base_entity_classes import entity_class_handle as base_entity_classes
-from .halflife2_entity_classes import logic_choreographed_scene, scripted_sequence, path_corner
 from ..bsp_file import BSPFile
 from ..datatypes.face import Face
 from ..datatypes.model import Model
@@ -20,7 +18,6 @@ from ..datatypes.texture_info import TextureInfo
 from ...vmt.valve_material import VMT
 from ...vtf.import_vtf import import_texture
 from ....bpy_utilities.logging import BPYLoggingManager
-from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ....bpy_utilities.utils import get_material, get_or_create_collection
 from ....source_shared.content_manager import ContentManager
 from ....utilities.math_utilities import HAMMER_UNIT_TO_METERS, lerp_vec
