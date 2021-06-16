@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from SourceIO.source1.vtf import is_vtflib_supported
+from .source1.vtf import is_vtflib_supported
 from .source1.vtf.VTFWrapper.VTFLib import VTFLib
 from .utilities.singleton import SingletonMeta
 

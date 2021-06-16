@@ -1,7 +1,5 @@
 from typing import List
 
-from SourceIO.source2.resouce_types.valve_material import ValveCompiledMaterial
-from SourceIO.source_shared.content_manager import ContentManager
 
 
 class FGDProperty:

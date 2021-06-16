@@ -1,7 +1,7 @@
 import bpy
 
-from SourceIO.source2.entities.abstract_entity_handlers import AbstractEntityHandler, get_origin, get_angles
-from SourceIO.source2.entities.base_entity_classes import *
+from .abstract_entity_handlers import AbstractEntityHandler, get_origin, get_angles
+from .base_entity_classes import *
 
 
 class BaseEntityHandler(AbstractEntityHandler):
