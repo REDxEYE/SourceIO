@@ -53,6 +53,7 @@ class VPKFileHandle(metaclass=SingletonMeta):
         yield from self.vpk_archive.files_in_path(self._current_dir)
 
     def open_new(self, filepath):
+        self.vpk_browser_link = None
         self.current_file = Path(filepath)
         self.vpk_archive = open_vpk(self.current_file)
         self.vpk_archive.read()
