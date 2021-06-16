@@ -3,7 +3,6 @@ from typing import Iterable, Sized, List
 
 import numpy as np
 
-from utils import sanitize_name
 from ..mdl.mdl_file import Mdl
 from ..mdl.structs.bone import Bone
 from ..mdl.structs.model import Model as MdlModel
@@ -16,6 +15,14 @@ from ...source_shared.content_manager import ContentManager
 from ...utilities import datamodel
 from ...utilities.math_utilities import matrix_to_quat
 from ...utilities.path_utilities import find_vtx
+
+
+def sanitize_name(name):
+    return Path(name).stem.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+
+
+def normalize_path(path):
+    return Path(str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\'))
 
 
 def split(array, n=3):
@@ -249,7 +256,6 @@ class DmxModel:
         balance_width = dimm * (1 - (99.3 / 100))
         balance = model_vertices['vertex'][:, 0]
         balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
-
         vertex_data[keywords['balance']] = datamodel.make_array(balance, float)
         vertex_data[keywords['balance'] + 'Indices'] = datamodel.make_array(vtx_vertices, int)
 

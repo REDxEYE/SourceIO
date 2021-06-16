@@ -25,9 +25,17 @@ class KV3mdl:
         self.storage['rootNode']['children'].append(self.bodygroup_list)
         self.storage['rootNode']['children'].append(self.jigglebone_list)
         self.storage['rootNode']['children'].append(self.skin_group_list)
+        self._add_bone_markup()
         self._add_empty_anim()
 
     # def add_anim(self):
+    def _add_bone_markup(self):
+        markup = {
+                     "_class": "BoneMarkupList",
+                     "bone_cull_type": "None",
+                 }
+
+        self.storage['rootNode']['children'].append(markup)
 
     def _add_empty_anim(self):
         anim = {'_class': 'EmptyAnim',
