@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+from SourceIO.source1.vtf import is_vtflib_supported
 from .source1.vtf.VTFWrapper.VTFLib import VTFLib
 from .utilities.singleton import SingletonMeta
 
@@ -28,10 +29,6 @@ if not NO_BPY:
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
                                     DMXImporter_OT_operator,
-                                    VTFExport_OT_operator,
-                                    VTFImport_OT_operator,
-                                    VMTImport_OT_operator,
-                                    export
                                     )
     from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
@@ -75,10 +72,11 @@ if not NO_BPY:
                             icon_value=crowbar_icon.icon_id)
             layout.operator(BSPImport_OT_operator.bl_idname, text="Source map (.bsp)",
                             icon_value=bsp_icon.icon_id)
-            layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)",
-                            icon_value=vtf_icon.icon_id)
-            layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
-                            icon_value=vmt_icon.icon_id)
+            if is_vtflib_supported():
+                layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)",
+                                icon_value=vtf_icon.icon_id)
+                layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
+                                icon_value=vmt_icon.icon_id)
             layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
             layout.separator()
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
@@ -154,9 +152,6 @@ if not NO_BPY:
         MDLImport_OT_operator,
         BSPImport_OT_operator,
         DMXImporter_OT_operator,
-        VTFExport_OT_operator,
-        VTFImport_OT_operator,
-        VMTImport_OT_operator,
 
         # Source2 stuff
         DMXCameraImport_OT_operator,
@@ -183,6 +178,14 @@ if not NO_BPY:
         SourceIO_OP_VPKBrowser,
     )
 
+    if is_vtflib_supported():
+        from .source1_operators import (VTFExport_OT_operator,
+                                        VTFImport_OT_operator,
+                                        VMTImport_OT_operator,
+                                        )
+
+        classes = tuple([*classes, VTFExport_OT_operator, VTFImport_OT_operator, VMTImport_OT_operator])
+
     register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
 
@@ -192,12 +195,18 @@ if not NO_BPY:
         register_nodes()
         VTFLib()
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
-        bpy.types.IMAGE_MT_image.append(export)
+
+        if is_vtflib_supported():
+            from .source1_operators import export
+            bpy.types.IMAGE_MT_image.append(export)
 
 
     def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(menu_import)
-        bpy.types.IMAGE_MT_image.remove(export)
+
+        if is_vtflib_supported():
+            from .source1_operators import export
+            bpy.types.IMAGE_MT_image.remove(export)
         vtf_lib = VTFLib()
         vtf_lib.shutdown()
         unregister_nodes()

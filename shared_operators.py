@@ -8,6 +8,7 @@ from .bpy_utilities.utils import get_or_create_collection, get_new_unique_collec
 from .source1.mdl.import_mdl import import_model, import_materials
 
 from .source1.mdl.import_mdl import put_into_collections as s1_put_into_collections
+from .source1.vtf import is_vtflib_supported
 from .source2.resouce_types.valve_model import put_into_collections as s2_put_into_collections
 
 from .source2.resouce_types.valve_model import ValveCompiledModel
@@ -135,8 +136,8 @@ class LoadEntity_OT_operator(bpy.types.Operator):
 
                         for mesh_obj in model_container.objects:
                             mesh_obj['prop_path'] = custom_prop_data['prop_path']
-
-                        import_materials(model_container.mdl, unique_material_names=unique_material_names)
+                        if is_vtflib_supported():
+                            import_materials(model_container.mdl, unique_material_names=unique_material_names)
                         skin = custom_prop_data.get('skin', None)
                         if skin:
                             for model in model_container.objects:

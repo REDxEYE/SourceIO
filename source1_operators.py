@@ -9,8 +9,8 @@ from .bpy_utilities.utils import get_new_unique_collection
 from .source1.bsp.import_bsp import BSP
 from .source1.dmx.load_sfm_session import load_session
 from .source1.dmx.sfm.session import Session
-from .source1.vtf.export_vtf import export_texture
-from .source1.vtf.import_vtf import import_texture
+from .source1.vtf import is_vtflib_supported
+
 from .source_shared.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 from .utilities.path_utilities import backwalk_file_resolver, find_vtx
@@ -61,8 +61,9 @@ class MDLImport_OT_operator(bpy.types.Operator):
                                            self.create_flex_drivers)
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
 
-            if self.import_textures:
+            if self.import_textures and is_vtflib_supported():
                 try:
+
                     import_materials(model_container.mdl, use_bvlg=self.use_bvlg)
                 except Exception as t_ex:
                     print(f'Failed to import materials, caused by {t_ex}')
@@ -153,159 +154,164 @@ class DMXImporter_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-# noinspection PyUnresolvedReferences,PyPep8Naming
-class VTFImport_OT_operator(bpy.types.Operator):
-    """Load Source Engine VTF texture"""
-    bl_idname = "import_texture.vtf"
-    bl_label = "Import VTF"
-    bl_options = {'UNDO'}
-
-    filepath: StringProperty(subtype='FILE_PATH', )
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-    filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
-
-    def execute(self, context):
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
-        for file in self.files:
-            import_texture(file.name, (directory / file.name).open('rb'), True)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+if is_vtflib_supported():
+    from .source1.vtf.export_vtf import export_texture
+    from .source1.vtf.import_vtf import import_texture
 
 
-# noinspection PyUnresolvedReferences,PyPep8Naming
-class VMTImport_OT_operator(bpy.types.Operator):
-    """Load Source Engine VMT material"""
-    bl_idname = "import_texture.vmt"
-    bl_label = "Import VMT"
-    bl_options = {'UNDO'}
+    # noinspection PyUnresolvedReferences,PyPep8Naming
+    class VTFImport_OT_operator(bpy.types.Operator):
+        """Load Source Engine VTF texture"""
+        bl_idname = "import_texture.vtf"
+        bl_label = "Import VTF"
+        bl_options = {'UNDO'}
 
-    filepath: StringProperty(
-        subtype='FILE_PATH',
-    )
-    files: CollectionProperty(type=bpy.types.PropertyGroup)
-    filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
-    override: BoolProperty(default=False, name='Override existing?')
+        filepath: StringProperty(subtype='FILE_PATH', )
+        files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+        filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
 
-    def execute(self, context):
-        content_manager = ContentManager()
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
-        for file in self.files:
-            mat = Source1MaterialLoader((directory / file.name).open('rb'), Path(file.name).stem)
-            if mat.create_material() == 'EXISTS' and not self.override:
-                self.report({'INFO'}, '{} material already exists')
-        content_manager.flush_cache()
-        content_manager.clean()
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
-# noinspection PyUnresolvedReferences,PyPep8Naming
-class VTFExport_OT_operator(bpy.types.Operator):
-    """Export VTF texture"""
-    bl_idname = "export_texture.vtf"
-    bl_label = "Export VTF"
-
-    filename_ext = ".vtf"
-
-    filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
-
-    filepath: StringProperty(
-        subtype='FILE_PATH',
-    )
-
-    filename: StringProperty(
-        name="File Name",
-        description="Name used by the exported file",
-        maxlen=255,
-        subtype='FILE_NAME',
-    )
-
-    img_format: EnumProperty(
-        name="VTF Type Preset",
-        description="Choose a preset. It will affect the result's format and flags.",
-        items=(
-            ('RGBA8888', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
-            ('RGBA8888Normal', "RGBA8888 Normal Map",
-             "RGB8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
-            ('RGB888', "RGB888 Simple", "RGB888 format, no alpha"),
-            ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
-            ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
-            ('DXT5', "DXT5 Simple", "DXT5 format, format-specific Eight Bit Alpha flag only"),
-            ('DXT1Normal', "DXT1 Normal Map", "DXT1 format, Normal Map flag only"),
-            ('DXT5Normal', "DXT5 Normal Map", "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
-        default='RGBA8888',
-    )
-    filter_mode: EnumProperty(
-        name='VTF mipmap filter',
-        items=(
-            ('0', 'Point Filter', 'Point Filter'),
-            ('1', 'Box Filter', 'Box Filter'),
-            ('2', 'Triangle Filter', 'Triangle Filter'),
-            ('3', 'Quadratic Filter', 'Quadratic Filter'),
-            ('4', 'Cubic Filter', 'Cubic Filter'),
-            ('5', 'Catrom Filter', 'Catrom Filter'),
-            ('6', 'Mitchell Filter', 'Mitchell Filter'),
-            ('7', 'Gaussian Filter', 'Gaussian Filter'),
-            ('8', 'SinC Filter', 'SinC Filter'),
-            ('9', 'Bessel Filter', 'Bessel Filter'),
-            ('10', 'Hanning Filter', 'Hanning Filter'),
-            ('11', 'Hamming Filter', 'Hamming Filter'),
-            ('12', 'Blackman Filter', 'Blackman Filter'),
-            ('13', 'Kaiser Filter', 'Kaiser Filter'),
-            ('14', 'Count Filter', 'Count Filter'),
-        ),
-        default='0'
-    )
-
-    def execute(self, context):
-        sima = context.space_data
-        ima = sima.image
-        if ima is None:
-            self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
-        else:
-            print(context)
-            export_texture(ima, self.filepath, self.img_format, self.filter_mode)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        if not self.filepath:
-            blend_filepath = context.blend_data.filepath
-            if not blend_filepath:
-                blend_filepath = "untitled"
+        def execute(self, context):
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
             else:
-                blend_filepath = os.path.splitext(blend_filepath)[0]
+                directory = Path(self.filepath).absolute()
+            for file in self.files:
+                import_texture(file.name, (directory / file.name).open('rb'), True)
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    # noinspection PyUnresolvedReferences,PyPep8Naming
+    class VMTImport_OT_operator(bpy.types.Operator):
+        """Load Source Engine VMT material"""
+        bl_idname = "import_texture.vmt"
+        bl_label = "Import VMT"
+        bl_options = {'UNDO'}
+
+        filepath: StringProperty(
+            subtype='FILE_PATH',
+        )
+        files: CollectionProperty(type=bpy.types.PropertyGroup)
+        filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
+        override: BoolProperty(default=False, name='Override existing?')
+
+        def execute(self, context):
+            content_manager = ContentManager()
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
+            for file in self.files:
+                mat = Source1MaterialLoader((directory / file.name).open('rb'), Path(file.name).stem)
+                if mat.create_material() == 'EXISTS' and not self.override:
+                    self.report({'INFO'}, '{} material already exists')
+            content_manager.flush_cache()
+            content_manager.clean()
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    # noinspection PyUnresolvedReferences,PyPep8Naming
+    class VTFExport_OT_operator(bpy.types.Operator):
+        """Export VTF texture"""
+        bl_idname = "export_texture.vtf"
+        bl_label = "Export VTF"
+
+        filename_ext = ".vtf"
+
+        filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
+
+        filepath: StringProperty(
+            subtype='FILE_PATH',
+        )
+
+        filename: StringProperty(
+            name="File Name",
+            description="Name used by the exported file",
+            maxlen=255,
+            subtype='FILE_NAME',
+        )
+
+        img_format: EnumProperty(
+            name="VTF Type Preset",
+            description="Choose a preset. It will affect the result's format and flags.",
+            items=(
+                ('RGBA8888', "RGBA8888 Simple", "RGBA8888 format, format-specific Eight Bit Alpha flag only"),
+                ('RGBA8888Normal', "RGBA8888 Normal Map",
+                 "RGB8888 format, format-specific Eight Bit Alpha and Normal Map flags"),
+                ('RGB888', "RGB888 Simple", "RGB888 format, no alpha"),
+                ('RGB888Normal', "RGB888 Normal Map", "RGB888 format, no alpha and Normal map flag"),
+                ('DXT1', "DXT1 Simple", "DXT1 format, no flags"),
+                ('DXT5', "DXT5 Simple", "DXT5 format, format-specific Eight Bit Alpha flag only"),
+                ('DXT1Normal', "DXT1 Normal Map", "DXT1 format, Normal Map flag only"),
+                ('DXT5Normal', "DXT5 Normal Map", "DXT5 format, format-specific Eight Bit Alpha and Normal Map flags")),
+            default='RGBA8888',
+        )
+        filter_mode: EnumProperty(
+            name='VTF mipmap filter',
+            items=(
+                ('0', 'Point Filter', 'Point Filter'),
+                ('1', 'Box Filter', 'Box Filter'),
+                ('2', 'Triangle Filter', 'Triangle Filter'),
+                ('3', 'Quadratic Filter', 'Quadratic Filter'),
+                ('4', 'Cubic Filter', 'Cubic Filter'),
+                ('5', 'Catrom Filter', 'Catrom Filter'),
+                ('6', 'Mitchell Filter', 'Mitchell Filter'),
+                ('7', 'Gaussian Filter', 'Gaussian Filter'),
+                ('8', 'SinC Filter', 'SinC Filter'),
+                ('9', 'Bessel Filter', 'Bessel Filter'),
+                ('10', 'Hanning Filter', 'Hanning Filter'),
+                ('11', 'Hamming Filter', 'Hamming Filter'),
+                ('12', 'Blackman Filter', 'Blackman Filter'),
+                ('13', 'Kaiser Filter', 'Kaiser Filter'),
+                ('14', 'Count Filter', 'Count Filter'),
+            ),
+            default='0'
+        )
+
+        def execute(self, context):
+            sima = context.space_data
+            ima = sima.image
+            if ima is None:
+                self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
+            else:
+                print(context)
+                export_texture(ima, self.filepath, self.img_format, self.filter_mode)
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            if not self.filepath:
+                blend_filepath = context.blend_data.filepath
+                if not blend_filepath:
+                    blend_filepath = "untitled"
+                else:
+                    blend_filepath = os.path.splitext(blend_filepath)[0]
+                    self.filepath = os.path.join(
+                        os.path.dirname(blend_filepath),
+                        self.filename + self.filename_ext)
+            else:
                 self.filepath = os.path.join(
-                    os.path.dirname(blend_filepath),
-                    self.filename + self.filename_ext)
+                    os.path.dirname(
+                        self.filepath),
+                    self.filename +
+                    self.filename_ext)
+
+            context.window_manager.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    def export(self, context):
+        cur_img = context.space_data.image
+        if cur_img is None:
+            self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF')
         else:
-            self.filepath = os.path.join(
-                os.path.dirname(
-                    self.filepath),
-                self.filename +
-                self.filename_ext)
-
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
-def export(self, context):
-    cur_img = context.space_data.image
-    if cur_img is None:
-        self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF')
-    else:
-        self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF').filename = \
-            os.path.splitext(cur_img.name)[0]
+            self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF').filename = \
+                os.path.splitext(cur_img.name)[0]
