@@ -211,9 +211,10 @@ if not NO_BPY:
             from .source1.vtf.VTFWrapper.VTFLib import VTFLib
             vtf_lib = VTFLib()
             vtf_lib.shutdown()
+            del vtf_lib
         unregister_nodes()
         SingletonMeta.cleanup()
-        del vtf_lib
+
         unregister_custom_icon()
         unregister_()
 else:
