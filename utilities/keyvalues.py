@@ -70,6 +70,10 @@ class KVReader:
                 while not _is_end(self._next_char()):
                     pass
                 continue
+            if ch == '\\' and self._peek_char() == '\\':
+                while not _is_end(self._next_char()):
+                    pass
+                continue
 
             if _is_identifier_start(ch):
                 buf = ch
