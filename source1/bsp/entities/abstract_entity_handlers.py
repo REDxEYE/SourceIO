@@ -16,11 +16,18 @@ from ..datatypes.model import Model
 from ..datatypes.texture_data import TextureData
 from ..datatypes.texture_info import TextureInfo
 from ...vmt.valve_material import VMT
-from ...vtf.import_vtf import import_texture
+
 from ....bpy_utilities.logging import BPYLoggingManager
 from ....bpy_utilities.utils import get_material, get_or_create_collection
 from ....source_shared.content_manager import ContentManager
 from ....utilities.math_utilities import HAMMER_UNIT_TO_METERS, lerp_vec
+
+from ...vtf import is_vtflib_supported
+
+if is_vtflib_supported():
+    from ...vtf.import_vtf import import_texture
+else:
+    from ...vtf import import_texture
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
