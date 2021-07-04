@@ -87,7 +87,7 @@ class StudioHeader(Base):
         (self.bone_count, self.bone_offset,
          self.bone_controllers_count, self.bone_controllers_offset,
          self.hitbox_count, self.hitbox_offset,
-         self.sequence_count, self.sequence_count,
+         self.sequence_count, self.sequence_offset,
          self.sequence_groups_count, self.sequence_groups_offset,
          self.texture_count, self.texture_offset, self.texture_data_offset,
          self.skin_ref_count, self.skin_families_count, self.skin_offset,

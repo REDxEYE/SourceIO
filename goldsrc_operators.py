@@ -5,7 +5,7 @@ from bpy.props import StringProperty, CollectionProperty, BoolProperty, FloatPro
 
 from .goldsrc.bsp.import_bsp import BSP
 from .goldsrc.bsp.mgr import GoldSrcContentManager
-from .goldsrc.mdl.import_mdl import import_model
+from .goldsrc import import_model
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 

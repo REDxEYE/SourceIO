@@ -4,6 +4,7 @@ import bpy
 
 from ..source1.mdl.mdl_file import Mdl as S1Mdl
 from ..goldsrc.mdl.mdl_file import Mdl as GMdl
+from ..goldsrc.mdl_v4.mdl_file import Mdl as GMdlV4
 from ..source2.resouce_types.valve_model import ValveCompiledModel
 from ..source1.vtx.vtx import Vtx
 from ..source1.vvd import Vvd
@@ -20,6 +21,12 @@ class GoldSrcModelContainer(ModelContainer):
     def __init__(self, mdl: GMdl):
         super().__init__()
         self.mdl: GMdl = mdl
+
+
+class GoldSrcV4ModelContainer(ModelContainer):
+    def __init__(self, mdl: GMdlV4):
+        super().__init__()
+        self.mdl: GMdlV4 = mdl
 
 
 class Source1ModelContainer(ModelContainer):

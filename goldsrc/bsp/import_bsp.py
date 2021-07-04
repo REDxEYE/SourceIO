@@ -336,7 +336,7 @@ class BSP:
         lumens *= color_max / 255
         color = np.divide(color, color_max)
         inner_cone = float(entity_data.get('_cone2', 60))
-        cone = float(entity_data['_cone']) * 2
+        cone = float(entity_data.get('_cone', 60)) * 2
         watts = (lumens * (1 / math.radians(cone)))
         radius = (1 - inner_cone / cone)
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
@@ -453,7 +453,7 @@ class BSP:
                 break
         if bpy.data.objects.get(parent_name, None):
             return
-
+        visited.clear()
         next_name = parent_name
         closed_loop = False
         while True:
@@ -467,6 +467,8 @@ class BSP:
                     closed_loop = True
                     break
                 elif child['target'] == child['targetname']:
+                    break
+                elif child['targetname'] in visited:
                     break
                 visited.append(next_name)
                 next_name = child['target']

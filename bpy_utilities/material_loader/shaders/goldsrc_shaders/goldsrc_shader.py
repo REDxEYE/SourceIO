@@ -16,7 +16,7 @@ class GoldSrcShader(GoldSrcShaderBase):
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
-        basetexture = self.load_texture()
+        basetexture = self.load_texture(material_name)
         basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
         basetexture_node.image = basetexture
         self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
@@ -31,12 +31,12 @@ class GoldSrcShader(GoldSrcShaderBase):
         else:
             shader.inputs['Specular'].default_value = 0
 
-    def load_texture(self, **kwargs):
+    def load_texture(self,material_name, **kwargs):
         model_texture_info = self._vavle_material
-        model_texture = bpy.data.images.get(model_texture_info.name, None)
+        model_texture = bpy.data.images.get(material_name, None)
         if model_texture is None:
             model_texture = bpy.data.images.new(
-                model_texture_info.name,
+                material_name,
                 width=model_texture_info.width,
                 height=model_texture_info.height,
                 alpha=False

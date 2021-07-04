@@ -14,7 +14,7 @@ class TextureDataLump(Lump):
 
     def parse(self):
         textures_count = self.buffer.read_uint32()
-        textures_offset = self.buffer.read_fmt(f'{textures_count}I')
+        textures_offset = self.buffer.read_fmt(f'{textures_count}i')
 
         for texture_offset in textures_offset:
             if texture_offset < 0:
