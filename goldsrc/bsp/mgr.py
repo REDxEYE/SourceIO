@@ -21,17 +21,28 @@ class GoldSrcContentManager(metaclass=SingletonMeta):
         self.logger = log_manager.get_logger(self.__class__.__name__)
 
     def scan_for_content(self, path: Path):
+        tmp_path = path
         while True:
-            if Path.exists(path / 'liblist.gam'):
-                self.game_root: Path = path.parent
-                self.game_root_mod = path
+            if Path.exists(tmp_path / 'liblist.gam'):
+                self.game_root: Path = tmp_path.parent
+                self.game_root_mod = tmp_path
                 self.logger.info(f'Found game root: {self.game_root} ({self.game_root_mod})')
                 break
-            elif len(path.parts) == 1:
-                self.game_root: Path = Path(path.parent.parent)
-                self.game_root_mod = Path(path.parent)
+            elif len(tmp_path.parts) == 1:
+                self.game_root: Path = Path(tmp_path.parent.parent)
+                self.game_root_mod = Path(tmp_path.parent)
                 break
-            path = path.parent
+            found = False
+            for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
+
+                if (tmp_path / default_resource).exists():
+                    self.game_root: Path = Path(tmp_path).parent
+                    self.game_root_mod = Path(tmp_path)
+                    found = True
+                    break
+            if found:
+                break
+            tmp_path = tmp_path.parent
 
         if self.game_root is None:
             self.logger.warn('Cannot find game directory path')

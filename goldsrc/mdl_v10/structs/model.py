@@ -30,7 +30,7 @@ from ....utilities.byte_io_mdl import ByteIO
 # 	int		groupindex;
 # };
 
-class StudioModel:
+class StudioModel(Base):
     def __init__(self):
         self.name = ''
         self.type = 0

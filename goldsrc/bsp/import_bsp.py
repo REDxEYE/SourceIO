@@ -233,6 +233,10 @@ class BSP:
                         game_wad_path = Path(game_wad_path)
                         game_wad_path = Path(game_wad_path.name)
                         self.bsp_file.manager.add_game_resource_root(game_wad_path)
+                elif entity_class.startswith('monster_') and 'model' in entity:
+                    from .entity_handlers import handle_generic_model_prop
+                    entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+                    handle_generic_model_prop(entity, self.scale, entity_collection)
                 elif entity_class.startswith('trigger'):
                     self.load_trigger(entity_class, entity)
                 elif entity_class.startswith('func'):

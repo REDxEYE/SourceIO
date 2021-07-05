@@ -229,6 +229,8 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
                         if weight > 0:
                             bone_name = mdl.bones[bone_index].name
                             weight_groups[bone_name].add([n], weight, 'REPLACE')
+
+            if not static_prop:
                 flex_names = []
                 for mesh in model.meshes:
                     if mesh.flexes:

@@ -2,8 +2,7 @@ import binascii
 import contextlib
 import io
 import struct
-import sys
-import traceback
+import typing
 from io import BytesIO
 from pathlib import Path
 from typing import Union, BinaryIO
@@ -324,6 +323,17 @@ class ByteIO:
             if total_count == count:
                 break
         return values
+
+    def read_structure_array(self, offset, count, data_class, *args, **kwargs):
+        if count == 0:
+            return []
+        self.seek(offset)
+        object_list = []
+        for _ in range(count):
+            obj = data_class()
+            obj.read(self, *args, **kwargs)
+            object_list.append(obj)
+        return object_list
 
 
 if __name__ == '__main__':

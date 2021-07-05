@@ -1,4 +1,4 @@
-from ....goldsrc.mdl.structs.texture import StudioTexture
+from ....goldsrc.mdl_v10.structs.texture import StudioTexture
 from ..shader_base import ShaderBase
 
 

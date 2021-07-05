@@ -5,7 +5,7 @@ from pathlib import Path
 import bpy
 
 from .mgr import GoldSrcContentManager
-from ..mdl.import_mdl import import_model
+
 from ...bpy_utilities.utils import get_new_unique_collection
 from ...utilities.math_utilities import parse_hammer_vector
 
@@ -18,6 +18,7 @@ def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotatio
 
 
 def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=False):
+    from .. import import_model
     origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * scale
     angles = [math.radians(a) for a in parse_hammer_vector(entity_data.get('angles', '0 0 0'))]
     if fix_rotation:
@@ -52,8 +53,14 @@ entity_handlers = {
     'monster_scientist': partial(handle_model_prop, Path('models/scientist.mdl')),
     'monster_sitting_scientist': partial(handle_model_prop, Path('models/scientist.mdl')),
     'monster_barney': partial(handle_model_prop, Path('models/barney.mdl')),
+    'monster_cine_barney': partial(handle_model_prop, Path('models/cine-barney.mdl')),
+    'monster_cine_panther': partial(handle_model_prop, Path('models/cine-panther.mdl')),
+    'monster_cine_scientist': partial(handle_model_prop, Path('models/cine-scientist.mdl')),
     'monster_gman': partial(handle_model_prop, Path('models/gman.mdl')),
     'monster_faceless': partial(handle_model_prop, Path('models/Faceless.mdl')),
+    'monster_polyrobo': partial(handle_model_prop, Path('models/polyrobo.mdl')),
+    'monster_boid': partial(handle_model_prop, Path('models/boid.mdl')),
+    'monster_boid_flock': partial(handle_model_prop, Path('models/boid.mdl')),
     'monster_generic': handle_generic_model_prop,
     'cycler': handle_generic_model_prop,
     'cycler_sprite': partial(handle_generic_model_prop, fix_rotation=True),

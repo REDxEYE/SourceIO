@@ -2,7 +2,7 @@ import bpy
 
 from ...shader_base import Nodes
 from ..goldsrc_shader_base import GoldSrcShaderBase
-from .....goldsrc.mdl.structs.texture import StudioTexture, MdlTextureFlag
+from .....goldsrc.mdl_v10.structs.texture import StudioTexture, MdlTextureFlag
 
 
 class GoldSrcShader(GoldSrcShaderBase):

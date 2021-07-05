@@ -4,7 +4,7 @@ from typing import Dict, Type, Any, Union
 
 from .shader_base import ShaderBase
 from ..logging import BPYLoggingManager
-from ...goldsrc.mdl.structs.texture import StudioTexture
+from ...goldsrc.mdl_v10.structs.texture import StudioTexture
 from ...source1.vmt.valve_material import VMT
 
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
