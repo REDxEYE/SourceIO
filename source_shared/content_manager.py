@@ -135,6 +135,8 @@ class ContentManager(metaclass=SingletonMeta):
             path = path.parent
         if path.parts[-1] == '*':
             path = path.parent
+        if "workshop" in path.parts:  # SFM detected
+            path = Path(*path.parts[:path.parts.index('workshop') + 1])
         gameinfos = list(path.glob('*gameinfo*.*'))
         if gameinfos:
             return True, path
