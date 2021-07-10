@@ -21,7 +21,7 @@ class VMT:
         return self.material.header
 
     def get_param(self, name, default):
-        return self.material.get_raw_data().get(name, default)
+        return self.material.get_raw_data().get(name.lower(), default)
 
     def parse(self):
         content_manager = ContentManager()
