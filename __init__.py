@@ -75,6 +75,8 @@ if not NO_BPY:
             if is_vtflib_supported():
                 layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)",
                                 icon_value=vtf_icon.icon_id)
+                layout.operator(SkyboxImport_OT_operator.bl_idname, text="Source Skybox (.vmt)",
+                                icon_value=vtf_icon.icon_id)
                 layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
                                 icon_value=vmt_icon.icon_id)
             layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
@@ -182,9 +184,11 @@ if not NO_BPY:
         from .source1_operators import (VTFExport_OT_operator,
                                         VTFImport_OT_operator,
                                         VMTImport_OT_operator,
+                                        SkyboxImport_OT_operator,
                                         )
 
-        classes = tuple([*classes, VTFExport_OT_operator, VTFImport_OT_operator, VMTImport_OT_operator])
+        classes = tuple([*classes, VTFExport_OT_operator, VTFImport_OT_operator,
+                         VMTImport_OT_operator, SkyboxImport_OT_operator])
 
     register_, unregister_ = bpy.utils.register_classes_factory(classes)
 

@@ -157,6 +157,7 @@ class DMXImporter_OT_operator(bpy.types.Operator):
 if is_vtflib_supported():
     from .source1.vtf.export_vtf import export_texture
     from .source1.vtf.import_vtf import import_texture
+    from .source1.vtf.cubemap_to_envmap import load_skybox_texture
 
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -177,6 +178,46 @@ if is_vtflib_supported():
                 directory = Path(self.filepath).absolute()
             for file in self.files:
                 import_texture(file.name, (directory / file.name).open('rb'), True)
+            return {'FINISHED'}
+
+        def invoke(self, context, event):
+            wm = context.window_manager
+            wm.fileselect_add(self)
+            return {'RUNNING_MODAL'}
+
+
+    # noinspection PyUnresolvedReferences,PyPep8Naming
+    class SkyboxImport_OT_operator(bpy.types.Operator):
+        """Load Source Engine Skybox texture"""
+        bl_idname = "import_texture.vtf_skybox"
+        bl_label = "Import Skybox"
+        bl_options = {'UNDO'}
+
+        filepath: StringProperty(subtype='FILE_PATH', )
+        files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+        filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
+
+        resolution: EnumProperty(
+            name="Skybox texture resolution",
+            description="Resolution of final skybox texture",
+            items=(
+                ('1024', "1024x512", "256mb free ram required"),
+                ('2048', "2048x1024", "512mb free ram required"),
+                ('4096', "4096x2048", "1Gb free ram required"),
+                ('8192', "8192x4096", "2Gb free ram required"),
+                ('16384', "16384x8192", "8Gb free ram required")),
+            default='2048',
+        )
+
+        def execute(self, context):
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
+            ContentManager().scan_for_content(directory)
+            for file in self.files:
+                skybox_name = Path(file.name).stem
+                load_skybox_texture(skybox_name[:-2], int(self.resolution))
             return {'FINISHED'}
 
         def invoke(self, context, event):
