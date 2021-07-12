@@ -1,4 +1,4 @@
-from SourceIO.bpy_utilities.logging import BPYLoggingManager
+from .....bpy_utilities.logging import BPYLoggingManager
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 import bpy
