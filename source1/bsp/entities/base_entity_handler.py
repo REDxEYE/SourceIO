@@ -11,9 +11,11 @@ from mathutils import Vector, Euler
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
+from ...vtf import load_skybox_texture
 
 from ....bpy_utilities.logging import BPYLoggingManager
 from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from ....bpy_utilities.material_loader.shaders.source1_shaders.sky import Skybox
 from ....bpy_utilities.utils import get_material
 from ....source_shared.content_manager import ContentManager
 from ....utilities.math_utilities import lerp_vec
@@ -258,6 +260,9 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_worldspawn(self, entity: worldspawn, entity_raw: dict):
         world = self._load_brush_model(0, 'world_geometry')
+        skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
+        Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
+        bpy.context.scene.world = bpy.data.worlds[entity.skyname]
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
 
@@ -334,30 +339,30 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
 
-        if bpy.context.scene.world is None:
-            bpy.context.scene.world = bpy.data.worlds.new("World")
-        bpy.context.scene.world.use_nodes = True
-        nt = bpy.context.scene.world.node_tree
-        nt.nodes.clear()
-        out_node: bpy.types.Node = nt.nodes.new('ShaderNodeOutputWorld')
-        out_node.location = (0, 0)
-        bg_node: bpy.types.Node = nt.nodes.new('ShaderNodeBackground')
-        bg_node.location = (-300, 0)
-        nt.links.new(bg_node.outputs['Background'], out_node.inputs['Surface'])
-        use_sdr = entity._ambientHDR == [-1, -1, -1, -1]
-
-        color = ([_srgb2lin(c / 255) for c in entity._ambientHDR] if use_sdr
-                 else [_srgb2lin(c / 255) for c in entity._ambient])
-        if len(color) == 4:
-            *color, brightness = color
-        elif len(color) == 3:
-            brightness = 200 / 255
-        else:
-            color = [color[0], color[0], color[0]]
-            brightness = 200 / 255
-
-        bg_node.inputs['Color'].default_value = (color + [1])
-        bg_node.inputs['Strength'].default_value = brightness
+        # if bpy.context.scene.world is None:
+        #     bpy.context.scene.world = bpy.data.worlds.new("World")
+        # bpy.context.scene.world.use_nodes = True
+        # nt = bpy.context.scene.world.node_tree
+        # nt.nodes.clear()
+        # out_node: bpy.types.Node = nt.nodes.new('ShaderNodeOutputWorld')
+        # out_node.location = (0, 0)
+        # bg_node: bpy.types.Node = nt.nodes.new('ShaderNodeBackground')
+        # bg_node.location = (-300, 0)
+        # nt.links.new(bg_node.outputs['Background'], out_node.inputs['Surface'])
+        # use_sdr = entity._ambientHDR == [-1, -1, -1, -1]
+        #
+        # color = ([_srgb2lin(c / 255) for c in entity._ambientHDR] if use_sdr
+        #          else [_srgb2lin(c / 255) for c in entity._ambient])
+        # if len(color) == 4:
+        #     *color, brightness = color
+        # elif len(color) == 3:
+        #     brightness = 200 / 255
+        # else:
+        #     color = [color[0], color[0], color[0]]
+        #     brightness = 200 / 255
+        #
+        # bg_node.inputs['Color'].default_value = (color + [1])
+        # bg_node.inputs['Strength'].default_value = brightness
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('light_environment', obj, 'lights')
 

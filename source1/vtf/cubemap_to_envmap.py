@@ -21,7 +21,7 @@ def load_skybox_texture(skyname, width=1024):
     for k, n in sides_names.items():
         file_path = content_manager.find_material(f'skybox/{skyname}{n}')
         material = VMT(file_path)
-        use_hdr |= bool(material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedtexture',False)))
+        use_hdr |= bool(material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedtexture', False)))
         texture_path = material.get_param('$basetexture', None)
         if texture_path is None:
             raise Exception('Missing $basetexture in skybox material')
@@ -46,13 +46,16 @@ def load_skybox_texture(skyname, width=1024):
     main_texture = texture_from_data(skyname, rgba_data, width, width // 2, False)
     del rgba_data
     hdr_main_texture = None
+    hdr_alpha_texture = None
     if use_hdr:
         for k, n in sides_names.items():
             file_path = content_manager.find_material(f'skybox/{skyname}_hdr{n}')
             if file_path is None:
                 file_path = content_manager.find_material(f'skybox/{skyname}{n}')
             material = VMT(file_path)
-            texture_path = material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedTexture', material.get_param('$basetexture', None)))
+            texture_path = material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedTexture',
+                                                                                    material.get_param('$basetexture',
+                                                                                                       None)))
             if texture_path is None:
                 raise Exception('Missing $basetexture in skybox material')
             texture_file = content_manager.find_texture(texture_path)
@@ -73,6 +76,9 @@ def load_skybox_texture(skyname, width=1024):
         eq_map = convert_to_eq(sides, 'dict', width, width // 2, 'default', 'bilinear').T
         rgba_data = np.rot90(eq_map)
         rgba_data = np.flipud(rgba_data)
-        hdr_main_texture = texture_from_data(skyname+'_HDR', rgba_data, width, width // 2, False)
-    del rgba_data
-    return main_texture, hdr_main_texture
+        a_data = rgba_data[:, :, 3]
+        a_data = np.dstack([a_data, a_data, a_data, np.full_like(a_data, 255)])
+        hdr_alpha_texture = texture_from_data(skyname + '_HDR_A', a_data, width, width // 2, False)
+        hdr_main_texture = texture_from_data(skyname + '_HDR', rgba_data, width, width // 2, False)
+        del rgba_data
+    return main_texture, hdr_main_texture, hdr_alpha_texture

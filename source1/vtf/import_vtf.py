@@ -11,7 +11,7 @@ logger = log_manager.get_logger('content_manager')
 def import_texture(name, file_object, update=False):
     logger.info(f'Loading "{name}" texture')
     rgba_data, image_width, image_height = load_texture(file_object)
-    return texture_from_data(rgba_data, image_width, image_height, update)
+    return texture_from_data(name, rgba_data, image_width, image_height, update)
 
 
 def texture_from_data(name, rgba_data, image_width, image_height, update):
