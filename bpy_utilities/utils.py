@@ -40,4 +40,5 @@ def get_new_unique_collection(model_name, parent_collection):
 def append_blend(filepath, type_name, link=False):
     with bpy.data.libraries.load(filepath, link=link) as (data_from, data_to):
         setattr(data_to, type_name, [asset for asset in getattr(data_from, type_name)])
-
+    for o in getattr(data_to, type_name) :
+        o.use_fake_user = True
