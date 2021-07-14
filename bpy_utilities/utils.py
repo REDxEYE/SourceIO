@@ -32,9 +32,10 @@ def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Co
 def get_new_unique_collection(model_name, parent_collection):
     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
 
-    master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
-                                                 parent_collection)
-    return master_collection
+    return get_or_create_collection(
+        model_name + (f'_{copy_count}' if copy_count > 0 else ''),
+        parent_collection,
+    )
 
 
 def append_blend(filepath, type_name, link=False):
