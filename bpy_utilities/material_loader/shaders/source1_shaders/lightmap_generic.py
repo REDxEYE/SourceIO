@@ -6,6 +6,10 @@ class LightmapGeneric(Source1ShaderBase):
     SHADER = 'lightmappedgeneric'
 
     @property
+    def isskybox(self):
+        return self._vavle_material.get_int('%' + 'compilesky', 0) + self._vavle_material.get_param('%' + 'compile2Dsky', 0)
+
+    @property
     def basetexture(self):
         texture_path = self._vavle_material.get_param('$basetexture', None)
         if texture_path is not None:
@@ -48,6 +52,9 @@ class LightmapGeneric(Source1ShaderBase):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
+        if self.isskybox:
+            self.bpy_material.shadow_method = 'NONE'
+            self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
@@ -60,7 +67,13 @@ class LightmapGeneric(Source1ShaderBase):
 
             self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
 
-            if self.translucent or self.alphatest:
+            if self.alphatest:
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'HASHED'
+                self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
+            if self.translucent:
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'HASHED'
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
 
         if not self.phong:

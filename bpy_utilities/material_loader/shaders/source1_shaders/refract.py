@@ -66,6 +66,10 @@ class Refract(Source1ShaderBase):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
+        self.bpy_material.blend_method = 'OPAQUE'
+        self.bpy_material.shadow_method = 'NONE'
+        self.bpy_material.use_screen_refraction = True
+        self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])

@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Iterable
+import bpy
 
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
@@ -55,37 +56,70 @@ class Water(Source1ShaderBase):
 
     @property
     def refracttint(self):
-        color_value, value_type = self._vavle_material.get_vector('$refracttint', [1, 1, 1])
+        color_value, value_type = self._vavle_material.get_vector('$refracttint', [0.85, 0.9, 0.95])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
-        return color_value
+        return self.ensure_length(color_value, 4, 1.0)  
+
+    @property
+    def reflecttint(self):
+        color_value, value_type = self._vavle_material.get_vector('$reflecttint', [1, 1, 1])
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+        return self.ensure_length(color_value, 4, 1.0)
+
+    @property
+    def abovewater(self):
+        value = self._vavle_material.get_int('$abovewater', 0)
+        return value
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
+        self.bpy_material.blend_method = 'OPAQUE'
+        self.bpy_material.shadow_method = 'NONE'
+        self.bpy_material.use_screen_refraction = True
+        self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
-        self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
-        basetexture = self.basetexture
-        if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
+        if self.use_bvlg_status:
+            group_node = self.create_node(Nodes.ShaderNodeGroup, self.SHADER)
+            group_node.node_tree = bpy.data.node_groups.get("Water")
+            group_node.width = group_node.bl_width_max
+            self.connect_nodes(group_node.outputs['BSDF'], material_output.inputs['Surface'])
+            bumpmap = self.bumpmap
+            if bumpmap:
+                bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$normalmap')
+                bumpmap_node.image = bumpmap
+                self.connect_nodes(bumpmap_node.outputs['Color'], group_node.inputs['$normalmap'])
+            group_node.inputs['$reflecttint'].default_value = self.reflecttint
+            group_node.inputs['$refracttint'].default_value = self.refracttint
 
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
-            self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Roughness'])
 
-        bumpmap = self.bumpmap
-        if bumpmap:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
-            bumpmap_node.image = bumpmap
+        else:
+            shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+            self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
+            basetexture = self.basetexture
+            if basetexture:
+                basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
+                basetexture_node.image = basetexture
 
-            normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+                self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+                self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Roughness'])
 
-            self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
-            self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
-            shader.inputs['Transmission'].default_value = 1.0
-            shader.inputs['Roughness'].default_value = self.bluramount
+            bumpmap = self.bumpmap
+            if bumpmap:
+                bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
+                bumpmap_node.image = bumpmap
+
+                normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+
+                self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
+                self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
+                shader.inputs['Transmission'].default_value = 1.0
+                shader.inputs['Roughness'].default_value = self.bluramount
