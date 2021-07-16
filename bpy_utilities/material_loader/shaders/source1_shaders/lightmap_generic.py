@@ -74,6 +74,8 @@ class LightmapGeneric(Source1ShaderBase):
             if self.translucent:
                 self.bpy_material.blend_method = 'BLEND'
                 self.bpy_material.shadow_method = 'HASHED'
+                self.bpy_material.use_backface_culling = True
+                self.bpy_material.show_transparent_back = False
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
 
         if not self.phong:
