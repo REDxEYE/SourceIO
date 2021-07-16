@@ -81,11 +81,11 @@ class KVReader:
                     buf += self._next_char()
                 return KVToken.STR, buf, lc
 
-            if ch in '"\'':
+            if ch == '"':
                 buf = ''
-                while not _is_end(self._peek_char()) and self._peek_char() not in '"\'':
+                while not _is_end(self._peek_char()) and self._peek_char() != '"':
                     buf += self._next_char()
-                if self._next_char() not in '"\'':
+                if self._next_char() != '"':
                     self._report('String literal is not closed', lc)
                 return KVToken.STR, buf, lc
 
