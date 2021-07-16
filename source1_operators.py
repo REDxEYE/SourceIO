@@ -97,7 +97,8 @@ class BSPImport_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
-    import_decal: BoolProperty(name="Import decals", default=True, subtype='UNSIGNED')
+    import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
+    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
@@ -115,7 +116,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
             bsp_map.load_overlays()
         # bsp_map.load_detail_props()
         if self.import_textures:
-            bsp_map.load_materials()
+            bsp_map.load_materials(self.use_bvlg)
         content_manager.flush_cache()
         content_manager.clean()
         return {'FINISHED'}

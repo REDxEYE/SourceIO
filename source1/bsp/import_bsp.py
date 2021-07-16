@@ -35,6 +35,7 @@ from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...source_shared.content_manager import ContentManager
 from ...utilities.keyvalues import KVParser
@@ -129,7 +130,8 @@ class BSP:
                                                    }
                                                    })
 
-    def load_materials(self):
+    def load_materials(self, use_bvlg):
+        Source1ShaderBase.use_bvlg(use_bvlg)
         content_manager = ContentManager()
 
         texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
@@ -305,7 +307,7 @@ class BSP:
             overlays = info_overlay_lump.overlays
             ov_count = len(overlays)
             for n, overlay in enumerate(overlays):
-                print(f'Loading overlays {n+1}/{ov_count}')
+                print(f'Loading overlays {n + 1}/{ov_count}')
                 # placement_faces = [faces_lump.faces[face_id] for face_id in overlay.ofaces[:overlay.face_count]]
                 # placement_face = placement_faces[0]
                 # plane = planes_lump.planes[placement_face.plane_index]
