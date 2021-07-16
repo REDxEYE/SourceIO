@@ -44,11 +44,9 @@ if not NO_BPY:
                                    LoadEntity_OT_operator,
                                    )
     from .vpk_operators import (SourceIO_OP_VPKBrowser,
-                                SourceIO_OP_VPKButtonUp,
                                 SourceIO_OP_VPKBrowserLoader,
-                                SourceIO_UL_VPKDirList,
-                                SourceIO_PG_VPKEntry,
                                 )
+    from .vpk_operators import classes as vpk_classes
 
     from .bpy_utilities.export_nodes import register_nodes, unregister_nodes
 
@@ -173,11 +171,7 @@ if not NO_BPY:
         LoadEntity_OT_operator,
         ChangeSkin_OT_operator,
 
-        SourceIO_PG_VPKEntry,
-        SourceIO_UL_VPKDirList,
-        SourceIO_OP_VPKButtonUp,
-        SourceIO_OP_VPKBrowserLoader,
-        SourceIO_OP_VPKBrowser,
+        *vpk_classes,
     )
 
     if is_vtflib_supported():

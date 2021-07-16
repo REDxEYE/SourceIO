@@ -150,3 +150,12 @@ class SourceIO_UL_VPKDirList(bpy.types.UIList):
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
+
+
+classes = (
+    SourceIO_PG_VPKEntry,
+    SourceIO_OP_VPKButtonUp,
+    SourceIO_OP_VPKBrowserLoader,
+    SourceIO_UL_VPKDirList,
+    SourceIO_OP_VPKBrowser,
+)
