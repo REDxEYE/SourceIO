@@ -211,6 +211,28 @@ class ShaderBase:
             node.label = name
         return node
 
+    def create_node_group(self, node_group, name=None, location=None):
+        group_node = self.create_node(Nodes.ShaderNodeGroup, name)
+        group_node.node_tree = node_group
+        if location is not None:
+            group_node.location = location
+        return group_node
+
+    def create_texture_node(self, texture, name=None, location=None):
+        texture_node = self.create_node(Nodes.ShaderNodeTexImage, name)
+        texture_node.image = texture
+        if location is not None:
+            texture_node.location = location
+        return texture_node
+
+    def create_and_connect_texture_node(self, texture, color_out_target=None, alpha_out_target=None, *, name=None):
+        texture_node = self.create_texture_node(texture, name)
+        if color_out_target is not None:
+            self.connect_nodes(texture_node.outputs['Color'], color_out_target)
+        if alpha_out_target is not None:
+            self.connect_nodes(texture_node.outputs['Alpha'], alpha_out_target)
+        return texture_node
+
     def get_node(self, name):
         return self.bpy_material.node_tree.nodes.get(name, None)
 
