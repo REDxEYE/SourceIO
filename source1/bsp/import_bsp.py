@@ -13,6 +13,7 @@ from .bsp_file import BSPFile, open_bsp
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 
 from .entities.base_entity_handler import BaseEntityHandler
+from .entities.bms_entity_handlers import BlackMesaEntityHandler
 from .entities.csgo_entity_handlers import CSGOEntityHandler
 from .entities.halflife2_entity_handler import HalfLifeEntityHandler
 from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
@@ -76,6 +77,8 @@ class BSP:
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 1840:  # SFM
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+        elif provider.steam_id == 362890:  # BlackMesa
+            self.entity_handler = BlackMesaEntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 730:  # CS:GO
             self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection, self.scale)
         elif provider.steam_id == 550:

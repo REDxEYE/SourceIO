@@ -9330,7 +9330,7 @@ class npc_human_assassin(BaseNPC):
     pass
 
 
-class BaseMarine(BaseNPC, RappelNPC):
+class BaseMarine(RappelNPC):
 
     @property
     def NumGrenades(self):
