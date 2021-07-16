@@ -103,8 +103,8 @@ class Water(Source1ShaderBase):
         self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         
-        if self.abovewater:
-            self.create_probe()
+        #if self.abovewater:
+        #    self.create_probe()
         if self.use_bvlg_status:
             group_node = self.create_node(Nodes.ShaderNodeGroup, self.SHADER)
             group_node.node_tree = bpy.data.node_groups.get("Water")
