@@ -1,3 +1,5 @@
+from typing import List
+
 from .. import Lump, lump_tag
 from ..datatypes.plane import Plane
 
@@ -7,7 +9,7 @@ class PlaneLump(Lump):
 
     def __init__(self, bsp, lump_id):
         super().__init__(bsp, lump_id)
-        self.planes = []
+        self.planes: List[Plane] = []
 
     def parse(self):
         reader = self.reader

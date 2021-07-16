@@ -1,3 +1,5 @@
+from typing import List
+
 from .. import Lump, lump_tag
 from ..datatypes.node import Node
 
@@ -7,7 +9,7 @@ class NodeLump(Lump):
 
     def __init__(self, bsp, lump_id):
         super().__init__(bsp, lump_id)
-        self.nodes = []
+        self.nodes: List[Node] = []
 
     def parse(self):
         reader = self.reader
