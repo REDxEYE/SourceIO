@@ -148,11 +148,13 @@ class AbstractEntityHandler:
             material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
 
         uvs_per_face = []
+        luvs_per_face = []
 
         for map_face in bsp_faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
             uvs = {}
+            luvs = {}
             face = []
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
@@ -160,6 +162,7 @@ class AbstractEntityHandler:
             texture_info = bsp_textures_info[map_face.tex_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             tv1, tv2 = texture_info.texture_vectors
+            lv1, lv2 = texture_info.lightmap_vectors
 
             used_surf_edges = bsp_surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
@@ -172,25 +175,37 @@ class AbstractEntityHandler:
             u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / texture_data.width
             v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / texture_data.height)
 
-            v_uvs = np.dstack([u, v]).reshape((-1, 2))
+            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / texture_data.width
+            lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / texture_data.height)
 
-            for vertex_id, uv in zip(face_vertex_ids, v_uvs):
+            v_uvs = np.dstack([u, v]).reshape((-1, 2))
+            l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
+
+            for vertex_id, uv, luv in zip(face_vertex_ids, v_uvs, l_uvs):
                 new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv
+                luvs[new_vertex_id] = luv
 
             material_indices.append(material_lookup_table[texture_data.name_id])
             uvs_per_face.append(uvs)
+            luvs_per_face.append(luvs)
             faces.append(face[::-1])
 
         mesh_data.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
         mesh_data.polygons.foreach_set('material_index', material_indices)
 
-        mesh_data.uv_layers.new()
-        uv_data = mesh_data.uv_layers[0].data
+        main_uv = mesh_data.uv_layers.new()
+        uv_data = main_uv.data
         for poly in mesh_data.polygons:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+
+        lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
+        uv_data = lightmap_uv.data
+        for poly in mesh_data.polygons:
+            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+                uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
 
         return mesh_obj
 
