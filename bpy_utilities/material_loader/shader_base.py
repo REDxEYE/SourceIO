@@ -239,10 +239,10 @@ class ShaderBase:
 
         self.bpy_material.use_nodes = True
         self.clean_nodes()
-        self.bpy_material.blend_method = 'HASHED'
-        self.bpy_material.shadow_method = 'HASHED'
-        self.bpy_material.use_screen_refraction = True
-        self.bpy_material.refraction_depth = 0.01
+        self.bpy_material.blend_method = 'OPAQUE'
+        self.bpy_material.shadow_method = 'OPAQUE'
+        self.bpy_material.use_screen_refraction = False
+        self.bpy_material.refraction_depth = 0.2
         self.bpy_material['source_loaded'] = True
 
     def align_nodes(self):

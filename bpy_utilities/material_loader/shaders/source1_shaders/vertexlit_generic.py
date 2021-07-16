@@ -177,7 +177,12 @@ class VertexLitGeneric(Source1ShaderBase):
 
         if self.use_bvlg_status:
             self.do_arrange = False
-            if self.alphatest:
+            if self.alphatest or self.translucent:
+                if self.translucent:
+                    self.bpy_material.blend_method = 'BLEND'
+                else:
+                    self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'HASHED'
                 alphatest_node = self.create_node(Nodes.ShaderNodeGroup, "$alphatest")
                 alphatest_node.node_tree = bpy.data.node_groups.get("$alphatest")
                 parentnode = alphatest_node
