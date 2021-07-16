@@ -19,6 +19,7 @@ import numpy as np
 
 from ...bpy_utilities.utils import get_material, get_new_unique_collection
 from ...source_shared.content_manager import ContentManager
+from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
 def put_into_collections(model_container, model_name,
@@ -60,12 +61,13 @@ def put_into_collections(model_container, model_name,
 
 class ValveCompiledModel(ValveCompiledFile):
 
-    def __init__(self, path_or_file, re_use_meshes=False):
+    def __init__(self, path_or_file, re_use_meshes=False, scale=HAMMER_UNIT_TO_METERS):
         from ...source_shared.model_container import Source2ModelContainer
 
         super().__init__(path_or_file)
         if isinstance(path_or_file, (Path, str)):
             ContentManager().scan_for_content(path_or_file)
+        self.scale = scale
         self.re_use_meshes = re_use_meshes
         self.strip_from_name = ''
         self.lod_collections = {}
@@ -232,7 +234,7 @@ class ValveCompiledModel(ValveCompiledFile):
                 if normals.dtype.char == 'B' and normals.shape[1] == 4:
                     normals = convert_normals(normals)
 
-                mesh.from_pydata(used_vertices, [],
+                mesh.from_pydata(used_vertices * self.scale, [],
                                  index_buffer.indexes[start_index:start_index + index_count].tolist())
                 mesh.update()
                 n = 0
@@ -336,7 +338,7 @@ class ValveCompiledModel(ValveCompiledFile):
         bones = []
         for bone_name in bone_names:
             bl_bone = armature.edit_bones.new(name=bone_name)
-            bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head
+            bl_bone.tail = Vector([0, 0, 1]) + bl_bone.head * self.scale
             bones.append((bl_bone, bone_name))
 
         for n, bone_name in enumerate(bone_names):
@@ -354,7 +356,7 @@ class ValveCompiledModel(ValveCompiledFile):
             parent_id = bone_parents[n]
             bone_pos = bone_positions[n]
             bone_rot = bone_rotations[n]
-            bone_pos = Vector([bone_pos[1], bone_pos[0], -bone_pos[2]])
+            bone_pos = Vector([bone_pos[1], bone_pos[0], -bone_pos[2]]) * self.scale
             bone_rot = Quaternion([-bone_rot[3], -bone_rot[1], -bone_rot[0], bone_rot[2]])
             mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
             pose_bone.matrix_basis.identity()
@@ -391,7 +393,7 @@ class ValveCompiledModel(ValveCompiledFile):
                 empty.parent = self.container.armature
                 empty.parent_type = 'BONE'
                 empty.parent_bone = attachment['m_influenceNames'][0]
-            empty.location = Vector([pos[1], pos[0], pos[2]])
+            empty.location = Vector([pos[1], pos[0], pos[2]]) * self.scale
             empty.rotation_quaternion = rot
 
     def load_animations(self):
@@ -445,7 +447,7 @@ class ValveCompiledModel(ValveCompiledFile):
                         pos_type, pos = bone_data['Position']
                         rot_type, rot = bone_data['Angle']
 
-                        bone_pos = Vector([pos[1], pos[0], -pos[2]])
+                        bone_pos = Vector([pos[1], pos[0], -pos[2]]) * self.scale
                         bone_rot = Quaternion([-rot[3], -rot[1], -rot[0], rot[2]])
 
                         bone = armature.pose.bones[bone_name]
@@ -510,7 +512,7 @@ class ValveCompiledModel(ValveCompiledFile):
             phys_file = ContentManager().find_file(phys_file_path)
             if not phys_file:
                 continue
-            vphys = ValveCompiledPhysics(phys_file)
+            vphys = ValveCompiledPhysics(phys_file, self.scale)
             vphys.parse_meshes()
             phys_meshes = vphys.build_mesh()
             self.container.physics_objects.extend(phys_meshes)

@@ -21,6 +21,7 @@ class VMDLImport_OT_operator(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     invert_uv: BoolProperty(name="invert UV?", default=True)
+    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     import_anim: BoolProperty(name="Import animations", default=False)
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
@@ -35,7 +36,7 @@ class VMDLImport_OT_operator(bpy.types.Operator):
         ContentManager().scan_for_content(directory)
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
-            model = ValveCompiledModel(str(directory / file.name))
+            model = ValveCompiledModel(str(directory / file.name),self.scale)
             model.load_mesh(self.invert_uv)
             model.load_attachments()
             master_collection = get_new_unique_collection(model.name, bpy.context.scene.collection)

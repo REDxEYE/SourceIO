@@ -13,11 +13,13 @@ import numpy as np
 
 from ...bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection
 from ...source_shared.content_manager import ContentManager
+from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
 class ValveCompiledPhysics(ValveCompiledFile):
-    def __init__(self, path_or_file):
+    def __init__(self, path_or_file, scale=HAMMER_UNIT_TO_METERS):
         super().__init__(path_or_file)
+        self.scale = scale
         self.data_block = self.get_data_block(block_name='DATA')[0]
         self.spheres = []
         self.capsules = []
@@ -69,7 +71,7 @@ class ValveCompiledPhysics(ValveCompiledFile):
             mesh_data = bpy.data.meshes.new(name=f'{name}_mesh')
             mesh_obj = bpy.data.objects.new(name=name, object_data=mesh_data)
 
-            mesh_data.from_pydata(vertices, [], polygons)
+            mesh_data.from_pydata(vertices * self.scale, [], polygons)
             mesh_data.update()
             meshes.append(mesh_obj)
         return meshes
