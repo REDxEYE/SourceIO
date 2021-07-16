@@ -144,13 +144,11 @@ class VertexLitGeneric(Source1ShaderBase):
 
     @property
     def phongexponent(self):
-        value = self._vavle_material.get_float('$phongexponent', None)
-        return value
+        return self._vavle_material.get_float('$phongexponent', None)
 
     @property
     def phongboost(self):
-        value = self._vavle_material.get_float('$phongboost', 1)
-        return value
+        return self._vavle_material.get_float('$phongboost', 1)
 
     @property
     def phongalbedotint(self):
@@ -177,11 +175,20 @@ class VertexLitGeneric(Source1ShaderBase):
 
         if self.use_bvlg_status:
             self.do_arrange = False
-            if self.alphatest or self.translucent:
-                if self.translucent:
-                    self.bpy_material.blend_method = 'BLEND'
-                else:
-                    self.bpy_material.blend_method = 'HASHED'
+            if self.alphatest:
+                self.bpy_material.blend_method = 'BLEND' if self.translucent else 'HASHED'
+                self.bpy_material.shadow_method = 'HASHED'
+                alphatest_node = self.create_node(Nodes.ShaderNodeGroup, "$alphatest")
+                alphatest_node.node_tree = bpy.data.node_groups.get("$alphatest")
+                parentnode = alphatest_node
+                material_output.location = [450, 0]
+                alphatest_node.location = [250, 0]
+                alphatest_node.inputs['$alphatestreference [value]'].default_value = self.alphatestreference
+                alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
+                self.connect_nodes(alphatest_node.outputs['BSDF'], material_output.inputs['Surface'])
+
+            elif self.translucent:
+                self.bpy_material.blend_method = 'BLEND'
                 self.bpy_material.shadow_method = 'HASHED'
                 alphatest_node = self.create_node(Nodes.ShaderNodeGroup, "$alphatest")
                 alphatest_node.node_tree = bpy.data.node_groups.get("$alphatest")
@@ -223,7 +230,7 @@ class VertexLitGeneric(Source1ShaderBase):
                 bumpmap_node.location = [-800, -220]
                 bumpmap_node.image = self.bumpmap
                 self.connect_nodes(bumpmap_node.outputs['Color'], group_node.inputs['$bumpmap [texture]'])
-            
+
                 if self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
@@ -245,7 +252,7 @@ class VertexLitGeneric(Source1ShaderBase):
                     self.connect_nodes(phongexponent_group_node.outputs['$phongexponent [value]'], group_node.inputs['$phongexponent [value]'])
                     self.connect_nodes(phongexponent_group_node.outputs['rimlight mask'], group_node.inputs['rimlight mask'])
                     phongexponent_group_node.location = [-500, -300]
-                
+
                     if self.phongalbedotint is not None and not self.phongtint:
                         phongexponent_group_node.location = [-550, -300]
                         phongalbedo_node = self.create_node(Nodes.ShaderNodeGroup, "$phongalbedotint")
@@ -328,9 +335,8 @@ class VertexLitGeneric(Source1ShaderBase):
                     if 'Emission Strength' in shader.inputs:
                         self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
 
-                else:
-                    if 'Emission Strength' in shader.inputs:
-                        self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
+                elif 'Emission Strength' in shader.inputs:
+                    self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
 
             if not self.phong:

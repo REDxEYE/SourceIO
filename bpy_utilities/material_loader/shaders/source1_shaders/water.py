@@ -40,8 +40,7 @@ class Water(Source1ShaderBase):
 
     @property
     def bluramount(self):
-        value = self._vavle_material.get_float('$bluramount', 0)
-        return value
+        return self._vavle_material.get_float('$bluramount', 0)
 
     @property
     def color(self):
@@ -74,8 +73,7 @@ class Water(Source1ShaderBase):
 
     @property
     def abovewater(self):
-        value = self._vavle_material.get_int('$abovewater', 0)
-        return value
+        return self._vavle_material.get_int('$abovewater', 0)
 
     def create_probe(self):
         try:
