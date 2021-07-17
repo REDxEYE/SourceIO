@@ -44,7 +44,6 @@ class UnlitGeneric(Source1ShaderBase):
             color_value = color_value[:3]
         return color_value
 
-
     @property
     def additive(self):
         return self._vavle_material.get_int('$additive', 0) == 1
@@ -60,11 +59,9 @@ class UnlitGeneric(Source1ShaderBase):
         basetexture = self.basetexture
         texture2 = self.texture2
         if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
+            basetexture_node = self.create_and_connect_texture_node(basetexture, name='$basetexture')
             if texture2:
-                texture2_node = self.create_node(Nodes.ShaderNodeTexImage, '$texture2')
-                texture2_node.image = texture2
+                texture2_node = self.create_and_connect_texture_node(texture2, name='$basetexture')
 
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
                 color_mix.blend_type = 'MULTIPLY'

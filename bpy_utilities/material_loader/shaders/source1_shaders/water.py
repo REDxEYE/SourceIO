@@ -48,11 +48,7 @@ class Water(Source1ShaderBase):
         color_value, value_type = self._vavle_material.get_vector('$color', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        elif len(color_value) > 3:
-            color_value = color_value[:3]
-        return color_value
+        return self.ensure_length(color_value, 4, color_value[0])
 
     @property
     def refracttint(self):
@@ -61,7 +57,7 @@ class Water(Source1ShaderBase):
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)  
+        return self.ensure_length(color_value, 4, 1.0)
 
     @property
     def reflecttint(self):
@@ -79,9 +75,9 @@ class Water(Source1ShaderBase):
 
     def create_probe(self):
         try:
-            if (bpy.context.scene.objects.get("ReflectionPlane") is not None) :
+            if (bpy.context.scene.objects.get("ReflectionPlane") is not None):
                 print("Probe already exists")
-                return()
+                return ()
             ob = bpy.context.scene.objects["world_geometry"]
             c1_slots = [id for id, mat in enumerate(ob.data.materials) if mat == self.bpy_material]
             me = ob.data
@@ -89,10 +85,12 @@ class Water(Source1ShaderBase):
             z = -300
             for pt in points:
                 z = max(pt.z, z)
-            bpy.ops.object.lightprobe_add(type='PLANAR', align='WORLD', radius=300, location=(0, 0, z + 0.02), scale=(300, 300, 1))
+            bpy.ops.object.lightprobe_add(type='PLANAR', align='WORLD', radius=300, location=(0, 0, z + 0.02),
+                                          scale=(300, 300, 1))
         except Exception as e:
             print("Failed to establish water plane: " + str(e))
         return
+
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
@@ -102,8 +100,8 @@ class Water(Source1ShaderBase):
         self.bpy_material.use_screen_refraction = True
         self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        
-        #if self.abovewater:
+
+        # if self.abovewater:
         #    self.create_probe()
         if self.use_bvlg_status:
             group_node = self.create_node(Nodes.ShaderNodeGroup, self.SHADER)

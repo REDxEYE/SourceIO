@@ -68,27 +68,26 @@ class WorldVertexTransition(Source1ShaderBase):
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
         basetexture2 = self.basetexture2
 
         if basetexture and basetexture2:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
-
-            basetexture2_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture2')
-            basetexture2_node.image = basetexture2
-
             vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
+            self.connect_nodes(vertex_color.outputs['Color'], color_mix.inputs['Fac'])
 
             color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
             color_mix.blend_type = 'MIX'
 
-            self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
-            self.connect_nodes(basetexture2_node.outputs['Color'], color_mix.inputs['Color2'])
-            self.connect_nodes(vertex_color.outputs['Color'], color_mix.inputs['Fac'])
+            self.create_and_connect_texture_node(basetexture,
+                                                 color_mix.inputs['Color1'],
+                                                 name='$basetexture')
+            self.create_and_connect_texture_node(basetexture,
+                                                 color_mix.inputs['Color2'],
+                                                 name='$basetexture2')
+
             self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
 
         if not self.phong:

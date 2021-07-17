@@ -17,12 +17,9 @@ class EyeRefract(Source1ShaderBase):
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         iris = self.iris
         if iris:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = iris
-
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+            self.create_and_connect_texture_node(iris, shader.inputs['Base Color'], name='$iris')

@@ -130,13 +130,10 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
             vertex_color.layer_name = 'multiblend'
 
-            # color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
-            # color_mix.blend_type = 'MIX'
-
-            # self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
-            # self.connect_nodes(vertex_color.outputs['Color'], color_mix.inputs['Fac'])
             color_mixer = self.create_node(Nodes.ShaderNodeGroup)
             color_mixer.node_tree = self.get_or_create_4way_mix_group()
+            normal_mixer = self.create_node(Nodes.ShaderNodeGroup)
+            normal_mixer.node_tree = self.get_or_create_4way_mix_group()
 
             self.connect_nodes(vertex_color.outputs['Color'], color_mixer.inputs['MultiBlend Mask'])
             self.connect_nodes(vertex_color.outputs['Alpha'], color_mixer.inputs['MultiBlend Alpha'])
@@ -149,6 +146,22 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             if bases[3]:
                 self.connect_nodes(bases[3].outputs['Color'], color_mixer.inputs['Color4'])
 
+            self.connect_nodes(vertex_color.outputs['Color'], normal_mixer.inputs['MultiBlend Mask'])
+            self.connect_nodes(vertex_color.outputs['Alpha'], normal_mixer.inputs['MultiBlend Alpha'])
+            if normals[0]:
+                self.connect_nodes(normals[0].outputs['Color'], normal_mixer.inputs['Color1'])
+            if normals[1]:
+                self.connect_nodes(normals[1].outputs['Color'], normal_mixer.inputs['Color2'])
+            if normals[2]:
+                self.connect_nodes(normals[2].outputs['Color'], normal_mixer.inputs['Color3'])
+            if normals[3]:
+                self.connect_nodes(normals[3].outputs['Color'], normal_mixer.inputs['Color4'])
+
+            normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+
+            self.connect_nodes(normal_mixer.outputs['Color'], normalmap_node.inputs['Color'])
+
+            self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
             self.connect_nodes(color_mixer.outputs['Color'], shader.inputs['Base Color'])
 
     def get_or_create_4way_mix_group(self):

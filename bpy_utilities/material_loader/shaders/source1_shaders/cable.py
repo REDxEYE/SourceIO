@@ -29,13 +29,14 @@ class Cable(Source1ShaderBase):
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
         if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
+            basetexture_node = self.create_and_connect_texture_node(basetexture,
+                                                                    shader.inputs['Base Color'],
+                                                                    name='$basetexture')
 
             tex_coord_node = self.create_node(Nodes.ShaderNodeTexCoord)
             tex_mapping_node = self.create_node(Nodes.ShaderNodeMapping)
@@ -44,7 +45,6 @@ class Cable(Source1ShaderBase):
 
             self.connect_nodes(tex_coord_node.outputs['UV'], tex_mapping_node.inputs['Vector'])
             self.connect_nodes(tex_mapping_node.outputs['Vector'], basetexture_node.inputs['Vector'])
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
 
 
 class SplineRope(Cable):

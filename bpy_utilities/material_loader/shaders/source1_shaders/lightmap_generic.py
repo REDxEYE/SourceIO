@@ -7,7 +7,8 @@ class LightmapGeneric(Source1ShaderBase):
 
     @property
     def isskybox(self):
-        return self._vavle_material.get_int('%' + 'compilesky', 0) + self._vavle_material.get_param('%' + 'compile2Dsky', 0)
+        return self._vavle_material.get_int('%' + 'compilesky', 0) + self._vavle_material.get_param(
+            '%' + 'compile2Dsky', 0)
 
     @property
     def basetexture(self):
@@ -62,10 +63,9 @@ class LightmapGeneric(Source1ShaderBase):
         basetexture = self.basetexture
 
         if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
-
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+            basetexture_node = self.create_and_connect_texture_node(basetexture,
+                                                                    shader.inputs['Base Color'],
+                                                                    name='$basetexture')
 
             if self.alphatest:
                 self.bpy_material.blend_method = 'HASHED'

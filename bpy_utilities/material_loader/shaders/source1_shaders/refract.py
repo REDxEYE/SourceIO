@@ -76,19 +76,12 @@ class Refract(Source1ShaderBase):
 
         basetexture = self.basetexture
         if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
-
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
-
+            self.create_and_connect_texture_node(basetexture, shader.inputs['Base Color'], name='$basetexture')
         bumpmap = self.bumpmap
         if bumpmap:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
-            bumpmap_node.image = bumpmap
-
             normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+            self.create_and_connect_texture_node(bumpmap, normalmap_node.inputs['Color'], name='$bumpmap')
 
-            self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
             self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
             shader.inputs['Transmission'].default_value = 1.0
             shader.inputs['Roughness'].default_value = self.bluramount
