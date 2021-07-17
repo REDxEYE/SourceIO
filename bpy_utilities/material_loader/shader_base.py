@@ -211,9 +211,10 @@ class ShaderBase:
             node.label = name
         return node
 
-    def create_node_group(self, node_group, name=None, location=None):
-        group_node = self.create_node(Nodes.ShaderNodeGroup, name)
-        group_node.node_tree = node_group
+    def create_node_group(self, group_name, location=None, *, name=None):
+        group_node = self.create_node(Nodes.ShaderNodeGroup, name or group_name)
+        group_node.node_tree = bpy.data.node_groups.get(group_name)
+        group_node.width = group_node.bl_width_max
         if location is not None:
             group_node.location = location
         return group_node

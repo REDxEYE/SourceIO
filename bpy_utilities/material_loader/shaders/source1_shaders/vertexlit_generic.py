@@ -226,7 +226,7 @@ class VertexLitGeneric(Source1ShaderBase):
                 if self.phongexponent:
                     group_node.inputs['$phongexponent [value]'].default_value = self.phongexponent
                 elif self.phongexponenttexture:
-                    phongexponent_group_node = self.create_node_group('phongexponenttexture splitter', [-500, -300])
+                    phongexponent_group_node = self.create_node_group('$phongexponenttexture splitter', [-500, -300])
                     self.connect_nodes(phongexponent_group_node.outputs['$phongexponent [value]'], group_node.inputs['$phongexponent [value]'])
                     self.connect_nodes(phongexponent_group_node.outputs['rimlight mask'], group_node.inputs['rimlight mask'])
                     phongexponenttexture_node = self.create_and_connect_texture_node(self.phongexponenttexture,
