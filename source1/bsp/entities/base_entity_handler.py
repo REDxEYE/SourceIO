@@ -11,7 +11,7 @@ from mathutils import Vector, Euler
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
-from ...vtf import load_skybox_texture
+from ...vtf import load_skybox_texture, SkyboxException
 
 from ....bpy_utilities.logging import BPYLoggingManager
 from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
@@ -260,9 +260,12 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_worldspawn(self, entity: worldspawn, entity_raw: dict):
         world = self._load_brush_model(0, 'world_geometry')
-        skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
-        Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
-        bpy.context.scene.world = bpy.data.worlds[entity.skyname]
+        try:
+            skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
+            Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
+            bpy.context.scene.world = bpy.data.worlds[entity.skyname]
+        except SkyboxException:
+            self.logger.error('Failed to load Skybox')
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
 

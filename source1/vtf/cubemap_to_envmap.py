@@ -11,6 +11,8 @@ def pad_to(im: np.ndarray, s_size: int):
     new[s_size - im.shape[0]:, s_size - im.shape[1]:, :] = im
     return new
 
+class SkyboxException(Exception):
+    pass
 
 def load_skybox_texture(skyname, width=1024):
     content_manager = ContentManager()
@@ -24,10 +26,10 @@ def load_skybox_texture(skyname, width=1024):
         use_hdr |= bool(material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedtexture', False)))
         texture_path = material.get_param('$basetexture', None)
         if texture_path is None:
-            raise Exception('Missing $basetexture in skybox material')
+            raise SkyboxException('Missing $basetexture in skybox material')
         texture_file = content_manager.find_texture(texture_path)
         if texture_file is None:
-            raise Exception(f'Failed to find skybox texture {texture_path}')
+            raise SkyboxException(f'Failed to find skybox texture {texture_path}')
 
         side, h, w = load_texture(texture_file)
         side = side.reshape((w, h, 4))
@@ -73,12 +75,12 @@ def load_skybox_texture(skyname, width=1024):
             if k == 'U':
                 side = np.flipud(side)
             sides[k] = side.T
-        eq_map = convert_to_eq(sides, 'dict', width, width // 2, 'default', 'bilinear').T
+        eq_map = convert_to_eq(sides, 'dict', width // 2, width // 4, 'default', 'bilinear').T
         rgba_data = np.rot90(eq_map)
         rgba_data = np.flipud(rgba_data)
         a_data = rgba_data[:, :, 3]
         a_data = np.dstack([a_data, a_data, a_data, np.full_like(a_data, 255)])
-        hdr_alpha_texture = texture_from_data(skyname + '_HDR_A', a_data, width, width // 2, False)
-        hdr_main_texture = texture_from_data(skyname + '_HDR', rgba_data, width, width // 2, False)
+        hdr_alpha_texture = texture_from_data(skyname + '_HDR_A', a_data, width // 2, width // 4, False)
+        hdr_main_texture = texture_from_data(skyname + '_HDR', rgba_data, width // 2, width // 4, False)
         del rgba_data
     return main_texture, hdr_main_texture, hdr_alpha_texture
