@@ -44,14 +44,24 @@ class UnlitGeneric(Source1ShaderBase):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeEmission, self.SHADER)
-        self.connect_nodes(shader.outputs['Emission'], material_output.inputs['Surface'])
+        if self.translucent:
+            self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.shadow_method = 'HASHED'
+            mix_node = self.create_node(Nodes.ShaderNodeMixShader)
+            transparent_node = self.create_node(Nodes.ShaderNodeBsdfTransparent)
+            self.connect_nodes(shader.outputs['Emission'], mix_node.inputs[2])
+            self.connect_nodes(transparent_node.outputs['BSDF'], mix_node.inputs[1])
+            self.connect_nodes(mix_node.outputs['Shader'], material_output.inputs['Surface'])
+        else:
+            self.connect_nodes(shader.outputs['Emission'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
         if basetexture:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-            basetexture_node.image = basetexture
+            basetexture_node = self.create_and_connect_texture_node(basetexture, name='$basetexture')
             shader.inputs['Strength'].default_value = 1.0
             color = self.color or self.color2
+            if self.translucent:
+                self.connect_nodes(basetexture_node.outputs['Alpha'], mix_node.inputs['Fac'])
             if color:
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
                 color_mix.blend_type = 'MULTIPLY'
@@ -61,7 +71,4 @@ class UnlitGeneric(Source1ShaderBase):
                 self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Color'])
             else:
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Color'])
-
-            #if self.translucent or self.alpha:
-            # unimplemented    
 
