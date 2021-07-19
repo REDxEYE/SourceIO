@@ -76,9 +76,9 @@ class WorldVertexTransition(Source1ShaderBase):
 
         if basetexture and basetexture2:
             vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
-            self.connect_nodes(vertex_color.outputs['Color'], color_mix.inputs['Fac'])
-
+            
             color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+            self.connect_nodes(vertex_color.outputs['Color'], color_mix.inputs['Fac'])
             color_mix.blend_type = 'MIX'
 
             self.create_and_connect_texture_node(basetexture,
