@@ -1,4 +1,7 @@
+import os
 import platform
+
+NO_BPY = int(os.environ.get('NO_BPY', '0'))
 
 
 class UnsupportedOS(Exception):
@@ -16,7 +19,7 @@ def is_vtflib_supported():
         return False
 
 
-if is_vtflib_supported():
+if is_vtflib_supported() and not NO_BPY:
     from .import_vtf import import_texture
     from .export_vtf import export_texture
     from .cubemap_to_envmap import load_skybox_texture, SkyboxException

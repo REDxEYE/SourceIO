@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from .source1.vtf import is_vtflib_supported
+
 
 from .utilities.singleton import SingletonMeta
 
@@ -20,6 +20,8 @@ bl_info = {
 
 if not NO_BPY:
 
+    from .source1.vtf import is_vtflib_supported
+
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
@@ -29,6 +31,7 @@ if not NO_BPY:
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
                                     DMXImporter_OT_operator,
+                                    Test2,
                                     )
     from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
@@ -149,6 +152,8 @@ if not NO_BPY:
         GBSPImport_OT_operator,
         GMDLImport_OT_operator,
         # Source1 stuff
+        Test2,
+
         MDLImport_OT_operator,
         BSPImport_OT_operator,
         DMXImporter_OT_operator,
