@@ -213,7 +213,7 @@ class KVParser(KVReader):
         if tok is KVToken.OPEN:
             pairs = OrderedDict()
 
-            while not self._match(KVToken.CLOSE, KVToken.END, required=False):
+            while not self._match(KVToken.CLOSE, KVToken.END, required=False,consume=False):
                 try:
                     key, val = self.parse_pair()
                 except ValueError as e:
