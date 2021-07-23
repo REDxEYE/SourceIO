@@ -3,7 +3,7 @@ import math
 from mathutils import Euler
 import bpy
 
-from SourceIO.source2.entities.abstract_entity_handlers import _srgb2lin
+from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .bms_entity_classes import *
 from .halflife2_entity_handler import HalfLifeEntityHandler
 
