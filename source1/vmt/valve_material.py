@@ -23,13 +23,18 @@ class VMT:
     def get_param(self, name, default):
         return self.material.get_raw_data().get(name.lower(), default)
 
-    def parse(self):
+    def get_raw_data(self):
+        return self.material.get_raw_data()
+
+    def parse(self) -> VMTParser:
         content_manager = ContentManager()
         if self.material.header == 'patch':
             original_material = content_manager.find_file(self.material.get_string('include'))
             logger.info(f'Got "Patch" material, applying patch to {self.material.get_string("include")}')
             if original_material:
-                new_material = VMTParser(original_material)
+                new_vmt = VMT(original_material)
+                new_vmt.parse()
+                new_material = new_vmt.material
                 if 'insert' in self.material.get_raw_data():
                     patch_data = self.material.get_subblock('insert', {})
                     new_material.apply_patch(patch_data)
