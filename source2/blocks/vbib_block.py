@@ -276,7 +276,7 @@ class IndexBuffer:
         self.unk2 = 0
         self.total_size = 0
         self.buffer = ByteIO()  # type:ByteIO
-        self.indexes: np.ndarray = np.zeros(0)
+        self.indices: np.ndarray = np.zeros(0)
 
     def __repr__(self):
         return '<IndexBuffer indexes:{} size:{}>'.format(self.index_count, self.index_size)
