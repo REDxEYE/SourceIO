@@ -451,8 +451,6 @@ class BSP:
             print(vbsp_file)
 
     def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
-        if custom_data is None:
-            custom_data = {}
         if scale is None:
             scale = [1.0, 1.0, 1.0]
         if rotation is None:
@@ -463,7 +461,8 @@ class BSP:
 
         placeholder.empty_display_size = 16
         placeholder.scale = np.multiply(scale, self.scale)
-        placeholder['entity_data'] = custom_data
+        if custom_data:
+            placeholder['entity_data'] = custom_data
         if parent_collection is not None:
             parent_collection.objects.link(placeholder)
         else:
