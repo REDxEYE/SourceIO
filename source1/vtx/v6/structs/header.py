@@ -1,5 +1,5 @@
-from ....source_shared.base import Base
-from ....utilities.byte_io_mdl  import ByteIO
+from .....source_shared.base import Base
+from .....utilities.byte_io_mdl  import ByteIO
 
 
 class Header(Base):
@@ -17,7 +17,6 @@ class Header(Base):
 
     def read(self, reader: ByteIO):
         self.version = reader.read_uint32()
-        assert self.version == 7, f'Unsupported version ({self.version}) of VTX file'
         self.vertex_cache_size = reader.read_uint32()
         self.max_bones_per_strip = reader.read_uint16()
         self.max_bones_per_tri = reader.read_uint16()

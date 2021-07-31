@@ -1,7 +1,7 @@
 from typing import List
 
-from ....source_shared.base import Base
-from ....utilities.byte_io_mdl  import ByteIO
+from .....source_shared.base import Base
+from .....utilities.byte_io_mdl import ByteIO
 from .model import Model
 
 

@@ -2,8 +2,8 @@ import struct
 from typing import List
 
 from .structs.material_replacement_list import MaterialReplacementList
-from ...source_shared.base import Base
-from ...utilities.byte_io_mdl import ByteIO
+from ....source_shared.base import Base
+from ....utilities.byte_io_mdl import ByteIO
 
 from .structs.header import Header
 from .structs.bodypart import BodyPart
@@ -19,21 +19,11 @@ class Vtx(Base):
     def read(self):
         self.header.read(self.reader)
 
-        try:
-            self.store_value('extra8', False)
-            self.reader.seek(self.header.body_part_offset)
-            for _ in range(self.header.body_part_count):
-                body_part = BodyPart()
-                body_part.read(self.reader)
-                self.body_parts.append(body_part)
-        except (struct.error, AssertionError):
-            self.reader.seek(self.header.body_part_offset)
-            self.body_parts.clear()
-            self.store_value('extra8', True)
-            for _ in range(self.header.body_part_count):
-                body_part = BodyPart()
-                body_part.read(self.reader)
-                self.body_parts.append(body_part)
+        self.reader.seek(self.header.body_part_offset)
+        for _ in range(self.header.body_part_count):
+            body_part = BodyPart()
+            body_part.read(self.reader)
+            self.body_parts.append(body_part)
 
         self.reader.seek(self.header.material_replacement_list_offset)
         for _ in range(self.header.lod_count):

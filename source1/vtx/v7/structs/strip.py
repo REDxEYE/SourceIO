@@ -1,7 +1,7 @@
 from enum import IntFlag
 
-from ....source_shared.base import Base
-from ....utilities.byte_io_mdl import ByteIO
+from .....source_shared.base import Base
+from .....utilities.byte_io_mdl import ByteIO
 
 
 class StripHeaderFlags(IntFlag):

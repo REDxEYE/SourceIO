@@ -3,8 +3,8 @@ from typing import List
 
 import numpy as np
 
-from ....source_shared.base import Base
-from ....utilities.byte_io_mdl import ByteIO
+from .....source_shared.base import Base
+from .....utilities.byte_io_mdl import ByteIO
 from .strip import Strip
 
 
@@ -19,10 +19,10 @@ class StripGroupFlags(IntFlag):
 class StripGroup(Base):
     vertex_dtype = np.dtype(
         [
-            ('bone_weight_index', np.uint8, (3,)),
-            ('bone_count', np.uint8, (1,)),
+            ('bone_weight_index', np.uint8, (4,)),
+            ('bone_ids', np.uint16, (4,)),
             ('original_mesh_vertex_index', np.uint16, (1,)),
-            ('bone_id', np.uint8, (3,)),
+            ('bone_count', np.uint8, (1,)),
 
         ]
     )
@@ -30,7 +30,7 @@ class StripGroup(Base):
     def __init__(self):
         self.flags = StripGroupFlags(0)
         self.vertexes: np.ndarray = np.array([])
-        self.indexes: np.ndarray = np.array([])
+        self.indices: np.ndarray = np.array([])
         self.strips: List[Strip] = []
         self.topology = []
 
@@ -39,22 +39,21 @@ class StripGroup(Base):
         entry = reader.tell()
         vertex_count = reader.read_uint32()
         vertex_offset = reader.read_uint32()
+
         index_count = reader.read_uint32()
-        assert index_count % 3 == 0
         index_offset = reader.read_uint32()
+        assert index_count % 3 == 0
+
         strip_count = reader.read_uint32()
         strip_offset = reader.read_uint32()
         assert vertex_offset < reader.size()
         assert strip_offset < reader.size()
         assert index_offset < reader.size()
         self.flags = StripGroupFlags(reader.read_uint8())
-        if self.get_value('extra8'):
-            topology_indices_count = reader.read_uint32()
-            topology_offset = reader.read_uint32()
 
         with reader.save_current_pos():
             reader.seek(entry + index_offset)
-            self.indexes = np.frombuffer(reader.read(2 * index_count), dtype=np.uint16)
+            self.indices = np.frombuffer(reader.read(2 * index_count), dtype=np.uint16)
             reader.seek(entry + vertex_offset)
             self.vertexes = np.frombuffer(reader.read(vertex_count * self.vertex_dtype.itemsize), self.vertex_dtype)
             reader.seek(entry + strip_offset)
@@ -62,9 +61,4 @@ class StripGroup(Base):
                 strip = Strip()
                 strip.read(reader)
                 self.strips.append(strip)
-            # reader.seek(entry + topology_offset)
-            # self.topology = (
-            #     reader.read_bytes(
-            #         topology_indices_count * 2))
-
         return self
