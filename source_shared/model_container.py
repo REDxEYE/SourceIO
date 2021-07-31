@@ -2,11 +2,11 @@ from collections import defaultdict
 from typing import List, Optional, Dict
 import bpy
 
-from ..source1.mdl.mdl_file import Mdl as S1Mdl
+from ..source1.mdl.v49.mdl_file import Mdl as S1Mdl
 from ..goldsrc.mdl_v10.mdl_file import Mdl as GMdl
 from ..goldsrc.mdl_v4.mdl_file import Mdl as GMdlV4
 from ..source2.resouce_types.valve_model import ValveCompiledModel
-from ..source1.vtx.vtx import Vtx
+from ..source1.vtx.v7.vtx import Vtx
 from ..source1.vvd import Vvd
 
 
@@ -30,7 +30,7 @@ class GoldSrcV4ModelContainer(ModelContainer):
 
 
 class Source1ModelContainer(ModelContainer):
-    def __init__(self, mdl: S1Mdl, vvd: Vvd, vtx: Vtx):
+    def __init__(self, mdl: S1Mdl, vvd: Optional[Vvd], vtx: Vtx):
         super().__init__()
         self.mdl: S1Mdl = mdl
         self.vvd: Vvd = vvd

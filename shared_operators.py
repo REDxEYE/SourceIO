@@ -4,16 +4,17 @@ from pathlib import Path
 
 import bpy
 
-from .bpy_utilities.utils import get_or_create_collection, get_new_unique_collection
-from .source1.mdl.import_mdl import import_model, import_materials
+from .bpy_utilities.utils import get_or_create_collection
+from .source1.mdl.model_loader import import_model_from_full_path, import_model_from_files
+from .source1.mdl.v49.import_mdl import import_materials
 
-from .source1.mdl.import_mdl import put_into_collections as s1_put_into_collections
+from .source1.mdl.v49.import_mdl import put_into_collections as s1_put_into_collections
 from .source1.vtf import is_vtflib_supported
 from .source2.resouce_types.valve_model import put_into_collections as s2_put_into_collections
 
 from .source2.resouce_types.valve_model import ValveCompiledModel
 from .source_shared.content_manager import ContentManager
-from .utilities.path_utilities import backwalk_file_resolver, find_vtx_cm
+from .utilities.path_utilities import find_vtx_cm
 
 
 def get_parent(collection):
@@ -77,7 +78,7 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                             #         print(f'Skin {skin} not found')
                         master_collection = s2_put_into_collections(container, Path(model.name).stem, collection,
                                                                     False)
-                        entity_data_holder = bpy.data.objects.new(Path(model.name).stem+'_ENT', None)
+                        entity_data_holder = bpy.data.objects.new(Path(model.name).stem + '_ENT', None)
                         entity_data_holder['entity_data'] = {}
                         entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
                         if container.armature:
@@ -102,8 +103,9 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model(mld_file, vvd_file, vtx_file, vvc_file, 1.0, False, True,
-                                                       unique_material_names=unique_material_names)
+                        model_container = import_model_from_files(mld_file, vvd_file, vtx_file, vvc_file,
+                                                                  1.0, False, True,
+                                                                  unique_material_names=unique_material_names)
 
                         entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                         entity_data_holder['entity_data'] = {}
