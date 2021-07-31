@@ -3,11 +3,10 @@ from typing import List
 
 import numpy as np
 
-from ..mdl.mdl_file import Mdl
+from ..mdl.v49.mdl_file import Mdl
 from ..mdl.structs.bone import ProceduralBoneType
 from ..mdl.structs.header import StudioHDRFlags
-from ..mdl.structs.bodygroup import BodyPart
-from io import StringIO
+from ..mdl.structs.bodygroup import BodyPartV49
 from pathlib import Path
 
 
@@ -31,7 +30,7 @@ def generate_qc(mdl: Mdl, buffer, plugin_version="UNKNOWN"):
 
     buffer.write(f"$modelname \"{mdl.header.name}\"\n")
 
-    def write_model(bodygroup: BodyPart):
+    def write_model(bodygroup: BodyPartV49):
         model = bodygroup.models[0]
         name = Path(model.name if (model.name and model.name != 'blank') else f"{bodygroup.name}-{model.name}").stem
         buffer.write(f"$model \"{name}\" \"{name}\"")
@@ -78,7 +77,7 @@ def generate_qc(mdl: Mdl, buffer, plugin_version="UNKNOWN"):
         else:
             buffer.write("\n")
 
-    def write_bodygroup(bodygroup: BodyPart):
+    def write_bodygroup(bodygroup: BodyPartV49):
         buffer.write(f"$bodygroup \"{bodygroup.name}\" ")
         buffer.write("{\n")
         for model in bodygroup.models:
@@ -181,6 +180,7 @@ def generate_qc(mdl: Mdl, buffer, plugin_version="UNKNOWN"):
         buffer.write(f"\tfadeout {0.2:.2f}\n")
         buffer.write("\tfps 30\n")
         buffer.write("}\n")
+
     buffer.write('\n')
     write_skins()
     write_misc()
