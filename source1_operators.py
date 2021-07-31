@@ -5,10 +5,9 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
-from .bpy_utilities.utils import get_new_unique_collection
 from .source1.bsp.import_bsp import BSP
 from .source1.dmx.load_sfm_session import load_session
-from .source1.dmx.sfm.session import Session
+from .source1.mdl.model_loader import import_model_from_full_path
 from .source1.vtf import is_vtflib_supported
 
 from .source_shared.content_manager import ContentManager
@@ -28,6 +27,7 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
     import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
+    unique_materials_names: BoolProperty(name="Unique material names", default=False, subtype='UNSIGNED')
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
@@ -47,18 +47,11 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
-        from .source1.mdl.import_mdl import import_model, import_materials, put_into_collections, import_animations
+        from .source1.mdl.v49.import_mdl import import_materials, put_into_collections, import_animations
         for file in self.files:
             mdl_path = directory / file.name
-            vtx_file = find_vtx(mdl_path)
-            vvd_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvd')
-            vvc_file = backwalk_file_resolver(directory, mdl_path.stem + '.vvc')
-            model_container = import_model(mdl_path.open('rb'),
-                                           vvd_file.open('rb'),
-                                           vtx_file.open('rb'),
-                                           vvc_file.open('rb') if vvc_file is not None and vvc_file.exists() else None,
-                                           self.scale,
-                                           self.create_flex_drivers)
+            model_container = import_model_from_full_path(mdl_path, self.scale, self.create_flex_drivers,
+                                                          unique_material_names=self.unique_materials_names)
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
 
             if self.import_textures and is_vtflib_supported():

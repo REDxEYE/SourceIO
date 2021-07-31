@@ -1,11 +1,11 @@
 import numpy as np
 
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 from ....utilities import math_utilities
 
 
-class Attachment(Base):
+class AttachmentV36(Base):
     def __init__(self):
         self.name = ""
         self.type = 0
@@ -25,7 +25,6 @@ class Attachment(Base):
         self.flags = reader.read_uint32()
         self.parent_bone = reader.read_uint32()
         self.local_mat = reader.read_fmt('12f')
-        reader.skip(4 * 8)
         self.rot[:] = math_utilities.convert_rotation_matrix_to_degrees(
             self.local_mat[4 * 0 + 0],
             self.local_mat[4 * 1 + 0],
@@ -34,6 +33,13 @@ class Attachment(Base):
             self.local_mat[4 * 1 + 1],
             self.local_mat[4 * 2 + 1],
             self.local_mat[4 * 2 + 2])
-        self.pos[0] = round(self.local_mat[4*0+3], 3)
-        self.pos[1] = round(self.local_mat[4*1+3], 3)
-        self.pos[2] = round(self.local_mat[4*2+3], 3)
+        self.pos[0] = round(self.local_mat[4 * 0 + 3], 3)
+        self.pos[1] = round(self.local_mat[4 * 1 + 3], 3)
+        self.pos[2] = round(self.local_mat[4 * 2 + 3], 3)
+
+
+class AttachmentV49(AttachmentV36):
+
+    def read(self, reader: ByteIO):
+        super().read(reader)
+        reader.skip(4 * 8)

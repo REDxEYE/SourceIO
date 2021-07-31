@@ -1,9 +1,9 @@
 import numpy as np
 
-from ...source_shared.base import Base
-from ..vvd import Vvd
+from ....source_shared.base import Base
+from ...vvd import Vvd
 from .mdl_file import Mdl
-from .structs.mesh import Mesh
+from ..structs.mesh import MeshV49
 
 
 class VertexAnimationCache(Base):
@@ -26,7 +26,7 @@ class VertexAnimationCache(Base):
                         self.process_mesh(mesh, model.vertex_offset)
         print("[Done] Pre-computing vertex animation cache")
 
-    def process_mesh(self, mesh: Mesh, vertex_offset, desired_lod=0):
+    def process_mesh(self, mesh: MeshV49, vertex_offset, desired_lod=0):
         for flex in mesh.flexes:
             if flex.name not in self.vertex_cache:
                 vertex_cache = self.vertex_cache[flex.name] = np.copy(self.vvd.lod_data[desired_lod]['vertex'])

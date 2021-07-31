@@ -1,15 +1,17 @@
 from typing import List
 
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
-from .model import Model
+from .model import ModelV36,ModelV49
 
 
-class BodyPart(Base):
+class BodyPartV36(Base):
+    model_class = ModelV36
+
     def __init__(self):
         self.base = 0
         self.name = ""
-        self.models = []  # type: List[Model]
+        self.models = []  # type: List[ModelV36]
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
@@ -21,6 +23,14 @@ class BodyPart(Base):
             with reader.save_current_pos():
                 reader.seek(entry + model_offset)
                 for _ in range(model_count):
-                    model = Model()
+                    model = self.model_class()
                     model.read(reader)
                     self.models.append(model)
+
+
+class BodyPartV49(BodyPartV36):
+    model_class = ModelV49
+
+    def __init__(self):
+        super().__init__()
+        self.models = []  # type: List[ModelV49]

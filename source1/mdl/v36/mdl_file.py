@@ -4,18 +4,18 @@ from typing import List
 
 import numpy as np
 
-from ...utilities.byte_io_mdl import ByteIO
-from ...source_shared.base import Base
+from ....utilities.byte_io_mdl import ByteIO
+from ....source_shared.base import Base
 
 from .flex_expressions import *
-from .structs.header import Header
-from .structs.bone import Bone
-from .structs.texture import Material
-from .structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
-from .structs.anim_desc import AnimDesc
-from .structs.sequence import Sequence
-from .structs.attachment import Attachment
-from .structs.bodygroup import BodyPart
+from ..structs.header import MdlHeaderV36
+from ..structs.bone import BoneV36
+from ..structs.texture import MaterialV36
+from ..structs.flex import FlexController, FlexRule, FlexOpType
+from ..structs.anim_desc import AnimDesc
+from ..structs.sequence import Sequence
+from ..structs.attachment import AttachmentV36
+from ..structs.bodygroup import BodyPartV36
 
 
 class _AnimBlocks:
@@ -29,20 +29,19 @@ class Mdl(Base):
     def __init__(self, filepath):
         self.store_value("MDL", self)
         self.reader = ByteIO(filepath)
-        self.header = Header()
-        self.bones = []  # type: List[Bone]
+        self.header = MdlHeaderV36()
+        self.bones = []  # type: List[BoneV36]
         self.skin_groups = []  # type: List[List[str]]
-        self.materials = []  # type: List[Material]
+        self.materials = []  # type: List[MaterialV36]
         self.materials_paths = []
 
         self.flex_names = []  # type:List[str]
         self.flex_controllers = []  # type:List[FlexController]
-        self.flex_ui_controllers = []  # type:List[FlexControllerUI]
         self.flex_rules = []  # type:List[FlexRule]
 
-        self.body_parts = []  # type:List[BodyPart]
+        self.body_parts = []  # type:List[BodyPartV36]
 
-        self.attachments = []  # type:List[Attachment]
+        self.attachments = []  # type:List[AttachmentV36]
         self.anim_descs = []  # type:List[AnimDesc]
         self.sequences = []  # type:List[Sequence]
         self.anim_block = _AnimBlocks()
@@ -76,74 +75,70 @@ class Mdl(Base):
         print(orig_checksum, new_checksum)
 
     def read(self):
-        self.header.read(self.reader)
+        reader = self.reader
+        header = self.header
+        header.read(reader)
 
-        self.reader.seek(self.header.bone_offset)
-        for _ in range(self.header.bone_count):
-            bone = Bone()
-            bone.read(self.reader)
+        reader.seek(header.bone_offset)
+        for bone_id in range(header.bone_count):
+            bone = BoneV36(bone_id)
+            bone.read(reader)
             self.bones.append(bone)
 
-        self.reader.seek(self.header.texture_offset)
-        for _ in range(self.header.texture_count):
-            texture = Material()
-            texture.read(self.reader)
+        reader.seek(header.texture_offset)
+        for _ in range(header.texture_count):
+            texture = MaterialV36()
+            texture.read(reader)
             self.materials.append(texture)
 
-        self.reader.seek(self.header.texture_path_offset)
-        for _ in range(self.header.texture_path_count):
-            self.materials_paths.append(self.reader.read_source1_string(0))
+        reader.seek(header.texture_path_offset)
+        for _ in range(header.texture_path_count):
+            self.materials_paths.append(reader.read_source1_string(0))
 
-        self.reader.seek(self.header.skin_family_offset)
-        for _ in range(self.header.skin_family_count):
+        reader.seek(header.skin_family_offset)
+        for _ in range(header.skin_family_count):
             skin_group = []
-            for _ in range(self.header.skin_reference_count):
-                texture_index = self.reader.read_uint16()
+            for _ in range(header.skin_reference_count):
+                texture_index = reader.read_uint16()
                 skin_group.append(self.materials[texture_index].name)
             self.skin_groups.append(skin_group)
 
         diff_start = 0
         for skin_info in self.skin_groups[1:]:
             for n, (a, b) in enumerate(zip(self.skin_groups[0], skin_info)):
-                if a == b:
+                if a != b:
                     diff_start = max(n, diff_start)
                     break
 
         for n, skin_info in enumerate(self.skin_groups):
-            self.skin_groups[n] = skin_info[:diff_start]
+            self.skin_groups[n] = skin_info[diff_start:]
 
-        self.reader.seek(self.header.flex_desc_offset)
-        for _ in range(self.header.flex_desc_count):
-            self.flex_names.append(self.reader.read_source1_string(self.reader.tell()))
+        reader.seek(header.flex_desc_offset)
+        for _ in range(header.flex_desc_count):
+            self.flex_names.append(reader.read_source1_string(reader.tell()))
 
-        self.reader.seek(self.header.flex_controller_offset)
-        for _ in range(self.header.flex_controller_count):
+        reader.seek(header.flex_controller_offset)
+        for _ in range(header.flex_controller_count):
             controller = FlexController()
-            controller.read(self.reader)
+            controller.read(reader)
             self.flex_controllers.append(controller)
 
-        self.reader.seek(self.header.flex_rule_offset)
-        for _ in range(self.header.flex_rule_count):
+        reader.seek(header.flex_rule_offset)
+        for _ in range(header.flex_rule_count):
             rule = FlexRule()
-            rule.read(self.reader)
+            rule.read(reader)
             self.flex_rules.append(rule)
 
-        self.reader.seek(self.header.local_attachment_offset)
-        for _ in range(self.header.local_attachment_count):
-            attachment = Attachment()
-            attachment.read(self.reader)
+        reader.seek(header.local_attachment_offset)
+        for _ in range(header.local_attachment_count):
+            attachment = AttachmentV36()
+            attachment.read(reader)
             self.attachments.append(attachment)
 
-        self.reader.seek(self.header.flex_controller_ui_offset)
-        for _ in range(self.header.flex_controller_ui_count):
-            flex_controller = FlexControllerUI()
-            flex_controller.read(self.reader)
-            self.flex_ui_controllers.append(flex_controller)
-
-        self.reader.seek(self.header.body_part_offset)
-        for _ in range(self.header.body_part_count):
-            body_part = BodyPart()
-            body_part.read(self.reader)
+        reader.seek(header.body_part_offset)
+        for _ in range(header.body_part_count):
+            body_part = BodyPartV36()
+            body_part.read(reader)
             self.body_parts.append(body_part)
 
         # self.reader.seek(self.header.local_animation_offset)

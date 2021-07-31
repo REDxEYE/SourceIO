@@ -129,8 +129,9 @@ class ProceduralBoneType(IntEnum):
     JIGGLE = 5
 
 
-class Bone(Base):
-    def __init__(self):
+class BoneV36(Base):
+    def __init__(self, bone_id: int):
+        self.bone_id = bone_id
         self.name = ""
         self.parent_bone_index = 0
         self.bone_controller_index = []
@@ -153,7 +154,7 @@ class Bone(Base):
 
     @property
     def children(self):
-        from ..mdl_file import Mdl
+        from ..v36.mdl_file import Mdl
         mdl: Mdl = self.get_value("MDL")
         childes = []
         if mdl.bones:
@@ -183,11 +184,48 @@ class Bone(Base):
 
     @property
     def parent(self):
-        from ..mdl_file import Mdl
+        from ..v36.mdl_file import Mdl
         mdl: Mdl = self.get_value("MDL")
         if mdl.bones and self.parent_bone_index != -1:
             return mdl.bones[self.parent_bone_index]
         return None
+
+    def read(self, reader: ByteIO):
+        entry = reader.tell()
+        self.name = reader.read_source1_string(entry)
+        self.parent_bone_index = reader.read_int32()
+        self.bone_controller_index = reader.read_fmt('6f')
+        self.position = reader.read_fmt('3f')
+        self.rotation = reader.read_fmt('3f')
+        self.position_scale = reader.read_fmt('3f')
+        self.rotation_scale = reader.read_fmt('3f')
+
+        self.pose_to_bone = np.array(reader.read_fmt('12f')).reshape((3, 4)).transpose()
+
+        self.q_alignment = reader.read_fmt('4f')
+        self.flags = BoneFlags(reader.read_uint32())
+        self.procedural_rule_type = reader.read_uint32()
+        procedural_rule_offset = reader.read_uint32()
+        self.physics_bone_index = reader.read_uint32()
+        self.surface_prop = reader.read_source1_string(entry)
+        self.quat = reader.read_fmt('4f')
+        self.contents = Contents(reader.read_uint32())
+        reader.skip(3 * 4)
+
+        if self.procedural_rule_type != 0 and procedural_rule_offset != 0:
+            with reader.save_current_pos():
+                reader.seek(entry + procedural_rule_offset)
+                if self.procedural_rule_type == ProceduralBoneType.AXISINTERP:
+                    self.procedural_rule = AxisInterpRule()
+                if self.procedural_rule_type == ProceduralBoneType.QUATINTERP:
+                    self.procedural_rule = QuatInterpRule()
+                if self.procedural_rule_type == ProceduralBoneType.JIGGLE:
+                    self.procedural_rule = JiggleRule()
+                if self.procedural_rule:
+                    self.procedural_rule.read(reader)
+
+
+class BoneV49(BoneV36):
 
     def read(self, reader: ByteIO):
         entry = reader.tell()

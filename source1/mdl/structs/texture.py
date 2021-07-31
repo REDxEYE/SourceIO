@@ -1,8 +1,29 @@
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 
 
-class Material(Base):
+class MaterialV36(Base):
+    def __init__(self):
+        self.name = ''
+        self.flags = 0
+        self.width = 0
+        self.height = 0
+        self.dp_du = 0
+        self.dp_dv = 0
+        self.unknown = []
+
+    def read(self, reader: ByteIO):
+        entry = reader.tell()
+        self.name = reader.read_source1_string(entry)
+        self.flags = reader.read_uint32()
+        self.width = reader.read_float()
+        self.height = reader.read_float()
+        self.dp_du = reader.read_float()
+        self.dp_dv = reader.read_float()
+        self.unknown = reader.read_fmt('2I')
+
+
+class MaterialV49(Base):
     def __init__(self):
         self.name = ''
         self.flags = 0
