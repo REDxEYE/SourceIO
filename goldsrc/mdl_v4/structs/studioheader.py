@@ -28,7 +28,7 @@ class StudioHeader(Base):
         self.body_part_count = 0
         self.unk_count = 0
         self.sequence_count = 0
-        self.unk_0 = 0
+        self.total_frame_count = 0
         self.unk_1 = 0
 
     def read(self, reader: ByteIO):
@@ -43,6 +43,6 @@ class StudioHeader(Base):
          self.body_part_count,
          self.unk_count,
          self.sequence_count,
-         self.unk_0,
+         self.total_frame_count,
          self.unk_1,
          ) = reader.read_fmt('6I')

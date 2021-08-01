@@ -3,9 +3,10 @@ from typing import BinaryIO, Optional
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler
+from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .mdl_file import Mdl
+from .structs.sequence import euler_to_quat
 from .structs.texture import StudioTexture
 from ...bpy_utilities.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
 from ...bpy_utilities.utils import get_new_unique_collection, get_material
@@ -45,6 +46,7 @@ def create_armature(mdl: Mdl, collection, scale):
 
     for n, mdl_bone_info in enumerate(mdl.bones):
         mdl_bone = armature_obj.pose.bones.get(f'Bone_{n}')
+        # mdl_bone.rotation_mode = 'XYZ'
         mdl_bone_pos = Vector(mdl_bone_info.pos) * scale
         mdl_bone_mat = Matrix.Translation(mdl_bone_pos)
         mdl_bone.matrix.identity()
@@ -72,6 +74,7 @@ def import_model(mdl_file: BinaryIO, scale=1.0,
     master_collection = get_new_unique_collection(get_name(mdl_file), parent_collection)
 
     armature, bone_transforms = create_armature(mdl, master_collection, scale)
+    load_animations(mdl, armature, get_name(mdl_file), scale)
     model_container.armature = armature
 
     for model in mdl.models:
