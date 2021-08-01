@@ -80,7 +80,7 @@ class VertexLitGeneric(Source1ShaderBase):
     @property
     def alphatestreference(self):
         return self._vavle_material.get_float('$alphatestreference', 0.5)
-         
+
     @property
     def allowalphatocoverage(self):
         return self._vavle_material.get_int('$allowalphatocoverage', 0) == 1
@@ -108,6 +108,10 @@ class VertexLitGeneric(Source1ShaderBase):
     @property
     def normalmapalphaphongmask(self):
         return self._vavle_material.get_int('$normalmapalphaphongmask', 1) == 1
+
+    @property
+    def normalmapalphaenvmapmask(self):
+        return self._vavle_material.get_int('$normalmapalphaenvmapmask', 0) == 1
 
     @property
     def envmap(self):
@@ -180,7 +184,7 @@ class VertexLitGeneric(Source1ShaderBase):
             else:
                 self.bpy_material.blend_method = 'HASHED'
             self.bpy_material.shadow_method = 'HASHED'
-            
+
         if self.use_bvlg_status:
             self.do_arrange = False
             if self.alphatest or self.translucent:
@@ -215,9 +219,13 @@ class VertexLitGeneric(Source1ShaderBase):
             if self.bumpmap:
                 bumpmap_node = self.create_and_connect_texture_node(self.bumpmap, group_node.inputs['$bumpmap [texture]'], name='$bumpmap')
                 bumpmap_node.location = [-800, -220]
-                if self.normalmapalphaphongmask and not self.basemapalphaphongmask:
+                if self.normalmapalphaenvmapmask:
+                    self.connect_nodes(bumpmap_node.outputs['Alpha'],
+                                       group_node.inputs['envmapmask [basemap texture alpha]'])
+                elif self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
+
 
             if self.phong:
                 group_node.inputs['$phong [bool]'].default_value = 1
@@ -234,7 +242,7 @@ class VertexLitGeneric(Source1ShaderBase):
                                                                                      phongexponent_group_node.inputs['alpha'],
                                                                                      name='$phongexponenttexture')
                     phongexponenttexture_node.location = [-800, -470]
-                    
+
                     if self.phongalbedotint is not None and not self.phongtint:
                         phongexponent_group_node.location = [-550, -300]
                         phongalbedo_node = self.create_node_group("$phongalbedotint", [-350, -345])
