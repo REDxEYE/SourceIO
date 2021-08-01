@@ -80,7 +80,7 @@ class VertexLitGeneric(Source1ShaderBase):
     @property
     def alphatestreference(self):
         return self._vavle_material.get_float('$alphatestreference', 0.5)
-         
+
     @property
     def allowalphatocoverage(self):
         return self._vavle_material.get_int('$allowalphatocoverage', 0) == 1
@@ -170,8 +170,22 @@ class VertexLitGeneric(Source1ShaderBase):
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
+
+        if self._vavle_material.get_subblock('proxies', None):
+            proxies = self._vavle_material.get_subblock('proxies')
+            for proxy_name, proxy_data in proxies.items():
+                if proxy_name == 'selectfirstifnonzero':
+                    result_var = proxy_data.get('resultvar')
+                    src1_var = proxy_data.get('srcvar1')
+                    src2_var = proxy_data.get('srcvar2')
+                    src1_value, src1_type = self._vavle_material.get_vector(src1_var, [0])
+                    if all([val > 0 for val in src1_value]):
+                        self._vavle_material.get_raw_data()[result_var] = self._vavle_material.get_param(src1_var)
+                    else:
+                        self._vavle_material.get_raw_data()[result_var] = self._vavle_material.get_param(src2_var)
+
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        material_output.location = [250, 0 ]
+        material_output.location = [250, 0]
         parentnode = material_output
 
         if self.alphatest or self.translucent:
@@ -180,7 +194,7 @@ class VertexLitGeneric(Source1ShaderBase):
             else:
                 self.bpy_material.blend_method = 'HASHED'
             self.bpy_material.shadow_method = 'HASHED'
-            
+
         if self.use_bvlg_status:
             self.do_arrange = False
             if self.alphatest or self.translucent:
@@ -194,7 +208,9 @@ class VertexLitGeneric(Source1ShaderBase):
             group_node = self.create_node_group("VertexLitGeneric", [-200, 0])
             self.connect_nodes(group_node.outputs['BSDF'], parentnode.inputs[0])
             if self.basetexture:
-                basetexture_node = self.create_and_connect_texture_node(self.basetexture, group_node.inputs['$basetexture [texture]'], name='$basetexture')
+                basetexture_node = self.create_and_connect_texture_node(self.basetexture,
+                                                                        group_node.inputs['$basetexture [texture]'],
+                                                                        name='$basetexture')
                 basetexture_node.location = [-800, 0]
                 if self.basealphaenvmapmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
@@ -203,7 +219,8 @@ class VertexLitGeneric(Source1ShaderBase):
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
                 if self.alphatest:
-                    self.connect_nodes(basetexture_node.outputs['Alpha'], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                    self.connect_nodes(basetexture_node.outputs['Alpha'],
+                                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
             if self.color or self.color2:
                 group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2
 
@@ -213,7 +230,9 @@ class VertexLitGeneric(Source1ShaderBase):
                     group_node.inputs['$envmaptint [RGB field]'].default_value = self.envmaptint
 
             if self.bumpmap:
-                bumpmap_node = self.create_and_connect_texture_node(self.bumpmap, group_node.inputs['$bumpmap [texture]'], name='$bumpmap')
+                bumpmap_node = self.create_and_connect_texture_node(self.bumpmap,
+                                                                    group_node.inputs['$bumpmap [texture]'],
+                                                                    name='$bumpmap')
                 bumpmap_node.location = [-800, -220]
                 if self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
@@ -227,21 +246,28 @@ class VertexLitGeneric(Source1ShaderBase):
                     group_node.inputs['$phongexponent [value]'].default_value = self.phongexponent
                 elif self.phongexponenttexture:
                     phongexponent_group_node = self.create_node_group('$phongexponenttexture splitter', [-500, -300])
-                    self.connect_nodes(phongexponent_group_node.outputs['$phongexponent [value]'], group_node.inputs['$phongexponent [value]'])
-                    self.connect_nodes(phongexponent_group_node.outputs['rimlight mask'], group_node.inputs['rimlight mask'])
+                    self.connect_nodes(phongexponent_group_node.outputs['$phongexponent [value]'],
+                                       group_node.inputs['$phongexponent [value]'])
+                    self.connect_nodes(phongexponent_group_node.outputs['rimlight mask'],
+                                       group_node.inputs['rimlight mask'])
                     phongexponenttexture_node = self.create_and_connect_texture_node(self.phongexponenttexture,
-                                                                                     phongexponent_group_node.inputs['$phongexponenttexture [texture]'],
-                                                                                     phongexponent_group_node.inputs['alpha'],
+                                                                                     phongexponent_group_node.inputs[
+                                                                                         '$phongexponenttexture [texture]'],
+                                                                                     phongexponent_group_node.inputs[
+                                                                                         'alpha'],
                                                                                      name='$phongexponenttexture')
                     phongexponenttexture_node.location = [-800, -470]
-                    
+
                     if self.phongalbedotint is not None and not self.phongtint:
                         phongexponent_group_node.location = [-550, -300]
                         phongalbedo_node = self.create_node_group("$phongalbedotint", [-350, -345])
-                        self.connect_nodes(phongexponent_group_node.outputs['phongalbedotint amount'], phongalbedo_node.inputs['phongalbedotint amount'])
-                        self.connect_nodes(phongalbedo_node.outputs['$phongtint [RGB field]'], group_node.inputs['$phongtint [RGB field]'])
+                        self.connect_nodes(phongexponent_group_node.outputs['phongalbedotint amount'],
+                                           phongalbedo_node.inputs['phongalbedotint amount'])
+                        self.connect_nodes(phongalbedo_node.outputs['$phongtint [RGB field]'],
+                                           group_node.inputs['$phongtint [RGB field]'])
                         if self.basetexture is not None:
-                            self.connect_nodes(basetexture_node.outputs['Color'], phongalbedo_node.inputs['$basetexture [texture]'])
+                            self.connect_nodes(basetexture_node.outputs['Color'],
+                                               phongalbedo_node.inputs['$basetexture [texture]'])
                 else:
                     group_node.inputs['$phongexponent [value]'].default_value = 10
 
@@ -254,10 +280,12 @@ class VertexLitGeneric(Source1ShaderBase):
             if self.selfillum:
                 group_node.inputs['$selfillum [bool]'].default_value = 1
                 if self.selfillummask:
-                    selfillummask_node = self.create_and_connect_texture_node(self.selfillummask, group_node.inputs['$selfillummask [texture alpha]'])
+                    selfillummask_node = self.create_and_connect_texture_node(self.selfillummask, group_node.inputs[
+                        '$selfillummask [texture alpha]'])
                     selfillummask_node.location = [-500, -510]
                 elif self.basetexture is not None:
-                    self.connect_nodes(basetexture_node.outputs['Alpha'], group_node.inputs['$selfillummask [texture alpha]'])
+                    self.connect_nodes(basetexture_node.outputs['Alpha'],
+                                       group_node.inputs['$selfillummask [texture alpha]'])
         else:
             shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
             self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
