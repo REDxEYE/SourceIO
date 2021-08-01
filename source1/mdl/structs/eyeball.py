@@ -49,7 +49,7 @@ class EyeballV36(Base):
         reader.skip(4 * 4)
 
 
-class EyeballV49(EyeballV36):
+class EyeballV44(EyeballV36):
     def __init__(self):
         super().__init__()
         self.material: Optional[MaterialV49] = None
@@ -59,4 +59,14 @@ class EyeballV49(EyeballV36):
         reader.skip(4 * 4)
         self.eyeball_is_non_facs = reader.read_uint8()
         reader.skip(3)
-        reader.skip(7 * 4)
+        reader.skip(3 * 4)
+        pass
+
+
+class EyeballV49(EyeballV44):
+    def __init__(self):
+        super().__init__()
+        self.material: Optional[MaterialV49] = None
+
+    def read(self, reader: ByteIO):
+        super().read(reader)

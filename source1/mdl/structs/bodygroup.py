@@ -2,7 +2,7 @@ from typing import List
 
 from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
-from .model import ModelV36,ModelV49
+from .model import ModelV36, ModelV49, ModelV44
 
 
 class BodyPartV36(Base):
@@ -28,7 +28,15 @@ class BodyPartV36(Base):
                     self.models.append(model)
 
 
-class BodyPartV49(BodyPartV36):
+class BodyPartV44(BodyPartV36):
+    model_class = ModelV44
+
+    def __init__(self):
+        super().__init__()
+        self.models = []  # type: List[ModelV49]
+
+
+class BodyPartV49(BodyPartV44):
     model_class = ModelV49
 
     def __init__(self):
