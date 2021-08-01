@@ -5,7 +5,6 @@ import platform
 import sys
 from ctypes import *
 
-from ....utilities.singleton import SingletonMeta
 
 from . import VTFLibEnums, VTFLibStructures
 
@@ -38,7 +37,7 @@ def pointer_to_array(poiter, size, type=c_ubyte):
     return cast(poiter, POINTER(type * size))
 
 
-class VTFLib(metaclass=SingletonMeta):
+class VTFLib:
     vtflib_cdll: ctypes.CDLL = None
     if platform_name == "Windows":
         vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
