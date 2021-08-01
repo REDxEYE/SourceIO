@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 
 from ..bsp_file import BspFile
-from ...wad import make_texture, flip_texture
+from ...wad import make_texture, flip_texture, MipTex, WadLump
 from ....utilities.byte_io_mdl import ByteIO
 
 
@@ -38,12 +38,14 @@ class TextureData:
         self.offsets = buffer.read_fmt('4I')
 
         if any(self.offsets):
-            texture_indices = []
+            offset = self.offsets[0]
+            index = 0
 
-            for index, offset in enumerate(self.offsets):
-                buffer.seek(entry_offset + offset)
-                texture_size = (self.width * self.height) >> (index * 2)
-                texture_indices.append(np.frombuffer(buffer.read(texture_size), np.uint8))
+            buffer.seek(entry_offset + offset)
+            texture_size = (self.width * self.height) >> (index * 2)
+            texture_indices = np.frombuffer(buffer.read(texture_size), np.uint8)
+
+            buffer.seek(entry_offset + self.offsets[-1] + ((self.width * self.height) >> (3 * 2)))
 
             assert buffer.read(2) == b'\x00\x01', 'Invalid palette start anchor'
 
@@ -51,17 +53,21 @@ class TextureData:
 
             assert buffer.read(2) == b'\x00\x00', 'Invalid palette end anchor'
 
-            self.data = make_texture(texture_indices[0], texture_palette, use_alpha=self.name.startswith('{'))
-            self.data = flip_texture(self.data, self.width, self.height)
+            texture_data = make_texture(texture_indices, texture_palette, self.name.startswith('{'))
+            self.data = flip_texture(texture_data, self.width >> index, self.height >> index)
 
     def get_contents(self, bsp: BspFile):
         if self.data is not None:
             return self.data
 
         resource = bsp.manager.get_game_resource(self.name)
-
+        resource: WadLump
         if resource:
-            self.data = resource.read_texture()[0]
+            if isinstance(resource, MipTex):
+                resource: MipTex
+                self.data = resource.load_texture()
+            else:
+                raise Exception(f"Unexpected resource type {type(resource)}")
         else:
             print(f'Could not find texture resource: {self.name}')
             self.data = np.full(self.width * self.height * 4, 0.5, dtype=np.float32)
