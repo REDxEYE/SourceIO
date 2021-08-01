@@ -11,7 +11,8 @@ from bpy.props import (StringProperty,
                        EnumProperty,
                        FloatProperty,
                        CollectionProperty,
-                       IntProperty
+                       IntProperty,
+                       PointerProperty
                        )
 
 
@@ -97,6 +98,10 @@ class SourceIO_OP_VPKButtonUp(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class Test(bpy.types.PropertyGroup):
+    test_prop: BoolProperty(name='Test')
+
+
 # noinspection PyPep8Naming
 class SourceIO_OP_VPKBrowser(bpy.types.Operator):
     bl_idname = "ui.vpk_browser"
@@ -107,16 +112,23 @@ class SourceIO_OP_VPKBrowser(bpy.types.Operator):
     selected_index: IntProperty(default=0)  # -1 - No-op, -2 - update view
     cur_path: StringProperty(name='Cur')
 
+    mdl_test_props: PointerProperty(type=Test)
+
     def invoke(self, context, event):
         VPKFileHandle().vpk_browser_link = self
-        return context.window_manager.invoke_props_dialog(self)
+        width = 700 * bpy.context.preferences.system.pixel_size
+        return context.window_manager.invoke_props_dialog(self, width=width)
 
     def draw(self, context):
-        box = self.layout.box()
+        main_col = self.layout.grid_flow(row_major=False, columns=2)
+        file_view = main_col.box()
+
+        box = file_view.box()
         row = box.row()
         row.label(text=VPKFileHandle().get_current_path())
         row.operator(SourceIO_OP_VPKButtonUp.bl_idname, icon='LOOP_BACK', text='')
-        self.layout.separator()
+
+        file_view.separator()
         if self.selected_index != -1:
             if len(self.current_dir) > 0 and self.selected_index != -2:
                 VPKFileHandle().dir_in(self.current_dir[self.selected_index].name)
@@ -128,7 +140,11 @@ class SourceIO_OP_VPKBrowser(bpy.types.Operator):
                 entry.name = directory
 
             self.selected_index = -1
-        self.layout.template_list("SourceIO_UL_VPKDirList", "", self, "current_dir", self, "selected_index")
+        file_view.template_list("SourceIO_UL_VPKDirList", "", self, "current_dir", self, "selected_index")
+
+        props_col = main_col.column()
+        props_box = props_col.box()
+        props_box.prop(self.mdl_test_props, 'test_prop')
 
     def execute(self, context):
         for file in self.current_dir:
@@ -153,6 +169,8 @@ class SourceIO_UL_VPKDirList(bpy.types.UIList):
 
 
 classes = (
+    Test,
+
     SourceIO_PG_VPKEntry,
     SourceIO_OP_VPKButtonUp,
     SourceIO_OP_VPKBrowserLoader,
