@@ -3,13 +3,9 @@ from typing import Union, BinaryIO, Optional
 
 from ...source_shared.content_manager import ContentManager
 
-from .v49.import_mdl import import_model as import_model_v49
-from .v49.import_mdl import import_materials as import_materials_v49
-from .v49.import_mdl import import_animations as import_animations_v49
-
 from .v36.import_mdl import import_model as import_model_v36
-from .v36.import_mdl import import_materials as import_materials_v36
-from .v36.import_mdl import import_animations as import_animations_v36
+from .v44.import_mdl import import_model as import_model_v44
+from .v49.import_mdl import import_model as import_model_v49
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.path_utilities import find_vtx
 
@@ -41,6 +37,10 @@ def import_model_from_files(mdl_file: Union[str, Path, BinaryIO],
     assert magic == b'IDST', f'Unknown Mdl magic "{magic}", expected "IDST"'
     if 35 <= version <= 37:
         return import_model_v36(mdl_file, vtx_file, scale, create_drives, re_use_meshes, unique_material_names)
+
+    elif version == 44:
+        return import_model_v44(mdl_file, vvd_file, vtx_file, None, scale, create_drives, re_use_meshes,
+                                unique_material_names)
 
     elif 46 <= version <= 49:
         return import_model_v49(mdl_file, vvd_file, vtx_file, None, scale, create_drives, re_use_meshes,
