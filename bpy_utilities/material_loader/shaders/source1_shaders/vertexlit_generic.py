@@ -110,6 +110,10 @@ class VertexLitGeneric(Source1ShaderBase):
         return self._vavle_material.get_int('$normalmapalphaphongmask', 1) == 1
 
     @property
+    def normalmapalphaenvmapmask(self):
+        return self._vavle_material.get_int('$normalmapalphaenvmapmask', 0) == 1
+
+    @property
     def envmap(self):
         return self._vavle_material.get_string('$envmap', None) is not None
 
@@ -234,9 +238,13 @@ class VertexLitGeneric(Source1ShaderBase):
                                                                     group_node.inputs['$bumpmap [texture]'],
                                                                     name='$bumpmap')
                 bumpmap_node.location = [-800, -220]
-                if self.normalmapalphaphongmask and not self.basemapalphaphongmask:
+                if self.normalmapalphaenvmapmask:
+                    self.connect_nodes(bumpmap_node.outputs['Alpha'],
+                                       group_node.inputs['envmapmask [basemap texture alpha]'])
+                elif self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
+
 
             if self.phong:
                 group_node.inputs['$phong [bool]'].default_value = 1
