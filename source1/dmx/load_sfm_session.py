@@ -1,7 +1,5 @@
-import math
 from pathlib import Path
 import bpy
-from mathutils import Vector, Quaternion, Matrix, Euler
 
 from .sfm.animation_set import AnimationSet
 from .sfm.film_clip import FilmClip
@@ -9,11 +7,11 @@ from .sfm_utils import *
 from ...source_shared.content_manager import ContentManager
 from ...source_shared.model_container import Source1ModelContainer
 from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
-from ...utilities.path_utilities import find_vtx, backwalk_file_resolver, find_vtx_cm
+from ...utilities.path_utilities import find_vtx_cm
 from .sfm import open_session
 from .sfm.camera import Camera
 from ..bsp.import_bsp import BSP
-from ..mdl.import_mdl import import_model, import_materials, put_into_collections
+from ..mdl.v49.import_mdl import import_model, put_into_collections
 
 
 def _convert_quat(quat):
@@ -27,7 +25,7 @@ def import_gamemodel(mdl_path, scale=HAMMER_UNIT_TO_METERS):
     if mld_file:
         vvd_file = ContentManager().find_file(mdl_path.with_suffix('.vvd'))
         vtx_file = find_vtx_cm(mdl_path, ContentManager())
-        model_container = import_model(mld_file, vvd_file, vtx_file, scale, False, True)
+        model_container = import_model(mld_file, vvd_file, vtx_file, None, scale, False, True)
         # import_materials(model_container.mdl)
         put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=True)
         return model_container
@@ -49,6 +47,11 @@ def create_camera(dme_camera: Camera, scale=HAMMER_UNIT_TO_METERS):
 def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, scale=HAMMER_UNIT_TO_METERS):
     for control in animset.controls:
         if control.type == 'DmElement':
+            for obj in container.objects:
+                if obj.type != 'MESH':
+                    continue
+                if obj.data.shape_keys and control.name in obj.data.shape_keys.key_blocks:
+                    obj.data.shape_keys.key_blocks[control.name].value = control['value']
             pass  # flex
         elif control.type == 'DmeTransformControl':
             bone_name = control.name
@@ -82,7 +85,7 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_MET
 
             qrot = convert_source_rotation(animset.game_model.transform.orientation)
             pos = convert_source_position(animset.game_model.transform.position)
-
+            container.armature.rotation_mode = 'QUATERNION'
             container.armature.location = pos * scale
             container.armature.rotation_quaternion = qrot
             # _apply_bone_transforms(animset, container, scale)
@@ -106,7 +109,7 @@ def load_session(session_path: Path, scale=HAMMER_UNIT_TO_METERS):
         bsp_map = BSP(map_file, scale=scale)
 
         # bsp_map.load_disp()
-        bsp_map.load_entities()
+        # bsp_map.load_entities()
         # bsp_map.load_static_props()
         # bsp_map.load_detail_props()
         # bsp_map.load_materials()

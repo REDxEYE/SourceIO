@@ -2,7 +2,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from ..wad import WadFile, WadEntry
+from ..wad import WadFile, WadLump
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...utilities.singleton import SingletonMeta
 
@@ -53,7 +53,7 @@ class GoldSrcContentManager(metaclass=SingletonMeta):
     def get_game_file(self, path: Path):
         return self.game_root / path
 
-    def get_game_resource(self, name: str, path: Path = None) -> Optional[Union[WadEntry, Path]]:
+    def get_game_resource(self, name: str, path: Path = None) -> Optional[Union[WadLump, Path]]:
         if path is not None:
             # print(f'Searching for game resource {name} in path {path}')
             if path.is_file() and path.suffix == '.wad':

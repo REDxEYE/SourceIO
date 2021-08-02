@@ -12,7 +12,7 @@ from .valve_material import ValveCompiledMaterial
 from .valve_physics import ValveCompiledPhysics
 from .vavle_morph import ValveCompiledMorph
 from ..utils.decode_animations import parse_anim_data
-from ..blocks.vbib_block import VertexBuffer
+from ..blocks.vbib_block import VertexBuffer, IndexBuffer
 from ..common import convert_normals
 from ..source2 import ValveCompiledFile
 import numpy as np
@@ -224,7 +224,7 @@ class ValveCompiledModel(ValveCompiledFile):
                 vertex_count = draw_call['m_nVertexCount']
                 start_index = draw_call['m_nStartIndex'] // 3
                 index_count = draw_call['m_nIndexCount'] // 3
-                index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
+                index_buffer: IndexBuffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
                 vertex_buffer: VertexBuffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
 
                 used_range = slice(base_vertex, base_vertex + vertex_count)
@@ -235,7 +235,7 @@ class ValveCompiledModel(ValveCompiledFile):
                     normals = convert_normals(normals)
 
                 mesh.from_pydata(used_vertices * self.scale, [],
-                                 index_buffer.indexes[start_index:start_index + index_count].tolist())
+                                 index_buffer.indices[start_index:start_index + index_count].tolist())
                 mesh.update()
                 n = 0
                 for attrib in vertex_buffer.attributes:
@@ -504,15 +504,20 @@ class ValveCompiledModel(ValveCompiledFile):
 
     def load_physics(self):
         data = self.get_data_block(block_name='DATA')[0]
-
-        for phys_file_path in data.data['m_refPhysicsData']:
-            if phys_file_path not in self.available_resources:
-                continue
-            phys_file_path = self.available_resources[phys_file_path]
-            phys_file = ContentManager().find_file(phys_file_path)
-            if not phys_file:
-                continue
-            vphys = ValveCompiledPhysics(phys_file, self.scale)
-            vphys.parse_meshes()
-            phys_meshes = vphys.build_mesh()
-            self.container.physics_objects.extend(phys_meshes)
+        cdata = self.get_data_block(block_name='CTRL')[0]
+        if 'm_refPhysicsData' in data.data and data.data['m_refPhysicsData']:
+            for phys_file_path in data.data['m_refPhysicsData']:
+                if phys_file_path not in self.available_resources:
+                    continue
+                phys_file_path = self.available_resources[phys_file_path]
+                phys_file = ContentManager().find_file(phys_file_path)
+                if not phys_file:
+                    continue
+                vphys = ValveCompiledPhysics(phys_file, self.scale)
+                vphys.parse_meshes()
+                phys_meshes = vphys.build_mesh()
+                self.container.physics_objects.extend(phys_meshes)
+        elif 'embedded_physics' in cdata.data and cdata.data['embedded_physics']:
+            block_id = cdata.data['embedded_physics']['phys_data_block']
+            data = self.get_data_block(block_id=block_id)
+            print(data)

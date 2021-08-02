@@ -1,11 +1,11 @@
 from typing import Optional
 
-from .texture import Material
+from .texture import MaterialV36, MaterialV49
 from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 
 
-class Eyeball(Base):
+class EyeballV36(Base):
     def __init__(self):
         self.name = ''
         self.bone_index = 0
@@ -15,7 +15,7 @@ class Eyeball(Base):
         self.up = []
         self.forward = []
         self.material_id = 0
-        self.material: Optional[Material] = None
+        self.material: Optional[MaterialV36] = None
 
         self.iris_scale = 0.0
         self.upper_flex_desc = []
@@ -47,6 +47,26 @@ class Eyeball(Base):
         self.upper_lid_flex_desc = reader.read_uint32()
         self.lower_lid_flex_desc = reader.read_uint32()
         reader.skip(4 * 4)
+
+
+class EyeballV44(EyeballV36):
+    def __init__(self):
+        super().__init__()
+        self.material: Optional[MaterialV49] = None
+
+    def read(self, reader: ByteIO):
+        super().read(reader)
+        reader.skip(4 * 4)
         self.eyeball_is_non_facs = reader.read_uint8()
         reader.skip(3)
-        reader.skip(7 * 4)
+        reader.skip(3 * 4)
+        pass
+
+
+class EyeballV49(EyeballV44):
+    def __init__(self):
+        super().__init__()
+        self.material: Optional[MaterialV49] = None
+
+    def read(self, reader: ByteIO):
+        super().read(reader)

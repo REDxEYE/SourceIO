@@ -25,30 +25,32 @@ class Mdl(Base):
         self.models: List[StudioModel] = []
 
     def read(self):
-        self.header.read(self.reader)
+        header = self.header
+        reader = self.reader
+        header.read(reader)
 
-        for _ in range(self.header.bone_count):
+        for _ in range(header.bone_count):
             bone = StudioBone()
-            bone.read(self.reader)
+            bone.read(reader)
             self.bones.append(bone)
 
-        for _ in range(self.header.sequence_count):
+        for _ in range(header.sequence_count):
             sequence = StudioSequence()
-            sequence.read(self.reader)
+            sequence.read(reader)
             self.sequences.append(sequence)
 
         total_model_count = 0
-        for _ in range(self.header.body_part_count):
+        for _ in range(header.body_part_count):
             bodypart = StudioBodypart()
-            bodypart.read(self.reader)
+            bodypart.read(reader)
             total_model_count += bodypart.model_count
             self.bodyparts.append(bodypart)
-        assert total_model_count == self.header.unk_count, \
-            f'Total count of models should match unk_count, {total_model_count}!={self.header.unk_count}'
+        assert total_model_count == header.unk_count, \
+            f'Total count of models should match unk_count, {total_model_count}!={header.unk_count}'
         for sequence in self.sequences:
-            sequence.read_data(self.reader, self.header.bone_count)
+            sequence.read_anim_values(reader, header.bone_count)
 
         for _ in range(total_model_count):
             model = StudioModel()
-            model.read(self.reader)
+            model.read(reader)
             self.models.append(model)

@@ -8,20 +8,17 @@ from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .flex_expressions import *
 from .mdl_file import Mdl
-from .structs.header import StudioHDRFlags
-from .structs.model import Model
-from .vertex_animation_cache import VertexAnimationCache
-from ..vtx.structs.mesh import Mesh as VtxMesh
-from ..vtx.structs.model import ModelLod as VtxModel
-from ..vtx.vtx import Vtx
-from ..vvd import Vvd
-from ..vvc import Vvc
-from ...bpy_utilities.logging import BPYLoggingManager
-from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
-from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ...bpy_utilities.utils import get_material, get_new_unique_collection
-from ...source_shared.content_manager import ContentManager
-from ...source_shared.model_container import Source1ModelContainer
+from ..structs.header import StudioHDRFlags
+from ..structs.model import ModelV36
+from ...vtx import open_vtx
+from ...vtx.v6.structs.mesh import Mesh as VtxMesh
+from ...vtx.v6.structs.model import ModelLod as VtxModel
+from ....bpy_utilities.logging import BPYLoggingManager
+from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
+from ....bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from ....bpy_utilities.utils import get_material, get_new_unique_collection
+from ....source_shared.content_manager import ContentManager
+from ....source_shared.model_container import Source1ModelContainer
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('mdl_loader')
@@ -32,13 +29,13 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
     vertex_accumulator = []
     vertex_offset = 0
     for strip_group in vtx_mesh.strip_groups:
-        indices_accumulator.append(np.add(strip_group.indexes, vertex_offset))
+        indices_accumulator.append(np.add(strip_group.indices, vertex_offset))
         vertex_accumulator.append(strip_group.vertexes['original_mesh_vertex_index'].reshape(-1))
         vertex_offset += sum(strip.vertex_count for strip in strip_group.strips)
     return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset
 
 
-def merge_meshes(model: Model, vtx_model: VtxModel):
+def merge_meshes(model: ModelV36, vtx_model: VtxModel):
     vtx_vertices = []
     acc = 0
     mat_arrays = []
@@ -104,31 +101,20 @@ def create_armature(mdl: Mdl, scale=1.0):
     return armature_obj
 
 
-def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc_file: BinaryIO = None, scale=1.0,
-                 create_drivers=False, re_use_meshes=False, unique_material_names=False):
+def import_model(mdl_file: Union[BinaryIO, Path],
+                 vtx_file: Union[BinaryIO, Path],
+                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
     mdl = Mdl(mdl_file)
     mdl.read()
-    vvd = Vvd(vvd_file)
-    vvd.read()
-    if vvc_file is not None:
-        vvc = Vvc(vvc_file)
-        vvc.read()
-    else:
-        vvc = None
-    vtx = Vtx(vtx_file)
+    vtx = open_vtx(vtx_file)
     vtx.read()
 
-    container = Source1ModelContainer(mdl, vvd, vtx)
+    container = Source1ModelContainer(mdl, None, vtx)
 
     desired_lod = 0
-    all_vertices = vvd.lod_data[desired_lod]
 
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
-    if mdl.flex_names:
-        vac = VertexAnimationCache(mdl, vvd)
-        vac.process_data()
-
     if not static_prop:
         armature = create_armature(mdl, scale)
         container.armature = armature
@@ -177,7 +163,7 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
             if used_copy:
                 continue
 
-            model_vertices = get_slice(all_vertices, model.vertex_offset, model.vertex_count)
+            model_vertices = model.vertices
             vtx_vertices, indices_array, material_indices_array = merge_meshes(model, vtx_model.model_lods[desired_lod])
 
             indices_array = np.array(indices_array, dtype=np.uint32)
@@ -208,18 +194,6 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
             uvs = vertices['uv']
             uvs[:, 1] = 1 - uvs[:, 1]
             uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
-            if vvc is not None:
-                model_uvs2 = get_slice(vvc.secondary_uv, model.vertex_offset, model.vertex_count)
-                uvs2 = model_uvs2[vtx_vertices]
-                uv_data = mesh_data.uv_layers.new(name='UV2')
-                uvs2[:, 1] = 1 - uvs2[:, 1]
-                uv_data.data.foreach_set('uv', uvs2[vertex_indices].flatten())
-
-                model_colors = get_slice(vvc.color_data, model.vertex_offset, model.vertex_count)
-                colors = model_colors[vtx_vertices]
-
-                vc = mesh_data.vertex_colors.new()
-                vc.data.foreach_set('color', colors[vertex_indices].flatten())
 
             if not static_prop:
                 weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
@@ -231,27 +205,28 @@ def import_model(mdl_file: BinaryIO, vvd_file: BinaryIO, vtx_file: BinaryIO, vvc
                             weight_groups[bone_name].add([n], weight, 'REPLACE')
 
             if not static_prop:
-                flex_names = []
+                mesh_obj.shape_key_add(name='base')
                 for mesh in model.meshes:
-                    if mesh.flexes:
-                        flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
-                if flex_names:
-                    mesh_obj.shape_key_add(name='base')
-                for flex_name in flex_names:
-                    shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
-                        name=flex_name)
-                    vertex_animation = vac.vertex_cache[flex_name]
 
-                    model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
-                    flex_vertices = model_vertices[vtx_vertices] * scale
+                    for flex in mesh.flexes:
+                        shape_key = mesh_data.shape_keys.key_blocks.get(flex.name, None) or mesh_obj.shape_key_add(
+                            name=flex.name)
 
-                    shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
+                        # model_vertices = get_slice(model.vertices, model.vertex_offset, model.vertex_count)
+                        flex_vertices = model_vertices['vertex'] * scale
+                        vertex_indices = flex.vertex_animations['index'].reshape(-1) + mesh.vertex_index_start
+
+                        flex_vertices[vertex_indices] = np.add(flex_vertices[vertex_indices],
+                                                               flex.vertex_animations['vertex_delta'] * scale)
+
+                        shape_key.data.foreach_set("co", flex_vertices[vtx_vertices].reshape(-1))
 
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
-    if mdl.attachments:
-        attachments = create_attachments(mdl, armature if not static_prop else container.objects[0], scale)
-        container.attachments.extend(attachments)
+            if mdl.attachments:
+                attachments = create_attachments(mdl, armature if not static_prop else container.objects[0],
+                                                 scale)
+                container.attachments.extend(attachments)
 
     return container
 

@@ -3,9 +3,10 @@ from typing import BinaryIO, Optional
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler
+from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .mdl_file import Mdl
+from .structs.sequence import euler_to_quat
 from .structs.texture import StudioTexture
 from ...bpy_utilities.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
 from ...bpy_utilities.utils import get_new_unique_collection, get_material
@@ -45,6 +46,7 @@ def create_armature(mdl: Mdl, collection, scale):
 
     for n, mdl_bone_info in enumerate(mdl.bones):
         mdl_bone = armature_obj.pose.bones.get(f'Bone_{n}')
+        # mdl_bone.rotation_mode = 'XYZ'
         mdl_bone_pos = Vector(mdl_bone_info.pos) * scale
         mdl_bone_mat = Matrix.Translation(mdl_bone_pos)
         mdl_bone.matrix.identity()
@@ -72,6 +74,7 @@ def import_model(mdl_file: BinaryIO, scale=1.0,
     master_collection = get_new_unique_collection(get_name(mdl_file), parent_collection)
 
     armature, bone_transforms = create_armature(mdl, master_collection, scale)
+    load_animations(mdl, armature, get_name(mdl_file), scale)
     model_container.armature = armature
 
     for model in mdl.models:
@@ -164,3 +167,199 @@ def load_material(model_name, texture_id, model_texture_info: StudioTexture, mod
     bpy_material.create_nodes(f'{model_name}_texture_{texture_id}')
     bpy_material.align_nodes()
     return mat_id
+
+
+def load_animations(mdl: Mdl, armature, model_name, scale):
+    bpy.ops.object.select_all(action="DESELECT")
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    if not armature.animation_data:
+        armature.animation_data_create()
+
+    for sequence in mdl.sequences:
+
+        action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
+        armature.animation_data.action = action
+
+        curve_per_bone = {}
+
+        for n, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{n}'
+            bone_string = f'pose.bones["{bone_name}"].'
+            group = action.groups.new(name=bone_name)
+            pos_curves = []
+            rot_curves = []
+            for i in range(3):
+                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
+                pos_curve.keyframe_points.add(sequence.frame_count)
+                pos_curves.append(pos_curve)
+                pos_curve.group = group
+            for i in range(4):
+                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
+                rot_curve.keyframe_points.add(sequence.frame_count)
+                rot_curves.append(rot_curve)
+                rot_curve.group = group
+            curve_per_bone[bone_name] = pos_curves, rot_curves
+
+        for bone_id, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{bone_id}'
+            pos_curves, rot_curves = curve_per_bone[bone_name]
+            for n in range(sequence.frame_count):
+                bone_animations = sequence.frames[n]
+                frame = bone_animations[bone_id]
+                bone_rot = Quaternion(euler_to_quat((frame).tolist()))
+                # if bone.parent == -1:
+                #     bone_pos.x, bone_pos.y = bone_pos.y, bone_pos.x
+                #     bone_rot.z += math.radians(-90)
+                for i in range(4):
+                    rot_curves[i].keyframe_points.add(1)
+                    rot_curves[i].keyframe_points[-1].co = (n, bone_rot[i])
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def load_animations(mdl: Mdl, armature, model_name, scale):
+    bpy.ops.object.select_all(action="DESELECT")
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    if not armature.animation_data:
+        armature.animation_data_create()
+
+    for sequence in mdl.sequences:
+
+        action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
+        armature.animation_data.action = action
+
+        curve_per_bone = {}
+
+        for n, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{n}'
+            bone_string = f'pose.bones["{bone_name}"].'
+            group = action.groups.new(name=bone_name)
+            pos_curves = []
+            rot_curves = []
+            for i in range(3):
+                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
+                pos_curve.keyframe_points.add(sequence.frame_count)
+                pos_curves.append(pos_curve)
+                pos_curve.group = group
+            for i in range(4):
+                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
+                rot_curve.keyframe_points.add(sequence.frame_count)
+                rot_curves.append(rot_curve)
+                rot_curve.group = group
+            curve_per_bone[bone_name] = pos_curves, rot_curves
+
+        for bone_id, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{bone_id}'
+            pos_curves, rot_curves = curve_per_bone[bone_name]
+            for n in range(sequence.frame_count):
+                bone_animations = sequence.frames[n]
+                frame = bone_animations[bone_id]
+                bone_rot = Quaternion(euler_to_quat((frame).tolist()))
+                # if bone.parent == -1:
+                #     bone_pos.x, bone_pos.y = bone_pos.y, bone_pos.x
+                #     bone_rot.z += math.radians(-90)
+                for i in range(4):
+                    rot_curves[i].keyframe_points.add(1)
+                    rot_curves[i].keyframe_points[-1].co = (n, bone_rot[i])
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def load_animations(mdl: Mdl, armature, model_name, scale):
+    bpy.ops.object.select_all(action="DESELECT")
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    if not armature.animation_data:
+        armature.animation_data_create()
+
+    for sequence in mdl.sequences:
+
+        action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
+        armature.animation_data.action = action
+
+        curve_per_bone = {}
+
+        for n, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{n}'
+            bone_string = f'pose.bones["{bone_name}"].'
+            group = action.groups.new(name=bone_name)
+            pos_curves = []
+            rot_curves = []
+            for i in range(3):
+                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
+                pos_curve.keyframe_points.add(sequence.frame_count)
+                pos_curves.append(pos_curve)
+                pos_curve.group = group
+            for i in range(4):
+                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
+                rot_curve.keyframe_points.add(sequence.frame_count)
+                rot_curves.append(rot_curve)
+                rot_curve.group = group
+            curve_per_bone[bone_name] = pos_curves, rot_curves
+
+        for bone_id, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{bone_id}'
+            pos_curves, rot_curves = curve_per_bone[bone_name]
+            for n in range(sequence.frame_count):
+                bone_animations = sequence.frames[n]
+                frame = bone_animations[bone_id]
+                bone_rot = Quaternion(euler_to_quat((frame).tolist()))
+                # if bone.parent == -1:
+                #     bone_pos.x, bone_pos.y = bone_pos.y, bone_pos.x
+                #     bone_rot.z += math.radians(-90)
+                for i in range(4):
+                    rot_curves[i].keyframe_points.add(1)
+                    rot_curves[i].keyframe_points[-1].co = (n, bone_rot[i])
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def load_animations(mdl: Mdl, armature, model_name, scale):
+    bpy.ops.object.select_all(action="DESELECT")
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    if not armature.animation_data:
+        armature.animation_data_create()
+
+    for sequence in mdl.sequences:
+
+        action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
+        armature.animation_data.action = action
+
+        curve_per_bone = {}
+
+        for n, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{n}'
+            bone_string = f'pose.bones["{bone_name}"].'
+            group = action.groups.new(name=bone_name)
+            pos_curves = []
+            rot_curves = []
+            for i in range(3):
+                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
+                pos_curve.keyframe_points.add(sequence.frame_count)
+                pos_curves.append(pos_curve)
+                pos_curve.group = group
+            for i in range(4):
+                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
+                rot_curve.keyframe_points.add(sequence.frame_count)
+                rot_curves.append(rot_curve)
+                rot_curve.group = group
+            curve_per_bone[bone_name] = pos_curves, rot_curves
+
+        for bone_id, bone in enumerate(mdl.bones):
+            bone_name = f'Bone_{bone_id}'
+            pos_curves, rot_curves = curve_per_bone[bone_name]
+            for n in range(sequence.frame_count):
+                bone_animations = sequence.frames[n]
+                frame = bone_animations[bone_id]
+                bone_rot = Quaternion(euler_to_quat((frame).tolist()))
+                # if bone.parent == -1:
+                #     bone_pos.x, bone_pos.y = bone_pos.y, bone_pos.x
+                #     bone_rot.z += math.radians(-90)
+                for i in range(4):
+                    rot_curves[i].keyframe_points.add(1)
+                    rot_curves[i].keyframe_points[-1].co = (n, bone_rot[i])
+    bpy.ops.object.mode_set(mode='OBJECT')

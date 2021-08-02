@@ -4,7 +4,7 @@ from math import floor
 from .data_block import DATA
 import numpy as np
 
-from ...source1.mdl.flex_expressions import *
+from ...source1.mdl.v49.flex_expressions import *
 from ...source_shared.content_manager import ContentManager
 
 

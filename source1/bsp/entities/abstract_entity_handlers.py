@@ -148,13 +148,13 @@ class AbstractEntityHandler:
             material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
 
         uvs_per_face = []
-        luvs_per_face = []
+        # luvs_per_face = []
 
         for map_face in bsp_faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
             uvs = {}
-            luvs = {}
+            # luvs = {}
             face = []
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
@@ -162,7 +162,7 @@ class AbstractEntityHandler:
             texture_info = bsp_textures_info[map_face.tex_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             tv1, tv2 = texture_info.texture_vectors
-            lv1, lv2 = texture_info.lightmap_vectors
+            # lv1, lv2 = texture_info.lightmap_vectors
 
             used_surf_edges = bsp_surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
@@ -172,24 +172,24 @@ class AbstractEntityHandler:
 
             uv_vertices = bsp_vertices[face_vertex_ids]
 
-            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / texture_data.width
-            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / texture_data.height)
+            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / (texture_data.width or 512)
+            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / (texture_data.height or 512))
 
-            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / texture_data.width
-            lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / texture_data.height)
+            # lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / (texture_data.width or 512)
+            # lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / (texture_data.height or 512))
 
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
-            l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
+            # l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
 
-            for vertex_id, uv, luv in zip(face_vertex_ids, v_uvs, l_uvs):
+            for vertex_id, uv in zip(face_vertex_ids, v_uvs):  # , l_uvs):
                 new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv
-                luvs[new_vertex_id] = luv
+                # luvs[new_vertex_id] = luv
 
             material_indices.append(material_lookup_table[texture_data.name_id])
             uvs_per_face.append(uvs)
-            luvs_per_face.append(luvs)
+            # luvs_per_face.append(luvs)
             faces.append(face[::-1])
 
         mesh_data.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
@@ -201,18 +201,19 @@ class AbstractEntityHandler:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
 
-        lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
-        uv_data = lightmap_uv.data
-        for poly in mesh_data.polygons:
-            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-                uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+        # lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
+        # uv_data = lightmap_uv.data
+        # for poly in mesh_data.polygons:
+        #     for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+        #         uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
 
         return mesh_obj
 
     def _set_entity_data(self, obj, entity_raw: dict):
         obj['entity_data'] = entity_raw
 
-    def _get_entity_name(self, entity: Base):
+    @staticmethod
+    def _get_entity_name(entity: Base):
         if hasattr(entity, 'targetname') and entity.targetname:
             return str(entity.targetname)
         else:
@@ -226,7 +227,8 @@ class AbstractEntityHandler:
             parent_collection = get_or_create_collection(name, self.parent_collection)
         parent_collection.objects.link(obj)
 
-    def _apply_light_rotation(self, obj, entity):
+    @staticmethod
+    def _apply_light_rotation(obj, entity):
         obj.rotation_euler = Euler((0, math.radians(-90), 0))
         obj.rotation_euler.rotate(Euler((
             math.radians(entity.angles[2]),
@@ -235,9 +237,10 @@ class AbstractEntityHandler:
         )))
 
     def _set_location_and_scale(self, obj, location, additional_scale=1.0):
+        scale = self.scale * additional_scale
         obj.location = location
-        obj.location *= self.scale * additional_scale
-        obj.scale *= self.scale * additional_scale
+        obj.location *= scale
+        obj.scale *= scale
 
     def _set_location(self, obj, location):
         obj.location = location
@@ -260,18 +263,23 @@ class AbstractEntityHandler:
             obj.matrix_world = before
 
     def _set_icon_if_present(self, obj, entity):
-        if hasattr(entity, 'icon_sprite'):
-            icon_path = getattr(entity, 'icon_sprite')
-            icon_material_file = ContentManager().find_material(icon_path, silent=True)
-            if not icon_material_file:
-                return
-            vmt = VMT(icon_material_file)
-            texture = ContentManager().find_texture(vmt.get_param('$basetexture', None), silent=True)
-            if not texture:
-                return
+        icon_path = getattr(entity, 'icon_sprite', None)
+
+        if icon_path is not None:
+            icon = bpy.data.images.get(Path(icon_path).stem, None)
+            if icon is None:
+                icon_material_file = ContentManager().find_material(icon_path, silent=True)
+                if not icon_material_file:
+                    return
+                vmt = VMT(icon_material_file)
+                texture = ContentManager().find_texture(vmt.get_param('$basetexture', None), silent=True)
+                if not texture:
+                    return
+                icon = import_texture(Path(icon_path).stem, texture)
+
             obj.empty_display_type = 'IMAGE'
             obj.empty_display_size = (1 / self.scale)
-            obj.data = import_texture(Path(icon_path).stem, texture)
+            obj.data = icon
 
     @staticmethod
     def _create_lines(name, points, closed=False):

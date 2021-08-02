@@ -21,6 +21,7 @@ class GBSPImport_OT_operator(bpy.types.Operator):
 
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     use_hd: BoolProperty(name="Load HD models", default=False, subtype='UNSIGNED')
+    single_collection: BoolProperty(name="Load everything into 1 collection", default=False, subtype='UNSIGNED')
 
     def execute(self, context):
 
@@ -32,8 +33,7 @@ class GBSPImport_OT_operator(bpy.types.Operator):
             print(f"Loading {n}/{len(self.files)}")
             content_manager = GoldSrcContentManager()
             content_manager.use_hd = self.use_hd
-            bsp = BSP(directory / file.name)
-            bsp.scale = self.scale
+            bsp = BSP(directory / file.name, scale=self.scale, single_collection=self.single_collection)
             bsp.load_map()
         return {'FINISHED'}
 

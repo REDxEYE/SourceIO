@@ -24,13 +24,14 @@ log_manager = BPYLoggingManager()
 
 
 class BSP:
-    def __init__(self, map_path: Path, *, scale=1.0):
+    def __init__(self, map_path: Path, *, scale=1.0, single_collection=False):
         self.map_path = map_path
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
         self.bsp_file = BspFile(map_path)
         self.scale = scale
+        self._single_collection = single_collection
 
         self.bsp_collection = bpy.data.collections.new(self.bsp_name)
         self.entry_cache = {}
@@ -43,6 +44,12 @@ class BSP:
         self.bsp_lump_edges = cast(EdgeLump, self.bsp_file.get_lump(LumpType.LUMP_EDGES))
         self.bsp_lump_surface_edges = cast(SurfaceEdgeLump, self.bsp_file.get_lump(LumpType.LUMP_SURFACE_EDGES))
         self.bsp_lump_models = cast(ModelLump, self.bsp_file.get_lump(LumpType.LUMP_MODELS))
+
+    def get_collection(self, entity_class):
+        if self._single_collection:
+            return self.bsp_collection
+        else:
+            return get_or_create_collection(entity_class, self.bsp_collection)
 
     @staticmethod
     def gather_model_data(model, faces, surf_edges, edges):
@@ -223,7 +230,7 @@ class BSP:
             entity_class: str = entity['classname']
 
             if entity_class in entity_handlers:
-                entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+                entity_collection = self.get_collection(entity_class)
                 entity_handlers[entity_class](entity, self.scale, entity_collection)
             else:
                 if entity_class == 'worldspawn':
@@ -235,7 +242,7 @@ class BSP:
                         self.bsp_file.manager.add_game_resource_root(game_wad_path)
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
-                    entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+                    entity_collection = self.get_collection(entity_class)
                     handle_generic_model_prop(entity, self.scale, entity_collection)
                 elif entity_class.startswith('trigger'):
                     self.load_trigger(entity_class, entity)
@@ -273,8 +280,11 @@ class BSP:
                     print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
     def load_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
-        trigger_collection = get_or_create_collection('triggers', self.bsp_collection)
-        entity_collection = get_or_create_collection(entity_class, trigger_collection)
+        if self._single_collection:
+            entity_collection = self.get_collection(entity_class)
+        else:
+            trigger_collection = get_or_create_collection('triggers', self.bsp_collection)
+            entity_collection = get_or_create_collection(entity_class, trigger_collection)
         if 'model' not in entity_data:
             self.logger.warn(f'Trigger "{entity_class}" does not reference any models')
             return
@@ -289,7 +299,7 @@ class BSP:
             model_object.location = origin
 
     def load_brush(self, entity_class: str, entity_data: Dict[str, Any]):
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        entity_collection = self.get_collection(entity_class)
         if 'model' not in entity_data:
             self.logger.warn(f'Brush "{entity_class}" does not reference any models')
             return
@@ -322,7 +332,7 @@ class BSP:
                         model_shader.inputs['Alpha'].default_value = 1.0 - (render_amount / 255)
 
     def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        entity_collection = self.get_collection(entity_class)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
         color = parse_hammer_vector(entity_data['_light'])
@@ -350,7 +360,7 @@ class BSP:
         light.rotation_euler = angles
 
     def load_light(self, entity_class, entity_data):
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        entity_collection = self.get_collection(entity_class)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         color = parse_hammer_vector(entity_data['_light'])
         if len(color) == 4:
@@ -373,7 +383,7 @@ class BSP:
         light.location = origin
 
     def load_light_environment(self, entity_class, entity_data):
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        entity_collection = self.get_collection(entity_class)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         color = parse_hammer_vector(entity_data['_light'])
         if len(color) == 4:
@@ -424,7 +434,7 @@ class BSP:
             print(entity_class, entity_data)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        entity_collection = self.get_collection(entity_class)
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if entity_class in obj.name])
             entity_name = f'{entity_class}_{copy_count}'
@@ -440,7 +450,7 @@ class BSP:
         entity_collection.objects.link(placeholder)
 
     def load_path_track(self, entity_class: str, entity_data: Dict[str, Any]):
-        entity_collection = get_or_create_collection(entity_class, self.bsp_collection)
+        entity_collection = self.get_collection(entity_class)
         start_name = entity_data['targetname']
         points = []
         visited = []

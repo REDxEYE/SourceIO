@@ -3,13 +3,13 @@ from typing import Iterable, Sized, List
 
 import numpy as np
 
-from ..mdl.mdl_file import Mdl
-from ..mdl.structs.bone import Bone
-from ..mdl.structs.model import Model as MdlModel
-from ..vtx.structs.mesh import Mesh as VtxMesh
-from ..vtx.structs.model import Model as VtxModel
-from ..vtx.structs.model import ModelLod as VtxModelLod
-from ..vtx.vtx import Vtx
+from ..mdl.v49.mdl_file import Mdl
+from ..mdl.structs.bone import BoneV49
+from ..mdl.structs.model import ModelV49 as MdlModel
+from ..vtx.v7.structs.mesh import Mesh as VtxMesh
+from ..vtx.v7.structs.model import Model as VtxModel
+from ..vtx.v7.structs.model import ModelLod as VtxModelLod
+from ..vtx.v7.vtx import Vtx
 from ..vvd import Vvd
 from ...source_shared.content_manager import ContentManager
 from ...utilities import datamodel
@@ -173,7 +173,7 @@ class DmxModel:
 
         pass
 
-    def write_bone(self, bone: Bone):
+    def write_bone(self, bone: BoneV49):
         if isinstance(bone, str):
             bone_name = bone
             bone = None

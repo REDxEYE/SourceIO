@@ -1,5 +1,6 @@
-from ....utilities.byte_io_mdl  import ByteIO
+from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
+
 
 
 class AxisInterpRule(Base):

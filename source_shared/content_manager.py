@@ -73,6 +73,8 @@ class ContentManager(metaclass=SingletonMeta):
                 self.content_providers[root_path.stem] = sub_manager
                 logger.info(f'Registered sub manager for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
+                    if mod.parts[-1] == '*':
+                        continue
                     self.scan_for_content(mod)
 
             gameinfos = root_path.glob('*gameinfo*.gi')
@@ -194,7 +196,10 @@ class ContentManager(metaclass=SingletonMeta):
     def get_content_provider_from_path(self, filepath):
         filepath = Path(filepath)
         for name, content_provider in self.content_providers.items():
-            cp_root = content_provider.filepath.parent
+            if content_provider.filepath.is_file():
+                cp_root = content_provider.filepath.parent
+            else:
+                cp_root = content_provider.filepath
             is_sm, fp_root = self.is_source_mod(filepath)
             if fp_root == cp_root:
                 return content_provider

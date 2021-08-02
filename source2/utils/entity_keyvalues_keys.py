@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from .murmurhash2 import murmur_hash2
+from ...bpy_utilities.logging import BPYLoggingManager
 
 MURMUR2SEED = 0x31415926
 
@@ -12,11 +13,15 @@ class EntityKeyValuesKeys:
     _all_keys = []
 
     def __init__(self):
+        self.logger = BPYLoggingManager().get_logger('Source2 Entities')
+        self.logger.info('Loading keys')
         if not self.lookup_table:
             if self._json_path.exists():
+                self.logger.info('Found precomputed keys')
                 with self._json_path.open('r') as file:
                     self.lookup_table = {int(key): value for key, value in json.load(file).items()}
             else:
+                self.logger.info('Computing new keys')
                 with self._raw_strings_path.open('r') as file:
                     self._all_keys = file.readlines()
                 self.precompute_keys()

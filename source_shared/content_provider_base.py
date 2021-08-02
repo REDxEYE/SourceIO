@@ -33,3 +33,10 @@ class ContentProviderBase:
     @property
     def steam_id(self):
         return 0
+
+    @property
+    def root(self):
+        if self.filepath.is_file():
+            return self.filepath.parent
+        else:
+            return self.filepath

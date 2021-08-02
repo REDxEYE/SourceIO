@@ -1,8 +1,9 @@
 from typing import List
 
-from ....source_shared.base import Base
-from ....utilities.byte_io_mdl  import ByteIO
+from .....source_shared.base import Base
+from .....utilities.byte_io_mdl import ByteIO
 from .mesh import Mesh
+
 
 class ModelLod(Base):
     def __init__(self, lod_id):

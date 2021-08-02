@@ -4,18 +4,18 @@ from typing import List
 
 import numpy as np
 
-from ...utilities.byte_io_mdl import ByteIO
-from ...source_shared.base import Base
+from ....utilities.byte_io_mdl import ByteIO
+from ....source_shared.base import Base
 
 from .flex_expressions import *
-from .structs.header import Header
-from .structs.bone import Bone
-from .structs.texture import Material
-from .structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
-from .structs.anim_desc import AnimDesc
-from .structs.sequence import Sequence
-from .structs.attachment import Attachment
-from .structs.bodygroup import BodyPart
+from ..structs.header import MdlHeaderV44
+from ..structs.bone import BoneV49
+from ..structs.texture import MaterialV49
+from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
+from ..structs.anim_desc import AnimDesc
+from ..structs.sequence import Sequence
+from ..structs.attachment import AttachmentV49
+from ..structs.bodygroup import BodyPartV44
 
 
 class _AnimBlocks:
@@ -29,10 +29,10 @@ class Mdl(Base):
     def __init__(self, filepath):
         self.store_value("MDL", self)
         self.reader = ByteIO(filepath)
-        self.header = Header()
-        self.bones = []  # type: List[Bone]
+        self.header = MdlHeaderV44()
+        self.bones = []  # type: List[BoneV49]
         self.skin_groups = []  # type: List[List[str]]
-        self.materials = []  # type: List[Material]
+        self.materials = []  # type: List[MaterialV49]
         self.materials_paths = []
 
         self.flex_names = []  # type:List[str]
@@ -40,9 +40,9 @@ class Mdl(Base):
         self.flex_ui_controllers = []  # type:List[FlexControllerUI]
         self.flex_rules = []  # type:List[FlexRule]
 
-        self.body_parts = []  # type:List[BodyPart]
+        self.body_parts = []  # type:List[BodyPartV44]
 
-        self.attachments = []  # type:List[Attachment]
+        self.attachments = []  # type:List[AttachmentV49]
         self.anim_descs = []  # type:List[AnimDesc]
         self.sequences = []  # type:List[Sequence]
         self.anim_block = _AnimBlocks()
@@ -79,14 +79,14 @@ class Mdl(Base):
         self.header.read(self.reader)
 
         self.reader.seek(self.header.bone_offset)
-        for _ in range(self.header.bone_count):
-            bone = Bone()
+        for bone_id in range(self.header.bone_count):
+            bone = BoneV49(bone_id)
             bone.read(self.reader)
             self.bones.append(bone)
 
         self.reader.seek(self.header.texture_offset)
         for _ in range(self.header.texture_count):
-            texture = Material()
+            texture = MaterialV49()
             texture.read(self.reader)
             self.materials.append(texture)
 
@@ -130,7 +130,7 @@ class Mdl(Base):
 
         self.reader.seek(self.header.local_attachment_offset)
         for _ in range(self.header.local_attachment_count):
-            attachment = Attachment()
+            attachment = AttachmentV49()
             attachment.read(self.reader)
             self.attachments.append(attachment)
 
@@ -142,7 +142,7 @@ class Mdl(Base):
 
         self.reader.seek(self.header.body_part_offset)
         for _ in range(self.header.body_part_count):
-            body_part = BodyPart()
+            body_part = BodyPartV44()
             body_part.read(self.reader)
             self.body_parts.append(body_part)
 
