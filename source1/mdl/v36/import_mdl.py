@@ -303,16 +303,20 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
         empty = bpy.data.objects.new(attachment.name, None)
         pos = Vector(attachment.pos) * scale
         rot = Euler(attachment.rot)
+
         empty.matrix_basis.identity()
         empty.scale *= scale
-        empty.parent = armature
-        if armature.type == 'ARMATURE':
-            bone = armature.data.bones.get(mdl.bones[attachment.parent_bone].name)
-            empty.parent_type = 'BONE'
-            empty.parent_bone = bone.name
         empty.location = pos
         empty.rotation_euler = rot
+
+        if armature.type == 'ARMATURE':
+            modifier = empty.constraints.new(type="CHILD_OF")
+            modifier.target = armature
+            modifier.subtarget = mdl.bones[attachment.parent_bone].name
+            modifier.inverse_matrix.identity()
+
         attachments.append(empty)
+
     return attachments
 
 
