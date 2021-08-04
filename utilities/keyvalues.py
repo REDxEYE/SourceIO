@@ -1,7 +1,7 @@
 import sys
 from collections import OrderedDict
 from enum import Enum
-from typing import TextIO
+from typing import TextIO, Union
 
 from ..bpy_utilities.logging import BPYLoggingManager
 
@@ -213,7 +213,7 @@ class KVParser(KVReader):
         if tok is KVToken.OPEN:
             pairs = OrderedDict()
 
-            while not self._match(KVToken.CLOSE, KVToken.END, required=False,consume=False):
+            while not self._match(KVToken.CLOSE, KVToken.END, required=False, consume=False):
                 try:
                     key, val = self.parse_pair()
                 except ValueError as e:
@@ -277,6 +277,8 @@ class KVWriter:
             self.write_string(value, indentation, append_newline)
         elif isinstance(value, int):
             self.write_number(value, indentation, append_newline)
+        elif isinstance(value, float):
+            self.write_number(value, indentation, append_newline)
         else:
             raise TypeError(f'Invalid type: {value.__class__}')
 
@@ -315,7 +317,7 @@ class KVWriter:
     def write_string(self, value: str, indentation: int, append_newline: bool):
         self.print(value if value.isidentifier() else f'"{value}"', indentation, append_newline)
 
-    def write_number(self, value: int, indentation: int, append_newline: bool):
+    def write_number(self, value: Union[int, float], indentation: int, append_newline: bool):
         self.print(str(value), indentation, append_newline)
 
     def print(self, value, indent: int, append_newline: bool = True):
