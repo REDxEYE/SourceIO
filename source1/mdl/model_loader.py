@@ -34,6 +34,7 @@ def import_model_from_files(mdl_file: Union[str, Path, BinaryIO],
                             unique_material_names: bool = False):
     mdl_reader = ByteIO(mdl_file)
     magic, version = mdl_reader.read_fmt('4sI')
+    mdl_reader.seek(0)
     assert magic == b'IDST', f'Unknown Mdl magic "{magic}", expected "IDST"'
     if 35 <= version <= 37:
         return import_model_v36(mdl_file, vtx_file, scale, create_drives, re_use_meshes, unique_material_names)
