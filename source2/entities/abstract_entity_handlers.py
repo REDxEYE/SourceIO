@@ -117,11 +117,12 @@ class AbstractEntityHandler:
     def load_entity_lump(self, lump_name, entity_lump):
         entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]
         for entity_kv in entity_data_block.data['m_entityKeyValues']:
-            a = EntityKeyValues()
-            reader = ByteIO(entity_kv['m_keyValuesData'])
-            a.read(reader)
-            entity_data = a.base
-            self._entities.append(entity_data)
+            if entity_kv['m_keyValuesData']:
+                a = EntityKeyValues()
+                reader = ByteIO(entity_kv['m_keyValuesData'])
+                a.read(reader)
+                entity_data = a.base
+                self._entities.append(entity_data)
 
     def handle_entity(self, entity_data: dict):
         entity_class = entity_data['classname']
