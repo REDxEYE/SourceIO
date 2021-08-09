@@ -43,7 +43,7 @@ def import_model_from_files(mdl_file: Union[str, Path, BinaryIO],
         return import_model_v44(mdl_file, vvd_file, vtx_file, None, scale, create_drives, re_use_meshes,
                                 unique_material_names)
 
-    elif 46 <= version <= 49:
+    elif 45 <= version <= 49:
         return import_model_v49(mdl_file, vvd_file, vtx_file, None, scale, create_drives, re_use_meshes,
                                 unique_material_names)
 
