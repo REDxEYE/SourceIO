@@ -50,10 +50,10 @@ class VMTParser:
             self._buffer = file_or_string.read().decode('latin', errors='replace')
         else:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')
-        try:
-            self._parser = KVParser('<input>', _pre_process_vmt(self._buffer), single_value=True)
-        except Exception as ex:
-            self._parser = KVParser('<input>', self._buffer, single_value=True)
+        # try:
+        #     self._parser = KVParser('<input>', _pre_process_vmt(self._buffer), single_value=True)
+        # except Exception as ex:
+        self._parser = KVParser('<input>', self._buffer, single_value=True)
         self.header, self._raw_data = self._parser.parse()
 
     def get_vector(self, name, default=(0, 0, 0)):
