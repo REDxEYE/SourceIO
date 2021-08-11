@@ -58,7 +58,7 @@ class BPYLogger:
         for h in self._logger.handlers:
             self._logger.removeHandler(h)
         self._logger.handlers.clear()
-        self._formatter = Formatter('[%(levelname)s]--[%(name)s:%(function)s] %(message)s')
+        self._formatter = Formatter('[%(levelname)s]--[%(name)s:%(function)s]: %(message)s')
 
         self._logger.setLevel(DEBUG)
 
