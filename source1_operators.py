@@ -80,6 +80,33 @@ class MDLImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+class RigImport_OT_operator(bpy.types.Operator):
+    """Load SFM ik-rig script"""
+    bl_idname = "source_io.rig"
+    bl_label = "Import SFM ik-rig script"
+    bl_options = {'UNDO'}
+
+    filepath: StringProperty(subtype="FILE_PATH")
+    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    filter_glob: StringProperty(default="*.py", options={'HIDDEN'})
+
+    def execute(self, context):
+
+        if Path(self.filepath).is_file():
+            directory = Path(self.filepath).absolute()
+        else:
+            raise Exception("Expected file")
+        from .bpy_utilities.fake_sfm import load_script
+        load_script(directory)
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
 # noinspection PyUnresolvedReferences,PyPep8Naming
 class BSPImport_OT_operator(bpy.types.Operator):
     """Load Source Engine BSP models"""

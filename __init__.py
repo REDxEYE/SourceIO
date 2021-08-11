@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
 
-
-
 from .utilities.singleton import SingletonMeta
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
@@ -31,6 +29,7 @@ if not NO_BPY:
     from .source1_operators import (BSPImport_OT_operator,
                                     MDLImport_OT_operator,
                                     DMXImporter_OT_operator,
+                                    RigImport_OT_operator,
                                     )
     from .source2_operators import (VMATImport_OT_operator,
                                     VTEXImport_OT_operator,
@@ -80,6 +79,7 @@ if not NO_BPY:
                 layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
                                 icon_value=vmt_icon.icon_id)
             layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
+            layout.operator(RigImport_OT_operator.bl_idname, text="SFM ik-rig script (.py)")
             layout.separator()
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
                             icon_value=model_doc_icon.icon_id)
@@ -155,6 +155,7 @@ if not NO_BPY:
         MDLImport_OT_operator,
         BSPImport_OT_operator,
         DMXImporter_OT_operator,
+        RigImport_OT_operator,
 
         # Source2 stuff
         DMXCameraImport_OT_operator,
