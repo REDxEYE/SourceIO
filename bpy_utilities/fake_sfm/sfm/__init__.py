@@ -113,7 +113,7 @@ class BoneGroup:
         self.group = b_group
         self.bones = []
         self.register_group(b_group)
-        sfm._ensure_mode('OBJECT')
+        sfm.object_mode()
         self.obj.data.layers[self.bone_layer] = True
 
     def CreateControlGroup(self, name):
@@ -122,7 +122,7 @@ class BoneGroup:
         return BoneGroup(self.obj, group)
 
     def SetVisible(self, value):
-        sfm._ensure_mode('OBJECT')
+        sfm.object_mode()
         self.obj.data.layers[self.bone_layer] = value
         sfm.logger.info(f'Marking "{self.group.name}" layer as {"visible" if value else "invisible"}')
 
@@ -132,7 +132,7 @@ class BoneGroup:
     def AddControl(self, bone_name):
         bone = _get_bone(self.obj, bone_name, 'POSE')
         bone.bone_group = self.group
-        sfm._ensure_mode('OBJECT')
+        sfm.object_mode()
         self.obj.data.bones[bone_name].layers[:] = [False] * len(bone.bone.layers)
         self.obj.data.bones[bone_name].layers[self.bone_layer] = True
         self.bones.append(bone.name)
@@ -141,7 +141,15 @@ class BoneGroup:
         pass
 
     def FindChildByName(self, name, required=True):
-        return self.obj.pose.bone_groups.get(name, None)
+        bone = self.obj.pose.bone_groups.get(name, None)
+
+        if bone is not None:
+            return Dag(bone)
+
+        # Disabled because we don't have default bone groups
+        if required:
+            print(f"Required child {name} not found!")
+        #     raise Exception(f"Required child {name} not found!")
 
     def HasChildGroup(self, name, recursive):
         return name in self.bone_layers
@@ -170,25 +178,6 @@ class SFM(metaclass=SingletonMeta):
         self.selection_stack.append([])
         self.rig = None
 
-    def BeginRig(self, rig_name):
-        self.obj = self._get_object()
-        self.rig = Rig(rig_name)
-        return self.rig
-
-    def EndRig(self):
-        if self.obj:
-            sfm._ensure_mode('OBJECT')
-            self.obj.data.layers[0] = False
-
-    def Msg(self, message):
-        self.sfm_logger.info(message)
-
-    def print(self, *args, sep=' ', end='\n', ):
-        self.sfm_logger.info(sep.join(map(str, args)))
-
-    def GetCurrentShot(self):
-        return Shot()
-
     def _get_bone_group(self, name):
         return BoneGroup(self.obj,
                          self.obj.pose.bone_groups.get(name, None) or self.obj.pose.bone_groups.new(name=name))
@@ -204,14 +193,41 @@ class SFM(metaclass=SingletonMeta):
         if bpy.context.object.mode != mode:
             bpy.ops.object.mode_set(mode=mode)
 
+    def _parent_all_parentless_bones(self, new_parent):
+        sfm.edit_mode()
+        for bone in self.obj.data.edit_bones:
+            if not bone.parent:
+                bone.parent = new_parent
+
     def pose_mode(self):
         self._ensure_mode('POSE')
 
     def edit_mode(self):
         self._ensure_mode('EDIT')
 
+    def object_mode(self):
+        self._ensure_mode('OBJECT')
+
+    def BeginRig(self, rig_name):
+        self.obj = self._get_object()
+        self.rig = Rig(rig_name)
+        return self.rig
+
+    def EndRig(self):
+        if self.obj:
+            sfm._ensure_mode('OBJECT')
+            # Disable first (default) bone layer
+            self.obj.data.layers[0] = False
+        self.obj = None
+
+    def Msg(self, message):
+        self.sfm_logger.info(message)
+
+    def GetCurrentShot(self):
+        return Shot()
+
     def GetCurrentAnimationSet(self):
-        self.obj = obj = self._get_object()
+        obj = self.obj = self._get_object()
         assert obj.type == 'ARMATURE'
         if obj is not None:
             return AnimSet(obj)
@@ -260,13 +276,8 @@ class SFM(metaclass=SingletonMeta):
         self.pose_mode()
         selection = self.selection_stack[-1]
         for name in selection:
-            self.obj.pose.bones[name].matrix_basis = Matrix.Identity(4)
-
-    def _parent_all_parentless_bones(self, new_parent):
-        sfm.edit_mode()
-        for bone in self.obj.data.edit_bones:
-            if not bone.parent:
-                bone.parent = new_parent
+            if name in self.obj.pose.bones:
+                self.obj.pose.bones[name].matrix_basis = Matrix.Identity(4)
 
     def FindDag(self, name):
         if name == 'RootTransform':
@@ -442,7 +453,6 @@ class SFM(metaclass=SingletonMeta):
         hip.tail = knee.head
 
         knee_dag = Dag(knee)
-        hip_dag = Dag(hip)
 
         foot.parent = None
         sfm.pose_mode()
@@ -481,7 +491,6 @@ class SFM(metaclass=SingletonMeta):
                 bone.parent.matrix_local.inverted() * bone.matrix_local
             )
             return mat_local_to_parent.to_translation()
-            # quat = mat_local_to_parent.to_quaternion().inverted()
         elif space == 'RefObject':
             mat = ref_obj.matrix_world
             return SVector(*(mat @ bone.matrix) @ Vector([0, 0, 0]))
@@ -500,7 +509,6 @@ class SFM(metaclass=SingletonMeta):
                 bone.parent.matrix_local.inverted() * bone.matrix_local
             )
             return mat_local_to_parent.to_quaternion()
-            # quat = mat_local_to_parent.to_quaternion().inverted()
         elif space == 'RefObject':
             mat = ref_obj.matrix_world
             return (mat @ bone.matrix).to_quaternion()
@@ -508,7 +516,6 @@ class SFM(metaclass=SingletonMeta):
             raise NotImplementedError(f'Usupported space {space}')
 
     def Move(self, x, y, z, dagNode1, dagNodes=None, relative=False, space='World', refObject=None, offsetMode=False):
-
         if dagNodes is None:
             dagNodes = []
         self.edit_mode()

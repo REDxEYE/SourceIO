@@ -79,6 +79,11 @@ class BPYLogger:
             sh.setFormatter(self._formatter)
             self._logger.addHandler(sh)
 
+    def print(self, *args, sep=' ', end='\n', ):
+        self._add_bpy_file_logger()
+        self._filter.function = _get_caller_function()
+        self._logger.info(sep.join(map(str, args)))
+
     def debug(self, message):
         self._add_bpy_file_logger()
         self._filter.function = _get_caller_function()

@@ -66,4 +66,4 @@ def load_script(script_path: Path):
     node3 = refactoring_tool.refactor_string(script_data + '\n', 'script')
 
     compiled = compile(str(node3), str(script_path), 'exec')
-    exec(compiled, {'sfm': sfm.SFM(), 'sfmUtils': sfm_utils.SfmUtils(), 'print': sfm.sfm.print})
+    exec(compiled, {'sfm': sfm.SFM(), 'sfmUtils': sfm_utils.SfmUtils(), 'print': sfm.sfm.sfm_logger.print})
