@@ -78,7 +78,7 @@ if not NO_BPY:
                                 icon_value=vtf_icon.icon_id)
                 layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
                                 icon_value=vmt_icon.icon_id)
-            layout.operator(DMXImporter_OT_operator.bl_idname, text="SFM session (.dmx)")
+            layout.operator(DMXImporter_OT_operator.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
             layout.operator(RigImport_OT_operator.bl_idname, text="SFM ik-rig script (.py)")
             layout.separator()
             layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",

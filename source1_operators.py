@@ -151,7 +151,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
 class DMXImporter_OT_operator(bpy.types.Operator):
     """Load Source Engine DMX scene"""
     bl_idname = "source_io.dmx"
-    bl_label = "Import Source Session file"
+    bl_label = "[!!!WIP!!!] Import Source Session file"
     bl_options = {'UNDO'}
 
     filepath: StringProperty(subtype="FILE_PATH")
