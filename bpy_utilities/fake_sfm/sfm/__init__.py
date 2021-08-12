@@ -10,7 +10,7 @@ from ....utilities.singleton import SingletonMeta
 import bpy
 
 
-def _get_bone(obj, bone, mode=None):
+def get_bone(obj, bone, mode=None):
     if not isinstance(bone, str):
         bone = bone.name
     if not mode:
@@ -30,14 +30,17 @@ class Shot(metaclass=SingletonMeta):
         pass
 
 
+# noinspection PyPep8Naming
 class GameModel:
     def __init__(self, b_object):
         self.object = b_object
 
-    def FindAttachment(self, name):
+    @staticmethod
+    def FindAttachment(name):
         return 1 if name in bpy.data.objects else 0
 
 
+# noinspection PyPep8Naming
 class AnimSet:
     def __init__(self, b_object):
         self.object = b_object
@@ -55,11 +58,13 @@ class AnimSet:
         return self.object.name
 
 
+# noinspection PyPep8Naming
 class Rig:
     def __init__(self, name):
         self.name = name
 
 
+# noinspection PyPep8Naming
 class Dag:
     def __init__(self, bone):
         self.bone_name = bone.name
@@ -73,29 +78,37 @@ class Dag:
 
     def GetAbsPosition(self, pos: SVector):
         sfm.edit_mode()
-        bone = _get_bone(SFM().obj, self.bone_name, 'EDIT')
+        bone = get_bone(SFM().obj, self.bone_name, 'EDIT')
 
         pos.v = bone.head
+        pos.v[2], pos.v[1] = pos.v[1], pos.v[2]
 
     def FindTransformControl(self):
         return self.bone_name
 
 
+# noinspection PyPep8Naming
 class PointConstraint(Dag):
-    def FindWeightControl(self):
+    @staticmethod
+    def FindWeightControl():
         return None
 
 
+# noinspection PyPep8Naming
 class OrientConstaint(Dag):
-    def FindWeightControl(self):
+    @staticmethod
+    def FindWeightControl():
         return None
 
 
+# noinspection PyPep8Naming
 class ParentConstraint(Dag):
-    def FindWeightControl(self):
+    @staticmethod
+    def FindWeightControl():
         return None
 
 
+# noinspection PyPep8Naming,PyUnusedLocal
 class BoneGroup:
     bone_layers = {}
 
@@ -130,7 +143,7 @@ class BoneGroup:
         pass
 
     def AddControl(self, bone_name):
-        bone = _get_bone(self.obj, bone_name, 'POSE')
+        bone = get_bone(self.obj, bone_name, 'POSE')
         bone.bone_group = self.group
         sfm.object_mode()
         self.obj.data.bones[bone_name].layers[:] = [False] * len(bone.bone.layers)
@@ -169,6 +182,7 @@ class BoneGroup:
         self.group.colors.active = color.c * 1.5
 
 
+# noinspection PyPep8Naming
 class SFM(metaclass=SingletonMeta):
     def __init__(self):
         self.sfm_logger: BPYLogger = BPYLoggingManager().get_logger('SFM_EMULATOR')
@@ -182,7 +196,8 @@ class SFM(metaclass=SingletonMeta):
         return BoneGroup(self.obj,
                          self.obj.pose.bone_groups.get(name, None) or self.obj.pose.bone_groups.new(name=name))
 
-    def _get_object(self):
+    @staticmethod
+    def _get_object():
         if bpy.context.active_object is not None:
             return bpy.context.active_object
         elif len(bpy.context.selected_objects) > 0:
@@ -211,6 +226,9 @@ class SFM(metaclass=SingletonMeta):
     def BeginRig(self, rig_name):
         self.obj = self._get_object()
         self.rig = Rig(rig_name)
+        return self.rig
+
+    def GetCurrentRig(self):
         return self.rig
 
     def EndRig(self):
@@ -288,7 +306,7 @@ class SFM(metaclass=SingletonMeta):
             self._parent_all_parentless_bones(bone)
             sfm.pose_mode()
             # special case
-            return Dag(_get_bone(self.obj, name))
+            return Dag(get_bone(self.obj, name))
         sfm.pose_mode()
         for bone in self.obj.pose.bones:
             if bone.name.lower() == name.lower():
@@ -308,7 +326,7 @@ class SFM(metaclass=SingletonMeta):
             bone.bone_group = self._get_bone_group(group)
         dag = Dag(bone)
         self.pose_mode()
-        bone = _get_bone(obj, dag)
+        bone = get_bone(obj, dag)
         if not posControl:
             bone.lock_location = [True, True, True]
         if not rotControl:
@@ -318,7 +336,7 @@ class SFM(metaclass=SingletonMeta):
         return dag
 
     def _create_child_of(self, target, slave, name, mo, w, position=None, rotation=None, scale=None):
-        slave = _get_bone(self.obj, slave, 'POSE')
+        slave = get_bone(self.obj, slave, 'POSE')
         modifier = slave.constraints.get(name, None)
         if modifier is None:
             modifier = slave.constraints.new(type="CHILD_OF")
@@ -351,22 +369,21 @@ class SFM(metaclass=SingletonMeta):
             modifier.use_location_y = position
             modifier.use_location_z = position
 
-    def PointConstraint(self, *targetDags, name=None, group=None, mo=False, w=1.0,
-                        controls=False):
+    def PointConstraint(self, *targetDags, name=None, group=None, mo=False, w=1.0, controls=False):
         selection = self.selection_stack[-1]
         if not targetDags:
-            targetDag1 = _get_bone(self.obj, selection[-1], 'POSE')
-            slaveDag = _get_bone(self.obj, selection[0], 'POSE')
-            targetDags = [_get_bone(self.obj, bone, 'POSE') for bone in selection[1:-1]]
+            targetDag1 = get_bone(self.obj, selection[-1], 'POSE')
+            slaveDag = get_bone(self.obj, selection[0], 'POSE')
+            targetDags = [get_bone(self.obj, bone, 'POSE') for bone in selection[1:-1]]
         else:
             targetDag1 = targetDags[0]
             slaveDag = targetDags[-1]
             targetDags = list(targetDags[1:-1])
         self.pose_mode()
         for target in [targetDag1] + targetDags:
-            target = _get_bone(self.obj, target, 'POSE')
+            target = get_bone(self.obj, target, 'POSE')
             c_name = name or f'POS_{slaveDag.name}_TO_{target.name}'
-            slave = _get_bone(self.obj, slaveDag, 'POSE')
+            slave = get_bone(self.obj, slaveDag, 'POSE')
             modifier = slave.constraints.get(c_name, None)
             if modifier is None:
                 modifier = slave.constraints.new(type="COPY_LOCATION")
@@ -376,24 +393,23 @@ class SFM(metaclass=SingletonMeta):
 
         return PointConstraint(slaveDag)
 
-    def OrientConstraint(self, *targetDags, name=None, group=None, mo=False, w=1.0,
-                         controls=False):
+    def OrientConstraint(self, *targetDags, name=None, group=None, mo=False, w=1.0, controls=False):
         selection = self.selection_stack[-1]
 
         if not targetDags:
-            targetDag1 = _get_bone(self.obj, selection[-1], 'POSE')
-            slaveDag = _get_bone(self.obj, selection[0], 'POSE')
-            targetDags = [_get_bone(self.obj, bone, 'POSE') for bone in selection[1:-1]]
+            targetDag1 = get_bone(self.obj, selection[-1], 'POSE')
+            slaveDag = get_bone(self.obj, selection[0], 'POSE')
+            targetDags = [get_bone(self.obj, bone, 'POSE') for bone in selection[1:-1]]
         else:
             targetDag1 = targetDags[0]
             slaveDag = targetDags[-1]
             targetDags = list(targetDags[1:-1])
         self.pose_mode()
         for target in [targetDag1] + targetDags:
-            target = _get_bone(self.obj, target, 'POSE')
+            target = get_bone(self.obj, target, 'POSE')
             c_name = name or f'ROT_{slaveDag.name}_TO_{target.name}'
 
-            slave = _get_bone(self.obj, slaveDag, 'POSE')
+            slave = get_bone(self.obj, slaveDag, 'POSE')
             modifier = slave.constraints.get(c_name, None)
             if modifier is None:
                 modifier = slave.constraints.new(type="COPY_ROTATION")
@@ -403,21 +419,20 @@ class SFM(metaclass=SingletonMeta):
 
         return OrientConstaint(slaveDag)
 
-    def ParentConstraint(self, *targetDags, name=None, group=None, mo=False, w=1.0,
-                         controls=False):
+    def ParentConstraint(self, *targetDags, name=None, group=None, mo=False, w=1.0, controls=False):
         selection = self.selection_stack[-1]
 
         if not targetDags:
-            targetDag1 = _get_bone(self.obj, selection[0], 'POSE')
-            slaveDag = _get_bone(self.obj, selection[-1], 'POSE')
-            targetDags = [_get_bone(self.obj, bone, 'POSE') for bone in selection[1:-1]]
+            targetDag1 = get_bone(self.obj, selection[0], 'POSE')
+            slaveDag = get_bone(self.obj, selection[-1], 'POSE')
+            targetDags = [get_bone(self.obj, bone, 'POSE') for bone in selection[1:-1]]
         else:
             targetDag1 = targetDags[0]
             slaveDag = targetDags[-1]
             targetDags = list(targetDags[1:-1])
         self.pose_mode()
         for target in [targetDag1] + targetDags:
-            target = _get_bone(self.obj, target, 'POSE')
+            target = get_bone(self.obj, target, 'POSE')
             c_name = name or f'PARENT_{slaveDag.name}_TO_{target.name}'
 
             self._create_child_of(target, slaveDag, c_name, mo, w, position=True, rotation=True, scale=True)
@@ -442,10 +457,10 @@ class SFM(metaclass=SingletonMeta):
         else:
             endTarget, slaveRoot, slaveEnd = self.selection_stack[-1][-3:]
 
-        slave = _get_bone(self.obj, slaveEnd, 'POSE')
+        slave = get_bone(self.obj, slaveEnd, 'POSE')
         slave_parent = slave.parent
         sfm.edit_mode()
-        foot = _get_bone(self.obj, slaveEnd, 'EDIT')
+        foot = get_bone(self.obj, slaveEnd, 'EDIT')
         knee = foot.parent
         hip = knee.parent
 
@@ -453,6 +468,22 @@ class SFM(metaclass=SingletonMeta):
         hip.tail = knee.head
 
         knee_dag = Dag(knee)
+        # pv_bone = get_bone(self.obj, pvTarget, 'EDIT')
+        # pvh, pht = pv_bone.head, pv_bone.tail
+        # try:
+        #     pelvis_pos = hip.parent.head
+        #     up_axis = list(pelvis_pos - hip.tail).index(max(pelvis_pos - hip.tail))
+        #     middle_axis = list(pelvis_pos).index(min(pelvis_pos))
+        #     pv_offset = Vector([0, 0, 0])
+        #     pv_offset[middle_axis] = abs((hip.head - hip.tail).magnitude)
+        #     pv_bone.head = hip.tail - pv_offset
+        #     pv_offset[middle_axis] = 0
+        #     pv_offset[up_axis] = (hip.head - hip.tail).magnitude / 5
+        #     pv_bone.tail = pv_bone.head + pv_offset
+        #
+        # except Exception as ex:
+        #     self.logger.warn(f'Failed to calculated correct IK pole target" {ex}')
+        #     pv_bone.head, pv_bone.tail = pvh, pht
 
         foot.parent = None
         sfm.pose_mode()
@@ -465,9 +496,9 @@ class SFM(metaclass=SingletonMeta):
             ik_constraint.pole_target = self.obj
             ik_constraint.pole_subtarget = pvTarget.name
 
-        pole_angle_in_radians = get_pole_angle(_get_bone(self.obj, slaveRoot, 'POSE'),
+        pole_angle_in_radians = get_pole_angle(get_bone(self.obj, slaveRoot, 'POSE'),
                                                slave_parent,
-                                               _get_bone(self.obj, pvTarget, 'POSE').matrix.translation)
+                                               get_bone(self.obj, pvTarget, 'POSE').matrix.translation)
 
         ik_constraint.chain_count = 2
         ik_constraint.pole_angle = pole_angle_in_radians
@@ -480,7 +511,7 @@ class SFM(metaclass=SingletonMeta):
     def GetPosition(self, space='World', ref_obj=None):
         selection = self.selection_stack[-1]
         self.pose_mode()
-        bone = _get_bone(self.obj, selection[-1], 'POSE')
+        bone = get_bone(self.obj, selection[-1], 'POSE')
         if space == 'World':
             vec = SVector(0, 0, 0)
             Dag(bone).GetAbsPosition(vec)
@@ -499,7 +530,7 @@ class SFM(metaclass=SingletonMeta):
 
     def GetRotation(self, space='World', ref_obj=None):
         selection = self.selection_stack[-1]
-        bone = _get_bone(self.obj, selection[-1], 'POSE')
+        bone = get_bone(self.obj, selection[-1], 'POSE')
         if space == 'World':
             mat = self.obj.matrix_world
             return (mat @ bone.matrix).to_quaternion()
@@ -520,7 +551,7 @@ class SFM(metaclass=SingletonMeta):
             dagNodes = []
         self.edit_mode()
         for dag in [dagNode1] + dagNodes:
-            bone = _get_bone(self.obj, dag, 'EDIT')
+            bone = get_bone(self.obj, dag, 'EDIT')
             if space == 'World':
                 local_offset = self.obj.matrix_world.inverted() @ Vector([x, y, z])
                 if relative:

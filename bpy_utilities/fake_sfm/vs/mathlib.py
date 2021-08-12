@@ -5,6 +5,6 @@ def VectorSubtract(pos_b, pos_a, dir):
 
 
 def VectorScale(vec, scale, res):
-    res.x = vec.x * scale * 1 / 20
-    res.y = vec.y * scale * 1 / 20
-    res.z = vec.z * scale * 1 / 20
+    res.x = vec.x * scale #* 1 / 20
+    res.y = vec.y * scale #* 1 / 20
+    res.z = vec.z * scale #* 1 / 20
