@@ -503,21 +503,24 @@ class ValveCompiledModel(ValveCompiledFile):
                     material.load()
 
     def load_physics(self):
-        data = self.get_data_block(block_name='DATA')[0]
-        cdata = self.get_data_block(block_name='CTRL')[0]
-        if 'm_refPhysicsData' in data.data and data.data['m_refPhysicsData']:
-            for phys_file_path in data.data['m_refPhysicsData']:
-                if phys_file_path not in self.available_resources:
-                    continue
-                phys_file_path = self.available_resources[phys_file_path]
-                phys_file = ContentManager().find_file(phys_file_path)
-                if not phys_file:
-                    continue
-                vphys = ValveCompiledPhysics(phys_file, self.scale)
-                vphys.parse_meshes()
-                phys_meshes = vphys.build_mesh()
-                self.container.physics_objects.extend(phys_meshes)
-        elif 'embedded_physics' in cdata.data and cdata.data['embedded_physics']:
-            block_id = cdata.data['embedded_physics']['phys_data_block']
-            data = self.get_data_block(block_id=block_id)
-            print(data)
+        try:
+            data = self.get_data_block(block_name='DATA')[0]
+            cdata = self.get_data_block(block_name='CTRL')[0]
+            if 'm_refPhysicsData' in data.data and data.data['m_refPhysicsData']:
+                for phys_file_path in data.data['m_refPhysicsData']:
+                    if phys_file_path not in self.available_resources:
+                        continue
+                    phys_file_path = self.available_resources[phys_file_path]
+                    phys_file = ContentManager().find_file(phys_file_path)
+                    if not phys_file:
+                        continue
+                    vphys = ValveCompiledPhysics(phys_file, self.scale)
+                    vphys.parse_meshes()
+                    phys_meshes = vphys.build_mesh()
+                    self.container.physics_objects.extend(phys_meshes)
+            elif 'embedded_physics' in cdata.data and cdata.data['embedded_physics']:
+                block_id = cdata.data['embedded_physics']['phys_data_block']
+                data = self.get_data_block(block_id=block_id)
+                print(data)
+        except Exception as p:
+            print(f"Failed to laod physics due to {p}")
