@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .texture import MaterialV36, MaterialV49
+from .material import MaterialV36, MaterialV49
 from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 

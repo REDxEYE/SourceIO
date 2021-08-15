@@ -10,7 +10,7 @@ from ....source_shared.base import Base
 from .flex_expressions import *
 from ..structs.header import MdlHeaderV49
 from ..structs.bone import BoneV49
-from ..structs.texture import MaterialV49
+from ..structs.material import MaterialV49
 from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
 from ..structs.anim_desc import AnimDesc
 from ..structs.sequence import Sequence
@@ -30,12 +30,12 @@ class Mdl(Base):
         self.store_value("MDL", self)
         self.reader = ByteIO(filepath)
         self.header = MdlHeaderV49()
-        self.bones = []  # type: List[BoneV49]
-        self.skin_groups = []  # type: List[List[str]]
-        self.materials = []  # type: List[MaterialV49]
+        self.bones: List[BoneV49] = []
+        self.skin_groups: List[List[str]] = []
+        self.materials: List[MaterialV49] = []
         self.materials_paths = []
 
-        self.flex_names = []  # type:List[str]
+        self.flex_names: List[str] = []
         self.flex_controllers = []  # type:List[FlexController]
         self.flex_ui_controllers = []  # type:List[FlexControllerUI]
         self.flex_rules = []  # type:List[FlexRule]
@@ -48,6 +48,7 @@ class Mdl(Base):
         self.anim_block = _AnimBlocks()
 
         self.bone_table_by_name = []
+        self.eyeballs = []
 
     @staticmethod
     def calculate_crc(buffer):

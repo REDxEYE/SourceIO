@@ -198,6 +198,9 @@ class ModelV49(Base):
             for _ in range(eyeball_count):
                 eyeball = EyeballV49()
                 eyeball.read(reader)
+                mdl = self.get_value("MDL")
+                assert mdl
+                mdl.eyeballs.append(eyeball)
                 self.eyeballs.append(eyeball)
 
             reader.seek(entry + mesh_offset, 0)

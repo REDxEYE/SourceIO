@@ -10,7 +10,7 @@ from ....source_shared.base import Base
 from .flex_expressions import *
 from ..structs.header import MdlHeaderV36
 from ..structs.bone import BoneV36
-from ..structs.texture import MaterialV36
+from ..structs.material import MaterialV36
 from ..structs.flex import FlexController, FlexRule, FlexOpType
 from ..structs.anim_desc import AnimDesc
 from ..structs.sequence import Sequence
