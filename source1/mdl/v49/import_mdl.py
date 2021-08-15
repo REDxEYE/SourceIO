@@ -348,13 +348,18 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
     return attachments
 
 
-def import_materials(mdl, unique_material_names=False, use_bvlg=False):
+def import_materials(mdl: Mdl, unique_material_names=False, use_bvlg=False):
     content_manager = ContentManager()
     for material in mdl.materials:
+
         if unique_material_names:
             mat_name = f"{Path(mdl.header.name).stem}_{material.name[-63:]}"[-63:]
         else:
             mat_name = material.name[-63:]
+        material_eyeball = None
+        for eyeball in mdl.eyeballs:
+            if eyeball.material.name == material.name:
+                material_eyeball = eyeball
 
         if bpy.data.materials.get(mat_name, False):
             if bpy.data.materials[mat_name].get('source1_loaded', False):
@@ -367,7 +372,13 @@ def import_materials(mdl, unique_material_names=False, use_bvlg=False):
                 break
         if material_path:
             Source1ShaderBase.use_bvlg(use_bvlg)
-            new_material = Source1MaterialLoader(material_path, mat_name)
+            if material_eyeball is not None:
+                pass
+                # TODO: Syborg64 replace this with actual shader class
+                # new_material = EyeShader(material_path, mat_name, material_eyeball)
+                new_material = Source1MaterialLoader(material_path, mat_name)
+            else:
+                new_material = Source1MaterialLoader(material_path, mat_name)
             new_material.create_material()
 
 
