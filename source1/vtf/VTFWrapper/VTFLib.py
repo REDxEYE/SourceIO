@@ -5,7 +5,6 @@ import platform
 import sys
 from ctypes import *
 
-
 from . import VTFLibEnums, VTFLibStructures
 
 platform_name = platform.system()
@@ -27,6 +26,10 @@ elif platform_name == "Linux":
     # requires: libtxc_dxtn
     full_path = os.path.dirname(__file__)
     vtf_lib_name = "libVTFLib13.so"
+elif platform_name == 'Darwin':
+    full_path = os.path.dirname(__file__)
+    vtf_lib_name = "libvtf.dylib"
+
 else:
     raise UnsupportedOS(f"{platform_name} is not supported")
 
@@ -42,6 +45,8 @@ class VTFLib:
     if platform_name == "Windows":
         vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
     elif platform_name == "Linux":
+        vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
+    elif platform_name == 'Darwin':
         vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
     else:
         raise NotImplementedError("Platform {} isn't supported".format(platform_name))
