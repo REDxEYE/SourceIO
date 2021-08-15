@@ -15,7 +15,7 @@ def is_vtflib_supported():
         return True
     elif platform_name == "Linux":
         return True
-    elif platform_name == "Darwin":
+    elif platform_name == "Darwin":  # Thanks to Teodoso Lujan who compiled me a version of VTFLib
         return True
     else:
         return False

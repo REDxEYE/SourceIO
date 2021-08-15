@@ -46,7 +46,7 @@ class VTFLib:
         vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
     elif platform_name == "Linux":
         vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
-    elif platform_name == 'Darwin':
+    elif platform_name == 'Darwin':  # Thanks to Teodoso Lujan who compiled me a version of VTFLib
         vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
     else:
         raise NotImplementedError("Platform {} isn't supported".format(platform_name))
@@ -64,7 +64,7 @@ class VTFLib:
             cls.vtflib_cdll = WinDLL(os.path.join(full_path, vtf_lib_name))
         elif platform_name == "Linux":
             cls.vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
-        elif platform_name == 'Darwin':
+        elif platform_name == 'Darwin':  # Thanks to Teodoso Lujan who compiled me a version of VTFLib
             cls.vtflib_cdll = cdll.LoadLibrary(os.path.join(full_path, vtf_lib_name))
         else:
             raise NotImplementedError("Platform {} isn't supported".format(platform_name))
