@@ -302,8 +302,8 @@ class IndexBuffer:
 
     def read_buffer(self):
         index_dtype = np.uint32 if self.index_size == 4 else np.uint16
-        self.indexes = np.frombuffer(self.buffer.read(self.index_count * self.index_size), index_dtype)
-        self.indexes = self.indexes.reshape((-1, 3))
+        self.indices = np.frombuffer(self.buffer.read(self.index_count * self.index_size), index_dtype)
+        self.indices = self.indices.reshape((-1, 3))
 
 
 class VBIB(DataBlock):
