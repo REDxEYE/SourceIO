@@ -221,7 +221,8 @@ class ShaderBase:
 
     def create_texture_node(self, texture, name=None, location=None):
         texture_node = self.create_node(Nodes.ShaderNodeTexImage, name)
-        texture_node.image = texture
+        if texture is not None:
+            texture_node.image = texture
         if location is not None:
             texture_node.location = location
         return texture_node

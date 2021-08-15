@@ -3,5 +3,10 @@ from . import (vr_complex,
                vr_eyeball,
                vr_simple,
                vr_glass,
-               hero
+               hero,
+               simple,
+               eyeball,
+               complex,
+               generic,
+               blend
                )
