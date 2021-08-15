@@ -100,7 +100,6 @@ class VTFLib:
     GetLastError.restype = c_char_p
 
     def get_last_error(self):
-        bytes().decode()
         error = self.GetLastError().decode('utf', "replace")
         return error if error else "No errors"
 

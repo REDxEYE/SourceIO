@@ -15,6 +15,8 @@ def is_vtflib_supported():
         return True
     elif platform_name == "Linux":
         return True
+    elif platform_name == "Darwin":
+        return True
     else:
         return False
 
