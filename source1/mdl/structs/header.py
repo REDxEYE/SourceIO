@@ -297,11 +297,14 @@ class MdlHeaderV44(MdlHeaderV36):
         self.directional_light_dot, self.root_lod, *self.unused = reader.read_fmt('4b')
         self.zero_frame_cache_offset = reader.read_int32()
 
+        _, scal = reader.peek_fmt('2I')
+        if scal == 1279345491:
+            reader.skip(5 * 4)
         self.flex_controller_ui_count, self.flex_controller_ui_offset = reader.read_fmt('2I')
         self.unused3 = reader.read_fmt('4I')
 
         self.studio_header2_offset, self.unused2 = reader.read_fmt('2I')
-        reader.skip(4*9)
+        reader.skip(4 * 9)
         self.source_bone_transform_count, self.source_bone_transform_offset = reader.read_fmt('2I')
         self.illum_position_attachment_index, self.max_eye_deflection = reader.read_fmt('If')
         self.linear_bone_offset, self.name_offset = reader.read_fmt('2I')
