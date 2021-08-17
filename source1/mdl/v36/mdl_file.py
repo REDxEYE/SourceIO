@@ -47,6 +47,7 @@ class Mdl(Base):
         self.anim_block = _AnimBlocks()
 
         self.bone_table_by_name = []
+        self.eyeballs = []
 
     @staticmethod
     def calculate_crc(buffer):
