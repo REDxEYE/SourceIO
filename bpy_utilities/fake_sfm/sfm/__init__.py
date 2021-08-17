@@ -76,6 +76,9 @@ class Dag:
     def name(self):
         return self.bone_name
 
+    def GetName(self):
+        return self.name
+
     def GetAbsPosition(self, pos: SVector):
         sfm.edit_mode()
         bone = get_bone(SFM().obj, self.bone_name, 'EDIT')
@@ -85,6 +88,16 @@ class Dag:
 
     def FindTransformControl(self):
         return self.bone_name
+
+    def GetChildCount(self):
+        sfm.pose_mode()
+        bone = get_bone(SFM().obj, self.bone_name, 'POSE')
+        return len(bone.children)
+
+    def GetChild(self, index):
+        sfm.pose_mode()
+        bone = get_bone(SFM().obj, self.bone_name, 'POSE')
+        return Dag(bone.children[index])
 
 
 # noinspection PyPep8Naming
@@ -141,6 +154,11 @@ class BoneGroup:
 
     def SetSnappable(self, value):
         pass
+
+    def SetSelectable(self, value):
+        sfm.object_mode()
+        self.obj.data.layers[self.bone_layer] = value
+        sfm.logger.info(f'Marking "{self.group.name}" layer as {"selectable" if value else "non-selectable"}')
 
     def AddControl(self, bone_name):
         bone = get_bone(self.obj, bone_name, 'POSE')
