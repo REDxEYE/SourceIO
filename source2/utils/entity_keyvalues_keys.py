@@ -2,11 +2,12 @@ import json
 from pathlib import Path
 from .murmurhash2 import murmur_hash2
 from ...bpy_utilities.logging import BPYLoggingManager
+from ...utilities.singleton import SingletonMeta
 
 MURMUR2SEED = 0x31415926
 
 
-class EntityKeyValuesKeys:
+class EntityKeyValuesKeys(metaclass=SingletonMeta):
     _json_path = (Path(__file__).parent / 'entitykeyvalues_strings.json')
     _raw_strings_path = (Path(__file__).parent / 'entitykeyvalues_strings.txt')
     lookup_table = {}
