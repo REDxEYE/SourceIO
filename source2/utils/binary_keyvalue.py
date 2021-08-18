@@ -4,16 +4,12 @@ import numpy as np
 
 from ...utilities.byte_io_mdl import ByteIO
 from ..blocks.compiled_file_header import InfoBlock
-
-try:
-    from ..utils.PySourceIOUtils import lz4_decompress as uncompress
-except ImportError:
-    print("PySourceIOTextureUtils import error")
-    from ..utils.lz4 import uncompress as uncompress_tmp
+from ...utilities.lz4_wrapper import LZ4ChainDecoder, LZ4Wrapper
 
 
-    def uncompress(a, _b, _c):
-        return uncompress_tmp(a)
+def uncompress(compressed_data, _b, decompressed_size):
+    decoder = LZ4Wrapper()
+    return decoder.decompress_safe(compressed_data, decompressed_size)
 
 
 class KVFlag(IntFlag):
@@ -84,7 +80,8 @@ class BinaryKeyValue:
         self.int_buffer = ByteIO()
         self.double_buffer = ByteIO()
 
-        self.block_data = ByteIO()
+        self.block_data = bytearray()
+        self.block_reader = ByteIO()
         self.block_sizes = []
         self.next_block_id = 0
 
@@ -228,12 +225,14 @@ class BinaryKeyValue:
         assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
-        something = reader.read_uint32()
+        compression_dict_id = reader.read_uint16()
+        compression_frame_size = reader.read_uint16()
+
         self.bin_blob_count = reader.read_uint32()
         self.int_count = reader.read_uint32()
         self.double_count = reader.read_uint32()
 
-        reader.skip(8)
+        string_and_types_buffer_size, b, c = reader.read_fmt('I2H')
 
         uncompressed_size = reader.read_uint32()
         compressed_size = reader.read_uint32()
@@ -241,12 +240,17 @@ class BinaryKeyValue:
         block_total_size = reader.read_uint32()
 
         if compression_method == 0:
-            if something != 0:
+            if compression_dict_id != 0:
+                raise NotImplementedError('Unknown compression method in KV3 v2 block')
+            if compression_frame_size != 0:
                 raise NotImplementedError('Unknown compression method in KV3 v2 block')
             self.buffer.write_bytes(reader.read(compressed_size))
         elif compression_method == 1:
 
-            if something != 0x40000000:
+            if compression_dict_id != 0:
+                raise NotImplementedError('Unknown compression method in KV3 v2 block')
+
+            if compression_frame_size != 16384:
                 raise NotImplementedError('Unknown compression method in KV3 v2 block')
 
             data = reader.read(compressed_size)
@@ -273,10 +277,12 @@ class BinaryKeyValue:
         self.double_buffer.write_bytes(self.buffer.read(self.double_count * 8))
         self.double_buffer.seek(0)
 
+        string_start = self.buffer.tell()
+
         for _ in range(self.int_buffer.read_uint32()):
             self.strings.append(self.buffer.read_ascii_string())
 
-        types_len = self.buffer.size() - self.buffer.tell() - (4 + (block_count * 2) + (block_count * 4))
+        types_len = string_and_types_buffer_size - (self.buffer.tell() - string_start)
 
         for _ in range(types_len):
             self.types.append(self.buffer.read_uint8())
@@ -287,12 +293,20 @@ class BinaryKeyValue:
         else:
             self.block_sizes = [self.buffer.read_uint32() for _ in range(block_count)]
             assert self.buffer.read_uint32() == 0xFFEEDD00, 'Invalid terminator'
+            cd = LZ4ChainDecoder(block_total_size, 0)
             for uncompressed_block_size in self.block_sizes:
-                compressed_block_size = self.buffer.read_uint16()
-                data = reader.read(compressed_size)
-                data = uncompress(data, compressed_block_size, uncompressed_block_size)
-                self.block_data.write_bytes(data)
-            self.block_data.seek(0)
+                if compression_method == 0:
+                    self.block_data += reader.read(uncompressed_block_size)
+                elif compression_method == 1:
+                    compressed_block_size = self.buffer.read_uint16()
+                    data = reader.read(compressed_block_size)
+                    data = cd.decompress(data, uncompressed_block_size)
+                    self.block_data += data
+                else:
+                    raise NotImplementedError("Unknown KV3 compression method")
+
+            self.block_reader.write_bytes(self.block_data)
+            self.block_reader.seek(0)
             self.parse(self.buffer, self.kv, True)
             self.kv = self.kv[0]
 
@@ -407,8 +421,8 @@ class BinaryKeyValue:
                 tmp = np.array(tmp, dtype=np.float64)
             add(tmp)
         elif data_type == KVType.BINARY_BLOB:
-            if self.block_data.size() != 0:
-                data = self.block_data.read(self.block_sizes[self.next_block_id])
+            if self.block_reader.size() != 0:
+                data = self.block_reader.read(self.block_sizes[self.next_block_id])
                 self.next_block_id += 1
                 add(data)
             else:
