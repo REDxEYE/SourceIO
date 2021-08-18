@@ -55,8 +55,8 @@ class KV3mdl:
                 'worldSpace': False}
         self.animation_list['children'].append(anim)
 
-    def add_render_mesh(self, name, path):
-        render_mesh = {'_class': 'RenderMeshFile',
+    def add_render_mesh(self, name, path, mesh_class = 'RenderMeshFile'):
+        render_mesh = {'_class': mesh_class,
                        'name': name,
                        'filename': path,
                        'import_scale': 1.0
@@ -77,9 +77,9 @@ class KV3mdl:
         jiggle_bone.update(data)
         self.jigglebone_list['children'].append(jiggle_bone)
 
-    def add_skin(self, skin_name):
+    def add_skin(self, skin_name, skin_class = 'MaterialGroup'):
         skin = {
-            '_class': 'MaterialGroup',
+            '_class': skin_class,
             'name': skin_name,
             'remaps': []
         }
