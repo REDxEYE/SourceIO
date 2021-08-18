@@ -61,7 +61,7 @@ def put_into_collections(model_container, model_name,
 
 class ValveCompiledModel(ValveCompiledFile):
 
-    def __init__(self, path_or_file, re_use_meshes=False, scale=HAMMER_UNIT_TO_METERS):
+    def __init__(self, path_or_file, re_use_meshes=False, scale=1.0):
         from ...source_shared.model_container import Source2ModelContainer
 
         super().__init__(path_or_file)
@@ -503,24 +503,24 @@ class ValveCompiledModel(ValveCompiledFile):
                     material.load()
 
     def load_physics(self):
-        try:
-            data = self.get_data_block(block_name='DATA')[0]
-            cdata = self.get_data_block(block_name='CTRL')[0]
-            if 'm_refPhysicsData' in data.data and data.data['m_refPhysicsData']:
-                for phys_file_path in data.data['m_refPhysicsData']:
-                    if phys_file_path not in self.available_resources:
-                        continue
-                    phys_file_path = self.available_resources[phys_file_path]
-                    phys_file = ContentManager().find_file(phys_file_path)
-                    if not phys_file:
-                        continue
-                    vphys = ValveCompiledPhysics(phys_file, self.scale)
-                    vphys.parse_meshes()
-                    phys_meshes = vphys.build_mesh()
-                    self.container.physics_objects.extend(phys_meshes)
-            elif 'embedded_physics' in cdata.data and cdata.data['embedded_physics']:
-                block_id = cdata.data['embedded_physics']['phys_data_block']
-                data = self.get_data_block(block_id=block_id)
-                print(data)
-        except Exception as p:
-            print(f"Failed to laod physics due to {p}")
+        data = self.get_data_block(block_name='DATA')[0]
+        cdata = self.get_data_block(block_name='CTRL')
+        if not cdata:
+            return
+        cdata = cdata[0]
+        if 'm_refPhysicsData' in data.data and data.data['m_refPhysicsData']:
+            for phys_file_path in data.data['m_refPhysicsData']:
+                if phys_file_path not in self.available_resources:
+                    continue
+                phys_file_path = self.available_resources[phys_file_path]
+                phys_file = ContentManager().find_file(phys_file_path)
+                if not phys_file:
+                    continue
+                vphys = ValveCompiledPhysics(phys_file, self.scale)
+                vphys.parse_meshes()
+                phys_meshes = vphys.build_mesh()
+                self.container.physics_objects.extend(phys_meshes)
+        elif 'embedded_physics' in cdata.data and cdata.data['embedded_physics']:
+            block_id = cdata.data['embedded_physics']['phys_data_block']
+            data = self.get_data_block(block_id=block_id)
+            print(data)
