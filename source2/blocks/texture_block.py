@@ -8,7 +8,13 @@ from .dummy import DataBlock
 # noinspection PyUnresolvedReferences
 try:
     from ..utils.PySourceIOUtils import *
-    from ..utils.PySourceIOUtils import lz4_decompress as uncompress
+    from ...utilities.lz4_wrapper import LZ4Wrapper
+
+
+    def uncompress(compressed_data, _b, decompressed_size):
+        decoder = LZ4Wrapper()
+        return decoder.decompress_safe(compressed_data, decompressed_size)
+
 
     NO_SOURCE_IO_UTILS = False
 except ImportError:
