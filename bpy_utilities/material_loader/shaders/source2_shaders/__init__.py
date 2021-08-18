@@ -8,5 +8,6 @@ from . import (vr_complex,
                eyeball,
                complex,
                generic,
-               blend
+               blend,
+               static_overlay
                )

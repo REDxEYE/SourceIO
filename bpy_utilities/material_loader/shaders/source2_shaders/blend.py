@@ -10,6 +10,14 @@ class Blend(Source2ShaderBase):
     SHADER: str = 'blend.vfx'
 
     @property
+    def metalness_a(self):
+        return self.get_float('g_flMetalnessA', 0)
+
+    @property
+    def metalness_b(self):
+        return self.get_float('g_flMetalnessB', 0)
+
+    @property
     def color_a_texture(self):
         texture_path = self.get_texture('g_tColorA', None)
         if texture_path is not None:
@@ -102,26 +110,38 @@ class Blend(Source2ShaderBase):
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
-        normal_a,roughness_a = self.normal_a_texture
-        normal_b,roughness_b = self.normal_b_texture
+        normal_a, roughness_a = self.normal_a_texture
+        normal_b, roughness_b = self.normal_b_texture
 
-        self.create_texture_node(self.color_a_texture, 'COLOR_A')
-        self.create_texture_node(self.color_b_texture, 'COLOR_B')
-        self.create_texture_node(normal_a, 'NORMAL_A')
-        self.create_texture_node(normal_b, 'NORMAL_B')
-        self.create_texture_node(roughness_a, 'ROUGHNESS_A')
-        self.create_texture_node(roughness_b, 'ROUGHNESS_B')
-        self.create_texture_node(self.blend_mask, 'BLEND_MASK')
-        self.create_texture_node(self.tint_mask, 'TINT_MASK')
+        split_mask = self.create_node(Nodes.ShaderNodeSeparateRGB)
+        mix_metalnes = self.create_node(Nodes.ShaderNodeMixRGB)
+        mix_metalnes.inputs['Color1'].default_value = [self.metalness_a] * 3 + [1.0]
+        mix_metalnes.inputs['Color2'].default_value = [self.metalness_a] * 3 + [1.0]
 
-        # if self.selfillum:
-        #     selfillummask = self.selfillummask
-        #     albedo_node = self.get_node('$basetexture')
-        #     if selfillummask is not None:
-        #         selfillummask_node = self.create_node(Nodes.ShaderNodeTexImage, '$selfillummask')
-        #         selfillummask_node.image = selfillummask
-        #         self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
-        #
-        #     else:
-        #         self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Emission Strength'])
-        #     self.connect_nodes(albedo_node.outputs['Color'], shader.inputs['Emission'])
+        mix_normals = self.create_node(Nodes.ShaderNodeMixRGB)
+        mix_roughness = self.create_node(Nodes.ShaderNodeMixRGB)
+        mix_color = self.create_node(Nodes.ShaderNodeMixRGB)
+        normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+
+        self.create_and_connect_texture_node(self.blend_mask, split_mask.inputs['Image'], name='BLEND_MASK')
+
+        self.create_and_connect_texture_node(self.color_a_texture, mix_color.inputs['Color1'], name='COLOR_A')
+        self.create_and_connect_texture_node(self.color_b_texture, mix_color.inputs['Color2'], name='COLOR_B')
+
+        self.create_and_connect_texture_node(normal_a, mix_normals.inputs['Color1'], name='NORMAL_A')
+        self.create_and_connect_texture_node(normal_b, mix_normals.inputs['Color2'], name='NORMAL_B')
+
+        self.create_and_connect_texture_node(normal_a, mix_roughness.inputs['Color1'], name='ROUGHNESS_A')
+        self.create_and_connect_texture_node(normal_b, mix_roughness.inputs['Color2'], name='ROUGHNESS_B')
+
+        texture_tint_mask = self.create_texture_node(self.tint_mask, 'TINT_MASK')
+
+        self.connect_nodes(mix_color.outputs['Color'], shader.inputs['Base Color'])
+        self.connect_nodes(split_mask.outputs['R'], mix_color.inputs['Fac'])
+        self.connect_nodes(split_mask.outputs['R'], mix_normals.inputs['Fac'])
+        self.connect_nodes(split_mask.outputs['R'], mix_roughness.inputs['Fac'])
+        self.connect_nodes(split_mask.outputs['R'], mix_metalnes.inputs['Fac'])
+        self.connect_nodes(mix_normals.outputs['Color'], normalmap_node.inputs['Color'])
+        self.connect_nodes(mix_roughness.outputs['Color'], shader.inputs['Roughness'])
+        self.connect_nodes(mix_metalnes.outputs['Color'], shader.inputs['Metallic'])
+        self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
