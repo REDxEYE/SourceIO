@@ -1,7 +1,7 @@
-from typing import Union, IO, BinaryIO, Iterable
+from typing import Union, IO, List
 from io import TextIOBase, BufferedIOBase, BytesIO, StringIO
 
-from ..utilities.keyvalues import KVParser
+from ...utilities.keyvalues import KVParser
 
 
 class GameInfoParser:
@@ -28,6 +28,18 @@ class GameInfoParser:
                 if isinstance(value, str):
                     return [value]
                 return value
+
+            @property
+            def all_paths(self) -> List[str]:
+                paths = []
+                for value in self._raw_data.values():
+                    if isinstance(value, str):
+                        value = [value]
+                    for path in value:
+                        if '|all_source_engine_paths|' in path:
+                            path = path.replace('|all_source_engine_paths|', "")
+                        paths.append(path)
+                return paths
 
         def __init__(self, raw_data):
             self._raw_data = raw_data
@@ -60,7 +72,6 @@ class GameInfoParser:
     @property
     def game(self):
         return self._raw_data.get('game')
-
 
     @property
     def title(self):
