@@ -268,6 +268,12 @@ class FGDParser:
             self.advance()
         self.entity_groups.append(group)
 
+    def _find_parent_class(self, class_name):
+        for cls in self.classes:
+            if cls.name == class_name:
+                return cls
+        return None
+
     def _parse_baseclass(self, class_type):
 
         definitions = []
@@ -326,7 +332,14 @@ class FGDParser:
                 self._parse_class_param(props)
 
         self.expect(FGDToken.RBRACKET)
-        class_obj = FGDEntity(class_type, class_name, definitions, doc, props, io)
+        if class_type == 'OverrideClass':
+            class_obj = self._find_parent_class(class_name)
+            if class_obj is None:
+                class_obj = FGDEntity(class_type, class_name, definitions, doc, props, io)
+            else:
+                class_obj.override(definitions, doc, props, io)
+        else:
+            class_obj = FGDEntity(class_type, class_name, definitions, doc, props, io)
         self.classes.append(class_obj)
 
     def _parse_fully_qualified_identifier(self):

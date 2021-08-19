@@ -1,7 +1,6 @@
 from typing import List
 
 
-
 class FGDProperty:
     def __init__(self, name, value_type, display_name=None, default_value=None, description=None, meta=None):
         self._name = name
@@ -147,12 +146,12 @@ class FGDEntity:
 
     def __init__(self, class_type, name, definitions=None, description=None,
                  properties=None, io=None):
-        self.name = name
-        self.class_type = class_type
-        self._definitions = definitions
-        self._description = description
+        self.name: str = name
+        self.class_type: str = class_type
+        self._definitions: List = definitions
+        self._description: str = description
         self._properties = properties
-        self._io = io
+        self._io: List = io
 
     def __str__(self):
         return f"{self.class_type}({self.name})"
@@ -276,3 +275,19 @@ class FGDEntity:
                     continue
                 inputs.append(FGDFunction(io['name'], io['type'], io['args'], io['doc']))
         return inputs
+
+    def override(self, definitions, doc, props, io):
+        for new_def in definitions:
+            for n, old_def in enumerate(self._definitions):
+                if old_def[0] == new_def[0]:
+                    self._definitions[n] = new_def
+        for new_io in io:
+            for n, old_io in enumerate(self._io):
+                if new_io['name'] == old_io['name']:
+                    self._io[n].update(new_io)
+        for new_prop in props:
+            for n, old_prop in enumerate(self._properties):
+                if new_prop['name'] == old_prop['name']:
+                    self._properties[n].update(new_prop)
+
+        self._description = doc
