@@ -48,9 +48,9 @@ class dummy:
 
 
 def load_script(script_path: Path):
-    from SourceIO.bpy_utilities.fake_sfm import sfm
-    from SourceIO.bpy_utilities.fake_sfm import vs
-    from SourceIO.bpy_utilities.fake_sfm import sfm_utils
+    from . import sfm
+    from . import vs
+    from . import sfm_utils
     hooks = {
         'vs': vs,
         'sfm': sfm.SFM(),
