@@ -2,6 +2,9 @@
 Blender SourceIO is an addon for importing\exporting source engine textures/models/maps
 Our Discord server https://discord.gg/SF82W6aZ67
 
+Current TODO list -> [TODO.md](TODO.md)
+
+
 # Used libraries
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
 * [BlenderVertexLitGeneric](https://github.com/syborg64/BlenderVertexLitGeneric) Shader nodegroup by [syborg64](https://github.com/syborg64)
