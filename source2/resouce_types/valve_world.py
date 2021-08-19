@@ -11,7 +11,7 @@ from . import ValveCompiledResource
 from ..blocks import DataBlock
 from ..entities.base_entity_handlers import BaseEntityHandler
 from ..entities.hlvr_entity_handlers import HLVREntityHandler
-from ..source2 import ValveCompiledFile
+from ..entities.sbox_entity_handlers import SBoxEntityHandler
 from ...bpy_utilities.logging import BPYLoggingManager, BPYLogger
 from ...content_providers.content_manager import ContentManager
 from ...bpy_utilities.utils import get_or_create_collection
@@ -48,7 +48,7 @@ class ValveCompiledWorld(ValveCompiledResource):
         if ContentManager().steam_id == 546560:
             handler = HLVREntityHandler(self, self.master_collection, self.scale)
         elif ContentManager().steam_id == SteamAppId.SBOX_STEAM_ID:
-            handler = HLVREntityHandler(self, self.master_collection, self.scale)
+            handler = SBoxEntityHandler(self, self.master_collection, self.scale)
         else:
             handler = BaseEntityHandler(self, self.master_collection, self.scale)
         handler.load_entities()
