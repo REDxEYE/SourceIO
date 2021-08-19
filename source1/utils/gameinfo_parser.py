@@ -39,7 +39,7 @@ class GameInfoParser:
                         if '|all_source_engine_paths|' in path:
                             path = path.replace('|all_source_engine_paths|', "")
                         paths.append(path)
-                return paths
+                return list(set(paths))
 
         def __init__(self, raw_data):
             self._raw_data = raw_data
