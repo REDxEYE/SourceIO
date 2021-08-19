@@ -1,11 +1,8 @@
-import sys
-import os.path
-from pathlib import Path
 from typing import List
 
 from .film_clip import FilmClip
 from .base_element import BaseElement
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 from ....utilities.datamodel import Element
 from ....utilities import datamodel
 

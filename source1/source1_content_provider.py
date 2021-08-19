@@ -2,8 +2,7 @@ from pathlib import Path
 from typing import List, Union
 
 from .gameinfo_parser import GameInfoParser
-from ..utilities.keyvalues import KVParser
-from ..source_shared.content_provider_base import ContentProviderBase
+from ..content_providers.content_provider_base import ContentProviderBase
 
 
 class GameinfoContentProvider(ContentProviderBase):
@@ -64,22 +63,14 @@ class GameinfoContentProvider(ContentProviderBase):
 
         return all_search_paths
 
-    def find_file(self, filepath: Union[str, Path], additional_dir=None,
-                  extension=None):
-        path = self.find_path(filepath, additional_dir, extension)
+    def find_file(self, filepath: Union[str, Path]):
+        path = self.find_path(filepath)
         if path:
             return path.open('rb')
 
-    def find_path(self, filepath: Union[str, Path], additional_dir=None,
-                  extension=None):
+    def find_path(self, filepath: Union[str, Path]):
         filepath = Path(str(filepath).strip("\\/"))
-
-        new_filepath = filepath
-        if additional_dir:
-            new_filepath = Path(additional_dir, new_filepath)
-        if extension:
-            new_filepath = new_filepath.with_suffix(extension)
-        new_filepath = self.modname_dir / new_filepath
+        new_filepath = self.modname_dir / filepath
         if new_filepath.exists():
             return new_filepath
         else:

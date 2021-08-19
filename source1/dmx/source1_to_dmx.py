@@ -11,7 +11,7 @@ from ..vtx.v7.structs.model import Model as VtxModel
 from ..vtx.v7.structs.model import ModelLod as VtxModelLod
 from ..vtx.v7.vtx import Vtx
 from ..vvd import Vvd
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 from ...utilities import datamodel
 from ...utilities.math_utilities import matrix_to_quat
 from ...utilities.path_utilities import find_vtx

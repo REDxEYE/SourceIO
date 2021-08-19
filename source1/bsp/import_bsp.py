@@ -1,15 +1,13 @@
 import json
-import math
 import re
 from pathlib import Path
-from pprint import pprint
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, Dict, Any
 
 import bpy
 from mathutils import Vector, Quaternion, Matrix
 import numpy as np
 
-from .bsp_file import BSPFile, open_bsp
+from .bsp_file import open_bsp
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 
 from .entities.base_entity_handler import BaseEntityHandler
@@ -38,10 +36,9 @@ from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...bpy_utilities.utils import get_material, get_or_create_collection
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 from ...utilities.keyvalues import KVParser
-from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source1_to_blender, lerp_vec, \
-    clamp_value, HAMMER_UNIT_TO_METERS
+from ...utilities.math_utilities import convert_rotation_source1_to_blender
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()

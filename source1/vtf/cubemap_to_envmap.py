@@ -1,5 +1,5 @@
 from .import_vtf import load_texture, texture_from_data
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 from ...utilities.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
 from ..vmt.valve_material import VMT
 import numpy as np

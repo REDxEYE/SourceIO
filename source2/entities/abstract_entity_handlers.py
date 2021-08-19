@@ -1,14 +1,9 @@
-import json
 import math
 import re
-from pathlib import Path
 from pprint import pprint
-from typing import List, Tuple, Optional
-
-import numpy as np
 
 import bpy
-from mathutils import Vector, Euler
+from mathutils import Euler
 
 from .base_entity_classes import *
 from ..resouce_types.valve_material import ValveCompiledMaterial
@@ -16,8 +11,8 @@ from ..resouce_types.valve_texture import ValveCompiledTexture
 from ..source2 import ValveCompiledFile
 from ..utils.entity_keyvalues import EntityKeyValues
 from ...bpy_utilities.logging import BPYLoggingManager
-from ...bpy_utilities.utils import get_material, get_or_create_collection
-from ...source_shared.content_manager import ContentManager
+from ...bpy_utilities.utils import get_or_create_collection
+from ...content_providers.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
 

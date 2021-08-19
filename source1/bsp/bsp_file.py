@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from typing import Dict, Type, List
+from typing import Dict, Type
 
 from .lump import *
 from .lumps.displacement_lump import DispVert
@@ -22,7 +22,7 @@ from .lumps.face_indices_lump import IndicesLump
 from .lumps.lightmap_header_lump import LightmapHeadersLump
 from .lumps.lightmap_lump import LightmapDataSkyLump
 from ...bpy_utilities.logging import BPYLoggingManager
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 
 from ...utilities.byte_io_mdl import ByteIO
 

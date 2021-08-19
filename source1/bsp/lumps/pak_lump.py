@@ -1,8 +1,8 @@
 from io import BytesIO
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Union
 
-from ....source_shared.content_provider_base import ContentProviderBase
+from ....content_providers.content_provider_base import ContentProviderBase
 from .. import Lump, lump_tag
 import zipfile
 

@@ -1,4 +1,4 @@
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 from ....utilities import datamodel
 from .session import Session
 

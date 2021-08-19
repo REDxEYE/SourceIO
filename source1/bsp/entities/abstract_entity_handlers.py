@@ -2,12 +2,12 @@ import math
 import re
 from pathlib import Path
 from pprint import pprint
-from typing import List, Tuple, Optional
+from typing import List
 
 import numpy as np
 
 import bpy
-from mathutils import Vector, Euler
+from mathutils import Euler
 
 from .base_entity_classes import *
 from ..bsp_file import BSPFile
@@ -19,8 +19,8 @@ from ...vmt.valve_material import VMT
 
 from ....bpy_utilities.logging import BPYLoggingManager
 from ....bpy_utilities.utils import get_material, get_or_create_collection
-from ....source_shared.content_manager import ContentManager
-from ....utilities.math_utilities import HAMMER_UNIT_TO_METERS, lerp_vec
+from ....content_providers.content_manager import ContentManager
+from ....utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 from ...vtf import is_vtflib_supported
 

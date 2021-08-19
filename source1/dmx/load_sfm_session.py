@@ -4,7 +4,7 @@ import bpy
 from .sfm.animation_set import AnimationSet
 from .sfm.film_clip import FilmClip
 from .sfm_utils import *
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 from ...source_shared.model_container import Source1ModelContainer
 from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
 from ...utilities.path_utilities import find_vtx_cm

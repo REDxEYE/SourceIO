@@ -2,7 +2,7 @@ import bpy
 from typing import Dict, Any
 import numpy as np
 
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 from ..shader_base import ShaderBase
 
 from ....source1.vtf import is_vtflib_supported

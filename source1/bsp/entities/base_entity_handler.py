@@ -1,12 +1,11 @@
 import math
 import re
 from pathlib import Path
-from pprint import pprint
 
 import numpy as np
 
 import bpy
-from mathutils import Vector, Euler
+from mathutils import Vector
 
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
@@ -17,7 +16,7 @@ from ....bpy_utilities.logging import BPYLoggingManager
 from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ....bpy_utilities.material_loader.shaders.source1_shaders.sky import Skybox
 from ....bpy_utilities.utils import get_material
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 from ....utilities.math_utilities import lerp_vec
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")

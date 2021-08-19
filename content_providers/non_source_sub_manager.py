@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Union
 
 from ..utilities.path_utilities import backwalk_file_resolver
-from ..source_shared.content_provider_base import ContentProviderBase
+from .content_provider_base import ContentProviderBase
 
 
 class NonSourceContentProvider(ContentProviderBase):

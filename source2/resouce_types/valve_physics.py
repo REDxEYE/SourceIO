@@ -1,18 +1,11 @@
-from pathlib import Path
-
 # noinspection PyUnresolvedReferences
 import bpy
 # noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix, Quaternion, Euler
 
-import math
-
-from ..utils.decode_animations import parse_anim_data
 from ..source2 import ValveCompiledFile
 import numpy as np
 
-from ...bpy_utilities.utils import get_material, get_or_create_collection, get_new_unique_collection
-from ...source_shared.content_manager import ContentManager
 from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 

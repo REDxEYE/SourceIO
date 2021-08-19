@@ -5,7 +5,7 @@ from pathlib import Path
 import bpy
 
 from .bpy_utilities.utils import get_or_create_collection
-from .source1.mdl.model_loader import import_model_from_full_path, import_model_from_files
+from .source1.mdl.model_loader import import_model_from_files
 from .source1.mdl.v49.import_mdl import import_materials
 
 from .source1.mdl.v49.import_mdl import put_into_collections as s1_put_into_collections
@@ -13,7 +13,7 @@ from .source1.vtf import is_vtflib_supported
 from .source2.resouce_types.valve_model import put_into_collections as s2_put_into_collections
 
 from .source2.resouce_types.valve_model import ValveCompiledModel
-from .source_shared.content_manager import ContentManager
+from .content_providers.content_manager import ContentManager
 from .utilities.path_utilities import find_vtx_cm
 
 

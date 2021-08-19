@@ -3,7 +3,7 @@ from .base_element import BaseElement
 from .camera import Camera
 from .time_frame import TimeFrame
 from .track_group import TrackGroup
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 from ....utilities.datamodel import Element
 
 

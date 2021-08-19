@@ -1,9 +1,8 @@
-import itertools
 from enum import Enum
 from typing import Union, Tuple, List
 from pathlib import Path
 
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 from ...utilities.fgd_parser.fgd_classes import FGDEntity
 
 

@@ -17,7 +17,7 @@ from ....bpy_utilities.logging import BPYLoggingManager
 from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ....bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....bpy_utilities.utils import get_material, get_new_unique_collection
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 from ....source_shared.model_container import Source1ModelContainer
 
 log_manager = BPYLoggingManager()

@@ -18,8 +18,7 @@ from ..source2 import ValveCompiledFile
 import numpy as np
 
 from ...bpy_utilities.utils import get_material, get_new_unique_collection
-from ...source_shared.content_manager import ContentManager
-from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
+from ...content_providers.content_manager import ContentManager
 
 
 def put_into_collections(model_container, model_name,

@@ -1,25 +1,33 @@
 from pathlib import Path
-from typing import Union, Dict
+from typing import Union, Dict, List, TypeVar
 from collections import Counter
 
 from ..bpy_utilities.logging import BPYLoggingManager
-from ..source_shared.non_source_sub_manager import NonSourceContentProvider
-from ..source_shared.content_provider_base import ContentProviderBase
-from ..source_shared.vpk_sub_manager import VPKContentProvider
+from .non_source_sub_manager import NonSourceContentProvider
+from .vpk_sub_manager import VPKContentProvider
 from ..source1.source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
-from ..source2.source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
+from .source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
 from ..utilities.path_utilities import get_mod_path, backwalk_file_resolver
 from ..utilities.singleton import SingletonMeta
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('content_manager')
 
+AnyContentDetector = TypeVar('AnyContentDetector', bound='ContentDetectorBase')
+AnyContentProvider = TypeVar('AnyContentProvider', bound='ContentProviderBase')
+
 
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
-        self.content_providers: Dict[str, ContentProviderBase] = {}
+        self.detector_addons: List[AnyContentDetector] = []
+        self.content_providers: Dict[str, AnyContentProvider] = {}
         self._titanfall_mode = False
         self._steam_id = -1
+        self._register_supported_detectors()
+
+    def _register_supported_detectors(self):
+        from .content_detectors.sbox import SBoxDetector
+        self.detector_addons.append(SBoxDetector())
 
     def _find_steam_appid(self, path: Path):
         if self._steam_id != -1:
@@ -40,10 +48,19 @@ class ContentManager(metaclass=SingletonMeta):
                     logger.exception('Failed to parse steam id')
                     self._steam_id = -1
 
+    def register_content_provider(self, name: str, content_provider: AnyContentProvider):
+        if name in self.content_providers:
+            return
+        self.content_providers[name] = content_provider
+        logger.info(f'Registered sub manager for {name}: {content_provider.root.stem}')
+
     def scan_for_content(self, source_game_path: Union[str, Path]):
+        source_game_path = Path(source_game_path)
+        for detector in self.detector_addons:
+            for name, content_provider in detector.scan(source_game_path).items():
+                self.register_content_provider(name, content_provider)
         if "*LANGUAGE*" in str(source_game_path):
             return
-        source_game_path = Path(source_game_path)
         self._find_steam_appid(source_game_path)
         if source_game_path.suffix == '.vpk':
             if self._titanfall_mode:

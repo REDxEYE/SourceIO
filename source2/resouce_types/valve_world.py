@@ -1,7 +1,5 @@
-import json
-import math
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List, Dict, Any
 
 # noinspection PyUnresolvedReferences
 import bpy
@@ -9,17 +7,14 @@ import numpy as np
 # noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix
 
-from .valve_model import ValveCompiledModel
 from ..blocks import DataBlock
 from ..entities.base_entity_handlers import BaseEntityHandler
 from ..entities.hlvr_entity_handlers import HLVREntityHandler
 from ..source2 import ValveCompiledFile
-from ..utils.entity_keyvalues import EntityKeyValues
 from ...bpy_utilities.logging import BPYLoggingManager, BPYLogger
-from ...source_shared.content_manager import ContentManager
-from ...utilities.byte_io_mdl import ByteIO
-from ...utilities.math_utilities import parse_hammer_vector, convert_rotation_source2_to_blender
-from ...bpy_utilities.utils import get_new_unique_collection, get_or_create_collection
+from ...content_providers.content_manager import ContentManager
+from ...bpy_utilities.utils import get_or_create_collection
+from ...source_shared.app_id import SteamAppId
 
 log_manager = BPYLoggingManager()
 
@@ -50,6 +45,8 @@ class ValveCompiledWorld(ValveCompiledFile):
 
     def load_entities(self):
         if ContentManager().steam_id == 546560:
+            handler = HLVREntityHandler(self, self.master_collection, self.scale)
+        elif ContentManager().steam_id == SteamAppId.SBOX_STEAM_ID:
             handler = HLVREntityHandler(self, self.master_collection, self.scale)
         else:
             handler = BaseEntityHandler(self, self.master_collection, self.scale)

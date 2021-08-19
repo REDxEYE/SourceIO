@@ -5,7 +5,7 @@ import numpy as np
 
 from ..shader_base import ShaderBase
 from ....source2.resouce_types.valve_texture import ValveCompiledTexture
-from ....source_shared.content_manager import ContentManager
+from ....content_providers.content_manager import ContentManager
 
 
 class Source2ShaderBase(ShaderBase):

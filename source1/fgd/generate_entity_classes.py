@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from valvefgd import FgdEntity, FgdParse, FgdEntityProperty, Fgd
+from valvefgd import FgdEntity, FgdParse, Fgd
 import os
 
 os.environ['NO_BPY'] = '1'
-from SourceIO.source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 
 
 def parse_int_vector(string):

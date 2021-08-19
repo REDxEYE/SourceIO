@@ -161,7 +161,7 @@ class Phy(Base):
         solid = SolidHeader()
         solid.read(reader)
         self.solids.append(solid)
-        for _ in range(self.header.solid_count - 1):
+        for _ in range(self.header.solid_count-1):
             solid = solid.next_solid(reader)
             self.solids.append(solid)
         pass

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, BinaryIO, Optional
 
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 
 from .v36.import_mdl import import_model as import_model_v36
 from .v44.import_mdl import import_model as import_model_v44

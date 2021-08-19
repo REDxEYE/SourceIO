@@ -10,9 +10,8 @@ from .source1.dmx.load_sfm_session import load_session
 from .source1.mdl.model_loader import import_model_from_full_path
 from .source1.vtf import is_vtflib_supported
 
-from .source_shared.content_manager import ContentManager
+from .content_providers.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
-from .utilities.path_utilities import backwalk_file_resolver, find_vtx
 
 
 # noinspection PyPep8Naming

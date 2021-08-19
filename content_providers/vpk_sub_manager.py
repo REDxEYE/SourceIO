@@ -1,9 +1,8 @@
 from pathlib import Path
 from typing import Union
 
-from .vpk.vpk_file import open_vpk
-from ..source_shared.vpk import VPKFile
-from ..source_shared.content_provider_base import ContentProviderBase
+from ..source_shared.vpk.vpk_file import open_vpk
+from .content_provider_base import ContentProviderBase
 
 
 class VPKContentProvider(ContentProviderBase):

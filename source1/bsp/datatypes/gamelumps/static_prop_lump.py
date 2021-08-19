@@ -3,7 +3,7 @@ from typing import List
 
 from .....bpy_utilities.logging import BPYLoggingManager
 from .....source_shared.app_id import SteamAppId
-from .....source_shared.content_manager import ContentManager
+from .....content_providers.content_manager import ContentManager
 from .....utilities.byte_io_mdl import ByteIO
 
 log_manager = BPYLoggingManager()

@@ -1,7 +1,7 @@
 import lzma
 from typing import List
 
-from ...source_shared.content_manager import ContentManager
+from ...content_providers.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.math_utilities import sizeof_fmt
 
