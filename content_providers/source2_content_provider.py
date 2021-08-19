@@ -29,6 +29,26 @@ class GameinfoContentProvider(ContentProviderBase):
             return 0
         return int(fs.get('steamappid', 0))
 
+    def get_paths(self):
+        def convert_path(path_to_convert):
+            if '|all_source_engine_paths|' in path_to_convert.lower():
+                return path_to_convert.lower().replace('|all_source_engine_paths|', '')
+            elif '|gameinfo_path|' in path_to_convert.lower():
+                return path_to_convert.lower().replace('|gameinfo_path|', '')
+            return path_to_convert
+
+        all_search_paths = []
+        fs = self.data.get('filesystem', None)
+        if fs and fs.get('searchpaths', None):
+            for paths in fs['searchpaths'].values():
+                if isinstance(paths, list):
+                    for path in paths:
+                        all_search_paths.append(convert_path(path))
+                else:
+                    all_search_paths.append(convert_path(paths))
+
+        return set(all_search_paths)
+
     def get_search_paths(self):
         def convert_path(path_to_convert):
             if '|all_source_engine_paths|' in path_to_convert.lower():

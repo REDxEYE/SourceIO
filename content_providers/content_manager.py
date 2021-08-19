@@ -2,10 +2,13 @@ from pathlib import Path
 from typing import Union, Dict, List, TypeVar
 from collections import Counter
 
+from .content_detectors.hla import HLADetector
+from .content_detectors.robot_repair import RobotRepairDetector
+from .content_detectors.source1_common import Source1Common
 from ..bpy_utilities.logging import BPYLoggingManager
 from .non_source_sub_manager import NonSourceContentProvider
 from .vpk_sub_manager import VPKContentProvider
-from ..source1.source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
+from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
 from .source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
 from ..utilities.path_utilities import get_mod_path, backwalk_file_resolver
 from ..utilities.singleton import SingletonMeta
@@ -27,7 +30,12 @@ class ContentManager(metaclass=SingletonMeta):
 
     def _register_supported_detectors(self):
         from .content_detectors.sbox import SBoxDetector
+        from .content_detectors.sfm import SFMDetector
         self.detector_addons.append(SBoxDetector())
+        self.detector_addons.append(HLADetector())
+        self.detector_addons.append(RobotRepairDetector())
+        self.detector_addons.append(Source1Common())
+        self.detector_addons.append(SFMDetector())
 
     def _find_steam_appid(self, path: Path):
         if self._steam_id != -1:
@@ -52,13 +60,21 @@ class ContentManager(metaclass=SingletonMeta):
         if name in self.content_providers:
             return
         self.content_providers[name] = content_provider
-        logger.info(f'Registered sub manager for {name}: {content_provider.root.stem}')
+        logger.info(f'Registered "{name}" provider for {content_provider.root.stem}')
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
         source_game_path = Path(source_game_path)
+        found_game = False
         for detector in self.detector_addons:
             for name, content_provider in detector.scan(source_game_path).items():
                 self.register_content_provider(name, content_provider)
+                found_game = True
+        if source_game_path.is_file() and source_game_path.exists():
+            if source_game_path.suffix == '.vpk':
+                self.register_content_provider(f'{source_game_path.parent.stem}_{source_game_path.stem}',
+                                               VPKContentProvider(source_game_path))
+        if found_game:
+            return
         if "*LANGUAGE*" in str(source_game_path):
             return
         self._find_steam_appid(source_game_path)
@@ -70,9 +86,8 @@ class ContentManager(metaclass=SingletonMeta):
                 return
             vpk_path = source_game_path
             if vpk_path.exists():
-                sub_manager = VPKContentProvider(vpk_path)
-                self.content_providers[f'{source_game_path.parent.stem}_{source_game_path.stem}'] = sub_manager
-                logger.info(f'Registered sub manager for {source_game_path.parent.stem}_{source_game_path.stem}')
+                self.register_content_provider(f'{source_game_path.parent.stem}_{source_game_path.stem}',
+                                               VPKContentProvider(vpk_path))
                 return
 
         is_source, root_path = self.is_source_mod(source_game_path)
@@ -88,7 +103,7 @@ class ContentManager(metaclass=SingletonMeta):
                 if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[root_path.stem] = sub_manager
-                logger.info(f'Registered sub manager for {root_path.stem}')
+                logger.info(f'Registered provider for {root_path.stem}')
                 for mod in sub_manager.get_search_paths():
                     if mod.parts[-1] == '*':
                         continue
@@ -97,32 +112,20 @@ class ContentManager(metaclass=SingletonMeta):
             gameinfos = root_path.glob('*gameinfo*.gi')
             for gameinfo in gameinfos:
                 sub_manager = Source2GameinfoContentProvider(gameinfo)
-                self.content_providers[root_path.stem] = sub_manager
-                logger.info(f'Registered sub manager for {root_path.stem}')
+                self.register_content_provider(root_path.stem, sub_manager)
                 for mod in sub_manager.get_search_paths():
-                    self.scan_for_content(mod)
-        elif 'workshop' in root_path.name:
-            sub_manager = NonSourceContentProvider(root_path)
-            self.content_providers[root_path.stem] = sub_manager
-            logger.info(f'Registered sub manager for {root_path.stem}')
-            for mod in root_path.parent.iterdir():
-                if mod.is_dir():
                     self.scan_for_content(mod)
         elif 'download' in root_path.name:
             sub_manager = NonSourceContentProvider(root_path)
             self.content_providers[root_path.stem] = sub_manager
-            logger.info(f'Registered sub manager for {root_path.stem}')
+            logger.info(f'Registered provider for {root_path.stem}')
             self.scan_for_content(root_path.parent)
         else:
             if root_path.is_dir():
-                sub_manager = NonSourceContentProvider(root_path)
-                self.content_providers[root_path.stem] = sub_manager
-                logger.info(f'Registered sub manager for {source_game_path.stem}')
+                self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
             else:
                 root_path = root_path.parent
-                sub_manager = NonSourceContentProvider(root_path)
-                self.content_providers[root_path.stem] = sub_manager
-                logger.info(f'Registered sub manager for {source_game_path.stem}')
+                self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
 
     def deserialize(self, data: Dict[str, str]):
         for name, path in data.items():

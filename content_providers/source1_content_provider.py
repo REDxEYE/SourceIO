@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import List, Union
 
-from .gameinfo_parser import GameInfoParser
-from ..content_providers.content_provider_base import ContentProviderBase
+from ..source1.utils.gameinfo_parser import GameInfoParser
+from .content_provider_base import ContentProviderBase
 
 
 class GameinfoContentProvider(ContentProviderBase):

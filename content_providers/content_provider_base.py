@@ -1,7 +1,7 @@
 from collections import deque
 from io import BytesIO
 from pathlib import Path
-from typing import Union, Dict
+from typing import Union, Dict, Type
 
 
 class ContentProviderBase:
@@ -76,3 +76,10 @@ class ContentDetectorBase:
     @classmethod
     def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
         raise NotImplementedError("Implement me")
+
+    @classmethod
+    def add_if_exists(cls, path: Path,
+                      content_provider_class: Type[ContentProviderBase],
+                      content_providers: Dict[str, ContentProviderBase]):
+        if path.exists():
+            content_providers[path.stem] = content_provider_class(path)
