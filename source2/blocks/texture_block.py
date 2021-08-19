@@ -3,7 +3,7 @@ import numpy as np
 
 from ...utilities.byte_io_mdl import ByteIO
 
-from .dummy import DataBlock
+from .base_block import DataBlock
 
 # noinspection PyUnresolvedReferences
 try:
@@ -100,6 +100,7 @@ class VTexExtraData(IntEnum):
     SHEET = 2
     FILL_TO_POWER_OF_TWO = 3
     COMPRESSED_MIP_SIZE = 4
+    CUBEMAP_RADIANCE_SH = 5
 
 
 class TEXR(DataBlock):
@@ -263,4 +264,8 @@ class TEXR(DataBlock):
         elif self.format == VTexFormat.DXT5:
             data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = read_dxt5(data, self.width, self.height, flip)
+            self.image_data = data
+        elif self.format == VTexFormat.RGBA16161616F:
+            data = self.get_decompressed_buffer(reader, 0).read(-1)
+            data = np.frombuffer(data, np.float16, self.width * self.height * 4)
             self.image_data = data

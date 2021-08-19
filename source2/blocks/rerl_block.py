@@ -1,7 +1,7 @@
 from typing import List
 
 from ...utilities.byte_io_mdl import ByteIO
-from .dummy import DataBlock
+from .base_block import DataBlock
 
 
 class RERL(DataBlock):

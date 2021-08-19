@@ -1,14 +1,14 @@
-import math
-import sys
 from pathlib import Path
-from typing import List, BinaryIO, Union, Optional, TypeVar
+from typing import List, BinaryIO, Union, Optional, TypeVar, Dict
+from ..blocks.compiled_file_header import CompiledHeader, InfoBlock
+from ..blocks import DATA
+from ...utilities.byte_io_mdl import ByteIO
 
-from ..utilities.byte_io_mdl import ByteIO
-from .blocks.compiled_file_header import CompiledHeader, InfoBlock
-from .blocks import DataBlock, DATA
+AnyBlock = TypeVar('AnyBlock', bound='DataBlock')
+OptionalBlock = Optional[AnyBlock]
 
 
-class ValveCompiledFile:
+class ValveCompiledResource:
     data_block_class = DATA
 
     @classmethod
@@ -19,9 +19,9 @@ class ValveCompiledFile:
         self.reader = ByteIO(path_or_file)
         self.header = CompiledHeader()
         self.header.read(self.reader)
-        self.info_blocks = []  # type: List[InfoBlock]
-        self.data_blocks = []  # type: List[Union[DataBlock,None]]
-        self.available_resources = {}
+        self.info_blocks: List[InfoBlock] = []
+        self.data_blocks: List[OptionalBlock] = []
+        self.available_resources: Dict[Union[str, int], Path] = {}
 
         self.read_block_info()
         self.check_external_resources()
@@ -49,8 +49,9 @@ class ValveCompiledFile:
                 block = block_class(self, block_info)
                 self.data_blocks[self.info_blocks.index(block_info)] = block
 
-    def get_data_block(self, *, block_id: Optional[int] = None, block_name: Optional[str] = None) \
-            -> Union[DataBlock, List[DataBlock], None, TypeVar('DATA')]:
+    def get_data_block(self, *,
+                       block_id: Optional[int] = None,
+                       block_name: Optional[str] = None) -> Union[OptionalBlock, List[OptionalBlock]]:
         if block_id is None and block_name is None:
             raise Exception(f"Empty parameters block_id={block_id} block_name={block_name}")
         elif block_id is not None and block_name is not None:
@@ -76,13 +77,7 @@ class ValveCompiledFile:
             return blocks
 
     def get_data_block_class(self, block_name):
-        from .blocks import TEXR, DATA, NTRO, REDI, RERL, VBIB, MRPH, ANIM
-
-        # if self.filepath.suffix == '.vtex_c':
-        #     data_block_class = TEXR
-        # elif self.filepath.suffix == '.vmorf_c':
-        #     data_block_class = MRPH
-        # else:
+        from ..blocks import DATA, NTRO, REDI, RERL, VBIB, MRPH, ANIM
 
         data_classes = {
             "NTRO": NTRO,
@@ -109,9 +104,8 @@ class ValveCompiledFile:
                     self.reader.seek(block.entry + block.block_offset)
                     file.write(self.reader.read(block.block_size))
 
-    # noinspection PyTypeChecker
     def dump_resources(self):
-        from .blocks.rerl_block import RERL
+        from ..blocks.rerl_block import RERL
         relr_block: RERL = self.get_data_block(block_name="RERL")[0]
         for block in relr_block.resources:
             print(block)
@@ -126,9 +120,8 @@ class ValveCompiledFile:
                 break
         return addon_path
 
-    # noinspection PyTypeChecker
     def check_external_resources(self):
-        from .blocks.rerl_block import RERL
+        from ..blocks.rerl_block import RERL
         if self.get_data_block(block_name="RERL"):
             relr_block: RERL = self.get_data_block(block_name="RERL")[0]
             for block in relr_block.resources:
@@ -140,57 +133,8 @@ class ValveCompiledFile:
 
     def get_child_resource(self, name):
         if self.available_resources.get(name, None) is not None:
-            res = ValveCompiledFile(self.available_resources.get(name))
+            res = ValveCompiledResource(self.available_resources.get(name))
             res.read_block_info()
             res.check_external_resources()
             return res
         return None
-
-
-def quaternion_to_euler_angle(w, x, y, z):
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    x = math.degrees(math.atan2(t0, t1))
-
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    y = math.degrees(math.asin(t2))
-
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    z = math.degrees(math.atan2(t3, t4))
-
-    return x, y, z
-
-
-if __name__ == '__main__':
-    with open('log.log', "w") as f:  # replace filepath & filename
-        with f as sys.stdout:
-            model = r'../test_data/source2/sniper.vmdl_c'
-            # model_path = r'../test_data/source2/victory.vanim_c'
-            # model_path = r'../test_data/source2/sniper_lod1.vmesh_c'
-            # model_path = r'../test_data/source2/sniper_model.vmesh_c'
-            # model_path = r'../test_data/source2/gordon_at_desk.vmdl_c'
-            # model_path = r'../test_data/source2/abaddon_body.vmat_c'
-
-            # model_path = r'../test_data/source2/sniper_model.vmorf_c'
-            # model_path = r'../test_data/source2/sniper.vphys_c'
-
-            vmdl = ValveCompiledFile(model)
-            vmdl.read_block_info()
-            vmdl.dump_resources()
-            vmdl.check_external_resources()
-            # print(vmdl.available_resources)
-            model_skeleton = vmdl.data.data['PermModelData_t']['m_modelSkeleton']
-            # pprint(model_skeleton)
-            bone_names = model_skeleton['m_boneName']
-            bone_positions = model_skeleton['m_bonePosParent']
-            bone_rotations = model_skeleton['m_boneRotParent']
-            bone_parents = model_skeleton['m_nParent']
-            for n in range(len(bone_names)):
-                print(bone_names[n], 'parent -', bone_names[bone_parents[n]], bone_parents[n], bone_positions[n],
-                      quaternion_to_euler_angle(*bone_rotations[n].as_list))
-            # print(bone_parents)
-            # print(vmdl.available_resources)
-            # print(vmdl.header)

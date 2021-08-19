@@ -78,6 +78,14 @@ class HLVREntityHandler(BaseEntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'props')
 
+    def handle_post_processing_volume(self, entity: post_processing_volume, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'post')
+
+    def handle_func_nav_markup(self, entity: func_nav_markup, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'func')
+
     def handle_info_target(self, entity: info_target, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, get_origin(entity_raw))
@@ -155,6 +163,9 @@ class HLVREntityHandler(BaseEntityHandler):
         pass
 
     def handle_info_teleport_magnet(self, entity: info_teleport_magnet, entity_raw: dict):
+        pass
+
+    def info_dynamic_shadow_hint(self, entity: info_dynamic_shadow_hint, entity_raw: dict):
         pass
 
     def handle_env_combined_light_probe_volume(self, entity: env_combined_light_probe_volume, entity_raw: dict):
@@ -250,4 +261,15 @@ class HLVREntityHandler(BaseEntityHandler):
         self._set_rotation(obj, get_angles(entity_raw))
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('info_notepad', obj, 'environment')
+        obj.hide_render = True
+
+    def handle_point_worldtext(self, entity: point_worldtext, entity_raw: dict):
+        name = self._get_entity_name(entity)
+        curve = bpy.data.curves.new(type="FONT", name=f"{name}_DATA")
+        obj = bpy.data.objects.new(name, curve)
+        curve.body = entity.message
+        self._set_location_and_scale(obj, get_origin(entity_raw))
+        self._set_rotation(obj, get_angles(entity_raw))
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('point_worldtext', obj, 'environment')
         obj.hide_render = True

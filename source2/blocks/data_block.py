@@ -1,4 +1,4 @@
-from .dummy import DataBlock
+from .base_block import DataBlock
 from ..utils.binary_keyvalue import BinaryKeyValue
 
 

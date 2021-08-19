@@ -3,13 +3,13 @@ import bpy
 # noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix, Quaternion, Euler
 
-from ..source2 import ValveCompiledFile
+from . import ValveCompiledResource
 import numpy as np
 
 from ...utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
-class ValveCompiledPhysics(ValveCompiledFile):
+class ValveCompiledPhysics(ValveCompiledResource):
     def __init__(self, path_or_file, scale=HAMMER_UNIT_TO_METERS):
         super().__init__(path_or_file)
         self.scale = scale

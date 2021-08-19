@@ -5,10 +5,10 @@ from pprint import pprint
 import bpy
 from mathutils import Euler
 
+from ..resouce_types import ValveCompiledResource
 from .base_entity_classes import *
 from ..resouce_types.valve_material import ValveCompiledMaterial
 from ..resouce_types.valve_texture import ValveCompiledTexture
-from ..source2 import ValveCompiledFile
 from ..utils.entity_keyvalues import EntityKeyValues
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.utils import get_or_create_collection
@@ -91,7 +91,7 @@ class AbstractEntityHandler:
                 elump_file = content_manager.find_file(proper_path)
                 if not elump_file:
                     continue
-                self.handle_child_lump(proper_path.stem, ValveCompiledFile(elump_file))
+                self.handle_child_lump(proper_path.stem, ValveCompiledResource(elump_file))
 
     def handle_child_lump(self, name, child_lump):
         if child_lump:
@@ -107,7 +107,7 @@ class AbstractEntityHandler:
             next_lump = ContentManager().find_file(proper_path)
             if not next_lump:
                 continue
-            self.handle_child_lump(proper_path.stem, ValveCompiledFile(next_lump))
+            self.handle_child_lump(proper_path.stem, ValveCompiledResource(next_lump))
 
     def load_entity_lump(self, lump_name, entity_lump):
         entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]

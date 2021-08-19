@@ -7,6 +7,7 @@ import numpy as np
 # noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix
 
+from . import ValveCompiledResource
 from ..blocks import DataBlock
 from ..entities.base_entity_handlers import BaseEntityHandler
 from ..entities.hlvr_entity_handlers import HLVREntityHandler
@@ -23,7 +24,7 @@ def get_entity_name(entity_data: Dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammeruniqueid", "missing_hammer_id"))}'
 
 
-class ValveCompiledWorld(ValveCompiledFile):
+class ValveCompiledWorld(ValveCompiledResource):
     def __init__(self, path_or_file, *, invert_uv=False, scale=1.0):
         super().__init__(path_or_file)
         self.logger: BPYLogger = None
@@ -56,7 +57,7 @@ class ValveCompiledWorld(ValveCompiledFile):
         content_manager = ContentManager()
         node_path = node['m_worldNodePrefix'] + '.vwnod_c'
         full_node_path = content_manager.find_file(node_path)
-        world_node_file = ValveCompiledFile(full_node_path)
+        world_node_file = ValveCompiledResource(full_node_path)
         world_node_file.read_block_info()
         world_node_file.check_external_resources()
         world_data: DataBlock = world_node_file.get_data_block(block_name="DATA")[0]

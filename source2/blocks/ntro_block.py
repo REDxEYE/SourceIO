@@ -4,7 +4,7 @@ from typing import List
 from ...utilities.byte_io_mdl import ByteIO
 from ..common import Matrix, CTransform
 
-from .dummy import DataBlock
+from .base_block import DataBlock
 
 
 class KeyValueDataType(IntEnum):

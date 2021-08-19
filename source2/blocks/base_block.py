@@ -4,10 +4,10 @@ from ...utilities.byte_io_mdl import ByteIO
 class DataBlock:
 
     def __init__(self, valve_file, info_block):
-        from ..source2 import ValveCompiledFile
+        from ..resouce_types import ValveCompiledResource
         from .compiled_file_header import InfoBlock
 
-        self._valve_file: ValveCompiledFile = valve_file
+        self._valve_file: ValveCompiledResource = valve_file
         self.info_block: InfoBlock = info_block
 
         with self._valve_file.reader.save_current_pos():

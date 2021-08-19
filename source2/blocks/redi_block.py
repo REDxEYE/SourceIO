@@ -1,5 +1,5 @@
 from .redi_block_types import *
-from .dummy import DataBlock
+from .base_block import DataBlock
 
 redi_blocks = [InputDependencies,
                AdditionalInputDependencies,

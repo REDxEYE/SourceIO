@@ -21,7 +21,7 @@ except ImportError:
 from ..utils.compressed_buffers import get_slice
 from ...utilities.byte_io_mdl import ByteIO
 
-from .dummy import DataBlock
+from .base_block import DataBlock
 
 
 class DxgiFormat(IntEnum):

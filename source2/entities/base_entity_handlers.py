@@ -2,6 +2,9 @@ import bpy
 
 from .abstract_entity_handlers import AbstractEntityHandler, get_origin, get_angles
 from .base_entity_classes import *
+from ...bpy_utilities.material_loader.shaders.source2_shaders.sky import Skybox
+from ...content_providers.content_manager import ContentManager
+from ..resouce_types.valve_material import ValveCompiledMaterial
 
 
 class BaseEntityHandler(AbstractEntityHandler):
@@ -169,6 +172,14 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_rotation(obj, get_angles(entity_raw))
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('path_corner', obj, 'path')
+
+    def handle_env_sky(self, entity: env_sky, entity_raw: dict):
+        sky_mat = ContentManager().find_file(entity.skyname + '_c')
+        vmat = ValveCompiledMaterial(sky_mat)
+        vmat.load()
+        data_block = vmat.get_data_block(block_name='DATA')[0]
+        Skybox(data_block.data, vmat.available_resources).create_nodes(entity.skyname)
+        print(vmat)
 
     def handle_point_clientui_world_panel(self, entity: point_clientui_world_panel, entity_raw: dict):
         pass

@@ -1,4 +1,4 @@
-from .dummy import DataBlock
+from .base_block import DataBlock
 from .mrph_block import MRPH
 from .ntro_block import NTRO
 from .redi_block import REDI

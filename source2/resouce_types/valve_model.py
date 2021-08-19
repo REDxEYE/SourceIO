@@ -1,28 +1,26 @@
+from typing import Optional
+
+import bpy
+import math
+import numpy as np
+
 from itertools import chain
 from pathlib import Path
-
-# noinspection PyUnresolvedReferences
-import bpy
-# noinspection PyUnresolvedReferences
 from mathutils import Vector, Matrix, Quaternion, Euler
 
-import math
-
-from .valve_material import ValveCompiledMaterial
+from . import ValveCompiledResource
 from .valve_physics import ValveCompiledPhysics
 from .vavle_morph import ValveCompiledMorph
+from .valve_material import ValveCompiledMaterial
+from ..blocks import MRPH, VBIB, DATA
 from ..utils.decode_animations import parse_anim_data
-from ..blocks.vbib_block import VertexBuffer, IndexBuffer
 from ..common import convert_normals
-from ..source2 import ValveCompiledFile
-import numpy as np
 
 from ...bpy_utilities.utils import get_material, get_new_unique_collection
 from ...content_providers.content_manager import ContentManager
 
 
-def put_into_collections(model_container, model_name,
-                         parent_collection=None, bodygroup_grouping=False):
+def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):
     from ...source_shared.model_container import Source2ModelContainer
     model_container: Source2ModelContainer
     static_prop = model_container.armature is None and not model_container.physics_objects
@@ -58,7 +56,7 @@ def put_into_collections(model_container, model_name,
     return master_collection
 
 
-class ValveCompiledModel(ValveCompiledFile):
+class ValveCompiledModel(ValveCompiledResource):
 
     def __init__(self, path_or_file, re_use_meshes=False, scale=1.0):
         from ...source_shared.model_container import Source2ModelContainer
@@ -79,7 +77,6 @@ class ValveCompiledModel(ValveCompiledFile):
 
     def load_mesh(self, invert_uv, strip_from_name=''):
         self.strip_from_name = strip_from_name
-        name = self.name.replace(self.strip_from_name, "")
 
         data_block = self.get_data_block(block_name='DATA')[0]
 
@@ -105,16 +102,15 @@ class ValveCompiledModel(ValveCompiledFile):
                 if mesh_ref_path:
                     mesh_ref_file = content_manager.find_file(mesh_ref_path)
                     if mesh_ref_file:
-                        mesh = ValveCompiledFile(mesh_ref_file)
+                        mesh = ValveCompiledResource(mesh_ref_file)
                         self.available_resources.update(mesh.available_resources)
                         mesh.read_block_info()
                         mesh.check_external_resources()
                         mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
                         buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                         name = mesh_ref_path.stem
-                        vmorf_actual_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'],
-                                                                         None)  # type:Path
-                        morph_block = None
+                        vmorf_actual_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'], None)
+                        morph_block: Optional = None
                         if vmorf_actual_path:
                             vmorf_path = content_manager.find_file(vmorf_actual_path)
                             if vmorf_path is not None:
@@ -144,14 +140,21 @@ class ValveCompiledModel(ValveCompiledFile):
                 morph_block = self.get_data_block(block_id=morph_block_index)
 
                 self.build_mesh(name, armature,
-                                mesh_data_block, buffer_block, data_block, morph_block,
-                                invert_uv, mesh_index)
+                                mesh_data_block,
+                                buffer_block,
+                                data_block,
+                                morph_block,
+                                invert_uv,
+                                mesh_index)
 
-    # //noinspection PyTypeChecker,PyUnresolvedReferences
     def build_mesh(self, name, armature,
-                   mesh_data_block, buffer_block, data_block, morph_block,
-                   invert_uv,
-                   mesh_index):
+                   mesh_data_block: DATA,
+                   buffer_block: VBIB,
+                   data_block: DATA,
+                   morph_block: Optional[MRPH],
+                   invert_uv: bool,
+                   mesh_index: int
+                   ):
 
         morphs_available = morph_block is not None and morph_block.read_morphs()
         if morphs_available:
@@ -199,14 +202,12 @@ class ValveCompiledModel(ValveCompiledFile):
 
                         mesh_obj['active_skin'] = 'default'
                         mesh_obj['skin_groups'] = mat_groups
-
-
                 else:
                     mesh_obj['active_skin'] = 'default'
                     mesh_obj['skin_groups'] = []
 
                 material_name = Path(draw_call['m_material']).stem
-                mesh = mesh_obj.data  # type:bpy.types.Mesh
+                mesh = mesh_obj.data
 
                 self.container.objects.append(mesh_obj)
 
@@ -223,8 +224,8 @@ class ValveCompiledModel(ValveCompiledFile):
                 vertex_count = draw_call['m_nVertexCount']
                 start_index = draw_call['m_nStartIndex'] // 3
                 index_count = draw_call['m_nIndexCount'] // 3
-                index_buffer: IndexBuffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
-                vertex_buffer: VertexBuffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
+                index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
+                vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
 
                 used_range = slice(base_vertex, base_vertex + vertex_count)
                 used_vertices = vertex_buffer.vertexes['POSITION'][used_range]
@@ -260,7 +261,8 @@ class ValveCompiledModel(ValveCompiledFile):
                     new_bone_names = bone_names.copy()
                     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
 
-                    if 'BLENDWEIGHT' in vertex_buffer.attribute_names and 'BLENDINDICES' in vertex_buffer.attribute_names:
+                    if 'BLENDWEIGHT' in vertex_buffer.attribute_names and \
+                            'BLENDINDICES' in vertex_buffer.attribute_names:
                         weights_array = vertex_buffer.vertexes["BLENDWEIGHT"] / 255
                         indices_array = vertex_buffer.vertexes["BLENDINDICES"]
                     else:
@@ -306,8 +308,7 @@ class ValveCompiledModel(ValveCompiledFile):
                             mesh.vertices.foreach_get('co', vertices)
                             vertices = vertices.reshape((-1, 3))
                             pre_computed_data = np.add(
-                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:,
-                                :3],
+                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:, :3],
                                 vertices)
                             shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
 
@@ -356,6 +357,7 @@ class ValveCompiledModel(ValveCompiledFile):
             bone_pos = bone_positions[n]
             bone_rot = bone_rotations[n]
             bone_pos = Vector([bone_pos[1], bone_pos[0], -bone_pos[2]]) * self.scale
+            # noinspection PyTypeChecker
             bone_rot = Quaternion([-bone_rot[3], -bone_rot[1], -bone_rot[0], bone_rot[2]])
             mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
             pose_bone.matrix_basis.identity()
@@ -447,10 +449,12 @@ class ValveCompiledModel(ValveCompiledFile):
                         rot_type, rot = bone_data['Angle']
 
                         bone_pos = Vector([pos[1], pos[0], -pos[2]]) * self.scale
+                        # noinspection PyTypeChecker
                         bone_rot = Quaternion([-rot[3], -rot[1], -rot[0], rot[2]])
 
                         bone = armature.pose.bones[bone_name]
                         # mat = (Matrix.Translation(bone_pos) @ bone_rot.to_matrix().to_4x4())
+                        translation_mat = Matrix.Identity(4)
 
                         if 'Position' in bone_data:
                             if pos_type in ['CCompressedFullVector3',
@@ -462,18 +466,13 @@ class ValveCompiledModel(ValveCompiledFile):
                             #     a, b, c = decompose(mat)
                             #     a += bone_pos
                             #     translation_mat = compose(a, b, c)
-                            else:
-                                translation_mat = Matrix.Identity(4)
-                                pass
-
+                        rotation_mat = Matrix.Identity(4)
                         if 'Angle' in bone_data:
 
                             if rot_type in ['CCompressedAnimQuaternion',
                                             'CCompressedFullQuaternion',
                                             'CCompressedStaticQuaternion']:
                                 rotation_mat = bone_rot.to_matrix().to_4x4()
-                            else:
-                                rotation_mat = Matrix.Identity(4)
 
                         mat = translation_mat @ rotation_mat
                         if bone.parent:
