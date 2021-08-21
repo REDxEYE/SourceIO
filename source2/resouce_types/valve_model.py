@@ -307,9 +307,9 @@ class ValveCompiledModel(ValveCompiledResource):
                             vertices = np.zeros((len(mesh.vertices) * 3,), dtype=np.float32)
                             mesh.vertices.foreach_get('co', vertices)
                             vertices = vertices.reshape((-1, 3))
+                            bundle_data = flex_data[bundle_id]
                             pre_computed_data = np.add(
-                                flex_data[bundle_id][global_vertex_offset:global_vertex_offset + vertex_count][:, :3],
-                                vertices)
+                                bundle_data[global_vertex_offset:global_vertex_offset + vertex_count][:, :3], vertices)
                             shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
 
                 global_vertex_offset += vertex_count
