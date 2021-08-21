@@ -77,6 +77,7 @@ def matrix_to_quat(matrix):
     else:
         return quat
 
+
 def quat_to_matrix(quat):
     x = quat[0]
     y = quat[1]
@@ -109,8 +110,26 @@ def quat_to_matrix(quat):
     matrix[1, 2] = 2 * (yz - xw)
     matrix[2, 2] = - x2 - y2 + z2 + w2
 
-
     return matrix
+
+
+def euler_to_matrix(theta):
+    r_x = np.array([[1, 0, 0],
+                    [0, math.cos(theta[0]), -math.sin(theta[0])],
+                    [0, math.sin(theta[0]), math.cos(theta[0])]
+                    ])
+
+    r_y = np.array([[math.cos(theta[1]), 0, math.sin(theta[1])],
+                    [0, 1, 0],
+                    [-math.sin(theta[1]), 0, math.cos(theta[1])]
+                    ])
+
+    r_z = np.array([[math.cos(theta[2]), -math.sin(theta[2]), 0],
+                    [math.sin(theta[2]), math.cos(theta[2]), 0],
+                    [0, 0, 1]
+                    ])
+
+    return np.dot(r_z, np.dot(r_y, r_x))
 
 
 def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
@@ -181,7 +200,7 @@ def sizeof_fmt(num):
     """Human friendly file size"""
     if num > 1:
         exponent = min(int(math.log(num, 1024)), len(unit_list) - 1)
-        quotient = float(num) / 1024**exponent
+        quotient = float(num) / 1024 ** exponent
         unit, num_decimals = unit_list[exponent]
         format_string = '{:.%sf} {}' % (num_decimals)
         return format_string.format(quotient, unit)
