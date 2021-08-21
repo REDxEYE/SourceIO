@@ -42,29 +42,24 @@ class MRPH(DATA):
         raw_flex_data = raw_flex_data.reshape((morph_atlas_data.width, morph_atlas_data.height, 4))
 
         for morph_datas in self.data['m_morphDatas']:
-            self.flex_data[morph_datas['m_name']] = np.zeros((len(bundle_types),
-                                                              height, width,
-                                                              4),
-                                                             dtype=np.float32)
+            morph_name = morph_datas['m_name']
+            self.flex_data[morph_name] = np.zeros((len(bundle_types), height, width, 4), dtype=np.float32)
             for n, rect in enumerate(morph_datas['m_morphRectDatas']):
                 rect_width = floor(rect['m_flUWidthSrc'] * morph_atlas_data.width)
                 rect_height = floor(rect['m_flVHeightSrc'] * morph_atlas_data.height)
                 dst_x = rect['m_nXLeftDst']
                 dst_y = rect['m_nYTopDst']
                 for c, bundle in enumerate(rect['m_bundleDatas']):
-                    rect_u = floor(bundle['m_flULeftSrc'] * morph_atlas_data.width)
-                    rect_v = floor(bundle['m_flVTopSrc'] * morph_atlas_data.height)
+                    rect_u = round(bundle['m_flULeftSrc'] * morph_atlas_data.width)
+                    rect_v = round(bundle['m_flVTopSrc'] * morph_atlas_data.height)
                     morph_data_rect = raw_flex_data[rect_v:rect_v + rect_height, rect_u:rect_u + rect_width, :]
-                    vec_offset = bundle['m_offsets']
-                    vec_range = bundle['m_ranges']
 
                     transformed_data = np.divide(morph_data_rect, 255)
-                    transformed_data = np.multiply(transformed_data, vec_range)
-                    transformed_data = np.add(transformed_data, vec_offset)
-                    transformed_data = transformed_data
-
-                    self.flex_data[morph_datas['m_name']][c, dst_y: dst_y + rect_height, dst_x: dst_x + rect_width,
-                    :] = transformed_data
+                    transformed_data = np.multiply(transformed_data, bundle['m_ranges'])
+                    transformed_data = np.add(transformed_data, bundle['m_offsets'])
+                    y_slice = slice(dst_y, dst_y + rect_height)
+                    x_slice = slice(dst_x, dst_x + rect_width)
+                    self.flex_data[morph_name][c, y_slice, x_slice, :] = transformed_data
         for k, v in self.flex_data.items():
             self.flex_data[k] = v.reshape((len(bundle_types), width * height, 4))
         return True
