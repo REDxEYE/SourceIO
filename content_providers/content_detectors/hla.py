@@ -3,7 +3,6 @@ from typing import Dict
 
 from .source2_base import Source2DetectorBase
 from ..content_provider_base import ContentProviderBase
-from ..source2_content_provider import GameinfoContentProvider
 from ...utilities.path_utilities import backwalk_file_resolver
 from ..hla_content_provider import HLAAddonProvider
 
@@ -24,6 +23,4 @@ class HLADetector(Source2DetectorBase):
                 continue
             content_providers[f'hla_addon_{folder.stem}'] = HLAAddonProvider(folder)
         cls.recursive_traversal(hla_root, 'hlvr', content_providers)
-        # content_providers[f'core'] = GameinfoContentProvider(hla_root / 'core' / 'gameinfo.gi')
-        # content_providers[f'hlvr'] = GameinfoContentProvider(hla_root / 'hlvr' / 'gameinfo.gi')
         return content_providers

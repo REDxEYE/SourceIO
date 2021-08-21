@@ -4,7 +4,6 @@ from typing import Dict
 from .source2_base import Source2DetectorBase
 from ..content_provider_base import ContentProviderBase
 from ..sbox_content_provider import SBoxDownloadsProvider, SBoxAddonProvider
-from ..source2_content_provider import GameinfoContentProvider
 from ...utilities.path_utilities import backwalk_file_resolver
 
 
