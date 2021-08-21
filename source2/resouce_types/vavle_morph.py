@@ -1,9 +1,3 @@
-from pathlib import Path
-
-# noinspection PyUnresolvedReferences
-import bpy
-import numpy as np
-
 from ..blocks import MRPH
 from . import ValveCompiledResource
 
