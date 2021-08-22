@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Type
 
 from .source1_base import Source1DetectorBase
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
@@ -10,6 +10,13 @@ from ..non_source_sub_manager import NonSourceContentProvider
 
 
 class Source1Common(Source1DetectorBase):
+
+    @classmethod
+    def add_if_exists(cls, path: Path, content_provider_class: Type[ContentProviderBase],
+                      content_providers: Dict[str, ContentProviderBase]):
+        super().add_if_exists(path, content_provider_class, content_providers)
+        cls.scan_for_vpk(path, content_providers)
+
     @classmethod
     def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
         game_root = None
