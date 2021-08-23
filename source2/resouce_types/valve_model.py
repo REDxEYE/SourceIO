@@ -324,6 +324,7 @@ class ValveCompiledModel(ValveCompiledResource):
         bone_parents = model_skeleton['m_nParent']
 
         armature_obj = bpy.data.objects.new(self.name + "_ARM", bpy.data.armatures.new(self.name + "_ARM_DATA"))
+        armature_obj['MODE'] = 'SourceIO'
         armature_obj.show_in_front = True
         bpy.context.scene.collection.objects.link(armature_obj)
         bpy.ops.object.select_all(action="DESELECT")

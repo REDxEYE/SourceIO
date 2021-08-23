@@ -16,6 +16,7 @@ def create_armature(mdl: Mdl, collection, scale):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
+    armature_obj['MODE'] = 'SourceIO'
     armature_obj.show_in_front = True
     collection.objects.link(armature_obj)
 
@@ -28,7 +29,7 @@ def create_armature(mdl: Mdl, collection, scale):
             mdl_bone_info.name = f'Bone_{n}'
         mdl_bone = armature.edit_bones.new(mdl_bone_info.name)
         mdl_bone.head = Vector(mdl_bone_info.pos) * scale
-        mdl_bone.tail = (Vector([0, 0, 0.25])*scale) + mdl_bone.head
+        mdl_bone.tail = (Vector([0, 0, 0.25]) * scale) + mdl_bone.head
         if mdl_bone_info.parent != -1:
             mdl_bone.parent = armature.edit_bones.get(mdl.bones[mdl_bone_info.parent].name)
 
@@ -100,8 +101,12 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
                 model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                 model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
+            if body_part_model.vertex_count==0:
+                continue
+
             mdl_body_part_collection.objects.link(model_object)
             model_container.objects.append(model_object)
+            model_container.bodygroups[body_part.name].append(model_object)
 
             modifier = model_object.modifiers.new(name='Skeleton', type='ARMATURE')
             modifier.object = armature

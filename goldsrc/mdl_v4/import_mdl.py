@@ -25,6 +25,7 @@ def create_armature(mdl: Mdl, collection, scale):
     model_name = get_name(mdl.reader.file)
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
+    armature_obj['MODE'] = 'SourceIO'
     armature_obj.show_in_front = True
     collection.objects.link(armature_obj)
 
