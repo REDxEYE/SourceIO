@@ -32,11 +32,13 @@ from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
+from ... import SingletonMeta
 from ...bpy_utilities.logging import BPYLoggingManager
 from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...content_providers.content_manager import ContentManager
+from ...source_shared.model_container import Source1ModelContainer
 from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import convert_rotation_source1_to_blender
 
@@ -46,6 +48,26 @@ log_manager = BPYLoggingManager()
 
 def get_entity_name(entity_data: Dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
+
+
+class BPSPropCache(metaclass=SingletonMeta):
+    def __init__(self):
+        self.logger = log_manager.get_logger('BPSPropCache')
+        self.object_cache: Dict[str, Source1ModelContainer] = {}
+
+    def add_object(self, name, container):
+        self.logger.info(f"Adding {name} to cache")
+        self.object_cache[str(name)] = container
+
+    def get_object(self, name):
+        obj = self.object_cache.get(str(name), None)
+        if obj:
+            self.logger.info(f"Using cached model for {name}")
+            return obj
+        return obj
+
+    def purge(self):
+        self.object_cache.clear()
 
 
 class BSP:

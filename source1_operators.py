@@ -5,7 +5,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from .bpy_utilities.material_loader.material_loader import Source1MaterialLoader
-from .source1.bsp.import_bsp import BSP
+from .source1.bsp.import_bsp import BSP, BPSPropCache
 from .source1.dmx.load_sfm_session import load_session
 from .source1.mdl.model_loader import import_model_from_full_path
 from .source1.vtf import is_vtflib_supported
@@ -127,6 +127,8 @@ class BSPImport_OT_operator(bpy.types.Operator):
 
         bsp_map = BSP(self.filepath, scale=self.scale)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
+
+        BPSPropCache().purge()
 
         bsp_map.load_disp()
         bsp_map.load_entities()

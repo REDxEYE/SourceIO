@@ -5,6 +5,7 @@ from pathlib import Path
 import bpy
 
 from .bpy_utilities.utils import get_or_create_collection
+from .source1.bsp.import_bsp import BPSPropCache
 from .source1.mdl.model_loader import import_model_from_files
 from .source1.mdl.v49.import_mdl import import_materials
 
@@ -43,7 +44,6 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                 model_type = Path(custom_prop_data['prop_path']).suffix
                 parent = get_parent(obj.users_collection[0])
                 collection = get_or_create_collection(custom_prop_data['type'], parent)
-
                 if model_type == '.vmdl_c':
                     vmld_file = content_manager.find_file(custom_prop_data['prop_path'])
                     if vmld_file:
@@ -98,72 +98,78 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                         self.report({'INFO'}, f"Model '{custom_prop_data['prop_path']}' not found!")
                 elif model_type == '.mdl':
                     prop_path = Path(custom_prop_data['prop_path'])
-                    mld_file = content_manager.find_file(prop_path)
-                    if mld_file:
+
+                    container = BPSPropCache().get_object(prop_path)
+
+                    if container is None:
+                        mld_file = content_manager.find_file(prop_path)
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model_from_files(mld_file, vvd_file, vtx_file, vvc_file,
+                        model_container = import_model_from_files(prop_path, mld_file, vvd_file, vtx_file, vvc_file,
                                                                   1.0, False, True,
                                                                   unique_material_names=unique_material_names)
+                    else:
+                        model_container = container.clone()
 
-                        entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
-                        entity_data_holder['entity_data'] = {}
-                        entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
+                    entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
+                    entity_data_holder['entity_data'] = {}
+                    entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
 
-                        master_collection = s1_put_into_collections(model_container, prop_path.stem, collection, False)
-                        master_collection.objects.link(entity_data_holder)
+                    master_collection = s1_put_into_collections(model_container, prop_path.stem, collection, False)
+                    master_collection.objects.link(entity_data_holder)
 
-                        if model_container.armature is not None:
-                            armature = model_container.armature
-                            armature.rotation_mode = "XYZ"
-                            entity_data_holder.parent = armature
+                    if model_container.armature is not None:
+                        armature = model_container.armature
+                        armature.rotation_mode = "XYZ"
+                        entity_data_holder.parent = armature
 
-                            bpy.context.view_layer.update()
-                            armature.parent = obj.parent
-                            armature.matrix_world = obj.matrix_world.copy()
-                            armature.rotation_euler[2] += math.radians(90)
+                        bpy.context.view_layer.update()
+                        armature.parent = obj.parent
+                        armature.matrix_world = obj.matrix_world.copy()
+                        armature.rotation_euler[2] += math.radians(90)
+                    else:
+                        if model_container.objects:
+                            entity_data_holder.parent = model_container.objects[0]
                         else:
-                            if model_container.objects:
-                                entity_data_holder.parent = model_container.objects[0]
-                            else:
-                                entity_data_holder.location = obj.location
-                                entity_data_holder.rotation_euler = obj.rotation_euler
-                                entity_data_holder.scale = obj.scale
-                            for mesh_obj in model_container.objects:
-                                mesh_obj.rotation_mode = "XYZ"
-                                bpy.context.view_layer.update()
-                                mesh_obj.parent = obj.parent
-                                mesh_obj.matrix_world = obj.matrix_world.copy()
-
+                            entity_data_holder.location = obj.location
+                            entity_data_holder.rotation_euler = obj.rotation_euler
+                            entity_data_holder.scale = obj.scale
                         for mesh_obj in model_container.objects:
-                            mesh_obj['prop_path'] = custom_prop_data['prop_path']
-                        if is_vtflib_supported():
+                            mesh_obj.rotation_mode = "XYZ"
+                            bpy.context.view_layer.update()
+                            mesh_obj.parent = obj.parent
+                            mesh_obj.matrix_world = obj.matrix_world.copy()
+
+                    for mesh_obj in model_container.objects:
+                        mesh_obj['prop_path'] = custom_prop_data['prop_path']
+                    if is_vtflib_supported():
+                        if container is None:
                             import_materials(model_container.mdl, unique_material_names=unique_material_names)
-                        skin = custom_prop_data.get('skin', None)
-                        if skin:
-                            for model in model_container.objects:
-                                if str(skin) in model['skin_groups']:
-                                    skin = str(skin)
-                                    skin_materials = model['skin_groups'][skin]
-                                    current_materials = model['skin_groups'][model['active_skin']]
-                                    print(skin_materials, current_materials)
-                                    for skin_material, current_material in zip(skin_materials, current_materials):
-                                        if unique_material_names:
-                                            skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[-63:]}"[
-                                                            -63:]
-                                            current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[-63:]}"[
-                                                               -63:]
-                                        else:
-                                            skin_material = skin_material[-63:]
-                                            current_material = current_material[-63:]
+                    skin = custom_prop_data.get('skin', None)
+                    if skin:
+                        for model in model_container.objects:
+                            if str(skin) in model['skin_groups']:
+                                skin = str(skin)
+                                skin_materials = model['skin_groups'][skin]
+                                current_materials = model['skin_groups'][model['active_skin']]
+                                print(skin_materials, current_materials)
+                                for skin_material, current_material in zip(skin_materials, current_materials):
+                                    if unique_material_names:
+                                        skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[-63:]}"[
+                                                        -63:]
+                                        current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[-63:]}"[
+                                                           -63:]
+                                    else:
+                                        skin_material = skin_material[-63:]
+                                        current_material = current_material[-63:]
 
-                                        swap_materials(model, skin_material, current_material)
-                                    model['active_skin'] = skin
-                                else:
-                                    print(f'Skin {skin} not found')
+                                    swap_materials(model, skin_material, current_material)
+                                model['active_skin'] = skin
+                            else:
+                                print(f'Skin {skin} not found')
 
-                        bpy.data.objects.remove(obj)
+                    bpy.data.objects.remove(obj)
         return {'FINISHED'}
 
 
