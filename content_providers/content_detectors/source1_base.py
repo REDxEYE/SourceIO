@@ -31,7 +31,8 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
                 if not (game_root / game).parent.exists():
                     continue
                 for folder in (game_root / game).parent.iterdir():
-                    content_providers[folder.stem] = NonSourceContentProvider(folder)
+                    if folder.is_dir():
+                        content_providers[folder.stem] = NonSourceContentProvider(folder)
             elif game.name.endswith('.vpk'):
                 game = game.with_name(game.stem + '_dir.vpk')
                 if (game_root / game).exists():
