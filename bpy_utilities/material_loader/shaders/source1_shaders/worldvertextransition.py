@@ -84,7 +84,7 @@ class WorldVertexTransition(Source1ShaderBase):
             self.create_and_connect_texture_node(basetexture,
                                                  color_mix.inputs['Color1'],
                                                  name='$basetexture')
-            self.create_and_connect_texture_node(basetexture,
+            self.create_and_connect_texture_node(basetexture2,
                                                  color_mix.inputs['Color2'],
                                                  name='$basetexture2')
 
