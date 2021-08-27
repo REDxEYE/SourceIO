@@ -1,4 +1,6 @@
 from enum import IntEnum, IntFlag
+from typing import Optional
+
 import numpy as np
 
 from ...utilities.byte_io_mdl import ByteIO
@@ -119,7 +121,7 @@ class TEXR(DataBlock):
         self.extra_data = []
         self.compressed_mips = []
         self.compressed = False
-        self.image_data = b""
+        self.image_data: Optional[np.ndarray] = None
 
     def read(self):
         reader = self.reader
@@ -228,14 +230,18 @@ class TEXR(DataBlock):
             return reader
 
     def read_image(self, flip=True):
+        if self.image_data is not None:
+            return
         if NO_SOURCE_IO_UTILS:
             return
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
         if self.format == VTexFormat.RGBA8888:
             data = self.get_decompressed_buffer(reader, 0).read(-1)
-            data = read_r8g8b8a8(data, self.width, self.height, flip)
-            self.image_data = data
+            data = np.frombuffer(data, np.uint8).reshape((self.width, self.height, 4))
+            if flip:
+                data = np.flipud(data)
+            self.image_data = data.tobytes()
         elif self.format == VTexFormat.BC7:
             from .redi_block_types import SpecialDependencies
             redi = self._valve_file.get_data_block(block_name='REDI')[0]

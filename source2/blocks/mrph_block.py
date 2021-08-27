@@ -45,8 +45,8 @@ class MRPH(DATA):
             morph_name = morph_datas['m_name']
             self.flex_data[morph_name] = np.zeros((len(bundle_types), height, width, 4), dtype=np.float32)
             for n, rect in enumerate(morph_datas['m_morphRectDatas']):
-                rect_width = floor(rect['m_flUWidthSrc'] * morph_atlas_data.width)
-                rect_height = floor(rect['m_flVHeightSrc'] * morph_atlas_data.height)
+                rect_width = round(rect['m_flUWidthSrc'] * morph_atlas_data.width)
+                rect_height = round(rect['m_flVHeightSrc'] * morph_atlas_data.height)
                 dst_x = rect['m_nXLeftDst']
                 dst_y = rect['m_nYTopDst']
                 for c, bundle in enumerate(rect['m_bundleDatas']):

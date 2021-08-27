@@ -20,6 +20,14 @@ class ValveCompiledTexture(ValveCompiledResource):
             return bpy.data.images[f'{name}.tga']
         data_block: TEXR = self.get_data_block(block_name='DATA')[0]
         data_block.read_image(flip)
+        if data_block.image_data is None:
+            image = bpy.data.images.new(
+                name + '.tga',
+                width=data_block.width,
+                height=data_block.height,
+                alpha=True
+            )
+            return image
         if data_block.format == VTexFormat.RGBA16161616F:
             pixel_data = data_block.image_data
         else:
