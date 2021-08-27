@@ -111,7 +111,8 @@ class LoadEntity_OT_operator(bpy.types.Operator):
                                                                   unique_material_names=unique_material_names)
                     else:
                         model_container = container.clone()
-
+                    if model_container is None:
+                        continue
                     entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                     entity_data_holder['entity_data'] = {}
                     entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']

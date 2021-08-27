@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union, BinaryIO, Optional
 
 from ..bsp.import_bsp import BPSPropCache
+from ...bpy_utilities.logging import BPYLoggingManager
 from ...content_providers.content_manager import ContentManager
 
 from .v36.import_mdl import import_model as import_model_v36
@@ -9,6 +10,9 @@ from .v44.import_mdl import import_model as import_model_v44
 from .v49.import_mdl import import_model as import_model_v49
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.path_utilities import find_vtx, find_vtx_cm
+
+log_manager = BPYLoggingManager()
+logger = log_manager.get_logger('model_loader')
 
 
 def import_model_from_full_path(mdl_path: Path, scale=1.0,
@@ -49,6 +53,10 @@ def import_model_from_files(name: Union[str, Path],
                             create_drives=False,
                             re_use_meshes: bool = False,
                             unique_material_names: bool = False):
+    if mdl_file is None:
+        logger.warn(f'Model {name} not found!')
+        return
+
     if re_use_meshes:
         container = BPSPropCache().get_object(name)
         if container is not None:
