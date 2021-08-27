@@ -256,7 +256,7 @@ class KVParser(KVReader):
 
             buf += ' before '
             buf += tok[0].value
-
+            self.read()
             self._report(buf, tok[2])
 
         return None
