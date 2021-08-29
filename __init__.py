@@ -212,7 +212,7 @@ if not NO_BPY:
             bpy.types.IMAGE_MT_image.remove(export)
             from .source1.vtf.VTFWrapper.VTFLib import VTFLib
             vtf_lib = VTFLib()
-            vtf_lib.shutdown()
+            vtf_lib.unload()
             del vtf_lib
         unregister_nodes()
         SingletonMeta.cleanup()
