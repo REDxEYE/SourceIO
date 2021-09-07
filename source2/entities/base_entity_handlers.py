@@ -175,11 +175,12 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_env_sky(self, entity: env_sky, entity_raw: dict):
         sky_mat = ContentManager().find_file(entity.skyname + '_c')
-        vmat = ValveCompiledMaterial(sky_mat)
-        vmat.load()
-        data_block = vmat.get_data_block(block_name='DATA')[0]
-        Skybox(data_block.data, vmat.available_resources).create_nodes(entity.skyname)
-        print(vmat)
+        if sky_mat is not None:
+            vmat = ValveCompiledMaterial(sky_mat)
+            vmat.load()
+            data_block = vmat.get_data_block(block_name='DATA')[0]
+            Skybox(data_block.data, vmat.available_resources).create_nodes(entity.skyname)
+            print(vmat)
 
     def handle_point_clientui_world_panel(self, entity: point_clientui_world_panel, entity_raw: dict):
         pass
