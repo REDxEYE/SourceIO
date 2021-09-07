@@ -135,6 +135,8 @@ class VrComplex(Source2ShaderBase):
             self.connect_nodes(albedo_node.outputs['Color'], shader.inputs['Base Color'])
 
         if self.translucent or self.alpha_test:
+            self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.shadow_method = 'HASHED'
             self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Alpha'])
         elif self.metalness:
             self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Metallic'])
