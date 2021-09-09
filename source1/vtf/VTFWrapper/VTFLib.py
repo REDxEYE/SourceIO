@@ -7,8 +7,6 @@ from ctypes import *
 from . import VTFLibEnums, VTFLibStructures
 from ....bpy_utilities.logger import BPYLoggingManager
 
-logger = BPYLoggingManager().get_logger("Source1::VTFLib")
-
 
 class SingletonMeta(type):
     _instances = {}
@@ -92,7 +90,8 @@ def pointer_to_array(poiter, size, type=c_ubyte):
 
 class VTFLib(metaclass=SingletonMeta):
     def __init__(self):
-        logger.info('Initialize')
+        self.logger = BPYLoggingManager().get_logger("Source1::VTFLib")
+        self.logger.info('Initialize')
         self.vtflib_cdll = self.load_dll()
 
         self.GetVersion = self.vtflib_cdll.vlGetVersion
@@ -352,10 +351,10 @@ class VTFLib(metaclass=SingletonMeta):
         self.bind_image(self.image_buffer)
 
     def unload(self):
-        logger.info(f'Unloading {self.vtflib_cdll}')
+        self.logger.info(f'Unloading {self.vtflib_cdll}')
         self.shutdown()
         free_lib(self.vtflib_cdll)
-        logger.info('Unloaded')
+        self.logger.info('Unloaded')
 
     def load_dll(self):
         if platform_name == "Windows":
@@ -591,7 +590,8 @@ class VTFLib(metaclass=SingletonMeta):
             return 0
 
     def convert(self, image_format):
-        logger.info("Converting from {} to {}".format(self.image_format().name, VTFLibEnums.ImageFormat(image_format).name))
+        logger.info(
+            "Converting from {} to {}".format(self.image_format().name, VTFLibEnums.ImageFormat(image_format).name))
         new_size = self.compute_image_size(
             self.width(),
             self.height(),
