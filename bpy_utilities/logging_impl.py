@@ -65,6 +65,8 @@ class BPYLogger:
         self._bpy_logger = None
 
     def _add_bpy_file_logger(self):
+        if bpy.data.__class__.__name__ == "_RestrictData":
+            return
         self._bpy_file, new = get_log_file(self.name)
         if self._bpy_logger is not None:
             self._bpy_logger.stream = self._bpy_file
