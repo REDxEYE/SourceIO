@@ -63,7 +63,7 @@ class BinaryKeyValue:
         self.block_info = block_info
         self.mode = 0
         self.strings = []
-        self.types = []
+        self.types = np.array([])
         self.current_type = 0
         self.kv = []
         self.flags = 0
@@ -205,8 +205,7 @@ class BinaryKeyValue:
 
         types_len = self.buffer.size() - self.buffer.tell() - 4
 
-        for _ in range(types_len):
-            self.types.append(self.buffer.read_uint8())
+        self.types = np.frombuffer(self.buffer.read(types_len), np.uint8)
 
         self.parse(self.buffer, self.kv, True)
         self.kv = self.kv[0]
@@ -320,7 +319,7 @@ class BinaryKeyValue:
         del self.double_buffer
 
     def read_type(self, reader: ByteIO):
-        if self.types:
+        if self.types.shape[0] > 0:
             data_type = self.types[self.current_type]
             self.current_type += 1
         else:
@@ -329,7 +328,7 @@ class BinaryKeyValue:
         flag_info = KVFlag.Nothing
         if data_type & 0x80:
             data_type &= 0x7F
-            if self.types:
+            if self.types.shape[0]>0:
                 flag_info = KVFlag(self.types[self.current_type])
                 self.current_type += 1
             else:

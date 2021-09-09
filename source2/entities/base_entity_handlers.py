@@ -4,7 +4,7 @@ from .abstract_entity_handlers import AbstractEntityHandler, get_origin, get_ang
 from .base_entity_classes import *
 from ...bpy_utilities.material_loader.shaders.source2_shaders.sky import Skybox
 from ...content_providers.content_manager import ContentManager
-from ..resouce_types.valve_material import ValveCompiledMaterial
+from ..resouce_types.material import ValveCompiledMaterial
 
 
 class BaseEntityHandler(AbstractEntityHandler):
@@ -55,6 +55,10 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection(entity.__class__.__name__, obj, 'func')
 
     def handle_func_brush(self, entity: func_brush, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'func')
+
+    def handle_func_shatterglass(self, entity: func_shatterglass, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'func')
 
@@ -180,7 +184,6 @@ class BaseEntityHandler(AbstractEntityHandler):
             vmat.load()
             data_block = vmat.get_data_block(block_name='DATA')[0]
             Skybox(data_block.data, vmat.available_resources).create_nodes(entity.skyname)
-            print(vmat)
 
     def handle_point_clientui_world_panel(self, entity: point_clientui_world_panel, entity_raw: dict):
         pass

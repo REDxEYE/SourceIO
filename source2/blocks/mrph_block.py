@@ -1,5 +1,4 @@
 import struct
-from math import floor
 
 from .data_block import DATA
 import numpy as np
@@ -15,7 +14,7 @@ class MRPH(DATA):
         self.flex_data = {}
 
     def read_morphs(self):
-        from ..resouce_types.valve_texture import ValveCompiledTexture
+        from ..resouce_types.texture import ValveCompiledTexture
         if self.data['m_pTextureAtlas'] not in self._valve_file.available_resources:
             return False
         vmorf_actual_path = self._valve_file.available_resources.get(self.data['m_pTextureAtlas'], None)

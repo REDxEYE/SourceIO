@@ -18,13 +18,13 @@ class HLVREntityHandler(BaseEntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'actor')
 
-    # def handle_npc_vr_citizen_female(self, entity: npc_vr_citizen_female, entity_raw: dict):
-    #     obj = self._handle_entity_with_model(entity, entity_raw)
-    #     self._put_into_collection(entity.__class__.__name__, obj, 'npc')
-    #
-    # def handle_npc_vr_citizen_male(self, entity: npc_vr_citizen_male, entity_raw: dict):
-    #     obj = self._handle_entity_with_model(entity, entity_raw)
-    #     self._put_into_collection(entity.__class__.__name__, obj, 'npc')
+    def handle_npc_vr_citizen_female(self, entity: npc_vr_citizen_female, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'npc')
+
+    def handle_npc_vr_citizen_male(self, entity: npc_vr_citizen_male, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'npc')
 
     def handle_func_physbox(self, entity: func_physbox, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -273,3 +273,6 @@ class HLVREntityHandler(BaseEntityHandler):
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('point_worldtext', obj, 'environment')
         obj.hide_render = True
+
+    def handle_worldspawn(self,entity: worldspawn, entity_raw: dict):
+        pass

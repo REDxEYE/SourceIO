@@ -7,8 +7,8 @@ from mathutils import Euler
 
 from ..resouce_types import ValveCompiledResource
 from .base_entity_classes import *
-from ..resouce_types.valve_material import ValveCompiledMaterial
-from ..resouce_types.valve_texture import ValveCompiledTexture
+from ..resouce_types.material import ValveCompiledMaterial
+from ..resouce_types.texture import ValveCompiledTexture
 from ..utils.entity_keyvalues import EntityKeyValues
 from ...bpy_utilities.logger import BPYLoggingManager
 from ...bpy_utilities.utils import get_or_create_collection
@@ -57,7 +57,7 @@ class AbstractEntityHandler:
     entity_lookup_table = {}
 
     def __init__(self, bsp_file: 'ValveCompiledWorld', parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
-        from ..resouce_types.valve_world import ValveCompiledWorld
+        from ..resouce_types.world import ValveCompiledWorld
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._world: ValveCompiledWorld = bsp_file
         self.scale = world_scale

@@ -9,9 +9,9 @@ from pathlib import Path
 from mathutils import Vector, Matrix, Quaternion, Euler
 
 from . import ValveCompiledResource
-from .valve_physics import ValveCompiledPhysics
-from .vavle_morph import ValveCompiledMorph
-from .valve_material import ValveCompiledMaterial
+from .physics import ValveCompiledPhysics
+from .morph import ValveCompiledMorph
+from .material import ValveCompiledMaterial
 from ..blocks import MRPH, VBIB, DATA
 from ..utils.decode_animations import parse_anim_data
 from ..common import convert_normals
