@@ -9,5 +9,6 @@ from . import (vr_complex,
                complex,
                generic,
                blend,
-               static_overlay
+               static_overlay,
+               vr_bloody_simple
                )
