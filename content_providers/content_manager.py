@@ -5,7 +5,7 @@ from collections import Counter
 from .content_detectors.hla import HLADetector
 from .content_detectors.robot_repair import RobotRepairDetector
 from .content_detectors.source1_common import Source1Common
-from ..bpy_utilities.logging import BPYLoggingManager
+from ..bpy_utilities.logger import BPYLoggingManager
 from .non_source_sub_manager import NonSourceContentProvider
 from .vpk_sub_manager import VPKContentProvider
 from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
@@ -14,7 +14,7 @@ from ..utilities.path_utilities import get_mod_path, backwalk_file_resolver
 from ..utilities.singleton import SingletonMeta
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('content_manager')
+logger = log_manager.get_logger('ContentManager')
 
 AnyContentDetector = TypeVar('AnyContentDetector', bound='ContentDetectorBase')
 AnyContentProvider = TypeVar('AnyContentProvider', bound='ContentProviderBase')

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Type, Any, Union
 
 from .shader_base import ShaderBase
-from ..logging import BPYLoggingManager
+from ..logger import BPYLoggingManager
 from ...goldsrc.mdl_v10.structs.texture import StudioTexture
 from ...source1.vmt.valve_material import VMT
 
@@ -16,7 +16,7 @@ from .shaders import source1_shaders
 from .shaders import source2_shaders
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('material_loader')
+logger = log_manager.get_logger('MaterialLoader')
 
 
 class MaterialLoaderBase:
@@ -31,7 +31,7 @@ class Source1MaterialLoader(MaterialLoaderBase):
     _handlers: Dict[str, Type[Source1ShaderBase]] = dict()
     sub: Type[ShaderBase]
     for sub in Source1ShaderBase.all_subclasses():
-        print(f'Registered Source1 material handler for {sub.__name__} shader')
+        logger.info(f'Registered Source1 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
     def __init__(self, file_object, material_name):
@@ -60,7 +60,7 @@ class GoldSrcMaterialLoader(MaterialLoaderBase):
     _handlers: Dict[str, Type[GoldSrcShaderBase]] = dict()
     sub: Type[ShaderBase]
     for sub in GoldSrcShaderBase.all_subclasses():
-        print(f'Registered GoldSrc material handler for {sub.__name__} shader')
+        logger.info(f'Registered GoldSrc material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
     def __init__(self, goldsrc_material: StudioTexture, material_name):
@@ -83,7 +83,7 @@ class Source2MaterialLoader(MaterialLoaderBase):
     _handlers: Dict[str, Type[Source2ShaderBase]] = dict()
     sub: Type[ShaderBase]
     for sub in Source2ShaderBase.all_subclasses():
-        print(f'Registered Source2 material handler for {sub.__name__} shader')
+        logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
     def __init__(self, source2_material_data, material_name, resources: Dict[Union[str, int], Path]):

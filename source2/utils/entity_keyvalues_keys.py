@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from .murmurhash2 import murmur_hash2
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...utilities.singleton import SingletonMeta
 
 MURMUR2SEED = 0x31415926

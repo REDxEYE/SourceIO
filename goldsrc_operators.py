@@ -8,6 +8,10 @@ from .goldsrc.bsp.mgr import GoldSrcContentManager
 from .goldsrc import import_model
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
+from .bpy_utilities.logger import BPYLoggingManager
+
+logger = BPYLoggingManager().get_logger("GoldSrc::Operators")
+
 
 class GBSPImport_OT_operator(bpy.types.Operator):
     """Load GoldSrc BSP"""
@@ -30,7 +34,7 @@ class GBSPImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
-            print(f"Loading {n}/{len(self.files)}")
+            logger.info(f"Loading {n}/{len(self.files)}")
             content_manager = GoldSrcContentManager()
             content_manager.use_hd = self.use_hd
             bsp = BSP(directory / file.name, scale=self.scale, single_collection=self.single_collection)
@@ -61,7 +65,7 @@ class GMDLImport_OT_operator(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
-            print(f"Loading {n}/{len(self.files)}")
+            logger.info(f"Loading {n}/{len(self.files)}")
             texture_file = (directory / file.name).with_name(Path(file.name).stem + 't.mdl')
             import_model(directory / file.name, texture_file if texture_file.exists() else None, self.scale)
         return {'FINISHED'}

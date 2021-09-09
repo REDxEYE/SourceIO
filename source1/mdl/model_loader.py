@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Union, BinaryIO, Optional
 
 from ..bsp.import_bsp import BPSPropCache
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...content_providers.content_manager import ContentManager
 
 from .v36.import_mdl import import_model as import_model_v36
@@ -12,7 +12,7 @@ from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.path_utilities import find_vtx, find_vtx_cm
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('model_loader')
+logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def import_model_from_full_path(mdl_path: Path, scale=1.0,

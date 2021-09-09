@@ -21,7 +21,7 @@ from .lumps.material_sort_lump import MaterialSortLump
 from .lumps.face_indices_lump import IndicesLump
 from .lumps.lightmap_header_lump import LightmapHeadersLump
 from .lumps.lightmap_lump import LightmapDataSkyLump
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...content_providers.content_manager import ContentManager
 
 from ...utilities.byte_io_mdl import ByteIO

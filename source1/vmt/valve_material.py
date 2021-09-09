@@ -1,9 +1,9 @@
 from ...content_providers.content_manager import ContentManager
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from .vmt_parser import VMTParser
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('valve_material')
+logger = log_manager.get_logger('Source1::VMT')
 
 
 # TODO: remove this and just use VMTParser with ported PATCH material support

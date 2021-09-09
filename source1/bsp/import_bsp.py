@@ -33,7 +33,7 @@ from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
 from .lumps.vertex_lump import VertexLump
 from ... import SingletonMeta
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...bpy_utilities.utils import get_material, get_or_create_collection

@@ -3,13 +3,14 @@ from pathlib import Path
 from typing import Dict
 
 from ..utilities.singleton import SingletonMeta
-from logging import getLogger, Formatter, Filter, LogRecord, StreamHandler, DEBUG
+from logger import getLogger, Formatter, Filter, LogRecord, StreamHandler, DEBUG
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):
     def __init__(self):
         self.loggers: Dict[str, BPYLogger] = {}
-        print('Using Stub logger')
+        self.logger = self.get_logger("LOGGING")
+        self.logger.debug('Using Stub logger')
 
     def get_logger(self, name):
         if name in self.loggers:

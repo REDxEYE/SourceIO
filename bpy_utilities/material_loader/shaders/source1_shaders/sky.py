@@ -1,4 +1,4 @@
-from .....bpy_utilities.logging import BPYLoggingManager
+from .....bpy_utilities.logger import BPYLoggingManager
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 import bpy
@@ -9,7 +9,7 @@ class Skybox(Source1ShaderBase):
     SHADER: str = 'sky'
 
     def __init__(self, skybox_texture, skybox_texture_hdr,skybox_texture_hdr_alpha):
-        self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
+        self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.skybox_texture = skybox_texture
         self.skybox_texture_hdr = skybox_texture_hdr
         self.skybox_texture_hdr_alpha = skybox_texture_hdr_alpha

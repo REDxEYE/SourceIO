@@ -4,9 +4,12 @@ from typing import Deque
 from mathutils import Matrix, Vector, Quaternion
 
 from ..vs import Vector as SVector, Color
-from ...logging import BPYLoggingManager, BPYLogger
+from ...logger import BPYLoggingManager, BPYLogger
 
 from ....utilities.singleton import SingletonMeta
+
+logger = BPYLoggingManager().get_logger("GoldSrc::Texture")
+
 import bpy
 
 
@@ -179,7 +182,7 @@ class BoneGroup:
 
         # Disabled because we don't have default bone groups
         if required:
-            print(f"Required child {name} not found!")
+            logger.warn(f"Required child {name} not found!")
         #     raise Exception(f"Required child {name} not found!")
 
     def HasChildGroup(self, name, recursive):

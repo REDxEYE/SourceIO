@@ -4,7 +4,6 @@ import bpy
 
 from typing import Dict
 from logging import Formatter, Filter, LogRecord, StreamHandler, DEBUG, Logger
-
 from ..utilities.singleton import SingletonMeta
 
 
@@ -26,7 +25,8 @@ def _get_caller_function():
 class BPYLoggingManager(metaclass=SingletonMeta):
     def __init__(self):
         self.loggers: Dict[str, BPYLogger] = {}
-        print('Using BPY logger')
+        self.logger = self.get_logger("LOGGING")
+        self.logger.debug('Using BPY logger')
 
     def get_logger(self, name):
         if name in self.loggers:
@@ -103,7 +103,6 @@ class BPYLogger:
         self._add_bpy_file_logger()
         self._filter.function or _get_caller_function()
         self._logger.error(message)
-
 
     def exception(self, message):
         self._add_bpy_file_logger()

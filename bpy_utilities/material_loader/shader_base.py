@@ -6,7 +6,7 @@ import numpy as np
 
 from .node_arranger import nodes_iterate
 from ..utils import append_blend
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 
 
 class Nodes:
@@ -140,7 +140,7 @@ class ShaderBase:
         return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
 
     def __init__(self):
-        self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
+        self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.bpy_material: bpy.types.Material = None
         self.load_bvlg_nodes()
         self.do_arrange = True

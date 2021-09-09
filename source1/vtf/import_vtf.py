@@ -2,10 +2,10 @@ import bpy
 import numpy as np
 
 from ..vtf.VTFWrapper import VTFLib
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('content_manager')
+logger = log_manager.get_logger('Source1::VTF')
 
 
 def import_texture(name, file_object, update=False):

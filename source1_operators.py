@@ -12,7 +12,9 @@ from .source1.vtf import is_vtflib_supported
 
 from .content_providers.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
+from .bpy_utilities.logger import BPYLoggingManager
 
+logger = BPYLoggingManager().get_logger("SourceIO::Operators")
 
 # noinspection PyPep8Naming
 class MDLImport_OT_operator(bpy.types.Operator):
@@ -58,11 +60,11 @@ class MDLImport_OT_operator(bpy.types.Operator):
 
                     import_materials(model_container.mdl, use_bvlg=self.use_bvlg)
                 except Exception as t_ex:
-                    print(f'Failed to import materials, caused by {t_ex}')
+                    logger.error(f'Failed to import materials, caused by {t_ex}')
                     import traceback
                     traceback.print_exc()
             if self.import_animations and model_container.armature:
-                print('Loading animations')
+                logger.info('Loading animations')
                 import_animations(model_container.mdl, model_container.armature, self.scale)
             if self.write_qc:
                 from .source1.qc.qc import generate_qc
@@ -346,7 +348,7 @@ if is_vtflib_supported():
             if ima is None:
                 self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
             else:
-                print(context)
+                logger.info(context)
                 export_texture(ima, self.filepath, self.img_format, self.filter_mode)
             return {'FINISHED'}
 

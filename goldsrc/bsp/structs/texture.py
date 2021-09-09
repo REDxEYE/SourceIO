@@ -5,6 +5,9 @@ import numpy as np
 from ..bsp_file import BspFile
 from ...wad import make_texture, flip_texture, MipTex, WadLump
 from ....utilities.byte_io_mdl import ByteIO
+from ....bpy_utilities.logger import BPYLoggingManager
+
+logger = BPYLoggingManager().get_logger("GoldSrc::Texture")
 
 
 class TextureInfo:
@@ -69,7 +72,7 @@ class TextureData:
             else:
                 raise Exception(f"Unexpected resource type {type(resource)}")
         else:
-            print(f'Could not find texture resource: {self.name}')
+            logger.error(f'Could not find texture resource: {self.name}')
             self.data = np.full(self.width * self.height * 4, 0.5, dtype=np.float32)
 
         return self.data

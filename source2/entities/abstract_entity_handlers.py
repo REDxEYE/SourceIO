@@ -1,6 +1,6 @@
 import math
 import re
-from pprint import pprint
+from pprint import pprint, pformat
 
 import bpy
 from mathutils import Euler
@@ -10,7 +10,7 @@ from .base_entity_classes import *
 from ..resouce_types.valve_material import ValveCompiledMaterial
 from ..resouce_types.valve_texture import ValveCompiledTexture
 from ..utils.entity_keyvalues import EntityKeyValues
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...bpy_utilities.utils import get_or_create_collection
 from ...content_providers.content_manager import ContentManager
 from ...utilities.byte_io_mdl import ByteIO
@@ -73,7 +73,7 @@ class AbstractEntityHandler:
         self.load_all_entities()
         for entity_data in self._entities:
             if not self.handle_entity(entity_data):
-                pprint(entity_data)
+                self.logger.warn(pformat(entity_data))
         bpy.context.view_layer.update()
         # for entity_data in entity_lump.entities:
         #     self.resolve_parents(entity_data)

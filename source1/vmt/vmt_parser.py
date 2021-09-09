@@ -3,7 +3,7 @@ from io import TextIOBase, BufferedIOBase, BytesIO, StringIO
 from pathlib import Path
 
 from ...utilities.keyvalues import KVParser
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 
 
 def _pre_process_vmt(vmt: str):
@@ -38,7 +38,7 @@ def _pre_process_vmt(vmt: str):
 
 class VMTParser:
     def __init__(self, file_or_string: Union[IO[str], IO[bytes], str]):
-        self.logger = BPYLoggingManager().get_logger('vmt_parser')
+        self.logger = BPYLoggingManager().get_logger('Source1:VMTParser')
         if isinstance(file_or_string, str):
             self._buffer = file_or_string
         elif isinstance(file_or_string, Path):

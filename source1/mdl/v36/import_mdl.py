@@ -13,7 +13,7 @@ from ..structs.model import ModelV36
 from ...vtx import open_vtx
 from ...vtx.v6.structs.mesh import Mesh as VtxMesh
 from ...vtx.v6.structs.model import ModelLod as VtxModel
-from ....bpy_utilities.logging import BPYLoggingManager
+from ....bpy_utilities.logger import BPYLoggingManager
 from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ....bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....bpy_utilities.utils import get_material, get_new_unique_collection
@@ -21,7 +21,7 @@ from ....content_providers.content_manager import ContentManager
 from ....source_shared.model_container import Source1ModelContainer
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('mdl_loader')
+logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def merge_strip_groups(vtx_mesh: VtxMesh):

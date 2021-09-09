@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Union
 
-from .....bpy_utilities.logging import BPYLoggingManager
+from .....bpy_utilities.logger import BPYLoggingManager
 from ...shader_base import Nodes
 from ..source2_shader_base import Source2ShaderBase
 import bpy
@@ -14,7 +14,7 @@ class Skybox(Source2ShaderBase):
 
     def __init__(self, source2_material, resources: Dict[Union[str, int], Path]):
         super().__init__(source2_material, resources)
-        self.logger = log_manager.get_logger(f'{self.SHADER}_handler')
+        self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.do_arrange = True
 
     @property

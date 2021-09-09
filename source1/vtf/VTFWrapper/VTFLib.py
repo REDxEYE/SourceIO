@@ -5,6 +5,9 @@ import sys
 from ctypes import *
 
 from . import VTFLibEnums, VTFLibStructures
+from ....bpy_utilities.logger import BPYLoggingManager
+
+logger = BPYLoggingManager().get_logger("Source1::VTFLib")
 
 
 class SingletonMeta(type):
@@ -37,7 +40,6 @@ if platform_name == "Windows":
 
     def free_lib(lib):
         handle = lib._handle
-        print(f"Freed {lib}")
         del lib
         kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
         kernel32.FreeLibrary.argtypes = [ctypes.c_uint32]
@@ -90,7 +92,7 @@ def pointer_to_array(poiter, size, type=c_ubyte):
 
 class VTFLib(metaclass=SingletonMeta):
     def __init__(self):
-        print('Init VTFLib')
+        logger.info('Initialize')
         self.vtflib_cdll = self.load_dll()
 
         self.GetVersion = self.vtflib_cdll.vlGetVersion
@@ -350,10 +352,10 @@ class VTFLib(metaclass=SingletonMeta):
         self.bind_image(self.image_buffer)
 
     def unload(self):
-        print(f'Unloading {self.vtflib_cdll}')
+        logger.info(f'Unloading {self.vtflib_cdll}')
         self.shutdown()
         free_lib(self.vtflib_cdll)
-        print('Unloaded')
+        logger.info('Unloaded')
 
     def load_dll(self):
         if platform_name == "Windows":
@@ -550,7 +552,6 @@ class VTFLib(metaclass=SingletonMeta):
         depth = depth or self.depth()
         mipmaps = mipmaps or self.mipmap_count()
         if self.image_format() != VTFLibEnums.ImageFormat.ImageFormatRGBA8888:
-            print('To RGBA8888')
             image_data = self.convert_to_rgba8888()
         image_data = cast(image_data, POINTER(c_byte))
         self.ImageFlipImage(image_data, width, height)
@@ -589,20 +590,17 @@ class VTFLib(metaclass=SingletonMeta):
             sys.stderr.write('CAN\'T CONVERT IMAGE\n')
             return 0
 
-    def convert(self, format):
-        print(
-            "Converting from {} to {}".format(
-                self.image_format().name,
-                VTFLibEnums.ImageFormat(format).name))
+    def convert(self, image_format):
+        logger.info("Converting from {} to {}".format(self.image_format().name, VTFLibEnums.ImageFormat(image_format).name))
         new_size = self.compute_image_size(
             self.width(),
             self.height(),
             self.depth(),
             self.mipmap_count(),
-            format)
+            image_format)
         new_buffer = cast((c_byte * new_size)(), POINTER(c_byte))
         if not self.ImageConvert(self.ImageGetData(0, 0, 0, 0), new_buffer, self.width(), self.height(),
-                                 self.image_format().value, format):
+                                 self.image_format().value, image_format):
             return pointer_to_array(new_buffer, new_size)
         else:
             sys.stderr.write('CAN\'T CONVERT IMAGE\n')

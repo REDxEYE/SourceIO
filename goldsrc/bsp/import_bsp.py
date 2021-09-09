@@ -16,7 +16,7 @@ from .lumps.surface_edge_lump import SurfaceEdgeLump
 from .lumps.texture_data import TextureDataLump
 from .lumps.texture_info import TextureInfoLump
 from .lumps.vertex_lump import VertexLump
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...bpy_utilities.utils import get_or_create_collection, get_material
 from ...utilities.math_utilities import parse_hammer_vector, convert_to_radians, HAMMER_UNIT_TO_METERS
 
@@ -277,7 +277,7 @@ class BSP:
                 elif entity_class == 'path_track' or entity_class == 'path_corner':
                     self.load_path_track(entity_class, entity)
                 else:
-                    print(f'Skipping unsupported entity \'{entity_class}\': {entity}')
+                    self.logger.warn(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
     def load_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
         if self._single_collection:

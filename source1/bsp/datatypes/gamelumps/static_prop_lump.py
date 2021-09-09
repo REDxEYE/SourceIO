@@ -1,13 +1,13 @@
 from enum import IntFlag
 from typing import List
 
-from .....bpy_utilities.logging import BPYLoggingManager
+from .....bpy_utilities.logger import BPYLoggingManager
 from .....source_shared.app_id import SteamAppId
 from .....content_providers.content_manager import ContentManager
 from .....utilities.byte_io_mdl import ByteIO
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('static_prop_lump')
+logger = log_manager.get_logger('StaticPropLump')
 
 
 class StaticPropFlag(IntFlag):

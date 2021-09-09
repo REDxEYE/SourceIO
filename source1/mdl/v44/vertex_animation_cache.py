@@ -3,7 +3,10 @@ import numpy as np
 from ....source_shared.base import Base
 from ...vvd import Vvd
 from .mdl_file import Mdl
-from ..structs.mesh import MeshV49
+from ...mdl.structs.mesh import MeshV49
+from ....bpy_utilities.logger import BPYLoggingManager
+
+logger = BPYLoggingManager().get_logger("Source1::VertexAnimationCache")
 
 
 class VertexAnimationCache(Base):
@@ -14,17 +17,17 @@ class VertexAnimationCache(Base):
         self.vvd = vvd
 
     def process_data(self):
-        print("[WIP ]Pre-computing vertex animation cache")
+        logger.info("[WIP ]Pre-computing vertex animation cache")
         for bodypart in self.mdl.body_parts:
-            print(f'Processing bodypart "{bodypart.name}"')
+            logger.info(f'Processing bodypart "{bodypart.name}"')
             for model in bodypart.models:
                 if model.vertex_count == 0:
                     continue
-                print(f'\t+--model "{model.name}"')
+                logger.info(f'\t+--model "{model.name}"')
                 for mesh in model.meshes:
                     if mesh.flexes:
                         self.process_mesh(mesh, model.vertex_offset)
-        print("[Done] Pre-computing vertex animation cache")
+        logger.info("[Done] Pre-computing vertex animation cache")
 
     def process_mesh(self, mesh: MeshV49, vertex_offset, desired_lod=0):
         for flex in mesh.flexes:

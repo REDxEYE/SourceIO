@@ -12,7 +12,7 @@ from ..blocks import DataBlock
 from ..entities.base_entity_handlers import BaseEntityHandler
 from ..entities.hlvr_entity_handlers import HLVREntityHandler
 from ..entities.sbox_entity_handlers import SBoxEntityHandler
-from ...bpy_utilities.logging import BPYLoggingManager, BPYLogger
+from ...bpy_utilities.logger import BPYLoggingManager, BPYLogger
 from ...content_providers.content_manager import ContentManager
 from ...bpy_utilities.utils import get_or_create_collection
 from ...source_shared.app_id import SteamAppId

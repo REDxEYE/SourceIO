@@ -1,7 +1,7 @@
 import math
 import re
 from pathlib import Path
-from pprint import pprint
+from pprint import pprint, pformat
 from typing import List
 
 import numpy as np
@@ -17,7 +17,7 @@ from ..datatypes.texture_data import TextureData
 from ..datatypes.texture_info import TextureInfo
 from ...vmt.valve_material import VMT
 
-from ....bpy_utilities.logging import BPYLoggingManager
+from ....bpy_utilities.logger import BPYLoggingManager
 from ....bpy_utilities.utils import get_material, get_or_create_collection
 from ....content_providers.content_manager import ContentManager
 from ....utilities.math_utilities import HAMMER_UNIT_TO_METERS
@@ -83,7 +83,7 @@ class AbstractEntityHandler:
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
             if not self.handle_entity(entity_data):
-                pprint(entity_data)
+                self.logger.warn(pformat(entity_data))
         bpy.context.view_layer.update()
         # for entity_data in entity_lump.entities:
         #     self.resolve_parents(entity_data)

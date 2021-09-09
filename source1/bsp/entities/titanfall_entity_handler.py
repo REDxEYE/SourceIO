@@ -1,7 +1,7 @@
 import math
 from collections import defaultdict
 from itertools import chain
-from pprint import pprint
+from pprint import pprint, pformat
 
 import bpy
 import numpy as np
@@ -73,7 +73,7 @@ class TitanfallEntityHandler(BaseEntityHandler):
                     offset += pixel_count
 
             for mesh_id in meshes:
-                print(f'Loading Mesh {mesh_id - model.first_mesh}/{model.mesh_count} from {model_name}')
+                self.logger.info(f'Loading Mesh {mesh_id - model.first_mesh}/{model.mesh_count} from {model_name}')
                 mesh: Mesh = self._bsp.get_lump("LUMP_MESHES").meshes[mesh_id]
                 material_sort: MaterialSort = self._bsp.get_lump('LUMP_MATERIALSORT').materials[mesh.material_sort]
                 material_data = tex_data[material_sort.texdata_index]
@@ -203,7 +203,7 @@ class TitanfallEntityHandler(BaseEntityHandler):
         additional_entity_lump = self._bsp.get_lump('LUMP_ENTITYPARTITIONS')
         for entity_data in chain(entity_lump.entities, additional_entity_lump.entities):
             if not self.handle_entity(entity_data):
-                pprint(entity_data)
+                self.logger.warn(pformat(entity_data))
         # bpy.context.view_layer.update()
         # for entity_data in entity_lump.entities:
         #     self.resolve_parents(entity_data)

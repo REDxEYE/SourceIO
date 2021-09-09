@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from ..wad import WadFile, WadLump
-from ...bpy_utilities.logging import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLoggingManager
 from ...utilities.singleton import SingletonMeta
 
 log_manager = BPYLoggingManager()

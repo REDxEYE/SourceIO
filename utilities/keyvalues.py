@@ -3,10 +3,10 @@ from collections import OrderedDict
 from enum import Enum
 from typing import TextIO, Union
 
-from ..bpy_utilities.logging import BPYLoggingManager
+from ..bpy_utilities.logger import BPYLoggingManager
 
 log_manager = BPYLoggingManager()
-logger = log_manager.get_logger('keyvalues')
+logger = log_manager.get_logger('Utilities::KeyValue Parser')
 
 
 def _is_end(ch: str):

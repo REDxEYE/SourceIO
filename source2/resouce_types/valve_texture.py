@@ -6,6 +6,9 @@ from ..blocks import TEXR
 from ..blocks.texture_block import VTexFormat
 from . import ValveCompiledResource
 
+from ...bpy_utilities.logger import BPYLoggingManager
+
+logger = BPYLoggingManager().get_logger("Source2::Texture")
 
 class ValveCompiledTexture(ValveCompiledResource):
     data_block_class = TEXR
