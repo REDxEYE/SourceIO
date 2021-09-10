@@ -11,9 +11,9 @@ from .source1.mdl.v49.import_mdl import import_materials
 
 from .source1.mdl.v49.import_mdl import put_into_collections as s1_put_into_collections
 from .source1.vtf import is_vtflib_supported
-from .source2.resouce_types.valve_model import put_into_collections as s2_put_into_collections
+from .source2.resouce_types.model import put_into_collections as s2_put_into_collections
 
-from .source2.resouce_types.valve_model import ValveCompiledModel
+from .source2.resouce_types.model import ValveCompiledModel
 from .content_providers.content_manager import ContentManager
 from .utilities.path_utilities import find_vtx_cm
 
@@ -245,6 +245,10 @@ class SourceIOUtils_PT_panel(UITools, bpy.types.Panel):
         pass
         # self.layout.label(text="SourceIO Utils")
 
+    @classmethod
+    def poll(cls, context):
+        obj: bpy.types.Object = context.active_object
+        return obj and (obj.get("entity_data",None) or obj.get("skin_groups", None))
 
 class Placeholders_PT_panel(UITools, bpy.types.Panel):
     bl_label = 'Placeholders loading'
@@ -253,12 +257,12 @@ class Placeholders_PT_panel(UITools, bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        obj = context.active_object  # type:bpy.types.Object
-        return obj and obj.get("entity_data", None) is not None
+        obj: bpy.types.Object = context.active_object
+        return obj and obj.get("entity_data", None)
 
     def draw(self, context):
         self.layout.label(text="Entity loading")
-        obj = context.active_object  # type:bpy.types.Object
+        obj: bpy.types.Object = context.active_object
         if obj.get("entity_data", None):
             entiry_data = obj['entity_data']
             entity_raw_data = entiry_data.get('entity', {})

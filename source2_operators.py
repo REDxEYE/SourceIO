@@ -5,10 +5,10 @@ from bpy.props import StringProperty, BoolProperty, CollectionProperty, FloatPro
 
 from .bpy_utilities.utils import get_new_unique_collection
 from .source2.misc.camera_loader import load_camera
-from .source2.resouce_types.valve_model import ValveCompiledModel, put_into_collections
-from .source2.resouce_types.valve_texture import ValveCompiledTexture
-from .source2.resouce_types.valve_material import ValveCompiledMaterial
-from .source2.resouce_types.valve_world import ValveCompiledWorld
+from .source2.resouce_types.model import ValveCompiledModel, put_into_collections
+from .source2.resouce_types.texture import ValveCompiledTexture
+from .source2.resouce_types.material import ValveCompiledMaterial
+from .source2.resouce_types.world import ValveCompiledWorld
 from .content_providers.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
