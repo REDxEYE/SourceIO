@@ -12,7 +12,7 @@ from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
 from ...vtf import load_skybox_texture, SkyboxException
 
-from ....bpy_utilities.logging import BPYLoggingManager
+from ....bpy_utilities.logger import BPYLoggingManager
 from ....bpy_utilities.material_loader.material_loader import Source1MaterialLoader
 from ....bpy_utilities.material_loader.shaders.source1_shaders.sky import Skybox
 from ....bpy_utilities.utils import get_material
