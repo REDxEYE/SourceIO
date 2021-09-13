@@ -7,7 +7,7 @@ NO_BPY = int(os.environ.get('NO_BPY', '0'))
 custom_icons = {}
 bl_info = {
     "name": "SourceIO",
-    "author": "RED_EYE, ShadelessFox",
+    "author": "RED_EYE, ShadelessFox, Syborg64",
     "version": (3, 15, 8),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > SourceEngine assets",
