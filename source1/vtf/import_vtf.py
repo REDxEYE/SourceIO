@@ -38,6 +38,7 @@ def texture_from_data(name, rgba_data, image_width, image_height, update):
 
 def load_texture(file_object):
     vtf_lib = VTFLib.VTFLib()
+    rgba_data = None
     try:
 
         vtf_lib.image_load_from_buffer(file_object.read())
