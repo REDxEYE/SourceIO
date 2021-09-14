@@ -232,9 +232,9 @@ def swap_materials(obj, new_material_name, target_name):
 
 
 class UITools:
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_category = "Tool"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "SourceIO"
 
 
 class SourceIOUtils_PT_panel(UITools, bpy.types.Panel):
