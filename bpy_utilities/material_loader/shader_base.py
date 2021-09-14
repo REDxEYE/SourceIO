@@ -274,3 +274,20 @@ class ShaderBase:
             return
         nodes_iterate(self.bpy_material.node_tree)
         self.bpy_material.node_tree.nodes.update()
+
+    def handle_detail(self, next_socket : bpy.types.NodeSocket, albedo_socket : bpy.types.NodeSocket):
+        if (self.detailmode not in [0, 1, 2, 5]):
+            self.report('ERROR : unhandled Detail mode: got' + self.detailmode)
+            return albedo_socket
+        detailblend = self.create_node_group('DetailBlendMode' + self.detailmode, 'DetailBlend')
+        if (self.detailmode == 5):
+            self.connect_nodes(detailblend.outputs['BSDF'], next_socket.node.outputs['BSDF'].links[0].to_socket)
+            self.connect_nodes(next_socket.node.outputs['BSDF'], detailblend.inputs[0])
+        else:
+            self.connect_nodes(albedo_socket, detailblend.inputs['$basetexture [texture]'])
+        detail = self.create_and_connect_texture_node(self.detail,
+                                                      detailblend.inputs['detail [texture]'],
+                                                      detailblend.inputs['detail alpha [texture alpha]'],
+                                                      name='$detail')
+        detailblend.inputs['detailblendfector [float]'].default_value = self.detailfactor
+        return detailblend.outputs['$basetexture [texture]'], detail

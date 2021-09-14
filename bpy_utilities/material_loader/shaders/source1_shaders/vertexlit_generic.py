@@ -1,3 +1,4 @@
+from bpy_utilities.material_loader.shaders.source1_shaders.detail import handleDetail
 import numpy as np
 from typing import Iterable
 import bpy
@@ -171,6 +172,40 @@ class VertexLitGeneric(Source1ShaderBase):
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
 
+
+    @property
+    def detail(self):
+        texture_path = self._vavle_material.get_param('$detail', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.0, 0.0, 1.0))
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
+        return None
+
+    @property
+    def detailscale(self):
+        return self._vavle_material.get_int('$detailscale', 1)
+
+    @property
+    def detailfactor(self):
+        return self._vavle_material.get_int('$detailblendfactor', -1)
+
+    @property
+    def detailmode(self):
+        return self._vavle_material.get_int('$detailblendmode', 1)
+
+    @property
+    def detailtint(self):
+        color_value, value_type = self._vavle_material.get_vector('$detailtint', [1, 1, 1])
+
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+
+        return self.ensure_length(color_value, 4, 1.0)
+
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
@@ -216,6 +251,7 @@ class VertexLitGeneric(Source1ShaderBase):
                                                                         group_node.inputs['$basetexture [texture]'],
                                                                         name='$basetexture')
                 basetexture_node.location = [-800, 0]
+                albedo = basetexture_node.outputs['Color']
                 if self.basealphaenvmapmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['envmapmask [basemap texture alpha]'])
@@ -225,6 +261,10 @@ class VertexLitGeneric(Source1ShaderBase):
                 if self.alphatest:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        alphatest_node.inputs['Alpha [basemap texture alpha]'])
+
+                if (self.detail):
+                    albedo, detail = self.handle_detail(self, group_node.inputs['$basetexture [texture]'], albedo)
+
             if self.color or self.color2:
                 group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2
 
