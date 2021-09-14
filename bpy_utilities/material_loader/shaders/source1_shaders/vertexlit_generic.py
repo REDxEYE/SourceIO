@@ -1,4 +1,3 @@
-from bpy_utilities.material_loader.shaders.source1_shaders.detail import handleDetail
 import numpy as np
 from typing import Iterable
 import bpy
