@@ -2,8 +2,10 @@ from pathlib import Path
 from typing import Dict
 
 from .source1_common import Source1Common
+from ..content_manager import ContentManager
 from ..content_provider_base import ContentProviderBase
 from ..vpk_sub_manager import VPKContentProvider
+from ...source_shared.app_id import SteamAppId
 from ...utilities.path_utilities import backwalk_file_resolver
 
 
@@ -16,7 +18,8 @@ class TitanfallDetector(Source1Common):
             game_root = game_exe.parent
         if game_root is None:
             return {}
+        ContentManager()._titanfall_mode = True
         content_providers = {}
-        for file in (game_root/'vpk').glob('*_dir.vpk'):
-            content_providers[file.stem] = VPKContentProvider(file)
+        for file in (game_root / 'vpk').glob('*_dir.vpk'):
+            content_providers[file.stem] = VPKContentProvider(file, SteamAppId.PORTAL_2)
         return content_providers

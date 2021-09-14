@@ -38,6 +38,7 @@ from ...bpy_utilities.material_loader.material_loader import Source1MaterialLoad
 from ...bpy_utilities.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...bpy_utilities.utils import get_material, get_or_create_collection
 from ...content_providers.content_manager import ContentManager
+from ...source_shared.app_id import SteamAppId
 from ...source_shared.model_container import Source1ModelContainer
 from ...utilities.keyvalues import KVParser
 from ...utilities.math_utilities import convert_rotation_source1_to_blender
@@ -91,24 +92,24 @@ class BSP:
 
         content_manager = ContentManager()
 
-        provider = content_manager.get_content_provider_from_path(self.filepath)
-        if provider.steam_id == 440:
+        steam_id = content_manager.steam_id
+        if steam_id == SteamAppId.TEAM_FORTRESS_2:
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 1840:  # SFM
+        elif steam_id == SteamAppId.SOURCE_FILMMAKER:  # SFM
             self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 362890:  # BlackMesa
+        elif steam_id == SteamAppId.BLACK_MESA:  # BlackMesa
             self.entity_handler = BlackMesaEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 730:  # CS:GO
+        elif steam_id == SteamAppId.COUNTER_STRIKE_GO:  # CS:GO
             self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 550:
+        elif steam_id == SteamAppId.LEFT_4_DEAD_2:
             self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 620 and self.map_file.version == 29:  # Titanfall
+        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
             self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 400:
+        elif steam_id == SteamAppId.PORTAL:
             self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id == 620 and self.map_file.version != 29:  # Portal 2
+        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version != 29:  # Portal 2
             self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif provider.steam_id in [220, 380, 420]:  # Half-life2 and episodes
+        elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
             self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
         else:
             self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection, self.scale)

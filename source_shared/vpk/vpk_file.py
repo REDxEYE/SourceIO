@@ -1,6 +1,6 @@
 from functools import lru_cache
 from io import BytesIO
-from pathlib import Path, WindowsPath
+from pathlib import Path, WindowsPath, PosixPath, PurePath
 from typing import Union, List, Dict
 
 from .structs.entry import TitanfallEntry
@@ -19,6 +19,9 @@ def open_vpk(filepath: Union[str, Path]):
         return VPKFile(filepath)
     elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
         return TitanfallVPKFile(filepath)
+    else:
+        raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}. "
+                                  f"LZHAM:{'Available' if LZHAM.lib else 'Unavailable'}")
 
 
 class VPKFile:
@@ -98,7 +101,7 @@ class VPKFile:
 
     @lru_cache(128)
     def find_file(self, full_path: Union[Path, str]):
-        if type(full_path) in [WindowsPath, Path]:
+        if isinstance(full_path, (Path, PurePath, PosixPath, WindowsPath)):
             full_path = full_path.as_posix().lower()
         else:
             full_path = Path(full_path).as_posix().lower()

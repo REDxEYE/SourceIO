@@ -2,9 +2,6 @@ from pathlib import Path
 from typing import Union, Dict, List, TypeVar
 from collections import Counter
 
-from .content_detectors.hla import HLADetector
-from .content_detectors.robot_repair import RobotRepairDetector
-from .content_detectors.source1_common import Source1Common
 from ..bpy_utilities.logger import BPYLoggingManager
 from .non_source_sub_manager import NonSourceContentProvider
 from .vpk_sub_manager import VPKContentProvider
@@ -31,11 +28,16 @@ class ContentManager(metaclass=SingletonMeta):
     def _register_supported_detectors(self):
         from .content_detectors.sbox import SBoxDetector
         from .content_detectors.sfm import SFMDetector
+        from .content_detectors.hla import HLADetector
+        from .content_detectors.robot_repair import RobotRepairDetector
+        from .content_detectors.source1_common import Source1Common
+        from .content_detectors.titanfall1 import TitanfallDetector
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())
         self.detector_addons.append(RobotRepairDetector())
         self.detector_addons.append(Source1Common())
         self.detector_addons.append(SFMDetector())
+        self.detector_addons.append(TitanfallDetector())
 
     def _find_steam_appid(self, path: Path):
         if self._steam_id != -1:
