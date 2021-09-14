@@ -19,7 +19,9 @@ def open_vpk(filepath: Union[str, Path]):
         return VPKFile(filepath)
     elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
         return TitanfallVPKFile(filepath)
-
+    else:
+        raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}. "
+                                  f"LZHAM:{'Available' if LZHAM.lib else 'Unavailable'}")
 
 class VPKFile:
 
