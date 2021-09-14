@@ -292,5 +292,13 @@ class ShaderBase:
                                                       detailblend.inputs.get('$detail alpha [texture alpha]', None),
                                                       name='$detail')
         detail.location = [-1100, -130]
+        uv = self.create_node("ShaderNodeUVMap")
+        scale = self.create_node("ShaderNodeVectorMath")
+        uv.location = [-1400, -150]
+        scale.location = [-1250, -150]
+        scale.operation = "MULTIPLY"
         detailblend.inputs['$detailblendfactor [float]'].default_value = self.detailfactor
-        return detailblend.outputs['$basetexture [texture]'], detail
+        scale.inputs[1].default_value = self.detailscale
+        self.connect_nodes(uv.outputs[0], scale.inputs[0])
+        self.connect_nodes(scale.outputs[0], detail.inputs[0])
+        return detailblend.outputs.get('$basetexture [texture]', albedo_socket), detail

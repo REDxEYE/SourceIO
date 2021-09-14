@@ -195,6 +195,18 @@ class VertexLitGeneric(Source1ShaderBase):
         return self._vavle_material.get_int('$detailblendmode', -1)
 
     @property
+    def detailscale(self):
+        value, value_type = self._vavle_material.get_vector('$detailscale', [4, 4])
+        if value is None:
+            return None
+        divider = 255 if value_type is int else 1
+        value = list(map(lambda a: a / divider, value))
+        if len(value) == 1:
+            value = [value[0], value[0]]
+        value += (1,)
+        return self.ensure_length(value, 3, 1.0)
+
+    @property
     def detailtint(self):
         color_value, value_type = self._vavle_material.get_vector('$detailtint', [1, 1, 1])
 
