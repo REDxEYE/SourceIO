@@ -190,7 +190,7 @@ class light(Targetname, Light):
     icon_sprite = "editor/light.vmt"
     @property
     def origin(self):
-        return parse_source_value(self._raw_data.get('origin',"[0 0 0]"))
+        return parse_float_vector(self._raw_data.get('origin',"0 0 0"))
 
     @property
     def target(self):
@@ -204,7 +204,7 @@ class light_environment(Angles):
     icon_sprite = "editor/light_env.vmt"
     @property
     def origin(self):
-        return parse_source_value(self._raw_data.get('origin',"[0 0 0]"))
+        return parse_float_vector(self._raw_data.get('origin',"0 0 0"))
 
     @property
     def pitch(self):
@@ -269,7 +269,7 @@ class trigger_hurt(Trigger):
 class light_spot(Targetname, Light, Angles):
     @property
     def origin(self):
-        return parse_source_value(self._raw_data.get('origin',"[0 0 0]"))
+        return parse_float_vector(self._raw_data.get('origin',"0 0 0"))
 
     @property
     def target(self):
