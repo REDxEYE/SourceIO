@@ -6,8 +6,9 @@ from .content_provider_base import ContentProviderBase
 
 
 class VPKContentProvider(ContentProviderBase):
-    def __init__(self, filepath: Path):
+    def __init__(self, filepath: Path, override_steamid=0):
         super().__init__(filepath)
+        self._override_steamid = override_steamid
         self.vpk_archive = open_vpk(filepath)
         self.vpk_archive.read()
 
@@ -26,3 +27,7 @@ class VPKContentProvider(ContentProviderBase):
         if entry:
             return None
             # raise NotImplementedError('Cannot get path from VPK file')
+
+    @property
+    def steam_id(self):
+        return self._override_steamid or super().steam_id()
