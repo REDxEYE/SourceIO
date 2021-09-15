@@ -31,11 +31,12 @@ class ByteIO:
         elif type(path_or_file_or_data) is str or isinstance(path_or_file_or_data, Path):
             mode = 'rb' if open_to_read else 'wb'
             self.file = open(path_or_file_or_data, mode)
-
         elif type(path_or_file_or_data) in [bytes, bytearray]:
             self.file = io.BytesIO(path_or_file_or_data)
         elif issubclass(type(path_or_file_or_data), io.IOBase):
             self.file = path_or_file_or_data
+        elif isinstance(path_or_file_or_data, ByteIO):
+            self.file = path_or_file_or_data.file
         else:
             self.file = BytesIO()
 
@@ -101,47 +102,47 @@ class ByteIO:
 
     # ------------ PEEK SECTION ------------ #
 
-    def _peek(self, size=1):
+    def peek(self, size=1):
         with self.save_current_pos():
             return self.read(size)
 
-    def peek(self, t):
+    def peek_single(self, t):
         size = struct.calcsize(t)
-        return struct.unpack(t, self._peek(size))[0]
+        return struct.unpack(t, self.peek(size))[0]
 
     def peek_fmt(self, fmt):
         size = struct.calcsize(fmt)
-        return struct.unpack(fmt, self._peek(size))
+        return struct.unpack(fmt, self.peek(size))
 
     def peek_uint64(self):
-        return self.peek('Q')
+        return self.peek_single('Q')
 
     def peek_int64(self):
-        return self.peek('q')
+        return self.peek_single('q')
 
     def peek_uint32(self):
-        return self.peek('I')
+        return self.peek_single('I')
 
     def peek_int32(self):
-        return self.peek('i')
+        return self.peek_single('i')
 
     def peek_uint16(self):
-        return self.peek('H')
+        return self.peek_single('H')
 
     def peek_int16(self):
-        return self.peek('h')
+        return self.peek_single('h')
 
     def peek_uint8(self):
-        return self.peek('B')
+        return self.peek_single('B')
 
     def peek_int8(self):
-        return self.peek('b')
+        return self.peek_single('b')
 
     def peek_float(self):
-        return self.peek('f')
+        return self.peek_single('f')
 
     def peek_double(self):
-        return self.peek('d')
+        return self.peek_single('d')
 
     def peek_fourcc(self):
         with self.save_current_pos():
