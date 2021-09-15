@@ -1,12 +1,13 @@
 from pathlib import Path
-from typing import Dict, Any, Optional
+import sys
+from typing import Dict, Any, Optional, Tuple
 
 import bpy
 import numpy as np
 
 from .node_arranger import nodes_iterate
 from ..utils import append_blend
-from ...bpy_utilities.logger import BPYLoggingManager
+from ...bpy_utilities.logger import BPYLogger, BPYLoggingManager
 
 
 class Nodes:
@@ -227,12 +228,14 @@ class ShaderBase:
             texture_node.location = location
         return texture_node
 
-    def create_and_connect_texture_node(self, texture, color_out_target=None, alpha_out_target=None, *, name=None):
+    def create_and_connect_texture_node(self, texture, color_out_target=None, alpha_out_target=None, *, name=None, UV=None):
         texture_node = self.create_texture_node(texture, name)
         if color_out_target is not None:
             self.connect_nodes(texture_node.outputs['Color'], color_out_target)
         if alpha_out_target is not None:
             self.connect_nodes(texture_node.outputs['Alpha'], alpha_out_target)
+        if UV is not None:
+            self.connect_nodes(UV.outputs[0], texture_node.inputs[0])
         return texture_node
 
     def get_node(self, name):
@@ -275,3 +278,21 @@ class ShaderBase:
         nodes_iterate(self.bpy_material.node_tree)
         self.bpy_material.node_tree.nodes.update()
 
+    def handle_transform(self, transform : Tuple, socket : bpy.types.NodeSocket, loc = None, *, UV=None):
+        sys.stdout.write(repr(transform))
+        if (loc is None):
+            loc = socket.node.location
+        if UV is not None:
+            uv = UV
+        else:
+            uv = self.create_node("ShaderNodeUVMap")
+        mapping = self.create_node("ShaderNodeMapping")
+        uv.location = [-300 + loc[0], -20 + loc[1]]
+        mapping.location = [-150 + loc[0], -20 + loc[1]]
+        self.connect_nodes(uv.outputs[0], mapping.inputs[0])
+        mapping.inputs[1].default_value = transform['translate']
+        mapping.inputs[2].default_value = transform['rotate']
+        mapping.inputs[3].default_value = transform['scale']
+        #nodegroup.inputs[4].default_value = transform['center']
+        self.connect_nodes(mapping.outputs[0], socket)
+        return mapping, uv

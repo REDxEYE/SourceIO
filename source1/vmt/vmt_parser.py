@@ -1,6 +1,7 @@
 from typing import Union, IO, BinaryIO
 from io import TextIOBase, BufferedIOBase, BytesIO, StringIO
 from pathlib import Path
+from math import radians
 
 from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.keyvalues import KVParser
@@ -104,20 +105,22 @@ class VMTParser:
         raw_value = self._raw_data.get(name, None)
         return str(raw_value) if raw_value else default
 
-    def get_transform_matrix(self, name):
+    def get_transform_matrix(self, name, default = {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)}):
         raw_value = self._raw_data.get(name)
-        matrix = {}
+        if raw_value is None:
+            return None
+        matrix = default
         tokens = raw_value.split()
         while tokens:
             name = tokens.pop(0)
             if name == 'center':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0))
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0
             elif name == 'scale':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0))
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 1
             elif name == 'rotate':
-                matrix[name] = float(tokens.pop(0))
+                matrix[name] = 0, 0, radians(float(tokens.pop(0)))
             elif name == 'translate':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0))
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0
             else:
                 print(f'Unhandled {name}')
 
