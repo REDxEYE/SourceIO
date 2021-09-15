@@ -1,12 +1,11 @@
-import numpy as np
-from typing import Iterable
 import bpy
 
+from .detail import DetailSupportMixin
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
 
-class VertexLitGeneric(Source1ShaderBase):
+class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
 
     @property
@@ -171,52 +170,6 @@ class VertexLitGeneric(Source1ShaderBase):
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
 
-
-    @property
-    def detail(self):
-        texture_path = self._vavle_material.get_param('$detail', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 0.5))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
-
-    @property
-    def detailscale(self):
-        return self._vavle_material.get_int('$detailscale', 1)
-
-    @property
-    def detailfactor(self):
-        return self._vavle_material.get_float('$detailblendfactor', 1)
-
-    @property
-    def detailmode(self):
-        return self._vavle_material.get_int('$detailblendmode', -1)
-
-    @property
-    def detailscale(self):
-        value, value_type = self._vavle_material.get_vector('$detailscale', [4, 4])
-        if value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        value = list(map(lambda a: a / divider, value))
-        if len(value) == 1:
-            value = [value[0], value[0]]
-        value += (1,)
-        return self.ensure_length(value, 3, 1.0)
-
-    @property
-    def detailtint(self):
-        color_value, value_type = self._vavle_material.get_vector('$detailtint', [1, 1, 1])
-
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-
-        return self.ensure_length(color_value, 4, 1.0)
-
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
@@ -273,7 +226,7 @@ class VertexLitGeneric(Source1ShaderBase):
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
-                if (self.detail):
+                if self.detail:
                     albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo)
 
             if self.color or self.color2:
@@ -295,7 +248,6 @@ class VertexLitGeneric(Source1ShaderBase):
                 elif self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
-
 
             if self.phong:
                 group_node.inputs['$phong [bool]'].default_value = 1

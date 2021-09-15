@@ -275,30 +275,3 @@ class ShaderBase:
         nodes_iterate(self.bpy_material.node_tree)
         self.bpy_material.node_tree.nodes.update()
 
-    def handle_detail(self, next_socket : bpy.types.NodeSocket, albedo_socket : bpy.types.NodeSocket):
-        if (self.detailmode not in [0, 1, 2, 5]):
-            logger.error(f'Failed to load detail: unhandled Detail mode, got' + str(self.detailmode))
-            return albedo_socket, None
-        detailblend = self.create_node_group('$DetailBlendMode' + str(self.detailmode), [-500, -60], name='DetailBlend')
-        detailblend.width = 210
-        if (self.detailmode == 5):
-            self.connect_nodes(detailblend.outputs['BSDF'], next_socket.node.outputs['BSDF'].links[0].to_socket)
-            self.connect_nodes(next_socket.node.outputs['BSDF'], detailblend.inputs[0])
-        else:
-            self.connect_nodes(albedo_socket, detailblend.inputs['$basetexture [texture]'])
-            self.connect_nodes(detailblend.outputs['$basetexture [texture]'], next_socket)
-        detail = self.create_and_connect_texture_node(self.detail,
-                                                      detailblend.inputs['$detail [texture]'],
-                                                      detailblend.inputs.get('$detail alpha [texture alpha]', None),
-                                                      name='$detail')
-        detail.location = [-1100, -130]
-        uv = self.create_node("ShaderNodeUVMap")
-        scale = self.create_node("ShaderNodeVectorMath")
-        uv.location = [-1400, -150]
-        scale.location = [-1250, -150]
-        scale.operation = "MULTIPLY"
-        detailblend.inputs['$detailblendfactor [float]'].default_value = self.detailfactor
-        scale.inputs[1].default_value = self.detailscale
-        self.connect_nodes(uv.outputs[0], scale.inputs[0])
-        self.connect_nodes(scale.outputs[0], detail.inputs[0])
-        return detailblend.outputs.get('$basetexture [texture]', albedo_socket), detail
