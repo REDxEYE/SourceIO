@@ -104,9 +104,28 @@ class VMTParser:
         raw_value = self._raw_data.get(name, None)
         return str(raw_value) if raw_value else default
 
-    def apply_patch(self, data):
-        self._raw_data.update(data)
-        return self
+    def get_transform_matrix(self, name):
+        raw_value = self._raw_data.get(name)
+        matrix = {}
+        tokens = raw_value.split()
+        while tokens:
+            name = tokens.pop(0)
+            if name == 'center':
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0))
+            elif name == 'scale':
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0))
+            elif name == 'rotate':
+                matrix[name] = float(tokens.pop(0))
+            elif name == 'translate':
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0))
+            else:
+                print(f'Unhandled {name}')
+
+        return matrix
 
     def get_raw_data(self):
         return self._raw_data
+
+    def apply_patch(self, data):
+        self._raw_data.update(data)
+        return self
