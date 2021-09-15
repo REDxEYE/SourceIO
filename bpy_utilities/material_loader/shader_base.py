@@ -284,10 +284,13 @@ class ShaderBase:
             loc = socket.node.location
         if UV is not None:
             uv = UV
+            uv.location = [-300 + loc[0], uv.location[1]]
+            if self.UVmap is not None:
+                self.UVmap.location = [-500 + loc[0], self.UVmap.location[1]]
         else:
             uv = self.create_node("ShaderNodeUVMap")
+            uv.location = [-300 + loc[0], -20 + loc[1]]
         mapping = self.create_node("ShaderNodeMapping")
-        uv.location = [-300 + loc[0], -20 + loc[1]]
         mapping.location = [-150 + loc[0], -20 + loc[1]]
         self.connect_nodes(uv.outputs[0], mapping.inputs[0])
         mapping.inputs[1].default_value = transform['translate']

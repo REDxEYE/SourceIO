@@ -220,7 +220,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                         name='$basetexture')
                 basetexture_node.location = [-800, 0]
                 if self.basetexturetransform:
-                    basetexturetransform, UV = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
+                    UV, self.UVmap = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
                 else:
                     UV = None
                 albedo = basetexture_node.outputs['Color']
