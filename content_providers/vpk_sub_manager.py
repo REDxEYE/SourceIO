@@ -30,4 +30,4 @@ class VPKContentProvider(ContentProviderBase):
 
     @property
     def steam_id(self):
-        return self._override_steamid or super().steam_id()
+        return self._override_steamid or super().steam_id
