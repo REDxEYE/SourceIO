@@ -41,3 +41,12 @@ class Node(Primitive):
         if lump:
             return lump.nodes[self.childes_id[0]], lump.nodes[self.childes_id[1]]
         return None
+
+
+class VNode(Node):
+    def parse(self, reader: ByteIO):
+        self.plane_index = reader.read_int32()
+        self.childes_id = reader.read_fmt('2i')
+        self.min = reader.read_fmt('3i')
+        self.max = reader.read_fmt('3i')
+        self.first_face, self.face_count, self.area = reader.read_fmt('3i')

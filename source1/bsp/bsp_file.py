@@ -73,6 +73,7 @@ class BSPFile:
         if lump_name in self.lumps:
             return self.lumps[lump_name]
         else:
+            matches: List[Tuple[Type[Lump], LumpTag]] = []
             for sub in Lump.all_subclasses():
                 sub: Type[Lump]
                 for dep in sub.tags:
@@ -81,9 +82,28 @@ class BSPFile:
                             continue
                         if dep.steam_id is not None and dep.steam_id != self.steam_app_id:
                             continue
-                        parsed_lump = self.parse_lump(sub, dep.lump_id, dep.lump_name)
-                        self.lumps[lump_name] = parsed_lump
-                        return parsed_lump
+                        if dep.lump_version is not None and dep.lump_version != self.lumps_info[dep.lump_id].version:
+                            continue
+                        matches.append((sub, dep))
+            best_matches = {}
+            for match_sub, match_dep in matches:
+                lump = self.lumps_info[match_dep.lump_id]
+                rank = 0
+                if match_dep.bsp_version is not None and match_dep.bsp_version > self.version:
+                    rank += 1
+                if match_dep.steam_id is not None and match_dep.steam_id == self.steam_app_id:
+                    rank += 1
+                if match_dep.lump_version is not None and match_dep.lump_version == lump.version:
+                    rank += 1
+                best_matches[rank] = (match_sub, match_dep)
+            if not best_matches:
+                return
+            best_match_id = max(best_matches.keys())
+            sub, dep = best_matches[best_match_id]
+
+            parsed_lump = self.parse_lump(sub, dep.lump_id, dep.lump_name)
+            self.lumps[lump_name] = parsed_lump
+            return parsed_lump
 
     def parse_lump(self, lump_class: Type[Lump], lump_id, lump_name):
         if self.lumps_info[lump_id].size != 0:
@@ -106,7 +126,7 @@ class RespawnBSPFile(BSPFile):
         self.revision = reader.read_uint32()
         last_lump = reader.read_uint32()
 
-        for lump_id in range(last_lump+1):
+        for lump_id in range(last_lump + 1):
             lump = LumpInfo(lump_id)
             lump.parse(reader, False)
             self.lumps_info.append(lump)

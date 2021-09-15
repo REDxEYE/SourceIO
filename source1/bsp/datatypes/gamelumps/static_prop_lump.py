@@ -57,6 +57,9 @@ class StaticProp:
 
         self.unk_vector = []
 
+        # Vindictus specific
+        self.scaling = [1.0, 1.0, 1.0]
+
     def parse(self, reader: ByteIO, version: int, size: int, app_id: int):
         if app_id == SteamAppId.LEFT_4_DEAD and version == 7 and size == 68:
             # Old Left 4 Dead maps use v7 and incompatible with newer v7 from Source 2013
@@ -98,10 +101,18 @@ class StaticProp:
             return
 
         if version == 6:
-            self._parse_v6(reader)
-            return
+            if app_id == SteamAppId.VINDICTUS:
+                self._parse_v6_vin(reader)
+                return
+            else:
+                self._parse_v6(reader)
+                return
 
         if version == 7:
+            if app_id == SteamAppId.VINDICTUS:
+                self._parse_v7_vin(reader)
+                return
+
             if app_id == SteamAppId.LEFT_4_DEAD and size == 68:
                 # Old Left 4 Dead maps use v7 and incompatible with newer v7 from Source 2013
                 self._parse_v7_l4d(reader)
@@ -164,6 +175,9 @@ class StaticProp:
         self._parse_v4(reader)
         self.forced_fade_scale = reader.read_float()
 
+    def _parse_v6_vin(self, reader: ByteIO):
+        self._parse_v5(reader)
+
     def _parse_v6(self, reader: ByteIO):
         self._parse_v5(reader)
         self.min_dx_level, self.max_dx_level = reader.read_fmt('2H')
@@ -171,6 +185,9 @@ class StaticProp:
     def _parse_v7_l4d(self, reader: ByteIO):
         self._parse_v6(reader)
         self.diffuse_modulation = reader.read_fmt('4B')
+
+    def _parse_v7_vin(self, reader: ByteIO):
+        self._parse_v6(reader)
 
     def _parse_v8(self, reader: ByteIO):
         self._parse_v5(reader)
@@ -228,6 +245,12 @@ class StaticPropLump:
         if self._glump_info.version == 12:
             unk1 = reader.read_int32()
             unk2 = reader.read_int32()
+        prop_scaling = {}
+        if content_manager.steam_id == SteamAppId.VINDICTUS:
+            for _ in range(reader.read_uint32()):
+                prop_id = reader.read_int32()
+                prop_scaling[prop_id] = reader.read_fmt('3f')
+
         prop_count = reader.read_int32()
         if prop_count == 0:
             return
@@ -236,3 +259,6 @@ class StaticPropLump:
             prop = StaticProp()
             prop.parse(reader, self._glump_info.version, prop_size, content_manager.steam_id)
             self.static_props.append(prop)
+        if prop_scaling:
+            for prop_id, scale in prop_scaling.items():
+                self.static_props[prop_id].scaling[:] = scale

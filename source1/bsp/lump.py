@@ -7,18 +7,19 @@ from ...utilities.math_utilities import sizeof_fmt
 
 
 class LumpTag:
-    def __init__(self, lump_id, lump_name, bsp_version=None, steam_id=None):
+    def __init__(self, lump_id, lump_name, lump_version=None, bsp_version=None, steam_id=None):
         self.lump_id = lump_id
         self.lump_name = lump_name
+        self.lump_version = lump_version
         self.bsp_version = bsp_version
         self.steam_id = steam_id
 
 
-def lump_tag(lump_id, lump_name, bsp_version=None, steam_id=None):
+def lump_tag(lump_id, lump_name, lump_version=None, bsp_version=None, steam_id=None):
     def loader(klass) -> object:
         if not klass.tags:
             klass.tags = []
-        klass.tags.append(LumpTag(lump_id, lump_name, bsp_version, steam_id))
+        klass.tags.append(LumpTag(lump_id, lump_name, lump_version, bsp_version, steam_id))
         return klass
 
     return loader

@@ -25,6 +25,7 @@ class Face(Primitive):
         self.smoothing_groups = 0
 
     def parse(self, reader: ByteIO):
+        # TODO: Replace with single reader.read_fmt call
         self.plane_index = reader.read_uint16()
         self.side = reader.read_uint8()
         self.on_node = reader.read_uint8()
@@ -63,3 +64,52 @@ class Face(Primitive):
     @property
     def tex_data(self):
         return self.tex_info.tex_data if self.tex_info else None
+
+
+class VFace1(Face):
+    def parse(self, reader: ByteIO):
+        # TODO: Replace with single reader.read_fmt call
+        self.plane_index = reader.read_uint32()
+        self.side = reader.read_uint8()
+        self.on_node = reader.read_uint8()
+        unk = reader.read_uint16()
+        self.first_edge = reader.read_int32()
+        self.edge_count = reader.read_int32()
+        self.tex_info_id = reader.read_int32()
+        self.disp_info_id = reader.read_int32()
+        self.surface_fog_volume_id = reader.read_int32()
+        self.styles = [reader.read_int8() for _ in range(4)]
+        self.light_offset = reader.read_int32()
+        self.area = reader.read_float()
+        self.lightmap_texture_mins_in_luxels = [reader.read_int32() for _ in range(2)]
+        self.lightmap_texture_size_in_luxels = [reader.read_int32() for _ in range(2)]
+        self.orig_face = reader.read_int32()
+        self.prim_count = reader.read_uint32()
+        self.first_prim_id = reader.read_uint32()
+        self.smoothing_groups = reader.read_uint32()
+        return self
+
+
+class VFace2(VFace1):
+    def parse(self, reader: ByteIO):
+        # TODO: Replace with single reader.read_fmt call
+        self.plane_index = reader.read_uint32()
+        self.side = reader.read_uint8()
+        self.on_node = reader.read_uint8()
+        unk = reader.read_uint16()
+        self.first_edge = reader.read_int32()
+        self.edge_count = reader.read_int32()
+        self.tex_info_id = reader.read_int32()
+        self.disp_info_id = reader.read_int32()
+        self.surface_fog_volume_id = reader.read_int32()
+        self.styles = [reader.read_int8() for _ in range(4)]
+        unk2 = reader.read_int32()
+        self.light_offset = reader.read_int32()
+        self.area = reader.read_float()
+        self.lightmap_texture_mins_in_luxels = [reader.read_int32() for _ in range(2)]
+        self.lightmap_texture_size_in_luxels = [reader.read_int32() for _ in range(2)]
+        self.orig_face = reader.read_int32()
+        self.prim_count = reader.read_uint32()
+        self.first_prim_id = reader.read_uint32()
+        self.smoothing_groups = reader.read_uint32()
+        return self

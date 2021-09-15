@@ -8,4 +8,7 @@ from . import (eyerefract,
                lightmapped_4wayblend,
                decalmodulate,
                refract,
-               water)
+               water,
+               heroes_faceskin,
+               heroes_armor
+               )

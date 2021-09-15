@@ -2,8 +2,9 @@ from typing import List
 
 import numpy as np
 
+from SourceIO.source_shared.app_id import SteamAppId
 from .. import Lump, lump_tag
-from ..datatypes.displacement import DispInfo
+from ..datatypes.displacement import DispInfo, VDispInfo
 
 
 @lump_tag(26, 'LUMP_DISPINFO')
@@ -16,6 +17,19 @@ class DispInfoLump(Lump):
         reader = self.reader
         while reader:
             self.infos.append(DispInfo(self, self._bsp).parse(reader))
+        return self
+
+
+@lump_tag(26, 'LUMP_DISPINFO', steam_id=SteamAppId.VINDICTUS)
+class VDispInfoLump(Lump):
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
+        self.infos: List[DispInfo] = []
+
+    def parse(self):
+        reader = self.reader
+        while reader:
+            self.infos.append(VDispInfo(self, self._bsp).parse(reader))
         return self
 
 
@@ -44,8 +58,8 @@ class DispVert(Lump):
         return self
 
 
-@lump_tag(61, 'LUMP_DISP_MULTIBLEND', 20, 362890)
-@lump_tag(63, 'LUMP_DISP_MULTIBLEND', 21)
+@lump_tag(61, 'LUMP_DISP_MULTIBLEND', bsp_version=20, steam_id=SteamAppId.BLACK_MESA)
+@lump_tag(63, 'LUMP_DISP_MULTIBLEND', bsp_version=21)
 class DispMultiblend(Lump):
     dtype = np.dtype(
         [

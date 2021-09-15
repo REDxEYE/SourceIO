@@ -20,5 +20,13 @@ class GameLumpHeader(Primitive):
         self.flags = reader.read_uint16()
         self.version = reader.read_uint16()
         self.offset, self.size = reader.read_fmt('2i')
+        return self
 
+
+class VindictusGameLumpHeader(GameLumpHeader):
+    def parse(self, reader: ByteIO):
+        self.id = reader.read_fourcc()[::-1]
+        self.flags = reader.read_uint32()
+        self.version = reader.read_uint32()
+        self.offset, self.size = reader.read_fmt('2i')
         return self

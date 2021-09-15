@@ -4,7 +4,7 @@ from .. import Lump, lump_tag
 from ..datatypes.material_sort import MaterialSort
 
 
-@lump_tag(0x52, 'LUMP_MATERIALSORT', 29)
+@lump_tag(0x52, 'LUMP_MATERIALSORT', bsp_version=29)
 class MaterialSortLump(Lump):
     def __init__(self, bsp, lump_id):
         super().__init__(bsp, lump_id)

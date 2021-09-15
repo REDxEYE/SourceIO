@@ -15,3 +15,4 @@ class SteamAppId(IntEnum):
     BLACK_MESA = 362890
     HLA_STEAM_ID = 546560
     SBOX_STEAM_ID = 590830
+    VINDICTUS = 212160

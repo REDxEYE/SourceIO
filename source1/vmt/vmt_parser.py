@@ -2,6 +2,7 @@ from typing import Union, IO, BinaryIO
 from io import TextIOBase, BufferedIOBase, BytesIO, StringIO
 from pathlib import Path
 
+from ...utilities.byte_io_mdl import ByteIO
 from ...utilities.keyvalues import KVParser
 from ...bpy_utilities.logger import BPYLoggingManager
 
@@ -47,6 +48,8 @@ class VMTParser:
         elif isinstance(file_or_string, (TextIOBase, StringIO)):
             self._buffer = file_or_string.read()
         elif isinstance(file_or_string, (BufferedIOBase, BytesIO)):
+            self._buffer = file_or_string.read().decode('latin', errors='replace')
+        elif isinstance(file_or_string, ByteIO):
             self._buffer = file_or_string.read().decode('latin', errors='replace')
         else:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')

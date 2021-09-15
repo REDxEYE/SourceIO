@@ -19,6 +19,7 @@ from .entities.portal_entity_handlers import PortalEntityHandler
 from .entities.portal2_entity_handlers import Portal2EntityHandler
 from .entities.tf2_entity_handler import TF2EntityHandler
 from .entities.titanfall_entity_handler import TitanfallEntityHandler
+from .entities.vindictus_entity_handler import VindictusEntityHandler
 
 from .lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
 from .lumps.edge_lump import EdgeLump
@@ -111,6 +112,8 @@ class BSP:
             self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
             self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
+        elif steam_id == SteamAppId.VINDICTUS:
+            self.entity_handler = VindictusEntityHandler(self.map_file, self.main_collection, self.scale)
         else:
             self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection, self.scale)
 

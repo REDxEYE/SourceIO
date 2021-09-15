@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union, Dict, List, TypeVar
 from collections import Counter
 
+from .hfs_sub_manager import HFS2ContentProvider, HFS1ContentProvider
 from ..bpy_utilities.logger import BPYLoggingManager
 from .non_source_sub_manager import NonSourceContentProvider
 from .vpk_sub_manager import VPKContentProvider
@@ -31,12 +32,14 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.hla import HLADetector
         from .content_detectors.robot_repair import RobotRepairDetector
         from .content_detectors.source1_common import Source1Common
+        from .content_detectors.vindictus import VindictusDetector
         from .content_detectors.titanfall1 import TitanfallDetector
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())
         self.detector_addons.append(RobotRepairDetector())
         self.detector_addons.append(Source1Common())
         self.detector_addons.append(SFMDetector())
+        self.detector_addons.append(VindictusDetector())
         self.detector_addons.append(TitanfallDetector())
 
     def _find_steam_appid(self, path: Path):
@@ -149,6 +152,12 @@ class ContentManager(metaclass=SingletonMeta):
                 pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
                     self.content_providers[name] = pak_lump
+            elif path.endswith('.hfs'):
+                sub_manager = HFS1ContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif name == 'hfs':
+                sub_manager = HFS2ContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
             else:
                 sub_manager = NonSourceContentProvider(Path(path))
                 self.content_providers[name] = sub_manager

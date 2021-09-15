@@ -16,7 +16,7 @@ class VertexLump(Lump):
         return self
 
 
-@lump_tag(0x47, 'LUMP_UNLITVERTEX', 29)
+@lump_tag(0x47, 'LUMP_UNLITVERTEX', bsp_version=29)
 class UnLitVertexLump(Lump):
     _dtype = np.dtype(
         [
@@ -37,7 +37,7 @@ class UnLitVertexLump(Lump):
         return self
 
 
-@lump_tag(0x49, 'LUMP_BUMPLITVERTEX', 29)
+@lump_tag(0x49, 'LUMP_BUMPLITVERTEX', bsp_version=29)
 class BumpLitVertexLump(Lump):
     _dtype = np.dtype(
         [
@@ -61,7 +61,7 @@ class BumpLitVertexLump(Lump):
         return self
 
 
-@lump_tag(0x4a, 'LUMP_UNLITTSVERTEX', 29)
+@lump_tag(0x4a, 'LUMP_UNLITTSVERTEX', bsp_version=29)
 class UnlitTSVertexLump(Lump):
     _dtype = np.dtype(
         [
@@ -81,7 +81,7 @@ class UnlitTSVertexLump(Lump):
         return self
 
 
-@lump_tag(0x4B, 'LUMP_BLINNPHONGVERTEX', 29)
+@lump_tag(0x4B, 'LUMP_BLINNPHONGVERTEX', bsp_version=29)
 class BlinnPhongVertexLump(Lump):
     _dtype = np.dtype(
         [
@@ -101,7 +101,7 @@ class BlinnPhongVertexLump(Lump):
         return self
 
 
-@lump_tag(0x4C, 'LUMP_R5VERTEX', 29)
+@lump_tag(0x4C, 'LUMP_R5VERTEX', bsp_version=29)
 class R5VertexLump(Lump):
     _dtype = np.dtype(
         [
@@ -123,7 +123,7 @@ class R5VertexLump(Lump):
         return self
 
 
-@lump_tag(0x4E, 'LUMP_R7VERTEX', 29)
+@lump_tag(0x4E, 'LUMP_R7VERTEX', bsp_version=29)
 class R7VertexLump(Lump):
     _dtype = np.dtype(
         [

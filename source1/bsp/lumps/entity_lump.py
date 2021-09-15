@@ -20,7 +20,7 @@ class EntityLump(Lump):
         return self
 
 
-@lump_tag(24, 'LUMP_ENTITYPARTITIONS', 29)
+@lump_tag(24, 'LUMP_ENTITYPARTITIONS', bsp_version=29)
 class EntityPartitionsLump(Lump):
     def __init__(self, bsp, lump_id):
         super().__init__(bsp, lump_id)

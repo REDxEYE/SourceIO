@@ -61,6 +61,34 @@ class DispInfo(Primitive):
         return None
 
 
+class VDispInfo(DispInfo):
+
+    def parse(self, reader: ByteIO):
+        self.start_position = np.array(reader.read_fmt('3f'))
+        (self.disp_vert_start,
+         self.disp_tri_start,
+         self.power,
+         self.smoothing_angle,
+         unknown,
+         self.contents,
+         self.map_face,
+         self.lightmap_alpha_start,
+         self.lightmap_sample_position_start,) = reader.read_fmt('<3If2IH2I')
+        self.has_multiblend = ((self.min_tess + DISP_INFO_FLAG_MAGIC) & DISP_INFO_FLAG_HAS_MULTIBLEND) != 0
+        reader.skip(146)
+        # for _ in range(4):
+        #     disp_neighbor = DispNeighbor()
+        #     disp_neighbor.read(reader)
+        #     self.displace_neighbors.append(disp_neighbor)
+        # for _ in range(4):
+        #     displace_corner_neighbors = DisplaceCornerNeighbors()
+        #     displace_corner_neighbors.read(reader)
+        #     self.displace_corner_neighbors.append(displace_corner_neighbors)
+        # reader.skip(6)
+        self.allowed_verts = [reader.read_int32() for _ in range(10)]
+        return self
+
+
 class DispSubNeighbor:
     def __init__(self):
         self.neighbor = 0
