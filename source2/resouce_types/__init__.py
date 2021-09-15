@@ -7,6 +7,7 @@ from .world import ValveCompiledWorld
 from .morph import ValveCompiledMorph
 from .resource_manifest import ValveCompiledResourceManifest
 
+
 def get_resource_loader_from_ext(ext: str):
     if ext == '.vmdl_c':
         return ValveCompiledModel
