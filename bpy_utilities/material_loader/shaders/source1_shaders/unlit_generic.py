@@ -38,13 +38,17 @@ class UnlitGeneric(Source1ShaderBase):
     def translucent(self):
         return self._vavle_material.get_int('$translucent', 0) == 1
 
+    @property
+    def alphatest(self):
+        return self._vavle_material.get_int('$alphatest', 0) == 1
+
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeEmission, self.SHADER)
-        if self.translucent:
+        if self.translucent or self.alphatest:
             self.bpy_material.blend_method = 'HASHED'
             self.bpy_material.shadow_method = 'HASHED'
             mix_node = self.create_node(Nodes.ShaderNodeMixShader)
@@ -60,7 +64,7 @@ class UnlitGeneric(Source1ShaderBase):
             basetexture_node = self.create_and_connect_texture_node(basetexture, name='$basetexture')
             shader.inputs['Strength'].default_value = 1.0
             color = self.color or self.color2
-            if self.translucent:
+            if self.translucent or self.alphatest:
                 self.connect_nodes(basetexture_node.outputs['Alpha'], mix_node.inputs['Fac'])
             if color:
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
@@ -71,4 +75,3 @@ class UnlitGeneric(Source1ShaderBase):
                 self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Color'])
             else:
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Color'])
-
