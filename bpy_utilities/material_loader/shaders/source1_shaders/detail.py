@@ -49,12 +49,17 @@ class DetailSupportMixin(Source1ShaderBase):
 
         return self.ensure_length(color_value, 4, 1.0)
 
-    def handle_detail(self, next_socket: bpy.types.NodeSocket, albedo_socket: bpy.types.NodeSocket):
-        if (self.detailmode not in [0, 1, 2, 5]):
+    @property
+    def detailtexturetransform(self):
+        return self._vavle_material.get_transform_matrix('$detailtexturetransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
+
+    def handle_detail(self, next_socket : bpy.types.NodeSocket, albedo_socket : bpy.types.NodeSocket, *, UV=None):
+        if (self.detailmode not in [0, 1, 2, 4, 5]):
             logger.error(f'Failed to load detail: unhandled Detail mode, got' + str(self.detailmode))
             return albedo_socket, None
         detailblend = self.create_node_group('$DetailBlendMode' + str(self.detailmode), [-500, -60], name='DetailBlend')
         detailblend.width = 210
+        detailblend.inputs['$detailblendfactor [float]'].default_value = self.detailfactor
         if (self.detailmode == 5):
             self.connect_nodes(detailblend.outputs['BSDF'], next_socket.node.outputs['BSDF'].links[0].to_socket)
             self.connect_nodes(next_socket.node.outputs['BSDF'], detailblend.inputs[0])
@@ -65,14 +70,23 @@ class DetailSupportMixin(Source1ShaderBase):
                                                       detailblend.inputs['$detail [texture]'],
                                                       detailblend.inputs.get('$detail alpha [texture alpha]', None),
                                                       name='$detail')
+        if (self.detailmode == 4):
+            self.connect_nodes(albedo_socket.node.outputs['Alpha'], detailblend.intputs['$basetexture alpha [texture alpha]'])
         detail.location = [-1100, -130]
-        uv = self.create_node("ShaderNodeUVMap")
         scale = self.create_node("ShaderNodeVectorMath")
-        uv.location = [-1400, -150]
         scale.location = [-1250, -150]
         scale.operation = "MULTIPLY"
-        detailblend.inputs['$detailblendfactor [float]'].default_value = self.detailfactor
         scale.inputs[1].default_value = self.detailscale
-        self.connect_nodes(uv.outputs[0], scale.inputs[0])
+        if self.detailtexturetransform:
+            uv = UV
+            self.handle_transform(self.detailtexturetransform, scale.inputs[0], UV=uv)
+        else:
+            if UV is not None:
+                uv = UV
+            else:
+                uv = self.create_node("ShaderNodeUVMap")
+            uv.location = [-1400, -150]
+            self.connect_nodes(uv.outputs[0], scale.inputs[0])
+
         self.connect_nodes(scale.outputs[0], detail.inputs[0])
         return detailblend.outputs.get('$basetexture [texture]', albedo_socket), detail

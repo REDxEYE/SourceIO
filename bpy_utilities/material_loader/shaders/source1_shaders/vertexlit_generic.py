@@ -27,6 +27,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return None
 
     @property
+    def basetexturetransform(self):
+        return self._vavle_material.get_transform_matrix('$basetexturetransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
+
+    @property
     def selfillummask(self):
         texture_path = self._vavle_material.get_param('$selfillummask', None)
         if texture_path is not None:
@@ -215,6 +219,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                         group_node.inputs['$basetexture [texture]'],
                                                                         name='$basetexture')
                 basetexture_node.location = [-800, 0]
+                if self.basetexturetransform:
+                    UV, self.UVmap = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
+                else:
+                    UV = None
                 albedo = basetexture_node.outputs['Color']
                 if self.basealphaenvmapmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
@@ -227,7 +235,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                        alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
                 if self.detail:
-                    albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo)
+                    albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, UV=UV)
 
             if self.color or self.color2:
                 group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2
@@ -240,7 +248,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             if self.bumpmap:
                 bumpmap_node = self.create_and_connect_texture_node(self.bumpmap,
                                                                     group_node.inputs['$bumpmap [texture]'],
-                                                                    name='$bumpmap')
+                                                                    name='$bumpmap',
+                                                                    UV=UV)
                 bumpmap_node.location = [-800, -220]
                 if self.normalmapalphaenvmapmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
@@ -266,7 +275,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                                          '$phongexponenttexture [texture]'],
                                                                                      phongexponent_group_node.inputs[
                                                                                          'alpha'],
-                                                                                     name='$phongexponenttexture')
+                                                                                     name='$phongexponenttexture',
+                                                                                     UV=UV)
                     phongexponenttexture_node.location = [-800, -470]
 
                     if self.phongalbedotint is not None and not self.phongtint:
@@ -292,7 +302,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 group_node.inputs['$selfillum [bool]'].default_value = 1
                 if self.selfillummask:
                     selfillummask_node = self.create_and_connect_texture_node(self.selfillummask, group_node.inputs[
-                        '$selfillummask [texture alpha]'])
+                        '$selfillummask [texture alpha]'], UV=UV)
                     selfillummask_node.location = [-500, -510]
                 elif self.basetexture is not None:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
