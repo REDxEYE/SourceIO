@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict
 
 from ..utilities.singleton import SingletonMeta
-from logger import getLogger, Formatter, Filter, LogRecord, StreamHandler, DEBUG
+from logging import getLogger, Formatter, Filter, LogRecord, StreamHandler, DEBUG
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):
