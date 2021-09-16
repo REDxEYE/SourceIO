@@ -15,3 +15,6 @@ class NonSourceContentProvider(ContentProviderBase):
         file = backwalk_file_resolver(self.filepath, filepath)
         if file:
             return file
+
+    def glob(self, pattern: str):
+        return self._glob_generic(pattern)

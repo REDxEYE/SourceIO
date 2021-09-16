@@ -177,6 +177,12 @@ class ContentManager(metaclass=SingletonMeta):
             return ContentManager.is_source_mod(get_mod_path(path), True)
         return False, path
 
+    def glob(self, pattern):
+        files = []
+        for content_provider in self.content_providers.values():
+            files.extend(content_provider.glob(pattern))
+        return list(set(files))
+
     def find_file(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
 
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))

@@ -16,6 +16,9 @@ class ContentProviderBase:
     def find_path(self, filepath: Union[str, Path]):
         raise NotImplementedError('Implement me!')
 
+    def glob(self, pattern: str):
+        raise NotImplementedError('Implement me!')
+
     def cache_file(self, filename, file: BytesIO):
         if (filename, file) not in self.__cache:
             self.__cache.append((filename, file))
@@ -69,6 +72,12 @@ class ContentProviderBase:
             return new_filepath
         else:
             return None
+
+    def _glob_generic(self, pattern: str):
+        files = []
+        for file in self.root.rglob(pattern):
+            files.append(file)
+        return files
 
 
 class ContentDetectorBase:

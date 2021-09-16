@@ -78,6 +78,9 @@ class GameinfoContentProvider(ContentProviderBase):
                 all_search_paths.append(vpk_file)
         return all_search_paths
 
+    def glob(self, pattern: str):
+        return self._glob_generic(pattern)
+
     def find_file(self, filepath: Union[str, Path]):
         filepath = Path(str(filepath).strip("\\/"))
         new_filepath = self.modname_dir / filepath

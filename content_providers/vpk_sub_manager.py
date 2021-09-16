@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
-
-from ..source_shared.vpk.vpk_file import open_vpk
+import glob
+from ..source_shared.vpk.vpk_file import open_vpk, FileLikeProxy
 from .content_provider_base import ContentProviderBase
 
 
@@ -11,6 +11,13 @@ class VPKContentProvider(ContentProviderBase):
         self._override_steamid = override_steamid
         self.vpk_archive = open_vpk(filepath)
         self.vpk_archive.read()
+
+    def glob(self, pattern: str):
+        files = []
+        for file_name, entry in self.vpk_archive.entries.items():
+            if glob.fnmatch.fnmatch(file_name, pattern):
+                files.append(self.vpk_archive.read_file(entry))
+        return files
 
     def find_file(self, filepath: Union[str, Path]):
         cached_file = self.get_from_cache(filepath)

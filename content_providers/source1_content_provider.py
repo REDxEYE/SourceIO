@@ -75,3 +75,6 @@ class GameinfoContentProvider(ContentProviderBase):
             return new_filepath
         else:
             return None
+
+    def glob(self, pattern: str):
+        return self._glob_generic(pattern)

@@ -5,6 +5,7 @@ from ..source1.hfsv1 import HFS
 from ..source1.hfsv2 import HFSv2
 from .content_provider_base import ContentProviderBase
 from ..source_shared.app_id import SteamAppId
+import glob
 
 
 class HFS2ContentProvider(ContentProviderBase):
@@ -26,6 +27,13 @@ class HFS2ContentProvider(ContentProviderBase):
     def find_path(self, filepath: Union[str, Path]):
         if self.hfs_archive.has_file(filepath):
             return filepath
+
+    def glob(self, pattern: str):
+        files = []
+        for file_name in self.hfs_archive.files.keys():
+            if glob.fnmatch.fnmatch(file_name, pattern):
+                files.append(self.hfs_archive.get_file(file_name))
+        return files
 
     @property
     def steam_id(self):
@@ -49,6 +57,13 @@ class HFS1ContentProvider(ContentProviderBase):
     def find_path(self, filepath: Union[str, Path]):
         if self.hfs_archive.has_file(filepath):
             return filepath
+
+    def glob(self, pattern: str):
+        files = []
+        for file_name in self.hfs_archive.entries.keys():
+            if glob.fnmatch.fnmatch(file_name, pattern):
+                files.append(self.hfs_archive.get_file(file_name))
+        return files
 
     @property
     def steam_id(self):
