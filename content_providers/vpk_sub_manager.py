@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union
 import glob
-from ..source_shared.vpk.vpk_file import open_vpk, FileLikeProxy
+from ..source_shared.vpk.vpk_file import open_vpk
 from .content_provider_base import ContentProviderBase
 
 
