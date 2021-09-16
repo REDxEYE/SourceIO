@@ -19,5 +19,7 @@ def get_resource_loader_from_ext(ext: str):
         return ValveCompiledPhysics
     elif ext == '.vrman_c':
         return ValveCompiledResourceManifest
+    elif ext == '.vmat_c':
+        return ValveCompiledMaterial
     else:
         return ValveCompiledResource
