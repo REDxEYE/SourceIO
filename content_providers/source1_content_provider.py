@@ -77,4 +77,4 @@ class GameinfoContentProvider(ContentProviderBase):
             return None
 
     def glob(self, pattern: str):
-        return self._glob_generic(pattern)
+        yield from self._glob_generic(pattern)

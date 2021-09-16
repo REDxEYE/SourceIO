@@ -74,10 +74,7 @@ class ContentProviderBase:
             return None
 
     def _glob_generic(self, pattern: str):
-        files = []
-        for file in self.root.rglob(pattern):
-            files.append(file)
-        return files
+        yield from self.root.rglob(pattern)
 
 
 class ContentDetectorBase:

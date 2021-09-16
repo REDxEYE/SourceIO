@@ -19,7 +19,7 @@ class SBoxAddonProvider(ContentProviderBase):
         return self._find_path_generic(filepath, additional_dir, extension)
 
     def glob(self, pattern: str):
-        return self._glob_generic(pattern)
+        yield from self._glob_generic(pattern)
 
 
 class SBoxDownloadsProvider(ContentProviderBase):
@@ -35,4 +35,4 @@ class SBoxDownloadsProvider(ContentProviderBase):
         return self._find_path_generic(filepath, additional_dir, extension)
 
     def glob(self, pattern: str):
-        return self._glob_generic(pattern)
+        yield from self._glob_generic(pattern)

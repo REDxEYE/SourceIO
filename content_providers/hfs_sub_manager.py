@@ -29,11 +29,9 @@ class HFS2ContentProvider(ContentProviderBase):
             return filepath
 
     def glob(self, pattern: str):
-        files = []
         for file_name in self.hfs_archive.files.keys():
             if glob.fnmatch.fnmatch(file_name, pattern):
-                files.append(self.hfs_archive.get_file(file_name))
-        return files
+                yield self.hfs_archive.get_file(file_name)
 
     @property
     def steam_id(self):
@@ -59,11 +57,9 @@ class HFS1ContentProvider(ContentProviderBase):
             return filepath
 
     def glob(self, pattern: str):
-        files = []
         for file_name in self.hfs_archive.entries.keys():
             if glob.fnmatch.fnmatch(file_name, pattern):
-                files.append(self.hfs_archive.get_file(file_name))
-        return files
+                yield self.hfs_archive.get_file(file_name)
 
     @property
     def steam_id(self):
