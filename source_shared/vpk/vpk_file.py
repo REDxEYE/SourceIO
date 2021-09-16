@@ -120,7 +120,6 @@ class VPKFile:
             return reader
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
-            print(f'Reading {entry.file_name} from {target_archive_path}')
             with open(target_archive_path, 'rb') as target_archive:
                 target_archive.seek(entry.offset)
                 reader = BytesIO(entry.preload_data + target_archive.read(entry.size))
@@ -176,7 +175,6 @@ class TitanfallVPKFile(VPKFile):
             archive_name_base = self.filepath.stem[:-3]
             archive_name_base = 'client_' + archive_name_base.split('_', 1)[-1]
             target_archive_path = self.filepath.parent / f'{archive_name_base}{entry.archive_id:03d}.vpk'
-            print(f'Reading {entry.file_name} from {target_archive_path}')
             with open(target_archive_path, 'rb') as target_archive:
 
                 buffer = entry.preload_data
