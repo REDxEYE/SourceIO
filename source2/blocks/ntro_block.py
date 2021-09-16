@@ -1,4 +1,5 @@
 from enum import IntEnum
+from itertools import chain
 from typing import List
 
 from ...utilities.byte_io_mdl import ByteIO
@@ -126,7 +127,15 @@ class NTROStruct:
         self.field_offset = 0
         self.field_count = 0
         self.struct_flags = 0
-        self.fields = []  # type: List[NTROStructField]
+        self._fields = []  # type: List[NTROStructField]
+
+    @property
+    def fields(self):
+        parent_struct = self.ntro_block.get_struct_by_id(self.base_struct_id)
+        parent_fields = []
+        if parent_struct is not None:
+            parent_fields = parent_struct.fields
+        return chain(parent_fields, self._fields)
 
     def __repr__(self):
         return '<Struct name:"{}"{} SID:{} sizeof: {} id:{}>'.format(self.name, ' inhernited {}'.format(
@@ -154,7 +163,7 @@ class NTROStruct:
             for n in range(self.field_count):
                 field = NTROStructField(self)
                 field.read(reader)
-                self.fields.append(field)
+                self._fields.append(field)
                 # print('\t',field)
 
     def read_struct(self, reader: ByteIO):
