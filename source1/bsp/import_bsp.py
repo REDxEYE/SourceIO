@@ -155,7 +155,7 @@ class BSP:
                     model_name = static_prop_lump.model_names[prop.prop_type]
                     location = np.multiply(prop.origin, self.scale)
                     rotation = convert_rotation_source1_to_blender(prop.rotation)
-                    self.create_empty(f'static_prop_{n}', location, rotation, None, parent_collection,
+                    self.create_empty(f'static_prop_{n}', location, rotation, prop.scaling, parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
                                                    'scale': self.scale,
@@ -165,6 +165,7 @@ class BSP:
                                                        'type': 'static_prop',
                                                        'origin': '{} {} {}'.format(*prop.origin),
                                                        'angles': '{} {} {}'.format(*prop.rotation),
+                                                       'scale': '{} {} {}'.format(*prop.scaling),
                                                        'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    }
                                                    })
