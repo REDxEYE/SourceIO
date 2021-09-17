@@ -77,29 +77,30 @@ class Lightmapped4WayBlend(DetailSupportMixin):
         return None
 
     def lumstart(self, N = 1):
-        return self._vavle_material.get_float("$texture%s_lumstart" %N, 0)
+        return self._vavle_material.get_float(f"$texture{N}_lumstart", 0)
 
     def lumend(self, N = 1):
-        return self._vavle_material.get_float("$texture%s_lumend" %N, 1)
+        return self._vavle_material.get_float(f"$texture{N}_lumend", 1)
 
     def lumblendfactor(self, N = 1):
-        return self._vavle_material.get_float("$texture%s_lumblendfactor" %N, 0)
+        return self._vavle_material.get_float(f"$texture{N}_lumblendfactor", 0)
 
     def blendstart(self, N = 1):
-        return self._vavle_material.get_float("$texture%s_blendstart" %N, 0)
+        return self._vavle_material.get_float(f"$texture{N}_blendstart", 0)
 
     def blendend(self, N = 1):
-        return self._vavle_material.get_float("$texture%s_blendend" %N, 1)
+        return self._vavle_material.get_float(f"$texture{N}_blendend", 1)
 
     def getblends(self):
         keyvalues = {}
-        for i in range(1, 4):
-            keyvalues['$texture%s_lumstart' %i ] = self.lumstart(i)
-            keyvalues['$texture%s_lumend' %i ] = self.lumend(i)
-        for i in range(2, 4):
-            keyvalues['$texture%s_lumblendfactor' %i ] = self.lumblendfactor(i)
-            keyvalues['$texture%s_blendstart' %i ] = self.blendstart(i)
-            keyvalues['$texture%s_blendend' %i ] = self.blendend(i)
+        keyvalues['$texture1_lumstart'] = self.lumstart(1)
+        keyvalues['$texture1_lumend'] = self.lumend(1)
+        for i in range(2, 5):
+            keyvalues[f'$texture{i}_lumstart' ] = self.lumstart(i)
+            keyvalues[f'$texture{i}_lumend'] = self.lumend(i)
+            keyvalues[f'$texture{i}_lumblendfactor'] = self.lumblendfactor(i)
+            keyvalues[f'$texture{i}_blendstart'] = self.blendstart(i)
+            keyvalues[f'$texture{i}_blendend'] = self.blendend(i)
         return keyvalues
 
     def putblends(self, blends : dict, group : Nodes.ShaderNodeGroup):
@@ -176,9 +177,9 @@ class Lightmapped4WayBlend(DetailSupportMixin):
                 self.connect_nodes(normals[0].outputs['Color'], blend.inputs['$bumpmap'])
             for i in range(1, 4):
                 if bases[i]:
-                    self.connect_nodes(bases[i].outputs['Color'], blend.inputs['$basetexture%s' %(i+1)])
+                    self.connect_nodes(bases[i].outputs['Color'], blend.inputs[f'$basetexture{i+1}'])
                 if normals[i]:
-                    self.connect_nodes(normals[i].outputs['Color'], blend.inputs['$bumpmap%s' %(i+1)])
+                    self.connect_nodes(normals[i].outputs['Color'], blend.inputs[f'$bumpmap{i+1}'])
 
             self.connect_nodes(blend.outputs['$bumpmap [texture]'], shader.inputs['$bumpmap [texture]'])
             if self.detail:
