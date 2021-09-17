@@ -20,6 +20,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return None
 
     @property
+    def bumptransform(self):
+        return self._vavle_material.get_transform_matrix('$bumptransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
+
+    @property
     def basetexture(self):
         texture_path = self._vavle_material.get_param('$basetexture', None)
         if texture_path is not None:
@@ -251,6 +255,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                     name='$bumpmap',
                                                                     UV=UV)
                 bumpmap_node.location = [-800, -220]
+                if self.bumptransform:
+                    self.handle_transform(self.bumptransform, bumpmap_node.inputs[0])
                 if self.normalmapalphaenvmapmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['envmapmask [basemap texture alpha]'])
