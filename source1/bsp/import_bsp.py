@@ -28,6 +28,7 @@ from .lumps.overlay_lump import OverlayLump
 from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
+from .lumps.cubemap import CubemapLump
 from .lumps.pak_lump import PakLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
@@ -131,6 +132,18 @@ class BSP:
                 f'{self.filepath.stem}_entities.json')
             json.dump(entity_lump.entities, entities_json, indent=1)
         self.entity_handler.load_entities()
+
+    def load_cubemap(self):
+        cubemap_lump: Optional[CubemapLump] = self.map_file.get_lump('LUMP_CUBEMAPS')
+        if not cubemap_lump:
+            return
+        parent_collection = get_or_create_collection('cubemaps', self.main_collection)
+        for n, cubemap in enumerate(cubemap_lump.cubemaps):
+            refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
+            obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
+            obj.location = cubemap.origin * self.scale
+            # refl_probe.influence_distance = float(entity.cubemapsize)
+            parent_collection.objects.link(obj)
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')
