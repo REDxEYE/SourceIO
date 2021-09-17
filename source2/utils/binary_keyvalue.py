@@ -282,9 +282,7 @@ class BinaryKeyValue:
             self.strings.append(self.buffer.read_ascii_string())
 
         types_len = string_and_types_buffer_size - (self.buffer.tell() - string_start)
-
-        for _ in range(types_len):
-            self.types.append(self.buffer.read_uint8())
+        self.types = np.frombuffer(self.buffer.read(types_len),np.uint8)
         if block_count == 0:
             assert self.buffer.read_uint32() == 0xFFEEDD00, 'Invalid terminator'
             self.parse(self.buffer, self.kv, True)
