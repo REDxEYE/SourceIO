@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from SourceIO.source_shared.app_id import SteamAppId
+from ....source_shared.app_id import SteamAppId
 from .. import Lump, lump_tag
 from ..datatypes.displacement import DispInfo, VDispInfo
 
