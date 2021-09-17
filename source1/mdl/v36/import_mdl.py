@@ -129,7 +129,7 @@ def import_model(mdl_file: Union[BinaryIO, Path],
             used_copy = False
             if re_use_meshes and static_prop:
                 mesh_obj_original = bpy.data.objects.get(mesh_name, None)
-                mesh_data_original = bpy.data.meshes.get(f'{mesh_name}_MESH', False)
+                mesh_data_original = bpy.data.meshes.get(f'{mdl.header.name}_{mesh_name}_MESH', False)
                 if mesh_obj_original and mesh_data_original:
                     mesh_data = mesh_data_original.copy()
                     mesh_obj = mesh_obj_original.copy()
