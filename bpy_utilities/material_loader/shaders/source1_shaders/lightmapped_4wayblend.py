@@ -83,7 +83,7 @@ class Lightmapped4WayBlend(DetailSupportMixin):
         return self._vavle_material.get_float(f"$texture{N}_lumend", 1)
 
     def lumblendfactor(self, N = 1):
-        return self._vavle_material.get_float(f"$texture{N}_lumblendfactor", 0)
+        return self._vavle_material.get_float(f"$lumblendfactor{N}", 0)
 
     def blendstart(self, N = 1):
         return self._vavle_material.get_float(f"$texture{N}_blendstart", 0)
@@ -98,7 +98,7 @@ class Lightmapped4WayBlend(DetailSupportMixin):
         for i in range(2, 5):
             keyvalues[f'$texture{i}_lumstart' ] = self.lumstart(i)
             keyvalues[f'$texture{i}_lumend'] = self.lumend(i)
-            keyvalues[f'$texture{i}_lumblendfactor'] = self.lumblendfactor(i)
+            keyvalues[f'$lumblendfactor{i}'] = self.lumblendfactor(i)
             keyvalues[f'$texture{i}_blendstart'] = self.blendstart(i)
             keyvalues[f'$texture{i}_blendend'] = self.blendend(i)
         return keyvalues
