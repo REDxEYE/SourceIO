@@ -284,7 +284,13 @@ class BSP:
 
             if disp_multiblend and disp_info.has_multiblend:
                 multiblend_layers = disp_multiblend.blends[multiblend_offset:multiblend_offset + subdiv_vert_count]
-                final_vertex_colors['multiblend'] = multiblend_layers['multiblend']
+                final_vertex_colors['multiblend'] = multiblend_layers['multiblend'].copy()
+                red = final_vertex_colors['multiblend'][:, 0].copy()
+                alpha = final_vertex_colors['multiblend'][:, 3].copy()
+
+                final_vertex_colors['multiblend'][:, 3] = red
+                final_vertex_colors['multiblend'][:, 0] = alpha
+
                 final_vertex_colors['alphablend'] = multiblend_layers['alphablend']
                 miltiblend_color_layer = multiblend_layers['multiblend_colors']
                 shape_ = multiblend_layers.shape[0]
