@@ -28,6 +28,7 @@ from .lumps.overlay_lump import OverlayLump
 from .lumps.face_lump import FaceLump
 from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
+from .lumps.cubemap import CubemapLump
 from .lumps.pak_lump import PakLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
@@ -132,6 +133,18 @@ class BSP:
             json.dump(entity_lump.entities, entities_json, indent=1)
         self.entity_handler.load_entities()
 
+    def load_cubemap(self):
+        cubemap_lump: Optional[CubemapLump] = self.map_file.get_lump('LUMP_CUBEMAPS')
+        if not cubemap_lump:
+            return
+        parent_collection = get_or_create_collection('cubemaps', self.main_collection)
+        for n, cubemap in enumerate(cubemap_lump.cubemaps):
+            refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
+            obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
+            obj.location = cubemap.origin * self.scale
+            # refl_probe.influence_distance = float(entity.cubemapsize)
+            parent_collection.objects.link(obj)
+
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')
         if gamelump:
@@ -142,7 +155,7 @@ class BSP:
                     model_name = static_prop_lump.model_names[prop.prop_type]
                     location = np.multiply(prop.origin, self.scale)
                     rotation = convert_rotation_source1_to_blender(prop.rotation)
-                    self.create_empty(f'static_prop_{n}', location, rotation, None, parent_collection,
+                    self.create_empty(f'static_prop_{n}', location, rotation, prop.scaling, parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
                                                    'scale': self.scale,
@@ -152,6 +165,7 @@ class BSP:
                                                        'type': 'static_prop',
                                                        'origin': '{} {} {}'.format(*prop.origin),
                                                        'angles': '{} {} {}'.format(*prop.rotation),
+                                                       'scale': '{} {} {}'.format(*prop.scaling),
                                                        'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    }
                                                    })
@@ -271,7 +285,13 @@ class BSP:
 
             if disp_multiblend and disp_info.has_multiblend:
                 multiblend_layers = disp_multiblend.blends[multiblend_offset:multiblend_offset + subdiv_vert_count]
-                final_vertex_colors['multiblend'] = multiblend_layers['multiblend']
+                final_vertex_colors['multiblend'] = multiblend_layers['multiblend'].copy()
+                red = final_vertex_colors['multiblend'][:, 0].copy()
+                alpha = final_vertex_colors['multiblend'][:, 3].copy()
+
+                final_vertex_colors['multiblend'][:, 3] = red
+                final_vertex_colors['multiblend'][:, 0] = alpha
+
                 final_vertex_colors['alphablend'] = multiblend_layers['alphablend']
                 miltiblend_color_layer = multiblend_layers['multiblend_colors']
                 shape_ = multiblend_layers.shape[0]

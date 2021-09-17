@@ -16,6 +16,7 @@ from .bpy_utilities.logger import BPYLoggingManager
 
 logger = BPYLoggingManager().get_logger("SourceIO::Operators")
 
+
 # noinspection PyPep8Naming
 class MDLImport_OT_operator(bpy.types.Operator):
     """Load Source Engine MDL models"""
@@ -118,6 +119,7 @@ class BSPImport_OT_operator(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
+    import_cubemaps: BoolProperty(name="Import cubemaps", default=False, subtype='UNSIGNED')
     import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
     use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
 
@@ -135,9 +137,10 @@ class BSPImport_OT_operator(bpy.types.Operator):
         bsp_map.load_disp()
         bsp_map.load_entities()
         bsp_map.load_static_props()
+        if self.import_cubemaps:
+            bsp_map.load_cubemap()
         if self.import_decal:
             bsp_map.load_overlays()
-        # bsp_map.load_detail_props()
         if self.import_textures:
             bsp_map.load_materials(self.use_bvlg)
         content_manager.flush_cache()
