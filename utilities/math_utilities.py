@@ -7,9 +7,28 @@ import numpy as np
 # one hammer unit is 1/16 of feet, and one feet is 30.48 cm
 HAMMER_UNIT_TO_METERS = ((1 / 16) * 30.48) / 100
 
+EPSILON = 0.000001
+
 
 def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
+
+
+def quaternion_to_euler_angle(w, x, y, z):
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    x = math.degrees(math.atan2(t0, t1))
+
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    y = math.degrees(math.asin(t2))
+
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    z = math.degrees(math.atan2(t3, t4))
+
+    return x, y, z
 
 
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
@@ -132,6 +151,64 @@ def euler_to_matrix(theta):
     return np.dot(r_z, np.dot(r_y, r_x))
 
 
+def euler_to_quat(euler: np.ndarray):
+    euler *= 0.5
+    roll, pitch, yaw = euler
+    sin_r = math.sin(roll)
+    cos_r = math.cos(roll)
+    sin_p = math.sin(pitch)
+    cos_p = math.cos(pitch)
+    sin_y = math.sin(yaw)
+    cos_y = math.cos(yaw)
+    quat = np.zeros((4,), np.float32)
+    quat[0] = sin_r * cos_p * cos_y - cos_r * sin_p * sin_y
+    quat[1] = cos_r * sin_p * cos_y + sin_r * cos_p * sin_y
+    quat[2] = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
+    quat[3] = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
+    return quat
+
+
+def quat_slerp(a, b, factor):
+    ax = a[0]
+    ay = a[1]
+    az = a[2]
+    aw = a[3]
+    bx = b[0]
+    by = b[1]
+    bz = b[2]
+    bw = b[3]
+
+    omega, cosom, sinom, scale0, scale1 = 0, 0, 0, 0, 0
+
+    cosom = ax * bx + ay * by + az * bz + aw * bw
+    if cosom < 0.0:
+        cosom = -cosom
+        bx = -bx
+        by = -by
+        bz = -bz
+        bw = -bw
+
+    if 1.0 - cosom > EPSILON:
+        omega = math.acos(cosom)
+        sinom = math.sin(omega)
+        scale0 = math.sin((1.0 - factor) * omega) / sinom
+        scale1 = math.sin(factor * omega) / sinom
+    else:
+        scale0 = 1.0 - factor
+        scale1 = factor
+    out = np.zeros((4,), np.float32)
+    out[0] = scale0 * ax + scale1 * bx
+    out[1] = scale0 * ay + scale1 * by
+    out[2] = scale0 * az + scale1 * bz
+    out[3] = scale0 * aw + scale1 * bw
+
+    return out
+
+
+def lerp(a: float, b: float, t: float):
+    return a + (b - a) * t
+
+
 def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
     # XYZ -> ZXY
     return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
@@ -208,3 +285,27 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def vector_normalize(v):
+    norm = np.linalg.norm(v, ord=1)
+    if norm == 0:
+        norm = np.finfo(v.dtype).eps
+    return v / norm
+
+
+class UnitPlane:
+    def __init__(self):
+        self.normal = np.zeros((3,))
+        self.d = 0.0
+
+    def normal_from_tri(self, p0: np.ndarray, p1: np.ndarray, p2: np.ndarray):
+        scratch = np.zeros((2, 3))
+        scratch[0] = p1 - p0
+        scratch[1] = p2 - p0
+        normal = np.cross(scratch[0], scratch[1])
+        self.normal[:] = vector_normalize(normal)
+        self.d = -np.dot(self.normal, p0)
+
+    def distance_vec3(self, p):
+        return np.dot(p, self.normal) + self.d
