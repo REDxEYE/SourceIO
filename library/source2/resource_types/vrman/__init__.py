@@ -1,0 +1,1 @@
+from .resource_manifest import ValveCompiledResourceManifest

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from .utilities.singleton import SingletonMeta
+from .library import running_in_blender, loaded_as_addon
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 custom_icons = {}
@@ -15,41 +15,40 @@ bl_info = {
                    "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
     "category": "Import-Export"
 }
+print(running_in_blender(), loaded_as_addon())
+if running_in_blender() and loaded_as_addon():
 
-if not NO_BPY:
-
-    from .source1.vtf import is_vtflib_supported
+    from .library.source1.vtf import is_vtflib_supported
 
     import bpy
-    from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
-    from .goldsrc_operators import (GBSPImport_OT_operator,
-                                    SOURCEIO_OT_GMDLImport)
+    from .blender_bindings.operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
+                                                               SOURCEIO_OT_GMDLImport)
 
-    from .source1_operators import (SOURCEIO_OT_BSPImport,
-                                    SOURCEIO_OT_MDLImport,
-                                    SOURCEIO_OT_DMXImporter,
-                                    SOURCEIO_OT_RigImport,
-                                    )
-    from .source2_operators import (SOURCEIO_OT_VMATImport,
-                                    SOURCEIO_OT_VTEXImport,
-                                    SOURCEIO_OT_VMDLImport,
-                                    SOURCEIO_OT_VWRLDImport,
-                                    SOURCEIO_OT_VPK_VWRLDImport,
-                                    SOURCEIO_OT_DMXCameraImport
-                                    )
-    from .shared_operators import (SOURCEIO_PT_Utils,
-                                   SOURCEIO_PT_Placeholders,
-                                   SOURCEIO_PT_SkinChanger,
-                                   SOURCEIO_OT_ChangeSkin,
-                                   ChangeSkin_OT_LoadEntity,
-                                   )
-    from .vpk_operators import (SourceIO_OP_VPKBrowser,
-                                SourceIO_OP_VPKBrowserLoader,
-                                )
-    from .vpk_operators import classes as vpk_classes
+    from .blender_bindings.operators.source1_operators import (SOURCEIO_OT_BSPImport,
+                                                               SOURCEIO_OT_MDLImport,
+                                                               SOURCEIO_OT_DMXImporter,
+                                                               SOURCEIO_OT_RigImport,
+                                                               )
+    from .blender_bindings.operators.source2_operators import (SOURCEIO_OT_VMATImport,
+                                                               SOURCEIO_OT_VTEXImport,
+                                                               SOURCEIO_OT_VMDLImport,
+                                                               SOURCEIO_OT_VWRLDImport,
+                                                               SOURCEIO_OT_VPK_VWRLDImport,
+                                                               SOURCEIO_OT_DMXCameraImport
+                                                               )
+    from .blender_bindings.operators.shared_operators import (SOURCEIO_PT_Utils,
+                                                              SOURCEIO_PT_Placeholders,
+                                                              SOURCEIO_PT_SkinChanger,
+                                                              SOURCEIO_OT_ChangeSkin,
+                                                              ChangeSkin_OT_LoadEntity,
+                                                              )
+    from .blender_bindings.operators.vpk_operators import (SourceIO_OP_VPKBrowser,
+                                                           SourceIO_OP_VPKBrowserLoader,
+                                                           )
+    from .blender_bindings.operators.vpk_operators import classes as vpk_classes
 
-    from .bpy_utilities.export_nodes import register_nodes, unregister_nodes
+    from .blender_bindings.ui.export_nodes import register_nodes, unregister_nodes
 
 
     # noinspection PyPep8Naming
@@ -94,7 +93,7 @@ if not NO_BPY:
             layout.separator()
             layout.operator(SOURCEIO_OT_GMDLImport.bl_idname, text="GoldSrc model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
-            layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
+            layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
             layout.separator()
             layout.operator(SourceIO_OP_VPKBrowserLoader.bl_idname, text="Browse new VPK (.vpk)",
@@ -121,7 +120,7 @@ if not NO_BPY:
 
     def load_icon(loader, filename, name):
         script_path = Path(os.path.dirname(__file__))
-        loader.load(name, str(script_path / 'icons' / filename), 'IMAGE')
+        loader.load(name, str(script_path / 'blender_bindings' / 'icons' / filename), 'IMAGE')
 
 
     def register_custom_icon():
@@ -148,7 +147,7 @@ if not NO_BPY:
 
     classes = (
         # GoldSrc
-        GBSPImport_OT_operator,
+        SOURCEIO_OT_GBSPImport,
         SOURCEIO_OT_GMDLImport,
         # Source1 stuff
 
@@ -179,11 +178,11 @@ if not NO_BPY:
     )
 
     if is_vtflib_supported():
-        from .source1_operators import (SOURCEIO_OT_VTFExport,
-                                        SOURCEIO_OT_VTFImport,
-                                        SOURCEIO_OT_VMTImport,
-                                        SOURCEIO_OT_SkyboxImport,
-                                        )
+        from .blender_bindings.operators.source1_operators import (SOURCEIO_OT_VTFExport,
+                                                                   SOURCEIO_OT_VTFImport,
+                                                                   SOURCEIO_OT_VMTImport,
+                                                                   SOURCEIO_OT_SkyboxImport,
+                                                                   )
 
         classes = tuple([*classes, SOURCEIO_OT_VTFExport, SOURCEIO_OT_VTFImport,
                          SOURCEIO_OT_VMTImport, SOURCEIO_OT_SkyboxImport])
@@ -198,9 +197,8 @@ if not NO_BPY:
         bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
         if is_vtflib_supported():
-            from .source1.vtf.VTFWrapper.VTFLib import VTFLib
-            from .source1_operators import export
-            VTFLib()
+            from .library.source1.vtf import VTFLib
+            from .blender_bindings.operators.source1_operators import export
             bpy.types.IMAGE_MT_image.append(export)
 
 
@@ -208,12 +206,8 @@ if not NO_BPY:
         bpy.types.TOPBAR_MT_file_import.remove(menu_import)
 
         if is_vtflib_supported():
-            from .source1_operators import export
+            from .blender_bindings.operators.source1_operators import export
             bpy.types.IMAGE_MT_image.remove(export)
-            from .source1.vtf.VTFWrapper.VTFLib import VTFLib
-            vtf_lib = VTFLib()
-            vtf_lib.unload()
-            del vtf_lib
         unregister_nodes()
         SingletonMeta.cleanup()
 
