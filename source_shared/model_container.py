@@ -55,7 +55,7 @@ class GoldSrcModelContainer(ModelContainer):
 
 class GoldSrcV4ModelContainer(GoldSrcModelContainer):
     def __init__(self, mdl: GMdlV4):
-        super().__init__()
+        super().__init__(mdl)
         self.mdl: GMdlV4 = mdl
 
 
