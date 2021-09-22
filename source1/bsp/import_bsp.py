@@ -1,13 +1,14 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 
 import bpy
 from mathutils import Vector, Quaternion, Matrix
 import numpy as np
 
 from .bsp_file import open_bsp
+from .datatypes.face import Face
 from .datatypes.gamelumps.static_prop_lump import StaticPropLump
 
 from .entities.base_entity_handler import BaseEntityHandler
@@ -30,6 +31,7 @@ from .lumps.game_lump import GameLump
 from .lumps.model_lump import ModelLump
 from .lumps.cubemap import CubemapLump
 from .lumps.pak_lump import PakLump
+from .lumps.plane_lump import PlaneLump
 from .lumps.string_lump import StringsLump
 from .lumps.surf_edge_lump import SurfEdgeLump
 from .lumps.texture_lump import TextureInfoLump, TextureDataLump
@@ -43,7 +45,7 @@ from ...content_providers.content_manager import ContentManager
 from ...source_shared.app_id import SteamAppId
 from ...source_shared.model_container import Source1ModelContainer
 from ...utilities.keyvalues import KVParser
-from ...utilities.math_utilities import convert_rotation_source1_to_blender
+from ...utilities.math_utilities import convert_rotation_source1_to_blender, UnitPlane
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = BPYLoggingManager()
@@ -346,79 +348,86 @@ class BSP:
 
     def load_overlays(self):
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
-        faces_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_FACES')
-        planes_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_PLANES')
+        faces_lump: Optional[FaceLump] = self.map_file.get_lump('LUMP_FACES')
+        planes_lump: Optional[PlaneLump] = self.map_file.get_lump('LUMP_PLANES')
+        unit_plane = UnitPlane()
+
         if info_overlay_lump:
             parent_collection = get_or_create_collection('info_overlays', self.main_collection)
             overlays = info_overlay_lump.overlays
             ov_count = len(overlays)
             for n, overlay in enumerate(overlays):
                 print(f'Loading overlays {n + 1}/{ov_count}')
-                # placement_faces = [faces_lump.faces[face_id] for face_id in overlay.ofaces[:overlay.face_count]]
-                # placement_face = placement_faces[0]
-                # plane = planes_lump.planes[placement_face.plane_index]
+                for face_id in overlay.face_ids:
+                    face: Face = faces_lump.faces[face_id]
+                    overlay_vertices, overlay_uv = overlay.plane
+                    if face.edge_count < 2:
+                        continue
+                    # for edge_id in range(face.first_edge, face.first_edge + face.edge_count):
 
-                verts: np.ndarray = np.array(overlay.uv_points).reshape((4, 3))
-                for vert in verts:
-                    vert[1], vert[2] = vert[2], vert[1]
-                mesh = bpy.data.meshes.new(f"info_overlay_{overlay.id}")
-                mesh_obj = bpy.data.objects.new(f"info_overlay_{overlay.id}", mesh)
-                mesh_data = mesh_obj.data
-                if parent_collection is not None:
-                    parent_collection.objects.link(mesh_obj)
-                else:
-                    self.main_collection.objects.link(mesh_obj)
+                # unit_plane.
 
-                mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
-
-                uv_data = mesh_data.uv_layers.new().data
-
-                uv_data[0].uv[0] = min(overlay.U)  # min
-                uv_data[0].uv[1] = min(overlay.V)  # min
-
-                uv_data[1].uv[0] = min(overlay.U)  # min
-                uv_data[1].uv[1] = max(overlay.V)  # max
-
-                uv_data[2].uv[0] = max(overlay.U)  # max
-                uv_data[2].uv[1] = max(overlay.V)  # max
-
-                uv_data[3].uv[0] = max(overlay.U)  # max
-                uv_data[3].uv[1] = min(overlay.V)  # min
-
-                mesh_data.flip_normals()
-
-                mesh_obj.location = np.multiply(overlay.origin, self.scale)
-
-                mesh_obj.scale *= self.scale
-
-                matId = self.texture_info_lump.texture_info[overlay.tex_info].texture_data_id
-
-                material_name = self.get_string(matId)
-                material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-                get_material(material_name, mesh_obj)
-
-                this_norm = list(overlay.basis_normal)
-
-                this_rot = Vector(this_norm).to_track_quat('-Y', 'Z')
-                mesh_obj.rotation_mode = 'QUATERNION'
-                mesh_obj.rotation_quaternion = this_rot
-
-                for pos in range(2):
-                    for i in range(3):
-                        mesh_obj.location[i] = mesh_obj.location[i] + (self.scale * pos * this_norm[i])
-
-                if ContentManager().steam_id in [1840, 440]:
-                    mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
-                    mesh_obj.data.transform(mesh_mx)
-
-                    scale_obj = list(mesh_obj.scale)
-                    scale_mx = Matrix()
-                    for i in range(3):
-                        scale_mx[i][i] = scale_obj[i]
-                    applymx = Matrix.Translation(mesh_obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
-                    mesh_obj.matrix_world = applymx
-
-                self._rotate_infodecals()
+                # verts: np.ndarray = np.array(overlay.uv_points).reshape((4, 3))
+                # for vert in verts:
+                #     vert[1], vert[2] = vert[2], vert[1]
+                # mesh = bpy.data.meshes.new(f"info_overlay_{overlay.id}")
+                # mesh_obj = bpy.data.objects.new(f"info_overlay_{overlay.id}", mesh)
+                # mesh_data = mesh_obj.data
+                # if parent_collection is not None:
+                #     parent_collection.objects.link(mesh_obj)
+                # else:
+                #     self.main_collection.objects.link(mesh_obj)
+                #
+                # mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
+                #
+                # uv_data = mesh_data.uv_layers.new().data
+                #
+                # uv_data[0].uv[0] = min(overlay.u)  # min
+                # uv_data[0].uv[1] = min(overlay.v)  # min
+                #
+                # uv_data[1].uv[0] = min(overlay.u)  # min
+                # uv_data[1].uv[1] = max(overlay.v)  # max
+                #
+                # uv_data[2].uv[0] = max(overlay.u)  # max
+                # uv_data[2].uv[1] = max(overlay.v)  # max
+                #
+                # uv_data[3].uv[0] = max(overlay.u)  # max
+                # uv_data[3].uv[1] = min(overlay.v)  # min
+                #
+                # mesh_data.flip_normals()
+                #
+                # mesh_obj.location = np.multiply(overlay.origin, self.scale)
+                #
+                # mesh_obj.scale *= self.scale
+                #
+                # matId = self.texture_info_lump.texture_info[overlay.tex_info].texture_data_id
+                #
+                # material_name = self.get_string(matId)
+                # material_name = strip_patch_coordinates.sub("", material_name)[-63:]
+                # get_material(material_name, mesh_obj)
+                #
+                # this_norm = list(overlay.normal)
+                #
+                # this_rot = Vector(this_norm).to_track_quat('-Y', 'Z')
+                # mesh_obj.rotation_mode = 'QUATERNION'
+                # mesh_obj.rotation_quaternion = this_rot
+                #
+                # for pos in range(2):
+                #     for i in range(3):
+                #         mesh_obj.location[i] = mesh_obj.location[i] + (self.scale * pos * this_norm[i])
+                #
+                # if ContentManager().steam_id in [1840, 440]:
+                #     mesh_mx = mesh_obj.rotation_quaternion.to_matrix().to_4x4()
+                #     mesh_obj.data.transform(mesh_mx)
+                #
+                #     scale_obj = list(mesh_obj.scale)
+                #     scale_mx = Matrix()
+                #     for i in range(3):
+                #         scale_mx[i][i] = scale_obj[i]
+                #     applymx = Matrix.Translation(mesh_obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
+                #     mesh_obj.matrix_world = applymx
+                #
+                # self._rotate_infodecals()
 
     def _rotate_infodecals(self):
         provider = ContentManager().get_content_provider_from_path(self.filepath)
@@ -481,17 +490,17 @@ class BSP:
                     applymx = Matrix.Translation(obj.location) @ Quaternion().to_matrix().to_4x4() @ scale_mx
                     obj.matrix_world = applymx
 
-    def load_detail_props(self):
-        content_manager = ContentManager()
-        entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
-        if entity_lump:
-            worldspawn = entity_lump.entities[0]
-            assert worldspawn['classname'] == 'worldspawn'
-            vbsp_name = worldspawn['detailvbsp']
-            vbsp_file = content_manager.find_file(vbsp_name)
-            vbsp = KVParser('vbsp', vbsp_file.read().decode('ascii'))
-            details_info = vbsp.parse()
-            print(vbsp_file)
+    # def load_detail_props(self):
+    #     content_manager = ContentManager()
+    #     entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
+    #     if entity_lump:
+    #         worldspawn = entity_lump.entities[0]
+    #         assert worldspawn['classname'] == 'worldspawn'
+    #         vbsp_name = worldspawn['detailvbsp']
+    #         vbsp_file = content_manager.find_file(vbsp_name)
+    #         vbsp = KVParser('vbsp', vbsp_file.read().decode('ascii'))
+    #         details_info = vbsp.parse()
+    #         print(vbsp_file)
 
     def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
         if scale is None:

@@ -120,7 +120,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
     scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
     import_cubemaps: BoolProperty(name="Import cubemaps", default=False, subtype='UNSIGNED')
-    import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
+    # import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
     use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
@@ -139,8 +139,8 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
         bsp_map.load_static_props()
         if self.import_cubemaps:
             bsp_map.load_cubemap()
-        if self.import_decal:
-            bsp_map.load_overlays()
+        # if self.import_decal:
+        #     bsp_map.load_overlays()
         if self.import_textures:
             bsp_map.load_materials(self.use_bvlg)
         content_manager.flush_cache()
