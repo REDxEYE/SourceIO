@@ -3,7 +3,7 @@ from typing import BinaryIO, Iterable, Sized, Union, Optional
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler
+from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .flex_expressions import *
 from .mdl_file import Mdl
@@ -21,6 +21,7 @@ from ....bpy_utilities.material_loader.shaders.source1_shader_base import Source
 from ....bpy_utilities.utils import get_material, get_new_unique_collection
 from ....content_providers.content_manager import ContentManager
 from ....source_shared.model_container import Source1ModelContainer
+from ....utilities.math_utilities import euler_to_quat
 
 log_manager = BPYLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -382,11 +383,6 @@ def import_materials(mdl: Mdl, unique_material_names=False, use_bvlg=False):
             new_material.create_material()
 
 
-def __swap_components(vec, mp):
-    __pat = 'XYZ'
-    return [vec[__pat.index(k)] for k in mp]
-
-
 def import_animations(mdl: Mdl, armature, scale):
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)
@@ -396,88 +392,60 @@ def import_animations(mdl: Mdl, armature, scale):
         armature.animation_data_create()
     # for var_pos in ['XYZ', 'YXZ', ]:
     #     for var_rot in ['XYZ', 'XZY', 'YZX', 'ZYX', 'YXZ', 'ZXY', ]:
-    for var_pos in ['XYZ']:
-        for var_rot in ['XYZ']:
-            for anim_desc in mdl.anim_descs:
-                anim_name = f'pos_{var_pos}_rot_{var_rot}_{anim_desc.name}'
-                action = bpy.data.actions.new(anim_name)
-                armature.animation_data.action = action
-                curve_per_bone = {}
-                for bone in anim_desc.anim_bones:
-                    if bone.bone_id == -1:
-                        continue
-                    bone_name = mdl.bones[bone.bone_id].name
+    for anim_desc in mdl.anim_descs:
+        anim_name = anim_desc.name
+        action = bpy.data.actions.new(anim_name)
+        armature.animation_data.action = action
+        curve_per_bone = {}
 
-                    bone_string = f'pose.bones["{bone_name}"].'
-                    group = action.groups.new(name=bone_name)
-                    pos_curves = []
-                    rot_curves = []
-                    for i in range(3):
-                        pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                        pos_curve.keyframe_points.add(anim_desc.frame_count)
-                        pos_curves.append(pos_curve)
-                        pos_curve.group = group
-                    for i in range(3):
-                        # rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                        rot_curve = action.fcurves.new(data_path=bone_string + "rotation_euler", index=i)
-                        rot_curve.keyframe_points.add(anim_desc.frame_count)
-                        rot_curves.append(rot_curve)
-                        rot_curve.group = group
-                    curve_per_bone[bone_name] = pos_curves, rot_curves
+        for bone in mdl.bones:
+            bone_name = bone.name
+            bl_bone = armature.pose.bones.get(bone.name)
+            bl_bone.rotation_mode = 'QUATERNION'
+            bone_string = f'pose.bones["{bone_name}"].'
+            group = action.groups.new(name=bone_name)
+            pos_curves = []
+            rot_curves = []
+            for i in range(3):
+                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
+                pos_curve.keyframe_points.add(anim_desc.frame_count)
+                pos_curves.append(pos_curve)
+                pos_curve.group = group
+            for i in range(4):
+                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
+                rot_curve.keyframe_points.add(anim_desc.frame_count)
+                rot_curves.append(rot_curve)
+                rot_curve.group = group
+            curve_per_bone[bone_name] = pos_curves, rot_curves
+        for n, bone in enumerate(mdl.bones):
+            for frame_index in range(anim_desc.frame_count):
+                frame = frame_index
+                section = anim_desc.find_section(frame)
+                if not section:
+                    continue
 
-                for bone in anim_desc.anim_bones:
-                    if bone.bone_id == -1:
-                        continue
-                    mdl_bone = mdl.bones[bone.bone_id]
+                frame -= section.first_frame
+                data = section.anim_data
 
-                    bl_bone = armature.pose.bones.get(mdl_bone.name)
-                    bl_bone.rotation_mode = 'XYZ'
+                frame = min(frame, section.frame_count - 1)
 
-                    pos_scale = mdl_bone.position_scale
-                    rot_scale = mdl_bone.rotation_scale
-                    if bone.is_raw_pos:
-                        pos_frames = [Vector(np.multiply(np.multiply(bone.pos, pos_scale), scale))]
-                    elif bone.is_anim_pos:
-                        pos_frames = [Vector(np.multiply(np.multiply(pos, pos_scale), scale)) for pos in
-                                      bone.pos_anim]
-                    else:
-                        pos_frames = []
+                track_id = n
+                if mdl.bone_table_by_name:
+                    track_id = mdl.bone_table_by_name[n]
 
-                    if bone.is_raw_rot:
-                        rot_frames = [Euler(np.multiply(Quaternion(bone.quat).to_euler('XYZ'), rot_scale))]
-                    elif bone.is_anim_rot:
-                        rot_frames = [Euler(np.multiply(rot, rot_scale)) for rot in bone.vec_rot_anim]
-                    else:
-                        rot_frames = []
+                if track_id not in data.tracks:
+                    continue
+                track = data.tracks[track_id]
+                pos, rot = track.get_pos_rot(mdl.reader, bone, frame)
+                pos -= bone.position
+                rot = Quaternion(rot).rotation_difference(euler_to_quat(np.asarray(bone.rotation)))
+                pos_curves, rot_curves = curve_per_bone[bone.name]
+                for i in range(3):
+                    pos_curves[i].keyframe_points.add(1)
+                    pos_curves[i].keyframe_points[-1].co = (frame_index, (pos[i]) * scale)
 
-                    pos_curves, rot_curves = curve_per_bone[mdl_bone.name]
-                    for n, pos_frame in enumerate(pos_frames):
-                        pos = __swap_components(pos_frame, var_pos)
+                for i in range(4):
+                    rot_curves[i].keyframe_points.add(1)
+                    rot_curves[i].keyframe_points[-1].co = (frame_index, (rot[i]))
 
-                        for i in range(3):
-                            pos_curves[i].keyframe_points.add(1)
-                            pos_curves[i].keyframe_points[-1].co = (n, pos[i])
-
-                    for n, rot_frame in enumerate(rot_frames):
-                        fixed_rot = rot_frame
-                        if mdl_bone.parent_bone_index == -1:
-                            fixed_rot.x += math.radians(-90)
-                            fixed_rot.y += math.radians(180)
-                            fixed_rot.z += math.radians(-90)
-                        fixed_rot = Euler(__swap_components(fixed_rot, var_rot))
-                        # qx = Quaternion([1, 0, 0], fixed_rot[0])
-                        # qy = Quaternion([0, 1, 0], -fixed_rot[1])
-                        # qz = Quaternion([0, 0, 1], -fixed_rot[2])
-                        # fixed_rot: Euler = (qx @ qy @ qz).to_euler()
-                        # fixed_rot.x += mdl_bone.rotation[0]
-                        # fixed_rot.y += mdl_bone.rotation[1]
-                        # fixed_rot.z += mdl_bone.rotation[2]
-                        fixed_rot.rotate(Euler([math.radians(90), math.radians(0), math.radians(0)]))
-                        fixed_rot.rotate(Euler([math.radians(0), math.radians(0), math.radians(90)]))
-                        fixed_rot = (
-                                fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
-                        for i in range(3):
-                            rot_curves[i].keyframe_points.add(1)
-                            rot_curves[i].keyframe_points[-1].co = (n, fixed_rot[i])
-
-                        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode='OBJECT')

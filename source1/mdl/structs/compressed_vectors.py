@@ -12,15 +12,17 @@ class Quat:
 class Quat64(Quat):
     @staticmethod
     def read(reader: ByteIO):
-        raw_value = reader.read_uint64()
+        b0 = reader.read_uint32()
+        b1 = reader.read_uint32()
+        xs = b0 & 0x1FFFFF
+        ys = (((b1 & 0x03FF) << 11) | (b0 >> 21)) >> 0
+        zs = (b1 >> 10) & 0x1FFFFF
+        wn = -1 if (b1 & 0x80000000) else 1
 
-        x = ((raw_value & 0x1FFFFF) - 1048576) / 1048576.5
-        y = ((raw_value >> 21 & 0x1FFFFF) - 1048576) / 1048576.5
-        z = ((raw_value >> 42 & 0x1FFFFF) - 1048576) / 1048576.5
-        w = math.sqrt(1 - x * x - y * y - z * z)
-        w_neg = raw_value >> 61 & 0x1
-        if w_neg:
-            w *= -1
+        x = (xs - 0x100000) / 0x100000
+        y = (ys - 0x100000) / 0x100000
+        z = (zs - 0x100000) / 0x100000
+        w = wn * math.sqrt(1.0 - x * x - y * y - z * z)
         return x, y, z, w
 
 

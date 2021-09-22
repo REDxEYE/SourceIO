@@ -1,7 +1,11 @@
+import math
 from enum import IntFlag
 
 from typing import List
 
+from .animation import AnimSection, AnimTrack
+from .bone import BoneV49
+from ...dmx.sfm.session import Bone
 from ....utilities.byte_io_mdl import ByteIO
 from ....source_shared.base import Base
 from .compressed_vectors import Quat48, Quat64
@@ -114,7 +118,7 @@ class AnimDesc(Base):
         self.fps = 0.0
         self.flags = AnimDescFlags(0)
         self.frame_count = 0
-        self.anim_block_id = 0
+        self.block_id = 0
         self.anim_offset = 0
         self.anim_block_ikrule_offset = 0
 
@@ -132,7 +136,8 @@ class AnimDesc(Base):
         self.stall_time = 0
         self.anim_block = 0
 
-        self.anim_bones: List[AnimBone] = []
+        self.anim_sections: List[AnimSection] = []
+        self.tracks: List[AnimTrack] = []
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
@@ -150,7 +155,7 @@ class AnimDesc(Base):
 
         reader.skip(4 * 5)
 
-        self.anim_block_id = reader.read_int32()
+        self.block_id = reader.read_int32()
         self.anim_offset = reader.read_int32()
 
         ikrule_count = reader.read_int32()
@@ -168,48 +173,35 @@ class AnimDesc(Base):
         self.span_offset = reader.read_int32()
 
         self.stall_time = reader.read_float()
-        # try:
-        #     with reader.save_current_pos():
-        #         self.read_studioanim(reader, entry)
-        # except Exception as ex:
-        #     print(f'Failed to load animations: {ex}:{ex.__cause__}')
+        with reader.save_current_pos():
 
-    def read_studioanim(self, reader: ByteIO, entry):
-        from ..mdl_file import Mdl
-        mdl: Mdl = self.get_value('MDL')
-        curr_offset = self.anim_offset
-        next_offset = -1
-        while next_offset != 0:
-            reader.seek(entry + curr_offset)
-            bone_index = reader.read_int8()
-            bone_flag = reader.read_uint8()
-            next_offset = reader.read_int16()
-            curr_offset += next_offset
+            if self.section_frame_count != 0:
+                reader.seek(entry + self.section_offset)
+                section_count = math.ceil(self.frame_count / self.section_frame_count)
+                first_frame = 0
+                for _ in range(section_count):
+                    anim_section = AnimSection()
+                    anim_section.read(reader)
+                    anim_section.first_frame = first_frame
+                    anim_section.frame_count = min(first_frame + self.section_frame_count,
+                                                   self.frame_count) - first_frame
+                    self.anim_sections.append(anim_section)
+                    first_frame += self.section_frame_count
+            else:
+                anim_section = AnimSection()
+                anim_section.block_id = self.block_id
+                anim_section.anim_offset = self.anim_offset
+                anim_section.frame_count = self.frame_count
+                self.anim_sections.append(anim_section)
 
-            bone = AnimBone(bone_index, bone_flag, self.frame_count)
-            bone.read(reader)
-            self.anim_bones.append(bone)
+            for anim_section in self.anim_sections:
+                if anim_section.block_id == 0:
+                    reader.seek(entry + anim_section.anim_offset)
+                    anim_section.anim_data.read(reader)
+                # else:
+                #     pass
 
-    def read_movements(self):
-        if self.movement_count > 0:
-            raise Exception('Movements are not yet supported.')
-
-    def read_span_data(self, reader: ByteIO):
-        if self.span_count > 0 and self.span_offset != 0:
-            with reader.save_current_pos():
-                reader.seek(abs(self.base_prt) + self.span_offset)
-                # TODO: https://github.com/ZeqMacaw/Crowbar/blob/5e4effa8491b358b8bae6f205599358880b7ee85/Crowbar/Core/GameModel/SourceModel49/SourceMdlFile49.vb#L1148
-                raise NotImplementedError()
-
-    def read_frames(self, reader, offset, section_id):
-        if self.flags & AnimDescFlags.FRAMEANIM == 0:
-            from ..mdl_file import Mdl
-            mdl: Mdl = self.get_value('MDL')
-            # section_count = (self.frame_count // self.section_frame_count) + 2
-            bone_count = len(mdl.bones)
-
-            for _ in mdl.bones:
-                bone_index = reader.read_uint8()
-                if bone_count == 255:
-                    reader.skip(3)
-                assert bone_index < bone_count
+    def find_section(self, frame: int):
+        for section in self.anim_sections:
+            if section.first_frame <= frame < section.first_frame + section.frame_count:
+                return section

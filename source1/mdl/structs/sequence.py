@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 from .auto_layer import AutoLayer
 from .event import Event
 from ....utilities.byte_io_mdl import ByteIO
@@ -21,7 +23,7 @@ class Sequence(Base):
         self.anim_offset_offset = 0
         self.movement_offset = 0
         self.group_size = []
-        self.param_index = []
+        self.param_offset = []
         self.param_start = []
         self.param_end = []
         self.param_parent = 0
@@ -43,6 +45,7 @@ class Sequence(Base):
         self.key_values = ''
         self.cycle_pose_offset = 0
         self.activity_modifiers = []  # type:List[str]
+        self.anim: np.ndarray = np.array([])
 
     def read(self, reader: ByteIO):
         entry = reader.tell()
@@ -69,7 +72,11 @@ class Sequence(Base):
 
         self.movement_offset = reader.read_int32()
         self.group_size = reader.read_fmt('2i')
-        self.param_index = reader.read_fmt('2i')
+        with reader.save_current_pos():
+            reader.seek(entry + self.anim_offset_offset)
+            self.anim = np.frombuffer(reader.read(self.group_size[0] * self.group_size[1]*2), dtype=np.uint16)
+
+        self.param_offset = reader.read_fmt('2i')
         self.param_start = reader.read_fmt('2f')
         self.param_end = reader.read_fmt('2f')
         self.param_parent = reader.read_int32()
