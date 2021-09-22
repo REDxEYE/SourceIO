@@ -23,7 +23,7 @@ if not NO_BPY:
     import bpy
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
-    from .goldsrc_operators import (GBSPImport_OT_operator,
+    from .goldsrc_operators import (SOURCEIO_OT_GBSPImport,
                                     SOURCEIO_OT_GMDLImport)
 
     from .source1_operators import (SOURCEIO_OT_BSPImport,
@@ -94,7 +94,7 @@ if not NO_BPY:
             layout.separator()
             layout.operator(SOURCEIO_OT_GMDLImport.bl_idname, text="GoldSrc model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
-            layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
+            layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
             layout.separator()
             layout.operator(SourceIO_OP_VPKBrowserLoader.bl_idname, text="Browse new VPK (.vpk)",
@@ -148,7 +148,7 @@ if not NO_BPY:
 
     classes = (
         # GoldSrc
-        GBSPImport_OT_operator,
+        SOURCEIO_OT_GBSPImport,
         SOURCEIO_OT_GMDLImport,
         # Source1 stuff
 
