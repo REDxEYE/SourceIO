@@ -47,7 +47,7 @@ node_categories = [
 ]
 
 classes = (
-    SourceIOModelTree,
+    SourceIO_NT_ModelTree,
 
     nodes.SourceIOObjectNode,
     nodes.SourceIOModelNode,
@@ -66,7 +66,7 @@ classes = (
     sockets.SourceIOSkinGroupSocket,
     sockets.SourceIOTextureSocket,
 
-    SourceIOEvaluateNodeTree
+    SourceIO_OP_EvaluateNodeTree
 )
 
 

@@ -18,9 +18,9 @@ logger = BPYLoggingManager().get_logger("SourceIO::Operators")
 
 
 # noinspection PyPep8Naming
-class MDLImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_MDLImport(bpy.types.Operator):
     """Load Source Engine MDL models"""
-    bl_idname = "source_io.mdl"
+    bl_idname = "sourceio.mdl"
     bl_label = "Import Source MDL file"
     bl_options = {'UNDO'}
 
@@ -82,9 +82,9 @@ class MDLImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class RigImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_RigImport(bpy.types.Operator):
     """Load SFM ik-rig script"""
-    bl_idname = "source_io.rig"
+    bl_idname = "sourceio.rig"
     bl_label = "Import SFM ik-rig script"
     bl_options = {'UNDO'}
 
@@ -110,9 +110,9 @@ class RigImport_OT_operator(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
-class BSPImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_BSPImport(bpy.types.Operator):
     """Load Source Engine BSP models"""
-    bl_idname = "source_io.bsp"
+    bl_idname = "sourceio.bsp"
     bl_label = "Import Source BSP file"
     bl_options = {'UNDO'}
 
@@ -154,9 +154,9 @@ class BSPImport_OT_operator(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
-class DMXImporter_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
     """Load Source Engine DMX scene"""
-    bl_idname = "source_io.dmx"
+    bl_idname = "sourceio.dmx"
     bl_label = "[!!!WIP!!!] Import Source Session file"
     bl_options = {'UNDO'}
 
@@ -188,9 +188,9 @@ if is_vtflib_supported():
 
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
-    class VTFImport_OT_operator(bpy.types.Operator):
+    class SOURCEIO_OT_VTFImport(bpy.types.Operator):
         """Load Source Engine VTF texture"""
-        bl_idname = "import_texture.vtf"
+        bl_idname = "sourceio.vtf"
         bl_label = "Import VTF"
         bl_options = {'UNDO'}
 
@@ -214,9 +214,9 @@ if is_vtflib_supported():
 
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
-    class SkyboxImport_OT_operator(bpy.types.Operator):
+    class SOURCEIO_OT_SkyboxImport(bpy.types.Operator):
         """Load Source Engine Skybox texture"""
-        bl_idname = "import_texture.vtf_skybox"
+        bl_idname = "sourceio.vtf_skybox"
         bl_label = "Import Skybox"
         bl_options = {'UNDO'}
 
@@ -254,9 +254,9 @@ if is_vtflib_supported():
 
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
-    class VMTImport_OT_operator(bpy.types.Operator):
+    class SOURCEIO_OT_VMTImport(bpy.types.Operator):
         """Load Source Engine VMT material"""
-        bl_idname = "import_texture.vmt"
+        bl_idname = "sourceio.vmt"
         bl_label = "Import VMT"
         bl_options = {'UNDO'}
 
@@ -288,9 +288,9 @@ if is_vtflib_supported():
 
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
-    class VTFExport_OT_operator(bpy.types.Operator):
+    class SOURCEIO_OT_VTFExport(bpy.types.Operator):
         """Export VTF texture"""
-        bl_idname = "export_texture.vtf"
+        bl_idname = "sourceio.export_vtf"
         bl_label = "Export VTF"
 
         filename_ext = ".vtf"
@@ -379,7 +379,7 @@ if is_vtflib_supported():
     def export(self, context):
         cur_img = context.space_data.image
         if cur_img is None:
-            self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF')
+            self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF')
         else:
-            self.layout.operator(VTFExport_OT_operator.bl_idname, text='Export to VTF').filename = \
+            self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF').filename = \
                 os.path.splitext(cur_img.name)[0]

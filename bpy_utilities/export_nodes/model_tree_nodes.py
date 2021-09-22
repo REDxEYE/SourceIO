@@ -6,7 +6,7 @@ from bpy.types import NodeTree, Node, Operator
 from . import nodes
 
 
-class SourceIOEvaluateNodeTree(Operator):
+class SourceIO_OP_EvaluateNodeTree(Operator):
     bl_idname = "sourceio.evaluate_nodetree"
     bl_label = "Evaluate tree"
     tmp_file: bpy.types.Text
@@ -47,8 +47,8 @@ class SourceIOEvaluateNodeTree(Operator):
             self.tmp_file.write('\n')
 
 
-class SourceIOModelTree(NodeTree):
-    bl_idname = 'SourceIOModelDefinition'
+class SourceIO_NT_ModelTree(NodeTree):
+    bl_idname = 'sourceio.model_definition'
     bl_label = "SourceIO model definition"
     bl_icon = 'NODETREE'
 

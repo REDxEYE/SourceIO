@@ -25,8 +25,8 @@ def get_parent(collection):
     return bpy.context.scene.collection
 
 
-class LoadEntity_OT_operator(bpy.types.Operator):
-    bl_idname = "source_io.load_placeholder"
+class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
+    bl_idname = "sourceio.load_placeholder"
     bl_label = "Load Entity"
     bl_options = {'UNDO'}
 
@@ -174,8 +174,8 @@ class LoadEntity_OT_operator(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ChangeSkin_OT_operator(bpy.types.Operator):
-    bl_idname = "source_io.select_skin"
+class SOURCEIO_OT_ChangeSkin(bpy.types.Operator):
+    bl_idname = "sourceio.select_skin"
     bl_label = "Change skin"
     bl_options = {'UNDO'}
 
@@ -237,9 +237,9 @@ class UITools:
     bl_category = "SourceIO"
 
 
-class SourceIOUtils_PT_panel(UITools, bpy.types.Panel):
+class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
     bl_label = "SourceIO utils"
-    bl_idname = "source_io.utils"
+    bl_idname = "sourceio.utils"
 
     def draw(self, context):
         pass
@@ -250,10 +250,10 @@ class SourceIOUtils_PT_panel(UITools, bpy.types.Panel):
         obj: bpy.types.Object = context.active_object
         return obj and (obj.get("entity_data",None) or obj.get("skin_groups", None))
 
-class Placeholders_PT_panel(UITools, bpy.types.Panel):
+class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
     bl_label = 'Placeholders loading'
-    bl_idname = 'source_io.placeholders'
-    bl_parent_id = "source_io.utils"
+    bl_idname = 'sourceio.placeholders'
+    bl_parent_id = "sourceio.utils"
 
     @classmethod
     def poll(cls, context):
@@ -271,7 +271,7 @@ class Placeholders_PT_panel(UITools, bpy.types.Panel):
             row.label(text=str(len([obj for obj in context.selected_objects if 'entity_data' in obj])))
             if entiry_data.get('prop_path', False):
                 box = self.layout.box()
-                box.operator('source_io.load_placeholder')
+                box.operator('sourceio.load_placeholder')
             box = self.layout.box()
             for k, v in entity_raw_data.items():
                 row = box.row()
@@ -279,10 +279,10 @@ class Placeholders_PT_panel(UITools, bpy.types.Panel):
                 row.label(text=str(v))
 
 
-class SkinChanger_PT_panel(UITools, bpy.types.Panel):
+class SOURCEIO_PT_SkinChanger(UITools, bpy.types.Panel):
     bl_label = 'Model skins'
-    bl_idname = 'source_io.skin_changer'
-    bl_parent_id = "source_io.utils"
+    bl_idname = 'sourceio.skin_changer'
+    bl_parent_id = "sourceio.utils"
 
     @classmethod
     def poll(cls, context):
@@ -297,7 +297,7 @@ class SkinChanger_PT_panel(UITools, bpy.types.Panel):
             box = self.layout.box()
             for skin, _ in obj['skin_groups'].items():
                 row = box.row()
-                op = row.operator('source_io.select_skin', text=skin)
+                op = row.operator('sourceio.select_skin', text=skin)
                 op.skin_name = skin
                 if skin == obj['active_skin']:
                     row.enabled = False

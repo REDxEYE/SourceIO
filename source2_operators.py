@@ -13,9 +13,9 @@ from .content_providers.content_manager import ContentManager
 from .utilities.math_utilities import HAMMER_UNIT_TO_METERS
 
 
-class VMDLImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
     """Load Source2 VMDL"""
-    bl_idname = "source_io.vmdl"
+    bl_idname = "sourceio.vmdl"
     bl_label = "Import Source2 VMDL file"
     bl_options = {'UNDO'}
 
@@ -52,9 +52,9 @@ class VMDLImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class VWRLDImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_VWRLDImport(bpy.types.Operator):
     """Load Source2 VWRLD"""
-    bl_idname = "source_io.vwrld"
+    bl_idname = "sourceio.vwrld"
     bl_label = "Import Source2 VWRLD file"
     bl_options = {'UNDO'}
 
@@ -84,9 +84,9 @@ class VWRLDImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class VPK_VWRLDImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_VPK_VWRLDImport(bpy.types.Operator):
     """Load Source2 VWRLD"""
-    bl_idname = "source_io.vwrld_vpk"
+    bl_idname = "sourceio.vwrld_vpk"
     bl_label = "Import Source2 VWRLD file from VPK"
     bl_options = {'UNDO'}
 
@@ -116,9 +116,9 @@ class VPK_VWRLDImport_OT_operator(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences
-class VMATImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_VMATImport(bpy.types.Operator):
     """Load Source2 material"""
-    bl_idname = "source_io.vmat"
+    bl_idname = "sourceio.vmat"
     bl_label = "Import Source2 VMDL file"
     bl_options = {'UNDO'}
 
@@ -147,9 +147,9 @@ class VMATImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class VTEXImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_VTEXImport(bpy.types.Operator):
     """Load Source Engine VTF texture"""
-    bl_idname = "source_io.vtex"
+    bl_idname = "sourceio.vtex"
     bl_label = "Import VTEX"
     bl_options = {'UNDO'}
 
@@ -174,9 +174,9 @@ class VTEXImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class DMXCameraImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_DMXCameraImport(bpy.types.Operator):
     """Load Valve DMX camera data"""
-    bl_idname = "source_io.dmx_camera"
+    bl_idname = "sourceio.dmx_camera"
     bl_label = "Import DMX camera"
     bl_options = {'UNDO'}
 

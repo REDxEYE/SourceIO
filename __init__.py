@@ -24,25 +24,25 @@ if not NO_BPY:
     from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
     from .goldsrc_operators import (GBSPImport_OT_operator,
-                                    GMDLImport_OT_operator)
+                                    SOURCEIO_OT_GMDLImport)
 
-    from .source1_operators import (BSPImport_OT_operator,
-                                    MDLImport_OT_operator,
-                                    DMXImporter_OT_operator,
-                                    RigImport_OT_operator,
+    from .source1_operators import (SOURCEIO_OT_BSPImport,
+                                    SOURCEIO_OT_MDLImport,
+                                    SOURCEIO_OT_DMXImporter,
+                                    SOURCEIO_OT_RigImport,
                                     )
-    from .source2_operators import (VMATImport_OT_operator,
-                                    VTEXImport_OT_operator,
-                                    VMDLImport_OT_operator,
-                                    VWRLDImport_OT_operator,
-                                    VPK_VWRLDImport_OT_operator,
-                                    DMXCameraImport_OT_operator
+    from .source2_operators import (SOURCEIO_OT_VMATImport,
+                                    SOURCEIO_OT_VTEXImport,
+                                    SOURCEIO_OT_VMDLImport,
+                                    SOURCEIO_OT_VWRLDImport,
+                                    SOURCEIO_OT_VPK_VWRLDImport,
+                                    SOURCEIO_OT_DMXCameraImport
                                     )
-    from .shared_operators import (SourceIOUtils_PT_panel,
-                                   Placeholders_PT_panel,
-                                   SkinChanger_PT_panel,
-                                   ChangeSkin_OT_operator,
-                                   LoadEntity_OT_operator,
+    from .shared_operators import (SOURCEIO_PT_Utils,
+                                   SOURCEIO_PT_Placeholders,
+                                   SOURCEIO_PT_SkinChanger,
+                                   SOURCEIO_OT_ChangeSkin,
+                                   ChangeSkin_OT_LoadEntity,
                                    )
     from .vpk_operators import (SourceIO_OP_VPKBrowser,
                                 SourceIO_OP_VPKBrowserLoader,
@@ -67,32 +67,32 @@ if not NO_BPY:
             vtex_icon = custom_icons["main"]["vtex_icon"]
             vwrld_icon = custom_icons["main"]["vwrld_icon"]
             layout = self.layout
-            layout.operator(MDLImport_OT_operator.bl_idname, text="Source model (.mdl)",
+            layout.operator(SOURCEIO_OT_MDLImport.bl_idname, text="Source model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
-            layout.operator(BSPImport_OT_operator.bl_idname, text="Source map (.bsp)",
+            layout.operator(SOURCEIO_OT_BSPImport.bl_idname, text="Source map (.bsp)",
                             icon_value=bsp_icon.icon_id)
             if is_vtflib_supported():
-                layout.operator(VTFImport_OT_operator.bl_idname, text="Source texture (.vtf)",
+                layout.operator(SOURCEIO_OT_VTFImport.bl_idname, text="Source texture (.vtf)",
                                 icon_value=vtf_icon.icon_id)
-                layout.operator(SkyboxImport_OT_operator.bl_idname, text="Source Skybox (.vmt)",
+                layout.operator(SOURCEIO_OT_SkyboxImport.bl_idname, text="Source Skybox (.vmt)",
                                 icon_value=vtf_icon.icon_id)
-                layout.operator(VMTImport_OT_operator.bl_idname, text="Source material (.vmt)",
+                layout.operator(SOURCEIO_OT_VMTImport.bl_idname, text="Source material (.vmt)",
                                 icon_value=vmt_icon.icon_id)
-            layout.operator(DMXImporter_OT_operator.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
-            layout.operator(RigImport_OT_operator.bl_idname, text="SFM ik-rig script (.py)")
+            layout.operator(SOURCEIO_OT_DMXImporter.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
+            layout.operator(SOURCEIO_OT_RigImport.bl_idname, text="SFM ik-rig script (.py)")
             layout.separator()
-            layout.operator(VMDLImport_OT_operator.bl_idname, text="Source2 model (.vmdl)",
+            layout.operator(SOURCEIO_OT_VMDLImport.bl_idname, text="Source2 model (.vmdl)",
                             icon_value=model_doc_icon.icon_id)
-            layout.operator(VWRLDImport_OT_operator.bl_idname, text="Source2 map (.vwrld)",
+            layout.operator(SOURCEIO_OT_VWRLDImport.bl_idname, text="Source2 map (.vwrld)",
                             icon_value=vwrld_icon.icon_id)
-            layout.operator(VPK_VWRLDImport_OT_operator.bl_idname, text="Source2 packed map (.vpk)",
+            layout.operator(SOURCEIO_OT_VPK_VWRLDImport.bl_idname, text="Source2 packed map (.vpk)",
                             icon_value=vwrld_icon.icon_id)
-            layout.operator(VTEXImport_OT_operator.bl_idname, text="Source2 texture (.vtex)",
+            layout.operator(SOURCEIO_OT_VTEXImport.bl_idname, text="Source2 texture (.vtex)",
                             icon_value=vtex_icon.icon_id)
-            layout.operator(VMATImport_OT_operator.bl_idname, text="Source2 material (.vmat)",
+            layout.operator(SOURCEIO_OT_VMATImport.bl_idname, text="Source2 material (.vmat)",
                             icon_value=vmat_icon.icon_id)
             layout.separator()
-            layout.operator(GMDLImport_OT_operator.bl_idname, text="GoldSrc model (.mdl)",
+            layout.operator(SOURCEIO_OT_GMDLImport.bl_idname, text="GoldSrc model (.mdl)",
                             icon_value=crowbar_icon.icon_id)
             layout.operator(GBSPImport_OT_operator.bl_idname, text="GoldSrc map (.bsp)",
                             icon_value=bsp_icon.icon_id)
@@ -111,7 +111,7 @@ if not NO_BPY:
 
         def draw(self, context):
             layout = self.layout
-            layout.operator(DMXCameraImport_OT_operator.bl_idname, text="Valve camera(.dmx)")
+            layout.operator(SOURCEIO_OT_DMXCameraImport.bl_idname, text="Valve camera(.dmx)")
 
 
     def menu_import(self, context):
@@ -149,44 +149,44 @@ if not NO_BPY:
     classes = (
         # GoldSrc
         GBSPImport_OT_operator,
-        GMDLImport_OT_operator,
+        SOURCEIO_OT_GMDLImport,
         # Source1 stuff
 
-        MDLImport_OT_operator,
-        BSPImport_OT_operator,
-        DMXImporter_OT_operator,
-        RigImport_OT_operator,
+        SOURCEIO_OT_MDLImport,
+        SOURCEIO_OT_BSPImport,
+        SOURCEIO_OT_DMXImporter,
+        SOURCEIO_OT_RigImport,
 
         # Source2 stuff
-        DMXCameraImport_OT_operator,
-        VMDLImport_OT_operator,
-        VTEXImport_OT_operator,
-        VMATImport_OT_operator,
-        VPK_VWRLDImport_OT_operator,
-        VWRLDImport_OT_operator,
+        SOURCEIO_OT_DMXCameraImport,
+        SOURCEIO_OT_VMDLImport,
+        SOURCEIO_OT_VTEXImport,
+        SOURCEIO_OT_VMATImport,
+        SOURCEIO_OT_VPK_VWRLDImport,
+        SOURCEIO_OT_VWRLDImport,
 
         # Addon tools
         # SourceIOPreferences,
         SourceIO_MT_Menu,
         SourceIOUtils_MT_Menu,
-        SourceIOUtils_PT_panel,
-        Placeholders_PT_panel,
-        SkinChanger_PT_panel,
-        LoadEntity_OT_operator,
-        ChangeSkin_OT_operator,
+        SOURCEIO_PT_Utils,
+        SOURCEIO_PT_Placeholders,
+        SOURCEIO_PT_SkinChanger,
+        ChangeSkin_OT_LoadEntity,
+        SOURCEIO_OT_ChangeSkin,
 
         *vpk_classes,
     )
 
     if is_vtflib_supported():
-        from .source1_operators import (VTFExport_OT_operator,
-                                        VTFImport_OT_operator,
-                                        VMTImport_OT_operator,
-                                        SkyboxImport_OT_operator,
+        from .source1_operators import (SOURCEIO_OT_VTFExport,
+                                        SOURCEIO_OT_VTFImport,
+                                        SOURCEIO_OT_VMTImport,
+                                        SOURCEIO_OT_SkyboxImport,
                                         )
 
-        classes = tuple([*classes, VTFExport_OT_operator, VTFImport_OT_operator,
-                         VMTImport_OT_operator, SkyboxImport_OT_operator])
+        classes = tuple([*classes, SOURCEIO_OT_VTFExport, SOURCEIO_OT_VTFImport,
+                         SOURCEIO_OT_VMTImport, SOURCEIO_OT_SkyboxImport])
 
     register_, unregister_ = bpy.utils.register_classes_factory(classes)
 

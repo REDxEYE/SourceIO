@@ -13,9 +13,9 @@ from .bpy_utilities.logger import BPYLoggingManager
 logger = BPYLoggingManager().get_logger("GoldSrc::Operators")
 
 
-class GBSPImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_GBSPImport(bpy.types.Operator):
     """Load GoldSrc BSP"""
-    bl_idname = "source_io.gbsp"
+    bl_idname = "sourceio.gbsp"
     bl_label = "Import GoldSrc BSP file"
     bl_options = {'UNDO'}
 
@@ -47,9 +47,9 @@ class GBSPImport_OT_operator(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class GMDLImport_OT_operator(bpy.types.Operator):
+class SOURCEIO_OT_GMDLImport(bpy.types.Operator):
     """Load GoldSrc MDL"""
-    bl_idname = "source_io.gmdl"
+    bl_idname = "sourceio.gmdl"
     bl_label = "Import GoldSrc MDL file"
     bl_options = {'UNDO'}
 
