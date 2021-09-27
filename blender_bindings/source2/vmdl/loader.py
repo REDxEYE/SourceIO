@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from typing import Optional
 
@@ -5,9 +6,10 @@ import bpy
 from itertools import chain
 
 import numpy as np
-from mathutils import Quaternion, Vector, Matrix
+from mathutils import Quaternion, Vector, Matrix, Euler
 
 from ..vmat.loader import ValveCompiledMaterialLoader
+from ..vphys.loader import ValveCompiledPhysicsLoader
 from ...shared.model_container import Source2ModelContainer
 from ...utils.utils import get_material, get_new_unique_collection
 from ....library.source2.common import convert_normals
@@ -295,7 +297,6 @@ class ValveCompiledModelLoader(ValveCompiledModel):
 
                 global_vertex_offset += vertex_count
 
-    # noinspection PyUnresolvedReferences
     def build_armature(self):
         data_block = self.get_data_block(block_name='DATA')[0]
         model_skeleton = data_block.data['m_modelSkeleton']
@@ -496,11 +497,15 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 phys_file = ContentManager().find_file(phys_file_path)
                 if not phys_file:
                     continue
-                vphys = ValveCompiledPhysics(phys_file, self.scale)
+                vphys = ValveCompiledPhysicsLoader(phys_file, self.scale)
                 vphys.parse_meshes()
                 phys_meshes = vphys.build_mesh()
                 self.container.physics_objects.extend(phys_meshes)
         elif 'embedded_physics' in cdata.data and cdata.data['embedded_physics']:
             block_id = cdata.data['embedded_physics']['phys_data_block']
             data = self.get_data_block(block_id=block_id)
-            print(data)
+            vphys = ValveCompiledPhysicsLoader(None, self.scale)
+            vphys.data_block = data
+            vphys.parse_meshes()
+            phys_meshes = vphys.build_mesh()
+            self.container.physics_objects.extend(phys_meshes)

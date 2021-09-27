@@ -8,7 +8,7 @@ from ...utils.byte_io_mdl import ByteIO
 from .base_block import DataBlock
 
 try:
-    from ..utils.PySourceIOUtils import *
+    from ...utils.PySourceIOUtils import *
     from ...utils.thirdparty.lz4_wrapper import LZ4Wrapper
 
 

@@ -8,11 +8,6 @@ class ValveCompiledPhysicsLoader(ValveCompiledPhysics):
     def __init__(self, path_or_file, scale=HAMMER_UNIT_TO_METERS):
         super().__init__(path_or_file)
         self.scale = scale
-        self.data_block = self.get_data_block(block_name='DATA')[0]
-        self.spheres = []
-        self.capsules = []
-        self.hulls = []
-        self.meshes = []
 
     def build_mesh(self):
         meshes = []

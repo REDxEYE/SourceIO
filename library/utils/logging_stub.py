@@ -51,6 +51,11 @@ class BPYLogger:
         self._logger.setLevel(DEBUG)
         self.name = name
 
+    def print(self, *args, sep=' ', end='\n', ):
+        self._filter.function = _get_caller_function()
+        self._logger.info(sep.join(map(str, args)))
+        sys.stdout.flush()
+
     def debug(self, message):
         self._filter.function = _get_caller_function()
         self._logger.debug(message)

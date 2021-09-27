@@ -5,10 +5,12 @@ from ....utils.math_utilities import HAMMER_UNIT_TO_METERS
 
 
 class ValveCompiledPhysics(ValveCompiledResource):
-    def __init__(self, path_or_file, scale=HAMMER_UNIT_TO_METERS):
+    def __init__(self, path_or_file):
         super().__init__(path_or_file)
-        self.scale = scale
-        self.data_block = self.get_data_block(block_name='DATA')[0]
+        if self.data_blocks:
+            self.data_block = self.get_data_block(block_name='DATA')[0]
+        else:
+            self.data_block = None
         self.spheres = []
         self.capsules = []
         self.hulls = []

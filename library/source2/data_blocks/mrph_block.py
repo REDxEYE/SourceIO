@@ -14,6 +14,7 @@ class MRPH(DATA):
         self.flex_data = {}
 
     def read_morphs(self):
+        from ..data_blocks import TEXR
         from ..resource_types import ValveCompiledTexture
         if self.data['m_pTextureAtlas'] not in self._valve_file.available_resources:
             return False
@@ -25,7 +26,7 @@ class MRPH(DATA):
             return False
         morph_atlas = ValveCompiledTexture(vmorf_path)
         morph_atlas.read_block_info()
-        morph_atlas_data = morph_atlas.get_data_block(block_name="DATA")[0]
+        morph_atlas_data: TEXR = morph_atlas.get_data_block(block_name="DATA")[0]
         morph_atlas_data.read_image(False)
         raw_flex_data = np.frombuffer(morph_atlas_data.image_data, dtype=np.uint8)
         width = self.data['m_nWidth']

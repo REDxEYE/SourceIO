@@ -16,9 +16,11 @@ class ValveCompiledResource:
         return cls(filepath)
 
     def __init__(self, path_or_file):
-        self.reader = ByteIO(path_or_file)
         self.header = CompiledHeader()
-        self.header.read(self.reader)
+        if path_or_file is not None:
+            self.reader = ByteIO(path_or_file)
+            self.header.read(self.reader)
+
         self.info_blocks: List[InfoBlock] = []
         self.data_blocks: List[OptionalBlock] = []
         self.available_resources: Dict[Union[str, int], Path] = {}
@@ -29,25 +31,26 @@ class ValveCompiledResource:
     def read_block_info(self):
         self.info_blocks.clear()
         self.data_blocks.clear()
-        self.reader.seek(4 * 4)
-        for n in range(self.header.block_count):
-            block_info = InfoBlock()
-            block_info.read(self.reader)
-            self.info_blocks.append(block_info)
-            self.data_blocks.append(None)
+        if self.header.block_count:
+            self.reader.seek(4 * 4)
+            for n in range(self.header.block_count):
+                block_info = InfoBlock()
+                block_info.read(self.reader)
+                self.info_blocks.append(block_info)
+                self.data_blocks.append(None)
 
-        for i in range(len(self.info_blocks)):
-            block_info = self.info_blocks[i]
-            if self.data_blocks[i] is not None:
-                continue
-            with self.reader.save_current_pos():
-                self.reader.seek(block_info.entry + block_info.block_offset)
-                block_class = self.get_data_block_class(block_info.block_name)
-                if block_class is None:
-                    self.data_blocks[self.info_blocks.index(block_info)] = None
+            for i in range(len(self.info_blocks)):
+                block_info = self.info_blocks[i]
+                if self.data_blocks[i] is not None:
                     continue
-                block = block_class(self, block_info)
-                self.data_blocks[self.info_blocks.index(block_info)] = block
+                with self.reader.save_current_pos():
+                    self.reader.seek(block_info.entry + block_info.block_offset)
+                    block_class = self.get_data_block_class(block_info.block_name)
+                    if block_class is None:
+                        self.data_blocks[self.info_blocks.index(block_info)] = None
+                        continue
+                    block = block_class(self, block_info)
+                    self.data_blocks[self.info_blocks.index(block_info)] = block
 
     def get_data_block(self, *,
                        block_id: Optional[int] = None,
