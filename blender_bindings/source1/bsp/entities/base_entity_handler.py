@@ -569,31 +569,31 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('color_correction', obj, 'logic')
+        if entity.filename:
+            lut_table_file = ContentManager().find_file(entity.filename)
+            if lut_table_file is not None:
+                lut_table = np.frombuffer(lut_table_file.read(), np.uint8).reshape((-1, 3))
+                lut_table = lut_table.astype(np.float32) / 255
 
-        lut_table_file = ContentManager().find_file(entity.filename)
-        if lut_table_file is not None:
-            lut_table = np.frombuffer(lut_table_file.read(), np.uint8).reshape((-1, 3))
-            lut_table = lut_table.astype(np.float32) / 255
+                def get_lut_at(r, g, b):
+                    index = (r // 8) + ((g // 8) + (b // 8) * 32) * 32
+                    return lut_table[index]
 
-            def get_lut_at(r, g, b):
-                index = (r // 8) + ((g // 8) + (b // 8) * 32) * 32
-                return lut_table[index]
+                black_level = get_lut_at(0, 0, 0)
+                white_level = get_lut_at(255, 255, 255)
+                points = []
+                for i in range(1, 8):
+                    col = get_lut_at(i * 32, i * 32, i * 32)
+                    points.append(col)
+                bpy.context.scene.view_settings.use_curve_mapping = True
+                bpy.context.scene.view_settings.curve_mapping.black_level = black_level.tolist()
+                bpy.context.scene.view_settings.curve_mapping.white_level = white_level.tolist()
+                curves = bpy.context.scene.view_settings.curve_mapping.curves[:3]
 
-            black_level = get_lut_at(0, 0, 0)
-            white_level = get_lut_at(255, 255, 255)
-            points = []
-            for i in range(1, 8):
-                col = get_lut_at(i * 32, i * 32, i * 32)
-                points.append(col)
-            bpy.context.scene.view_settings.use_curve_mapping = True
-            bpy.context.scene.view_settings.curve_mapping.black_level = black_level.tolist()
-            bpy.context.scene.view_settings.curve_mapping.white_level = white_level.tolist()
-            curves = bpy.context.scene.view_settings.curve_mapping.curves[:3]
-
-            for pos, color in enumerate([*points]):
-                curves[0].points.new((pos + 1) / 8, color[0])
-                curves[1].points.new((pos + 1) / 8, color[1])
-                curves[2].points.new((pos + 1) / 8, color[2])
+                for pos, color in enumerate([*points]):
+                    curves[0].points.new((pos + 1) / 8, color[0])
+                    curves[1].points.new((pos + 1) / 8, color[1])
+                    curves[2].points.new((pos + 1) / 8, color[2])
 
     def handle_env_wind(self, entity: env_wind, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
