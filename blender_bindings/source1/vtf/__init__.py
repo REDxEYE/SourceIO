@@ -17,17 +17,23 @@ if is_vtflib_supported():
     from ....library.source1.vtf import load_texture
     from ....library.source1.vtf.cubemap_to_envmap import convert_skybox_to_equiangular
 
+
     def import_texture(name, file_object, update=False):
         logger.info(f'Loading "{name}" texture')
         rgba_data, image_width, image_height = load_texture(file_object)
         return texture_from_data(name, rgba_data, image_width, image_height, update)
 
+
     def load_skybox_texture(skyname, width=1024):
         main_data, hdr_main_data, hdr_alpha_data = convert_skybox_to_equiangular(skyname, width)
         main_texture = texture_from_data(skyname, main_data, width, width // 2, False)
-        hdr_alpha_texture = texture_from_data(skyname + '_HDR_A', hdr_alpha_data, width // 2, width // 4, False)
-        hdr_main_texture = texture_from_data(skyname + '_HDR', hdr_main_data, width // 2, width // 4, False)
+        if hdr_main_data and hdr_alpha_data:
+            hdr_alpha_texture = texture_from_data(skyname + '_HDR_A', hdr_alpha_data, width // 2, width // 4, False)
+            hdr_main_texture = texture_from_data(skyname + '_HDR', hdr_main_data, width // 2, width // 4, False)
+        else:
+            hdr_main_texture, hdr_alpha_texture = None, None
         return main_texture, hdr_main_texture, hdr_alpha_texture
+
 
     def texture_from_data(name, rgba_data, image_width, image_height, update):
         if bpy.data.images.get(name, None) and not update:
