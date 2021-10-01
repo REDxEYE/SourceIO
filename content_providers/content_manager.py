@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union, Dict, List, TypeVar
 from collections import Counter
 
+from .content_provider_base import ContentProviderBase
 from .hfs_sub_manager import HFS2ContentProvider, HFS1ContentProvider
 from ..bpy_utilities.logger import BPYLoggingManager
 from .non_source_sub_manager import NonSourceContentProvider
@@ -66,6 +67,15 @@ class ContentManager(metaclass=SingletonMeta):
             return
         self.content_providers[name] = content_provider
         logger.info(f'Registered "{name}" provider for {content_provider.root.stem}')
+
+    def get_relative_path(self, filepath: Path):
+        for _, content_provider in self.content_providers.items():
+            content_provider: ContentProviderBase
+            if filepath.is_absolute() and filepath.is_relative_to(content_provider.root):
+                return filepath.relative_to(content_provider.root)
+            elif not filepath.is_absolute() and content_provider.find_file(filepath):
+                return filepath
+        return None
 
     def scan_for_content(self, source_game_path: Union[str, Path]):
         source_game_path = Path(source_game_path)
@@ -198,7 +208,7 @@ class ContentManager(metaclass=SingletonMeta):
                 return file
         return None
 
-    def find_path(self, filepath: str, additional_dir=None, extension=None, *, silent=False):
+    def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
