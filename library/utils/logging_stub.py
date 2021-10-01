@@ -75,3 +75,7 @@ class BPYLogger:
         self._filter.function or _get_caller_function()
         self._logger.error(message)
         sys.stdout.flush()
+
+    def exception(self, message):
+        self._filter.function or _get_caller_function()
+        self._logger.exception(message)

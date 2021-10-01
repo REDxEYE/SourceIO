@@ -8,14 +8,9 @@ logger = log_manager.get_logger('Source1::VTF')
 
 from ....library.source1.vtf import is_vtflib_supported
 
-
-class SkyboxException(Exception):
-    pass
-
-
 if is_vtflib_supported():
     from ....library.source1.vtf import load_texture
-    from ....library.source1.vtf.cubemap_to_envmap import convert_skybox_to_equiangular
+    from ....library.source1.vtf.cubemap_to_envmap import convert_skybox_to_equiangular, SkyboxException
 
 
     def import_texture(name, file_object, update=False):
@@ -57,6 +52,9 @@ if is_vtflib_supported():
         return image
 
 else:
+    class SkyboxException(Exception):
+        pass
+
 
     def import_texture(name, file_object, update=False):
         return

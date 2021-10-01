@@ -1,5 +1,6 @@
 import math
 import re
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -265,7 +266,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
             bpy.context.scene.world = bpy.data.worlds[entity.skyname]
         except SkyboxException:
-            self.logger.error('Failed to load Skybox')
+            self.logger.error('Failed to load Skybox due to:')
+            self.logger.exception(traceback.format_exc())
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
 
