@@ -105,7 +105,8 @@ def menu_import(self, context):
 
 def load_icon(loader, filename, name):
     script_path = Path(__file__).parent
-    loader.load(name, str(script_path / 'blender_bindings' / 'icons' / filename), 'IMAGE')
+    icon_path = script_path / 'icons' / filename
+    loader.load(name, str(icon_path), 'IMAGE')
 
 
 def register_custom_icon():
