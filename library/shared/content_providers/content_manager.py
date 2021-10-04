@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import Union, Dict, List, TypeVar
 from collections import Counter
 
-from .hfs_sub_manager import HFS2ContentProvider, HFS1ContentProvider
+from .hfs_provider import HFS2ContentProvider, HFS1ContentProvider
 from ....logger import SLoggingManager
 from .non_source_sub_manager import NonSourceContentProvider
-from .vpk_sub_manager import VPKContentProvider
+from .vpk_provider import VPKContentProvider
 from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
 from .source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
 from ....library.utils.path_utilities import backwalk_file_resolver, get_mod_path
@@ -34,6 +34,8 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.source1_common import Source1Common
         from .content_detectors.vindictus import VindictusDetector
         from .content_detectors.titanfall1 import TitanfallDetector
+        from .content_detectors.goldsrc import GoldSrcDetector
+        self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())
         self.detector_addons.append(RobotRepairDetector())
@@ -198,7 +200,7 @@ class ContentManager(metaclass=SingletonMeta):
                 return file
         return None
 
-    def find_path(self, filepath: str, additional_dir=None, extension=None, *, silent=False):
+    def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
         new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\'))
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)

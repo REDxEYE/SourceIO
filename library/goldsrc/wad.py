@@ -10,7 +10,7 @@ def make_texture(indices, palette, use_alpha: bool = False):
     new_palete = np.full((len(palette), 4), 255, dtype=np.uint8)
     new_palete[:, :3] = palette
 
-    colors = new_palete[np.array(indices)]
+    colors: np.ndarray = new_palete[np.array(indices)]
     colors = colors.astype(np.float32)
 
     if use_alpha:
@@ -112,7 +112,7 @@ class Font(MipTex):
 
         flags = struct.unpack('H', handle.read(2))[0]
 
-        texture_palette = np.frombuffer(handle.read(256*3), np.uint8).reshape((-1, 3))
+        texture_palette = np.frombuffer(handle.read(256 * 3), np.uint8).reshape((-1, 3))
 
         # assert handle.read(2) == b'\x00\x00', 'Invalid palette end anchor'
 

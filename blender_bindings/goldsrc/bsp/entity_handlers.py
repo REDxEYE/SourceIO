@@ -4,19 +4,19 @@ from pathlib import Path
 
 import bpy
 
-from ....library.goldsrc.bsp.mgr import GoldSrcContentManager
+from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.utils.math_utilities import parse_hammer_vector
 from ...utils.utils import get_new_unique_collection
 
-content_manager = GoldSrcContentManager()
+content_manager = ContentManager()
 
 
-def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotation=False):
+def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotation=True):
     model_name = Path(entity_data['model'])
     return handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=fix_rotation)
 
 
-def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=False):
+def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=True):
     from .. import import_model
     origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * scale
     angles = [math.radians(a) for a in parse_hammer_vector(entity_data.get('angles', '0 0 0'))]
@@ -25,12 +25,12 @@ def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rot
         y += math.pi / 2
         angles = [x, z, y]
     target_name = entity_data.get('targetname', entity_data['classname'])
-    model_path = content_manager.get_game_resource(str(model_name))
+    model_path = content_manager.find_file(str(model_name))
     if model_path:
         master_collection = get_new_unique_collection(target_name, parent_collection)
-        model_texture_path = content_manager.get_game_resource(str(model_name.with_name(model_name.stem + 't.mdl')))
-        model_container = import_model(model_path.open('rb'),
-                                       model_texture_path.open('rb') if model_texture_path is not None else None, scale,
+        model_texture_path = content_manager.find_file(str(model_name.with_name(model_name.stem + 't.mdl')))
+        model_container = import_model(model_path,
+                                       model_texture_path if model_texture_path is not None else None, scale,
                                        master_collection, disable_collection_sort=True, re_use_meshes=True)
         if model_container.armature:
             model_container.armature.location = origin
@@ -62,6 +62,6 @@ entity_handlers = {
     'monster_boid_flock': partial(handle_model_prop, Path('models/boid.mdl')),
     'monster_generic': handle_generic_model_prop,
     'cycler': handle_generic_model_prop,
-    'cycler_sprite': partial(handle_generic_model_prop, fix_rotation=True),
+    'cycler_sprite': handle_generic_model_prop,
     'env_model': handle_generic_model_prop,
 }

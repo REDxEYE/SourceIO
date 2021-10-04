@@ -31,6 +31,7 @@ class TextureData:
         self.height = 0
         self.offsets = (0, 0, 0, 0)
         self.data: Optional[np.array] = None
+        self.info_id = -1
 
     def parse(self, buffer: ByteIO):
         entry_offset = buffer.tell()
@@ -63,7 +64,7 @@ class TextureData:
         if self.data is not None:
             return self.data
 
-        resource = bsp.manager.get_game_resource(self.name)
+        resource = bsp.manager.find_file(self.name)
         resource: WadLump
         if resource:
             if isinstance(resource, MipTex):

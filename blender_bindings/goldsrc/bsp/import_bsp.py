@@ -6,7 +6,16 @@ import bpy
 import numpy as np
 
 from ...goldsrc.bsp.entity_handlers import entity_handlers
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import GoldSrcShaderMode1
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import GoldSrcShaderMode2
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import GoldSrcShaderMode5
 from ...utils.utils import get_or_create_collection, get_material
+from ....library.goldsrc.bsp.structs.texture import TextureInfo
+from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
+from ....library.goldsrc.rad import parse_rad, convert_light_value
+from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
 
 from ....logger import SLoggingManager
 from ....library.goldsrc.bsp.lump import LumpType
@@ -22,6 +31,7 @@ from ....library.goldsrc.bsp.lumps.surface_edge_lump import SurfaceEdgeLump
 from ....library.utils.math_utilities import parse_hammer_vector, convert_to_radians, HAMMER_UNIT_TO_METERS
 
 log_manager = SLoggingManager()
+content_manager = ContentManager()
 
 
 class BSP:
@@ -31,6 +41,15 @@ class BSP:
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
         self.bsp_file = BspFile(map_path)
+        rad_file = content_manager.find_file(map_path.with_suffix('.rad').name, 'maps')
+        shared_rad_file = content_manager.find_file('lights.rad', 'maps')
+        rad_data = {}
+        if shared_rad_file:
+            rad_data.update(parse_rad(shared_rad_file))
+        if rad_file:
+            rad_data.update(parse_rad(rad_file))
+        self.logger.debug(f"Rad data: {rad_data}")
+        self.rad_data = rad_data
         self.scale = scale
         self._single_collection = single_collection
 
@@ -79,53 +98,33 @@ class BSP:
         self.load_bmodel(0, f'{self.bsp_name}_world_geometry')
         self.load_materials()
 
-    def load_material(self, material_name):
+    def _texture_info_to_studio_texture(self, material_name):
         materials_dict = self.bsp_lump_textures_data.key_values
         if material_name in materials_dict:
             texture_data = materials_dict[material_name]
+            texture_info: TextureInfo = self.bsp_lump_textures_info.values[texture_data.info_id]
+            studio_texture = StudioTexture()
+            studio_texture.name = material_name
+            studio_texture.flags = texture_info.flags
+            studio_texture.data = texture_data.get_contents(self.bsp_file)
+            studio_texture.width = texture_data.width
+            studio_texture.height = texture_data.height
+            return studio_texture
 
-            face_texture = bpy.data.images.get(material_name, None)
-            if face_texture is None:
-                face_texture = bpy.data.images.new(
-                    material_name,
-                    width=texture_data.width,
-                    height=texture_data.height,
-                    alpha=True
-                )
-
-                face_texture_contents = texture_data.get_contents(self.bsp_file).flatten().tolist()
-
-                if bpy.app.version > (2, 83, 0):
-                    face_texture.pixels.foreach_set(face_texture_contents)
-                else:
-                    face_texture.pixels[:] = face_texture_contents
-
-                face_texture.pack()
-            bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
-
-            if bpy_material.get('goldsrc_loaded', False):
-                return
-            bpy_material.use_nodes = True
-            bpy_material.blend_method = 'HASHED'
-            bpy_material.shadow_method = 'HASHED'
-            bpy_material['goldsrc_loaded'] = True
-
-            for node in bpy_material.node_tree.nodes:
-                bpy_material.node_tree.nodes.remove(node)
-
-            material_output = bpy_material.node_tree.nodes.new('ShaderNodeOutputMaterial')
-            shader_diffuse = bpy_material.node_tree.nodes.new('ShaderNodeBsdfPrincipled')
-            shader_diffuse.name = 'SHADER'
-            shader_diffuse.label = 'SHADER'
-            bpy_material.node_tree.links.new(shader_diffuse.outputs['BSDF'], material_output.inputs['Surface'])
-
-            texture_node = bpy_material.node_tree.nodes.new('ShaderNodeTexImage')
-            if material_name in bpy.data.images:
-                texture_node.image = bpy.data.images.get(material_name)
-            bpy_material.node_tree.links.new(texture_node.outputs['Color'], shader_diffuse.inputs['Base Color'])
-            if material_name.startswith('{'):
-                bpy_material.node_tree.links.new(texture_node.outputs['Alpha'], shader_diffuse.inputs['Alpha'])
-            shader_diffuse.inputs['Specular'].default_value = 0.00
+    def load_material(self, material_name):
+        materials_dict = self.bsp_lump_textures_data.key_values
+        if material_name in materials_dict:
+            studio_texture = self._texture_info_to_studio_texture(material_name)
+            if material_name in self.rad_data:
+                rad_data = self.rad_data[material_name]
+                r, g, b, power = rad_data
+                power *= self.scale
+                rad_data = [r, g, b, power]
+            else:
+                rad_data = None
+            shader = GoldSrcShader(studio_texture)
+            shader.create_nodes(material_name, rad_data)
+            shader.align_nodes()
 
     def load_materials(self):
         for material in self.bsp_lump_textures_data.values:
@@ -240,7 +239,10 @@ class BSP:
                             continue
                         game_wad_path = Path(game_wad_path)
                         game_wad_path = Path(game_wad_path.name)
-                        self.bsp_file.manager.add_game_resource_root(game_wad_path)
+                        wad_file = self.bsp_file.manager.find_path(game_wad_path)
+                        if wad_file:
+                            self.bsp_file.manager.content_providers[game_wad_path.stem] = GoldSrcWADContentProvider(
+                                wad_file)
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
                     entity_collection = self.get_collection(entity_class)
@@ -299,6 +301,16 @@ class BSP:
         if model_object:
             model_object.location = origin
 
+    def _set_vertex_color(self, mesh_data, name, color):
+        vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
+        mesh_data.loops.foreach_get('vertex_index', vertex_indices)
+
+        vertex_colors = mesh_data.vertex_colors.get(name, False) or \
+                        mesh_data.vertex_colors.new(name=name)
+        vertex_colors_data = vertex_colors.data
+        vertex_colors = np.full((len(vertex_indices), 4), np.array([*color, 1], np.float32))
+        vertex_colors_data.foreach_set('color', vertex_colors.flatten())
+
     def load_brush(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = self.get_collection(entity_class)
         if 'model' not in entity_data:
@@ -319,43 +331,72 @@ class BSP:
             model_object['entity_data'] = {'entity': entity_data}
             render_mode = int(entity_data.get('rendermode', 0))
             render_amount = int(entity_data.get('renderamt', 0))
-            if render_mode == 4 and render_amount != 0:
-                for model_material_index, model_material in enumerate(model_object.data.materials):
-                    alpha_mat_name = f'{model_material.name}_alpha_{render_amount}'
-                    alpha_mat = bpy.data.materials.get(alpha_mat_name, None)
-                    if alpha_mat is None:
-                        alpha_mat = model_material.copy()
-                        alpha_mat.name = alpha_mat_name
-                    model_object.data.materials[model_material_index] = alpha_mat
+            render_color = parse_hammer_vector(entity_data.get('rendercolor', '0 0 0'))
 
-                    model_shader = alpha_mat.node_tree.nodes.get('SHADER', None)
-                    if model_shader:
-                        model_shader.inputs['Alpha'].default_value = 1.0 - (render_amount / 255)
+            self._set_vertex_color(model_object.data, 'RENDER_AMOUNT',
+                                   (render_amount / 255, render_amount / 255, render_amount / 255))
+
+            if render_mode == 0:
+                pass
+            elif render_mode == 1:
+                self._set_vertex_color(model_object.data, 'RENDER_COLOR', ([c / 255 for c in render_color]))
+
+            for model_material_index, model_material in enumerate(model_object.data.materials):
+                studio_texture = self._texture_info_to_studio_texture(model_material.name)
+                mode_mat_name = f'{model_material.name}_RM{render_mode}'
+                mode_mat = bpy.data.materials.get(mode_mat_name, None)
+                if mode_mat is None:
+                    if model_material.name in self.rad_data:
+                        rad_data = self.rad_data[model_material.name]
+                        r, g, b, power = rad_data
+                        power *= self.scale
+                        rad_data = [r, g, b, power]
+                    else:
+                        rad_data = None
+                    if render_mode == 0:
+                        mode_mat = GoldSrcShader(studio_texture)
+                    elif render_mode == 1:
+                        mode_mat = GoldSrcShaderMode1(studio_texture)
+                    elif render_mode == 2:
+                        mode_mat = GoldSrcShaderMode2(studio_texture)
+                    elif render_mode == 3:
+                        mode_mat = GoldSrcShaderMode2(studio_texture)
+                    elif render_mode == 4:
+                        mode_mat = GoldSrcShaderMode2(studio_texture)
+                    elif render_mode == 5:
+                        mode_mat = GoldSrcShaderMode5(studio_texture)
+                    else:
+                        mode_mat = GoldSrcShader(studio_texture)
+                    mode_mat.create_nodes(mode_mat_name, rad_data)
+                material = bpy.data.materials[mode_mat_name]
+                if render_mode < 255:
+                    material.blend_method = 'HASHED'
+                    material.shadow_method = 'HASHED'
+                model_object.data.materials[model_material_index] = material
+
+    def _get_light_angles(self, entity_data):
+        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        if 'pitch' in entity_data:
+            pitch = math.radians(float(entity_data.get('pitch', '-90')))
+            angles[0] = pitch + (math.pi / 2)
+        if 'angle' in entity_data:
+            pitch = math.radians(float(entity_data.get('pitch', '0')))
+            angles[1] = pitch
+        return angles
 
     def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any]):
         entity_collection = self.get_collection(entity_class)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = self._get_light_angles(entity_data)
+
         color = parse_hammer_vector(entity_data['_light'])
-        if len(color) == 4:
-            lumens = color[-1]
-            color = color[:-1]
-        elif len(color) == 1:
-            color = [color[0], color[0], color[0]]
-            lumens = color[0]
-        elif len(color) == 5:
-            *color, lumens = color[:4]
-        else:
-            lumens = 200
-        color_max = max(color)
-        lumens *= color_max / 255
-        color = np.divide(color, color_max)
+        *color, watts = convert_light_value(color)
         inner_cone = float(entity_data.get('_cone2', 60))
-        cone = float(entity_data.get('_cone', 60)) * 2
-        watts = (lumens * (1 / math.radians(cone)))
-        radius = (1 - inner_cone / cone)
+        cone = float(entity_data.get('_cone', 60))
+        inner_cone = (cone or inner_cone) * 2
+        radius = 1
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
-                                  'SPOT', watts, color, cone, radius,
+                                  'SPOT', watts * 100, color, inner_cone, radius,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
         light.rotation_euler = angles
@@ -364,49 +405,23 @@ class BSP:
         entity_collection = self.get_collection(entity_class)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         color = parse_hammer_vector(entity_data['_light'])
-        if len(color) == 4:
-            lumens = color[-1]
-            color = color[:-1]
-        elif len(color) == 1:
-            color = [color[0], color[0], color[0]]
-            lumens = color[0]
-        elif len(color) == 5:
-            *color, lumens = color[:4]
-        else:
-            lumens = 200
-        color_max = max(color)
-        lumens *= (color_max / 255)
-        color = np.divide(color, color_max)
-        watts = lumens
+        *color, watts = convert_light_value(color)
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
-                                  'POINT', watts, color, 0.1,
+                                  'POINT', watts * 100, color, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
 
     def load_light_environment(self, entity_class, entity_data):
         entity_collection = self.get_collection(entity_class)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
+        angles = self._get_light_angles(entity_data)
         color = parse_hammer_vector(entity_data['_light'])
-        if len(color) == 4:
-            lumens = color[-1]
-            color = color[:-1]
-        elif len(color) == 1:
-            color = [color[0], color[0], color[0]]
-            lumens = color[0]
-        elif len(color) == 5:
-            *color, lumens = color[:4]
-        else:
-            lumens = 200
-        color_max = max(color)
-        lumens *= (color_max / 255)
-        color = np.divide(color, color_max)
-        watts = lumens / 1000
+        *color, watts = convert_light_value(color)
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
-                                  'SUN', watts, color, 0.1,
+                                  'SUN', watts, color * 100, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
-        if 'pitch' in entity_data:
-            light.rotation_euler[0] = float(entity_data['pitch'])
+        light.rotation_euler = angles
 
     def _load_lights(self, name, light_type, watts, color, core_or_size=0.0, radius=0.25,
                      parent_collection=None,
@@ -416,10 +431,10 @@ class BSP:
         lamp = bpy.data.objects.new(f'{light_type}_{name}',
                                     bpy.data.lights.new(f'{light_type}_{name}_DATA', light_type))
         lamp_data = lamp.data
-        lamp_data.energy = watts * 10 * (self.scale / HAMMER_UNIT_TO_METERS) ** 2
+        lamp_data.energy = watts * self.scale
         lamp_data.color = color
-        lamp_data.shadow_soft_size = radius
-        lamp['entity'] = entity
+        # lamp_data.shadow_soft_size = radius
+        lamp['entity_data'] = {'entity': entity}
         if light_type == 'SPOT':
             lamp_data.spot_size = math.radians(core_or_size)
 
@@ -427,7 +442,7 @@ class BSP:
             parent_collection.objects.link(lamp)
         else:
             self.bsp_collection.objects.link(lamp)
-        lamp.scale *= self.scale
+        lamp.scale *= self.scale * 10
         return lamp
 
     def load_general_entity(self, entity_class: str, entity_data: Dict[str, Any]):

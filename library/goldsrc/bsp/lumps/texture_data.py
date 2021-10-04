@@ -16,7 +16,7 @@ class TextureDataLump(Lump):
         textures_count = self.buffer.read_uint32()
         textures_offset = self.buffer.read_fmt(f'{textures_count}i')
 
-        for texture_offset in textures_offset:
+        for n, texture_offset in enumerate(textures_offset):
             if texture_offset < 0:
                 continue
 
@@ -24,5 +24,6 @@ class TextureDataLump(Lump):
 
             texture_data = TextureData()
             texture_data.parse(self.buffer)
+            texture_data.info_id = n
             self.key_values[texture_data.name] = texture_data
             self.values.append(texture_data)

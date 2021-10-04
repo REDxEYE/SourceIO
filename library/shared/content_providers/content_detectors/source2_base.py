@@ -6,7 +6,7 @@ from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 
 from ..source2_content_provider import GameinfoContentProvider
 from ..non_source_sub_manager import NonSourceContentProvider
-from ..vpk_sub_manager import VPKContentProvider
+from ..vpk_provider import VPKContentProvider
 
 
 class Source2DetectorBase(ContentDetectorBase, metaclass=ABCMeta):

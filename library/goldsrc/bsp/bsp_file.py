@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import Optional
 
-from .mgr import GoldSrcContentManager
 from .lump import LumpType, LumpInfo, Lump
+from ...shared.content_providers.content_manager import ContentManager
 from ...utils.byte_io_mdl import ByteIO
 
 
 class BspFile:
     def __init__(self, file: Path):
-        self.manager: GoldSrcContentManager = GoldSrcContentManager()
+        self.manager: ContentManager = ContentManager()
         self.manager.scan_for_content(file)
         self.handle = ByteIO(file.open('rb'))
         self.version = self.handle.read_uint32()

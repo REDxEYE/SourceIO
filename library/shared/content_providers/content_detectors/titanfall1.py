@@ -4,7 +4,7 @@ from typing import Dict
 from .source1_common import Source1Common
 from ..content_manager import ContentManager
 from ..content_provider_base import ContentProviderBase
-from ..vpk_sub_manager import VPKContentProvider
+from ..vpk_provider import VPKContentProvider
 from ...app_id import SteamAppId
 from .....library.utils.path_utilities import backwalk_file_resolver
 

@@ -3,10 +3,10 @@ from pathlib import Path
 import bpy
 from bpy.props import StringProperty, CollectionProperty, BoolProperty, FloatProperty
 
+from ...library.global_config import GoldSrcConfig
 from ...logger import SLoggingManager
 from ..goldsrc import import_model
 from ..goldsrc.bsp.import_bsp import BSP
-from ...library.goldsrc.bsp.mgr import GoldSrcContentManager
 from ...library.utils.math_utilities import HAMMER_UNIT_TO_METERS
 
 
@@ -35,7 +35,7 @@ class SOURCEIO_OT_GBSPImport(bpy.types.Operator):
             directory = Path(self.filepath).absolute()
         for n, file in enumerate(self.files):
             logger.info(f"Loading {n}/{len(self.files)}")
-            content_manager = GoldSrcContentManager()
+            content_manager = GoldSrcConfig()
             content_manager.use_hd = self.use_hd
             bsp = BSP(directory / file.name, scale=self.scale, single_collection=self.single_collection)
             bsp.load_map()
