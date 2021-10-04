@@ -22,7 +22,7 @@ if is_vtflib_supported():
     def load_skybox_texture(skyname, width=1024):
         main_data, hdr_main_data, hdr_alpha_data = convert_skybox_to_equiangular(skyname, width)
         main_texture = texture_from_data(skyname, main_data, width, width // 2, False)
-        if hdr_main_data and hdr_alpha_data:
+        if hdr_main_data is not None and hdr_alpha_data is not None:
             hdr_alpha_texture = texture_from_data(skyname + '_HDR_A', hdr_alpha_data, width // 2, width // 4, False)
             hdr_main_texture = texture_from_data(skyname + '_HDR', hdr_main_data, width // 2, width // 4, False)
         else:

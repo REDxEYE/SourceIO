@@ -261,6 +261,8 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_worldspawn(self, entity: worldspawn, entity_raw: dict):
         world = self._load_brush_model(0, 'world_geometry')
+        self._set_entity_data(world, {'entity': entity_raw})
+        self.parent_collection.objects.link(world)
         try:
             skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
             Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
@@ -268,8 +270,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         except SkyboxException:
             self.logger.error('Failed to load Skybox due to:')
             self.logger.exception(traceback.format_exc())
-        self._set_entity_data(world, {'entity': entity_raw})
-        self.parent_collection.objects.link(world)
+
 
     def handle_prop_dynamic(self, entity: prop_dynamic, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
