@@ -85,14 +85,17 @@ class ConvexLeaf:
         self.__entry = reader.tell()
         self.vertex_offset, *self.pad, self.triangle_count, self.unused = reader.read_fmt('3i2h')
         with reader.save_current_pos():
-            max_vertex_index = 0
+            all_indices = set()
+            triangles = []
             for _ in range(self.triangle_count):
                 tri = ConvexTriangle()
                 tri.read(reader)
-                max_vertex_index = max(max_vertex_index, max(tri.vertex_ids))
-                self.triangles.append(tri.vertex_ids)
+                triangles.append(tri.vertex_ids)
+                all_indices.update(tri.vertex_ids)
+            self.triangles = np.array(triangles)
+            self.triangles-=self.triangles.min()
             reader.seek(self.__entry + self.vertex_offset)
-            self.vertices = np.frombuffer(reader.read(4 * 4 * (max_vertex_index + 1)), np.float32)
+            self.vertices = np.frombuffer(reader.read(4 * 4 * len(all_indices)), np.float32)
             self.vertices = self.vertices.reshape((-1, 4))[:, :3]
             pass
 
@@ -127,6 +130,7 @@ class SolidHeader:
         self.areas = []
         self.axis_map_size = 0
         self.collision_model = CollisionModel()
+        self.ivps_data = b''
 
     def read(self, reader: ByteIO):
         self.__entry = reader.tell()
@@ -138,6 +142,7 @@ class SolidHeader:
         self.areas = reader.read_fmt('3f')
         self.axis_map_size = reader.read_uint32()
         self.collision_model.read(reader)
+        self.ivps_data = reader.read(self.size - 44)
 
     def next_solid(self, reader: ByteIO):
         with reader.save_current_pos():
@@ -158,10 +163,9 @@ class Phy(Base):
         reader = self.reader
         self.header.read(reader)
         reader.seek(self.header.size)
-        solid = SolidHeader()
-        solid.read(reader)
-        self.solids.append(solid)
-        for _ in range(self.header.solid_count-1):
-            solid = solid.next_solid(reader)
+        for _ in range(self.header.solid_count):
+            solid = SolidHeader()
+            solid.read(reader)
             self.solids.append(solid)
+        self.kv = self.reader.read_ascii_string()
         pass

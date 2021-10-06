@@ -29,11 +29,13 @@ from ....library.shared.app_id import SteamAppId
 from ....library.utils.singleton import SingletonMeta
 from ....library.source1.bsp.bsp_file import open_bsp
 from ....library.source1.bsp.datatypes.face import Face
+
 from ....library.source1.bsp.lumps.pak_lump import PakLump
 from ....library.source1.bsp.lumps.edge_lump import EdgeLump
 from ....library.source1.bsp.lumps.face_lump import FaceLump
 from ....library.source1.bsp.lumps.game_lump import GameLump
 from ....library.source1.bsp.lumps.cubemap import CubemapLump
+from ....library.source1.bsp.lumps.physics import PhysicsLump
 from ....library.source1.bsp.lumps.plane_lump import PlaneLump
 from ....library.source1.bsp.lumps.model_lump import ModelLump
 from ....library.source1.bsp.lumps.vertex_lump import VertexLump
@@ -41,6 +43,7 @@ from ....library.source1.bsp.lumps.entity_lump import EntityLump
 from ....library.source1.bsp.lumps.string_lump import StringsLump
 from ....library.source1.bsp.lumps.overlay_lump import OverlayLump
 from ....library.source1.bsp.lumps.surf_edge_lump import SurfEdgeLump
+
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
 from ....library.source1.bsp.lumps.texture_lump import TextureInfoLump, TextureDataLump
@@ -86,6 +89,7 @@ class BSP:
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
         self.entry_cache = {}
+
         self.model_lump: Optional[ModelLump] = self.map_file.get_lump('LUMP_MODELS')
         self.vertex_lump: Optional[VertexLump] = self.map_file.get_lump('LUMP_VERTICES')
         self.edge_lump: Optional[EdgeLump] = self.map_file.get_lump('LUMP_EDGES')
@@ -519,3 +523,17 @@ class BSP:
             parent_collection.objects.link(placeholder)
         else:
             self.main_collection.objects.link(placeholder)
+
+    def load_physics(self):
+        physics_lump: PhysicsLump = self.map_file.get_lump('LUMP_PHYSICS')
+        if not physics_lump or not physics_lump.solid_blocks:
+            return
+        parent_collection = get_or_create_collection('physics', self.main_collection)
+        solid_blocks = physics_lump.solid_blocks
+        for sb_id, solid_block in solid_blocks.items():
+            for s_id, solid in enumerate(solid_block.solids):
+                mesh_obj = bpy.data.objects.new(f"physics_{sb_id}_{s_id}",
+                                                bpy.data.meshes.new(f"physics_{sb_id}_{s_id}_MESH"))
+                mesh_data = mesh_obj.data
+
+

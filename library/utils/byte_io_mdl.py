@@ -200,7 +200,10 @@ class ByteIO:
 
         while True:
             chunk = self.read(32)
-            chunk_end = chunk.find(b'\x00')
+            if chunk:
+                chunk_end = chunk.find(b'\x00')
+            else:
+                chunk_end = 0
             if chunk_end >= 0:
                 buffer += chunk[:chunk_end]
             else:
