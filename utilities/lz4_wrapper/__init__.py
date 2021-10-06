@@ -1,4 +1,7 @@
 import ctypes
+import os
+import platform
+import sys
 from ctypes import *
 
 from pathlib import Path
@@ -32,8 +35,17 @@ def load_library(path: Path):
     return cdll.LoadLibrary(str(path))
 
 
+platform_name = platform.system()
+
+if platform_name == "Windows":
+    lz4_libname = "msys-lz4-1.dll"
+
+elif platform_name == "Linux":
+    lz4_libname = "liblz4.so.1"
+
+
 class LZ4Wrapper:
-    lib_cdll: ctypes.CDLL = load_library(Path(__file__).parent / 'msys-lz4-1.dll')
+    lib_cdll: ctypes.CDLL = load_library(Path(__file__).parent / lz4_libname)
 
     @classmethod
     def reload_library(cls, path: Path):
