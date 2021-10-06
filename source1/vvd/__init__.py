@@ -19,6 +19,7 @@ class Vvd(Base):
 
     def __init__(self, filepath):
         self.reader = ByteIO(filepath)
+        assert self.reader.size() > 0, "Empty or missing file"
         self.header = Header()
         self._vertices = np.array([], dtype=self.vertex_t)
         self.fixups = []  # type:List[Fixup]
