@@ -318,7 +318,12 @@ class DmxModel:
                 flex_name = self.mdl.flex_names[flex.flex_desc_index]
                 if flex.partner_index != 0 and self.mdl.flex_names[flex.partner_index] != flex_name:
                     flex_name = flex_name[:-1]
-                flex_name = flex_name.replace("+", "_plus").replace('-', "_").replace(".", '_').replace(' ', '_')
+                flex_name = (flex_name.replace("+", "_plus").
+                             replace('-', "_").
+                             replace(".", '_').
+                             replace(' ', '_').
+                             replace('/', '_').
+                             replace('\\', '_'))
                 if flex_name not in delta_datas:
                     delta_datas[flex_name] = dict(indices=[], shape_pos=[], shape_norms=[], wrinkles=[])
 
