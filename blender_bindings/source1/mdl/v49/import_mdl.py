@@ -31,6 +31,17 @@ log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
+def collect_full_material_names(mdl: Mdl):
+    content_manager = ContentManager()
+    full_mat_names = {}
+    for material_path in mdl.materials_paths:
+        for material in mdl.materials:
+            real_material_path = content_manager.find_material(Path(material_path) / material.name)
+            if real_material_path is not None:
+                full_mat_names[material] = str(Path(material_path) / material.name)
+    return full_mat_names
+
+
 def merge_strip_groups(vtx_mesh: VtxMesh):
     indices_accumulator = []
     vertex_accumulator = []
@@ -47,6 +58,7 @@ def merge_meshes(model: ModelV49, vtx_model: VtxModel):
     acc = 0
     mat_arrays = []
     indices_array = []
+    # TODO: Merge clamped mesh into most fitting model.
     for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
 
         if not vtx_mesh.strip_groups:
@@ -116,6 +128,9 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
     mdl = Mdl(mdl_file)
     mdl.read()
+
+    full_material_names = collect_full_material_names(mdl)
+
     vvd = Vvd(vvd_file)
     vvd.read()
     if vvc_file is not None:
