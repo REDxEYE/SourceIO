@@ -17,6 +17,8 @@ class HLADetector(Source2DetectorBase):
             hla_root = hlvr_folder.parent
         if hla_root is None:
             return {}
+        if not (hla_root / 'hlvr_addons').exists():
+            return {}
         content_providers = {}
         for folder in (hla_root / 'hlvr_addons').iterdir():
             if folder.stem.startswith('.'):
