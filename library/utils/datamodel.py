@@ -305,7 +305,7 @@ class Color(Vector4):
     type_str = "iiii"
 
     def tobytes(self):
-        return struct.pack(self.type_str, *self)
+        return struct.pack(self.type_str, *map(int, self))
 
 
 class _ColorArray(_Vector4Array):
@@ -559,7 +559,8 @@ def _get_dmx_id_type(encoding, version, id):
 def _get_dmx_type_id(encoding, version, t):
     if t is None:
         t = Element
-    if encoding == "keyvalues2": raise ValueError("Type IDs do not exist in KeyValues2")
+    if encoding == "keyvalues2":
+        raise ValueError("Type IDs do not exist in KeyValues2")
     try:
         if encoding == "binary":
             if version in [1, 2]:
@@ -791,12 +792,16 @@ class DataModel:
 
     def _write_element_props(self):
         for elem in self.elem_chain:
-            if elem._is_placeholder: continue
+            if elem._is_placeholder:
+                continue
             self._write(len(elem))
             for name in elem:
                 attr = elem[name]
                 self._write(name, suppress_dict=False)
-                self._write(struct.pack("b", _get_dmx_type_id(self.encoding, self.encoding_ver, type(attr))))
+                if attr is None:
+                    self._write(struct.pack("b", _get_dmx_type_id(self.encoding, self.encoding_ver, None)))
+                else:
+                    self._write(struct.pack("b", _get_dmx_type_id(self.encoding, self.encoding_ver, type(attr))))
                 if attr is None:
                     self._write(-1)
                 else:
