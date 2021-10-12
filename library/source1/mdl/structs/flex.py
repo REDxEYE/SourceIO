@@ -132,6 +132,9 @@ class FlexV36(Base):
         self.vertex_anim_type = 0
         self.vertex_animations = np.array([])  # type:np.ndarray
 
+    def __repr__(self) -> str:
+        return f'<Flex "{self.name}">'
+
     def __eq__(self, other: 'FlexV36'):
         return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
 

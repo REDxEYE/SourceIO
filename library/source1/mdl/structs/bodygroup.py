@@ -13,6 +13,9 @@ class BodyPartV36(Base):
         self.name = ""
         self.models = []  # type: List[ModelV36]
 
+    def __repr__(self):
+        return f'<BodyGroup "{self.name}" models:{len(self.models)}>'
+
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name = reader.read_source1_string(entry) or "no-name"

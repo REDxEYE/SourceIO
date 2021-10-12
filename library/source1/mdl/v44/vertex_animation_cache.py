@@ -15,6 +15,7 @@ class VertexAnimationCache(Base):
         self.vertex_cache = {}
         self.mdl = mdl
         self.vvd = vvd
+        self.vertex_offset = 0
 
     def process_data(self):
         logger.info("[WIP ]Pre-computing vertex animation cache")
@@ -26,7 +27,8 @@ class VertexAnimationCache(Base):
                 logger.info(f'\t+--model "{model.name}"')
                 for mesh in model.meshes:
                     if mesh.flexes:
-                        self.process_mesh(mesh, model.vertex_offset)
+                        self.process_mesh(mesh, self.vertex_offset)
+                self.vertex_offset += model.vertex_count
         logger.info("[Done] Pre-computing vertex animation cache")
 
     def process_mesh(self, mesh: MeshV49, vertex_offset, desired_lod=0):

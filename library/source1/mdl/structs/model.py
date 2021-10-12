@@ -164,6 +164,9 @@ class ModelV49(Base):
         self.meshes = []  # type: List[MeshV49]
         self.eyeballs = []  # type: List[EyeballV49]
 
+    def __repr__(self) -> str:
+        return f'<ModelV49 "{self.name}" meshes:{len(self.meshes)}>'
+
     @property
     def has_flexes(self):
         return any(len(mesh.flexes) > 0 for mesh in self.meshes)
