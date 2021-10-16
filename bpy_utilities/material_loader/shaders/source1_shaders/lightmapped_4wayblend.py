@@ -1,9 +1,10 @@
+from .detail import DetailSupportMixin
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 import bpy
 
 
-class Lightmapped4WayBlend(Source1ShaderBase):
+class Lightmapped4WayBlend(DetailSupportMixin):
     SHADER = 'lightmapped_4wayblend'
 
     @property
@@ -75,12 +76,47 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             return image
         return None
 
+    def lumstart(self, N = 1):
+        return self._vavle_material.get_float(f"$texture{N}_lumstart", 0)
+
+    def lumend(self, N = 1):
+        return self._vavle_material.get_float(f"$texture{N}_lumend", 1)
+
+    def lumblendfactor(self, N = 1):
+        return self._vavle_material.get_float(f"$lumblendfactor{N}", 0)
+
+    def blendstart(self, N = 1):
+        return self._vavle_material.get_float(f"$texture{N}_blendstart", 0)
+
+    def blendend(self, N = 1):
+        return self._vavle_material.get_float(f"$texture{N}_blendend", 1)
+
+    def getblends(self):
+        keyvalues = {}
+        keyvalues['$texture1_lumstart'] = self.lumstart(1)
+        keyvalues['$texture1_lumend'] = self.lumend(1)
+        for i in range(2, 5):
+            keyvalues[f'$texture{i}_lumstart' ] = self.lumstart(i)
+            keyvalues[f'$texture{i}_lumend'] = self.lumend(i)
+            keyvalues[f'$lumblendfactor{i}'] = self.lumblendfactor(i)
+            keyvalues[f'$texture{i}_blendstart'] = self.blendstart(i)
+            keyvalues[f'$texture{i}_blendend'] = self.blendend(i)
+        return keyvalues
+
+    def putblends(self, blends : dict, group : Nodes.ShaderNodeGroup):
+        for key, value in blends.items():
+            group.inputs[key].default_value = value
+
+
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+        if (self.use_bvlg):
+            shader = self.create_node_group("LightMappedGeneric", name="LightMappedGeneric")
+        else:
+            shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture1 = self.basetexture
@@ -127,9 +163,34 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             bumpmap_node.image = normal_texture4
             normals[3] = bumpmap_node
 
-            vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
-            vertex_color.layer_name = 'multiblend'
+        vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
+        vertex_color.layer_name = 'multiblend'
 
+        if (self.use_bvlg):
+            blend = self.create_node_group("4wayBlend", name="4wayBlend")
+
+            self.connect_nodes(vertex_color.outputs['Color'], blend.inputs['Vertex Color'])
+
+            if bases[0]:
+                self.connect_nodes(bases[0].outputs['Color'], blend.inputs['$basetexture'])
+            if normals[0]:
+                self.connect_nodes(normals[0].outputs['Color'], blend.inputs['$bumpmap'])
+            for i in range(1, 4):
+                if bases[i]:
+                    self.connect_nodes(bases[i].outputs['Color'], blend.inputs[f'$basetexture{i+1}'])
+                if normals[i]:
+                    self.connect_nodes(normals[i].outputs['Color'], blend.inputs[f'$bumpmap{i+1}'])
+
+            self.connect_nodes(blend.outputs['$bumpmap [texture]'], shader.inputs['$bumpmap [texture]'])
+            if self.detail:
+                self.handle_detail(shader.inputs['$basetexture [texture]'], blend.outputs['$basetexture [texture]'])
+            else:
+                self.connect_nodes(blend.outputs['$basetexture [texture]'], shader.inputs['$basetexture [texture]'])
+            self.connect_nodes(blend.outputs['$bumpmap [texture]'], shader.inputs['$bumpmap [texture]'])
+            self.putblends(self.getblends(), blend)
+
+
+        else:
             color_mixer = self.create_node(Nodes.ShaderNodeGroup)
             color_mixer.node_tree = self.get_or_create_4way_mix_group()
             normal_mixer = self.create_node(Nodes.ShaderNodeGroup)
@@ -163,6 +224,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
 
             self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
             self.connect_nodes(color_mixer.outputs['Color'], shader.inputs['Base Color'])
+
 
     def get_or_create_4way_mix_group(self):
         mixer_group = bpy.data.node_groups.get("4way_mixer", None)
