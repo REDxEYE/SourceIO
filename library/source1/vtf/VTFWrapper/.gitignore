@@ -1,8 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[co]
+*.py[cod]
 *$py.class
-
 
 # Distribution / packaging
 .Python
@@ -14,12 +13,10 @@ eggs/
 .eggs/
 lib/
 lib64/
-#parts/
+parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -38,7 +35,6 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
-.nox/
 .coverage
 .coverage.*
 .cache
@@ -73,10 +69,6 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# IPython
-profile_default/
-ipython_config.py
-
 # pyenv
 .python-version
 
@@ -107,8 +99,3 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
