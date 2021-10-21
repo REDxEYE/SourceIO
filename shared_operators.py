@@ -248,7 +248,8 @@ class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         obj: bpy.types.Object = context.active_object
-        return obj and (obj.get("entity_data",None) or obj.get("skin_groups", None))
+        return obj and (obj.get("entity_data", None) or obj.get("skin_groups", None))
+
 
 class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
     bl_label = 'Placeholders loading'
@@ -258,6 +259,8 @@ class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         obj: bpy.types.Object = context.active_object
+        if not obj and not context.selected_objects:
+            obj = context.selected_objects[0]
         return obj and obj.get("entity_data", None)
 
     def draw(self, context):
