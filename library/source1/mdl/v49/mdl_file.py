@@ -29,6 +29,7 @@ class Mdl(Base):
     def __init__(self, filepath):
         self.store_value("MDL", self)
         self.reader = ByteIO(filepath)
+        assert self.reader.size() > 0, "Empty or missing file"
         self.header = MdlHeaderV49()
         self.bones: List[BoneV49] = []
         self.skin_groups: List[List[str]] = []

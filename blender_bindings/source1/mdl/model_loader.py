@@ -28,7 +28,8 @@ def import_model_from_full_path(mdl_path: Path, scale=1.0,
         vtx_file = find_vtx(mdl_path)
         vvd_file = mdl_path.with_suffix('.vvd')
         vvc_file = mdl_path.with_suffix('.vvc')
-
+        assert vtx_file.exists(), f"failed to find vtx file {mdl_path.with_suffix('')}"
+        assert vvd_file.exists(), f"failed to find vvd file {vvc_file}"
         content_root = content_manager.get_content_provider_from_path(mdl_path)
         name = mdl_path.relative_to(content_root.root)
 
@@ -38,6 +39,9 @@ def import_model_from_full_path(mdl_path: Path, scale=1.0,
         vvc_file = content_manager.find_file(mdl_path, extension='.vcc')
         vtx_file = find_vtx_cm(mdl_path, content_manager)
         mdl_path = content_manager.find_file(mdl_path)
+
+        assert vtx_file is not None, f"failed to find vtx file {mdl_path.with_suffix('')}"
+        assert vvd_file is not None, f"failed to find vvd file {vvc_file}"
 
     return import_model_from_files(str(name), mdl_path, vvd_file, vtx_file, vvc_file, scale, create_drives,
                                    re_use_meshes,
