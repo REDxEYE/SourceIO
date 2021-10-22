@@ -39,7 +39,7 @@ class ValveCompiledPhysics(ValveCompiledResource):
                 self.capsules.append((capsule_data['m_vCenter'], capsule_data['m_flRadius']))
             for n, hull in enumerate(shapes['m_hulls']):
                 hull_data = hull['m_Hull']
-                hull_name = hull['m_UserFriendlyName'] or f'hull_{n}'
+                hull_name = hull.get('m_UserFriendlyName', None) or f'hull_{n}'
                 vertices = np.array(hull_data['m_Vertices'], np.float32)
                 polygons = []
                 for face in hull_data['m_Faces']:
