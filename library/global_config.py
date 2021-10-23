@@ -1,4 +1,4 @@
-from SourceIO.library.utils.singleton import SingletonMeta
+from .utils.singleton import SingletonMeta
 
 
 class GoldSrcConfig(metaclass=SingletonMeta):
