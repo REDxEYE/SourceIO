@@ -401,7 +401,8 @@ class Element(collections.OrderedDict):
         return hash(self.id)
 
     def __getitem__(self, item):
-        if type(item) != str: raise TypeError("Attribute name must be a string, not {}".format(type(item)))
+        if type(item) != str:
+            raise TypeError("Attribute name must be a string, not {}".format(type(item)))
         try:
             return super().__getitem__(item)
         except KeyError as e:
@@ -1027,7 +1028,7 @@ def load(path=None, in_file=None, element_path=None):
                         elif len(element_path):
                             del element_path[0]
 
-                    if new_elem == None and not prefix:
+                    if new_elem is None and not prefix:
                         continue
 
                     if len(line) >= 2:
