@@ -11,7 +11,10 @@ def load_camera(dmx_camera_path):
     camera_info = scene['camera']
     fov = camera_info['fieldOfView']
     aperture = camera_info['aperture']
-    camera_clip = scene['channelsClip']
+    if 'channelsClip' in scene:
+        camera_clip = scene['channelsClip']
+    else:
+        camera_clip = scene['animationList']['animations'][0]
     fps = camera_clip['frameRate']
 
     camera = bpy.data.cameras.new(name=camera_info.name)
@@ -40,7 +43,7 @@ def load_camera(dmx_camera_path):
                 quat.rotate(Euler([-math.pi / 2, 0, -math.pi]))
                 camera_obj.rotation_quaternion = quat
                 camera_obj.keyframe_insert(data_path="rotation_quaternion", frame=frame)
-        elif channel.name.endswith('_fieldOfView'):
+        elif channel.name.endswith('_fieldOfView') or channel.name.endswith('fieldOfView'):
             for time, value in zip(value_layer['times'], value_layer['values']):
                 frame = math.ceil(time * fps)
                 camera.lens = 0.5 * 36 / math.tan(math.radians(value) / 2)
