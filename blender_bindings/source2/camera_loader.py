@@ -33,7 +33,7 @@ def load_camera(dmx_camera_path):
         if channel.name.endswith('_p'):
             for time, value in zip(value_layer['times'], value_layer['values']):
                 frame = math.ceil(time * fps)
-                pos = value[1], -value[0], value[2]
+                pos = Vector([value[1], -value[0], value[2]])
                 camera_obj.location = pos
                 camera_obj.keyframe_insert(data_path="location", frame=frame)
         elif channel.name.endswith('_o'):

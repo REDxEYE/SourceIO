@@ -22,7 +22,7 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
             return
         gh_provider = GameinfoContentProvider(game_root / name / 'gameinfo.txt')
         content_providers[name] = gh_provider
-        cls.scan_for_vpk(game_root/name, content_providers)
+        cls.scan_for_vpk(game_root / name, content_providers)
         for game in gh_provider.gameinfo.file_system.search_paths.all_paths:
             game = Path(game)
             if game.name.startswith('|'):

@@ -105,7 +105,9 @@ class VMTParser:
         raw_value = self._raw_data.get(name, None)
         return str(raw_value) if raw_value else default
 
-    def get_transform_matrix(self, name, default = {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)}):
+    def get_transform_matrix(self, name, default=None):
+        if default is None:
+            default = {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1.0), 'rotate': (0.0, 0.0, 0.0), 'translate': (0.0, 0.0, 0.0)}
         raw_value = self._raw_data.get(name)
         if raw_value is None:
             return None
@@ -114,13 +116,13 @@ class VMTParser:
         while tokens:
             name = tokens.pop(0)
             if name == 'center':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0.0
             elif name == 'scale':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 1
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 1.0
             elif name == 'rotate':
                 matrix[name] = 0, 0, radians(float(tokens.pop(0)))
             elif name == 'translate':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0
+                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0.0
             else:
                 print(f'Unhandled {name}')
 
