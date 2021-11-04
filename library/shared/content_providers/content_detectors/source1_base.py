@@ -1,3 +1,4 @@
+import traceback
 from abc import ABCMeta
 from pathlib import Path
 from typing import Dict
@@ -7,6 +8,7 @@ from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 from ..source1_content_provider import GameinfoContentProvider
 from ..non_source_sub_manager import NonSourceContentProvider
 from ..vpk_provider import VPKContentProvider
+from ...vpk.vpk_file import InvalidMagic
 
 
 class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
@@ -14,7 +16,12 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
     @classmethod
     def scan_for_vpk(cls, root_dir: Path, content_providers: Dict[str, ContentProviderBase]):
         for vpk in root_dir.glob('*_dir.vpk'):
-            content_providers[f'{root_dir.stem}_{vpk.stem}'] = VPKContentProvider(vpk)
+            try:
+                content_providers[f'{root_dir.stem}_{vpk.stem}'] = VPKContentProvider(vpk)
+            except InvalidMagic as ex:
+                print(f'Failed to load "{vpk}" VPK due to {ex}.')
+                traceback.print_exc()
+                print(f'Skipping {vpk}.')
 
     @classmethod
     def recursive_traversal(cls, game_root: Path, name: str, content_providers: Dict[str, ContentProviderBase]):

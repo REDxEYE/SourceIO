@@ -8,13 +8,15 @@ from ...utils.byte_io_mdl import ByteIO
 from .structs import *
 from ...utils.thirdparty.lzham.lzham import LZHAM
 
+class InvalidMagic(Exception):
+    pass
 
 def open_vpk(filepath: Union[str, Path]):
     from struct import unpack
     with open(filepath, 'rb') as f:
         magic, version_mj, version_mn = unpack('IHH', f.read(8))
     if magic != Header.MAGIC:
-        raise Exception(f'Not a VPK file, expected magic: {Header.MAGIC}, got {magic}')
+        raise InvalidMagic(f'Not a VPK file, expected magic: {Header.MAGIC}, got {magic}')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
     elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
