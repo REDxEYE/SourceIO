@@ -42,6 +42,10 @@ class Portal2EntityHandler(PortalEntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_tractor_beam', obj, 'props')
 
+    def handle_prop_laser_catcher(self, entity: prop_laser_catcher, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection('prop_laser_catcher', obj, 'props')
+
     def handle_logic_playmovie(self, entity: logic_playmovie, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location(obj, entity.origin)
