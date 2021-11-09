@@ -10,6 +10,7 @@ Current TODO list -> [TODO.md](TODO.md)
 * [BlenderVertexLitGeneric](https://github.com/syborg64/BlenderVertexLitGeneric) Shader nodegroup by [syborg64](https://github.com/syborg64)
 * [equilib](https://github.com/haruishi43/equilib) Cubemap to equirectangular converter by [haruishi43](https://github.com/haruishi43/equilib)
 * [HFSExtract](https://github.com/yretenai/HFSExtract) HFS extractor that was used to write native decryptor by [yretenai](https://github.com/yretenai)
+* Idea for better HWM expression handling by [hisanimations](youtube.com/c/hisanimations) : TODO
 # Supported formats (v3.9.3):
 
 ## Source 1
