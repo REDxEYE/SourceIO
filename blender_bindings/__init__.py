@@ -81,9 +81,9 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
                         icon_value=bsp_icon.icon_id)
         layout.separator()
-        layout.operator(SourceIO_OP_VPKBrowserLoader.bl_idname, text="Browse new VPK (.vpk)",
+        layout.operator(SourceIO_OP_VPKBrowserLoader.bl_idname, text="[!!!WIP!!!]Browse new VPK (.vpk)",
                         icon_value=bsp_icon.icon_id)
-        layout.operator(SourceIO_OP_VPKBrowser.bl_idname, text="Browse already open VPK (.vpk)",
+        layout.operator(SourceIO_OP_VPKBrowser.bl_idname, text="[!!!WIP!!!]Browse already open VPK (.vpk)",
                         icon_value=bsp_icon.icon_id)
         layout.separator()
         layout.menu(SourceIOUtils_MT_Menu.bl_idname)
