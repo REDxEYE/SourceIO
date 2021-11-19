@@ -7,7 +7,6 @@ from ..vs import Vector as SVector, Color
 from .....library.utils.singleton import SingletonMeta
 from .....logger import SLoggingManager, SLogger
 
-
 import bpy
 
 
@@ -54,6 +53,10 @@ class AnimSet:
         return BoneGroup(self.object,
                          self.object.pose.bone_groups.get('ROOT', None) or self.object.pose.bone_groups.new(
                              name='ROOT'))
+
+    @property
+    def rootControlGroup(self):
+        return self.GetRootControlGroup()
 
     def GetName(self):
         return self.object.name
