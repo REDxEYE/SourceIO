@@ -149,28 +149,29 @@ class Mdl(Base):
             body_part = BodyPartV49()
             body_part.read(reader)
             self.body_parts.append(body_part)
+        try:
+            reader.seek(header.local_animation_offset)
+            for _ in range(header.local_animation_count):
+                anim_desc = AnimDesc()
+                anim_desc.read(reader)
+                self.anim_descs.append(anim_desc)
 
-        reader.seek(header.local_animation_offset)
-        for _ in range(header.local_animation_count):
-            anim_desc = AnimDesc()
-            anim_desc.read(reader)
-            self.anim_descs.append(anim_desc)
+            reader.seek(header.local_sequence_offset)
+            for _ in range(header.local_sequence_count):
+                seq = Sequence()
+                seq.read(reader)
+                self.sequences.append(seq)
 
-        reader.seek(header.local_sequence_offset)
-        for _ in range(header.local_sequence_count):
-            seq = Sequence()
-            seq.read(reader)
-            self.sequences.append(seq)
+            self.anim_block.name = reader.read_from_offset(header.anim_block_name_offset, reader.read_ascii_string)
+            self.reader.seek(self.header.anim_block_offset)
+            for _ in range(self.header.anim_block_count):
+                self.anim_block.blocks.append(self.reader.read_fmt('2i'))
 
-        self.anim_block.name = reader.read_from_offset(header.anim_block_name_offset, reader.read_ascii_string)
-        self.reader.seek(self.header.anim_block_offset)
-        for _ in range(self.header.anim_block_count):
-            self.anim_block.blocks.append(self.reader.read_fmt('2i'))
-
-        if self.header.bone_table_by_name_offset and self.bones:
-            self.reader.seek(self.header.bone_table_by_name_offset)
-            self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
-
+            if self.header.bone_table_by_name_offset and self.bones:
+                self.reader.seek(self.header.bone_table_by_name_offset)
+                self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
+        except: # I don't wanna deal with animations
+            pass
         # for anim
 
     def rebuild_flex_rules(self):
