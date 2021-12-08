@@ -40,6 +40,8 @@ if platform_name == "Windows":
 
 elif platform_name == "Linux":
     lz4_libname = "liblz4.so.1"
+else:
+    raise NotImplementedError(f"{platform_name}:{platform.architecture()} is not supported")
 
 
 class LZ4Wrapper:
