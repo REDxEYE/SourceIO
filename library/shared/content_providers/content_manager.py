@@ -36,6 +36,7 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.vindictus import VindictusDetector
         from .content_detectors.titanfall1 import TitanfallDetector
         from .content_detectors.goldsrc import GoldSrcDetector
+        from .content_detectors.gmod import GModDetector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())
@@ -44,6 +45,7 @@ class ContentManager(metaclass=SingletonMeta):
         self.detector_addons.append(SFMDetector())
         self.detector_addons.append(VindictusDetector())
         self.detector_addons.append(TitanfallDetector())
+        self.detector_addons.append(GModDetector())
 
     def _find_steam_appid(self, path: Path):
         if self._steam_id != -1:
@@ -68,7 +70,8 @@ class ContentManager(metaclass=SingletonMeta):
         if name in self.content_providers:
             return
         self.content_providers[name] = content_provider
-        logger.info(f'Registered "{name}" provider for {content_provider.root.stem}')
+        logger.info(
+            f'Registered {content_provider.__class__.__name__}({name!r}) provider for {content_provider.root.stem}')
 
     def get_relative_path(self, filepath: Path):
         for _, content_provider in self.content_providers.items():

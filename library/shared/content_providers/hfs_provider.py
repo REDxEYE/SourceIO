@@ -31,7 +31,7 @@ class HFS2ContentProvider(ContentProviderBase):
     def glob(self, pattern: str):
         for file_name in self.hfs_archive.files.keys():
             if glob.fnmatch.fnmatch(file_name, pattern):
-                yield self.hfs_archive.get_file(file_name)
+                yield file_name, self.hfs_archive.get_file(file_name)
 
     @property
     def steam_id(self):
@@ -59,7 +59,7 @@ class HFS1ContentProvider(ContentProviderBase):
     def glob(self, pattern: str):
         for file_name in self.hfs_archive.entries.keys():
             if glob.fnmatch.fnmatch(file_name, pattern):
-                yield self.hfs_archive.get_file(file_name)
+                yield file_name, self.hfs_archive.get_file(file_name)
 
     @property
     def steam_id(self):

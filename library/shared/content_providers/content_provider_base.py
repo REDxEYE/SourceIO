@@ -74,7 +74,8 @@ class ContentProviderBase:
             return None
 
     def _glob_generic(self, pattern: str):
-        yield from self.root.rglob(pattern)
+        for filename in self.root.rglob(pattern):
+            yield (filename.relative_to(self.root)).as_posix(), filename.open('rb')
 
 
 class ContentDetectorBase:

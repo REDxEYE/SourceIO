@@ -38,5 +38,4 @@ class Source1Common(Source1DetectorBase):
     def register_common(cls, root_path: Path, content_providers: Dict[str, ContentProviderBase]):
         cls.add_if_exists(root_path / 'platform', NonSourceContentProvider, content_providers)
         cls.add_if_exists(root_path / 'hl2', NonSourceContentProvider, content_providers)
-        cls.add_if_exists(root_path / 'garrysmod', NonSourceContentProvider, content_providers)
         cls.add_if_exists(root_path / 'synergy', NonSourceContentProvider, content_providers)
