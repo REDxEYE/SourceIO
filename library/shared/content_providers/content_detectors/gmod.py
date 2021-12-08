@@ -22,9 +22,10 @@ class GModDetector(Source1Common):
         content_providers = {}
         cls.recursive_traversal(gmod_root, 'garrysmod', content_providers)
         cls.register_common(gmod_root, content_providers)
-        for addon in (gmod_dir / 'addons').iterdir():
-            if addon.suffix == '.gma':
-                content_providers[addon.stem] = GMAContentProvider(addon, 4000)
+        if (gmod_dir/'addon').exists():
+            for addon in (gmod_dir / 'addons').iterdir():
+                if addon.suffix == '.gma':
+                    content_providers[addon.stem] = GMAContentProvider(addon, 4000)
 
         return content_providers
 
