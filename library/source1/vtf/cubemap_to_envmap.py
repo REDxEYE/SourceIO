@@ -60,10 +60,10 @@ def convert_skybox_to_equiangular(skyname, width=1024):
                                                                                     material.get_param('$basetexture',
                                                                                                        None)))
             if texture_path is None:
-                raise Exception('Missing $basetexture in skybox material')
+                raise SkyboxException('Missing $basetexture in skybox material')
             texture_file = content_manager.find_texture(texture_path)
             if texture_file is None:
-                raise Exception(f'Failed to find skybox texture {texture_path}')
+                raise SkyboxException(f'Failed to find skybox texture {texture_path}')
 
             side, h, w = load_texture(texture_file)
             side = side.reshape((w, h, 4))
