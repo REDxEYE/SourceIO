@@ -14,6 +14,7 @@ from .shaders.source2_shader_base import Source2ShaderBase
 from .shaders import source1_shaders
 from .shaders import source2_shaders
 from .shaders import goldsrc_shaders
+from .shaders import debug_material
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('MaterialLoader')
