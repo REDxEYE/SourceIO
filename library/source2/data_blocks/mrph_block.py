@@ -31,8 +31,8 @@ class MRPH(DATA):
         raw_flex_data = np.frombuffer(morph_atlas_data.image_data, dtype=np.uint8)
         width = self.data['m_nWidth']
         height = self.data['m_nHeight']
-        encoding_type = self.data['m_nEncodingType']
-        lookup_type = self.data['m_nLookupType']
+        encoding_type = self.data.get('m_nEncodingType', 'ENCODING_TYPE_OBJECT_SPACE')
+        lookup_type = self.data.get('m_nLookupType', 'LOOKUP_TYPE_VERTEX_ID')
         if isinstance(encoding_type, tuple):
             encoding_type = encoding_type[0].split('::')[-1]
             lookup_type = lookup_type[0].split('::')[-1]
