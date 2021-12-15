@@ -11,7 +11,7 @@ from ..source1.mdl.model_loader import import_model_from_full_path
 
 from ...library.source1.vtf import is_vtflib_supported
 from ...library.shared.content_providers.content_manager import ContentManager
-from ...library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ...logger import SLoggingManager
 
 logger = SLoggingManager().get_logger("SourceIO::Operators")
@@ -35,7 +35,7 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator):
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
     use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
     def execute(self, context):
@@ -117,7 +117,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     filepath: StringProperty(subtype="FILE_PATH")
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
     import_cubemaps: BoolProperty(name="Import cubemaps", default=False, subtype='UNSIGNED')
     # import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')

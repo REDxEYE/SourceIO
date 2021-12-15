@@ -1,11 +1,11 @@
 import bpy
 
 from ....library.source2.resource_types import ValveCompiledPhysics
-from ....library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 
 class ValveCompiledPhysicsLoader(ValveCompiledPhysics):
-    def __init__(self, path_or_file, scale=HAMMER_UNIT_TO_METERS):
+    def __init__(self, path_or_file, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         super().__init__(path_or_file)
         self.scale = scale
 

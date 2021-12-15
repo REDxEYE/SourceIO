@@ -10,7 +10,7 @@ from ..source2.vwrld.loader import ValveCompiledWorldLoader
 from ..utils.utils import get_new_unique_collection
 from ..source2.camera_loader import load_camera
 from ...library.shared.content_providers.content_manager import ContentManager
-from ...library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 
 class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
@@ -21,7 +21,7 @@ class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     invert_uv: BoolProperty(name="invert UV?", default=True)
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
     import_anim: BoolProperty(name="Import animations", default=False)
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
@@ -63,7 +63,7 @@ class SOURCEIO_OT_VWRLDImport(bpy.types.Operator):
     filter_glob: StringProperty(default="*.vwrld_c", options={'HIDDEN'})
 
     invert_uv: BoolProperty(name="invert UV?", default=True)
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
 
@@ -95,7 +95,7 @@ class SOURCEIO_OT_VPK_VWRLDImport(bpy.types.Operator):
     filter_glob: StringProperty(default="*.vpk", options={'HIDDEN'})
 
     invert_uv: BoolProperty(name="invert UV?", default=True)
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
         vpk_path = Path(self.filepath)

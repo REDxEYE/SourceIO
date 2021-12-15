@@ -18,7 +18,7 @@ from .....library.source1.bsp.bsp_file import BSPFile
 from .....library.source1.vmt.valve_material import VMT
 from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
-from .....library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....library.source1.bsp.datatypes.texture_data import TextureData
 from .....library.source1.bsp.datatypes.texture_info import TextureInfo
 from .....library.shared.content_providers.content_manager import ContentManager
@@ -64,7 +64,7 @@ def _srgb2lin(s: float) -> float:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
+    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=SOURCE1_HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
         self.scale = world_scale

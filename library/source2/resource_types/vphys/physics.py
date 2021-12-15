@@ -1,7 +1,7 @@
 import numpy as np
 
 from ...resource_types import ValveCompiledResource
-from ....utils.math_utilities import HAMMER_UNIT_TO_METERS
+from ....utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 
 class ValveCompiledPhysics(ValveCompiledResource):

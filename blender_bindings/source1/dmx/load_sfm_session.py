@@ -6,7 +6,7 @@ from ....library.source1.dmx.sfm.film_clip import FilmClip
 from ....library.source1.dmx.sfm_utils import *
 from ....library.shared.content_providers.content_manager import ContentManager
 from ...shared.model_container import Source1ModelContainer
-from ....library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from ....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ....library.utils.path_utilities import find_vtx_cm
 from ....library.source1.dmx.sfm import open_session
 from ....library.source1.dmx.sfm.camera import Camera
@@ -19,7 +19,7 @@ def _convert_quat(quat):
     return quat
 
 
-def import_gamemodel(mdl_path, scale=HAMMER_UNIT_TO_METERS):
+def import_gamemodel(mdl_path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     mdl_path = Path(mdl_path)
     mld_file = ContentManager().find_file(mdl_path)
     if mld_file:
@@ -32,7 +32,7 @@ def import_gamemodel(mdl_path, scale=HAMMER_UNIT_TO_METERS):
     return None
 
 
-def create_camera(dme_camera: Camera, scale=HAMMER_UNIT_TO_METERS):
+def create_camera(dme_camera: Camera, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     camera = bpy.data.cameras.new(name=dme_camera.name)
     camera_obj = bpy.data.objects.new(dme_camera.name, camera)
 
@@ -44,7 +44,7 @@ def create_camera(dme_camera: Camera, scale=HAMMER_UNIT_TO_METERS):
     camera.lens = dme_camera.milliliters
 
 
-def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, scale=HAMMER_UNIT_TO_METERS):
+def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     for control in animset.controls:
         if control.type == 'DmElement':
             for obj in container.objects:
@@ -75,7 +75,7 @@ def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, s
                     bone.matrix = bone.parent.matrix @ mat if bone.parent else mat
 
 
-def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_METERS):
+def load_animset(animset: AnimationSet, shot: FilmClip, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     if animset.game_model:
         container = import_gamemodel(animset.game_model.model_name, scale)
         if container is None:
@@ -99,7 +99,7 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=HAMMER_UNIT_TO_MET
         _apply_transforms(container, animset, scale)
 
 
-def load_session(session_path: Path, scale=HAMMER_UNIT_TO_METERS):
+def load_session(session_path: Path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     session = open_session(session_path)
     active_clip = session.active_clip
     map_file = active_clip.map_file

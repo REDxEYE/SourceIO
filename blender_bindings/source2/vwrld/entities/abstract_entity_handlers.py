@@ -13,7 +13,7 @@ from .....logger import SLoggingManager
 from .....library.utils.entity_keyvalues import EntityKeyValues
 from .....library.shared.content_providers.content_manager import ContentManager
 from .....library.utils.byte_io_mdl import ByteIO
-from .....library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
@@ -55,7 +55,7 @@ class Base:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file, parent_collection, world_scale=HAMMER_UNIT_TO_METERS):
+    def __init__(self, bsp_file, parent_collection, world_scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         from ..loader import ValveCompiledWorld
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._world: ValveCompiledWorld = bsp_file

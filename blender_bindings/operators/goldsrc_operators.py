@@ -7,7 +7,7 @@ from ...library.global_config import GoldSrcConfig
 from ...logger import SLoggingManager
 from ..goldsrc import import_model
 from ..goldsrc.bsp.import_bsp import BSP
-from ...library.utils.math_utilities import HAMMER_UNIT_TO_METERS
+from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 
 
 logger = SLoggingManager().get_logger("GoldSrc::Operators")
@@ -23,7 +23,7 @@ class SOURCEIO_OT_GBSPImport(bpy.types.Operator):
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
     use_hd: BoolProperty(name="Load HD models", default=False, subtype='UNSIGNED')
     single_collection: BoolProperty(name="Load everything into 1 collection", default=False, subtype='UNSIGNED')
 
@@ -56,7 +56,7 @@ class SOURCEIO_OT_GMDLImport(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
-    scale: FloatProperty(name="World scale", default=HAMMER_UNIT_TO_METERS, precision=6)
+    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
 
