@@ -1,7 +1,5 @@
 import platform
 
-import numpy as np
-
 from ....logger import SLoggingManager
 
 log_manager = SLoggingManager()
@@ -26,12 +24,12 @@ def is_vtflib_supported():
 
 
 if is_vtflib_supported():
+    import numpy as np
     from .VTFWrapper import VTFLib
 
 
     def load_texture(file_object):
         vtf_lib = VTFLib.VTFLib()
-        rgba_data = None
         try:
 
             vtf_lib.image_load_from_buffer(file_object.read())
@@ -48,7 +46,6 @@ if is_vtflib_supported():
         except Exception as ex:
             logger.error('Caught exception "{}" '.format(ex))
         finally:
-            del rgba_data
             vtf_lib.image_destroy()
 else:
     def load_texture(file_object):
