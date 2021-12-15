@@ -5,7 +5,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Tuple, Union, Optional, Any, List
 
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from ..shared.content_providers.content_manager import ContentManager
 
 
 class FGDLexerException(Exception):

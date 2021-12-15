@@ -2,7 +2,7 @@ import math
 import numpy as np
 from typing import List
 
-from SourceIO.library.utils.byte_io_mdl import ByteIO
+from ...utils.byte_io_mdl import ByteIO
 
 
 class _Decoder:
