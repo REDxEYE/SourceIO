@@ -11,14 +11,13 @@ from mathutils import Quaternion, Vector, Matrix, Euler
 from ..vmat.loader import ValveCompiledMaterialLoader
 from ..vphys.loader import ValveCompiledPhysicsLoader
 from ...shared.model_container import Source2ModelContainer
-from ...utils.utils import get_material, get_new_unique_collection
+from ...utils.utils import get_material, get_new_unique_collection, find_layer_collection
 from ....library.source2.common import convert_normals
 from ....library.source2.data_blocks import MRPH, VBIB, DATA
 from ....library.source2.utils.decode_animations import parse_anim_data
 from ....library.source2.resource_types.vmorf.morph import ValveCompiledMorph
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2.resource_types import ValveCompiledModel, ValveCompiledResource
-
 
 
 def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):
@@ -40,6 +39,8 @@ def put_into_collections(model_container, model_name, parent_collection=None, bo
         phys_collection = get_new_unique_collection(model_name + '_PHYSICS', master_collection)
         for phys in model_container.physics_objects:
             phys_collection.objects.link(phys)
+        phys_lcollection = find_layer_collection(bpy.context.view_layer.layer_collection, phys_collection.name)
+        phys_lcollection.exclude = True
     if model_container.attachments:
         attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
         for attachment in model_container.attachments:
@@ -293,7 +294,8 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                             pre_computed_data = np.add(
                                 bundle_data[global_vertex_offset:global_vertex_offset + vertex_count][:, :3], vertices)
                             shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
-
+                    expressions = morph_block.rebuild_flex_expressions()
+                    print()
                 global_vertex_offset += vertex_count
 
     def build_armature(self):

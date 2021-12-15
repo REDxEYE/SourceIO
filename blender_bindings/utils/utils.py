@@ -2,6 +2,15 @@ import bpy
 import random
 
 
+def find_layer_collection(layer_collection, name):
+    if layer_collection.name == name:
+        return layer_collection
+    for layer in layer_collection.children:
+        found = find_layer_collection(layer, name)
+        if found:
+            return found
+
+
 def get_material(mat_name, model_ob):
     md = model_ob.data
     mat = bpy.data.materials.get(mat_name, None)
@@ -40,5 +49,5 @@ def get_new_unique_collection(model_name, parent_collection):
 def append_blend(filepath, type_name, link=False):
     with bpy.data.libraries.load(filepath, link=link) as (data_from, data_to):
         setattr(data_to, type_name, [asset for asset in getattr(data_from, type_name)])
-    for o in getattr(data_to, type_name) :
+    for o in getattr(data_to, type_name):
         o.use_fake_user = True
