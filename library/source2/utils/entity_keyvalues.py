@@ -1,4 +1,4 @@
-from ..utils.byte_io_mdl import ByteIO
+from SourceIO.library.utils.byte_io_mdl import ByteIO
 from .entity_keyvalues_keys import EntityKeyValuesKeys
 
 

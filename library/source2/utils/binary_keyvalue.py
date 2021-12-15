@@ -2,9 +2,9 @@ from enum import IntEnum, IntFlag
 
 import numpy as np
 
-from ..utils.byte_io_mdl import ByteIO
-from ..source2.data_blocks.compiled_file_header import InfoBlock
-from ..utils.thirdparty.lz4_wrapper import LZ4ChainDecoder, LZ4Wrapper
+from SourceIO.library.utils.byte_io_mdl import ByteIO
+from SourceIO.library.source2.data_blocks.compiled_file_header import InfoBlock
+from SourceIO.library.utils.thirdparty.lz4_wrapper import LZ4ChainDecoder, LZ4Wrapper
 
 
 def uncompress(compressed_data, _b, decompressed_size):

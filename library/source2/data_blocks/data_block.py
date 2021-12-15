@@ -1,5 +1,5 @@
 from .base_block import DataBlock
-from ...utils.binary_keyvalue import BinaryKeyValue
+from ..utils.binary_keyvalue import BinaryKeyValue
 from .ntro_block import NTRO
 
 

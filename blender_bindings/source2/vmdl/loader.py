@@ -14,10 +14,9 @@ from ...shared.model_container import Source2ModelContainer
 from ...utils.utils import get_material, get_new_unique_collection
 from ....library.source2.common import convert_normals
 from ....library.source2.data_blocks import MRPH, VBIB, DATA
-from ....library.utils.decode_animations import parse_anim_data
+from ....library.source2.utils.decode_animations import parse_anim_data
 from ....library.source2.resource_types.vmorf.morph import ValveCompiledMorph
 from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source2.resource_types.vphys.physics import ValveCompiledPhysics
 from ....library.source2.resource_types import ValveCompiledModel, ValveCompiledResource
 
 

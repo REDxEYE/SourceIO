@@ -1,7 +1,7 @@
 import struct
 import numpy as np
 
-from ..utils.byte_io_mdl import ByteIO
+from SourceIO.library.utils.byte_io_mdl import ByteIO
 
 index_header = 0xe0
 vertex_header = 0xa0

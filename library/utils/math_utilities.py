@@ -207,10 +207,6 @@ def quat_slerp(a, b, factor):
     return out
 
 
-def lerp(a: float, b: float, t: float):
-    return a + (b - a) * t
-
-
 def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
     # XYZ -> ZXY
     return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),

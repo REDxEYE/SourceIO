@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
-from .murmurhash2 import murmur_hash2
-from ...logger import SLoggingManager
-from .singleton import SingletonMeta
+from SourceIO.library.source2.utils.murmurhash2 import murmur_hash2
+from SourceIO.logger import SLoggingManager
+from SourceIO.library.utils.singleton import SingletonMeta
 
 MURMUR2SEED = 0x31415926
 

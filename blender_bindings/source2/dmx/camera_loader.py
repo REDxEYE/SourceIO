@@ -1,6 +1,6 @@
 import math
 
-from ...library.utils.datamodel import load
+from ....library.utils.datamodel import load
 import bpy
 from mathutils import Vector, Matrix, Quaternion, Euler
 
