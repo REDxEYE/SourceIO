@@ -28,7 +28,7 @@ from ....library.goldsrc.bsp.lumps.vertex_lump import VertexLump
 from ....library.goldsrc.bsp.lumps.texture_data import TextureDataLump
 from ....library.goldsrc.bsp.lumps.texture_info import TextureInfoLump
 from ....library.goldsrc.bsp.lumps.surface_edge_lump import SurfaceEdgeLump
-from ....library.utils.math_utilities import parse_hammer_vector, convert_to_radians, HAMMER_UNIT_TO_METERS
+from ....library.utils.math_utilities import parse_hammer_vector, convert_to_radians
 
 log_manager = SLoggingManager()
 content_manager = ContentManager()
