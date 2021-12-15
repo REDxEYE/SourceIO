@@ -33,7 +33,7 @@ class FlexOpType(IntEnum):
 
 
 class FlexControllerRemapType(IntEnum):
-    ASSTHRU = 0
+    PASSTHRU = 0
     # Control 0 -> ramps from 1-0 from 0->0.5. Control 1 -> ramps from 0-1
     # from 0.5->1
     TWO_WAY = 1
@@ -41,7 +41,7 @@ class FlexControllerRemapType(IntEnum):
     # (n-1)*StepSize to n*StepSize to (n+1)*StepSize. A second control is
     # needed to specify amount to use
     NWAY = 2
-    EYELID = 2
+    EYELID = 3
 
 
 class FlexController(Base):
@@ -59,13 +59,17 @@ class FlexController(Base):
         self.local_to_global = reader.read_int32()
         self.min, self.max = reader.read_fmt('2f')
 
+    def __repr__(self):
+        return f'<FlexController "{self.name}" {self.min}:{self.max}>'
+
 
 class FlexControllerUI(Base):
     def __init__(self):
         self.name = 0
-        self.index1 = 0
-        self.index2 = 0
-        self.index3 = 0
+        self.controller = ''
+        self.left_controller = ''
+        self.right_controller = ''
+        self.nway_controller = ''
         self.remap_type = FlexControllerRemapType(0)
         self.stereo = False
         self.unused = []
@@ -74,10 +78,38 @@ class FlexControllerUI(Base):
         entry = reader.tell()
         self.name = reader.read_source1_string(entry)
         # TODO: https://github.com/Dmillz89/SourceSDK2013/blob/master/mp/src/public/studio.h#L924
-        self.index1, self.index2, self.index3 = reader.read_fmt('3i')
-        self.stereo = reader.read_uint8()
+        index0, index1, index2 = reader.read_fmt('3i')
         self.remap_type = FlexControllerRemapType(reader.read_uint8())
+        self.stereo = reader.read_uint8()
         reader.skip(2)
+        with reader.save_current_pos():
+            if self.remap_type == FlexControllerRemapType.NWAY:
+                reader.seek(entry + index2)
+                reader.skip(4)
+                self.nway_controller = reader.read_source1_string(entry + index2)
+            elif self.remap_type == FlexControllerRemapType.EYELID:
+                reader.seek(entry + index2)
+                reader.skip(4)
+                self.nway_controller = reader.read_source1_string(entry + index2)
+
+            if not self.stereo:
+                reader.seek(entry + index0)
+                reader.skip(4)
+                self.controller = reader.read_source1_string(entry + index0)
+            elif self.stereo:
+                reader.seek(entry + index0)
+                reader.skip(4)
+                self.left_controller = reader.read_source1_string(entry + index0)
+
+                reader.seek(entry + index1)
+                reader.skip(4)
+                self.right_controller = reader.read_source1_string(entry + index1)
+            else:
+                raise RuntimeError('Should never reach this')
+        pass
+
+    def __repr__(self):
+        return f'<FlexControllerUI "{self.name}">'
 
 
 class FlexRule(Base):
@@ -114,7 +146,7 @@ class FlexOp(Base):
             self.index = reader.read_uint32()
 
     def __repr__(self):
-        return f"FlexOp({self.op.name} {self.index} {self.value})"
+        return f"FlexOp({self.op.name} {self.value if self.op == FlexOpType.CONST else self.index})"
 
 
 class VertexAminationType(IntEnum):

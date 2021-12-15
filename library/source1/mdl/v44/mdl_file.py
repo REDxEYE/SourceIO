@@ -7,7 +7,7 @@ import numpy as np
 from ....utils.byte_io_mdl import ByteIO
 from ....shared.base import Base
 
-from .flex_expressions import *
+from ..v49.flex_expressions import *
 from ..structs.header import MdlHeaderV44
 from ..structs.bone import BoneV49
 from ..structs.material import MaterialV49

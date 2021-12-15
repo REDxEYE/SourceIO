@@ -7,7 +7,7 @@ import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .....logger import SLoggingManager
-from .....library.source1.mdl.v36.flex_expressions import *
+from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v36.mdl_file import Mdl
 from .....library.source1.mdl.structs.header import StudioHDRFlags
 from .....library.source1.mdl.structs.model import ModelV36

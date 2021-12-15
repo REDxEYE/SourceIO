@@ -170,99 +170,140 @@ class Mdl(Base):
             if self.header.bone_table_by_name_offset and self.bones:
                 self.reader.seek(self.header.bone_table_by_name_offset)
                 self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
-        except: # I don't wanna deal with animations
+        except:  # I don't wanna deal with animations
             pass
         # for anim
 
     def rebuild_flex_rules(self):
         rules = {}
-
         for rule in self.flex_rules:
             stack = []
+            inputs = []
             try:
                 for op in rule.flex_ops:
                     flex_op = op.op
                     if flex_op == FlexOpType.CONST:
                         stack.append(Value(op.value))
                     elif flex_op == FlexOpType.FETCH1:
+                        inputs.append((self.flex_controllers[op.index].name, 'fetch1'))
                         stack.append(FetchController(self.flex_controllers[op.index].name))
                     elif flex_op == FlexOpType.FETCH2:
+                        inputs.append((self.flex_names[op.index], 'fetch2'))
                         stack.append(FetchFlex(self.flex_names[op.index]))
                     elif flex_op == FlexOpType.ADD:
-                        right = stack.pop(-1)
-                        left = stack.pop(-1)
-                        stack.append(Add(left, right))
+                        stack.append(Add(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.SUB:
-                        right = stack.pop(-1)
-                        left = stack.pop(-1)
-                        stack.append(Sub(left, right))
+                        stack.append(Sub(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.MUL:
-                        right = stack.pop(-1)
-                        left = stack.pop(-1)
-                        stack.append(Mul(left, right))
+                        stack.append(Mul(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.DIV:
-                        right = stack.pop(-1)
-                        left = stack.pop(-1)
-                        stack.append(Div(left, right))
+                        stack.append(Div(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.NEG:
                         stack.append(Neg(stack.pop(-1)))
                     elif flex_op == FlexOpType.MAX:
-                        right = stack.pop(-1)
-                        left = stack.pop(-1)
-                        stack.append(Max(left, right))
+                        stack.append(Max(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.MIN:
-                        right = stack.pop(-1)
-                        left = stack.pop(-1)
-                        stack.append(Min(left, right))
+                        stack.append(Min(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.COMBO:
-                        count = op.index
-                        values = [stack.pop(-1) for _ in range(count)]
-                        combo = Combo(*values)
-                        stack.append(combo)
+                        stack.append(Combo(*[stack.pop(-1) for _ in range(op.index)]))
                     elif flex_op == FlexOpType.DOMINATE:
-                        count = op.index + 1
-                        values = [stack.pop(-1) for _ in range(count)]
-                        dom = Dominator(*values)
-                        stack.append(dom)
+                        stack.append(Dominator(*[stack.pop(-1) for _ in range(op.index + 1)]))
                     elif flex_op == FlexOpType.TWO_WAY_0:
-                        mx = Max(Add(FetchController(self.flex_controllers[op.index].name), Value(1.0)), Value(0.0))
-                        mn = Min(mx, Value(1.0))
-                        res = Sub(1, mn)
-                        stack.append(res)
+                        inputs.append((self.flex_controllers[op.index].name, '2WAY0'))
+                        stack.append(CustomFunction('rclamped', FetchController(self.flex_controllers[op.index].name),
+                                                    -1, 0, 1, 0))
                     elif flex_op == FlexOpType.TWO_WAY_1:
-                        mx = Max(FetchController(self.flex_controllers[op.index].name), Value(0.0))
-                        mn = Min(mx, Value(1.0))
-                        stack.append(mn)
+                        inputs.append((self.flex_controllers[op.index].name, '2WAY1'))
+                        stack.append(CustomFunction('clamp', FetchController(self.flex_controllers[op.index].name),
+                                                    0, 1))
                     elif flex_op == FlexOpType.NWAY:
+
+                        inputs.append((self.flex_controllers[op.index].name, 'NWAY'))
+                        flex_cnt = FetchController(self.flex_controllers[op.index].name)
+
                         flex_cnt_value = int(stack.pop(-1).value)
-                        flex_cnt = FetchController(self.flex_controllers[flex_cnt_value].name)
+                        inputs.append((self.flex_controllers[flex_cnt_value].name, 'NWAY'))
+                        multi_cnt = FetchController(self.flex_controllers[flex_cnt_value].name)
+
+                        # Reversed the order, revert back if it wont help
                         f_w = stack.pop(-1)
                         f_z = stack.pop(-1)
                         f_y = stack.pop(-1)
                         f_x = stack.pop(-1)
-                        gtx = Min(Value(1.0), Neg(Min(Value(0.0), Sub(f_x, flex_cnt))))
-                        lty = Min(Value(1.0), Neg(Min(Value(0.0), Sub(flex_cnt, f_y))))
-                        remap_x = Min(Max(Div(Sub(flex_cnt, f_x), (Sub(f_y, f_x))), Value(0.0)), Value(1.0))
-                        gtey = Neg(Sub(Min(Value(1.0), Neg(Min(Value(0.0), Sub(flex_cnt, f_y)))), Value(1.0)))
-                        ltez = Neg(Sub(Min(Value(1.0), Neg(Min(Value(0.0), Sub(f_z, flex_cnt)))), Value(1.0)))
-                        gtz = Min(Value(1.0), Neg(Min(Value(0.0), Sub(f_z, flex_cnt))))
-                        ltw = Min(Value(1.0), Neg(Min(Value(0.0), Sub(flex_cnt, f_w))))
-                        remap_z = Sub(Value(1.0),
-                                      Min(Max(Div(Sub(flex_cnt, f_z), (Sub(f_w, f_z))), Value(0.0)), Value(1.0)))
-                        final_expr = Add(Add(Mul(Mul(gtx, lty), remap_x), Mul(gtey, ltez)), Mul(Mul(gtz, ltw), remap_z))
-
-                        final_expr = Mul(final_expr, FetchController(self.flex_controllers[op.index].name))
+                        final_expr = CustomFunction('nway', multi_cnt, flex_cnt, f_x, f_y, f_z, f_w)
                         stack.append(final_expr)
                     elif flex_op == FlexOpType.DME_UPPER_EYELID:
-                        stack.pop(-1)
-                        stack.pop(-1)
-                        stack.pop(-1)
-                        stack.append(Value(1.0))
+                        close_lid_v_controller = self.flex_controllers[op.index]
+                        inputs.append((close_lid_v_controller.name, 'DUE'))
+                        close_lid_v = CustomFunction('rclamped', FetchController(close_lid_v_controller.name),
+                                                     close_lid_v_controller.min, close_lid_v_controller.max,
+                                                     0, 1)
+
+                        flex_cnt_value = int(stack.pop(-1).value)
+                        close_lid_controller = self.flex_controllers[flex_cnt_value]
+                        inputs.append((close_lid_controller.name, 'DUE'))
+                        close_lid = CustomFunction('rclamped', FetchController(close_lid_controller.name),
+                                                   close_lid_controller.min, close_lid_controller.max,
+                                                   0, 1)
+
+                        blink_index = int(stack.pop(-1).value)
+                        # blink = Value(0.0)
+                        # if blink_index >= 0:
+                        #     blink_controller = self.flex_controllers[blink_index]
+                        #     inputs.append((blink_controller.name, 'DUE'))
+                        #     blink_fetch = FetchController(blink_controller.name)
+                        #     blink = CustomFunction('rclamped', blink_fetch,
+                        #                            blink_controller.min, blink_controller.max,
+                        #                            0, 1)
+
+                        eye_up_down_index = int(stack.pop(-1).value)
+                        eye_up_down = Value(0.0)
+                        if eye_up_down_index >= 0:
+                            eye_up_down_controller = self.flex_controllers[eye_up_down_index]
+                            inputs.append((eye_up_down_controller.name, 'DUE'))
+                            eye_up_down_fetch = FetchController(eye_up_down_controller.name)
+                            eye_up_down = CustomFunction('rclamped', eye_up_down_fetch,
+                                                         eye_up_down_controller.min, eye_up_down_controller.max,
+                                                         -1, 1)
+
+                        stack.append(CustomFunction('upper_eyelid_case', eye_up_down, close_lid_v, close_lid))
                     elif flex_op == FlexOpType.DME_LOWER_EYELID:
-                        stack.pop(-1)
-                        stack.pop(-1)
-                        stack.pop(-1)
-                        stack.append(Value(1.0))
+                        close_lid_v_controller = self.flex_controllers[op.index]
+                        inputs.append((close_lid_v_controller.name, 'DUE'))
+                        close_lid_v = CustomFunction('rclamped', FetchController(close_lid_v_controller.name),
+                                                     close_lid_v_controller.min, close_lid_v_controller.max,
+                                                     0, 1)
+
+                        flex_cnt_value = int(stack.pop(-1).value)
+                        close_lid_controller = self.flex_controllers[flex_cnt_value]
+                        inputs.append((close_lid_controller.name, 'DUE'))
+                        close_lid = CustomFunction('rclamped', FetchController(close_lid_controller.name),
+                                                   close_lid_controller.min, close_lid_controller.max,
+                                                   0, 1)
+
+                        blink_index = int(stack.pop(-1).value)
+                        # blink = Value(0.0)
+                        # if blink_index >= 0:
+                        #     blink_controller = self.flex_controllers[blink_index]
+                        #     inputs.append((blink_controller.name, 'DUE'))
+                        #     blink_fetch = FetchController(blink_controller.name)
+                        #     blink = CustomFunction('rclamped', blink_fetch,
+                        #                            blink_controller.min, blink_controller.max,
+                        #                            0, 1)
+
+                        eye_up_down_index = int(stack.pop(-1).value)
+                        eye_up_down = Value(0.0)
+                        if eye_up_down_index >= 0:
+                            eye_up_down_controller = self.flex_controllers[eye_up_down_index]
+                            inputs.append((eye_up_down_controller.name, 'DUE'))
+                            eye_up_down_fetch = FetchController(eye_up_down_controller.name)
+                            eye_up_down = CustomFunction('rclamped', eye_up_down_fetch,
+                                                         eye_up_down_controller.min, eye_up_down_controller.max,
+                                                         -1, 1)
+
+                        stack.append(CustomFunction('lower_eyelid_case', eye_up_down, close_lid_v, close_lid))
+                    elif flex_op == FlexOpType.OPEN:
+                        continue
                     else:
                         print("Unknown OP", op)
                 if len(stack) > 1 or not stack:
@@ -270,9 +311,8 @@ class Mdl(Base):
                     print(stack)
                     continue
                 final_expr = stack.pop(-1)
-                # name = self.get_value('stereo_flexes').get(rule.flex_index, self.flex_names[rule.flex_index])
                 name = self.flex_names[rule.flex_index]
-                rules[name] = final_expr
+                rules[name] = (final_expr, inputs)
             except Exception as ex:
                 traceback.print_exc()
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")

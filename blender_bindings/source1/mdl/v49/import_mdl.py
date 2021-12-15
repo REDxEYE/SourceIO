@@ -1,7 +1,11 @@
+import warnings
 from pathlib import Path
 from typing import BinaryIO, Iterable, Sized, Union, Optional
 
 import bpy
+
+from bpy.props import FloatProperty
+
 import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
@@ -205,8 +209,9 @@ def import_model(mdl_file: Union[BinaryIO, Path],
 
             indices_array = np.array(indices_array, dtype=np.uint32)
             vertices = model_vertices[vtx_vertices]
+            vertices_vertex = vertices['vertex']
 
-            mesh_data.from_pydata(vertices['vertex'] * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices_vertex * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons)))
@@ -254,22 +259,41 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                             weight_groups[bone_name].add([n], weight, 'REPLACE')
 
             if not static_prop:
-                flex_names = []
+                flexes = []
                 for mesh in model.meshes:
                     if mesh.flexes:
-                        flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
-                if flex_names:
+                        flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
+                if flexes:
                     mesh_obj.shape_key_add(name='base')
-                for flex_name in flex_names:
-                    shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
-                        name=flex_name)
+                for flex_name, flex_desc in flexes:
                     vertex_animation = vac.vertex_cache[flex_name]
+                    flex_delta = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                    flex_delta = flex_delta[vtx_vertices] * scale
+                    model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
+                    model_vertices = model_vertices[vtx_vertices] * scale
 
-                    model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
-                    flex_vertices = model_vertices[vtx_vertices] * scale
+                    if create_drivers and flex_desc.partner_index:
+                        partner_name = mdl.flex_names[flex_desc.partner_index]
+                        partner_shape_key = (mesh_data.shape_keys.key_blocks.get(partner_name, None) or
+                                             mesh_obj.shape_key_add(name=partner_name))
+                        shape_key = (mesh_data.shape_keys.key_blocks.get(flex_name, None) or
+                                     mesh_obj.shape_key_add(name=flex_name))
 
-                    shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
+                        balance = model_vertices[:, 0]
+                        balance_width = (model_vertices.max() - model_vertices.min()) * (1 - (99.3 / 100))
+                        balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
 
+                        flex_vertices = (flex_delta * balance[:, None]) + model_vertices
+                        shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
+
+                        p_balance = 1 - balance
+                        p_flex_vertices = (flex_delta * p_balance[:, None]) + model_vertices
+                        partner_shape_key.data.foreach_set("co", p_flex_vertices.reshape(-1))
+                    else:
+                        shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
+                            name=flex_name)
+
+                        shape_key.data.foreach_set("co", (flex_delta + model_vertices).reshape(-1))
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
     if mdl.attachments:
@@ -305,34 +329,170 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
 
 
 def create_flex_drivers(obj, mdl: Mdl):
+    from ....operators.flex_operators import SourceIO_PG_FlexController
+    if not obj.data.shape_keys:
+        return
     all_exprs = mdl.rebuild_flex_rules()
-    for controller in mdl.flex_controllers:
-        obj.shape_key_add(name=controller.name)
+    data = obj.data
+    shape_key_block = data.shape_keys
 
-    def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
-        if expr.__class__ in [FetchController, FetchFlex]:
-            expr: Value = expr
-            logger.info(f"Parsing {expr} value")
-            if driver.variables.get(expr.value, None) is not None:
-                return
-            var = driver.variables.new()
-            var.name = expr.value
-            var.targets[0].id_type = 'KEY'
-            var.targets[0].id = shape_key_block
-            var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
+    def _parse_simple_flex(missing_flex_name: str):
+        flexes = missing_flex_name.split('_')
+        if not all(flex in data.flex_controllers for flex in flexes):
+            return None
+        return Combo([FetchController(flex) for flex in flexes]), [(flex, 'fetch2') for flex in flexes]
 
-        elif issubclass(expr.__class__, Expr):
-            expr: Expr = expr
-            parse_expr(expr.right, driver, shape_key_block)
-            parse_expr(expr.left, driver, shape_key_block)
-        elif issubclass(expr.__class__, Function):
-            expr: Function = expr
-            for var in expr.values:
-                parse_expr(var, driver, shape_key_block)
+    st = '\n    '
 
-    for target, expr in all_exprs.items():
-        shape_key_block = obj.data.shape_keys
-        shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
+    for flex_controller_ui in mdl.flex_ui_controllers:
+        cont: SourceIO_PG_FlexController = data.flex_controllers.add()
+
+        if flex_controller_ui.nway_controller:
+            nway_cont: SourceIO_PG_FlexController = data.flex_controllers.add()
+            nway_cont.stereo = False
+            multi_controller = next(filter(lambda a: a.name == flex_controller_ui.nway_controller, mdl.flex_controllers)
+                                    )
+            nway_cont.name = flex_controller_ui.nway_controller
+            nway_cont.set_from_controller(multi_controller)
+
+        if flex_controller_ui.stereo:
+            left_controller = next(
+                filter(lambda a: a.name == flex_controller_ui.left_controller, mdl.flex_controllers)
+            )
+            right_controller = next(
+                filter(lambda a: a.name == flex_controller_ui.right_controller, mdl.flex_controllers)
+            )
+            cont.stereo = True
+            cont.name = flex_controller_ui.name
+            assert left_controller.max == right_controller.max
+            assert left_controller.min == right_controller.min
+            cont.set_from_controller(left_controller)
+        else:
+            controller = next(filter(lambda a: a.name == flex_controller_ui.controller, mdl.flex_controllers))
+            cont.stereo = False
+            cont.name = flex_controller_ui.name
+            cont.set_from_controller(controller)
+    blender_py_file = """
+import bpy
+
+def rclamped(val, a, b, c, d):
+    if ( a == b ):
+        return d if val >= b else c;
+    return c + (d - c) * min(max((val - a) / (b - a), 0.0), 1.0)
+    
+def clamp(val, a, b):
+    return min(max(val, a), b)
+
+def nway(multi_value, flex_value, x, y, z, w):
+    if multi_value <= x or multi_value >= w:  # outside of boundaries
+        multi_value = 0.0
+    elif multi_value <= y:
+        multi_value = rclamped(multi_value, x, y, 0.0, 1.0)
+    elif multi_value >= z:
+        multi_value = rclamped(multi_value, z, w, 1.0, 0.0)
+    else:
+        multi_value = 1.0
+    return multi_value * flex_value
+
+
+def combo(*values):
+    val = values[0]
+    for v in values[1:]:
+        val*=v
+    return val
+    
+def dom(dm, *values):
+    val = 1
+    for v in values:
+        val *= v
+    return val * (1 - dm)
+
+def lower_eyelid_case(eyes_up_down,close_lid_v,close_lid):
+    if eyes_up_down > 0.0:
+        return (1.0 - eyes_up_down) * (1.0 - close_lid_v) * close_lid
+    else:
+        return  (1.0 - close_lid_v) * close_lid
+
+def upper_eyelid_case(eyes_up_down,close_lid_v,close_lid):
+    if eyes_up_down > 0.0:
+        return (1.0 + eyes_up_down) * close_lid_v * close_lid
+    else:
+        return  close_lid_v * close_lid
+
+
+bpy.app.driver_namespace["combo"] = combo
+bpy.app.driver_namespace["dom"] = dom
+bpy.app.driver_namespace["nway"] = nway
+bpy.app.driver_namespace["rclamped"] = rclamped
+
+    """
+    for flex_name, (expr, inputs) in all_exprs.items():
+        driver_name = f'{flex_name}_driver'.replace(' ', '_')
+        if driver_name in globals():
+            continue
+
+        input_definitions = []
+        for inp in inputs:
+            input_name = inp[0]
+            if inp[1] in ('fetch1', '2WAY1', '2WAY0', 'NWAY', 'DUE'):
+                if 'left_' in input_name:
+                    input_name = input_name.replace('left_', '')
+                    input_definitions.append(
+                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name}"].value_left')
+                elif 'right_' in input_name:
+                    input_name = input_name.replace('right_', '')
+                    input_definitions.append(
+                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name}"].value_right')
+                else:
+                    input_definitions.append(
+                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{inp[0]}"].value')
+            elif inp[1] == 'fetch2':
+                input_definitions.append(
+                    f'{inp[0].replace(" ", "_")} = obj_data.shape_keys.key_blocks["{input_name}"].value')
+            else:
+                raise NotImplementedError(f'"{inp[1]}" is not supported')
+        print(f"{flex_name} = {expr}")
+        template_function = f"""
+def {driver_name}(obj_data):
+    {st.join(input_definitions)}
+    return {expr}
+bpy.app.driver_namespace["{driver_name}"] = {driver_name}
+
+"""
+        blender_py_file += template_function
+
+    for shape_key in shape_key_block.key_blocks:
+
+        flex_name = shape_key.name
+
+        if flex_name == 'base':
+            continue
+        if flex_name not in all_exprs:
+            warnings.warn(f'Rule for {flex_name} not found! Generating basic rule.')
+            expr, inputs = _parse_simple_flex(flex_name) or (None, None)
+            if not expr or not inputs:
+                warnings.warn(f'Failed to generate basic rule for {flex_name}!')
+                cont: SourceIO_PG_FlexController = data.flex_controllers.add()
+                cont.name = flex_name
+                cont.mode = 1
+                cont.value_min = 0
+                cont.value_max = 1
+                template_function = f"""
+def {flex_name.replace(' ', '_')}_driver(obj_data):
+    return obj_data.flex_controllers["{flex_name}"].value
+bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.replace(' ', '_')}_driver
+
+                                """
+                blender_py_file += template_function
+            else:
+                template_function = f"""
+def {flex_name.replace(' ', '_')}_driver(obj_data):
+    {st.join(inputs)}
+    return {expr}
+bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.replace(' ', '_')}_driver
+
+                """
+                blender_py_file += template_function
 
         shape_key.driver_remove("value")
         fcurve = shape_key.driver_add("value")
@@ -340,9 +500,16 @@ def create_flex_drivers(obj, mdl: Mdl):
 
         driver = fcurve.driver
         driver.type = 'SCRIPTED'
-        parse_expr(expr, driver, shape_key_block)
-        driver.expression = str(expr)
-        logger.debug(f'{target} {expr}')
+        driver.expression = f"{flex_name.replace(' ', '_')}_driver(obj_data)"
+        var = driver.variables.new()
+        var.name = 'obj_data'
+        var.targets[0].id_type = 'OBJECT'
+        var.targets[0].id = obj
+        var.targets[0].data_path = f"data"
+
+    driver_file = bpy.data.texts.new(f'{mdl.header.name}.py')
+    driver_file.write(blender_py_file)
+    driver_file.use_module = True
 
 
 def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):

@@ -34,10 +34,10 @@ class VertexAnimationCache(Base):
     def process_mesh(self, mesh: MeshV49, vertex_offset, desired_lod=0):
         for flex in mesh.flexes:
             if flex.name not in self.vertex_cache:
-                vertex_cache = self.vertex_cache[flex.name] = np.copy(self.vvd.lod_data[desired_lod]['vertex'])
+                vertex_cache = self.vertex_cache[flex.name] = np.zeros_like(self.vvd.lod_data[desired_lod]['vertex'])
             else:
                 vertex_cache = self.vertex_cache[flex.name]
             vertex_indices = flex.vertex_animations['index'].reshape(-1) + mesh.vertex_index_start + vertex_offset
-            vertex_cache[vertex_indices] = np.add(vertex_cache[vertex_indices], flex.vertex_animations['vertex_delta'])
+            vertex_cache[vertex_indices] = flex.vertex_animations['vertex_delta']
 
         pass

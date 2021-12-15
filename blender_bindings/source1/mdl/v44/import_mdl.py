@@ -18,7 +18,7 @@ from .....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
 from .....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 
 from .....library.source1.mdl.v44.mdl_file import Mdl
-from .....library.source1.mdl.v44.flex_expressions import *
+from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
 from .....library.source1.mdl.structs.model import ModelV49
 from .....library.source1.mdl.structs.header import StudioHDRFlags

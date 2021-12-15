@@ -1,6 +1,15 @@
 from pathlib import Path
 
 import bpy
+
+from bpy.props import (StringProperty,
+                       BoolProperty,
+                       CollectionProperty,
+                       IntProperty,
+                       FloatProperty,
+                       PointerProperty
+                       )
+
 from ..library.source1.vtf import is_vtflib_supported
 
 from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
@@ -28,6 +37,8 @@ from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
                                       SourceIO_OP_VPKBrowserLoader,
                                       )
 from .operators.vpk_operators import classes as vpk_classes
+
+from .operators.flex_operators import classes as flex_classes, SourceIO_PG_FlexController
 
 from .ui.export_nodes import register_nodes, unregister_nodes
 
@@ -161,6 +172,7 @@ classes = (
     SOURCEIO_OT_ChangeSkin,
 
     *vpk_classes,
+    *flex_classes,
 )
 
 if is_vtflib_supported():
@@ -181,6 +193,9 @@ def register():
     register_()
     register_nodes()
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
+
+    bpy.types.Mesh.flex_controllers = CollectionProperty(type=SourceIO_PG_FlexController)
+    bpy.types.Mesh.flex_selected_index = IntProperty(default=0)
 
     if is_vtflib_supported():
         from ..library.source1.vtf import VTFLib
