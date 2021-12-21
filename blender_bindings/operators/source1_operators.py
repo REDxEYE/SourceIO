@@ -59,7 +59,8 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator):
             if self.import_textures and is_vtflib_supported():
                 try:
 
-                    import_materials(model_container.mdl, use_bvlg=self.use_bvlg)
+                    import_materials(model_container.mdl, unique_material_names=self.unique_materials_names,
+                                     use_bvlg=self.use_bvlg)
                 except Exception as t_ex:
                     logger.error(f'Failed to import materials, caused by {t_ex}')
                     import traceback
