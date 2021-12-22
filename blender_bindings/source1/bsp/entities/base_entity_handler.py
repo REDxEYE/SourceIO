@@ -724,7 +724,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             mat = Source1MaterialLoader(material_file, material_name)
             mat.create_material()
 
-            tex_name = Path(mat.vmt.get_param('$basetexture', None)).name
+            tex_name = Path(mat.vmt.get('$basetexture', None)).name
             if tex_name in bpy.data.images:
                 size = bpy.data.images[tex_name].size
             else:

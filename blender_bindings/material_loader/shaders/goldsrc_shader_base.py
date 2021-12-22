@@ -9,7 +9,7 @@ class GoldSrcShaderBase(ShaderBase):
 
     def __init__(self, goldsrc_material: StudioTexture):
         super().__init__()
-        self._vavle_material: StudioTexture = goldsrc_material
+        self._valve_material: StudioTexture = goldsrc_material
 
     def _emit_surface(self, basetexture, rad_info):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

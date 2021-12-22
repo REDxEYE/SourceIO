@@ -8,35 +8,35 @@ class Lightmapped4WayBlend(Source1ShaderBase):
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0.0, 0.3, 1.0))
         return None
 
     @property
     def basetexture2(self):
-        texture_path = self._vavle_material.get_param('$basetexture2', None)
+        texture_path = self._vmt.get_string('$basetexture2', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
         return None
 
     @property
     def basetexture3(self):
-        texture_path = self._vavle_material.get_param('$basetexture3', None)
+        texture_path = self._vmt.get_string('$basetexture3', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
         return None
 
     @property
     def basetexture4(self):
-        texture_path = self._vavle_material.get_param('$basetexture4', None)
+        texture_path = self._vmt.get_string('$basetexture4', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
         return None
 
     @property
     def bumpmap(self):
-        texture_path = self._vavle_material.get_param('$bumpmap', None)
+        texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             image.colorspace_settings.is_data = True
@@ -46,7 +46,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
 
     @property
     def bumpmap2(self):
-        texture_path = self._vavle_material.get_param('$bumpmap2', None) or self._vavle_material.get_param(
+        texture_path = self._vmt.get_string('$bumpmap2', None) or self._vmt.get_string(
             '$basenormalmap2', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
@@ -57,7 +57,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
 
     @property
     def bumpmap3(self):
-        texture_path = self._vavle_material.get_param('$basenormalmap3', None)
+        texture_path = self._vmt.get_string('$basenormalmap3', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             image.colorspace_settings.is_data = True
@@ -67,7 +67,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
 
     @property
     def bumpmap4(self):
-        texture_path = self._vavle_material.get_param('$basenormalmap4', None)
+        texture_path = self._vmt.get_string('$basenormalmap4', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             image.colorspace_settings.is_data = True

@@ -1,18 +1,92 @@
 import warnings
-from collections import OrderedDict
 from enum import Enum
 from pathlib import Path
 from pprint import pprint
-from typing import Tuple, Union, Optional, Any, List
+from typing import Tuple, Union, List
 
-from ..shared.content_providers.content_manager import ContentManager
+KeyValuePair = Tuple[str, Union[str, 'KeyValuePair', List['KeyValuePair']]]
 
 
-class FGDLexerException(Exception):
+class _KVDataProxy:
+    known_conditions = {'$X360': False,
+                        '$WIN32': True,
+                        '$WINDOWS': True,
+                        '$OSX': False,
+                        '$LINUX': False,
+                        '$POSIX': False}
+
+    def __init__(self, data: List[KeyValuePair]):
+        self.data = data
+
+    def __contains__(self, item):
+        return self.get(item) is not None
+
+    def __getitem__(self, item):
+        value = self.get(item)
+        if value is not None:
+            return self._wrap_value(value)
+        else:
+            raise KeyError(f'Key {item!r} not found')
+
+    def items(self):
+        for key, value in self.data:
+            yield key, self._wrap_value(value)
+
+    def get(self, name, default=None):
+        name = name.lower()
+        for key, value in self.data:
+            if key == name:
+                if isinstance(value, tuple) and len(value) == 2:
+                    value, cond = value
+                    if cond.startswith('!'):
+                        cond = not self.known_conditions[cond[1:]]
+                    else:
+                        cond = self.known_conditions[cond]
+                    if cond:
+                        return self._wrap_value(value)
+                else:
+                    return self._wrap_value(value)
+        return default
+
+    def top(self) -> Tuple[str, Union[str, '_KVDataProxy']]:
+        assert len(self.data) == 1
+        key, value = self.data[0]
+        return key, self._wrap_value(value)
+
+    def __setitem__(self, key, value):
+        key = key.lower()
+        for i, (name, _) in enumerate(self.data):
+            if name == key:
+                self.data[i] = name, self._wrap_value(value)
+                break
+
+    def merge(self, other: '_KVDataProxy'):
+        for o_item, o_value in other.items():
+            if isinstance(o_value, _KVDataProxy):
+                self[o_item].merge(o_value)
+            else:
+                self[o_item] = o_value
+
+    @staticmethod
+    def _wrap_value(value):
+        if isinstance(value, list):
+            return _KVDataProxy(value)
+        return value
+
+    def to_dict(self):
+        items = {}
+        for k, v in self.items():
+            if isinstance(v, _KVDataProxy):
+                v = v.to_dict()
+            items[k] = v
+        return items
+
+
+class KVLexerException(Exception):
     pass
 
 
-class FGDParserException(Exception):
+class KVParserException(Exception):
     pass
 
 
@@ -86,7 +160,7 @@ class ValveKeyValueLexer:
 
     @staticmethod
     def _is_valid_symbol(symbol):
-        return (symbol.isprintable() or symbol in '\t') and symbol not in '{}[]"\'\n\r'
+        return (symbol.isprintable() or symbol in '\t') and symbol not in '$%{}[]"\'\n\r'
 
     def _is_valid_quoted_symbol(self, symbol):
         return self._is_valid_symbol(symbol) or symbol in '$%.,\\/<>=![]{}?'
@@ -165,7 +239,7 @@ class ValveKeyValueLexer:
                 warnings.warn(f'Unknown symbol {self.advance()!r} at {self._line}:{self._column}')
                 continue
             else:
-                raise FGDLexerException(
+                raise KVLexerException(
                     f'Unknown symbol {self.symbol!r} in {self.buffer_name!r} at {self._line}:{self._column}')
         yield VKVToken.EOF, None
 
@@ -186,7 +260,11 @@ class ValveKeyValueParser:
         self._last_peek = None
         self._self_recover = self_recover
 
-        self.tree = {}
+        self._tree = []
+
+    @property
+    def tree(self):
+        return _KVDataProxy(self._tree)
 
     def peek(self):
         if self._last_peek is None:
@@ -213,8 +291,8 @@ class ValveKeyValueParser:
                     self.advance()
                 pass
             else:
-                raise FGDParserException(f"Unexpected token {token}:{value!r}, expected {token_type}"
-                                         f"in {self._path!r} at {self._lexer.line}:{self._lexer.column}")
+                raise KVParserException(f"Unexpected token {token}:{value!r}, expected {token_type}"
+                                        f"in {self._path!r} at {self._lexer.line}:{self._lexer.column}")
 
     def match(self, token_type, consume=False):
         token, value = self.peek()
@@ -229,24 +307,24 @@ class ValveKeyValueParser:
             self.advance()
 
     def parse(self):
-        node_stack = [self.tree]
+        node_stack = [self._tree]
         while self._lexer:
             self._skip_newlines()
             if self.match(VKVToken.STRING):
                 key = self.advance()[1]
                 self._skip_newlines()
                 if self.match(VKVToken.LBRACE, True):
-                    new_tree_node = {}
-                    node_stack[-1][key] = new_tree_node
+                    new_tree_node = []
+                    node_stack[-1].append((key.lower(), new_tree_node))
                     node_stack.append(new_tree_node)
                 elif self.match(VKVToken.STRING):
                     value = self.advance()
                     if self.match(VKVToken.LBRACKET, True):
                         condition = self.advance()
                         self.expect(VKVToken.RBRACKET)
-                        node_stack[-1][key] = value[1], condition[1]
+                        node_stack[-1].append((key.lower(), (value[1], condition[1])))
                     else:
-                        node_stack[-1][key] = value[1]
+                        node_stack[-1].append((key.lower(), value[1]))
                     self.expect(VKVToken.NEWLINE)
             elif self.match(VKVToken.RBRACE, True):
                 node_stack.pop(-1)
@@ -254,7 +332,7 @@ class ValveKeyValueParser:
                 break
             else:
                 token, value = self.peek()
-                raise FGDParserException(
+                raise KVParserException(
                     f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line}:{self._lexer.column}")
 
 
@@ -266,7 +344,9 @@ if __name__ == '__main__':
     "$key2"  "valu\\"e1"
     "$key3"  "val\\ue2`
     "$key4"  "value3"  [!PS3]
+    "$key4"  "value5342"  [PS3]
     "$key5"  "[0.0 1.0 1.0]"
+    "$key5"  "{255 255 255 4100}"
     "$key6"  models/tests/basic_vertexlitgeneric
     
     test "<>!=asd./"
@@ -289,62 +369,67 @@ if __name__ == '__main__':
 }
 """
 
-    debug_data = """replacements
+    debug_data = """"Water"
 {
-	templates
-	{
-		standard
-		{
-			"VertexLitGeneric"
-			{
-				pyro_vision
-				{
-					$EFFECT					1
-					$VERTEX_LIT				1
-		
-					$basetexture			$basetexture
-					$vertexcolor			$vertexcolor  [PS3]
+        "Water_DX60"
+        {
+                "$fallbackmaterial" "nature/water_dx70"
+        }
 
-//					$STRIPETEXTURE			"rj/stripe3"
-//					$STRIPE_SCALE			"[ 0.002 0.002 0.002 ]"
-//					$STRIPE_COLOR			"[ 1.0 0.0 0.7 ]"
-		
-					$COLORBAR				"rj/colorbar_peach02"
+        "%tooltexture" "dev/water_normal"
+        "%compilewater" 1
+        "$abovewater" 1
 
-					$DIFFUSE_WHITE			0.5
-					$GRAY_POWER				0.45
-					$GRAY_STEP				"[ -0.1 0.85 ]"
-					$LIGHTMAP_GRADIENTS		255
-				}
-			}
-		}
+        "$envmap" "env_cubemap"
+        "$refracttexture" "_rt_WaterRefraction"
+        "$refractamount" "1.0"
+        //"$refracttint" "[0.95 1.0 0.97]"
 
-	}
+        "$reflecttexture" "_rt_WaterReflection"
+        "$reflectamount" "1.0"
+        //"$reflecttint" "[1 1 1]"
 
-	patterns
-	{	barrel_crate_doomsday
-		{
-			template	"standard"
-		}
-		rocket_
-		{
-			template	"standard"
-		}
-		wood_fence
-		{
-			template	"standard"
-		}
-		western_wood
-		{
-			template	"standard"
-		}
-	}
+        "$scale" "[1 1]"
+
+        "$bumpmap" "dev/water_dudv"
+        "$normalmap" "dev/water_normal"
+
+        "$surfaceprop" "water"
+        "$bottommaterial" "dev/dev_waterbeneath2"
+        "$bumpframe" "0"
+
+        "$fogenable" 1
+        "$fogcolor" "{22 20 10}"
+        "$fogstart" 1.00
+        "$fogend" 400.00
+
+        "Proxies"
+        {
+                "AnimatedTexture"
+                {
+                        "animatedtexturevar" "$normalmap"
+                        "animatedtextureframenumvar" "$bumpframe"
+                        "animatedtextureframerate" 30.00
+                }
+
+                "TextureScroll"
+                {
+                        "texturescrollvar" "$bumptransform"
+                        "texturescrollrate" .05
+                        "texturescrollangle" 45.00
+                }
+                "WaterLOD"
+                {
+                        // fixme!  This has to be here, or material loading barfs.
+                        "dummy" 0
+                }
+        }
 }"""
 
     print(debug_data)
     parser = ValveKeyValueParser(buffer_and_name=(debug_data, 'memory'), self_recover=True)
     parser.parse()
-    pprint(parser.tree)
+    pprint(parser._tree)
     # ContentManager().scan_for_content(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry")
     # for file_name, file in ContentManager().glob('*.vmt'):
     #     print(file_name)

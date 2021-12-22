@@ -5,14 +5,13 @@ import numpy as np
 from ..shader_base import ShaderBase
 from ...source1.vtf import import_texture
 from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.source1.vmt import VMT
 
 
 class Source1ShaderBase(ShaderBase):
-    def __init__(self, valve_material):
+    def __init__(self, vmt):
         super().__init__()
-        from ....library.source1.vmt.vmt_parser import VMTParser
-        self._vavle_material: VMTParser = valve_material.material
-        self._material_data: Dict[str, Any] = self._vavle_material.get_raw_data()
+        self._vmt: VMT = vmt
         self.textures = {}
 
     def load_texture(self, texture_name, texture_path):

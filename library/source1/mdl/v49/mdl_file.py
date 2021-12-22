@@ -16,6 +16,7 @@ from ..structs.anim_desc import AnimDesc
 from ..structs.sequence import Sequence
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV49
+from ....utils.kv_parser import ValveKeyValueParser
 
 
 class _AnimBlocks:
@@ -50,6 +51,8 @@ class Mdl(Base):
 
         self.bone_table_by_name = []
         self.eyeballs = []
+        self.key_values_raw = ''
+        self.key_values = {}
 
     @staticmethod
     def calculate_crc(buffer):
@@ -149,6 +152,12 @@ class Mdl(Base):
             body_part = BodyPartV49()
             body_part.read(reader)
             self.body_parts.append(body_part)
+        reader.seek(header.key_value_offset)
+        self.key_values_raw = reader.read(header.key_value_size).decode('latin1')
+        parser = ValveKeyValueParser(buffer_and_name=(self.key_values_raw, 'memory'), self_recover=True)
+        parser.parse()
+        self.key_values = parser.tree
+
         try:
             reader.seek(header.local_animation_offset)
             for _ in range(header.local_animation_count):

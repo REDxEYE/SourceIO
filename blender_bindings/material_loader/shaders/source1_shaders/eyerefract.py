@@ -7,7 +7,7 @@ class EyeRefract(Source1ShaderBase):
 
     @property
     def iris(self):
-        texture_path = self._vavle_material.get_param('$iris', None)
+        texture_path = self._vmt.get_string('$iris', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None

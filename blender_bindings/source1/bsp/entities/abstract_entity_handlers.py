@@ -15,14 +15,13 @@ from .....logger import SLoggingManager
 from ....utils.utils import get_material, get_or_create_collection
 
 from .....library.source1.bsp.bsp_file import BSPFile
-from .....library.source1.vmt.valve_material import VMT
+from .....library.source1.vmt import VMT
 from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....library.source1.bsp.datatypes.texture_data import TextureData
 from .....library.source1.bsp.datatypes.texture_info import TextureInfo
 from .....library.shared.content_providers.content_manager import ContentManager
-
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
@@ -143,13 +142,13 @@ class AbstractEntityHandler:
             material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
 
         uvs_per_face = []
-        # luvs_per_face = []
+        luvs_per_face = []
 
         for map_face in bsp_faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
             uvs = {}
-            # luvs = {}
+            luvs = {}
             face = []
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
@@ -157,7 +156,7 @@ class AbstractEntityHandler:
             texture_info = bsp_textures_info[map_face.tex_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             tv1, tv2 = texture_info.texture_vectors
-            # lv1, lv2 = texture_info.lightmap_vectors
+            lv1, lv2 = texture_info.lightmap_vectors
 
             used_surf_edges = bsp_surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
@@ -170,21 +169,21 @@ class AbstractEntityHandler:
             u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / (texture_data.width or 512)
             v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / (texture_data.height or 512))
 
-            # lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / (texture_data.width or 512)
-            # lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / (texture_data.height or 512))
+            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / (texture_data.width or 512)
+            lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / (texture_data.height or 512))
 
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
-            # l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
+            l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
 
-            for vertex_id, uv in zip(face_vertex_ids, v_uvs):  # , l_uvs):
+            for vertex_id, uv,luv in zip(face_vertex_ids, v_uvs, l_uvs):
                 new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv
-                # luvs[new_vertex_id] = luv
+                luvs[new_vertex_id] = luv
 
             material_indices.append(material_lookup_table[texture_data.name_id])
             uvs_per_face.append(uvs)
-            # luvs_per_face.append(luvs)
+            luvs_per_face.append(luvs)
             faces.append(face[::-1])
 
         mesh_data.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
@@ -196,11 +195,11 @@ class AbstractEntityHandler:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
 
-        # lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
-        # uv_data = lightmap_uv.data
-        # for poly in mesh_data.polygons:
-        #     for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-        #         uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+        lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
+        uv_data = lightmap_uv.data
+        for poly in mesh_data.polygons:
+            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+                uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
 
         return mesh_obj
 
@@ -266,8 +265,8 @@ class AbstractEntityHandler:
                 icon_material_file = ContentManager().find_material(icon_path, silent=True)
                 if not icon_material_file:
                     return
-                vmt = VMT(icon_material_file)
-                texture = ContentManager().find_texture(vmt.get_param('$basetexture', None), silent=True)
+                vmt = VMT(icon_material_file, icon_path)
+                texture = ContentManager().find_texture(vmt.get_string('$basetexture', None), silent=True)
                 if not texture:
                     return
                 icon = import_texture(Path(icon_path).stem, texture)

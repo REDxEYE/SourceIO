@@ -1,7 +1,7 @@
 from . import load_texture
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
-from ..vmt.valve_material import VMT
+from ..vmt import VMT
 import numpy as np
 
 
@@ -24,9 +24,9 @@ def convert_skybox_to_equiangular(skyname, width=1024):
     use_hdr = False
     for k, n in sides_names.items():
         file_path = content_manager.find_material(f'skybox/{skyname}{n}')
-        material = VMT(file_path)
-        use_hdr |= bool(material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedtexture', False)))
-        texture_path = material.get_param('$basetexture', None)
+        material = VMT(file_path, f'skybox/{skyname}{n}')
+        use_hdr |= bool(material.get_string('$hdrbasetexture', material.get_string('$hdrcompressedtexture', False)))
+        texture_path = material.get_string('$basetexture', None)
         if texture_path is None:
             raise SkyboxException('Missing $basetexture in skybox material')
         texture_file = content_manager.find_texture(texture_path)
@@ -55,10 +55,14 @@ def convert_skybox_to_equiangular(skyname, width=1024):
             file_path = content_manager.find_material(f'skybox/{skyname}_hdr{n}')
             if file_path is None:
                 file_path = content_manager.find_material(f'skybox/{skyname}{n}')
-            material = VMT(file_path)
-            texture_path = material.get_param('$hdrbasetexture', material.get_param('$hdrcompressedTexture',
-                                                                                    material.get_param('$basetexture',
-                                                                                                       None)))
+                material = VMT(file_path,f'skybox/{skyname}{n}')
+            else:
+                material = VMT(file_path, f'skybox/{skyname}_hdr{n}')
+            texture_path = material.get_string('$hdrbasetexture',
+                                               material.get_string('$hdrcompressedTexture',
+                                                                   material.get_string(
+                                                                       '$basetexture',
+                                                                       None)))
             if texture_path is None:
                 raise SkyboxException('Missing $basetexture in skybox material')
             texture_file = content_manager.find_texture(texture_path)

@@ -10,7 +10,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def bumpmap(self):
-        texture_path = self._vavle_material.get_param('$bumpmap', None)
+        texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image = self.convert_normalmap(image)
@@ -21,18 +21,20 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
 
     @property
     def basetexturetransform(self):
-        return self._vavle_material.get_transform_matrix('$basetexturetransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
+        return self._vmt.get_transform_matrix('$basetexturetransform',
+                                              {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+                                               'translate': (0, 0, 0)})
 
     @property
     def selfillummask(self):
-        texture_path = self._vavle_material.get_param('$selfillummask', None)
+        texture_path = self._vmt.get_string('$selfillummask', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.0, 0.0, 0.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -42,7 +44,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def phongexponenttexture(self):
-        texture_path = self._vavle_material.get_param('$phongexponenttexture', None)
+        texture_path = self._vmt.get_string('$phongexponenttexture', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.0, 0.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -52,7 +54,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def color2(self):
-        color_value, value_type = self._vavle_material.get_vector('$color2', None)
+        color_value, value_type = self._vmt.get_vector('$color2', None)
         if color_value is None:
             return None
         divider = 255 if value_type is int else 1
@@ -63,7 +65,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def color(self):
-        color_value, value_type = self._vavle_material.get_vector('$color', None)
+        color_value, value_type = self._vmt.get_vector('$color', None)
         if color_value is None:
             return None
         divider = 255 if value_type is int else 1
@@ -74,55 +76,55 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def translucent(self):
-        return self._vavle_material.get_int('$translucent', 0) == 1
+        return self._vmt.get_int('$translucent', 0) == 1
 
     @property
     def alphatest(self):
-        return self._vavle_material.get_int('$alphatest', 0) == 1
+        return self._vmt.get_int('$alphatest', 0) == 1
 
     @property
     def alphatestreference(self):
-        return self._vavle_material.get_float('$alphatestreference', 0.5)
+        return self._vmt.get_float('$alphatestreference', 0.5)
 
     @property
     def allowalphatocoverage(self):
-        return self._vavle_material.get_int('$allowalphatocoverage', 0) == 1
+        return self._vmt.get_int('$allowalphatocoverage', 0) == 1
 
     @property
     def additive(self):
-        return self._vavle_material.get_int('$additive', 0) == 1
+        return self._vmt.get_int('$additive', 0) == 1
 
     @property
     def phong(self):
-        return self._vavle_material.get_int('$phong', 0) == 1
+        return self._vmt.get_int('$phong', 0) == 1
 
     @property
     def selfillum(self):
-        return self._vavle_material.get_int('$selfillum', 0) == 1
+        return self._vmt.get_int('$selfillum', 0) == 1
 
     @property
     def basealphaenvmapmask(self):
-        return self._vavle_material.get_int('$basealphaenvmapmask', 1) == 1
+        return self._vmt.get_int('$basealphaenvmapmask', 1) == 1
 
     @property
     def basemapalphaphongmask(self):
-        return self._vavle_material.get_int('$basemapalphaphongmask', 0) == 1
+        return self._vmt.get_int('$basemapalphaphongmask', 0) == 1
 
     @property
     def normalmapalphaphongmask(self):
-        return self._vavle_material.get_int('$normalmapalphaphongmask', 1) == 1
+        return self._vmt.get_int('$normalmapalphaphongmask', 1) == 1
 
     @property
     def normalmapalphaenvmapmask(self):
-        return self._vavle_material.get_int('$normalmapalphaenvmapmask', 0) == 1
+        return self._vmt.get_int('$normalmapalphaenvmapmask', 0) == 1
 
     @property
     def envmap(self):
-        return self._vavle_material.get_string('$envmap', None) is not None
+        return self._vmt.get_string('$envmap', None) is not None
 
     @property
     def envmapmask(self):
-        texture_path = self._vavle_material.get_param('$envmapmask', None)
+        texture_path = self._vmt.get_string('$envmapmask', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (1, 1, 1, 1.0))
             image.colorspace_settings.is_data = True
@@ -132,7 +134,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def envmaptint(self):
-        color_value, value_type = self._vavle_material.get_vector('$envmaptint', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$envmaptint', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
@@ -142,7 +144,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def phongfresnelranges(self):
-        value, value_type = self._vavle_material.get_vector('$phongfresnelranges', None)
+        value, value_type = self._vmt.get_vector('$phongfresnelranges', None)
         if value is not None:
             divider = 255 if value_type is int else 1
             value = list(map(lambda a: a / divider, value))
@@ -151,21 +153,21 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def phongexponent(self):
-        value = self._vavle_material.get_float('$phongexponent', None)
+        value = self._vmt.get_float('$phongexponent', None)
         return value
 
     @property
     def phongboost(self):
-        value = self._vavle_material.get_float('$phongboost', 1)
+        value = self._vmt.get_float('$phongboost', 1)
         return value
 
     @property
     def phongalbedotint(self):
-        return self._vavle_material.get_int('$phongalbedotint', 1) == 1
+        return self._vmt.get_int('$phongalbedotint', 1) == 1
 
     @property
     def phongtint(self):
-        color_value, value_type = self._vavle_material.get_vector('$phongtint', None)
+        color_value, value_type = self._vmt.get_vector('$phongtint', None)
         if color_value is None:
             return None
         divider = 255 if value_type is int else 1
@@ -178,18 +180,18 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
-        if self._vavle_material.get_subblock('proxies', None):
-            proxies = self._vavle_material.get_subblock('proxies')
+        if 'proxies' in self._vmt:
+            proxies = self._vmt.get('proxies')
             for proxy_name, proxy_data in proxies.items():
                 if proxy_name == 'selectfirstifnonzero':
                     result_var = proxy_data.get('resultvar')
                     src1_var = proxy_data.get('srcvar1')
                     src2_var = proxy_data.get('srcvar2')
-                    src1_value, src1_type = self._vavle_material.get_vector(src1_var, [0])
+                    src1_value, src1_type = self._vmt.get_vector(src1_var, [0])
                     if all([val > 0 for val in src1_value]):
-                        self._vavle_material.get_raw_data()[result_var] = self._vavle_material.get_param(src1_var)
+                        self._vmt[result_var] = self._vmt[src1_var]
                     else:
-                        self._vavle_material.get_raw_data()[result_var] = self._vavle_material.get_param(src2_var)
+                        self._vmt[result_var] = self._vmt[src2_var]
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]

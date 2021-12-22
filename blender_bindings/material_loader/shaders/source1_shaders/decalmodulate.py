@@ -10,26 +10,26 @@ class DecalModulate(Source1ShaderBase):
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
 
     @property
     def decalscale(self):
-        return self._vavle_material.get_float('$decalscale', 0)
+        return self._vmt.get_float('$decalscale', 0)
 
     @property
     def decal(self):
-        return self._vavle_material.get_int('$decal', 0)
+        return self._vmt.get_int('$decal', 0)
 
     @property
     def vertexcolor(self):
-        return self._vavle_material.get_int('$vertexcolor', 0)
+        return self._vmt.get_int('$vertexcolor', 0)
 
     @property
     def vertexalpha(self):
-        return self._vavle_material.get_int('$vertexalpha', 0)
+        return self._vmt.get_int('$vertexalpha', 0)
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:

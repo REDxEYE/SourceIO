@@ -7,14 +7,14 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
 
     @property
     def texture2(self):
-        texture_path = self._vavle_material.get_param('$texture2', None)
+        texture_path = self._vmt.get_string('$texture2', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.0, 0.0, 0.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -24,7 +24,7 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def color2(self):
-        color_value, value_type = self._vavle_material.get_vector('$color2', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$color2', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
@@ -35,7 +35,7 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def color(self):
-        color_value, value_type = self._vavle_material.get_vector('$color', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$color', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
@@ -46,7 +46,7 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def additive(self):
-        return self._vavle_material.get_int('$additive', 0) == 1
+        return self._vmt.get_int('$additive', 0) == 1
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:

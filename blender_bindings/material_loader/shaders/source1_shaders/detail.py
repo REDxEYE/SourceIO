@@ -10,7 +10,7 @@ class DetailSupportMixin(Source1ShaderBase):
 
     @property
     def detail(self):
-        texture_path = self._vavle_material.get_param('$detail', None)
+        texture_path = self._vmt.get_string('$detail', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 0.5))
             image.colorspace_settings.is_data = True
@@ -20,15 +20,15 @@ class DetailSupportMixin(Source1ShaderBase):
 
     @property
     def detailfactor(self):
-        return self._vavle_material.get_float('$detailblendfactor', 1)
+        return self._vmt.get_float('$detailblendfactor', 1)
 
     @property
     def detailmode(self):
-        return self._vavle_material.get_int('$detailblendmode', -1)
+        return self._vmt.get_int('$detailblendmode', -1)
 
     @property
     def detailscale(self):
-        value, value_type = self._vavle_material.get_vector('$detailscale', [4, 4])
+        value, value_type = self._vmt.get_vector('$detailscale', [4, 4])
         if value is None:
             return None
         divider = 255 if value_type is int else 1
@@ -40,7 +40,7 @@ class DetailSupportMixin(Source1ShaderBase):
 
     @property
     def detailtint(self):
-        color_value, value_type = self._vavle_material.get_vector('$detailtint', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$detailtint', [1, 1, 1])
 
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
@@ -51,7 +51,7 @@ class DetailSupportMixin(Source1ShaderBase):
 
     @property
     def detailtexturetransform(self):
-        return self._vavle_material.get_transform_matrix('$detailtexturetransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
+        return self._vmt.get_transform_matrix('$detailtexturetransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
 
     def handle_detail(self, next_socket : bpy.types.NodeSocket, albedo_socket : bpy.types.NodeSocket, *, UV=None):
         if (self.detailmode not in [0, 1, 2, 4, 5]):

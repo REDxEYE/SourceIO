@@ -7,19 +7,18 @@ class LightmapGeneric(Source1ShaderBase):
 
     @property
     def isskybox(self):
-        return self._vavle_material.get_int('%' + 'compilesky', 0) + self._vavle_material.get_param(
-            '%' + 'compile2Dsky', 0)
+        return self._vmt.get_int('%' + 'compilesky', 0) + self._vmt.get_int('%' + 'compile2Dsky', 0)
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
 
     @property
     def bumpmap(self):
-        texture_path = self._vavle_material.get_param('$bumpmap', None)
+        texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             if self.ssbump:
@@ -31,23 +30,23 @@ class LightmapGeneric(Source1ShaderBase):
 
     @property
     def ssbump(self):
-        return self._vavle_material.get_int('ssbump', 0) == 1
+        return self._vmt.get_int('ssbump', 0) == 1
 
     @property
     def phong(self):
-        return self._vavle_material.get_int('$phong', 0) == 1
+        return self._vmt.get_int('$phong', 0) == 1
 
     @property
     def alpha(self):
-        return self._vavle_material.get_int('$alpha', 0) == 1
+        return self._vmt.get_int('$alpha', 0) == 1
 
     @property
     def alphatest(self):
-        return self._vavle_material.get_int('$alphatest', 0) == 1
+        return self._vmt.get_int('$alphatest', 0) == 1
 
     @property
     def translucent(self):
-        return self._vavle_material.get_int('$translucent', 0) == 1
+        return self._vmt.get_int('$translucent', 0) == 1
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:

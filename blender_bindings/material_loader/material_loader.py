@@ -5,7 +5,7 @@ from typing import Dict, Type, Union
 from .shader_base import ShaderBase
 from ...library.goldsrc.mdl_v10.structs.texture import StudioTexture
 from ...logger import SLoggingManager
-from ...library.source1.vmt.valve_material import VMT
+from ...library.source1.vmt import VMT
 
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 from .shaders.source1_shader_base import Source1ShaderBase
@@ -38,13 +38,7 @@ class Source1MaterialLoader(MaterialLoaderBase):
     def __init__(self, file_object, material_name):
         super().__init__(material_name)
         self.material_name: str = material_name[-63:]
-        self.vmt: VMT = VMT(file_object)
-        try:
-            self.vmt.parse()
-        except Exception as ex:
-            logger.error(f'Failed to load material, due to {ex} error')
-            traceback.print_exc()
-            logger.debug(f'Failed material: {self.material_name}:{self.vmt.shader}')
+        self.vmt: VMT = VMT(file_object, self.material_name)
 
     def create_material(self):
         handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.vmt)

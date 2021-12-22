@@ -7,14 +7,14 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
 
     @property
     def color2(self):
-        color_value, value_type = self._vavle_material.get_vector('$color2', None)
+        color_value, value_type = self._vmt.get_vector('$color2', None)
         if color_value is None:
             return None
         divider = 255 if value_type is int else 1
@@ -25,7 +25,7 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def color(self):
-        color_value, value_type = self._vavle_material.get_vector('$color', None)
+        color_value, value_type = self._vmt.get_vector('$color', None)
         if color_value is None:
             return None
         divider = 255 if value_type is int else 1
@@ -36,11 +36,11 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def translucent(self):
-        return self._vavle_material.get_int('$translucent', 0) == 1
+        return self._vmt.get_int('$translucent', 0) == 1
 
     @property
     def alphatest(self):
-        return self._vavle_material.get_int('$alphatest', 0) == 1
+        return self._vmt.get_int('$alphatest', 0) == 1
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:

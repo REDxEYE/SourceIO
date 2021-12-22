@@ -10,7 +10,7 @@ class Refract(Source1ShaderBase):
 
     @property
     def bumpmap(self):
-        texture_path = self._vavle_material.get_param('$normalmap', None)
+        texture_path = self._vmt.get_string('$normalmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image = self.convert_normalmap(image)
@@ -21,14 +21,14 @@ class Refract(Source1ShaderBase):
 
     @property
     def basetexture(self):
-        texture_path = self._vavle_material.get_param('$basetexture', None)
+        texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
 
     @property
     def color2(self):
-        color_value, value_type = self._vavle_material.get_vector('$color2', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$color2', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
@@ -39,12 +39,12 @@ class Refract(Source1ShaderBase):
 
     @property
     def bluramount(self):
-        value = self._vavle_material.get_float('$bluramount', 0)
+        value = self._vmt.get_float('$bluramount', 0)
         return value
 
     @property
     def color(self):
-        color_value, value_type = self._vavle_material.get_vector('$color', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$color', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
@@ -55,7 +55,7 @@ class Refract(Source1ShaderBase):
 
     @property
     def refracttint(self):
-        color_value, value_type = self._vavle_material.get_vector('$refracttint', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$refracttint', [1, 1, 1])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
