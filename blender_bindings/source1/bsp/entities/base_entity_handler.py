@@ -271,7 +271,6 @@ class BaseEntityHandler(AbstractEntityHandler):
             self.logger.error('Failed to load Skybox due to:')
             self.logger.exception(traceback.format_exc())
 
-
     def handle_prop_dynamic(self, entity: prop_dynamic, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_dynamic', obj, 'props')
@@ -724,7 +723,10 @@ class BaseEntityHandler(AbstractEntityHandler):
             mat = Source1MaterialLoader(material_file, material_name)
             mat.create_material()
 
-            tex_name = Path(mat.vmt.get('$basetexture', None)).name
+            tex_name = mat.vmt.get('$basetexture', None)
+            if not tex_name:
+                return
+            tex_name = Path(tex_name).name
             if tex_name in bpy.data.images:
                 size = bpy.data.images[tex_name].size
             else:
