@@ -1,6 +1,5 @@
-from io import StringIO
 from math import radians
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, IO
 
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager
@@ -11,7 +10,7 @@ logger = log_manager.get_logger('Source1::VMT')
 
 
 class VMT:
-    def __init__(self, buffer: StringIO, filename: str):
+    def __init__(self, buffer: IO, filename: str):
         data = buffer.read()
         if isinstance(data, bytes):
             data = data.decode('latin1')
