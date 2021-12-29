@@ -231,6 +231,16 @@ class ValveKeyValueLexer:
                 string = self.read_quoted_string()
                 if string:
                     yield VKVToken.STRING, string
+            elif self.symbol == '$':
+                self.advance()
+                string = self.read_simple_string(terminators=' \t\n')
+                if string:
+                    yield VKVToken.STRING, "$"+string
+            elif self.symbol == '%':
+                self.advance()
+                string = self.read_simple_string(terminators=' \t\n')
+                if string:
+                    yield VKVToken.STRING, "%"+string
             elif self.symbol == '[':
                 yield VKVToken.LBRACKET, self.advance()
             elif self.symbol == ']':
