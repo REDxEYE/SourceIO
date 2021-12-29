@@ -19,6 +19,17 @@ AnyContentDetector = TypeVar('AnyContentDetector', bound='ContentDetectorBase')
 AnyContentProvider = TypeVar('AnyContentProvider', bound='ContentProviderBase')
 
 
+# backport
+def is_relative_to(path: Path, *other):
+    """Return True if the path is relative to another path or False.
+    """
+    try:
+        path.relative_to(*other)
+        return True
+    except ValueError:
+        return False
+
+
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
         self.detector_addons: List[AnyContentDetector] = []
@@ -76,7 +87,7 @@ class ContentManager(metaclass=SingletonMeta):
     def get_relative_path(self, filepath: Path):
         for _, content_provider in self.content_providers.items():
             content_provider: ContentProviderBase
-            if filepath.is_absolute() and filepath.is_relative_to(content_provider.root):
+            if filepath.is_absolute() and is_relative_to(filepath, content_provider.root):
                 return filepath.relative_to(content_provider.root)
             elif not filepath.is_absolute() and content_provider.find_file(filepath):
                 return filepath
