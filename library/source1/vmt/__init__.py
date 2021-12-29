@@ -14,7 +14,6 @@ class VMT:
         data = buffer.read()
         if isinstance(data, bytes):
             data = data.decode('latin1')
-        print(data)
         parser = ValveKeyValueParser(buffer_and_name=(data, filename), self_recover=True)
         parser.parse()
         self.shader, self.data = parser.tree.top()
