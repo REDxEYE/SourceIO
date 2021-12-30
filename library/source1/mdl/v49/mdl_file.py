@@ -153,10 +153,11 @@ class Mdl(Base):
             body_part.read(reader)
             self.body_parts.append(body_part)
         reader.seek(header.key_value_offset)
-        self.key_values_raw = reader.read(header.key_value_size).decode('latin1')
-        parser = ValveKeyValueParser(buffer_and_name=(self.key_values_raw, 'memory'), self_recover=True)
-        parser.parse()
-        self.key_values = parser.tree
+        self.key_values_raw = reader.read(header.key_value_size).strip(b'\x00').decode('latin1')
+        if self.key_values_raw:
+            parser = ValveKeyValueParser(buffer_and_name=(self.key_values_raw, 'memory'), self_recover=True)
+            parser.parse()
+            self.key_values = parser.tree
 
         try:
             reader.seek(header.local_animation_offset)
