@@ -17,7 +17,7 @@ from .....library.source1.vtx.v7.vtx import Vtx
 from .....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
 from .....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 
-from .....library.source1.mdl.v44.mdl_file import Mdl
+from .....library.source1.mdl.v44.mdl_file import MdlV44
 from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
 from .....library.source1.mdl.structs.model import ModelV49
@@ -71,7 +71,7 @@ def get_slice(data: [Iterable, Sized], start, count=None):
     return data[start:start + count]
 
 
-def create_armature(mdl: Mdl, scale=1.0):
+def create_armature(mdl: MdlV44, scale=1.0):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -115,7 +115,7 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                  vtx_file: Union[BinaryIO, Path],
                  vvc_file: Optional[Union[BinaryIO, Path]] = None,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = Mdl(mdl_file)
+    mdl = MdlV44(mdl_file)
     mdl.read()
     vvd = Vvd(vvd_file)
     vvd.read()
@@ -290,7 +290,7 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
     return master_collection
 
 
-def create_flex_drivers(obj, mdl: Mdl):
+def create_flex_drivers(obj, mdl: MdlV44):
     all_exprs = mdl.rebuild_flex_rules()
     for controller in mdl.flex_controllers:
         obj.shape_key_add(name=controller.name)
@@ -331,7 +331,7 @@ def create_flex_drivers(obj, mdl: Mdl):
         logger.debug(f'{target} {expr}')
 
 
-def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
+def create_attachments(mdl: MdlV44, armature: bpy.types.Object, scale):
     attachments = []
     for attachment in mdl.attachments:
         empty = bpy.data.objects.new(attachment.name, None)
@@ -382,7 +382,7 @@ def __swap_components(vec, mp):
     return [vec[__pat.index(k)] for k in mp]
 
 
-def import_animations(mdl: Mdl, armature, scale):
+def import_animations(mdl: MdlV44, armature, scale):
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)
     bpy.context.view_layer.objects.active = armature

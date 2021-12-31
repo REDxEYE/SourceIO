@@ -20,7 +20,7 @@ from .....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 from .....library.source1.vtx.v7.vtx import Vtx
 
 from .....library.source1.mdl.v49.flex_expressions import *
-from .....library.source1.mdl.v49.mdl_file import Mdl
+from .....library.source1.mdl.v49.mdl_file import MdlV49
 from .....library.source1.mdl.structs.header import StudioHDRFlags
 from .....library.source1.mdl.structs.model import ModelV49
 from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
@@ -35,7 +35,7 @@ log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def collect_full_material_names(mdl: Mdl):
+def collect_full_material_names(mdl: MdlV49):
     content_manager = ContentManager()
     full_mat_names = {}
     for material_path in mdl.materials_paths:
@@ -86,7 +86,7 @@ def get_slice(data: [Iterable, Sized], start, count=None):
     return data[start:start + count]
 
 
-def create_armature(mdl: Mdl, scale=1.0):
+def create_armature(mdl: MdlV49, scale=1.0):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -130,7 +130,7 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                  vtx_file: Union[BinaryIO, Path],
                  vvc_file: Optional[Union[BinaryIO, Path]] = None,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = Mdl(mdl_file)
+    mdl = MdlV49(mdl_file)
     mdl.read()
 
     full_material_names = collect_full_material_names(mdl)
@@ -328,7 +328,7 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
     return master_collection
 
 
-def create_flex_drivers(obj, mdl: Mdl):
+def create_flex_drivers(obj, mdl: MdlV49):
     from ....operators.flex_operators import SourceIO_PG_FlexController
     if not obj.data.shape_keys:
         return
@@ -512,7 +512,7 @@ bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.re
     driver_file.use_module = True
 
 
-def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
+def create_attachments(mdl: MdlV49, armature: bpy.types.Object, scale):
     attachments = []
     for attachment in mdl.attachments:
         empty = bpy.data.objects.new(attachment.name, None)
@@ -535,7 +535,7 @@ def create_attachments(mdl: Mdl, armature: bpy.types.Object, scale):
     return attachments
 
 
-def import_materials(mdl: Mdl, unique_material_names=False, use_bvlg=False):
+def import_materials(mdl: MdlV49, unique_material_names=False, use_bvlg=False):
     content_manager = ContentManager()
     for material in mdl.materials:
 
@@ -569,7 +569,7 @@ def import_materials(mdl: Mdl, unique_material_names=False, use_bvlg=False):
             new_material.create_material()
 
 
-def import_animations(mdl: Mdl, armature, scale):
+def import_animations(mdl: MdlV49, armature, scale):
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)
     bpy.context.view_layer.objects.active = armature

@@ -3,7 +3,7 @@ from typing import Iterable, Sized, List
 
 import numpy as np
 
-from ..mdl.v49.mdl_file import Mdl
+from ..mdl.v49.mdl_file import MdlV49
 from ..mdl.structs.bone import BoneV49
 from ..mdl.structs.model import ModelV49 as MdlModel
 from ..vtx.v7.structs.mesh import Mesh as VtxMesh
@@ -101,7 +101,7 @@ def normalize_path(path):
 
 
 class DmxModel:
-    def __init__(self, mdl: Mdl, vvd: Vvd, vtx: Vtx, vtx_model: VtxModel, mdl_model: MdlModel, remove_eyes=False):
+    def __init__(self, mdl: MdlV49, vvd: Vvd, vtx: Vtx, vtx_model: VtxModel, mdl_model: MdlModel, remove_eyes=False):
         self._remove_eyes = remove_eyes
         self.mdl = mdl
         self.vvd = vvd
@@ -406,7 +406,7 @@ class ModelDecompiler:
         self.vtx_file = find_vtx(model_path)
         assert self.mdl_file.exists() and self.vvd_file.exists() and self.vtx_file.exists(), \
             "One or more of model files are missing"
-        self.mdl = Mdl(self.mdl_file)
+        self.mdl = MdlV49(self.mdl_file)
         self.mdl.read()
         self.vvd = Vvd(self.vvd_file)
         self.vvd.read()

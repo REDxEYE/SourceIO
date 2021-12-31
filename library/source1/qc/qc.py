@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from ..mdl.v49.mdl_file import Mdl
+from ..mdl.v49.mdl_file import MdlV49
 from ..mdl.structs.bone import ProceduralBoneType
 from ..mdl.structs.header import StudioHDRFlags
 from ..mdl.structs.bodygroup import BodyPartV49
@@ -25,7 +25,7 @@ def vector_i_transform(input: List, matrix: List):
     return output
 
 
-def generate_qc(mdl: Mdl, buffer, plugin_version="UNKNOWN"):
+def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
     buffer.write(f"// Created by SourceIO v{plugin_version}\n\n")
 
     buffer.write(f"$modelname \"{mdl.header.name}\"\n")

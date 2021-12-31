@@ -2,7 +2,7 @@ import numpy as np
 
 from ....shared.base import Base
 from ...vvd import Vvd
-from .mdl_file import Mdl
+from .mdl_file import MdlV44
 from ...mdl.structs.mesh import MeshV49
 from .....logger import SLoggingManager
 
@@ -11,7 +11,7 @@ logger = SLoggingManager().get_logger("Source1::VertexAnimationCache")
 
 class VertexAnimationCache(Base):
 
-    def __init__(self, mdl: Mdl, vvd: Vvd):
+    def __init__(self, mdl: MdlV44, vvd: Vvd):
         self.vertex_cache = {}
         self.mdl = mdl
         self.vvd = vvd

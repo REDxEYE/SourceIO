@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List, Optional, Dict
 import bpy
 
-from ...library.source1.mdl.v49.mdl_file import Mdl as S1Mdl
+from ...library.source1.mdl.v49.mdl_file import MdlV49 as S1Mdl
 from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
 from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
 from ...library.source2.resource_types import ValveCompiledModel
