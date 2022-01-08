@@ -63,7 +63,10 @@ class _KVDataProxy:
     def merge(self, other: '_KVDataProxy'):
         for o_item, o_value in other.items():
             if isinstance(o_value, _KVDataProxy):
-                self[o_item].merge(o_value)
+                if o_item not in self:
+                    self[o_item] = o_value
+                else:
+                    self[o_item].merge(o_value)
             else:
                 self[o_item] = o_value
 
@@ -186,7 +189,7 @@ class ValveKeyValueLexer:
 
         while True:
             symbol = self.symbol
-            if symbol == '\\' and self.next_symbol in '\'"\n\t\r':
+            if symbol == '\\' and self.next_symbol in '\'"ntr':
                 self.advance()
             if not self._is_valid_quoted_symbol(symbol) or symbol in terminator + '\n':
                 break
@@ -235,12 +238,12 @@ class ValveKeyValueLexer:
                 self.advance()
                 string = self.read_simple_string(terminators=' \t\n')
                 if string:
-                    yield VKVToken.STRING, "$"+string
+                    yield VKVToken.STRING, "$" + string
             elif self.symbol == '%':
                 self.advance()
                 string = self.read_simple_string(terminators=' \t\n')
                 if string:
-                    yield VKVToken.STRING, "%"+string
+                    yield VKVToken.STRING, "%" + string
             elif self.symbol == '[':
                 yield VKVToken.LBRACKET, self.advance()
             elif self.symbol == ']':
@@ -345,7 +348,6 @@ class ValveKeyValueParser:
                 raise KVParserException(
                     f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line}:{self._lexer.column}")
 
-
 if __name__ == '__main__':
     data = """Shader
 {
@@ -378,7 +380,6 @@ if __name__ == '__main__':
     }
 }
 """
-
     debug_data = """"Water"
 {
         "Water_DX60"
@@ -436,10 +437,10 @@ if __name__ == '__main__':
         }
 }"""
 
-    print(debug_data)
-    parser = ValveKeyValueParser(buffer_and_name=(debug_data, 'memory'), self_recover=True)
+    print(data)
+    parser = ValveKeyValueParser(buffer_and_name=(data, 'memory'), self_recover=True)
     parser.parse()
-    pprint(parser._tree)
+    pprint(parser.tree.to_dict())
     # ContentManager().scan_for_content(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry")
     # for file_name, file in ContentManager().glob('*.vmt'):
     #     print(file_name)
