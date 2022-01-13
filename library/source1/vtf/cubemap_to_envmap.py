@@ -24,6 +24,8 @@ def convert_skybox_to_equiangular(skyname, width=1024):
     use_hdr = False
     for k, n in sides_names.items():
         file_path = content_manager.find_material(f'skybox/{skyname}{n}')
+        if not file_path:
+            raise SkyboxException(f'Failed to find skybox material {skyname}{n}')
         material = VMT(file_path, f'skybox/{skyname}{n}')
         use_hdr |= bool(material.get_string('$hdrbasetexture', material.get_string('$hdrcompressedtexture', False)))
         texture_path = material.get_string('$basetexture', None)
@@ -55,7 +57,7 @@ def convert_skybox_to_equiangular(skyname, width=1024):
             file_path = content_manager.find_material(f'skybox/{skyname}_hdr{n}')
             if file_path is None:
                 file_path = content_manager.find_material(f'skybox/{skyname}{n}')
-                material = VMT(file_path,f'skybox/{skyname}{n}')
+                material = VMT(file_path, f'skybox/{skyname}{n}')
             else:
                 material = VMT(file_path, f'skybox/{skyname}_hdr{n}')
             texture_path = material.get_string('$hdrbasetexture',
