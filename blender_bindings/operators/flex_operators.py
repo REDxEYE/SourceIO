@@ -179,7 +179,8 @@ class SOURCEIO_PT_FlexControlPanel(UITools, bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         obj = context.active_object  # type:bpy.types.Object
-        return obj and obj.data.flex_controllers is not None
+
+        return obj and obj.type == 'MESH' and obj.data.flex_controllers is not None
 
     def draw(self, context):
         obj = context.active_object  # type:bpy.types.Object
