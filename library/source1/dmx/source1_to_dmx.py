@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, Sized, List
+from typing import Iterable, Sized, List, Dict
 
 import numpy as np
 
@@ -96,10 +96,6 @@ def get_dmx_keywords():
     }
 
 
-def normalize_path(path):
-    return str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\')
-
-
 class DmxModel:
     def __init__(self, mdl: MdlV49, vvd: Vvd, vtx: Vtx, vtx_model: VtxModel, mdl_model: MdlModel, remove_eyes=False):
         self._remove_eyes = remove_eyes
@@ -121,7 +117,11 @@ class DmxModel:
 
     @property
     def model_name(self):
-        return Path(self.mdl.header.name).stem
+        return sanitize_name(Path(self.mdl.header.name).stem)
+
+    @property
+    def mesh_name(self):
+        return sanitize_name(self.mdl_model.name)
 
     @property
     def vertices(self):
@@ -129,8 +129,8 @@ class DmxModel:
 
     def decompile_model(self):
 
-        dme_model = self.dmx.add_element(Path(self.mdl.header.name).stem, "DmeModel",
-                                         id=f"Object_{self.model_name}")
+        dme_model = self.dmx.add_element(self.mesh_name, "DmeModel",
+                                         id=f"Object_{self.mesh_name}")
         self._root["model"] = self._root['skeleton'] = dme_model
         dme_model["children"] = datamodel.make_array([], datamodel.Element)
 
@@ -280,15 +280,22 @@ class DmxModel:
         for face_set in face_sets:
             indices = face_set['indices']
             material_name = self.mdl.materials[face_set['material']].name
-
-            material_elem = self.dmx.add_element(material_name, "DmeMaterial", id=f"{material_name}_mat")
+            material_elem = None
             for cd_mat in self.mdl.materials_paths:
                 full_path = ContentManager().find_material(Path(cd_mat) / material_name)
                 if full_path is not None:
+                    material_elem = self.dmx.add_element(
+                        (Path(normalize_path(cd_mat)) / normalize_path(material_name)).as_posix(), "DmeMaterial",
+                        id=f"{material_name}_mat")
                     material_elem["mtlName"] = str(
-                        Path('materials') / Path(normalize_path(cd_mat)) / normalize_path(material_name))
+                        Path('materials', normalize_path(cd_mat), normalize_path(material_name)))
                     break
-
+            if material_elem is None:
+                material_elem = self.dmx.add_element(f'{material_name}_MISSING', "DmeMaterial",
+                                                     id=f"{material_name}_mat")
+                cd_mat = self.mdl.materials_paths[0]
+                material_elem["mtlName"] = Path('materials', normalize_path(cd_mat),
+                                                normalize_path(material_name)).as_posix()
             dme_face_set = self.dmx.add_element(normalize_path(material_name), "DmeFaceSet",
                                                 id=f"{mesh_name}_{material_name}_faces")
             dme_face_set["material"] = material_elem
@@ -308,7 +315,7 @@ class DmxModel:
         keywords = get_dmx_keywords()
 
         dme_combination_operator = self.dmx.add_element("combinationOperator", "DmeCombinationOperator",
-                                                        id=f"{self.model_name}_controllers")
+                                                        id=f"{self.mesh_name}_controllers")
         self._root["combinationOperator"] = dme_combination_operator
 
         controls = dme_combination_operator["controls"] = datamodel.make_array([], datamodel.Element)
@@ -339,7 +346,7 @@ class DmxModel:
 
         for flex_name, delta_data in delta_datas.items():
             vertex_delta_data = self.dmx.add_element(flex_name, "DmeVertexDeltaData",
-                                                     id=f"{self.model_name}_{flex_name}")
+                                                     id=f"{self.mesh_name}_{flex_name}")
             delta_states.append(vertex_delta_data)
             vertex_format = vertex_delta_data["vertexFormat"] = datamodel.make_array(
                 [keywords['pos'], keywords['norm']], str)
@@ -364,7 +371,7 @@ class DmxModel:
             datamodel.make_array([datamodel.Vector2([0.0, 0.0])] * len(delta_states), datamodel.Vector2)
 
         for flex_name, flex in mdl_flexes.items():
-            control = self.create_controller(self.model_name, flex_name, flex['stereo'], [flex_name])
+            control = self.create_controller(self.mesh_name, flex_name, flex['stereo'], [flex_name])
             controls.append(control)
 
         control_values = dme_combination_operator["controlValues"] = datamodel.make_array(
@@ -392,8 +399,7 @@ class DmxModel:
         return combination_input_control
 
     def save(self, output_path: Path):
-        model_name = sanitize_name(self.mdl_model.name.lower())
-        self.dmx.write((output_path / Path(model_name).stem).with_suffix('.dmx'),
+        self.dmx.write((output_path / self.mesh_name).with_suffix('.dmx'),
                        'binary', 9)
 
 
@@ -413,7 +419,7 @@ class ModelDecompiler:
         self.vtx = Vtx(self.vtx_file)
         self.vtx.read()
 
-        self.dmx_models: List[DmxModel] = []
+        self.dmx_models: Dict[str, DmxModel] = {}
         self._blank_counter = 0
 
     def decompile(self, remove_eyes=False):
@@ -427,8 +433,8 @@ class ModelDecompiler:
                     self._blank_counter += 1
                 dmx_model = DmxModel(self.mdl, self.vvd, self.vtx, vtx_model, mdl_model, remove_eyes)
                 dmx_model.decompile_model()
-                self.dmx_models.append(dmx_model)
+                self.dmx_models[mdl_model.name] = dmx_model
 
     def save(self, output_folder):
-        for dmx in self.dmx_models:
+        for dmx in self.dmx_models.values():
             dmx.save(output_folder)
