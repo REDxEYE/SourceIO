@@ -5,6 +5,7 @@ import sys
 from ctypes import *
 
 from . import VTFLibEnums, VTFLibStructures
+from .VTFLibEnums import ImageFormat
 
 
 class UnsupportedOS(Exception):
@@ -461,13 +462,13 @@ class VTFLib:
         return self.ImageGetFormat()
 
     def get_image_data(self, frame=0, face=0, slice=0, mipmap_level=0):
-        size = self.compute_image_size(self.width(), self.height(), self.depth(), self.mipmap_count(),
+        size = self.compute_image_size(self.width(), self.height(), self.depth(), 1,
                                        self.image_format().value)
         buff = self.ImageGetData(frame, face, slice, mipmap_level)
         return pointer_to_array(buff, size)
 
     def get_rgba8888(self):
-        size = self.compute_image_size(self.width(), self.height(), self.depth(), self.mipmap_count(),
+        size = self.compute_image_size(self.width(), self.height(), self.depth(), 1,
                                        VTFLibEnums.ImageFormat.ImageFormatRGBA8888)
         if self.image_format() == VTFLibEnums.ImageFormat.ImageFormatRGBA8888:
             return pointer_to_array(self.get_image_data(0, 0, 0, 0), size)
@@ -522,8 +523,7 @@ class VTFLib:
         return self.ImageComputeReflectivity()
 
     def compute_image_size(self, width, height, depth, mipmaps, image_format):
-        return self.ImageComputeImageSize(
-            width, height, depth, mipmaps, image_format)
+        return self.ImageComputeImageSize(width, height, depth, mipmaps, image_format)
 
     def flip_image(self, image_data, width=None,
                    height=None, depth=1, mipmaps=-1):
@@ -535,7 +535,7 @@ class VTFLib:
             image_data = self.convert_to_rgba8888()
         image_data = cast(image_data, POINTER(c_byte))
         self.ImageFlipImage(image_data, width, height)
-        size = self.compute_image_size(width, height, depth, mipmaps,
+        size = self.compute_image_size(width, height, depth, 1,
                                        VTFLibEnums.ImageFormat.ImageFormatRGBA8888)
 
         return pointer_to_array(image_data, size)
@@ -554,32 +554,19 @@ class VTFLib:
             image_data = self.convert_to_rgba8888()
         image_data = cast(image_data, POINTER(c_byte))
         self.ImageMirrorImage(image_data, self.width(), self.height())
-        size = self.compute_image_size(self.width(), self.height(), self.depth(), self.mipmap_count(),
-                                       VTFLibEnums.ImageFormat.ImageFormatRGBA8888)
+        size = self.compute_image_size(self.width(), self.height(), self.depth(), 1,
+                                       ImageFormat.ImageFormatRGBA8888)
 
         return pointer_to_array(image_data, size)
 
     def convert_to_rgba8888(self):
-        new_size = self.compute_image_size(self.width(), self.height(), self.depth(), self.mipmap_count(),
-                                           VTFLibEnums.ImageFormat.ImageFormatRGBA8888)
-        new_buffer = cast(create_string_buffer(new_size), POINTER(c_byte))
-        if not self.ImageConvertToRGBA8888(self.ImageGetData(0, 0, 0, 0), new_buffer, self.width(), self.height(),
-                                           self.image_format().value):
-            return pointer_to_array(new_buffer, new_size)
-        else:
-            sys.stderr.write('CAN\'T CONVERT IMAGE\n')
-            return 0
+        return self.convert(ImageFormat.ImageFormatRGBA8888)
 
     def convert(self, image_format):
-        new_size = self.compute_image_size(
-            self.width(),
-            self.height(),
-            self.depth(),
-            self.mipmap_count(),
-            image_format)
+        new_size = self.compute_image_size(self.width(), self.height(), self.depth(), 1, image_format)
         new_buffer = cast((c_byte * new_size)(), POINTER(c_byte))
         if not self.ImageConvert(self.ImageGetData(0, 0, 0, 0), new_buffer, self.width(), self.height(),
-                                 self.image_format().value, image_format):
+                                 self.image_format(), image_format):
             return pointer_to_array(new_buffer, new_size)
         else:
             sys.stderr.write('CAN\'T CONVERT IMAGE\n')
