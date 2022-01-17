@@ -27,7 +27,7 @@ class GoldSrcShaderBase(ShaderBase):
         self.connect_nodes(shader_emit.outputs['Emission'], material_output.inputs['Surface'])
 
     def load_texture(self, material_name, **kwargs):
-        model_texture_info = self._vavle_material
+        model_texture_info = self._valve_material
         model_texture = bpy.data.images.get(material_name, None)
         if model_texture is None:
             model_texture = bpy.data.images.new(
