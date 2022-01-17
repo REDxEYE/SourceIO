@@ -301,6 +301,8 @@ class ValveKeyValueParser:
                 warnings.warn(f"Trying to recover from unexpected token {token}:{value!r}, expected {token_type} "
                               f"in {self._path!r} at {self._lexer.line}:{self._lexer.column}")
                 while not self.match(VKVToken.NEWLINE):
+                    if self.match(VKVToken.EOF):
+                        break
                     self.advance()
                 pass
             else:
@@ -347,6 +349,7 @@ class ValveKeyValueParser:
                 token, value = self.peek()
                 raise KVParserException(
                     f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line}:{self._lexer.column}")
+
 
 if __name__ == '__main__':
     data = """Shader
