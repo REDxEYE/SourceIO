@@ -33,7 +33,7 @@ class GoldSrcShaderMode5(GoldSrcShaderBase):
         self.connect_nodes(basetexture_node.outputs['Alpha'], math_mul.inputs[0])
         self.connect_nodes(vertex_color_alpha.outputs['Color'], math_mul.inputs[1])
 
-        if self._vavle_material.flags & MdlTextureFlag.CHROME:
+        if self._valve_material.flags & MdlTextureFlag.CHROME:
             uvs_node = self.create_node(Nodes.ShaderNodeTexCoord)
             self.connect_nodes(uvs_node.outputs['Reflection'], basetexture_node.inputs['Vector'])
 

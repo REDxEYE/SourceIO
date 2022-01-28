@@ -35,12 +35,12 @@ class GoldSrcShaderMode2(GoldSrcShaderBase):
         self.connect_nodes(vertex_color_alpha.outputs['Color'], math_mul.inputs[1])
         self.connect_nodes(math_mul.outputs[0], shader.inputs['Alpha'])
 
-        if self._vavle_material.flags & MdlTextureFlag.CHROME:
+        if self._valve_material.flags & MdlTextureFlag.CHROME:
             shader.inputs['Specular'].default_value = 0.5
             shader.inputs['Metallic'].default_value = 1
             uvs_node = self.create_node(Nodes.ShaderNodeTexCoord)
             self.connect_nodes(uvs_node.outputs['Reflection'], basetexture_node.inputs['Vector'])
-        if self._vavle_material.flags & MdlTextureFlag.FULL_BRIGHT:
+        if self._valve_material.flags & MdlTextureFlag.FULL_BRIGHT:
             shader.inputs['Emission Strength'].default_value = 1
             self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
         else:
