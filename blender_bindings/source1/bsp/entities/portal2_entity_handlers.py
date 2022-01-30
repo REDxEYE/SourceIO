@@ -2,6 +2,8 @@ import math
 
 from mathutils import Euler
 import bpy
+
+from .abstract_entity_handlers import _srgb2lin
 from .portal2_entity_classes import *
 from .portal_entity_handlers import PortalEntityHandler
 
@@ -58,24 +60,16 @@ class Portal2EntityHandler(PortalEntityHandler):
         self._put_into_collection('logic_playmovie', obj, 'logic')
 
     def handle_trigger_paint_cleanser(self, entity: trigger_paint_cleanser, entity_raw: dict):
-        if 'model' not in entity_raw:
-            return
-        model_id = int(entity_raw.get('model')[1:])
-        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        self._set_location_and_scale(mesh_object, parse_float_vector(entity_raw.get('origin', '0 0 0')))
-        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
-        self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_paint_cleanser', mesh_object, 'triggers')
+        self._handle_brush_model('trigger_paint_cleanser', 'triggers', entity, entity_raw)
+
+    def handle_trigger_portal_cleanser(self, entity: trigger_portal_cleanser, entity_raw: dict):
+        self._handle_brush_model('trigger_portal_cleanser', 'triggers', entity, entity_raw)
 
     def handle_trigger_catapult(self, entity: trigger_catapult, entity_raw: dict):
-        if 'model' not in entity_raw:
-            return
-        model_id = int(entity_raw.get('model')[1:])
-        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        self._set_location_and_scale(mesh_object, parse_float_vector(entity_raw.get('origin', '0 0 0')))
-        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
-        self._set_entity_data(mesh_object, {'entity': entity_raw})
-        self._put_into_collection('trigger_catapult', mesh_object, 'triggers')
+        self._handle_brush_model('trigger_catapult', 'triggers', entity, entity_raw)
+
+    def handle_trigger_playerteam(self, entity: trigger_playerteam, entity_raw: dict):
+        self._handle_brush_model('trigger_playerteam', 'triggers', entity, entity_raw)
 
     def handle_npc_wheatley_boss(self, entity: npc_wheatley_boss, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -92,3 +86,34 @@ class Portal2EntityHandler(PortalEntityHandler):
     def handle_prop_exploding_futbol_spawnert(self, entity: prop_exploding_futbol_spawner, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_exploding_futbol_spawner', obj, 'props')
+
+    def handle_env_projectedtexture(self, entity: env_projectedtexture, entity_raw: dict):
+        light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
+        light.cycles.use_multiple_importance_sampling = False
+        color = [_srgb2lin(c / 255) for c in entity.lightcolor]
+        if len(color) == 4:
+            *color, brightness = color
+        elif len(color) == 3:
+            brightness = 200 / 255
+        else:
+            color = [color[0], color[0], color[0]]
+            brightness = 200 / 255
+
+        light.color = color
+        light.energy = (brightness * entity.brightnessscale * 10) * self.spotlight_power_multiplier
+        light.spot_size = 2 * math.radians(entity.lightfov)
+        obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
+                                                     object_data=light)
+        self._set_location(obj, entity.origin)
+        self._set_rotation(obj, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection('light_spot', obj, 'lights')
+
+    def handle_info_placement_helper(self, _1, _2):
+        pass
+
+    def handle_func_instance_io_proxy(self, _1, _2):
+        pass
+
+    def handle_info_coop_spawn(self, _1, _2):
+        pass

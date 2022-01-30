@@ -203,6 +203,16 @@ class AbstractEntityHandler:
 
         return mesh_obj
 
+    def _handle_brush_model(self, class_name, group, entity, entity_raw):
+        if 'model' not in entity_raw:
+            return
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_location_and_scale(mesh_object, parse_float_vector(entity_raw.get('origin', '0 0 0')))
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection(class_name, mesh_object, group)
+
     def _set_entity_data(self, obj, entity_raw: dict):
         obj['entity_data'] = entity_raw
 
