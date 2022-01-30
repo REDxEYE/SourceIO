@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import Node
-from typing import List, Union
+from typing import List, Union, TextIO
 
 from .base_node import SourceIOModelTreeNode
 from .input_object_node import SourceIOObjectNode
@@ -31,21 +31,21 @@ class SourceIOBodygroupNode(Node, SourceIOModelTreeNode):
 
     def init(self, context):
         ob = self.inputs.new('SourceIOObjectSocket', "Objects")
-        ob.link_limit = 4096
-
         self.outputs.new('SourceIOBodygroupSocket', "bodygroup")
 
     def update(self, ):
-        unused = []
+        unused_count = 0
+        total_inputs = 0
         for o in self.inputs:
             if (not o.is_linked) and o.bl_idname == "SourceIOObjectSocket":
-                unused.append(o)
-        if unused:
-            for u in unused:
-                self.inputs.remove(unused)
-        if not unused:
+                unused_count += 1
+            else:
+                total_inputs += 1
+        while unused_count >= 1:
+            self.inputs.remove(self.inputs[-1])
+            unused_count -= 1
+        if not unused_count == 0 and total_inputs <= 32:
             ob = self.inputs.new("SourceIOObjectSocket", "Objects")
-            ob.link_limit = 4096
 
     def draw_buttons(self, context, layout):
         self.update()
@@ -54,9 +54,7 @@ class SourceIOBodygroupNode(Node, SourceIOModelTreeNode):
     def draw_label(self):
         return 'Bodygroup: {}'.format(self.bodygroup_name)
 
-    def get_value(self):
-        proto = SourceIOBodygroupProto()
-        proto.name = self.bodygroup_name
+    def _get_inputs(self):
         for input_socket in self.inputs:
             if input_socket.is_linked:
                 if len(input_socket.links) > 1:
@@ -64,8 +62,16 @@ class SourceIOBodygroupNode(Node, SourceIOModelTreeNode):
                     for link in input_socket.links:
                         obj_node: SourceIOObjectNode = link.from_node
                         merge.append(obj_node.get_value())
-                    proto.objects.append(merge)
+                    raise NotImplementedError('TODO: Implement "Mesh Merge" node')
                 else:
                     obj_node: SourceIOObjectNode = input_socket.links[0].from_node
-                    proto.objects.append(obj_node.get_value())
-        return proto
+                    yield obj_node.get_value()
+
+    def write(self, buffer: TextIO):
+        buffer.write(f'$bodygroup "{self.bodygroup_name}"{{\n')
+        for object in self._get_inputs():
+            if object.is_blank:
+                buffer.write('\tblank\n')
+            else:
+                buffer.write(f'\tstudio "{object.obj.name}"\n')
+        buffer.write('}\n')

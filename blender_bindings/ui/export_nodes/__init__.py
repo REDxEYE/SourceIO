@@ -11,6 +11,7 @@ from .nodes import materials as material_nodes
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem
 
+
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
 
@@ -18,7 +19,7 @@ from nodeitems_utils import NodeCategory, NodeItem
 class SourceIONodeCategory(NodeCategory):
     @classmethod
     def poll(cls, context):
-        return context.space_data.tree_type == 'SourceIOModelDefinition'
+        return context.space_data.tree_type == 'sourceio.model_definition'
 
 
 # all categories in a list
@@ -69,6 +70,7 @@ classes = (
 
 
 def register_nodes():
+    print('Registered nodes')
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)

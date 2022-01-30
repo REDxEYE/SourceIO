@@ -1,3 +1,5 @@
+from typing import TextIO
+
 
 class SourceIOModelTreeNode:
     @classmethod
@@ -9,3 +11,6 @@ class SourceIOModelTreeNode:
 
     def update(self):
         return
+
+    def write(self, buffer: TextIO):
+        raise NotImplementedError

@@ -26,21 +26,19 @@ class SourceIO_OP_EvaluateNodeTree(Operator):
         return {'FINISHED'}
 
     def traverse_tree(self, start_node: nodes.SourceIOModelNode):
-        self.tmp_file.write(start_node.model_name + "\n")
+        start_node.write(self.tmp_file)
         objects = start_node.inputs['Objects']
         bodygroups = start_node.inputs['Bodygroups']
         skins = start_node.inputs['Skin']
         if objects.is_linked:
             for link in objects.links:
                 object_node: nodes.SourceIOObjectNode = link.from_node
-                self.tmp_file.write("\tmesh " + object_node.get_value().obj.name + "\n")
+                object_node.write(self.tmp_file)
 
         if bodygroups.is_linked:
-            self.tmp_file.write("Bodygroups:\n")
             for link in bodygroups.links:
-                bodygroup_node = link.from_node  # type: nodes.SourceIOBodygroupNode
-                self.tmp_file.write(str(bodygroup_node.get_value()))
-                self.tmp_file.write('\n')
+                bodygroup_node: nodes.SourceIOBodygroupNode = link.from_node
+                bodygroup_node.write(self.tmp_file)
         if skins.is_linked:
             skin_node = skins.links[0].from_node  # type: nodes.SourceIOSkinNode
             self.tmp_file.write(str(skin_node.get_value()))

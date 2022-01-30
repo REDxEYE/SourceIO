@@ -1,3 +1,5 @@
+from typing import TextIO
+
 from bpy.types import Node
 import bpy
 
@@ -5,6 +7,8 @@ from .base_node import SourceIOModelTreeNode
 
 
 class SourceIOBlankObjectProto:
+    is_blank = True
+
     class BlankObject:
         name = "BLANK"
 
@@ -14,8 +18,14 @@ class SourceIOBlankObjectProto:
 
 
 class SourceIOObjectProto:
+    is_blank = False
+
     def __init__(self):
         self.obj = None
+
+
+class InvalidObject(Exception):
+    pass
 
 
 class SourceIOObjectNode(Node, SourceIOModelTreeNode):
@@ -39,3 +49,8 @@ class SourceIOObjectNode(Node, SourceIOModelTreeNode):
             obj = SourceIOObjectProto()
             obj.obj = self.obj
             return obj
+
+    def write(self, buffer: TextIO):
+        if self.blank:
+            raise InvalidObject('Blank cannot be used in model keyword')
+        buffer.write(f'$model model "{self.get_value().obj.name}"\n')

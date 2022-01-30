@@ -26,18 +26,20 @@ class SourceIOSkingroupNode(Node, SourceIOModelTreeNode):
 
     def init(self, context):
         self.inputs.new('SourceIOMaterialSocket', "Material")
-
         self.outputs.new('SourceIOSkinGroupSocket', "Skingroup")
 
     def update(self, ):
         unused_count = 0
+        total_inputs = 0
         for o in self.inputs:  # type:SourceIOMaterialSocket
             if (not o.is_linked and o.material is None) and o.bl_idname == "SourceIOMaterialSocket":
                 unused_count += 1
-        if unused_count > 1:
-            for _ in range(unused_count - 1):
-                self.inputs.remove(self.inputs[-1])
-        if unused_count == 0:
+            else:
+                total_inputs += 1
+        while unused_count >= 1:
+            self.inputs.remove(self.inputs[-1])
+            unused_count -= 1
+        if not unused_count == 0 and total_inputs <= 32:
             self.inputs.new("SourceIOMaterialSocket", "Material")
 
     def draw_buttons(self, context, layout):
