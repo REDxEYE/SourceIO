@@ -189,8 +189,8 @@ class ValveKeyValueLexer:
 
         while True:
             symbol = self.symbol
-            if symbol == '\\' and self.next_symbol in '\'"ntr':
-                self.advance()
+            # if symbol == '\\' and self.next_symbol in '\'"ntr':
+            #     self.advance()
             if not self._is_valid_quoted_symbol(symbol) or symbol in terminator + '\n':
                 break
 
@@ -383,65 +383,33 @@ if __name__ == '__main__':
     }
 }
 """
-    debug_data = """"Water"
+    debug_data = r""""VertexlitGeneric"
 {
-        "Water_DX60"
-        {
-                "$fallbackmaterial" "nature/water_dx70"
-        }
+	"$basetexture" "models\tetTris\FNaF\SB\GlamFreddy\Eye_D"
+	"$bumpmap" "models\tetTris\FNaF\SB\GlamFreddy\Eye_N"
 
-        "%tooltexture" "dev/water_normal"
-        "%compilewater" 1
-        "$abovewater" 1
+	"$phongexponenttexture" "models\tetTris\FNaF\SB\GlamFreddy\Eye_E"
 
-        "$envmap" "env_cubemap"
-        "$refracttexture" "_rt_WaterRefraction"
-        "$refractamount" "1.0"
-        //"$refracttint" "[0.95 1.0 0.97]"
+	"$color2"	"[0 0 0]"
+	"$blendTintByBaseAlpha"	"1"
 
-        "$reflecttexture" "_rt_WaterReflection"
-        "$reflectamount" "1.0"
-        //"$reflecttint" "[1 1 1]"
+	"$phong" "1"
+	"$phongboost"	"9.9934895"
 
-        "$scale" "[1 1]"
+	"$phongfresnelranges"	"[0.1 0.23 0.945]"
 
-        "$bumpmap" "dev/water_dudv"
-        "$normalmap" "dev/water_normal"
+	"$phongdisablehalflambert"	"1"
 
-        "$surfaceprop" "water"
-        "$bottommaterial" "dev/dev_waterbeneath2"
-        "$bumpframe" "0"
+	"$envmap" "models\cubemaps\fallout4cube_dithered_grey"
+	"$normalmapalphaenvmapmask"		"1"
+	"$envmapfresnel"	"1"
 
-        "$fogenable" 1
-        "$fogcolor" "{22 20 10}"
-        "$fogstart" 1.00
-        "$fogend" 400.00
+	"$envmaptint"		"[0 0 0]"
+}
+"""
 
-        "Proxies"
-        {
-                "AnimatedTexture"
-                {
-                        "animatedtexturevar" "$normalmap"
-                        "animatedtextureframenumvar" "$bumpframe"
-                        "animatedtextureframerate" 30.00
-                }
-
-                "TextureScroll"
-                {
-                        "texturescrollvar" "$bumptransform"
-                        "texturescrollrate" .05
-                        "texturescrollangle" 45.00
-                }
-                "WaterLOD"
-                {
-                        // fixme!  This has to be here, or material loading barfs.
-                        "dummy" 0
-                }
-        }
-}"""
-
-    print(data)
-    parser = ValveKeyValueParser(buffer_and_name=(data, 'memory'), self_recover=True)
+    print(debug_data)
+    parser = ValveKeyValueParser(buffer_and_name=(debug_data, 'memory'), self_recover=True)
     parser.parse()
     pprint(parser.tree.to_dict())
     # ContentManager().scan_for_content(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry")
