@@ -85,11 +85,15 @@ class ContentManager(metaclass=SingletonMeta):
             f'Registered {content_provider.__class__.__name__}({name!r}) provider for {content_provider.root.stem}')
 
     def get_relative_path(self, filepath: Path):
+        logger.debug(f'Trying to find root folder for {filepath.as_posix()!r}')
         for _, content_provider in self.content_providers.items():
+            logger.debug(f'\tChecking {content_provider.root.as_posix()!r}')
             content_provider: ContentProviderBase
             if filepath.is_absolute() and is_relative_to(filepath, content_provider.root):
+                logger.debug(f'\tMatch {content_provider.root.as_posix()}!')
                 return filepath.relative_to(content_provider.root)
             elif not filepath.is_absolute() and content_provider.find_file(filepath):
+                logger.debug(f'\tMatch {content_provider.root.as_posix()}!')
                 return filepath
         return None
 

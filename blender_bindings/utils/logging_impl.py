@@ -34,6 +34,9 @@ class BPYLoggingManager(metaclass=SingletonMeta):
         logger = self.loggers[name] = BPYLogger(name)
         return logger
 
+    def set_logging_level(self, level):
+        [logger.set_logging_level(level) for logger in self.loggers.values()]
+
 
 class BPYLogger:
     class Filter(Filter):
@@ -47,6 +50,9 @@ class BPYLogger:
 
     class Logger(Logger):
         pass
+
+    def set_logging_level(self, level):
+        self._logger.setLevel(level)
 
     def __init__(self, name):
         self.name = name

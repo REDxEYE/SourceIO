@@ -11,6 +11,9 @@ class BPYLoggingManager(metaclass=SingletonMeta):
         self.logger = self.get_logger("LOGGING")
         self.logger.debug('Using Stub logger')
 
+    def set_logging_level(self, level):
+        [logger.set_logging_level(level) for logger in self.loggers.values()]
+
     def get_logger(self, name):
         if name in self.loggers:
             return self.loggers[name]
@@ -35,6 +38,9 @@ class BPYLogger:
         def filter(self, record: LogRecord):
             record.function = self.function or ""
             return True
+
+    def set_logging_level(self, level):
+        self._logger.setLevel(level)
 
     def __init__(self, name):
         self._filter = self.Filter()
