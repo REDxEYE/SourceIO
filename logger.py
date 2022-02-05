@@ -13,8 +13,4 @@ class SLogger(_BPYLogger):
 
 
 class SLoggingManager(_BPYLoggingManager):
-
-    def set_logging_level(self, level):
-        [logger.set_logging_level(level) for logger in self.loggers.values()]
-
     pass
