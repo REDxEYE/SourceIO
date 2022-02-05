@@ -26,6 +26,7 @@ class VMT:
             original_material = content_manager.find_file(self.get_string('include'))
             if not original_material:
                 logger.error(f'Failed to find original material {self.get_string("include")!r}')
+                return
             patched_vmt = VMT(original_material, self.get_string('include'))
             if 'insert' in self:
                 patch_data = self.get('insert', {})
