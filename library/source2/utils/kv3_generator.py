@@ -20,20 +20,28 @@ class KV3mdl:
 
         self.skin_group_list = {'_class': 'MaterialGroupList', 'children': []}
 
+        self.morph_control_list = {'_class': 'MorphControlList', 'children': []}
+
+        self.morph_rule_list = {'_class': 'MorphRuleList', 'children': []}
+        self.command_list = {'_class': 'CommandList', 'command_buffer': "\n"}
+
         self.storage['rootNode']['children'].append(self.render_mesh_list)
         self.storage['rootNode']['children'].append(self.animation_list)
         self.storage['rootNode']['children'].append(self.bodygroup_list)
         self.storage['rootNode']['children'].append(self.jigglebone_list)
         self.storage['rootNode']['children'].append(self.skin_group_list)
+        self.storage['rootNode']['children'].append(self.morph_control_list)
+        self.storage['rootNode']['children'].append(self.morph_rule_list)
+        self.storage['rootNode']['children'].append(self.command_list)
         self._add_bone_markup()
         self._add_empty_anim()
 
     # def add_anim(self):
     def _add_bone_markup(self):
         markup = {
-                     "_class": "BoneMarkupList",
-                     "bone_cull_type": "None",
-                 }
+            "_class": "BoneMarkupList",
+            "bone_cull_type": "None",
+        }
 
         self.storage['rootNode']['children'].append(markup)
 
@@ -55,7 +63,7 @@ class KV3mdl:
                 'worldSpace': False}
         self.animation_list['children'].append(anim)
 
-    def add_render_mesh(self, name, path, mesh_class = 'RenderMeshFile'):
+    def add_render_mesh(self, name, path, mesh_class='RenderMeshFile'):
         render_mesh = {'_class': mesh_class,
                        'name': name,
                        'filename': path,
@@ -77,7 +85,7 @@ class KV3mdl:
         jiggle_bone.update(data)
         self.jigglebone_list['children'].append(jiggle_bone)
 
-    def add_skin(self, skin_name, skin_class = 'MaterialGroup'):
+    def add_skin(self, skin_name, skin_class='MaterialGroup'):
         skin = {
             '_class': skin_class,
             'name': skin_name,
@@ -86,6 +94,28 @@ class KV3mdl:
         self.skin_group_list['children'].append(skin)
 
         return skin
+
+    def add_morph_control(self, name, stereo=False, min_value=0.0, max_value=1.0):
+        morph_control = {'_class': 'MorphControl',
+                         'name': name,
+                         'stereo': stereo,
+                         'min_value': min_value,
+                         'max_value': max_value,
+                         }
+        self.morph_control_list['children'].append(morph_control)
+        return morph_control
+
+    def add_morph_rule(self, name, target, expression):
+        morph_rule = {'_class': 'MorphRule',
+                      'name': name,
+                      'target': target,
+                      'expression': expression,
+                      }
+        self.morph_rule_list['children'].append(morph_rule)
+        return morph_rule
+
+    def add_copy_node(self, source, name):
+        self.command_list['command_buffer'] += f'CopyNode( SourceNode = "{source}", Name = "{name}" );\n'
 
     @staticmethod
     def add_skin_remap(skin, remap_from, remap_to):
