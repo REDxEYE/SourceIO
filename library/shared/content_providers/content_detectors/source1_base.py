@@ -3,7 +3,7 @@ from abc import ABCMeta
 from pathlib import Path
 from typing import Dict
 
-from SourceIO.logger import SLoggingManager
+from .....logger import SLoggingManager
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 
 from ..source1_content_provider import GameinfoContentProvider
