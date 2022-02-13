@@ -7,6 +7,10 @@ from typing import Union, Dict, Type
 class ContentProviderBase:
     __cache = deque([], maxlen=16)
 
+    @classmethod
+    def class_name(cls):
+        return cls.__name__
+
     def __init__(self, filepath: Path):
         self.filepath = filepath
 

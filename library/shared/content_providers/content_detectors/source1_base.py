@@ -3,12 +3,16 @@ from abc import ABCMeta
 from pathlib import Path
 from typing import Dict
 
+from SourceIO.logger import SLoggingManager
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 
 from ..source1_content_provider import GameinfoContentProvider
 from ..non_source_sub_manager import NonSourceContentProvider
 from ..vpk_provider import VPKContentProvider
 from ...vpk.vpk_file import InvalidMagic
+
+log_manager = SLoggingManager()
+logger = log_manager.get_logger('Source1DetectorBase')
 
 
 class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
@@ -30,16 +34,12 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
         gh_provider = GameinfoContentProvider(game_root / name / 'gameinfo.txt')
         content_providers[name] = gh_provider
         cls.scan_for_vpk(game_root / name, content_providers)
-        for game in gh_provider.gameinfo.file_system.search_paths.all_paths:
-            game = Path(game)
+        for game in gh_provider.gameinfo.all_paths:
             if game.name.startswith('|'):
+                logger.warn(f"Encountered game path: with \"|\" in name: {game.as_posix()!r}")
                 continue
-            elif game.name.endswith('*'):
-                if not (game_root / game).parent.exists():
-                    continue
-                for folder in (game_root / game).parent.iterdir():
-                    if folder.is_dir():
-                        content_providers[folder.stem] = NonSourceContentProvider(folder)
+            elif game.is_absolute() and game.is_dir():
+                content_providers[game.stem] = NonSourceContentProvider(game)
             elif game.name.endswith('.vpk'):
                 game = game.with_name(game.stem + '_dir.vpk')
                 if (game_root / game).exists():

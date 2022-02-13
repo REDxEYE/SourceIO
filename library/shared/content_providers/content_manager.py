@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Union, Dict, List, TypeVar
-from collections import Counter
+from collections import Counter, OrderedDict
 
 from .hfs_provider import HFS2ContentProvider, HFS1ContentProvider
 from ....logger import SLoggingManager
@@ -33,7 +33,7 @@ def is_relative_to(path: Path, *other):
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
         self.detector_addons: List[AnyContentDetector] = []
-        self.content_providers: Dict[str, AnyContentProvider] = {}
+        self.content_providers: OrderedDict[str, AnyContentProvider] = OrderedDict()
         self._titanfall_mode = False
         self._steam_id = -1
         self._register_supported_detectors()
@@ -73,27 +73,26 @@ class ContentManager(metaclass=SingletonMeta):
                     if value.find('\x00') >= 0:
                         value = value[:value.find('\x00')]
                     self._steam_id = int(value.strip())
-                except Exception:
-                    logger.exception('Failed to parse steam id')
+                except Exception as e:
+                    logger.exception(f'Failed to parse steam id due to: {e}')
                     self._steam_id = -1
 
     def register_content_provider(self, name: str, content_provider: AnyContentProvider):
         if name in self.content_providers:
             return
         self.content_providers[name] = content_provider
-        logger.info(
-            f'Registered {content_provider.__class__.__name__}({name!r}) provider for {content_provider.root.stem}')
+        logger.info(f'Registered {content_provider.class_name()}({name!r}) provider for {content_provider.root.stem}')
 
     def get_relative_path(self, filepath: Path):
-        logger.debug(f'Trying to find root folder for {filepath.as_posix()!r}')
+        # logger.debug(f'Trying to find root folder for {filepath.as_posix()!r}')
         for _, content_provider in self.content_providers.items():
-            logger.debug(f'\tChecking {content_provider.root.as_posix()!r}')
+            # logger.debug(f'\tChecking {content_provider.root.as_posix()!r}')
             content_provider: ContentProviderBase
             if filepath.is_absolute() and is_relative_to(filepath, content_provider.root):
-                logger.debug(f'\tMatch {content_provider.root.as_posix()}!')
+                # logger.debug(f'\tMatch {content_provider.root.as_posix()}!')
                 return filepath.relative_to(content_provider.root)
             elif not filepath.is_absolute() and content_provider.find_file(filepath):
-                logger.debug(f'\tMatch {content_provider.root.as_posix()}!')
+                # logger.debug(f'\tMatch {content_provider.root.as_posix()}!')
                 return filepath
         return None
 

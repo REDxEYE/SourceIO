@@ -15,11 +15,11 @@ class GameinfoContentProvider(ContentProviderBase):
     def __init__(self, filepath: Path):
         super().__init__(filepath)
         with filepath.open('r') as f:
-            self.gameinfo = GameInfoParser(f)
+            self.gameinfo = GameInfoParser(f, filepath)
             assert self.gameinfo.header == 'gameinfo', 'Not a gameinfo file'
         if filepath.with_name(filepath.stem + '_srgb.txt').exists():
             with filepath.with_name(filepath.stem + '_srgb.txt').open('r') as f:
-                gameinfo = GameInfoParser(f)
+                gameinfo = GameInfoParser(f, filepath.with_name(filepath.stem + '_srgb.txt'))
                 assert self.gameinfo.header == 'gameinfo', 'Not a gameinfo file'
                 og_paths = self.gameinfo.file_system.search_paths
                 srgb_paths = gameinfo.file_system.search_paths

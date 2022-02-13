@@ -1,8 +1,12 @@
+from pathlib import Path
 from typing import Union, IO, List
 from io import TextIOBase, BufferedIOBase, BytesIO, StringIO
 
 from ..utils.s1_keyvalues import KVParser
+from ...logger import SLoggingManager
 
+log_manager = SLoggingManager()
+logger = log_manager.get_logger('GameInfoParser')
 
 class GameInfoParser:
     class HiddenMaps:
@@ -56,7 +60,9 @@ class GameInfoParser:
         def search_paths(self):
             return self.SearchPaths(self._raw_data.get('searchpaths', {}))
 
-    def __init__(self, file_or_string: Union[IO[str], IO[bytes], str]):
+    def __init__(self, file_or_string: Union[IO[str], IO[bytes], str], path: Path):
+        self.path = path
+        self.root = self.path.parent
         if isinstance(file_or_string, str):
             self._buffer = file_or_string
         elif isinstance(file_or_string, (TextIOBase, StringIO)):
@@ -68,6 +74,27 @@ class GameInfoParser:
 
         self._parser = KVParser('<input>', self._buffer)
         self.header, self._raw_data = self._parser.parse()
+
+    @property
+    def all_paths(self) -> List[Path]:
+        paths = []
+        for path in self.file_system.search_paths.all_paths:
+            try:
+                if '|gameinfo_path|' in path:
+                    path = f"{self.root.as_posix()}/{path.replace('|gameinfo_path|', '')}"
+                    if path.endswith('*'):
+                        path = path[:-1]
+                        for sub_path in (self.root / path).iterdir():
+                            paths.append(sub_path)
+                elif path.endswith('*'):
+                    path = path[:-1]
+                    for sub_path in (self.root.parent / path).iterdir():
+                        paths.append(sub_path)
+                else:
+                    paths.append(Path(path))
+            except Exception as e:
+                logger.exception()
+        return paths
 
     @property
     def game(self):
