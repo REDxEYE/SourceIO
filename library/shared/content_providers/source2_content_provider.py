@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Union
 
-from ...utils.s1_keyvalues import KVParser
+from ...utils.kv_parser import ValveKeyValueParser
 from .content_provider_base import ContentProviderBase
 
 
@@ -15,8 +15,10 @@ class GameinfoContentProvider(ContentProviderBase):
     def __init__(self, filepath: Path):
         super().__init__(filepath)
         with filepath.open('r') as f:
-            kv = KVParser('GAMEINFO', f.read())
-            root_key, self.data = kv.parse()
+            parser = ValveKeyValueParser(buffer_and_name=(f.read(), 'GAMEINFO'), self_recover=True)
+            parser.parse()
+            root_key, self.data = parser.tree.top()
+            self.data = self.data.to_dict()
             assert root_key == 'gameinfo', 'Not a gameinfo file'
         self.modname_dir: Path = filepath.parent
         self.project_dir: Path = filepath.parent.parent
