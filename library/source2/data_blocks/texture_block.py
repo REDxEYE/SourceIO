@@ -243,7 +243,7 @@ class TEXR(DataBlock):
             self.image_data = data.tobytes()
         elif self.format == VTexFormat.BC7:
             from .redi_block_types import SpecialDependencies
-            redi = self._valve_file.get_data_block(block_name='REDI')[0]
+            redi = (self._valve_file.get_data_block(block_name='REDI') or  self._valve_file.get_data_block(block_name='RED2'))[0]
             hemi_oct_rb = False
             for block in redi.blocks:
                 if type(block) is SpecialDependencies:
