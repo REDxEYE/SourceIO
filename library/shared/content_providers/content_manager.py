@@ -9,7 +9,7 @@ from .vpk_provider import VPKContentProvider
 from .content_provider_base import ContentProviderBase
 from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
 from .source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
-from ....library.utils.path_utilities import backwalk_file_resolver, get_mod_path
+from ....library.utils.path_utilities import backwalk_file_resolver, get_mod_path, corrected_path
 from ...utils.singleton import SingletonMeta
 
 log_manager = SLoggingManager()
@@ -240,7 +240,7 @@ class ContentManager(metaclass=SingletonMeta):
             if file is not None:
                 if not silent:
                     logger.debug(f'Found in {mod}!')
-                return file
+                return corrected_path(file)
         return None
 
     def find_texture(self, filepath, *, silent=False):

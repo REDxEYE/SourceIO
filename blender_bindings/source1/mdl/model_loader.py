@@ -8,7 +8,7 @@ from ...source1.mdl.v36.import_mdl import import_model as import_model_v36
 from ...source1.mdl.v44.import_mdl import import_model as import_model_v44
 from ...source1.mdl.v49.import_mdl import import_model as import_model_v49
 from ....library.utils.byte_io_mdl import ByteIO
-from ....library.utils.path_utilities import find_vtx, find_vtx_cm
+from ....library.utils.path_utilities import find_vtx, find_vtx_cm, corrected_path
 from ....library.shared.content_providers.content_manager import ContentManager
 
 log_manager = SLoggingManager()
@@ -25,9 +25,9 @@ def import_model_from_full_path(mdl_path: Path, scale=1.0,
             return container.clone()
     content_manager = ContentManager()
     if mdl_path.is_absolute():
-        vtx_file = find_vtx(mdl_path)
-        vvd_file = mdl_path.with_suffix('.vvd')
-        vvc_file = mdl_path.with_suffix('.vvc')
+        vtx_file = corrected_path(find_vtx(mdl_path))
+        vvd_file = corrected_path(mdl_path.with_suffix('.vvd'))
+        vvc_file = corrected_path(mdl_path.with_suffix('.vvc'))
         assert vtx_file.exists(), f"failed to find vtx file {mdl_path.with_suffix('')}"
         assert vvd_file.exists(), f"failed to find vvd file {vvc_file}"
         content_root = content_manager.get_content_provider_from_path(mdl_path)

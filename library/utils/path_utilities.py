@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 import os
 
@@ -72,6 +73,40 @@ def case_insensitive_file_resolution(path):
             if filename.lower() == name.lower():
                 print(os.path.join(root, name))
                 return os.path.join(root, name)
+
+
+def corrected_path(path: Path):
+    if platform.system() == "Windows":
+        return path
+    '''Returns a unix-type case-sensitive path, works in windows and linux'''
+    start = path.parent.as_posix()
+    path = path.name
+    corrected_path = ''
+    if path[-1] == '/':
+        path = path[:-1]
+    parts = path.split('\\')
+    cd = start
+    corrections_count = 0
+
+    for p in parts:
+        if not os.path.exists(os.path.join(cd, p)):  # Check it's not correct already
+            listing = os.listdir(cd)
+
+            cip = p.lower()
+            cilisting = [l.lower() for l in listing]
+
+            if cip in cilisting:
+                l = listing[cilisting.index(cip)]  # Get our real folder name
+                cd = os.path.join(cd, l)
+                corrected_path = os.path.join(corrected_path, l)
+                corrections_count += 1
+            else:
+                return False  # Error, this path element isn't found
+        else:
+            cd = os.path.join(cd, p)
+            corrected_path = os.path.join(corrected_path, p)
+
+    return corrected_path
 
 
 def resolve_root_directory_from_file(path):
