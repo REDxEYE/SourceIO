@@ -4,7 +4,7 @@ from pathlib import Path
 from mathutils import Matrix
 from typing import List, Dict, Any
 
-
+from .entities.steampal_entity_handlers import SteamPalEntityHandler
 from ....library.source2.resource_types import ValveCompiledResource, ValveCompiledWorld
 from ....library.source2.data_blocks import DataBlock
 from .entities.base_entity_handlers import BaseEntityHandler
@@ -47,6 +47,8 @@ class ValveCompiledWorldLoader(ValveCompiledWorld):
             handler = HLVREntityHandler(self, self.master_collection, self.scale)
         elif ContentManager().steam_id == SteamAppId.SBOX_STEAM_ID:
             handler = SBoxEntityHandler(self, self.master_collection, self.scale)
+        elif ContentManager().steam_id == 890 and 'steampal' in ContentManager().content_providers:
+            handler = SteamPalEntityHandler(self, self.master_collection, self.scale)
         else:
             handler = BaseEntityHandler(self, self.master_collection, self.scale)
         handler.load_entities()

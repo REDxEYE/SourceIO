@@ -36,7 +36,7 @@ class Generic(Source2ShaderBase):
             image.colorspace_settings.name = 'Non-Color'
             image, roughness = self.split_normal(image)
             return image, roughness
-        return None
+        return None, None
 
     @property
     def color(self):
