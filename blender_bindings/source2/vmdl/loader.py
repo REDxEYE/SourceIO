@@ -244,10 +244,13 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                     new_bone_names = bone_names.copy()
                     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in new_bone_names}
 
-                    if 'BLENDWEIGHT' in vertex_buffer.attribute_names and \
-                            'BLENDINDICES' in vertex_buffer.attribute_names:
+                    names = vertex_buffer.attribute_names
+                    if 'BLENDWEIGHT' in names and 'BLENDINDICES' in names:
                         weights_array = vertex_buffer.vertexes["BLENDWEIGHT"] / 255
                         indices_array = vertex_buffer.vertexes["BLENDINDICES"]
+                    elif 'BLENDINDICES' in names:
+                        indices_array = vertex_buffer.vertexes["BLENDINDICES"]
+                        weights_array = np.ones_like(indices_array).astype(np.float32)
                     else:
                         weights_array = []
                         indices_array = []
