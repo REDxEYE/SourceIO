@@ -1,7 +1,7 @@
 import bpy
 import numpy as np
 from pathlib import Path
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 from typing import List, Dict, Any
 
 from .entities.steampal_entity_handlers import SteamPalEntityHandler
@@ -62,6 +62,19 @@ class ValveCompiledWorldLoader(ValveCompiledWorld):
         world_node_file.check_external_resources()
         world_data: DataBlock = world_node_file.get_data_block(block_name="DATA")[0]
         collection = get_or_create_collection(f"static_props_{Path(node_path).stem}", self.master_collection)
+        for n, aggregate_object in enumerate(world_data.data['m_aggregateSceneObjects']):
+            model_path = aggregate_object['m_renderableModel']
+            proper_path = world_node_file.available_resources.get(model_path)
+            self.logger.info(f"Loading ({n}/{len(world_data.data['m_aggregateSceneObjects'])}){model_path} mesh")
+
+            custom_data = {'prop_path': str(proper_path),
+                           'type': 'static_prop',
+                           'scale': self.scale,
+                           'entity': aggregate_object,
+                           'skin': 'default'}
+            self.create_empty(proper_path.stem, Vector([0, 0, 0]),
+                              parent_collection=collection,
+                              custom_data=custom_data)
         for n, static_object in enumerate(world_data.data['m_sceneObjects']):
             model_path = static_object['m_renderableModel']
             proper_path = world_node_file.available_resources.get(model_path)

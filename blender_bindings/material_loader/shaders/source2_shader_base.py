@@ -1,3 +1,5 @@
+# from pprint import pformat
+
 import bpy
 from pathlib import Path
 from typing import Dict, Any, Union
@@ -16,7 +18,7 @@ class Source2ShaderBase(ShaderBase):
     def __init__(self, source2_material, resources: Dict[Union[str, int], Path]):
         super().__init__()
         self._material_data: Dict[str, Any] = source2_material
-        logger.print(self._material_data)
+        # logger.print(pformat(self._material_data))
         self.resources: Dict[Union[str, int], Path] = resources
 
     def _get_param(self, param_type, name, value_type, default):

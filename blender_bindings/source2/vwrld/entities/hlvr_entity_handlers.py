@@ -70,6 +70,11 @@ class HLVREntityHandler(BaseEntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'props')
 
+
+    def handle_prop_animating_breakable(self, entity: prop_animating_breakable, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'props')
+
     def handle_ghost_speaker(self, entity: ghost_speaker, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'props')

@@ -33,7 +33,7 @@ class SteamPalEntityHandler(HLVREntityHandler):
 
     def handle_steampal_paintable_prop(self, entity: object, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
-        self._put_into_collection(entity.__class__.__name__, obj, 'prop')
+        self._put_into_collection(entity.__class__.__name__, obj, 'props')
 
     def handle_steampal_toaster(self, entity: object, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -41,54 +41,58 @@ class SteamPalEntityHandler(HLVREntityHandler):
 
     def handle_steampal_touchtarget(self, entity: object, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
-        self._put_into_collection(entity.__class__.__name__, obj, 'prop')
+        self._put_into_collection(entity.__class__.__name__, obj, 'props')
+
+    def handle_steampal_picturecard(self, entity: object, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'props')
 
     def handle_trigger_physics(self, entity: object, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
-        self._put_into_collection(entity.__class__.__name__, obj, 'prop')
+        self._put_into_collection(entity.__class__.__name__, obj, 'triggers')
 
-    def handle_npc_appliance(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_path_particle_rope(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_camera_path_node(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_conveyor(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_picturecard(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_camera_path(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_name_form(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_conveyor_entity_spawner(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_steampal_conveyor_path_node(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_path_track(self, entity: object, entity_raw: dict):
-        return
-
-    def handle_light_rect(self, entity: object, entity_raw: dict):
-        # TODO:
-        return
-
-    def handle_light_barn(self, entity: object, entity_raw: dict):
-        # TODO:
-        return
-
-    def handle_light_omni2(self, entity: object, entity_raw: dict):
-        # TODO:
-        return
-
-    def handle_steampal_kill_volume(self, entity: object, entity_raw: dict):
-        # TODO:
-        return
+    # def handle_npc_appliance(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_path_particle_rope(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_camera_path_node(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_conveyor(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_picturecard(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_camera_path(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_name_form(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_conveyor_entity_spawner(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_steampal_conveyor_path_node(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_path_track(self, entity: object, entity_raw: dict):
+    #     return
+    #
+    # def handle_light_rect(self, entity: object, entity_raw: dict):
+    #     # TODO:
+    #     return
+    #
+    # def handle_light_barn(self, entity: object, entity_raw: dict):
+    #     # TODO:
+    #     return
+    #
+    # def handle_light_omni2(self, entity: object, entity_raw: dict):
+    #     # TODO:
+    #     return
+    #
+    # def handle_steampal_kill_volume(self, entity: object, entity_raw: dict):
+    #     # TODO:
+    #     return

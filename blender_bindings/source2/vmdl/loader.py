@@ -155,7 +155,7 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 self.materials.append(draw_call['m_material'])
 
                 material_name = Path(draw_call['m_material']).stem
-                model_name = name + "_" + material_name
+                model_name = f"{name}_{material_name}_{draw_call['m_nStartIndex']}"
                 used_copy = False
                 mesh_obj = None
                 if self.re_use_meshes:

@@ -38,6 +38,10 @@ class BaseEntityHandler(AbstractEntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'triggers')
 
+    def handle_trigger_hurt(self, entity: trigger_hurt, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection(entity.__class__.__name__, obj, 'triggers')
+
     def handle_trigger_multiple(self, entity: trigger_multiple, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection(entity.__class__.__name__, obj, 'triggers')
