@@ -272,7 +272,7 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                                 bone_name = new_bone_names[remap_table[remaps_start:][int(bone_index)]]
                                 weight_groups[bone_name].add([n], 1.0, 'REPLACE')
 
-                mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons)))
+                mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
                 if morphs_available:
