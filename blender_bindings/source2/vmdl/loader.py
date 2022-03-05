@@ -210,20 +210,23 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 index_buffer = buffer_block.index_buffer[draw_call['m_indexBuffer']['m_hBuffer']]
                 vertex_buffer = buffer_block.vertex_buffer[draw_call['m_vertexBuffers'][0]['m_hBuffer']]
 
-                used_range = slice(base_vertex, base_vertex + vertex_count)
-                used_vertices = vertex_buffer.vertexes['POSITION'][used_range]
-                normals = vertex_buffer.vertexes['NORMAL'][used_range]
+                part_indices = index_buffer.indices[start_index:start_index + index_count]
+                used_vertices_ids, _, new_indices = np.unique(part_indices, return_index=True, return_inverse=True)
+
+                used_vertices = vertex_buffer.vertexes[base_vertex:][used_vertices_ids]
+
+                positions = used_vertices['POSITION']
+                normals = used_vertices['NORMAL']
 
                 if normals.dtype.char == 'B' and normals.shape[1] == 4:
                     normals = convert_normals(normals)
 
-                mesh.from_pydata(used_vertices * self.scale, [],
-                                 index_buffer.indices[start_index:start_index + index_count].tolist())
+                mesh.from_pydata(positions * self.scale, [], new_indices.reshape((-1, 3)).tolist())
                 mesh.update()
                 n = 0
                 for attrib in vertex_buffer.attributes:
                     if 'TEXCOORD' in attrib.name.upper():
-                        uv_layer = vertex_buffer.vertexes[attrib.name].copy()
+                        uv_layer = used_vertices[attrib.name].copy()
                         if uv_layer.shape[1] != 2:
                             continue
                         if invert_uv:
@@ -232,7 +235,7 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                         uv_data = mesh.uv_layers.new(name=attrib.name).data
                         vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
                         mesh.loops.foreach_get('vertex_index', vertex_indices)
-                        new_uv_data = uv_layer[used_range][vertex_indices]
+                        new_uv_data = uv_layer[vertex_indices]
                         uv_data.foreach_set('uv', new_uv_data.flatten())
                         n += 1
                 if armature:
