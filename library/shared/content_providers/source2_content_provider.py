@@ -86,7 +86,6 @@ class Gameinfo2ContentProvider(ContentProviderBase):
     def find_file(self, filepath: Union[str, Path]):
         filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = self.modname_dir / filepath
-        print(new_filepath, new_filepath.exists())
         if new_filepath.exists():
             return new_filepath.open('rb')
         else:
