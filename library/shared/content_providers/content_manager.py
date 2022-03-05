@@ -8,7 +8,7 @@ from .non_source_sub_manager import NonSourceContentProvider
 from .vpk_provider import VPKContentProvider
 from .content_provider_base import ContentProviderBase
 from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
-from .source2_content_provider import GameinfoContentProvider as Source2GameinfoContentProvider
+from .source2_content_provider import Gameinfo2ContentProvider as Source2GameinfoContentProvider
 from ....library.utils.path_utilities import backwalk_file_resolver, get_mod_path, corrected_path
 from ...utils.singleton import SingletonMeta
 
@@ -220,6 +220,7 @@ class ContentManager(metaclass=SingletonMeta):
         if not silent:
             logger.info(f'Requesting {new_filepath} file')
         for mod, submanager in self.content_providers.items():
+            logger.debug(f'Checking {mod}')
             file = submanager.find_file(new_filepath)
             if file is not None:
                 if not silent:

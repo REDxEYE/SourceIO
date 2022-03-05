@@ -4,7 +4,7 @@ from typing import Dict
 
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 
-from ..source2_content_provider import GameinfoContentProvider
+from ..source2_content_provider import Gameinfo2ContentProvider
 from ..non_source_sub_manager import NonSourceContentProvider
 from ..vpk_provider import VPKContentProvider
 
@@ -24,7 +24,7 @@ class Source2DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
             content_providers[name] = NonSourceContentProvider(game_root / name)
             cls.scan_for_vpk(game_root / name, content_providers)
         else:
-            gh_provider = GameinfoContentProvider(game_root / name / 'gameinfo.gi')
+            gh_provider = Gameinfo2ContentProvider(game_root / name / 'gameinfo.gi')
             content_providers[name] = gh_provider
             cls.scan_for_vpk(game_root / name, content_providers)
             for game in gh_provider.get_paths():

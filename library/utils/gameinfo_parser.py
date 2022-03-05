@@ -88,8 +88,9 @@ class GameInfoParser:
                             paths.append(sub_path)
                 elif path.endswith('*'):
                     path = path[:-1]
-                    for sub_path in (self.root.parent / path).iterdir():
-                        paths.append(sub_path)
+                    if (self.root.parent / path).exists():
+                        for sub_path in (self.root.parent / path).iterdir():
+                            paths.append(sub_path)
                 else:
                     paths.append(Path(path))
             except Exception as e:

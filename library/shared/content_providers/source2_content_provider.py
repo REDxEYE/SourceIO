@@ -5,7 +5,7 @@ from ...utils.kv_parser import ValveKeyValueParser
 from .content_provider_base import ContentProviderBase
 
 
-class GameinfoContentProvider(ContentProviderBase):
+class Gameinfo2ContentProvider(ContentProviderBase):
     path_cache: List[Path] = []
 
     @classmethod
@@ -84,16 +84,17 @@ class GameinfoContentProvider(ContentProviderBase):
         yield from self._glob_generic(pattern)
 
     def find_file(self, filepath: Union[str, Path]):
-        filepath = Path(str(filepath).strip("\\/"))
+        filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = self.modname_dir / filepath
+        print(new_filepath, new_filepath.exists())
         if new_filepath.exists():
             return new_filepath.open('rb')
         else:
             return None
 
     def find_path(self, filepath: Union[str, Path]):
-        filepath = Path(str(filepath).strip("\\/"))
-        new_filepath = self.modname_dir / filepath
+        filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
+        new_filepath = self.modname_dir / filepath.as_posix()
         if new_filepath.exists():
             return new_filepath
         else:

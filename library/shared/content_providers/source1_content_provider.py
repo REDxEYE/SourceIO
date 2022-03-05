@@ -69,8 +69,8 @@ class GameinfoContentProvider(ContentProviderBase):
             return path.open('rb')
 
     def find_path(self, filepath: Union[str, Path]):
-        filepath = Path(str(filepath).strip("\\/"))
-        new_filepath = self.modname_dir / filepath
+        filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
+        new_filepath = self.modname_dir / filepath.as_posix()
         if new_filepath.exists():
             return new_filepath
         else:
