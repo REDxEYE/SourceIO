@@ -249,10 +249,10 @@ class ValveCompiledModelLoader(ValveCompiledModel):
 
                     names = vertex_buffer.attribute_names
                     if 'BLENDWEIGHT' in names and 'BLENDINDICES' in names:
-                        weights_array = vertex_buffer.vertexes["BLENDWEIGHT"] / 255
-                        indices_array = vertex_buffer.vertexes["BLENDINDICES"]
+                        weights_array = used_vertices["BLENDWEIGHT"] / 255
+                        indices_array = used_vertices["BLENDINDICES"]
                     elif 'BLENDINDICES' in names:
-                        indices_array = vertex_buffer.vertexes["BLENDINDICES"]
+                        indices_array = used_vertices["BLENDINDICES"]
                         weights_array = np.ones_like(indices_array).astype(np.float32)
                     else:
                         weights_array = []
