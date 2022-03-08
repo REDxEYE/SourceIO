@@ -136,22 +136,22 @@ class LZ4ChainDecoder(LZ4StreamWrapper):
         self._output_index = 0
         self._output_buffer = create_string_buffer(self._output_length + 8)
 
-    def decode(self, source: c_char_p, source_size, block_size: int) -> int:
+    def _decode(self, source: c_char_p, source_size, block_size: int) -> int:
         if block_size <= 0:
             block_size = self._block_size
-        self.prepare(block_size)
+        self._prepare(block_size)
         tmp = _offset_pointer(self._output_buffer, c_char_p, self._output_index)
-        decoded_size = self.decode_block(source, source_size, tmp, block_size)
+        decoded_size = self._decode_block(source, source_size, tmp, block_size)
         assert decoded_size > 0, f'Received error code from LZ4:{decoded_size}'
         self._output_index += decoded_size
         return decoded_size
 
-    def prepare(self, block_size: int) -> None:
+    def _prepare(self, block_size: int) -> None:
         if self._output_index + block_size <= self._output_length:
             return
-        self._output_index = self.copy_dict(self._output_index)
+        self._output_index = self._copy_dict(self._output_index)
 
-    def copy_dict(self, index):
+    def _copy_dict(self, index):
         dict_start = max(index - Mem.K64, 0)
         dict_size = index - dict_start
         self._output_buffer.raw[:] = self._output_buffer[dict_size:]
@@ -167,32 +167,32 @@ class LZ4ChainDecoder(LZ4StreamWrapper):
                                               c_int32]
     _lz4_decompress_safe_continue.restype = c_int32
 
-    def decode_block(self, data, data_size: int, target, target_size):
+    def _decode_block(self, data, data_size: int, target, target_size):
         rv = self._lz4_decompress_safe_continue(self._stream_state, data, target, data_size, target_size)
         del data
         return rv
 
-    def drain(self, target: c_char_p, offset: int, size: int) -> None:
+    def _drain(self, target: c_char_p, offset: int, size: int) -> None:
         offset = self._output_index + offset
         if offset < 0 or size < 0 or offset + size > self._output_index:
             raise AssertionError('Invalid operation')
 
         memmove(target, _offset_pointer(self._output_buffer, c_char_p, offset), size)
 
-    def decode_and_drain(self, source, source_size, target, target_size) -> Tuple[bool, int]:
+    def _decode_and_drain(self, source, source_size, target, target_size) -> Tuple[bool, int]:
         decoded = 0
         if source_size <= 0:
             return False, decoded
-        decoded = self.decode(source, source_size, target_size)
+        decoded = self._decode(source, source_size, target_size)
         if decoded <= 0 or target_size < decoded:
             return False, decoded
-        self.drain(target, -decoded, decoded)
+        self._drain(target, -decoded, decoded)
         return True, decoded
 
     def decompress(self, compressed_data, decompressed_size):
         data = create_string_buffer(compressed_data)
         output = create_string_buffer(decompressed_size)
-        self.decode_and_drain(data, len(compressed_data), output, decompressed_size)
+        self._decode_and_drain(data, len(compressed_data), output, decompressed_size)
         return bytes(output.raw)
 
 
@@ -200,5 +200,5 @@ if __name__ == '__main__':
     a = LZ4ChainDecoder(1)
     d = b'b\x01\x00\x00\x00\x13\x00\x01\x00\xe00H\x0ef\x06\x00\x00\x00\x01\xfd=\xdc\x0b\x1e\x11\x00p\x00\xc6V\xa5#\x1a\x00\x14\x00\x02#\x00fHw\x17\x12\x1a\x00\x01\x00B\x12\xda\xd3v*\x00B\x80i;\x1c\n\x00SkXW\xe5\x01 \x00B\xb7\xb0h=\x0c\x00b\x80\xbf\x19\xbf[5"\x00@\xf0i\xb6\xfc\n\x00r1\x00\xb2\x01\x0cx\t+\x00`\xff#\x99\x00\xcd\x06\n\x00@b\x1c\x1b\xc6\x1f\x00\xf1\x00worldspawn\x00\x16\x02 \xe4<\x00!.0\x01\x00\x1d \t\x00_\x00\xcf\xda\x98\xba#\x00\x0cA,\xe4\xc1\x19x\x00\x04\x1a\x00\r\t\x00R\x008\xa0c\xa9\x9b\x00@\x86\x81\x8b\x9c\n\x00\xe0construct\x00\xb3b\xf2\xd3\x12\x00\xd0sky_day01_01\x00'
     b = create_string_buffer(321)
-    cd = a.decode_block(d, len(d), b, 321)
+    cd = a._decode_block(d, len(d), b, 321)
     print(cd)
