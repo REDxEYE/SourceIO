@@ -164,18 +164,14 @@ class NTROStruct:
                 field = NTROStructField(self)
                 field.read(reader)
                 self._fields.append(field)
-                # print('\t',field)
 
     def read_struct(self, reader: ByteIO):
-        # print('Reading struct {}'.format(self.name))
         struct_data = {}
         entry = reader.tell()
         for field in self.fields:
             reader.seek(entry + field.on_disc_size)
             struct_data[field.name] = field.read_field(reader)
-        # print(struct_data)
         reader.seek(entry + self.disc_size)
-        # print(struct_data)
         return struct_data
 
     def as_c_struct(self):
@@ -287,7 +283,6 @@ class NTROStructField:
             return self.read_field_data(reader)
 
     def read_field_data(self, reader):
-        # print(self.name,self.type.name)
         if self.type == KeyValueDataType.STRUCT:
             struct = self.struct.ntro_block.get_struct_by_id(self.data_type)
             return struct.read_struct(reader)
