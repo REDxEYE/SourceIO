@@ -16,9 +16,9 @@ class ValveCompiledTextureLoader(ValveCompiledTexture):
         super().__init__(path_or_file)
 
     def import_texture(self, name, flip: bool):
-        print(f'Loading {name} texture')
+        logger.info(f'Loading {name} texture')
         if name + '.tga' in bpy.data.images:
-            print('Using already loaded texture')
+            logger.info('Using already loaded texture')
             return bpy.data.images[f'{name}.tga']
         data_block: TEXR = self.get_data_block(block_name='DATA')[0]
         data_block.read_image(flip)
