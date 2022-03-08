@@ -48,6 +48,7 @@ class RED2(DataBlock):
             dependency.content_relative_name = aid['m_RelativeFilename']
             dependency.file_crc = aid['m_nFileCRC']
             block.container.append(dependency)
+        block.size = len(block.container)
         self.blocks.append(block)
 
         block = SpecialDependencies()
@@ -58,6 +59,7 @@ class RED2(DataBlock):
             dependency.user_data = aid['m_nUserData']
             dependency.fingerprint = aid['m_nFingerprint']
             block.container.append(dependency)
+        block.size = len(block.container)
         self.blocks.append(block)
 
         block = ArgumentDependencies()
@@ -68,4 +70,5 @@ class RED2(DataBlock):
             dependency.fingerprint = aid['m_nFingerprint']
             dependency.fingerprint_default = aid['m_nFingerprintDefault']
             block.container.append(dependency)
+        block.size = len(block.container)
         self.blocks.append(block)
