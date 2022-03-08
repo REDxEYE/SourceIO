@@ -17,7 +17,7 @@ class GoldSrcShaderMode2(GoldSrcShaderBase):
         basetexture_node.image = basetexture
 
         if rad_info is not None:
-            self._emit_surface(basetexture, rad_info)
+            self._emit_surface(basetexture_node, rad_info)
             return
 
         vertex_color_alpha = self.create_node(Nodes.ShaderNodeVertexColor)

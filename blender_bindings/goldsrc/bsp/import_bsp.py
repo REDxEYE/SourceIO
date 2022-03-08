@@ -4,6 +4,7 @@ from typing import Dict, Any, cast
 
 import bpy
 import numpy as np
+from mathutils import Vector
 
 from ...goldsrc.bsp.entity_handlers import entity_handlers
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
@@ -16,6 +17,7 @@ from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
 from ....library.goldsrc.rad import parse_rad, convert_light_value
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
+from ....library.utils.path_utilities import backwalk_file_resolver
 
 from ....logger import SLoggingManager
 from ....library.goldsrc.bsp.lump import LumpType
@@ -237,12 +239,11 @@ class BSP:
                     for game_wad_path in entity.get('wad', '').split(';'):
                         if len(game_wad_path) == 0:
                             continue
-                        game_wad_path = Path(game_wad_path)
-                        game_wad_path = Path(game_wad_path.name)
+                        game_wad_path = backwalk_file_resolver(self.map_path, Path(game_wad_path))
                         wad_file = self.bsp_file.manager.find_path(game_wad_path)
                         if wad_file:
-                            self.bsp_file.manager.content_providers[game_wad_path.stem] = GoldSrcWADContentProvider(
-                                wad_file)
+                            self.bsp_file.manager.register_content_provider(f'{game_wad_path.parent.stem}_{game_wad_path.stem}',
+                                                                            GoldSrcWADContentProvider(wad_file))
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
                     entity_collection = self.get_collection(entity_class)
@@ -418,7 +419,7 @@ class BSP:
         color = parse_hammer_vector(entity_data['_light'])
         *color, watts = convert_light_value(color)
         light = self._load_lights(entity_data.get('targetname', f'{entity_class}'),
-                                  'SUN', watts, color * 100, 0.1,
+                                  'SUN', watts, Vector(color) * 100, 0.1,
                                   parent_collection=entity_collection, entity=entity_data)
         light.location = origin
         light.rotation_euler = angles

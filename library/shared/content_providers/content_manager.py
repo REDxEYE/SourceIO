@@ -220,7 +220,6 @@ class ContentManager(metaclass=SingletonMeta):
         if not silent:
             logger.info(f'Requesting {new_filepath} file')
         for mod, submanager in self.content_providers.items():
-            logger.debug(f'Checking {mod}')
             file = submanager.find_file(new_filepath)
             if file is not None:
                 if not silent:
