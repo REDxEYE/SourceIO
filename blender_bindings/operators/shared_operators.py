@@ -303,3 +303,20 @@ class SOURCEIO_PT_SkinChanger(UITools, bpy.types.Panel):
                 op.skin_name = skin
                 if skin == obj['active_skin']:
                     row.enabled = False
+
+
+class SOURCEIO_PT_Scene(bpy.types.Panel):
+    bl_label = 'SourceIO configuration'
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "scene"
+    bl_default_closed = True
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="SourceIO configuration")
+        box = layout.box()
+        box.label(text='Mounted folders')
+        box2 = box.box()
+        for mount_name, mount in ContentManager().content_providers.items():
+            box2.label(text=f'{mount_name}: {mount.root}')

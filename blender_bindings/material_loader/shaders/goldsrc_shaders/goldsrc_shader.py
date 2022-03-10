@@ -8,8 +8,6 @@ from .....library.goldsrc.mdl_v10.structs.texture import MdlTextureFlag
 class GoldSrcShader(GoldSrcShaderBase):
     SHADER: str = 'goldsrc_shader'
 
-
-
     def create_nodes(self, material_name: str, rad_info=None):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return

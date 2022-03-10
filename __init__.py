@@ -15,7 +15,7 @@ bl_info = {
     "category": "Import-Export"
 }
 if running_in_blender() and loaded_as_addon():
-    from .blender_bindings import register, unregister
+    from .blender_bindings.bindings import register, unregister
 
     if __name__ == "__main__":
         register()

@@ -32,6 +32,7 @@ from .operators.shared_operators import (SOURCEIO_PT_Utils,
                                          SOURCEIO_PT_SkinChanger,
                                          SOURCEIO_OT_ChangeSkin,
                                          ChangeSkin_OT_LoadEntity,
+                                         SOURCEIO_PT_Scene,
                                          )
 from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
                                       SourceIO_OP_VPKBrowserLoader,
@@ -170,6 +171,7 @@ classes = (
     SOURCEIO_PT_SkinChanger,
     ChangeSkin_OT_LoadEntity,
     SOURCEIO_OT_ChangeSkin,
+    SOURCEIO_PT_Scene,
 
     *vpk_classes,
     *flex_classes,
