@@ -142,6 +142,10 @@ class BoneGroup:
     def bone_layer(self):
         return self.bone_layers[self.group.name]
 
+    @property
+    def name(self):
+        return self.group.name
+
     def __init__(self, obj, b_group):
         self.obj = obj
         self.group = b_group
