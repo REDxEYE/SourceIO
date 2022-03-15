@@ -51,8 +51,8 @@ class AnimSet:
 
     def GetRootControlGroup(self):
         return BoneGroup(self.object,
-                         self.object.pose.bone_groups.get('ROOT', None) or self.object.pose.bone_groups.new(
-                             name='ROOT'))
+                         (self.object.pose.bone_groups.get('ROOT', None) or
+                          self.object.pose.bone_groups.new(name='ROOT')))
 
     @property
     def rootControlGroup(self):
@@ -60,6 +60,10 @@ class AnimSet:
 
     def GetName(self):
         return self.object.name
+
+    @property
+    def controls(self):
+        return []
 
 
 # noinspection PyPep8Naming
