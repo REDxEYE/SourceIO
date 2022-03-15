@@ -182,6 +182,9 @@ class BoneGroup:
     def AddChild(self, child):
         pass
 
+    def MoveChildToTop(self, child):
+        pass
+
     def FindChildByName(self, name, required=True):
         bone = self.obj.pose.bone_groups.get(name, None)
 
