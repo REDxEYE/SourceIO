@@ -144,12 +144,15 @@ class BoneGroup:
         self.bones = []
         self.register_group(b_group)
         sfm.object_mode()
+        self.children = []
         self.obj.data.layers[self.bone_layer] = True
 
     def CreateControlGroup(self, name):
         group = self.obj.pose.bone_groups.get(name, None) or self.obj.pose.bone_groups.new(name=name)
 
-        return BoneGroup(self.obj, group)
+        bgroup = BoneGroup(self.obj, group)
+        self.children.append(bgroup)
+        return bgroup
 
     def SetVisible(self, value):
         sfm.object_mode()
