@@ -4,6 +4,7 @@ Our Discord server https://discord.gg/SF82W6aZ67
 
 Current TODO list -> [TODO.md](TODO.md)
 
+Small WIKI -> [WIKI](./wiki/init.md)
 
 # Used libraries
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
