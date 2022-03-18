@@ -43,5 +43,6 @@ class DecalModulate(Source1ShaderBase):
         if basetexture:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
             basetexture_node.image = basetexture
+            basetexture_node.id_data.nodes.active = basetexture_node
 
             self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
