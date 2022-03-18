@@ -238,7 +238,7 @@ class UITools:
 
 class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
     bl_label = "SourceIO utils"
-    bl_idname = "sourceio.utils"
+    bl_idname = "SOURCEIO_PT_utils"
 
     def draw(self, context):
         pass
@@ -252,8 +252,8 @@ class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
 
 class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
     bl_label = 'Placeholders loading'
-    bl_idname = 'sourceio.placeholders'
-    bl_parent_id = "sourceio.utils"
+    bl_idname = 'SOURCEIO_PT_Placeholders'
+    bl_parent_id = "SOURCEIO_PT_Utils"
 
     @classmethod
     def poll(cls, context):
@@ -283,8 +283,8 @@ class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
 
 class SOURCEIO_PT_SkinChanger(UITools, bpy.types.Panel):
     bl_label = 'Model skins'
-    bl_idname = 'sourceio.skin_changer'
-    bl_parent_id = "sourceio.utils"
+    bl_idname = 'SOURCEIO_PT_SkinChanger'
+    bl_parent_id = "SOURCEIO_PT_Utils"
 
     @classmethod
     def poll(cls, context):

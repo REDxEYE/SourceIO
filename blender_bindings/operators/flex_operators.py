@@ -173,8 +173,8 @@ class SourceIO_PG_FlexController(bpy.types.PropertyGroup):
 
 class SOURCEIO_PT_FlexControlPanel(UITools, bpy.types.Panel):
     bl_label = 'Flex controllers'
-    bl_idname = 'sourceio.flex_control_panel'
-    bl_parent_id = "sourceio.utils"
+    bl_idname = 'SOURCEIO_PT_FlexControlPanel'
+    bl_parent_id = "SOURCEIO_PT_utils"
 
     @classmethod
     def poll(cls, context):
