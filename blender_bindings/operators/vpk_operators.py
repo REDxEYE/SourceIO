@@ -137,7 +137,7 @@ class SourceIO_OP_VPKBrowser(bpy.types.Operator):
                 entry.name = directory
 
             self.selected_index = -1
-        file_view.template_list("SourceIO_UL_VPKDirList", "", self, "current_dir", self, "selected_index")
+        file_view.template_list("SOURCEIO_UL_VPKDirList", "", self, "current_dir", self, "selected_index")
 
         props_col = main_col.column()
         props_box = props_col.box()
@@ -151,7 +151,7 @@ class SourceIO_OP_VPKBrowser(bpy.types.Operator):
 
 
 # noinspection PyPep8Naming
-class SourceIO_UL_VPKDirList(bpy.types.UIList):
+class SOURCEIO_UL_VPKDirList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         operator = data
         vpk_entry = item
@@ -171,6 +171,6 @@ classes = (
     SourceIO_PG_VPKEntry,
     SourceIO_OP_VPKButtonUp,
     SourceIO_OP_VPKBrowserLoader,
-    SourceIO_UL_VPKDirList,
+    SOURCEIO_UL_VPKDirList,
     SourceIO_OP_VPKBrowser,
 )
