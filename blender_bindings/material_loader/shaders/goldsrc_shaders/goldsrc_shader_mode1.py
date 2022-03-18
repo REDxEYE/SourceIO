@@ -15,7 +15,6 @@ class GoldSrcShaderMode1(GoldSrcShaderBase):
         basetexture = self.load_texture(material_name)
         basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
         basetexture_node.image = basetexture
-        basetexture_node.id_data.nodes.active = basetexture_node
 
         if rad_info is not None:
             self._emit_surface(basetexture_node, rad_info)

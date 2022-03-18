@@ -302,7 +302,6 @@ class HeroesFaceskin(Source1ShaderBase):
             if basetexture:
                 basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
                 basetexture_node.image = basetexture
-                basetexture_node.id_data.nodes.active = basetexture_node
 
                 if self.color or self.color2:
                     color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
