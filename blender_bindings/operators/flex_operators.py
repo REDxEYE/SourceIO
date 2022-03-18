@@ -173,8 +173,8 @@ class SourceIO_PG_FlexController(bpy.types.PropertyGroup):
 
 class SOURCEIO_PT_FlexControlPanel(UITools, bpy.types.Panel):
     bl_label = 'Flex controllers'
-    bl_idname = 'sourceio.flex_control_panel'
-    bl_parent_id = "sourceio.utils"
+    bl_idname = 'SOURCEIO_PT_FlexControlPanel'
+    bl_parent_id = "SOURCEIO_PT_Utils"
 
     @classmethod
     def poll(cls, context):
@@ -184,12 +184,12 @@ class SOURCEIO_PT_FlexControlPanel(UITools, bpy.types.Panel):
 
     def draw(self, context):
         obj = context.active_object  # type:bpy.types.Object
-        self.layout.template_list("SourceIO_UL_FlexControllerList", "",
+        self.layout.template_list("SOURCEIO_UL_FlexControllerList", "",
                                   obj.data, "flex_controllers",
                                   obj.data, "flex_selected_index")
 
 
-class SourceIO_UL_FlexControllerList(bpy.types.UIList):
+class SOURCEIO_UL_FlexControllerList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         operator = data
         controller_entry: SourceIO_PG_FlexController = item
@@ -203,6 +203,6 @@ class SourceIO_UL_FlexControllerList(bpy.types.UIList):
 
 classes = (
     SourceIO_PG_FlexController,
-    SourceIO_UL_FlexControllerList,
+    SOURCEIO_UL_FlexControllerList,
     SOURCEIO_PT_FlexControlPanel,
 )
