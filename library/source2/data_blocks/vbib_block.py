@@ -3,8 +3,8 @@ from typing import List
 import numpy as np
 
 try:
-    from ...utils.PySourceIOUtils import (decode_vertex_buffer as decode_vertex_buffer_,
-                                         decode_index_buffer as decode_index_buffer_)
+    from ...utils.pylib import (decode_vertex_buffer as decode_vertex_buffer_,
+                                decode_index_buffer as decode_index_buffer_)
 
 
     def decode_vertex_buffer(data, size, count):

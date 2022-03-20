@@ -8,14 +8,8 @@ from ...utils.byte_io_mdl import ByteIO
 from .base_block import DataBlock
 
 try:
-    from ...utils.PySourceIOUtils import *
-    from ...utils.thirdparty.lz4_wrapper import LZ4Wrapper
-
-
-    def uncompress(compressed_data, _b, decompressed_size):
-        decoder = LZ4Wrapper()
-        return decoder.decompress_safe(compressed_data, decompressed_size)
-
+    from ...utils.pylib import lz4_decompress
+    from ...utils.pylib import texture as tdc
 
     NO_SOURCE_IO_UTILS = False
 except ImportError:
@@ -23,7 +17,7 @@ except ImportError:
     from ...utils.lz4 import uncompress as uncompress_tmp
 
 
-    def uncompress(a, _b, _c):
+    def lz4_decompress(a, _b, _c):
         return uncompress_tmp(a)
 
 
@@ -43,6 +37,7 @@ def block_size(fmt):
         VTexFormat.DXT5: 16,
         VTexFormat.RGBA8888: 4,
         VTexFormat.R16: 2,
+        VTexFormat.I8: 1,
         VTexFormat.RG1616: 4,
         VTexFormat.RGBA16161616: 8,
         VTexFormat.R16F: 2,
@@ -215,7 +210,7 @@ class TEXR(DataBlock):
                 reader.skip(self.calculate_buffer_size_for_mip(i))
         if compressed_size >= uncompressed_size:
             return reader.read(uncompressed_size)
-        data = uncompress(reader.read(compressed_size), compressed_size, uncompressed_size)
+        data = lz4_decompress(reader.read(compressed_size), compressed_size, uncompressed_size)
         assert len(data) == uncompressed_size, "Uncompressed data size != expected uncompressed size"
         return data
 
@@ -223,7 +218,6 @@ class TEXR(DataBlock):
         if self.compressed:
             return ByteIO(self.get_decompressed_at_mip(reader, mip_level))
         else:
-            compressed_size = self.calculate_buffer_size_for_mip(mip_level)
             for i in range(self.mipmap_count - 1, mip_level, -1):
                 reader.skip(self.calculate_buffer_size_for_mip(i))
             return reader
@@ -235,42 +229,27 @@ class TEXR(DataBlock):
             return
         reader = self._valve_file.reader
         reader.seek(self.info_block.absolute_offset + self.info_block.block_size)
+        data = self.get_decompressed_buffer(reader, 0).read(-1)
         if self.format == VTexFormat.RGBA8888:
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = np.frombuffer(data, np.uint8).reshape((self.width, self.height, 4))
             if flip:
                 data = np.flipud(data)
             self.image_data = data.tobytes()
         elif self.format == VTexFormat.BC7:
-            from .redi_block_types import SpecialDependencies
-            redi = (self._valve_file.get_data_block(block_name='REDI') or  self._valve_file.get_data_block(block_name='RED2'))[0]
-            hemi_oct_rb = False
-            for block in redi.blocks:
-                if type(block) is SpecialDependencies:
-                    for container in block.container:
-                        if container.compiler_identifier == "CompileTexture" and container.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
-                            hemi_oct_rb = True
-                            break
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
-            data = read_bc7(data, self.width, self.height, hemi_oct_rb, flip)
+            data = tdc.bc7_decompress(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.ATI1N:
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
-            data = read_ati1n(data, self.width, self.height, flip)
+            data = tdc.ati1_decompress(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.ATI2N:
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
-            data = read_ati2n(data, self.width, self.height, flip)
+            data = tdc.ati2_decompress(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.DXT1:
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
-            data = read_dxt1(data, self.width, self.height, flip)
+            data = tdc.dxt1_decompress(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.DXT5:
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
-            data = read_dxt5(data, self.width, self.height, flip)
+            data = tdc.dxt5_decompress(data, self.width, self.height, flip)
             self.image_data = data
         elif self.format == VTexFormat.RGBA16161616F:
-            data = self.get_decompressed_buffer(reader, 0).read(-1)
             data = np.frombuffer(data, np.float16, self.width * self.height * 4)
             self.image_data = data

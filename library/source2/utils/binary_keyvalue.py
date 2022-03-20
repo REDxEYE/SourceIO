@@ -5,12 +5,14 @@ import numpy as np
 
 from ..data_blocks.compiled_file_header import InfoBlock
 from ...utils.byte_io_mdl import ByteIO
-from ...utils.thirdparty.lz4_wrapper import LZ4ChainDecoder, LZ4Wrapper
+from ...utils import pylib
+
+lz4_decompress = pylib.lz4_decompress
+LZ4ChainDecoder = pylib.lz4.LZ4ChainDecoder
 
 
-def uncompress(compressed_data, _b, decompressed_size):
-    decoder = LZ4Wrapper()
-    return decoder.decompress_safe(compressed_data, decompressed_size)
+def uncompress(compressed_data, compressed_size, decompressed_size):
+    return lz4_decompress(compressed_data, compressed_size, decompressed_size)
 
 
 class KVFlag(IntFlag):
@@ -266,7 +268,8 @@ class BinaryKeyValue:
             decompressor.copy_stream(BytesIO(data), tmp, compressed_size, uncompressed_size)
             tmp.seek(0)
             u_data = tmp.read()
-            assert len(u_data) == uncompressed_size+block_total_size, "Decompressed data size does not match expected size"
+            assert len(
+                u_data) == uncompressed_size + block_total_size, "Decompressed data size does not match expected size"
             self.buffer.write_bytes(u_data)
             del u_data, data
         else:
@@ -312,9 +315,7 @@ class BinaryKeyValue:
                 cd = LZ4ChainDecoder(block_total_size, 0)
                 for uncompressed_block_size in self.block_sizes:
                     compressed_block_size = self.buffer.read_uint16()
-                    data = reader.read(compressed_block_size)
-                    data = cd.decompress(data, uncompressed_block_size)
-                    self.block_data += data
+                    self.block_data += cd.decompress(reader.read(compressed_block_size), uncompressed_block_size)
             elif compression_method == 2:
                 self.block_data += self.buffer.read()
             else:
