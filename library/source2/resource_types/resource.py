@@ -28,6 +28,10 @@ class ValveCompiledResource:
 
         self.read_block_info()
         self.check_external_resources()
+        self.post_process()
+
+    def post_process(self):
+        pass
 
     def read_block_info(self):
         self.info_blocks.clear()

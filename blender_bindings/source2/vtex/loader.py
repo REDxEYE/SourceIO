@@ -12,9 +12,6 @@ logger = SLoggingManager().get_logger("Source2::Texture")
 class ValveCompiledTextureLoader(ValveCompiledTexture):
     data_block_class = TEXR
 
-    def __init__(self, path_or_file):
-        super().__init__(path_or_file)
-
     def import_texture(self, name, flip: bool):
         logger.info(f'Loading {name} texture')
         if name + '.tga' in bpy.data.images:

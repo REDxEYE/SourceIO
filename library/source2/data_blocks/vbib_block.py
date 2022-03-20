@@ -207,6 +207,7 @@ class VertexBuffer:
 
     def read_buffer(self):
         vertex_dtype = self.construct_dtype()
+        assert vertex_dtype.itemsize == self.vertex_size
         self.vertexes = np.frombuffer(self.buffer.read(vertex_dtype.itemsize * self.vertex_count), vertex_dtype)
 
 
@@ -215,8 +216,6 @@ class VertexAttribute:
         self.name = ''
         self.format = DxgiFormat(0)  # type:DxgiFormat
         self.offset = 0
-        self.abs_offset = 0
-        self.element_count = 0
 
     def __repr__(self):
         return '<VertexAttribute "{}" format:{} offset:{}>'.format(self.name, self.format.name, self.offset)

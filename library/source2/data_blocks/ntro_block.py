@@ -2,6 +2,8 @@ from enum import IntEnum
 from itertools import chain
 from typing import List
 
+import numpy as np
+
 from ...utils.byte_io_mdl import ByteIO
 from ..common import Matrix, CTransform
 
@@ -271,9 +273,14 @@ class NTROStructField:
                 array = []
                 with reader.save_current_pos():
                     reader.seek(entry + offset)
-                    for _ in range(count):
-                        data = self.read_field_data(reader)
-                        array.append(data)
+                    if self.type == KeyValueDataType.BYTE:
+                        array = np.frombuffer(reader.read(count), np.int8)
+                    elif self.type == KeyValueDataType.UBYTE:
+                        array = np.frombuffer(reader.read(count), np.int8)
+                    else:
+                        for _ in range(count):
+                            data = self.read_field_data(reader)
+                            array.append(data)
                 if exit_point:
                     reader.seek(exit_point)
                 return array

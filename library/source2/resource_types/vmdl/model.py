@@ -15,3 +15,4 @@ class ValveCompiledModel(ValveCompiledResource):
         data_block = data_block[0]
         self.name = data_block.data['m_name']
         self.materials = []
+        self.post_process()

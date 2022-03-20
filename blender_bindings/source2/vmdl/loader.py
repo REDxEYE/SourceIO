@@ -14,6 +14,7 @@ from ...shared.model_container import Source2ModelContainer
 from ...utils.utils import get_material, get_new_unique_collection, find_layer_collection
 from ....library.source2.common import convert_normals
 from ....library.source2.data_blocks import MRPH, VBIB, DATA
+from ....library.source2.resource_types.vmesh import ValveCompiledMesh
 from ....library.source2.utils.decode_animations import parse_anim_data
 from ....library.source2.resource_types.vmorf.morph import ValveCompiledMorph
 from ....library.shared.content_providers.content_manager import ContentManager
@@ -85,14 +86,14 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 if mesh_ref_path:
                     mesh_ref_file = content_manager.find_file(mesh_ref_path)
                     if mesh_ref_file:
-                        mesh = ValveCompiledResource(mesh_ref_file)
+                        mesh = ValveCompiledMesh(mesh_ref_file)
                         self.available_resources.update(mesh.available_resources)
-                        mesh.read_block_info()
-                        mesh.check_external_resources()
                         mesh_data_block = mesh.get_data_block(block_name="DATA")[0]
                         buffer_block = mesh.get_data_block(block_name="VBIB")[0]
                         name = mesh_ref_path.stem
-                        vmorf_actual_path = mesh.available_resources.get(mesh_data_block.data['m_morphSet'], None)
+                        vmorf_actual_path = mesh.available_resources.get(
+                            (mesh_data_block.data.get('m_morphSet', None) or
+                             mesh_data_block.data.get('m_pMorphSet', None)), None)
                         morph_block: Optional = None
                         if vmorf_actual_path:
                             vmorf_path = content_manager.find_file(vmorf_actual_path)
@@ -152,9 +153,12 @@ class ValveCompiledModelLoader(ValveCompiledModel):
 
             for draw_call in draw_calls:
 
-                self.materials.append(draw_call['m_material'])
+                material_ = draw_call.get('m_material', None) or draw_call.get('m_pMaterial', None)
+                if isinstance(material_, int):
+                    material_ = self.available_resources.get(material_, str(material_))
+                self.materials.append(material_)
 
-                material_name = Path(draw_call['m_material']).stem
+                material_name = Path(material_).stem
                 model_name = f"{name}_{material_name}_{draw_call['m_nStartIndex']}"
                 used_copy = False
                 mesh_obj = None
@@ -177,8 +181,8 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 if data_block.data['m_materialGroups']:
                     default_skin = data_block.data['m_materialGroups'][0]
 
-                    if draw_call['m_material'] in default_skin['m_materials']:
-                        mat_id = default_skin['m_materials'].index(draw_call['m_material'])
+                    if material_ in default_skin['m_materials']:
+                        mat_id = default_skin['m_materials'].index(material_)
                         mat_groups = {}
                         for skin_group in data_block.data['m_materialGroups']:
                             mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
@@ -189,7 +193,7 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                     mesh_obj['active_skin'] = 'default'
                     mesh_obj['skin_groups'] = []
 
-                material_name = Path(draw_call['m_material']).stem
+                material_name = Path(material_).stem
                 mesh = mesh_obj.data
 
                 self.container.objects.append(mesh_obj)
@@ -216,10 +220,7 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 used_vertices = vertex_buffer.vertexes[base_vertex:][used_vertices_ids]
 
                 positions = used_vertices['POSITION']
-                normals = used_vertices['NORMAL']
 
-                if normals.dtype.char == 'B' and normals.shape[1] == 4:
-                    normals = convert_normals(normals)
 
                 mesh.from_pydata(positions * self.scale, [], new_indices.reshape((-1, 3)).tolist())
                 mesh.update()
@@ -273,7 +274,11 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                                 weight_groups[bone_name].add([n], 1.0, 'REPLACE')
 
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
-                mesh.normals_split_custom_set_from_vertices(normals)
+                if 'NORMAL' in vertex_buffer.attribute_names:
+                    normals = used_vertices['NORMAL']
+                    if normals.dtype.char == 'B' and normals.shape[1] == 4:
+                        normals = convert_normals(normals)
+                    mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
                 if morphs_available:
                     mesh_obj.shape_key_add(name='base')

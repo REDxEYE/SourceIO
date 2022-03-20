@@ -10,9 +10,10 @@ class DataBlock:
         self._valve_file: ValveCompiledResource = valve_file
         self.info_block: InfoBlock = info_block
 
-        with self._valve_file.reader.save_current_pos():
-            self._valve_file.reader.seek(self.info_block.absolute_offset)
-            self.reader = ByteIO(self._valve_file.reader.read(self.info_block.block_size))
+        if info_block:
+            with self._valve_file.reader.save_current_pos():
+                self._valve_file.reader.seek(self.info_block.absolute_offset)
+                self.reader = ByteIO(self._valve_file.reader.read(self.info_block.block_size))
         self.data = {}
         self.parsed = False
 
