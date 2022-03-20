@@ -56,6 +56,7 @@ __all__ = [
     "CHAINLOG_MAX",
     "HASHLOG_MIN",
     "HASHLOG_MAX",
+    "HASHLOG3_MAX",
     "MINMATCH_MIN",
     "MINMATCH_MAX",
     "SEARCHLOG_MIN",
@@ -121,6 +122,7 @@ CHAINLOG_MIN = lib.ZSTD_CHAINLOG_MIN
 CHAINLOG_MAX = lib.ZSTD_CHAINLOG_MAX
 HASHLOG_MIN = lib.ZSTD_HASHLOG_MIN
 HASHLOG_MAX = lib.ZSTD_HASHLOG_MAX
+HASHLOG3_MAX = lib.ZSTD_HASHLOG3_MAX
 MINMATCH_MIN = lib.ZSTD_MINMATCH_MIN
 MINMATCH_MAX = lib.ZSTD_MINMATCH_MAX
 SEARCHLOG_MIN = lib.ZSTD_SEARCHLOG_MIN
@@ -775,12 +777,6 @@ class ZstdCompressionWriter(object):
         self._compressor = None
 
         return False
-
-    def __iter__(self):
-        raise io.UnsupportedOperation()
-
-    def __next__(self):
-        raise io.UnsupportedOperation()
 
     def memory_size(self):
         return lib.ZSTD_sizeof_CCtx(self._compressor._cctx)
@@ -3467,12 +3463,6 @@ class ZstdDecompressionWriter(object):
         self.close()
 
         return False
-
-    def __iter__(self):
-        raise io.UnsupportedOperation()
-
-    def __next__(self):
-        raise io.UnsupportedOperation()
 
     def memory_size(self):
         return lib.ZSTD_sizeof_DCtx(self._decompressor._dctx)
