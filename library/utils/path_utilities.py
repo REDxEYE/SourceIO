@@ -3,13 +3,6 @@ from pathlib import Path
 import os
 
 
-def get_class_var_name(class_, var):
-    a = class_.__dict__  # type: dict
-    for k, v in a.items():
-        if id(getattr(class_, k)) == id(var) and v == var:
-            return k
-
-
 def pop_path_back(path: Path):
     if len(path.parts) > 1:
         return Path().joinpath(*path.parts[1:])
@@ -27,7 +20,7 @@ def pop_path_front(path: Path):
 def find_vtx(mdl_path: Path):
     possible_vtx_vertsion = [70, 80, 11, 90, 12]
     for vtx_version in possible_vtx_vertsion[::-1]:
-        path = mdl_path.with_suffix(f'.dx{vtx_version}.vtx')
+        path = corrected_path(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
         if path.exists():
             return path
 
@@ -77,7 +70,7 @@ def case_insensitive_file_resolution(path):
 
 def corrected_path(path: Path):
     if platform.system() == "Windows":
-        return path
+        return Path(path)
     '''Returns a unix-type case-sensitive path, works in windows and linux'''
     start = path.parent.as_posix()
     path = path.name
@@ -106,7 +99,7 @@ def corrected_path(path: Path):
             cd = os.path.join(cd, p)
             corrected_path = os.path.join(corrected_path, p)
 
-    return corrected_path
+    return Path(corrected_path)
 
 
 def resolve_root_directory_from_file(path):

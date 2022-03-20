@@ -25,11 +25,11 @@ def import_model_from_full_path(mdl_path: Path, scale=1.0,
             return container.clone()
     content_manager = ContentManager()
     if mdl_path.is_absolute():
-        vtx_file = corrected_path(find_vtx(mdl_path))
-        vvd_file = corrected_path(mdl_path.with_suffix('.vvd'))
-        vvc_file = corrected_path(mdl_path.with_suffix('.vvc'))
+        vtx_file = find_vtx(mdl_path)
+        vvd_file = mdl_path.with_suffix('.vvd')
+        vvc_file = mdl_path.with_suffix('.vvc')
         assert vtx_file.exists(), f"failed to find vtx file {mdl_path.with_suffix('')}"
-        assert vvd_file.exists(), f"failed to find vvd file {vvc_file}"
+        assert vvd_file.exists(), f"failed to find vvd file {vvd_file}"
         content_root = content_manager.get_content_provider_from_path(mdl_path)
         name = mdl_path.relative_to(content_root.root)
 
