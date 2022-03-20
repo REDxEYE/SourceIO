@@ -1,13 +1,11 @@
-from typing import Optional
-import bpy
 import numpy as np
 
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
 
-class VrSimple(Source2ShaderBase):
-    SHADER: str = 'vr_simple.vfx'
+class VRGeneric(Source2ShaderBase):
+    SHADER: str = 'vr_standard.vfx'
 
     @property
     def color_texture(self):
@@ -39,16 +37,6 @@ class VrSimple(Source2ShaderBase):
         return None, None
 
     @property
-    def self_illum_mask_texture(self):
-        texture_path = self.get_texture('g_tSelfIllumMask', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
-
-    @property
     def color(self):
         return self.get_vector('g_vColorTint', np.ones(4, dtype=np.float32))
 
@@ -66,14 +54,11 @@ class VrSimple(Source2ShaderBase):
 
     @property
     def specular(self):
-        return self.get_int('F_SPECULAR', 0)
+        return self.get_vector('g_vGlossinessRange', [0, 1, 0, 0])[0]
 
     @property
-    def roughness_value(self):
-        value = self.get_vector('TextureRoughness', None)
-        if value is None:
-            return
-        return value[0]
+    def roughness(self):
+        return self.get_vector('g_vGlossinessRange', [0, 1, 0, 0])[1]
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
@@ -82,10 +67,10 @@ class VrSimple(Source2ShaderBase):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
-
+        shader.inputs['Roughness'].default_value = self.roughness
+        shader.inputs['Specular'].default_value = self.specular
         color_texture = self.color_texture
         normal_texture, roughness_texture = self.normal_texture
-        self_illum_mask_texture = self.self_illum_mask_texture
 
         albedo_node = self.create_node(Nodes.ShaderNodeTexImage, 'albedo')
         albedo_node.image = color_texture
@@ -118,21 +103,6 @@ class VrSimple(Source2ShaderBase):
         self.connect_nodes(normal_map_texture.outputs['Color'], normalmap_node.inputs['Color'])
         self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
 
-        if self.specular and self.self_illum_mask_texture:
-            r, g, b, a = self.split_to_channels(self.self_illum_mask_texture)
-            b = 1 - b
-            roughness_texture = self.make_texture(
-                self.new_texture_name_with_suffix(self.self_illum_mask_texture.name, 'roughness', 'tga'),
-                self_illum_mask_texture.size, np.dstack((b, b, b, np.ones_like(b))))
-            roughness_node = self.create_node(Nodes.ShaderNodeTexImage, 'roughness')
-            roughness_node.image = roughness_texture
-            self.connect_nodes(roughness_node.outputs['Color'], shader.inputs['Roughness'])
-        elif self.roughness_value is None:
-            roughness_node = self.create_node(Nodes.ShaderNodeTexImage, 'roughness')
-            roughness_node.image = roughness_texture
-            self.connect_nodes(roughness_node.outputs['Color'], shader.inputs['Roughness'])
-        elif self.roughness_value is not None:
-            shader.inputs['Roughness'].default_value = self.roughness_value
         # if self.selfillum:
         #     selfillummask = self.selfillummask
         #     albedo_node = self.get_node('$basetexture')

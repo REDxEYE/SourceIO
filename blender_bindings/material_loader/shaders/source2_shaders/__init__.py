@@ -12,5 +12,6 @@ from . import (vr_complex,
                static_overlay,
                vr_bloody_simple,
                vr_simple_2way_blend,
-               sky
+               sky,
+               vr_generic
                )

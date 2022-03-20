@@ -27,6 +27,14 @@ class Source2ShaderBase(ShaderBase):
                 return param[value_type]
         return default
 
+    def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
+        print(f'Loading texture {file}')
+        if isinstance(file, int):
+            file = self.resources.get(file, str(file))
+            file = {v: k for k, v in self.resources.items() if not isinstance(k, int)}[file]
+            print(f'Remapped to {file}')
+        return super().load_texture_or_default(file, default_color)
+
     def get_int(self, name, default):
         return self._get_param('m_intParams', name, 'm_nValue', default)
 
@@ -37,7 +45,9 @@ class Source2ShaderBase(ShaderBase):
         return self._get_param('m_vectorParams', name, 'm_value', default)
 
     def get_texture(self, name, default):
-        return self._get_param('m_textureParams', name, 'm_pValue', default)
+        param = self._get_param('m_textureParams', name, 'm_pValue', default)
+        print(name,param)
+        return param
 
     def get_dynamic(self, name, default):
         return self._get_param('m_dynamicParams', name, 'error', default)
@@ -70,7 +80,6 @@ class Source2ShaderBase(ShaderBase):
         return image, roughness_texture
 
     def load_texture(self, texture_name, texture_path):
-
         if texture_path in self.resources:
             proper_path = self.resources[texture_path]
             texture_path = ContentManager().find_file(proper_path)
