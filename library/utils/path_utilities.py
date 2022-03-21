@@ -71,18 +71,21 @@ def case_insensitive_file_resolution(path):
 def corrected_path(path: Path):
     if platform.system() == "Windows" or path.exists():  # Shortcut for windows
         return path
-    root, *parts = path.parts
+    root, *parts, fname = path.parts
 
     new_path = Path(root)
     for part in parts:
         for dir_name in new_path.iterdir():
             if dir_name.is_file():
                 continue
-            if dir_name.stem.lower() == part.lower():
+            if dir_name.name.lower() == part.lower():
                 new_path = dir_name
                 break
+    for file_name in new_path.iterdir():
+        if file_name.is_file() and file_name.name.lower() == fname.lower():
+            new_path = file_name
+            break
     return new_path
-
 
 def resolve_root_directory_from_file(path):
     if type(path) is not Path:
