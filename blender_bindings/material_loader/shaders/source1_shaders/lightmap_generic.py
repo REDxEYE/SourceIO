@@ -30,7 +30,7 @@ class LightmapGeneric(Source1ShaderBase):
 
     @property
     def ssbump(self):
-        return self._vmt.get_int('ssbump', 0) == 1
+        return self._vmt.get_int('$ssbump', 0) == 1
 
     @property
     def phong(self):
@@ -76,6 +76,16 @@ class LightmapGeneric(Source1ShaderBase):
                 self.bpy_material.use_backface_culling = True
                 self.bpy_material.show_transparent_back = False
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
+
+        bumpmap = self.bumpmap
+        if bumpmap and not self.ssbump:
+            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
+            bumpmap_node.image = bumpmap
+
+            normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+
+            self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
+            self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
 
         if not self.phong:
             shader.inputs['Specular'].default_value = 0
