@@ -185,6 +185,7 @@ class FGDParser:
         self.pragmas = {}
         self.includes = []
         self.entity_groups = []
+        self.vis_groups = {}
 
     def peek(self):
         if self._last_peek is None:
@@ -227,6 +228,10 @@ class FGDParser:
                     self.excludes.append(self.expect(FGDToken.IDENTIFIER))
                 elif value.lower() == '@entitygroup':
                     self._parse_entity_group()
+                elif value.lower() == '@materialexclusion':
+                    self._parse_material_exclusion()
+                elif value.lower() == '@autovisgroup':
+                    self._parse_autovis_group()
                 elif value.startswith('@') and value.lower().endswith("class"):
                     self._parse_baseclass(value[1:])
             elif self.match(FGDToken.EOF):
@@ -482,6 +487,26 @@ class FGDParser:
         prop['name'] = name
         prop['type'] = param_type
         storage.append(prop)
+
+    def _parse_material_exclusion(self):
+        self.expect(FGDToken.LBRACKET)
+        m = self.pragmas['material_exclusion'] = []
+        while not self.match(FGDToken.RBRACKET, True):
+            mat = self.expect(FGDToken.STRING)
+            m.append(mat)
+
+    def _parse_autovis_group(self):
+        self.expect(FGDToken.EQUALS)
+        name = self.expect(FGDToken.STRING)
+        self.expect(FGDToken.LBRACKET)
+        vis_group = self.vis_groups[name] = {}
+        while not self.match(FGDToken.RBRACKET, True):
+            sub_name = self.expect(FGDToken.STRING)
+            vis_list = vis_group[sub_name] = []
+            self.expect(FGDToken.LBRACKET)
+            while not self.match(FGDToken.RBRACKET, True):
+                ent_name = self.expect(FGDToken.STRING)
+                vis_list.append(ent_name)
 
 
 if __name__ == '__main__':
