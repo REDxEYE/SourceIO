@@ -5,6 +5,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
 
 from ..material_loader.material_loader import Source1MaterialLoader
+from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ..source1.bsp.import_bsp import BSP, BPSPropCache
 from ..source1.dmx.load_sfm_session import load_session
 from ..source1.mdl.model_loader import import_model_from_full_path
@@ -266,17 +267,25 @@ if is_vtflib_supported():
         files: CollectionProperty(type=bpy.types.PropertyGroup)
         filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
         override: BoolProperty(default=False, name='Override existing?')
+        use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
 
         def execute(self, context):
             content_manager = ContentManager()
+            content_manager.scan_for_content(self.filepath)
             if Path(self.filepath).is_file():
                 directory = Path(self.filepath).parent.absolute()
             else:
                 directory = Path(self.filepath).absolute()
             for file in self.files:
+                Source1ShaderBase.use_bvlg(self.use_bvlg)
                 mat = Source1MaterialLoader((directory / file.name).open('rb'), Path(file.name).stem)
-                if mat.create_material() == 'EXISTS' and not self.override:
-                    self.report({'INFO'}, '{} material already exists')
+                bpy_material = bpy.data.materials.get(mat.material_name, dict())
+                if bpy_material.get('source_loaded'):
+                    if self.override:
+                        del bpy_material['source_loaded']
+                    else:
+                        self.report({'INFO'}, '{} material already exists')
+                mat.create_material()
             content_manager.flush_cache()
             content_manager.clean()
             return {'FINISHED'}
