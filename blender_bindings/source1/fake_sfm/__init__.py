@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import sys
+from importlib.abc import MetaPathFinder, Loader
 from pathlib import Path
 import logging
 from lib2to3.refactor import RefactoringTool, get_fixers_from_package
@@ -8,7 +9,7 @@ from lib2to3.refactor import RefactoringTool, get_fixers_from_package
 logger = logging.getLogger('SFMHook')
 
 
-class HookedImporter(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+class HookedImporter(MetaPathFinder, Loader):
     def __init__(self, hooks=None):
         self.hooks = hooks
 
@@ -40,6 +41,8 @@ class HookedImporter(importlib.abc.MetaPathFinder, importlib.abc.Loader):
         return
 
     def install(self):
+        if isinstance(sys.meta_path[0], HookedImporter):
+            return
         sys.meta_path.insert(0, self)
 
 
@@ -55,7 +58,6 @@ def load_script(script_path: Path):
         'vs': vs,
         'sfm': sfm.SFM(),
     }
-    # if sys.meta_path[0]!=
     importer = HookedImporter(hooks=hooks)
     importer.install()
     assert script_path.exists()
