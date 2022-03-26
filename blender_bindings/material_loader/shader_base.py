@@ -146,6 +146,7 @@ class ShaderBase:
         self.bpy_material: bpy.types.Material = None
         self.load_bvlg_nodes()
         self.do_arrange = True
+        self.uv_map = None
 
     @staticmethod
     def get_missing_texture(texture_name: str, fill_color: tuple = (1.0, 1.0, 1.0, 1.0)):
@@ -282,13 +283,13 @@ class ShaderBase:
 
     def handle_transform(self, transform: Tuple, socket: bpy.types.NodeSocket, loc=None, *, UV=None):
         sys.stdout.write(repr(transform))
-        if (loc is None):
+        if loc is None:
             loc = socket.node.location
         if UV is not None:
             uv = UV
             uv.location = [-300 + loc[0], uv.location[1]]
-            if self.UVmap is not None:
-                self.UVmap.location = [-500 + loc[0], self.UVmap.location[1]]
+            if self.uv_map is not None:
+                self.uv_map.location = [-500 + loc[0], self.uv_map.location[1]]
         else:
             uv = self.create_node("ShaderNodeUVMap")
             uv.location = [-300 + loc[0], -20 + loc[1]]

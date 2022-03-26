@@ -8,6 +8,7 @@ from ..source1_shader_base import Source1ShaderBase
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
 
+
     @property
     def bumpmap(self):
         texture_path = self._vmt.get_string('$bumpmap', None)
@@ -203,7 +204,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             else:
                 self.bpy_material.blend_method = 'HASHED'
             self.bpy_material.shadow_method = 'HASHED'
-
+        uv = None
         if self.use_bvlg_status:
             self.do_arrange = False
             if self.alphatest or self.translucent:
@@ -222,9 +223,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                         name='$basetexture')
                 basetexture_node.location = [-800, 0]
                 if self.basetexturetransform:
-                    UV, self.UVmap = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
-                else:
-                    UV = None
+                    uv, self.uv_map = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
                 albedo = basetexture_node.outputs['Color']
                 if self.basealphaenvmapmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
@@ -237,7 +236,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                        alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
                 if self.detail:
-                    albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, UV=UV)
+                    albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, UV=uv)
 
             if self.color or self.color2:
                 group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2
@@ -277,7 +276,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                                      phongexponent_group_node.inputs[
                                                                                          'alpha'],
                                                                                      name='$phongexponenttexture',
-                                                                                     UV=UV)
+                                                                                     UV=uv)
                     phongexponenttexture_node.location = [-800, -470]
 
                     if self.phongalbedotint is not None and not self.phongtint:
@@ -303,7 +302,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 group_node.inputs['$selfillum [bool]'].default_value = 1
                 if self.selfillummask:
                     selfillummask_node = self.create_and_connect_texture_node(self.selfillummask, group_node.inputs[
-                        '$selfillummask [texture alpha]'], UV=UV)
+                        '$selfillummask [texture alpha]'], UV=uv)
                     selfillummask_node.location = [-500, -510]
                 elif self.basetexture is not None:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
