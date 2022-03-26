@@ -53,7 +53,7 @@ class ValveCompiledWorldLoader(ValveCompiledWorld):
             handler = BaseEntityHandler(self, self.master_collection, self.scale)
         handler.load_entities()
 
-    def load_world_node(self, node):
+    def load_world_node(self, node: Dict[str, Any]):
         content_manager = ContentManager()
         node_path = node['m_worldNodePrefix'] + '.vwnod_c'
         full_node_path = content_manager.find_file(node_path)
@@ -62,7 +62,7 @@ class ValveCompiledWorldLoader(ValveCompiledWorld):
         world_node_file.check_external_resources()
         world_data: DataBlock = world_node_file.get_data_block(block_name="DATA")[0]
         collection = get_or_create_collection(f"static_props_{Path(node_path).stem}", self.master_collection)
-        for n, aggregate_object in enumerate(world_data.data['m_aggregateSceneObjects']):
+        for n, aggregate_object in enumerate(world_data.data.get('m_aggregateSceneObjects', [])):
             model_path = aggregate_object['m_renderableModel']
             proper_path = world_node_file.available_resources.get(model_path)
             self.logger.info(f"Loading ({n}/{len(world_data.data['m_aggregateSceneObjects'])}){model_path} mesh")
@@ -95,14 +95,13 @@ class ValveCompiledWorldLoader(ValveCompiledWorld):
                               parent_collection=collection,
                               custom_data=custom_data)
 
-    def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None,
-                     custom_data=None):
+    def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
         if custom_data is None:
             custom_data = {}
         if scale is None:
-            scale = [1.0, 1.0, 1.0]
+            scale = (1.0, 1.0, 1.0)
         if rotation is None:
-            rotation = [0.0, 0.0, 0.0]
+            rotation = (0.0, 0.0, 0.0)
         placeholder = bpy.data.objects.new(name, None)
         placeholder.location = location
         placeholder.rotation_euler = rotation
@@ -110,7 +109,4 @@ class ValveCompiledWorldLoader(ValveCompiledWorld):
         placeholder.empty_display_size = 16
         placeholder.scale = np.multiply(scale, self.scale)
         placeholder['entity_data'] = custom_data
-        if parent_collection is not None:
-            parent_collection.objects.link(placeholder)
-        else:
-            self.master_collection.objects.link(placeholder)
+        (parent_collection or self.master_collection).objects.link(placeholder)
