@@ -3,7 +3,7 @@
 * World scale -> Scale factor. Use value 1 for exporting back to source engine, leave as is for more or less human scale.
 * Import materials -> Load materials with textures.
 * Import cubemaps -> Place EEVEE cubemaps on place of source engine cubemaps.
-* Use BlenderVertexLitGeneric shader -> Use BVLG shaders insdead of blender shaders.
+* Use BlenderVertexLitGeneric shader -> Use BVLG shaders instead of blender shaders.
 
 
 # BSP import FAQ:
