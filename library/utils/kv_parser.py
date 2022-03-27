@@ -58,7 +58,8 @@ class _KVDataProxy:
         for i, (name, _) in enumerate(self.data):
             if name == key:
                 self.data[i] = name, self._wrap_value(value)
-                break
+                return
+        self.data.append((key, self._wrap_value(value)))
 
     def merge(self, other: '_KVDataProxy'):
         for o_item, o_value in other.items():
@@ -409,6 +410,8 @@ if __name__ == '__main__':
 """
 
     print(debug_data)
+    with open("D:\SteamLibrary\steamapps\common\Aperture Desk Job\game\steampal\gameinfo.gi", 'r') as f:
+        debug_data = f.read()
     parser = ValveKeyValueParser(buffer_and_name=(debug_data, 'memory'), self_recover=True)
     parser.parse()
     pprint(parser.tree.to_dict())
