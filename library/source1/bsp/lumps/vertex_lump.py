@@ -37,6 +37,27 @@ class UnLitVertexLump(Lump):
         return self
 
 
+@lump_tag(0x48, 'LUMP_LITVERTEXFLAT', bsp_version=29)
+class LitVertexFlatLump(Lump):
+    _dtype = np.dtype(
+        [
+            ('vpi', np.uint32, (1,)),
+            ('vni', np.uint32, (1,)),
+            ('uv', np.float32, (2,)),
+            ('unk', np.int32, (5,)),
+        ]
+    )
+
+    def __init__(self, bsp, lump_id):
+        super().__init__(bsp, lump_id)
+        self.vertex_info = np.array([])
+
+    def parse(self):
+        reader = self.reader
+        self.vertex_info = np.frombuffer(reader.read(), self._dtype)
+        return self
+
+
 @lump_tag(0x49, 'LUMP_BUMPLITVERTEX', bsp_version=29)
 class BumpLitVertexLump(Lump):
     _dtype = np.dtype(

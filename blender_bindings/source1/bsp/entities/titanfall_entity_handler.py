@@ -85,12 +85,14 @@ class TitanfallEntityHandler(BaseEntityHandler):
                 else:
                     mat_id = len(material_indices)
                     material_indices.append(material_data.name)
-
-                if mesh.flags & 0x200 > 0:
+                vertex_type = mesh.flags & 0x600
+                if vertex_type == 0x000:
+                    vertex_info_lump = self._bsp.get_lump("LUMP_LITVERTEXFLAT").vertex_info
+                elif vertex_type == 0x200:
                     vertex_info_lump = self._bsp.get_lump("LUMP_BUMPLITVERTEX").vertex_info
-                elif mesh.flags & 0x400 > 0:
+                elif vertex_type == 0x400:
                     vertex_info_lump = self._bsp.get_lump("LUMP_UNLITVERTEX").vertex_info
-                elif mesh.flags & 0x600 > 0:
+                elif vertex_type == 0x600:
                     vertex_info_lump = self._bsp.get_lump("LUMP_UNLITTSVERTEX").vertex_info
                 else:
                     raise NotImplementedError(f'Unknown mesh format {mesh.flags:016b}')
