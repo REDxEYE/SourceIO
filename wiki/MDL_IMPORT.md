@@ -6,7 +6,7 @@
 * Create drivers for flexes -> Create HMW like drivers for model. Controls are located in SourceIO panel on right side of 3d viewport.
 * Group meshes by bodygroup -> Create collections for each bodygroup. 
 * Import materials -> Load materials with textures. 
-* Use BlenderVertexLitGeneric shader -> Use BVLG shaders insdead of blender shaders.
+* Use BlenderVertexLitGeneric shader -> Use BVLG shaders instead of blender shaders.
 * World scale -> Scale factor. Use value 1 for exporting back to source engine, leave as is for more or less human scale.
 
 
