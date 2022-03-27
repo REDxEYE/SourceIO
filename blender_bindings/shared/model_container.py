@@ -69,10 +69,8 @@ class Source1ModelContainer(ModelContainer):
 
     def clone(self):
         new_container = Source1ModelContainer(self.mdl, self.vvd, self.vtx)
-        all_objects = self.objects.copy()
         for body_group_name, objects in self.bodygroups.items():
             for obj in objects:
-                all_objects.remove(obj)
                 mesh_data = obj.data.copy()
                 mesh_obj = obj.copy()
 
