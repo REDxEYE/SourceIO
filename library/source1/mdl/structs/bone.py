@@ -154,8 +154,8 @@ class BoneV36(Base):
 
     @property
     def children(self):
-        from ..v36.mdl_file import Mdl
-        mdl: Mdl = self.get_value("MDL")
+        from ..v36.mdl_file import MdlV36
+        mdl: MdlV36 = self.get_value("MDL")
         childes = []
         if mdl.bones:
             bone_index = mdl.bones.index(self)
@@ -184,8 +184,8 @@ class BoneV36(Base):
 
     @property
     def parent(self):
-        from ..v36.mdl_file import Mdl
-        mdl: Mdl = self.get_value("MDL")
+        from ..v36.mdl_file import MdlV36
+        mdl: MdlV36 = self.get_value("MDL")
         if mdl.bones and self.parent_bone_index != -1:
             return mdl.bones[self.parent_bone_index]
         return None

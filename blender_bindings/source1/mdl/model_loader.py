@@ -7,6 +7,7 @@ from ..bsp.import_bsp import BPSPropCache
 from ...source1.mdl.v36.import_mdl import import_model as import_model_v36
 from ...source1.mdl.v44.import_mdl import import_model as import_model_v44
 from ...source1.mdl.v49.import_mdl import import_model as import_model_v49
+from ...source1.mdl.v52.import_mdl import import_model as import_model_v52
 from ....library.utils.byte_io_mdl import ByteIO
 from ....library.utils.path_utilities import find_vtx, find_vtx_cm, corrected_path
 from ....library.shared.content_providers.content_manager import ContentManager
@@ -28,6 +29,8 @@ def import_model_from_full_path(mdl_path: Path, scale=1.0,
         vtx_file = find_vtx(mdl_path)
         vvd_file = mdl_path.with_suffix('.vvd')
         vvc_file = mdl_path.with_suffix('.vvc')
+        if not vvc_file.exists():
+            vvc_file = None
         assert vtx_file.exists(), f"failed to find vtx file {mdl_path.with_suffix('')}"
         assert vvd_file.exists(), f"failed to find vvd file {vvd_file}"
         content_root = content_manager.get_content_provider_from_path(mdl_path)
@@ -41,7 +44,7 @@ def import_model_from_full_path(mdl_path: Path, scale=1.0,
         mdl_path = content_manager.find_file(mdl_path)
 
         assert vtx_file is not None, f"failed to find vtx file {mdl_path.with_suffix('')}"
-        assert vvd_file is not None, f"failed to find vvd file {vvc_file}"
+        assert vvd_file is not None, f"failed to find vvd file {vvd_file}"
 
     return import_model_from_files(str(name), mdl_path, vvd_file, vtx_file, vvc_file, scale, create_drives,
                                    re_use_meshes,
@@ -81,8 +84,8 @@ def import_model_from_files(name: Union[str, Path],
         container = import_model_v49(mdl_file, vvd_file, vtx_file, None, scale, create_drives, re_use_meshes,
                                      unique_material_names)
 
-    elif 49 < version <= 51:
-        container = import_model_v49(mdl_file, vtx_file, vvd_file, vvc_file, scale, create_drives, re_use_meshes,
+    elif version == 52:
+        container = import_model_v52(mdl_file, vvd_file, vtx_file, vvc_file, scale, create_drives, re_use_meshes,
                                      unique_material_names)
     else:
         raise Exception(f'Unsupported version Mdl v{version}')

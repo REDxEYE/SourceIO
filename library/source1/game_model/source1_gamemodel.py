@@ -11,7 +11,7 @@ from ..mdl.structs.bone import BoneV36, BoneV49
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.path_utilities import find_vtx_cm
 
-from ..mdl.v36.mdl_file import Mdl as MdlV36
+from ..mdl.v36.mdl_file import MdlV36 as MdlV36
 from ..vtx.v6.vtx import Vtx as VtxV6
 
 from ..mdl.structs.model import ModelV36

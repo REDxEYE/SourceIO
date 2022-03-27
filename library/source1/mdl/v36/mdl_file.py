@@ -24,7 +24,7 @@ class _AnimBlocks:
         self.blocks = []
 
 
-class Mdl(Base):
+class MdlV36(Base):
 
     def __init__(self, filepath):
         self.store_value("MDL", self)

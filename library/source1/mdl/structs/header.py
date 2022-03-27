@@ -332,6 +332,7 @@ class MdlHeaderV49(MdlHeaderV44):
         self.store_value('mdl_version', self.version)
         self.name = reader.read_ascii_string(64)
         self.file_size = reader.read_uint32()
+        assert self.file_size == reader.size()
 
         self.eye_position = reader.read_fmt('3f')
         self.illumination_position = reader.read_fmt('3f')
@@ -389,6 +390,88 @@ class MdlHeaderV49(MdlHeaderV44):
         self.flex_controller_ui_count, self.flex_controller_ui_offset = reader.read_fmt('2I')
         self.vert_anim_fixed_point_scale, self.unused3 = reader.read_fmt('fI')
         self.studio_header2_offset, self.unused2 = reader.read_fmt('2I')
+
+        self.source_bone_transform_count, self.source_bone_transform_offset = reader.read_fmt('2I')
+        self.illum_position_attachment_index, self.max_eye_deflection = reader.read_fmt('If')
+        self.linear_bone_offset, self.name_offset = reader.read_fmt('2I')
+
+        if self.version > 47:
+            self.bone_flex_driver_count, self.bone_flex_driver_offset = reader.read_fmt('2I')
+
+        self.reserved = reader.read_fmt('56i')
+
+
+class MdlHeaderV52(MdlHeaderV49):
+    def __init__(self):
+        super().__init__()
+        self.maya_filename = ''
+
+    def read(self, reader: ByteIO):
+        self.id = reader.read_fourcc()
+        self.version, self.checksum = reader.read_fmt('ii')
+        self.store_value('mdl_version', self.version)
+        self.name = reader.read_ascii_string(64)
+        self.file_size = reader.read_uint32()
+        assert self.file_size == reader.size()
+
+        self.eye_position = reader.read_fmt('3f')
+        self.illumination_position = reader.read_fmt('3f')
+        self.hull_min = reader.read_fmt('3f')
+        self.hull_max = reader.read_fmt('3f')
+
+        self.view_bbox_min = reader.read_fmt('3f')
+        self.view_bbox_max = reader.read_fmt('3f')
+
+        self.flags = StudioHDRFlags(reader.read_uint32())
+
+        self.bone_count, self.bone_offset = reader.read_fmt('2I')
+        self.bone_controller_count, self.bone_controller_offset = reader.read_fmt('2I')
+
+        self.hitbox_set_count, self.hitbox_set_offset = reader.read_fmt('2I')
+
+        self.local_animation_count, self.local_animation_offset = reader.read_fmt('2I')
+        self.local_sequence_count, self.local_sequence_offset = reader.read_fmt('2I')
+        self.activity_list_version, self.events_indexed = reader.read_fmt('2I')
+
+        self.texture_count, self.texture_offset = reader.read_fmt('2I')
+        self.texture_path_count, self.texture_path_offset = reader.read_fmt('2I')
+        self.skin_reference_count, self.skin_family_count, self.skin_family_offset = reader.read_fmt('3I')
+
+        self.body_part_count, self.body_part_offset = reader.read_fmt('2I')
+        self.local_attachment_count, self.local_attachment_offset = reader.read_fmt('2I')
+        self.local_node_count, self.local_node_offset, self.local_node_name_offset = reader.read_fmt('3I')
+
+        self.flex_desc_count, self.flex_desc_offset = reader.read_fmt('2I')
+        self.flex_controller_count, self.flex_controller_offset = reader.read_fmt('2I')
+        self.flex_rule_count, self.flex_rule_offset = reader.read_fmt('2I')
+
+        self.ik_chain_count, self.ik_chain_offset = reader.read_fmt('2I')
+        self.mouth_count, self.mouth_offset = reader.read_fmt('2I')
+        self.local_pose_paramater_count, self.local_pose_parameter_offset = reader.read_fmt('2I')
+
+        self.surface_prop = reader.read_source1_string(0)
+
+        self.key_value_offset, self.key_value_size = reader.read_fmt('2I')
+        self.local_ik_auto_play_lock_count, self.local_ik_auto_play_lock_offset = reader.read_fmt('2I')
+        self.mass, self.contents = reader.read_fmt('fI')
+
+        self.include_model_count, self.include_model_offset = reader.read_fmt('2I')
+        self.virtual_model_pointer, self.anim_block_name_offset = reader.read_fmt('2I')
+        self.anim_block_count, self.anim_block_offset = reader.read_fmt('2I')
+
+        self.anim_block_model_pointer, self.bone_table_by_name_offset = reader.read_fmt('2I')
+
+        self.vertex_base_pointer, self.index_base_pointer = reader.read_fmt('2I')
+
+        self.directional_light_dot, self.root_lod, self.allowed_root_lod_count, self.unused = reader.read_fmt('4b')
+
+        self.unused4 = reader.read_uint32()
+
+        self.flex_controller_ui_count, self.flex_controller_ui_offset = reader.read_fmt('2I')
+        self.vert_anim_fixed_point_scale, self.unused3 = reader.read_fmt('fI')
+        self.studio_header2_offset = reader.read_uint32()
+
+        self.maya_filename = reader.read_source1_string(0)
 
         self.source_bone_transform_count, self.source_bone_transform_offset = reader.read_fmt('2I')
         self.illum_position_attachment_index, self.max_eye_deflection = reader.read_fmt('If')
