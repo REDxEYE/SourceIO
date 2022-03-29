@@ -37,7 +37,9 @@ class VertexAnimationCache(Base):
                 vertex_cache = self.vertex_cache[flex.name] = np.zeros_like(self.vvd.lod_data[desired_lod]['vertex'])
             else:
                 vertex_cache = self.vertex_cache[flex.name]
-            vertex_indices = flex.vertex_animations['index'].reshape(-1) + mesh.vertex_index_start + vertex_offset
+            index_ = flex.vertex_animations['index'].astype(np.uint32).reshape(-1)
+            vertex_indices = index_ + mesh.vertex_index_start + self.vertex_offset
+
             vertex_cache[vertex_indices] = flex.vertex_animations['vertex_delta']
 
         pass
