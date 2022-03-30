@@ -210,12 +210,14 @@ class ContentManager(metaclass=SingletonMeta):
         for content_provider in self.content_providers.values():
             yield from content_provider.glob(pattern)
 
-    def find_file(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
+    def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *, silent=False):
 
-        new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\').replace('\\', '/'))
-        if additional_dir:
+        print(filepath, additional_dir, extension)
+
+        new_filepath = Path(filepath.as_posix())
+        if additional_dir is not None:
             new_filepath = Path(additional_dir, new_filepath)
-        if extension:
+        if extension is not None:
             new_filepath = new_filepath.with_suffix(extension)
         if not silent:
             logger.info(f'Requesting {new_filepath} file')
@@ -228,7 +230,10 @@ class ContentManager(metaclass=SingletonMeta):
         return None
 
     def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
-        new_filepath = Path(str(filepath).strip('/\\').rstrip('/\\').replace('\\', '/'))
+
+        print(filepath, additional_dir, extension)
+
+        new_filepath = Path(filepath.as_posix())
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
