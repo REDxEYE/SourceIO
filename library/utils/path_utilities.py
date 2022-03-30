@@ -21,7 +21,7 @@ def find_vtx(mdl_path: Path):
     possible_vtx_vertsion = [70, 80, 11, 90, 12]
     for vtx_version in possible_vtx_vertsion[::-1]:
         path = corrected_path(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
-        if path.exists():
+        if path is not None and path.exists():
             return path
 
 
