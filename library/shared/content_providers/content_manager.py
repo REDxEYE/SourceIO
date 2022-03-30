@@ -212,9 +212,7 @@ class ContentManager(metaclass=SingletonMeta):
 
     def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *, silent=False):
 
-        print(filepath, additional_dir, extension)
-
-        new_filepath = Path(filepath.as_posix())
+        new_filepath = Path(filepath.as_posix().replace('\\', '/').replace('//', '/'))
         if additional_dir is not None:
             new_filepath = Path(additional_dir, new_filepath)
         if extension is not None:
@@ -231,9 +229,7 @@ class ContentManager(metaclass=SingletonMeta):
 
     def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None, *, silent=False):
 
-        print(filepath, additional_dir, extension)
-
-        new_filepath = Path(filepath.as_posix())
+        new_filepath = Path(filepath.as_posix().replace('\\', '/').replace('//', '/'))
         if additional_dir:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
