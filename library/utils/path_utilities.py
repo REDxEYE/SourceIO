@@ -40,7 +40,7 @@ def backwalk_file_resolver(current_path, file_to_find):
     for _ in range(len(current_path.parts) - 1):
         second_part = file_to_find
         for _ in range(len(file_to_find.parts)):
-            new_path = current_path / second_part
+            new_path = corrected_path(current_path / second_part)
             if new_path.exists():
                 return new_path
 
