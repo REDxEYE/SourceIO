@@ -3,6 +3,7 @@ from typing import List, Union
 
 from ...utils.gameinfo_parser import GameInfoParser
 from .content_provider_base import ContentProviderBase
+from ...utils.path_utilities import corrected_path
 
 
 class GameinfoContentProvider(ContentProviderBase):
@@ -70,7 +71,7 @@ class GameinfoContentProvider(ContentProviderBase):
 
     def find_path(self, filepath: Union[str, Path]):
         filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
-        new_filepath = self.modname_dir / filepath.as_posix()
+        new_filepath = corrected_path(self.modname_dir / filepath.as_posix())
         if new_filepath.exists():
             return new_filepath
         else:

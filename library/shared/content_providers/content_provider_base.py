@@ -3,6 +3,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Union, Dict, Type
 
+from SourceIO.library.utils.path_utilities import corrected_path
+
 
 class ContentProviderBase:
     __cache = deque([], maxlen=16)
@@ -56,7 +58,7 @@ class ContentProviderBase:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
             new_filepath = new_filepath.with_suffix(extension)
-        new_filepath = self.root / new_filepath
+        new_filepath = corrected_path(self.root / new_filepath)
         if new_filepath.exists():
             return new_filepath.open('rb')
         else:
@@ -71,7 +73,7 @@ class ContentProviderBase:
             new_filepath = Path(additional_dir, new_filepath)
         if extension:
             new_filepath = new_filepath.with_suffix(extension)
-        new_filepath = self.root / new_filepath
+        new_filepath = corrected_path(self.root / new_filepath)
         if new_filepath.exists():
             return new_filepath
         else:

@@ -3,6 +3,7 @@ from typing import List, Union
 
 from ...utils.kv_parser import ValveKeyValueParser
 from .content_provider_base import ContentProviderBase
+from ...utils.path_utilities import corrected_path
 
 
 class Gameinfo2ContentProvider(ContentProviderBase):
@@ -85,7 +86,7 @@ class Gameinfo2ContentProvider(ContentProviderBase):
 
     def find_file(self, filepath: Union[str, Path]):
         filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
-        new_filepath = self.modname_dir / filepath
+        new_filepath = corrected_path(self.modname_dir / filepath)
         if new_filepath.exists():
             return new_filepath.open('rb')
         else:
