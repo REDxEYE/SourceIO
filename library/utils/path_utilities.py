@@ -83,9 +83,8 @@ def corrected_path(path: Path):
                 break
     for file_name in new_path.iterdir():
         if file_name.is_file() and file_name.name.lower() == fname.lower():
-            new_path = file_name
-            break
-    return new_path
+            return file_name
+
 
 def resolve_root_directory_from_file(path):
     if type(path) is not Path:
