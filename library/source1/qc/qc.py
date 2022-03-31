@@ -126,7 +126,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
         buffer.write('\n')
 
     def write_used_materials():
-        buffer.write('//USED MATERISLS:\n')
+        buffer.write('//USED MATERIALS:\n')
         for texture in mdl.materials:
             buffer.write('\t//{}\n'.format(texture.name))
         buffer.write('\n')
