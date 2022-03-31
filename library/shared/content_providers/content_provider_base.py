@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Union, Dict, Type
 
-from SourceIO.library.utils.path_utilities import corrected_path
+from ...utils.path_utilities import corrected_path
 
 
 class ContentProviderBase:
