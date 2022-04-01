@@ -18,17 +18,23 @@ def pop_path_front(path: Path):
 
 
 def find_vtx(mdl_path: Path):
-    possible_vtx_vertsion = [70, 80, 11, 90, 12]
-    for vtx_version in possible_vtx_vertsion[::-1]:
-        path = corrected_path(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
+    possible_vtx_version = [70, 80, 11, None, 90, 12]
+    for vtx_version in possible_vtx_version[::-1]:
+        if vtx_version is None:
+            path = corrected_path(mdl_path.with_suffix(f'.vtx'))
+        else:
+            path = corrected_path(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
         if path is not None and path.exists():
             return path
 
 
 def find_vtx_cm(mdl_path: Path, content_manager):
-    possible_vtx_vertsion = [70, 80, 11, 12, 90]
-    for vtx_version in possible_vtx_vertsion[::-1]:
-        path = content_manager.find_file(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
+    possible_vtx_version = [70, 80, 11, None, 12, 90]
+    for vtx_version in possible_vtx_version[::-1]:
+        if vtx_version is None:
+            path = content_manager.find_file(mdl_path.with_suffix(f'.vtx'))
+        else:
+            path = content_manager.find_file(mdl_path.with_suffix(f'.dx{vtx_version}.vtx'))
         if path:
             return path
 

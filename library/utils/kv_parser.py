@@ -167,7 +167,7 @@ class ValveKeyValueLexer:
         return (symbol.isprintable() or symbol in '\t') and symbol not in '$%{}[]"\'\n\r'
 
     def _is_valid_quoted_symbol(self, symbol):
-        return self._is_valid_symbol(symbol) or symbol in '$%.,\\/<>=![]{}?'
+        return self._is_valid_symbol(symbol) or symbol in '$%.,\\/<>=![]{}?\x1b'
 
     def _is_escaped_symbol(self):
         return self.next_symbol in '\'"\\'
@@ -262,7 +262,8 @@ class ValveKeyValueLexer:
 
 
 class ValveKeyValueParser:
-    def __init__(self, path: Union[Path, str] = None, buffer_and_name: Tuple[str, str] = None, self_recover=False):
+    def __init__(self, path: Union[Path, str] = None, buffer_and_name: Tuple[str, str] = None, self_recover=False,
+                 array_of_blocks=False):
         if path is not None:
             self._path = Path(path)
             with self._path.open() as f:
@@ -273,11 +274,14 @@ class ValveKeyValueParser:
         self._tokens = self._lexer.lex()
         self._last_peek = None
         self._self_recover = self_recover
+        self._array_of_blocks = array_of_blocks
 
         self._tree = []
 
     @property
     def tree(self):
+        if self._array_of_blocks:
+            return [_KVDataProxy(s) for s in self._tree]
         return _KVDataProxy(self._tree)
 
     def peek(self):
@@ -342,6 +346,10 @@ class ValveKeyValueParser:
                     else:
                         node_stack[-1].append((key.lower(), value[1]))
                     self.expect(VKVToken.NEWLINE)
+            elif self._array_of_blocks and self.match(VKVToken.LBRACE, True):
+                new_tree_node = []
+                node_stack[-1].append(new_tree_node)
+                node_stack.append(new_tree_node)
             elif self.match(VKVToken.RBRACE, True):
                 node_stack.pop(-1)
             elif self.match(VKVToken.EOF):
