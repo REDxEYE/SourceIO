@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from .. import Lump, lump_tag
+from ....utils.kv_parser import ValveKeyValueParser
 from ....utils.s1_keyvalues import KVParser
 
 
@@ -11,11 +12,10 @@ class EntityLump(Lump):
         self.entities = []
 
     def parse(self):
-        parser = KVParser('EntityLump', self.reader.read(-1).decode('latin'))
-        entity = parser.parse_value()
-        while entity is not None:
-            self.entities.append(entity)
-            entity = parser.parse_value()
+        parser = ValveKeyValueParser(buffer_and_name=(self.reader.read(-1).strip(b"\x00").decode('latin'), 'EntityLump'), self_recover=True,array_of_blocks=True)
+        parser.parse()
+        for ent in parser.tree:
+            self.entities.append(ent.to_dict())
         return self
 
 
