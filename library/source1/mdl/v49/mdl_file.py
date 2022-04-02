@@ -1,3 +1,4 @@
+from .....logger import SLoggingManager
 from ..v44.mdl_file import MdlV44
 
 from ..structs.header import MdlHeaderV49
@@ -8,7 +9,10 @@ from ..structs.anim_desc import AnimDesc
 from ..structs.sequence import Sequence
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV49
-from ....utils.kv_parser import ValveKeyValueParser
+from ....utils.kv_parser import ValveKeyValueParser, KVParserException
+
+log_manager = SLoggingManager()
+logger = log_manager.get_logger('MDL49')
 
 
 class _AnimBlocks:
@@ -99,10 +103,13 @@ class MdlV49(MdlV44):
         reader.seek(header.key_value_offset)
         self.key_values_raw = reader.read(header.key_value_size).strip(b'\x00').decode('latin1')
         if self.key_values_raw:
-            parser = ValveKeyValueParser(buffer_and_name=(self.key_values_raw, 'memory'), self_recover=True)
-            parser.parse()
-            self.key_values = parser.tree
-
+            try:
+                parser = ValveKeyValueParser(buffer_and_name=(self.key_values_raw, 'memory'), self_recover=True,
+                                             array_of_blocks=True)
+                parser.parse()
+                self.key_values = parser.tree[0]
+            except KVParserException as e:
+                logger.exception('Failed to parse key values due to', e)
         try:
             reader.seek(header.local_animation_offset)
             for _ in range(header.local_animation_count):

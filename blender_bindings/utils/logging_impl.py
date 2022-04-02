@@ -112,7 +112,7 @@ class BPYLogger:
         self._filter.function or _get_caller_function()
         self._logger.error(message)
 
-    def exception(self, message):
+    def exception(self, message, exception=None):
         self._add_bpy_file_logger()
         self._filter.function or _get_caller_function()
-        self._logger.exception(message)
+        self._logger.exception(message, exc_info=exception)

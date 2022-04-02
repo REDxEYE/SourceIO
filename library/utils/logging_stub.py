@@ -24,8 +24,7 @@ class BPYLoggingManager(metaclass=SingletonMeta):
 def _get_caller_function():
     import inspect
     previous_frame = inspect.currentframe().f_back.f_back
-    (filename, line_number,
-     function_name, lines, index) = inspect.getframeinfo(previous_frame)
+    (filename, line_number, function_name, lines, index) = inspect.getframeinfo(previous_frame)
     return function_name
 
 
@@ -82,6 +81,6 @@ class BPYLogger:
         self._logger.error(message)
         sys.stdout.flush()
 
-    def exception(self, message):
+    def exception(self, message, exception=None):
         self._filter.function or _get_caller_function()
-        self._logger.exception(message)
+        self._logger.exception(message, exc_info=exception)
