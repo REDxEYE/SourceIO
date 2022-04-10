@@ -310,13 +310,13 @@ class BaseEntityHandler(AbstractEntityHandler):
         else:
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
-        if entity._cone == 0:
-            entity._cone = 1
+        cone = entity_raw.get('_cone', 0) or 1
+        inner_cone = entity_raw.get('_inner_cone', 0) or 1
 
         light.color = color
         light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.spotlight_power_multiplier
-        light.spot_size = 2 * math.radians(entity._cone)
-        light.spot_blend = 1 - (entity._inner_cone / entity._cone)
+        light.spot_size = 2 * math.radians(cone)
+        light.spot_blend = 1 - (inner_cone / cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
                                                      object_data=light)
         self._set_location(obj, entity.origin)
