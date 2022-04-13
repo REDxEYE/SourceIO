@@ -30,16 +30,16 @@ def euler_to_quat(euler):
 
 class SequenceFrame:
     def __init__(self):
-        self.sequence_id = 0.0
+        self.global_frame_id = 0.0
         self.unk = []
-        self.unk_vec = []
+        self.root_motion = []
         self.animation_per_bone_rot = np.array([])
 
     def read(self, reader: ByteIO, bone_count):
-        self.sequence_id = reader.read_float()
+        self.global_frame_id = reader.read_float()
         self.unk = reader.read_fmt('11I')
-        self.unk_vec = reader.read_fmt('3f')
-        self.animation_per_bone_rot = np.frombuffer(reader.read(6 * bone_count), dtype=np.int16).astype(np.float32)
+        self.root_motion = reader.read_fmt('3f')
+        self.animation_per_bone_rot = np.frombuffer(reader.read(6 * bone_count), dtype=np.uint16).astype(np.float32)
         self.animation_per_bone_rot *= 0.0001745329354889691
         self.animation_per_bone_rot = self.animation_per_bone_rot.reshape((-1, 3))
 
