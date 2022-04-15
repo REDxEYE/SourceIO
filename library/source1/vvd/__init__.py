@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from enum import IntEnum
 from typing import List, Dict
 
 import numpy as np
@@ -6,6 +8,30 @@ from .header import Header
 from .fixup import Fixup
 from ...shared.base import Base
 from ...utils.byte_io_mdl import ByteIO
+
+
+@dataclass
+class ExtraData:
+    count: int
+    total_bytes: int
+
+
+class ExtraAttributeTypes(IntEnum):
+    UV_0 = 0
+    UV_1 = 1
+    UV_2 = 2
+    UV_3 = 3
+    UV_4 = 4
+    UV_5 = 5
+    UV_6 = 6
+    UV_7 = 7
+
+
+@dataclass
+class ExtraVertexAttribute:
+    type: ExtraAttributeTypes
+    offset: int
+    item_size: int
 
 
 class Vvd(Base):
@@ -22,23 +48,26 @@ class Vvd(Base):
         assert self.reader.size() > 0, "Empty or missing file"
         self.header = Header()
         self._vertices = np.array([], dtype=self.vertex_t)
-        self.fixups = []  # type:List[Fixup]
-        self.lod_data = {}  # type:Dict[int,np.ndarray]
+        self._tangents = np.array([], dtype=np.float32)
+        self.fixups: List[Fixup] = []
+        self.lod_data: Dict[int, np.ndarray] = {}
+        self.extra_data: Dict[ExtraAttributeTypes, np.ndarray] = {}
 
     def read(self):
-        self.header.read(self.reader)
+        reader = self.reader
+        self.header.read(reader)
 
-        self.reader.seek(self.header.vertex_data_offset)
-        self._vertices = np.frombuffer(self.reader.read(self.vertex_t.itemsize * self.header.lod_vertex_count[0]),
+        reader.seek(self.header.vertex_data_offset)
+        self._vertices = np.frombuffer(reader.read(self.vertex_t.itemsize * self.header.lod_vertex_count[0]),
                                        dtype=self.vertex_t)
 
         for n, count in enumerate(self.header.lod_vertex_count[:self.header.lod_count]):
             self.lod_data[n] = np.zeros((count,), dtype=self.vertex_t)
 
-        self.reader.seek(self.header.fixup_table_offset)
+        reader.seek(self.header.fixup_table_offset)
         for _ in range(self.header.fixup_count):
             fixup = Fixup()
-            fixup.read(self.reader)
+            fixup.read(reader)
             self.fixups.append(fixup)
 
         if self.header.fixup_count:
@@ -58,4 +87,19 @@ class Vvd(Base):
 
         else:
             self.lod_data[0][:] = self._vertices[:]
-        pass
+
+        if self.header.tangent_data_offset > 0:
+            reader.seek(self.header.tangent_data_offset)
+            reader.skip(4 * 4 * self.header.lod_vertex_count[0])
+            # self._tangents = np.frombuffer(self.reader.read(4 * 4 * self.header.lod_vertex_count[0]), dtype=np.float32)
+
+        if reader:
+            extra_data_start = reader.tell()
+            extra_header = ExtraData(*reader.read_fmt('2i'))
+            for buffer_id in range(extra_header.count):
+                extra_attribute = ExtraVertexAttribute(ExtraAttributeTypes(reader.read_uint32()),
+                                                       *reader.read_fmt('2i'))
+                reader.seek(extra_data_start + extra_attribute.offset)
+                self.extra_data[extra_attribute.type] = np.frombuffer(
+                    reader.read(extra_attribute.item_size * self.header.lod_vertex_count[0]), np.float32)
+        assert not self.reader
