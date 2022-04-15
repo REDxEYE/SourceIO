@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def calculate_header_offset(filename: str):
     offset = 0
     for char in filename.lower():

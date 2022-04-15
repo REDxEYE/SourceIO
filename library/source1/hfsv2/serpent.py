@@ -17,7 +17,6 @@ try:
 
     rel_path = Path(__file__).absolute().parent
 
-
     class Serpent(metaclass=SingletonMeta):
         def __init__(self):
             self.serpent_dll = ctypes.cdll.LoadLibrary(str(rel_path / 'Serpent.dll'))
@@ -103,7 +102,6 @@ except:
             sw[14] = get_int_at_big(self.key, 4)
             sw[13] = get_int_at_big(self.key, 8)
             sw[12] = get_int_at_big(self.key, 12)
-            print(self.sw[15], self.sw[14], self.sw[13], self.sw[12])
             sw[11] = ~sw[15]
             sw[10] = ~sw[14]
             sw[9] = ~sw[13]
@@ -194,9 +192,8 @@ def generate_encoding_key(key):
     return key_blob
 
 
-def generate_hashed_key(key: str, hash: bytes):
+def generate_hashed_key(key: str, hash_table: bytes):
     key_blob = np.zeros(KEY_SIZE, np.uint8)
     for i in range(KEY_SIZE):
-        key_blob[i] = ((hash[i % HASH_SIZE] + 2 + i % 5) * ord(key[i % len(key)]) + i)
-
+        key_blob[i] = ((hash_table[i % HASH_SIZE] + 2 + i % 5) * ord(key[i % len(key)]) + i)
     return key_blob
