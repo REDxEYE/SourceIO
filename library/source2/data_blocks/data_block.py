@@ -29,7 +29,7 @@ class DATA(DataBlock):
         reader = self.reader
         if reader.size():
             fourcc = reader.peek(4)
-            if tuple(fourcc) in BinaryKeyValue.KNOWN_SIGNATURES:
+            if fourcc in BinaryKeyValue.KNOWN_SIGNATURES:
                 kv = BinaryKeyValue(self.info_block)
                 kv.read(reader)
                 self.data = kv.kv

@@ -19,7 +19,7 @@ class KVFlag(IntFlag):
     Nothing = 0
     Resource = 1
     DeferredResource = 2
-
+    Unk = 16
 
 class KVType(IntEnum):
     STRING_MULTI = 0  # STRING_MULTI doesn't have an ID
@@ -45,19 +45,15 @@ class KVType(IntEnum):
 
 
 class BinaryKeyValue:
-    KV3_ENCODING_BINARY_BLOCK_COMPRESSED = (
-        0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2)
-    KV3_ENCODING_BINARY_UNCOMPRESSED = (
-        0x00, 0x05, 0x86, 0x1B, 0xD8, 0xF7, 0xC1, 0x40, 0xAD, 0x82, 0x75, 0xA4, 0x82, 0x67, 0xE7, 0x14)
-    KV3_ENCODING_BINARY_BLOCK_LZ4 = (
-        0x8A, 0x34, 0x47, 0x68, 0xA1, 0x63, 0x5C, 0x4F, 0xA1, 0x97, 0x53, 0x80, 0x6F, 0xD9, 0xB1, 0x19)
-    KV3_FORMAT_GENERIC = (
-        0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7)
-    KV3_SIG = (0x56, 0x4B, 0x56, 0x03)
-    VKV3_SIG = (0x01, 0x33, 0x56, 0x4B)
-    VKV3_v2_SIG = (0x02, 0x33, 0x56, 0x4B)
+    KV3_ENCODING_BINARY_BLOCK_COMPRESSED = b"\x46\x1A\x79\x95\xBC\x95\x6C\x4F\xA7\x0B\x05\xBC\xA1\xB7\xDF\xD2"
+    KV3_ENCODING_BINARY_UNCOMPRESSED = b"\x00\x05\x86\x1B\xD8\xF7\xC1\x40\xAD\x82\x75\xA4\x82\x67\xE7\x14"
+    KV3_ENCODING_BINARY_BLOCK_LZ4 = b"\x8A\x34\x47\x68\xA1\x63\x5C\x4F\xA1\x97\x53\x80\x6F\xD9\xB1\x19"
+    KV3_FORMAT_GENERIC = b"\x7C\x16\x12\x74\xE9\x06\x98\x46\xAF\xF2\xE6\x3E\xB5\x90\x37\xE7"
+    VKV3_SIG = b'VKV\x03'
+    KV3_v1_SIG = b'\x013VK'
+    KV3_v2_SIG = b'\x023VK'
 
-    KNOWN_SIGNATURES = [KV3_SIG, VKV3_SIG, VKV3_v2_SIG]
+    KNOWN_SIGNATURES = (VKV3_SIG, KV3_v1_SIG, KV3_v2_SIG)
 
     indent = 0
 
@@ -90,12 +86,12 @@ class BinaryKeyValue:
 
     def read(self, reader: ByteIO):
         fourcc = reader.read(4)
-        assert tuple(fourcc) in self.KNOWN_SIGNATURES, 'Invalid KV Signature'
-        if tuple(fourcc) == self.VKV3_SIG:
+        assert fourcc in self.KNOWN_SIGNATURES, 'Invalid KV Signature'
+        if fourcc == self.KV3_v1_SIG:
             self.read_v1(reader)
-        if tuple(fourcc) == self.VKV3_v2_SIG:
+        if fourcc == self.KV3_v2_SIG:
             self.read_v2(reader)
-        elif tuple(fourcc) == self.KV3_SIG:
+        elif fourcc == self.VKV3_SIG:
             self.read_v3(reader)
 
     def block_decompress(self, reader):
@@ -135,39 +131,9 @@ class BinaryKeyValue:
         self.buffer.write_bytes(data)
         self.buffer.seek(0)
 
-    def read_v3(self, reader):
-        encoding = reader.read(16)
-        assert tuple(encoding) in [
-            self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED,
-            self.KV3_ENCODING_BINARY_BLOCK_LZ4,
-            self.KV3_ENCODING_BINARY_UNCOMPRESSED,
-        ], 'Unrecognized KV3 Encoding'
-
-        fmt = reader.read(16)
-
-        assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
-        if tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
-            self.block_decompress(reader)
-        elif tuple(encoding) == self.KV3_ENCODING_BINARY_BLOCK_LZ4:
-            self.decompress_lz4(reader)
-        elif tuple(encoding) == self.KV3_ENCODING_BINARY_UNCOMPRESSED:
-            self.buffer.write_bytes(reader.read(-1))
-            self.buffer.seek(0)
-        string_count = self.buffer.read_uint32()
-        for _ in range(string_count):
-            self.strings.append(self.buffer.read_ascii_string())
-        self.int_buffer = self.buffer
-        self.double_buffer = self.buffer
-        self.byte_buffer = self.buffer
-        self.parse(self.buffer, self.kv, True)
-        assert len(self.kv) == 1, "Never yet seen that state of vkv3 v1"
-        self.kv = self.kv[0]
-        self.buffer.close()
-        del self.buffer
-
     def read_v1(self, reader: ByteIO):
         fmt = reader.read(16)
-        assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+        assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
         self.bin_blob_count = reader.read_uint32()
@@ -224,7 +190,7 @@ class BinaryKeyValue:
 
     def read_v2(self, reader: ByteIO):
         fmt = reader.read(16)
-        assert tuple(fmt) == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+        assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
         compression_dict_id = reader.read_uint16()
@@ -335,6 +301,36 @@ class BinaryKeyValue:
         self.double_buffer.close()
         del self.double_buffer
 
+    def read_v3(self, reader):
+        encoding = reader.read(16)
+        assert encoding in (
+            self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED,
+            self.KV3_ENCODING_BINARY_BLOCK_LZ4,
+            self.KV3_ENCODING_BINARY_UNCOMPRESSED,
+        ), 'Unrecognized KV3 Encoding'
+
+        fmt = reader.read(16)
+
+        assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+        if encoding == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
+            self.block_decompress(reader)
+        elif encoding == self.KV3_ENCODING_BINARY_BLOCK_LZ4:
+            self.decompress_lz4(reader)
+        elif encoding == self.KV3_ENCODING_BINARY_UNCOMPRESSED:
+            self.buffer.write_bytes(reader.read(-1))
+            self.buffer.seek(0)
+        string_count = self.buffer.read_uint32()
+        for _ in range(string_count):
+            self.strings.append(self.buffer.read_ascii_string())
+        self.int_buffer = self.buffer
+        self.double_buffer = self.buffer
+        self.byte_buffer = self.buffer
+        self.parse(self.buffer, self.kv, True)
+        assert len(self.kv) == 1, "Never yet seen that state of vkv3 v1"
+        self.kv = self.kv[0]
+        self.buffer.close()
+        del self.buffer
+
     def read_type(self, reader: ByteIO):
         if self.types.shape[0] > 0:
             data_type = self.types[self.current_type]
@@ -388,7 +384,6 @@ class BinaryKeyValue:
         elif data_type == KVType.UINT64:
             add(self.double_buffer.read_uint64())
             return
-
         elif data_type == KVType.DOUBLE_ZERO:
             add(0.0)
             return
@@ -408,8 +403,8 @@ class BinaryKeyValue:
             string_id = self.int_buffer.read_int32()
             if string_id == -1:
                 add(None)
-                return
-            add(self.strings[string_id])
+            else:
+                add(self.strings[string_id])
             return
         elif data_type == KVType.ARRAY:
             size = self.int_buffer.read_uint32()

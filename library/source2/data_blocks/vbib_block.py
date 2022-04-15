@@ -2,21 +2,16 @@ from enum import IntEnum
 from typing import List
 import numpy as np
 
-try:
-    from ...utils.pylib import (decode_vertex_buffer as decode_vertex_buffer_,
-                                decode_index_buffer as decode_index_buffer_)
+from ...utils.pylib import (decode_vertex_buffer as decode_vertex_buffer_,
+                            decode_index_buffer as decode_index_buffer_)
 
 
-    def decode_vertex_buffer(data, size, count):
-        return decode_vertex_buffer_(data, len(data), size, count)
+def decode_vertex_buffer(data, size, count):
+    return decode_vertex_buffer_(data, len(data), size, count)
 
 
-    def decode_index_buffer(data, size, count):
-        return decode_index_buffer_(data, len(data), size, count)
-
-except ImportError:
-    print("Failed to import native binary!\nUsing python version")
-    from ..utils.compressed_buffers import decode_vertex_buffer, decode_index_buffer
+def decode_index_buffer(data, size, count):
+    return decode_index_buffer_(data, len(data), size, count)
 
 from ...utils.byte_io_mdl import ByteIO
 

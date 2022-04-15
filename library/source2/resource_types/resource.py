@@ -60,10 +60,6 @@ class ValveCompiledResource:
     def get_data_block(self, *,
                        block_id: Optional[int] = None,
                        block_name: Optional[str] = None) -> Union[OptionalBlock, List[OptionalBlock]]:
-        if block_id is None and block_name is None:
-            raise Exception(f"Empty parameters block_id={block_id} block_name={block_name}")
-        elif block_id is not None and block_name is not None:
-            raise Exception(f"Both parameters filled block_id={block_id} block_name={block_name}")
         if block_id is not None:
             if block_id == -1:
                 return None
@@ -73,7 +69,7 @@ class ValveCompiledResource:
                 block.read()
                 block.parsed = True
             return block
-        if block_name is not None:
+        elif block_name is not None:
             blocks = []
             for block in self.data_blocks:
                 if block is not None:
