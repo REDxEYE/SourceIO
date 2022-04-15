@@ -115,7 +115,8 @@ class BSP:
             self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)
         elif steam_id == SteamAppId.PORTAL:
             self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version != 29:  # Portal 2
+        elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
+              and self.map_file.version != 29):  # Portal 2
             self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
         elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
             self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
@@ -535,5 +536,3 @@ class BSP:
                 mesh_obj = bpy.data.objects.new(f"physics_{sb_id}_{s_id}",
                                                 bpy.data.meshes.new(f"physics_{sb_id}_{s_id}_MESH"))
                 mesh_data = mesh_obj.data
-
-
