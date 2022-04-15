@@ -215,7 +215,7 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
                 frame = euler_to_quat(frame)
                 if bone.parent == -1:
                     rx, ry, rz = frame_info.root_motion
-                    root_motion = rx, ry, rz
+                    root_motion = Vector([rx, ry, rz]) * scale
                     for i in range(3):
                         pos_curves[i].keyframe_points.add(1)
                         pos_curves[i].keyframe_points[-1].co = (n, root_motion[i])

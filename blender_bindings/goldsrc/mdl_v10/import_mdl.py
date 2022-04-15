@@ -72,7 +72,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
 
     model_name = Path(mdl.header.name).stem + '_MODEL'
     master_collection = get_new_unique_collection(model_name, parent_collection)
-
+    model_container.collection = master_collection
     armature, bone_transforms = create_armature(mdl, master_collection, scale)
     model_container.armature = armature
 
@@ -101,7 +101,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
                 model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                 model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
-            if body_part_model.vertex_count==0:
+            if body_part_model.vertex_count == 0:
                 continue
 
             mdl_body_part_collection.objects.link(model_object)
