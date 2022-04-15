@@ -12,7 +12,8 @@ class EntityLump(Lump):
         self.entities = []
 
     def parse(self):
-        parser = ValveKeyValueParser(buffer_and_name=(self.reader.read(-1).strip(b"\x00").decode('latin'), 'EntityLump'), self_recover=True,array_of_blocks=True)
+        buffer = self.reader.read(-1).strip(b"\x00").decode('latin')
+        parser = ValveKeyValueParser(buffer_and_name=(buffer, 'EntityLump'), self_recover=True, array_of_blocks=True)
         parser.parse()
         for ent in parser.tree:
             self.entities.append(ent.to_dict())

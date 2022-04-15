@@ -281,24 +281,46 @@ class ShaderBase:
         nodes_iterate(self.bpy_material.node_tree)
         self.bpy_material.node_tree.nodes.update()
 
-    def handle_transform(self, transform: Tuple, socket: bpy.types.NodeSocket, loc=None, *, UV=None):
+    def handle_transform(self, transform: Tuple, socket: bpy.types.NodeSocket, loc=None, *, uv_node=None,
+                         uv_layer_name=None):
         sys.stdout.write(repr(transform))
         if loc is None:
             loc = socket.node.location
-        if UV is not None:
-            uv = UV
-            uv.location = [-300 + loc[0], uv.location[1]]
+        if uv_node is not None:
+            uv_node = uv_node
+            uv_node.location = [-300 + loc[0], uv_node.location[1]]
             if self.uv_map is not None:
                 self.uv_map.location = [-500 + loc[0], self.uv_map.location[1]]
         else:
-            uv = self.create_node("ShaderNodeUVMap")
-            uv.location = [-300 + loc[0], -20 + loc[1]]
+            uv_node = self.create_node("ShaderNodeUVMap")
+            uv_node.location = [-300 + loc[0], -20 + loc[1]]
+        if uv_layer_name is not None:
+            uv_node.uv_map = uv_layer_name
         mapping = self.create_node("ShaderNodeMapping")
         mapping.location = [-150 + loc[0], -20 + loc[1]]
-        self.connect_nodes(uv.outputs[0], mapping.inputs[0])
+        self.connect_nodes(uv_node.outputs[0], mapping.inputs[0])
         mapping.inputs[1].default_value = transform['translate']
         mapping.inputs[2].default_value = transform['rotate']
         mapping.inputs[3].default_value = transform['scale']
         # nodegroup.inputs[4].default_value = transform['center']
         self.connect_nodes(mapping.outputs[0], socket)
-        return mapping, uv
+        return mapping, uv_node
+
+    def add_uv_mapping(self, scale: Tuple[float, float, float], loc=None, uv_layer_name=None):
+        if loc is None:
+            loc = [0, 0]
+        uv_node = self.add_uv_node([-300 + loc[0], -20 + loc[1]], uv_layer_name)
+        mapping = self.create_node("ShaderNodeMapping")
+        mapping.location = [-150 + loc[0], -20 + loc[1]]
+        self.connect_nodes(uv_node.outputs[0], mapping.inputs[0])
+        mapping.inputs[3].default_value = scale
+        return mapping
+
+    def add_uv_node(self, loc=None, uv_layer_name=None):
+        if loc is None:
+            loc = [0, 0]
+        uv_node = self.create_node("ShaderNodeUVMap")
+        uv_node.location = [-300 + loc[0], -20 + loc[1]]
+        if uv_layer_name is not None:
+            uv_node.uv_map = uv_layer_name
+        return uv_node

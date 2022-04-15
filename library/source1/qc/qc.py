@@ -9,20 +9,7 @@ from ..mdl.structs.header import StudioHDRFlags
 from ..mdl.structs.bodygroup import BodyPartV49
 from pathlib import Path
 
-
-def vector_i_transform(input: List, matrix: List):
-    temp = np.zeros(3)
-    output = np.zeros(3)
-
-    temp[0] = input[0] - matrix[3][0]
-    temp[1] = input[1] - matrix[3][1]
-    temp[2] = input[2] - matrix[3][2]
-
-    output[0] = temp[0] * matrix[0][0] + temp[1] * matrix[0][1] + temp[2] * matrix[0][2]
-    output[1] = temp[0] * matrix[1][0] + temp[1] * matrix[1][1] + temp[2] * matrix[1][2]
-    output[2] = temp[0] * matrix[2][0] + temp[1] * matrix[2][1] + temp[2] * matrix[2][2]
-
-    return output
+from ...utils.math_utilities import vector_transform
 
 
 def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
@@ -53,7 +40,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
 
                     bone = mdl.bones[eyeball.bone_index]
                     buffer.write(f" \"{bone.name}\"")
-                    pos = vector_i_transform(eyeball.org, bone.pose_to_bone)
+                    pos = vector_transform(eyeball.org, bone.pose_to_bone)
                     buffer.write(f" {pos[0]:.4} {pos[1]:.4} {pos[2]:.4}")
                     buffer.write(f" \"{mdl.materials[eyeball.material_id].name}\"")
 

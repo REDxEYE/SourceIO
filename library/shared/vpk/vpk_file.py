@@ -8,8 +8,10 @@ from ...utils.byte_io_mdl import ByteIO
 from .structs import *
 from ...utils.thirdparty.lzham.lzham import LZHAM
 
+
 class InvalidMagic(Exception):
     pass
+
 
 def open_vpk(filepath: Union[str, Path]):
     from struct import unpack
@@ -141,6 +143,10 @@ class VPKFile:
 
 
 class TitanfallVPKFile(VPKFile):
+
+    def __init__(self, filepath: Union[str, Path]):
+        super().__init__(filepath)
+        self.entries: Dict[str, TitanfallEntry] = {}
 
     def read(self):
         reader = self.reader

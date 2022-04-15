@@ -54,6 +54,7 @@ if is_vtflib_supported():
             logger.error('Caught exception "{}" '.format(ex))
         finally:
             vtf_lib.image_destroy()
+        return None, 0, 0
 else:
     def load_texture(file_object):
         return None
