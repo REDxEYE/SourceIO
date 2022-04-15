@@ -8,11 +8,10 @@ from ..utils.utils import get_or_create_collection
 from ..source1.bsp.import_bsp import BPSPropCache
 from ..source1.mdl.model_loader import import_model_from_files
 from ..source1.mdl.v49.import_mdl import import_materials
-from ..source1.mdl.v49.import_mdl import put_into_collections as s1_put_into_collections
+from ..source1.mdl import put_into_collections as s1_put_into_collections
 from ..source2.vmdl.loader import put_into_collections as s2_put_into_collections, ValveCompiledModelLoader
 
 from ...library.source1.vtf import is_vtflib_supported
-from ...library.source2.resource_types.vmdl.model import ValveCompiledModel
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.utils.path_utilities import find_vtx_cm
 

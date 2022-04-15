@@ -1,29 +1,27 @@
 from .....library.source1.mdl.v52.mdl_file import MdlV52
 from ..v49.import_mdl import *
+from .....library.source1.vvc import Vvc
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def import_model(mdl_file: Union[BinaryIO, Path],
-                 vvd_file: Union[BinaryIO, Path],
-                 vtx_file: Union[BinaryIO, Path],
-                 vvc_file: Optional[Union[BinaryIO, Path]] = None,
+def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV52(mdl_file)
+    mdl = MdlV52(file_list.mdl_file)
     mdl.read()
+    vvd = Vvd(file_list.vvd_file)
+    vvd.read()
+    vtx = Vtx(file_list.vtx_file)
+    vtx.read()
 
     full_material_names = collect_full_material_names(mdl)
 
-    vvd = Vvd(vvd_file)
-    vvd.read()
-    if vvc_file is not None:
-        vvc = Vvc(vvc_file)
+    if file_list.vvc_file is not None:
+        vvc = Vvc(file_list.vvc_file)
         vvc.read()
     else:
         vvc = None
-    vtx = Vtx(vtx_file)
-    vtx.read()
 
     container = Source1ModelContainer(mdl, vvd, vtx)
 
@@ -185,31 +183,6 @@ def import_model(mdl_file: Union[BinaryIO, Path],
         container.attachments.extend(attachments)
 
     return container
-
-
-def put_into_collections(model_container: Source1ModelContainer, model_name,
-                         parent_collection=None, bodygroup_grouping=False):
-    static_prop = model_container.armature is None
-    if not static_prop:
-        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
-    else:
-        master_collection = parent_collection or bpy.context.scene.collection
-    for bodygroup_name, meshes in model_container.bodygroups.items():
-        if bodygroup_grouping:
-            body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
-        else:
-            body_part_collection = master_collection
-
-        for mesh in meshes:
-            body_part_collection.objects.link(mesh)
-    if model_container.armature:
-        master_collection.objects.link(model_container.armature)
-
-    if model_container.attachments:
-        attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
-        for attachment in model_container.attachments:
-            attachments_collection.objects.link(attachment)
-    return master_collection
 
 
 def create_flex_drivers(obj, mdl: MdlV49):

@@ -4,16 +4,14 @@ from typing import BinaryIO, Iterable, Sized, Union, Optional
 
 import bpy
 
-from bpy.props import FloatProperty
-
 import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
+from .. import FileImport
 from .....logger import SLoggingManager
 from .....library.shared.content_providers.content_manager import ContentManager
 
 from .....library.source1.vvd import Vvd
-from .....library.source1.vvc import Vvc
 
 from .....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
 from .....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
@@ -125,24 +123,16 @@ def create_armature(mdl: MdlV49, scale=1.0):
     return armature_obj
 
 
-def import_model(mdl_file: Union[BinaryIO, Path],
-                 vvd_file: Union[BinaryIO, Path],
-                 vtx_file: Union[BinaryIO, Path],
-                 vvc_file: Optional[Union[BinaryIO, Path]] = None,
+def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV49(mdl_file)
+    mdl = MdlV49(file_list.mdl_file)
     mdl.read()
 
     full_material_names = collect_full_material_names(mdl)
 
-    vvd = Vvd(vvd_file)
+    vvd = Vvd(file_list.vvd_file)
     vvd.read()
-    if vvc_file is not None:
-        vvc = Vvc(vvc_file)
-        vvc.read()
-    else:
-        vvc = None
-    vtx = Vtx(vtx_file)
+    vtx = Vtx(file_list.vtx_file)
     vtx.read()
 
     container = Source1ModelContainer(mdl, vvd, vtx)
@@ -167,11 +157,11 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                 continue
             mesh_name = f'{body_part.name}_{model.name}'
             used_copy = False
-            if re_use_meshes and static_prop:
+            if re_use_meshes:  # and static_prop:
                 mesh_obj_original = bpy.data.objects.get(mesh_name, None)
                 mesh_data_original = bpy.data.meshes.get(f'{mdl.header.name}_{mesh_name}_MESH', False)
                 if mesh_obj_original and mesh_data_original:
-                    mesh_data = mesh_data_original.copy()
+                    mesh_data = mesh_data_original  # .copy()
                     mesh_obj = mesh_obj_original.copy()
                     mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
                     mesh_obj['active_skin'] = mesh_obj_original['active_skin']
@@ -229,25 +219,22 @@ def import_model(mdl_file: Union[BinaryIO, Path],
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
 
-            uv_data = mesh_data.uv_layers.new()
-
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
             mesh_data.loops.foreach_get('vertex_index', vertex_indices)
+
+            uv_data = mesh_data.uv_layers.new()
             uvs = vertices['uv']
             uvs[:, 1] = 1 - uvs[:, 1]
             uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
-            if vvc is not None:
-                model_uvs2 = get_slice(vvc.secondary_uv, model.vertex_offset, model.vertex_count)
-                uvs2 = model_uvs2[vtx_vertices]
-                uv_data = mesh_data.uv_layers.new(name='UV2')
-                uvs2[:, 1] = 1 - uvs2[:, 1]
-                uv_data.data.foreach_set('uv', uvs2[vertex_indices].flatten())
 
-                model_colors = get_slice(vvc.color_data, model.vertex_offset, model.vertex_count)
-                colors = model_colors[vtx_vertices]
-
-                vc = mesh_data.vertex_colors.new()
-                vc.data.foreach_set('color', colors[vertex_indices].flatten())
+            if vvd.extra_data:
+                for extra_type, extra_data in vvd.extra_data.items():
+                    extra_data = extra_data.reshape((-1, 2))
+                    extra_uv = get_slice(extra_data, model.vertex_offset, model.vertex_count)
+                    extra_uv = extra_uv[vtx_vertices]
+                    uv_data = mesh_data.uv_layers.new(name=extra_type.name)
+                    extra_uv[:, 1] = 1 - extra_uv[:, 1]
+                    uv_data.data.foreach_set('uv', extra_uv[vertex_indices].flatten())
 
             if not static_prop:
                 weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
@@ -263,7 +250,11 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                 for mesh in model.meshes:
                     if mesh.flexes:
                         flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
+
                 if flexes:
+                    wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
+                    vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
+                    vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
                     mesh_obj.shape_key_add(name='base')
                 for flex_name, flex_desc in flexes:
                     vertex_animation = vac.vertex_cache[flex_name]
@@ -301,31 +292,6 @@ def import_model(mdl_file: Union[BinaryIO, Path],
         container.attachments.extend(attachments)
 
     return container
-
-
-def put_into_collections(model_container: Source1ModelContainer, model_name,
-                         parent_collection=None, bodygroup_grouping=False):
-    static_prop = model_container.armature is None
-    if not static_prop:
-        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
-    else:
-        master_collection = parent_collection or bpy.context.scene.collection
-    for bodygroup_name, meshes in model_container.bodygroups.items():
-        if bodygroup_grouping:
-            body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
-        else:
-            body_part_collection = master_collection
-
-        for mesh in meshes:
-            body_part_collection.objects.link(mesh)
-    if model_container.armature:
-        master_collection.objects.link(model_container.armature)
-
-    if model_container.attachments:
-        attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
-        for attachment in model_container.attachments:
-            attachments_collection.objects.link(attachment)
-    return master_collection
 
 
 def create_flex_drivers(obj, mdl: MdlV49):
@@ -436,13 +402,11 @@ bpy.app.driver_namespace["rclamped"] = rclamped
             input_name = inp[0]
             if inp[1] in ('fetch1', '2WAY1', '2WAY0', 'NWAY', 'DUE'):
                 if 'left_' in input_name:
-                    input_name = input_name.replace('left_', '')
                     input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name}"].value_left')
+                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name.replace("left_", "")}"].value_left')
                 elif 'right_' in input_name:
-                    input_name = input_name.replace('right_', '')
                     input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name}"].value_right')
+                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name.replace("right_", "")}"].value_right')
                 else:
                     input_definitions.append(
                         f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{inp[0]}"].value')

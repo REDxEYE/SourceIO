@@ -6,7 +6,7 @@ import bpy
 import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
-
+from .. import FileImport
 from .....logger import SLoggingManager
 from .....library.shared.content_providers.content_manager import ContentManager
 
@@ -110,21 +110,13 @@ def create_armature(mdl: MdlV44, scale=1.0):
     return armature_obj
 
 
-def import_model(mdl_file: Union[BinaryIO, Path],
-                 vvd_file: Union[BinaryIO, Path],
-                 vtx_file: Union[BinaryIO, Path],
-                 vvc_file: Optional[Union[BinaryIO, Path]] = None,
-                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV44(mdl_file)
+def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_meshes=False,
+                 unique_material_names=False):
+    mdl = MdlV44(file_list.mdl_file)
     mdl.read()
-    vvd = Vvd(vvd_file)
+    vvd = Vvd(file_list.vvd_file)
     vvd.read()
-    if vvc_file is not None:
-        vvc = Vvc(vvc_file)
-        vvc.read()
-    else:
-        vvc = None
-    vtx = Vtx(vtx_file)
+    vtx = Vtx(file_list.vtx_file)
     vtx.read()
 
     container = Source1ModelContainer(mdl, vvd, vtx)
@@ -217,19 +209,6 @@ def import_model(mdl_file: Union[BinaryIO, Path],
             uvs = vertices['uv']
             uvs[:, 1] = 1 - uvs[:, 1]
             uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
-            if vvc is not None:
-                model_uvs2 = get_slice(vvc.secondary_uv, model.vertex_offset, model.vertex_count)
-                uvs2 = model_uvs2[vtx_vertices]
-                uv_data = mesh_data.uv_layers.new(name='UV2')
-                uvs2[:, 1] = 1 - uvs2[:, 1]
-                uv_data.data.foreach_set('uv', uvs2[vertex_indices].flatten())
-
-                model_colors = get_slice(vvc.color_data, model.vertex_offset, model.vertex_count)
-                colors = model_colors[vtx_vertices]
-
-                vc = mesh_data.vertex_colors.new()
-                vc.data.foreach_set('color', colors[vertex_indices].flatten())
-
             if not static_prop:
                 weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
 
@@ -263,31 +242,6 @@ def import_model(mdl_file: Union[BinaryIO, Path],
         container.attachments.extend(attachments)
 
     return container
-
-
-def put_into_collections(model_container: Source1ModelContainer, model_name,
-                         parent_collection=None, bodygroup_grouping=False):
-    static_prop = model_container.armature is None
-    if not static_prop:
-        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
-    else:
-        master_collection = parent_collection or bpy.context.scene.collection
-    for bodygroup_name, meshes in model_container.bodygroups.items():
-        if bodygroup_grouping:
-            body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
-        else:
-            body_part_collection = master_collection
-
-        for mesh in meshes:
-            body_part_collection.objects.link(mesh)
-    if model_container.armature:
-        master_collection.objects.link(model_container.armature)
-
-    if model_container.attachments:
-        attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
-        for attachment in model_container.attachments:
-            attachments_collection.objects.link(attachment)
-    return master_collection
 
 
 def create_flex_drivers(obj, mdl: MdlV44):

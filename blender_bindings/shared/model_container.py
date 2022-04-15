@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import List, Optional, Dict
 import bpy
 
-from ...library.source1.mdl.v49.mdl_file import MdlV49 as S1Mdl
+from ...library.source1.mdl.v36.mdl_file import MdlV36 as S1Mdl
 from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
 from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
 from ...library.source2.resource_types import ValveCompiledModel
@@ -15,6 +15,7 @@ class ModelContainer:
         self.armature: Optional[bpy.types.Object] = None
         self.objects: List[bpy.types.Object] = []
         self.bodygroups: Dict[str, List[bpy.types.Object]] = defaultdict(list)
+        self.collection = None
 
     def clone(self):
         raise NotImplementedError()
@@ -71,7 +72,7 @@ class Source1ModelContainer(ModelContainer):
         new_container = Source1ModelContainer(self.mdl, self.vvd, self.vtx)
         for body_group_name, objects in self.bodygroups.items():
             for obj in objects:
-                mesh_data = obj.data.copy()
+                mesh_data = obj.data  # .copy()
                 mesh_obj = obj.copy()
 
                 mesh_obj['skin_groups'] = obj['skin_groups']

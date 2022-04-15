@@ -2,10 +2,10 @@ import binascii
 import contextlib
 import io
 import struct
-import typing
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Union, BinaryIO
+from typing import Union, BinaryIO, List
 
 
 class OffsetOutOfBounds(Exception):
@@ -14,6 +14,13 @@ class OffsetOutOfBounds(Exception):
 
 def split(array, n=3):
     return [array[i:i + n] for i in range(0, len(array), n)]
+
+
+@dataclass
+class Region:
+    name: str
+    start: int
+    end: int
 
 
 class ByteIO:
@@ -25,6 +32,7 @@ class ByteIO:
 
     def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
                  open_to_read=True):
+        self.assert_file_exists(path_or_file_or_data)
         if hasattr(path_or_file_or_data, 'mode'):
             file = path_or_file_or_data
             self.file = file
@@ -39,6 +47,36 @@ class ByteIO:
             self.file = path_or_file_or_data.file
         else:
             self.file = BytesIO()
+
+        self.regions: List[Region] = []
+
+        self.used_regions = []
+
+    @staticmethod
+    def assert_file_exists(input_data: Union[str, Path, BinaryIO, bytes, bytearray]):
+        if isinstance(input_data, str):
+            res = Path(input_data).exists()
+        elif isinstance(input_data, Path):
+            res = input_data.exists()
+        elif isinstance(input_data, (bytes, bytearray)):
+            res = bool(input_data)
+        elif isinstance(input_data, ByteIO):
+            res = bool(input_data.file)
+        elif isinstance(input_data, BinaryIO):
+            res = not input_data.closed
+        else:
+            raise Exception(f'Unknown input data: {input_data}:{type(input_data)}')
+        assert res, f'Failed to open file: {input_data}'
+
+    @property
+    def sorted_regions(self):
+        return sorted(self.regions, key=lambda region: region.start)
+
+    def begin_region(self, name):
+        self.regions.append(Region(name, self.tell(), -1))
+
+    def end_region(self):
+        self.regions[-1].end = self.tell()
 
     def __del__(self):
         if isinstance(self.file, BytesIO):
@@ -151,6 +189,7 @@ class ByteIO:
     # ------------ READ SECTION ------------ #
 
     def read(self, size=-1) -> bytes:
+        self.used_regions.append((self.tell(), self.tell() + size))
         return self.file.read(size)
 
     def _read(self, t):

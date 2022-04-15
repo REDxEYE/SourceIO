@@ -1,11 +1,12 @@
 import math
 from pathlib import Path
-from typing import BinaryIO, Iterable, Sized, Union
+from typing import Iterable, Sized, Union
 
 import bpy
 import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
+from .. import FileImport
 from .....logger import SLoggingManager
 from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v36.mdl_file import MdlV36
@@ -102,12 +103,11 @@ def create_armature(mdl: MdlV36, scale=1.0):
     return armature_obj
 
 
-def import_model(mdl_file: Union[BinaryIO, Path],
-                 vtx_file: Union[BinaryIO, Path],
+def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV36(mdl_file)
+    mdl = MdlV36(file_list.mdl_file)
     mdl.read()
-    vtx = open_vtx(vtx_file)
+    vtx = open_vtx(file_list.vtx_file)
     vtx.read()
 
     container = Source1ModelContainer(mdl, None, vtx)
@@ -230,31 +230,6 @@ def import_model(mdl_file: Union[BinaryIO, Path],
                 container.attachments.extend(attachments)
 
     return container
-
-
-def put_into_collections(model_container: Source1ModelContainer, model_name,
-                         parent_collection=None, bodygroup_grouping=False):
-    static_prop = model_container.armature is None
-    if not static_prop:
-        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
-    else:
-        master_collection = parent_collection or bpy.context.scene.collection
-    for bodygroup_name, meshes in model_container.bodygroups.items():
-        if bodygroup_grouping:
-            body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
-        else:
-            body_part_collection = master_collection
-
-        for mesh in meshes:
-            body_part_collection.objects.link(mesh)
-    if model_container.armature:
-        master_collection.objects.link(model_container.armature)
-
-    if model_container.attachments:
-        attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
-        for attachment in model_container.attachments:
-            attachments_collection.objects.link(attachment)
-    return master_collection
 
 
 def create_flex_drivers(obj, mdl: MdlV36):

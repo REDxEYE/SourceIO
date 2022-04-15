@@ -6,7 +6,7 @@ import numpy as np
 # According to the Valve documentation,
 # one hammer unit is 1/16 of feet, and one feet is 30.48 cm
 SOURCE1_HAMMER_UNIT_TO_METERS = ((1 / 16) * 30.48) / 100
-# one hammer unit is 1/12 of feet, and one feet is xx.xx cm
+# one hammer unit is 1/12 of feet, and one feet is 30.48 cm
 SOURCE2_HAMMER_UNIT_TO_METERS = ((1 / 12) * 30.48) / 100
 
 EPSILON = 0.000001
@@ -14,6 +14,30 @@ EPSILON = 0.000001
 
 def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
+
+
+def vector_transform(vector: List[float], matrix: List[List[float]]):
+    temp = np.zeros(3)
+    output = np.zeros(3)
+
+    temp[0] = vector[0] - matrix[3][0]
+    temp[1] = vector[1] - matrix[3][1]
+    temp[2] = vector[2] - matrix[3][2]
+
+    output[0] = temp[0] * matrix[0][0] + temp[1] * matrix[0][1] + temp[2] * matrix[0][2]
+    output[1] = temp[0] * matrix[1][0] + temp[1] * matrix[1][1] + temp[2] * matrix[1][2]
+    output[2] = temp[0] * matrix[2][0] + temp[1] * matrix[2][1] + temp[2] * matrix[2][2]
+
+    return output
+
+
+def vector_transform_v(vectors: np.ndarray, matrix: np.ndarray):
+    vectors[:, 0] -= matrix[3][0]
+    vectors[:, 1] -= matrix[3][1]
+    vectors[:, 2] -= matrix[3][2]
+    vectors = matrix[:3] @ vectors.T
+
+    return vectors.T
 
 
 def quaternion_to_euler_angle(w, x, y, z):
