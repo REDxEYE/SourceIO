@@ -1,6 +1,7 @@
 from pathlib import Path
 import bpy
 
+from ..mdl import put_into_collections
 from ....library.source1.dmx.sfm.animation_set import AnimationSet
 from ....library.source1.dmx.sfm.film_clip import FilmClip
 from ....library.source1.dmx.sfm_utils import *
@@ -11,7 +12,7 @@ from ....library.utils.path_utilities import find_vtx_cm
 from ....library.source1.dmx.sfm import open_session
 from ....library.source1.dmx.sfm.camera import Camera
 from ....blender_bindings.source1.bsp.import_bsp import BSP
-from ...source1.mdl.v49.import_mdl import import_model, put_into_collections
+from ...source1.mdl.v49.import_mdl import import_model
 
 
 def _convert_quat(quat):
