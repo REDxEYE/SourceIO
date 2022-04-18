@@ -32,7 +32,8 @@ class ByteIO:
 
     def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
                  open_to_read=True):
-        self.assert_file_exists(path_or_file_or_data)
+        if path_or_file_or_data is not None:
+            self.assert_file_exists(path_or_file_or_data)
         if hasattr(path_or_file_or_data, 'mode'):
             file = path_or_file_or_data
             self.file = file
@@ -62,7 +63,7 @@ class ByteIO:
             res = bool(input_data)
         elif isinstance(input_data, ByteIO):
             res = bool(input_data.file)
-        elif isinstance(input_data, BinaryIO):
+        elif isinstance(input_data, (BinaryIO, io.BufferedReader)):
             res = not input_data.closed
         else:
             raise Exception(f'Unknown input data: {input_data}:{type(input_data)}')
