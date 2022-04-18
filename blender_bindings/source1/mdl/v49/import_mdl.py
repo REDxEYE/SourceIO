@@ -251,11 +251,6 @@ def import_model(file_list: FileImport,
                     if mesh.flexes:
                         flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
-                if flexes:
-                    wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
-                    vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
-                    vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
-                    mesh_obj.shape_key_add(name='base')
                 for flex_name, flex_desc in flexes:
                     vertex_animation = vac.vertex_cache[flex_name]
                     flex_delta = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
