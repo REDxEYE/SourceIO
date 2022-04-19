@@ -1,74 +1,30 @@
 import math
 from pathlib import Path
-from typing import BinaryIO, Iterable, Sized, Union, Optional
+from typing import Union
 
 import bpy
 import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .. import FileImport
+from ..common import get_slice, merge_meshes
 from .....logger import SLoggingManager
 from .....library.shared.content_providers.content_manager import ContentManager
 
 from .....library.source1.vvd import Vvd
-from .....library.source1.vvc import Vvc
-
-from .....library.source1.vtx.v7.vtx import Vtx
-from .....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
-from .....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 
 from .....library.source1.mdl.v44.mdl_file import MdlV44
 from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
-from .....library.source1.mdl.structs.model import ModelV49
 from .....library.source1.mdl.structs.header import StudioHDRFlags
 
 from ....shared.model_container import Source1ModelContainer
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ....utils.utils import get_material, get_new_unique_collection
+from ....utils.utils import get_material
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
-
-
-def merge_strip_groups(vtx_mesh: VtxMesh):
-    indices_accumulator = []
-    vertex_accumulator = []
-    vertex_offset = 0
-    for strip_group in vtx_mesh.strip_groups:
-        indices_accumulator.append(np.add(strip_group.indexes, vertex_offset))
-        vertex_accumulator.append(strip_group.vertexes['original_mesh_vertex_index'].reshape(-1))
-        vertex_offset += sum(strip.vertex_count for strip in strip_group.strips)
-    return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset
-
-
-def merge_meshes(model: ModelV49, vtx_model: VtxModel):
-    vtx_vertices = []
-    acc = 0
-    mat_arrays = []
-    indices_array = []
-    for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
-
-        if not vtx_mesh.strip_groups:
-            continue
-
-        vertex_start = mesh.vertex_index_start
-        indices, vertices, offset = merge_strip_groups(vtx_mesh)
-        indices = np.add(indices, acc)
-        mat_array = np.full(indices.shape[0] // 3, mesh.material_index)
-        mat_arrays.append(mat_array)
-        vtx_vertices.extend(np.add(vertices, vertex_start))
-        indices_array.append(indices)
-        acc += offset
-
-    return vtx_vertices, np.hstack(indices_array), np.hstack(mat_arrays)
-
-
-def get_slice(data: [Iterable, Sized], start, count=None):
-    if count is None:
-        count = len(data) - start
-    return data[start:start + count]
 
 
 def create_armature(mdl: MdlV44, scale=1.0):

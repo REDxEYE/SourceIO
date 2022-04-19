@@ -1,6 +1,7 @@
+import math
+import sys
 import warnings
 from pathlib import Path
-from typing import BinaryIO, Iterable, Sized, Union, Optional
 
 import bpy
 
@@ -8,26 +9,26 @@ import numpy as np
 from mathutils import Vector, Matrix, Euler, Quaternion
 
 from .. import FileImport
+from ..common import get_slice, merge_meshes
+from .....library.utils.byte_io_mdl import ByteIO
 from .....logger import SLoggingManager
 from .....library.shared.content_providers.content_manager import ContentManager
 
 from .....library.source1.vvd import Vvd
 
-from .....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
-from .....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 from .....library.source1.vtx.v7.vtx import Vtx
 
-from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v49.mdl_file import MdlV49
 from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.structs.model import ModelV49
 from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
+from .....library.source1.mdl.v49.flex_expressions import *
 
 from ....shared.model_container import Source1ModelContainer
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ....utils.utils import get_material, get_new_unique_collection
+from ....utils.utils import get_material
 from .....library.utils.math_utilities import euler_to_quat
+from .....library.utils.pylib import source1
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -42,46 +43,6 @@ def collect_full_material_names(mdl: MdlV49):
             if real_material_path is not None:
                 full_mat_names[material] = str(Path(material_path) / material.name)
     return full_mat_names
-
-
-def merge_strip_groups(vtx_mesh: VtxMesh):
-    indices_accumulator = []
-    vertex_accumulator = []
-    vertex_offset = 0
-    for strip_group in vtx_mesh.strip_groups:
-        indices_accumulator.append(np.add(strip_group.indexes, vertex_offset))
-        vertex_accumulator.append(strip_group.vertexes['original_mesh_vertex_index'].reshape(-1))
-        vertex_offset += sum(strip.vertex_count for strip in strip_group.strips)
-    return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset
-
-
-def merge_meshes(model: ModelV49, vtx_model: VtxModel):
-    vtx_vertices = []
-    acc = 0
-    mat_arrays = []
-    indices_array = []
-    # TODO: Merge clamped mesh into most fitting model.
-    for n, (vtx_mesh, mesh) in enumerate(zip(vtx_model.meshes, model.meshes)):
-
-        if not vtx_mesh.strip_groups:
-            continue
-
-        vertex_start = mesh.vertex_index_start
-        indices, vertices, offset = merge_strip_groups(vtx_mesh)
-        indices = np.add(indices, acc)
-        mat_array = np.full(indices.shape[0] // 3, mesh.material_index)
-        mat_arrays.append(mat_array)
-        vtx_vertices.extend(np.add(vertices, vertex_start))
-        indices_array.append(indices)
-        acc += offset
-
-    return vtx_vertices, np.hstack(indices_array), np.hstack(mat_arrays)
-
-
-def get_slice(data: [Iterable, Sized], start, count=None):
-    if count is None:
-        count = len(data) - start
-    return data[start:start + count]
 
 
 def create_armature(mdl: MdlV49, scale=1.0):
@@ -108,7 +69,7 @@ def create_armature(mdl: MdlV49, scale=1.0):
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 
     bpy.ops.object.mode_set(mode='POSE')
-    for se_bone in mdl.bones:
+    for n, se_bone in enumerate(mdl.bones):
         bl_bone = armature_obj.pose.bones.get(se_bone.name[-63:])
         pos = Vector(se_bone.position) * scale
         rot = Euler(se_bone.rotation)
@@ -135,7 +96,7 @@ def import_model(file_list: FileImport,
     vtx = Vtx(file_list.vtx_file)
     vtx.read()
 
-    container = Source1ModelContainer(mdl, vvd, vtx)
+    container = Source1ModelContainer(mdl, vvd, vtx, file_list)
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
@@ -251,6 +212,11 @@ def import_model(file_list: FileImport,
                     if mesh.flexes:
                         flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
+                if flexes:
+                    wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
+                    vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
+                    vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
+                    mesh_obj.shape_key_add(name='base')
                 for flex_name, flex_desc in flexes:
                     vertex_animation = vac.vertex_cache[flex_name]
                     flex_delta = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
@@ -528,24 +494,38 @@ def import_materials(mdl: MdlV49, unique_material_names=False, use_bvlg=False):
             new_material.create_material()
 
 
-def import_animations(mdl: MdlV49, armature, scale):
+def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)
     bpy.context.view_layer.objects.active = armature
     bpy.ops.object.mode_set(mode='POSE')
     if not armature.animation_data:
         armature.animation_data_create()
-    # for var_pos in ['XYZ', 'YXZ', ]:
-    #     for var_rot in ['XYZ', 'XZY', 'YZX', 'ZYX', 'YXZ', 'ZXY', ]:
-    for anim_desc in mdl.anim_descs:
-        anim_name = anim_desc.name
-        action = bpy.data.actions.new(anim_name)
+    mdl_file.seek(0)
+    buffer = mdl_file.read(-1)
+    mdl_resource = source1.MdlResource(data_buffer=buffer)
+    if mdl_resource.animation_count == 0:
+        return
+    ref_animation = mdl_resource.get_animation(0, True)
+    ref_matrices = []
+    for bone_id, bone in enumerate(mdl.bones):
+        pos, rot = ref_animation.get_frame_bone_data(0, bone_id)
+        pos = Vector(pos)
+        rot = Quaternion(rot)
+        ref_matrix = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+        b = armature.data.bones.get(bone.name)
+
+        ref_matrices.append(ref_matrix)
+        # ref_matrices.append(b.matrix_local.inverted() @ ref_matrix )
+    for n in range(0, 1):  # mdl_resource.animation_count):
+        animation = mdl_resource.get_animation(n, n == 0)
+        action = bpy.data.actions.new(animation.name)
         armature.animation_data.action = action
         curve_per_bone = {}
 
         for bone in mdl.bones:
             bone_name = bone.name
-            bl_bone = armature.pose.bones.get(bone.name)
+            bl_bone = armature.pose.bones.get(bone_name)
             bl_bone.rotation_mode = 'QUATERNION'
             bone_string = f'pose.bones["{bone_name}"].'
             group = action.groups.new(name=bone_name)
@@ -553,44 +533,74 @@ def import_animations(mdl: MdlV49, armature, scale):
             rot_curves = []
             for i in range(3):
                 pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                pos_curve.keyframe_points.add(anim_desc.frame_count)
+                pos_curve.keyframe_points.add(animation.frame_count)
                 pos_curves.append(pos_curve)
                 pos_curve.group = group
             for i in range(4):
                 rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                rot_curve.keyframe_points.add(anim_desc.frame_count)
+                rot_curve.keyframe_points.add(animation.frame_count)
                 rot_curves.append(rot_curve)
                 rot_curve.group = group
             curve_per_bone[bone_name] = pos_curves, rot_curves
-        for n, bone in enumerate(mdl.bones):
-            for frame_index in range(anim_desc.frame_count):
-                frame = frame_index
-                section = anim_desc.find_section(frame)
-                if not section:
-                    continue
-
-                frame -= section.first_frame
-                data = section.anim_data
-
-                frame = min(frame, section.frame_count - 1)
-
-                track_id = n
-                if mdl.bone_table_by_name:
-                    track_id = mdl.bone_table_by_name[n]
-
-                if track_id not in data.tracks:
-                    continue
-                track = data.tracks[track_id]
-                pos, rot = track.get_pos_rot(mdl.reader, bone, frame)
-                pos -= bone.position
-                rot = Quaternion(rot).rotation_difference(euler_to_quat(np.asarray(bone.rotation)))
+        for bone_id, bone in enumerate(mdl.bones):
+            for frame_id in range(animation.frame_count):
+                ebone = armature.data.bones.get(bone.name)
+                bl_bone = armature.pose.bones.get(bone.name)
                 pos_curves, rot_curves = curve_per_bone[bone.name]
+                pos, rot = animation.get_frame_bone_data(frame_id, bone_id)
+
+
+                obj = bpy.data.objects.new(f'{animation.name}_{frame_id}_{bone.name}', None)
+                obj.empty_display_type = 'ARROWS'
+                obj.empty_display_size = 3.29
+
+                obj.location = pos
+                obj.rotation_mode = 'QUATERNION'
+                obj.rotation_quaternion = rot
+                bpy.context.scene.collection.objects.link(obj)
+                print(f"Local space Frame: {frame_id:<5} Bone:{bone.name:<25} |  {pos}  {rot}")
+                # x, y, z = pos
+                # pos = -x, -y, z
+                # w, x, y, z = rot
+                # rot = w, -x, -z, -y
+                pos = Vector(pos)
+                rot = Quaternion(rot)
+                mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+                # mat = ebone.matrix_local.inverted() @ mat
+                # mat @= Matrix.Rotation(math.radians(90), 4, 'X')
+                # mat @= Matrix.Rotation(math.radians(90), 4, 'Y')
+
+                # if not bl_bone.parent:
+                # mat = ebone.matrix_local.inverted() @ mat
+                # mat = mat @ Matrix.Rotation(math.radians(90), 4, 'Y')
+                # pass
+                # else:
+                #         mat = ebone.parent.matrix_local.inverted() @ mat
+                #     mat = ebone.matrix_local.inverted() @ mat
+                # if not bl_bone.parent:
+                #     mat @= Matrix.Rotation(math.radians(90), 4, 'X')
+                #     # mat @= Matrix.Rotation(math.radians(180), 4, 'Z')
+                # else:
+                #     mat @= Matrix.Rotation(math.radians(180), 4, 'Z')
+                # bl_bone.matrix = mat
+                # mat = bl_bone.matrix_basis
+                # mat = ref_matrices[bone_id].inverted() @ mat
+
+                # if bl_bone.parent:
+                #     mat = ebone.convert_local_to_pose(mat, ref_matrices[bone_id],
+                #                                       # parent_matrix=bl_bone.parent.matrix,
+                #                                       # parent_matrix_local=ref_matrices[bone.parent_bone_index],
+                #                                       invert=False)
+                # else:
+                #     mat = ebone.convert_local_to_pose(mat, ref_matrices[bone_id], invert=False)
+
+                pos, rot, scl = mat.decompose()
+                print(f"Pose space  Frame: {frame_id:<5} Bone:{bone.name:<25} |  {pos}  {rot}")
                 for i in range(3):
                     pos_curves[i].keyframe_points.add(1)
-                    pos_curves[i].keyframe_points[-1].co = (frame_index, (pos[i]) * scale)
+                    pos_curves[i].keyframe_points[-1].co = (frame_id, (pos[i]) * scale)
 
                 for i in range(4):
                     rot_curves[i].keyframe_points.add(1)
-                    rot_curves[i].keyframe_points[-1].co = (frame_index, (rot[i]))
-
+                    rot_curves[i].keyframe_points[-1].co = (frame_id, (rot[i]))
         bpy.ops.object.mode_set(mode='OBJECT')

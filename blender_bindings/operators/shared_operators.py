@@ -8,11 +8,12 @@ from ..utils.utils import get_or_create_collection
 from ..source1.bsp.import_bsp import BPSPropCache
 from ..source1.mdl.model_loader import import_model_from_files
 from ..source1.mdl.v49.import_mdl import import_materials
-from ..source1.mdl import put_into_collections as s1_put_into_collections
+from ..source1.mdl import put_into_collections as s1_put_into_collections, FileImport
 from ..source2.vmdl.loader import put_into_collections as s2_put_into_collections, ValveCompiledModelLoader
 
 from ...library.source1.vtf import is_vtflib_supported
 from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.utils.byte_io_mdl import ByteIO
 from ...library.utils.path_utilities import find_vtx_cm
 
 
@@ -103,9 +104,10 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                         mld_file = content_manager.find_file(prop_path)
                         vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
                         vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
+                        phy_file = content_manager.find_file(prop_path.with_suffix('.phy'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        model_container = import_model_from_files(prop_path, mld_file, vvd_file, vtx_file, vvc_file,
-                                                                  1.0, False, True,
+                        file_list = FileImport(ByteIO(mld_file), ByteIO(vvd_file), ByteIO(vtx_file), ByteIO(vvc_file) if vvc_file else None, ByteIO(phy_file) if phy_file else None)
+                        model_container = import_model_from_files(prop_path, file_list, 1.0, False, True,
                                                                   unique_material_names=unique_material_names)
                     else:
                         model_container = container.clone()

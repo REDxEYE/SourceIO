@@ -1,6 +1,22 @@
-from .....library.source1.mdl.v52.mdl_file import MdlV52
-from ..v49.import_mdl import *
+from pathlib import Path
+
+import bpy
+import numpy as np
+
+from .. import FileImport
+from ..common import get_slice, merge_meshes
+from ..v49.import_mdl import collect_full_material_names, create_armature, create_attachments, create_flex_drivers
+
+from ....utils.utils import get_material
+from ....shared.model_container import Source1ModelContainer
+
+from .....logger import SLoggingManager
 from .....library.source1.vvc import Vvc
+from .....library.source1.vvd import Vvd
+from .....library.source1.vtx.v7.vtx import Vtx
+from .....library.source1.mdl.v52.mdl_file import MdlV52
+from .....library.source1.mdl.structs.header import StudioHDRFlags
+from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -23,7 +39,7 @@ def import_model(file_list: FileImport,
     else:
         vvc = None
 
-    container = Source1ModelContainer(mdl, vvd, vtx)
+    container = Source1ModelContainer(mdl, vvd, vtx, file_list)
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
@@ -183,310 +199,3 @@ def import_model(file_list: FileImport,
         container.attachments.extend(attachments)
 
     return container
-
-
-def create_flex_drivers(obj, mdl: MdlV49):
-    from ....operators.flex_operators import SourceIO_PG_FlexController
-    if not obj.data.shape_keys:
-        return
-    all_exprs = mdl.rebuild_flex_rules()
-    data = obj.data
-    shape_key_block = data.shape_keys
-
-    def _parse_simple_flex(missing_flex_name: str):
-        flexes = missing_flex_name.split('_')
-        if not all(flex in data.flex_controllers for flex in flexes):
-            return None
-        return Combo([FetchController(flex) for flex in flexes]), [(flex, 'fetch2') for flex in flexes]
-
-    st = '\n    '
-
-    for flex_controller_ui in mdl.flex_ui_controllers:
-        cont: SourceIO_PG_FlexController = data.flex_controllers.add()
-
-        if flex_controller_ui.nway_controller:
-            nway_cont: SourceIO_PG_FlexController = data.flex_controllers.add()
-            nway_cont.stereo = False
-            multi_controller = next(filter(lambda a: a.name == flex_controller_ui.nway_controller, mdl.flex_controllers)
-                                    )
-            nway_cont.name = flex_controller_ui.nway_controller
-            nway_cont.set_from_controller(multi_controller)
-
-        if flex_controller_ui.stereo:
-            left_controller = next(
-                filter(lambda a: a.name == flex_controller_ui.left_controller, mdl.flex_controllers)
-            )
-            right_controller = next(
-                filter(lambda a: a.name == flex_controller_ui.right_controller, mdl.flex_controllers)
-            )
-            cont.stereo = True
-            cont.name = flex_controller_ui.name
-            assert left_controller.max == right_controller.max
-            assert left_controller.min == right_controller.min
-            cont.set_from_controller(left_controller)
-        else:
-            controller = next(filter(lambda a: a.name == flex_controller_ui.controller, mdl.flex_controllers))
-            cont.stereo = False
-            cont.name = flex_controller_ui.name
-            cont.set_from_controller(controller)
-    blender_py_file = """
-import bpy
-
-def rclamped(val, a, b, c, d):
-    if ( a == b ):
-        return d if val >= b else c;
-    return c + (d - c) * min(max((val - a) / (b - a), 0.0), 1.0)
-    
-def clamp(val, a, b):
-    return min(max(val, a), b)
-
-def nway(multi_value, flex_value, x, y, z, w):
-    if multi_value <= x or multi_value >= w:  # outside of boundaries
-        multi_value = 0.0
-    elif multi_value <= y:
-        multi_value = rclamped(multi_value, x, y, 0.0, 1.0)
-    elif multi_value >= z:
-        multi_value = rclamped(multi_value, z, w, 1.0, 0.0)
-    else:
-        multi_value = 1.0
-    return multi_value * flex_value
-
-
-def combo(*values):
-    val = values[0]
-    for v in values[1:]:
-        val*=v
-    return val
-    
-def dom(dm, *values):
-    val = 1
-    for v in values:
-        val *= v
-    return val * (1 - dm)
-
-def lower_eyelid_case(eyes_up_down,close_lid_v,close_lid):
-    if eyes_up_down > 0.0:
-        return (1.0 - eyes_up_down) * (1.0 - close_lid_v) * close_lid
-    else:
-        return  (1.0 - close_lid_v) * close_lid
-
-def upper_eyelid_case(eyes_up_down,close_lid_v,close_lid):
-    if eyes_up_down > 0.0:
-        return (1.0 + eyes_up_down) * close_lid_v * close_lid
-    else:
-        return  close_lid_v * close_lid
-
-
-bpy.app.driver_namespace["combo"] = combo
-bpy.app.driver_namespace["dom"] = dom
-bpy.app.driver_namespace["nway"] = nway
-bpy.app.driver_namespace["rclamped"] = rclamped
-
-    """
-    for flex_name, (expr, inputs) in all_exprs.items():
-        driver_name = f'{flex_name}_driver'.replace(' ', '_')
-        if driver_name in globals():
-            continue
-
-        input_definitions = []
-        for inp in inputs:
-            input_name = inp[0]
-            if inp[1] in ('fetch1', '2WAY1', '2WAY0', 'NWAY', 'DUE'):
-                if 'left_' in input_name:
-                    input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name.replace("left_", "")}"].value_left')
-                elif 'right_' in input_name:
-                    input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name.replace("right_", "")}"].value_right')
-                else:
-                    input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{inp[0]}"].value')
-            elif inp[1] == 'fetch2':
-                input_definitions.append(
-                    f'{inp[0].replace(" ", "_")} = obj_data.shape_keys.key_blocks["{input_name}"].value')
-            else:
-                raise NotImplementedError(f'"{inp[1]}" is not supported')
-        print(f"{flex_name} = {expr}")
-        template_function = f"""
-def {driver_name}(obj_data):
-    {st.join(input_definitions)}
-    return {expr}
-bpy.app.driver_namespace["{driver_name}"] = {driver_name}
-
-"""
-        blender_py_file += template_function
-
-    for shape_key in shape_key_block.key_blocks:
-
-        flex_name = shape_key.name
-
-        if flex_name == 'base':
-            continue
-        if flex_name not in all_exprs:
-            warnings.warn(f'Rule for {flex_name} not found! Generating basic rule.')
-            expr, inputs = _parse_simple_flex(flex_name) or (None, None)
-            if not expr or not inputs:
-                warnings.warn(f'Failed to generate basic rule for {flex_name}!')
-                cont: SourceIO_PG_FlexController = data.flex_controllers.add()
-                cont.name = flex_name
-                cont.mode = 1
-                cont.value_min = 0
-                cont.value_max = 1
-                template_function = f"""
-def {flex_name.replace(' ', '_')}_driver(obj_data):
-    return obj_data.flex_controllers["{flex_name}"].value
-bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.replace(' ', '_')}_driver
-
-                                """
-                blender_py_file += template_function
-            else:
-                template_function = f"""
-def {flex_name.replace(' ', '_')}_driver(obj_data):
-    {st.join(inputs)}
-    return {expr}
-bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.replace(' ', '_')}_driver
-
-                """
-                blender_py_file += template_function
-
-        shape_key.driver_remove("value")
-        fcurve = shape_key.driver_add("value")
-        fcurve.modifiers.remove(fcurve.modifiers[0])
-
-        driver = fcurve.driver
-        driver.type = 'SCRIPTED'
-        driver.expression = f"{flex_name.replace(' ', '_')}_driver(obj_data)"
-        var = driver.variables.new()
-        var.name = 'obj_data'
-        var.targets[0].id_type = 'OBJECT'
-        var.targets[0].id = obj
-        var.targets[0].data_path = f"data"
-
-    driver_file = bpy.data.texts.new(f'{mdl.header.name}.py')
-    driver_file.write(blender_py_file)
-    driver_file.use_module = True
-
-
-def create_attachments(mdl: MdlV49, armature: bpy.types.Object, scale):
-    attachments = []
-    for attachment in mdl.attachments:
-        empty = bpy.data.objects.new(attachment.name, None)
-        pos = Vector(attachment.pos) * scale
-        rot = Euler(attachment.rot)
-
-        empty.matrix_basis.identity()
-        empty.scale *= scale
-        empty.location = pos
-        empty.rotation_euler = rot
-
-        if armature.type == 'ARMATURE':
-            modifier = empty.constraints.new(type="CHILD_OF")
-            modifier.target = armature
-            modifier.subtarget = mdl.bones[attachment.parent_bone].name
-            modifier.inverse_matrix.identity()
-
-        attachments.append(empty)
-
-    return attachments
-
-
-def import_materials(mdl: MdlV49, unique_material_names=False, use_bvlg=False):
-    content_manager = ContentManager()
-    for material in mdl.materials:
-
-        if unique_material_names:
-            mat_name = f"{Path(mdl.header.name).stem}_{material.name[-63:]}"[-63:]
-        else:
-            mat_name = material.name[-63:]
-        material_eyeball = None
-        for eyeball in mdl.eyeballs:
-            if eyeball.material.name == material.name:
-                material_eyeball = eyeball
-
-        if bpy.data.materials.get(mat_name, False):
-            if bpy.data.materials[mat_name].get('source1_loaded', False):
-                logger.info(f'Skipping loading of {mat_name} as it already loaded')
-                continue
-        material_path = None
-        for mat_path in mdl.materials_paths:
-            material_path = content_manager.find_material(Path(mat_path) / material.name)
-            if material_path:
-                break
-        if material_path:
-            Source1ShaderBase.use_bvlg(use_bvlg)
-            if material_eyeball is not None:
-                pass
-                # TODO: Syborg64 replace this with actual shader class
-                # new_material = EyeShader(material_path, mat_name, material_eyeball)
-                new_material = Source1MaterialLoader(material_path, mat_name)
-            else:
-                new_material = Source1MaterialLoader(material_path, mat_name)
-            new_material.create_material()
-
-
-def import_animations(mdl: MdlV49, armature, scale):
-    bpy.ops.object.select_all(action="DESELECT")
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = armature
-    bpy.ops.object.mode_set(mode='POSE')
-    if not armature.animation_data:
-        armature.animation_data_create()
-    # for var_pos in ['XYZ', 'YXZ', ]:
-    #     for var_rot in ['XYZ', 'XZY', 'YZX', 'ZYX', 'YXZ', 'ZXY', ]:
-    for anim_desc in mdl.anim_descs:
-        anim_name = anim_desc.name
-        action = bpy.data.actions.new(anim_name)
-        armature.animation_data.action = action
-        curve_per_bone = {}
-
-        for bone in mdl.bones:
-            bone_name = bone.name
-            bl_bone = armature.pose.bones.get(bone.name)
-            bl_bone.rotation_mode = 'QUATERNION'
-            bone_string = f'pose.bones["{bone_name}"].'
-            group = action.groups.new(name=bone_name)
-            pos_curves = []
-            rot_curves = []
-            for i in range(3):
-                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                pos_curve.keyframe_points.add(anim_desc.frame_count)
-                pos_curves.append(pos_curve)
-                pos_curve.group = group
-            for i in range(4):
-                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                rot_curve.keyframe_points.add(anim_desc.frame_count)
-                rot_curves.append(rot_curve)
-                rot_curve.group = group
-            curve_per_bone[bone_name] = pos_curves, rot_curves
-        for n, bone in enumerate(mdl.bones):
-            for frame_index in range(anim_desc.frame_count):
-                frame = frame_index
-                section = anim_desc.find_section(frame)
-                if not section:
-                    continue
-
-                frame -= section.first_frame
-                data = section.anim_data
-
-                frame = min(frame, section.frame_count - 1)
-
-                track_id = n
-                if mdl.bone_table_by_name:
-                    track_id = mdl.bone_table_by_name[n]
-
-                if track_id not in data.tracks:
-                    continue
-                track = data.tracks[track_id]
-                pos, rot = track.get_pos_rot(mdl.reader, bone, frame)
-                pos -= bone.position
-                rot = Quaternion(rot).rotation_difference(euler_to_quat(np.asarray(bone.rotation)))
-                pos_curves, rot_curves = curve_per_bone[bone.name]
-                for i in range(3):
-                    pos_curves[i].keyframe_points.add(1)
-                    pos_curves[i].keyframe_points[-1].co = (frame_index, (pos[i]) * scale)
-
-                for i in range(4):
-                    rot_curves[i].keyframe_points.add(1)
-                    rot_curves[i].keyframe_points[-1].co = (frame_index, (rot[i]))
-
-        bpy.ops.object.mode_set(mode='OBJECT')
