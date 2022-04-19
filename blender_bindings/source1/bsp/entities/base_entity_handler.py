@@ -311,7 +311,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             color = [color[0], color[0], color[0]]
             brightness = 200 / 255
         cone = float(entity_raw.get('_cone', 0)) or 60
-        inner_cone = float(entity_raw.get('_inner_cone', 0)) or 1
+        inner_cone = float(entity_raw.get('_inner_cone', 0)) or 60
 
         light.color = color
         light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.spotlight_power_multiplier
