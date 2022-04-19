@@ -213,41 +213,38 @@ def import_model(file_list: FileImport,
                         flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
                 if flexes:
-                    wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
-                    vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
-                    vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
                     mesh_obj.shape_key_add(name='base')
-                for flex_name, flex_desc in flexes:
-                    vertex_animation = vac.vertex_cache[flex_name]
-                    flex_delta = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
-                    flex_delta = flex_delta[vtx_vertices] * scale
-                    model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
-                    model_vertices = model_vertices[vtx_vertices] * scale
+                    for flex_name, flex_desc in flexes:
+                        vertex_animation = vac.vertex_cache[flex_name]
+                        flex_delta = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                        flex_delta = flex_delta[vtx_vertices] * scale
+                        model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
+                        model_vertices = model_vertices[vtx_vertices] * scale
 
-                    if create_drivers and flex_desc.partner_index:
-                        partner_name = mdl.flex_names[flex_desc.partner_index]
-                        partner_shape_key = (mesh_data.shape_keys.key_blocks.get(partner_name, None) or
-                                             mesh_obj.shape_key_add(name=partner_name))
-                        shape_key = (mesh_data.shape_keys.key_blocks.get(flex_name, None) or
-                                     mesh_obj.shape_key_add(name=flex_name))
+                        if create_drivers and flex_desc.partner_index:
+                            partner_name = mdl.flex_names[flex_desc.partner_index]
+                            partner_shape_key = (mesh_data.shape_keys.key_blocks.get(partner_name, None) or
+                                                 mesh_obj.shape_key_add(name=partner_name))
+                            shape_key = (mesh_data.shape_keys.key_blocks.get(flex_name, None) or
+                                         mesh_obj.shape_key_add(name=flex_name))
 
-                        balance = model_vertices[:, 0]
-                        balance_width = (model_vertices.max() - model_vertices.min()) * (1 - (99.3 / 100))
-                        balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
+                            balance = model_vertices[:, 0]
+                            balance_width = (model_vertices.max() - model_vertices.min()) * (1 - (99.3 / 100))
+                            balance = np.clip((-balance / balance_width / 2) + 0.5, 0, 1)
 
-                        flex_vertices = (flex_delta * balance[:, None]) + model_vertices
-                        shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
+                            flex_vertices = (flex_delta * balance[:, None]) + model_vertices
+                            shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
 
-                        p_balance = 1 - balance
-                        p_flex_vertices = (flex_delta * p_balance[:, None]) + model_vertices
-                        partner_shape_key.data.foreach_set("co", p_flex_vertices.reshape(-1))
-                    else:
-                        shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
-                            name=flex_name)
+                            p_balance = 1 - balance
+                            p_flex_vertices = (flex_delta * p_balance[:, None]) + model_vertices
+                            partner_shape_key.data.foreach_set("co", p_flex_vertices.reshape(-1))
+                        else:
+                            shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
+                                name=flex_name)
 
-                        shape_key.data.foreach_set("co", (flex_delta + model_vertices).reshape(-1))
-                if create_drivers:
-                    create_flex_drivers(mesh_obj, mdl)
+                            shape_key.data.foreach_set("co", (flex_delta + model_vertices).reshape(-1))
+                    if create_drivers:
+                        create_flex_drivers(mesh_obj, mdl)
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else container.objects[0], scale)
         container.attachments.extend(attachments)
