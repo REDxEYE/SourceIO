@@ -7,7 +7,7 @@ from ..data_blocks.compiled_file_header import InfoBlock
 from ...utils.byte_io_mdl import ByteIO
 from ...utils import pylib
 
-lz4_decompress = pylib.lz4_decompress
+lz4_decompress = pylib.lz4.decompress
 LZ4ChainDecoder = pylib.lz4.LZ4ChainDecoder
 
 

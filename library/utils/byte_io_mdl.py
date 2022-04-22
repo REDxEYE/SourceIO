@@ -63,7 +63,7 @@ class ByteIO:
             res = bool(input_data)
         elif isinstance(input_data, ByteIO):
             res = bool(input_data.file)
-        elif isinstance(input_data, (BinaryIO, io.BufferedReader)):
+        elif isinstance(input_data, (BinaryIO, io.BufferedReader, BytesIO)):
             res = not input_data.closed
         else:
             raise Exception(f'Unknown input data: {input_data}:{type(input_data)}')
