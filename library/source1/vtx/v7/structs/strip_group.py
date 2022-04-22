@@ -30,7 +30,7 @@ class StripGroup(Base):
     def __init__(self):
         self.flags = StripGroupFlags(0)
         self.vertexes: np.ndarray = np.array([])
-        self.indexes: np.ndarray = np.array([])
+        self.indices: np.ndarray = np.array([])
         self.strips: List[Strip] = []
         self.topology = []
 
@@ -54,7 +54,7 @@ class StripGroup(Base):
 
         with reader.save_current_pos():
             reader.seek(entry + index_offset)
-            self.indexes = np.frombuffer(reader.read(2 * index_count), dtype=np.uint16)
+            self.indices = np.frombuffer(reader.read(2 * index_count), dtype=np.uint16)
             reader.seek(entry + vertex_offset)
             self.vertexes = np.frombuffer(reader.read(vertex_count * self.vertex_dtype.itemsize), self.vertex_dtype)
             reader.seek(entry + strip_offset)

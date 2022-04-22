@@ -38,3 +38,24 @@ class Quat48(Quat):
         if w_neg:
             w *= -1
         return x, y, z, w
+
+
+class Quat48S(Quat):
+    SCALE48S = 23168.0
+    SHIFT48S = 16384
+
+    @staticmethod
+    def read(reader: ByteIO):
+        data = reader.read_fmt('3H')
+        ia = (data[1] & 1) + (data[0] & 1) * 2
+        ib = (ia + 1) % 4
+        ic = (ia + 2) % 4
+        id = (ia + 3) % 4
+        quat = [0, 0, 0, 0]
+        quat[ia] = ((data[0] >> 1) - Quat48S.SCALE48S) * (1 / Quat48S.SCALE48S)
+        quat[ib] = ((data[1] >> 1) - Quat48S.SCALE48S) * (1 / Quat48S.SCALE48S)
+        quat[ic] = ((data[2] >> 1) - Quat48S.SCALE48S) * (1 / Quat48S.SCALE48S)
+        quat[id] = math.sqrt(1.0 - quat[ia] * quat[ia] - quat[ib] * quat[ib] - quat[ic] * quat[ic])
+        if data[2] & 1:
+            quat[id] = -quat[id]
+        return quat

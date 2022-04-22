@@ -4,16 +4,14 @@ from typing import List, Dict
 
 import numpy as np
 
+from .. import Mdl
 from ....utils.byte_io_mdl import ByteIO
-from ....shared.base import Base
 
 from ..v49.flex_expressions import *
 from ..structs.header import MdlHeaderV44
 from ..structs.bone import BoneV49
 from ..structs.material import MaterialV49
 from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
-from ..structs.anim_desc import AnimDesc
-from ..structs.sequence import Sequence
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV44
 from ....utils.kv_parser import ValveKeyValueParser
@@ -25,7 +23,7 @@ class _AnimBlocks:
         self.blocks = []
 
 
-class MdlV44(Base):
+class MdlV44(Mdl):
 
     def __init__(self, filepath):
         self.store_value("MDL", self)
@@ -44,8 +42,6 @@ class MdlV44(Base):
         self.body_parts = []  # type:List[BodyPartV44]
 
         self.attachments = []  # type:List[AttachmentV49]
-        self.anim_descs = []  # type:List[AnimDesc]
-        self.sequences = []  # type:List[Sequence]
         self.anim_block = _AnimBlocks()
 
         self.bone_table_by_name = []

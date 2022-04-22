@@ -1,3 +1,4 @@
+from ....utils.byte_io_mdl import ByteIO
 from .....logger import SLoggingManager
 from ..v44.mdl_file import MdlV44
 
@@ -5,8 +6,6 @@ from ..structs.header import MdlHeaderV49
 from ..structs.bone import BoneV49
 from ..structs.material import MaterialV49
 from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
-from ..structs.anim_desc import AnimDesc
-from ..structs.sequence import Sequence
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV49
 from ....utils.kv_parser import ValveKeyValueParser, KVParserException
@@ -110,27 +109,3 @@ class MdlV49(MdlV44):
                 self.key_values = parser.tree[0]
             except KVParserException as e:
                 logger.exception('Failed to parse key values due to', e)
-        try:
-            reader.seek(header.local_animation_offset)
-            for _ in range(header.local_animation_count):
-                anim_desc = AnimDesc()
-                anim_desc.read(reader)
-                self.anim_descs.append(anim_desc)
-
-            reader.seek(header.local_sequence_offset)
-            for _ in range(header.local_sequence_count):
-                seq = Sequence()
-                seq.read(reader)
-                self.sequences.append(seq)
-
-            self.anim_block.name = reader.read_from_offset(header.anim_block_name_offset, reader.read_ascii_string)
-            self.reader.seek(self.header.anim_block_offset)
-            for _ in range(self.header.anim_block_count):
-                self.anim_block.blocks.append(self.reader.read_fmt('2i'))
-
-            if self.header.bone_table_by_name_offset and self.bones:
-                self.reader.seek(self.header.bone_table_by_name_offset)
-                self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
-        except:  # I don't wanna deal with animations
-            pass
-        # for anim
