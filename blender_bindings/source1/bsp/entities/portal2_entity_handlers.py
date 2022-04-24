@@ -4,6 +4,7 @@ from mathutils import Euler
 import bpy
 
 from .abstract_entity_handlers import _srgb2lin
+from .base_entity_handler import srgb_to_linear
 from .portal2_entity_classes import *
 from .portal_entity_handlers import PortalEntityHandler
 
@@ -88,19 +89,14 @@ class Portal2EntityHandler(PortalEntityHandler):
         self._put_into_collection('prop_exploding_futbol_spawner', obj, 'props')
 
     def handle_env_projectedtexture(self, entity: env_projectedtexture, entity_raw: dict):
+        color = srgb_to_linear(entity.lightcolor)
+        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
+        color = tuple(map(lambda a: a / brightness, color))
+
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = False
-        color = [_srgb2lin(c / 255) for c in entity.lightcolor]
-        if len(color) == 4:
-            *color, brightness = color
-        elif len(color) == 3:
-            brightness = 200 / 255
-        else:
-            color = [color[0], color[0], color[0]]
-            brightness = 200 / 255
-
         light.color = color
-        light.energy = (brightness * entity.brightnessscale * 10) * self.spotlight_power_multiplier
+        light.energy = brightness * self.spotlight_power_multiplier * self.scale
         light.spot_size = 2 * math.radians(entity.lightfov)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
                                                      object_data=light)

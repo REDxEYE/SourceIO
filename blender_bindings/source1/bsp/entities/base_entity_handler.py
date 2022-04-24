@@ -2,6 +2,7 @@ import math
 import re
 import traceback
 from pathlib import Path
+from typing import List, Tuple
 
 import numpy as np
 
@@ -19,17 +20,31 @@ from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
 from ....utils.utils import get_material
 from .....library.shared.content_providers.content_manager import ContentManager
-from .....library.utils.math_utilities import lerp_vec
+from .....library.utils.math_utilities import lerp_vec, ensure_length
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
+def srgb_to_linear(srgb: Tuple[float]) -> List[float]:
+    final_color = []
+    if len(srgb) == 4:
+        scale = srgb[3] / 255
+    else:
+        scale = 1
+    for component in srgb[:3]:
+        component = ((component / 255) ** 2.2) * scale
+        final_color.append(component)
+    if len(final_color) == 1:
+        return ensure_length(final_color, 3, final_color[0])
+    return final_color
+
+
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
 
-    pointlight_power_multiplier = 1000
-    spotlight_power_multiplier = 1
+    pointlight_power_multiplier = 1000000
+    spotlight_power_multiplier = 1000000
 
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:
@@ -298,48 +313,40 @@ class BaseEntityHandler(AbstractEntityHandler):
     # def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
 
     def handle_light_spot(self, entity: light_spot, entity_raw: dict):
-        light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
-        light.cycles.use_multiple_importance_sampling = False
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
-        color = ([_srgb2lin(c / 255) for c in entity._lightHDR] if use_sdr
-                 else [_srgb2lin(c / 255) for c in entity._light])
-        if len(color) == 4:
-            *color, brightness = color
-        elif len(color) == 3:
-            brightness = 200 / 255
-        else:
-            color = [color[0], color[0], color[0]]
-            brightness = 200 / 255
+        color_value = entity._lightHDR if use_sdr else entity._light
+        color = srgb_to_linear(color_value)
+        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
+        color = tuple(map(lambda a: a / brightness, color))
+        scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
         cone = float(entity_raw.get('_cone', 0)) or 60
         inner_cone = float(entity_raw.get('_inner_cone', 0)) or 60
 
+        light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
+        light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.spotlight_power_multiplier
+        light.energy = brightness * scale * self.spotlight_power_multiplier * self.scale
         light.spot_size = 2 * math.radians(cone)
         light.spot_blend = 1 - (inner_cone / cone)
-        obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
-                                                     object_data=light)
+        obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('light_spot', obj, 'lights')
 
     def handle_light_environment(self, entity: light_environment, entity_raw: dict):
+        use_sdr = entity._lightHDR == [-1, -1, -1, -1]
+        color_value = entity._lightHDR if use_sdr else entity._light
+        color = srgb_to_linear(color_value)
+        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
+        color = tuple(map(lambda a: a / brightness, color))
+        scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
+
         light: bpy.types.SunLight = bpy.data.lights.new(f'{entity.class_name}_{entity.hammer_id}', 'SUN')
         light.cycles.use_multiple_importance_sampling = True
         light.angle = math.radians(entity.SunSpreadAngle)
-        use_sdr = entity._lightHDR == [-1, -1, -1, -1]
-        color = ([_srgb2lin(c / 255) for c in entity._lightHDR] if use_sdr
-                 else [_srgb2lin(c / 255) for c in entity._light])
-        if len(color) == 4:
-            *color, brightness = color
-        elif len(color) == 3:
-            brightness = 200 / 255
-        else:
-            color = [color[0], color[0], color[0]]
-            brightness = 200 / 255
         light.color = color
-        light.energy = brightness * (entity._lightscaleHDR if use_sdr else 1) * 1
+        light.energy = brightness * scale * self.scale
         obj: bpy.types.Object = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', object_data=light)
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
@@ -372,20 +379,17 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('light_environment', obj, 'lights')
 
     def handle_light(self, entity: light, entity_raw: dict):
-        light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
-        light.cycles.use_multiple_importance_sampling = False
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
-        color = ([_srgb2lin(c / 255) for c in entity._lightHDR] if use_sdr
-                 else [_srgb2lin(c / 255) for c in entity._light])
-        if len(color) == 4:
-            *color, brightness = color
-        elif len(color) == 3:
-            brightness = 200 / 255
-        else:
-            color = [color[0], color[0], color[0]]
-            brightness = 200 / 255
+        color_value = entity._lightHDR if use_sdr else entity._light
+        color = srgb_to_linear(color_value)
+        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
+        color = tuple(map(lambda a: a / brightness, color))
+        scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
+
+        light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
+        light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = (brightness * (entity._lightscaleHDR if use_sdr else 1) * 10) * self.pointlight_power_multiplier
+        light.energy = brightness * scale * self.pointlight_power_multiplier * self.scale
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)

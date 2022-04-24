@@ -40,7 +40,7 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
     vertex_accumulator = []
     vertex_offset = 0
     for strip_group in vtx_mesh.strip_groups:
-        indices_accumulator.append(np.add(strip_group.indexes, vertex_offset))
+        indices_accumulator.append(np.add(strip_group.indices, vertex_offset))
         vertex_accumulator.append(strip_group.vertexes['original_mesh_vertex_index'].reshape(-1))
         vertex_offset += sum(strip.vertex_count for strip in strip_group.strips)
     return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset

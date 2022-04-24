@@ -12,6 +12,15 @@ SOURCE2_HAMMER_UNIT_TO_METERS = ((1 / 12) * 30.48) / 100
 EPSILON = 0.000001
 
 
+def ensure_length(array: list, length, filler):
+    if len(array) < length:
+        array.extend([filler] * (length - len(array)))
+        return array
+    elif len(array) > length:
+        return array[:length]
+    return array
+
+
 def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
 
