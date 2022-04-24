@@ -15,6 +15,9 @@ def parse_rad(rad_file):
 def convert_light_value(light_data):
     if len(light_data) == 4:
         r, b, g, radius = light_data
+    elif len(light_data) == 1:
+        r = g = b = light_data
+        radius = 1
     else:
         r, b, g = light_data
         radius = 1
