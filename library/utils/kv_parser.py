@@ -167,7 +167,7 @@ class ValveKeyValueLexer:
         return (symbol.isprintable() or symbol in '\t') and symbol not in '$%{}[]"\'\n\r'
 
     def _is_valid_quoted_symbol(self, symbol):
-        return self._is_valid_symbol(symbol) or symbol in '$%.,\\/<>=![]{}?\x1b'
+        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?\x1b'
 
     def _is_escaped_symbol(self):
         return self.next_symbol in '\'"\\'
