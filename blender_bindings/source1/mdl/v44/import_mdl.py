@@ -13,6 +13,7 @@ from .....library.shared.content_providers.content_manager import ContentManager
 
 from .....library.source1.vvd import Vvd
 
+from .....library.source1.vtx.v7.vtx import Vtx
 from .....library.source1.mdl.v44.mdl_file import MdlV44
 from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
@@ -75,7 +76,7 @@ def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_
     vtx = Vtx(file_list.vtx_file)
     vtx.read()
 
-    container = Source1ModelContainer(mdl, vvd, vtx)
+    container = Source1ModelContainer(mdl, vvd, vtx, file_list)
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
