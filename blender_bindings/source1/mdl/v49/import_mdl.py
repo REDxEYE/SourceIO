@@ -213,6 +213,9 @@ def import_model(file_list: FileImport,
                         flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
                 if flexes:
+                    wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
+                    vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
+                    vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
                     mesh_obj.shape_key_add(name='base')
                     for flex_name, flex_desc in flexes:
                         vertex_animation = vac.vertex_cache[flex_name]
@@ -510,10 +513,8 @@ def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
         pos = Vector(pos)
         rot = Quaternion(rot)
         ref_matrix = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-        b = armature.data.bones.get(bone.name)
 
         ref_matrices.append(ref_matrix)
-        # ref_matrices.append(b.matrix_local.inverted() @ ref_matrix )
     for n in range(0, 1):  # mdl_resource.animation_count):
         animation = mdl_resource.get_animation(n, n == 0)
         action = bpy.data.actions.new(animation.name)
@@ -546,7 +547,6 @@ def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
                 pos_curves, rot_curves = curve_per_bone[bone.name]
                 pos, rot = animation.get_frame_bone_data(frame_id, bone_id)
 
-
                 obj = bpy.data.objects.new(f'{animation.name}_{frame_id}_{bone.name}', None)
                 obj.empty_display_type = 'ARROWS'
                 obj.empty_display_size = 3.29
@@ -556,10 +556,6 @@ def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
                 obj.rotation_quaternion = rot
                 bpy.context.scene.collection.objects.link(obj)
                 print(f"Local space Frame: {frame_id:<5} Bone:{bone.name:<25} |  {pos}  {rot}")
-                # x, y, z = pos
-                # pos = -x, -y, z
-                # w, x, y, z = rot
-                # rot = w, -x, -z, -y
                 pos = Vector(pos)
                 rot = Quaternion(rot)
                 mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()

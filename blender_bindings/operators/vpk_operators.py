@@ -9,6 +9,7 @@ from bpy.props import (StringProperty,
 from typing import Optional
 from pathlib import Path
 
+from .source1_operators import MdlImportProps
 from ...library.utils.singleton import SingletonMeta
 from ...library.shared.vpk.vpk_file import open_vpk, VPKFile
 
@@ -95,8 +96,8 @@ class SourceIO_OP_VPKButtonUp(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Test(bpy.types.PropertyGroup):
-    test_prop: BoolProperty(name='Test')
+class Test(bpy.types.PropertyGroup, MdlImportProps):
+    pass
 
 
 # noinspection PyPep8Naming

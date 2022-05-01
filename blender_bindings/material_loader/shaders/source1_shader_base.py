@@ -1,5 +1,4 @@
 import bpy
-from typing import Dict, Any
 import numpy as np
 
 from ..shader_base import ShaderBase

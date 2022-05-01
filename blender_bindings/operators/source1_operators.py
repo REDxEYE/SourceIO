@@ -78,7 +78,7 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         content_manager.flush_cache()
-        content_manager.clean()
+        # content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -105,6 +105,34 @@ class SOURCEIO_OT_RigImport(bpy.types.Operator):
             raise Exception("Expected file")
         from ..source1.fake_sfm import load_script
         load_script(directory)
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+class SOURCEIO_OT_DMXAnimationImport(bpy.types.Operator):
+    """Import SFM dmx animation"""
+    bl_idname = "sourceio.dmx_animation"
+    bl_label = "Import SFM DMX animation"
+    bl_options = {'UNDO'}
+
+    filepath: StringProperty(subtype="FILE_PATH")
+    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
+    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
+
+    def execute(self, context):
+
+        if Path(self.filepath).is_file():
+            directory = Path(self.filepath).absolute()
+        else:
+            raise Exception("Expected file")
+        from ..source1.dmx.load_sfm_animation import import_dmx_animation
+        import_dmx_animation(directory, self.scale)
 
         return {'FINISHED'}
 
@@ -149,7 +177,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
         if self.import_textures:
             bsp_map.load_materials(self.use_bvlg)
         content_manager.flush_cache()
-        content_manager.clean()
+        # content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -177,7 +205,7 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
             load_session(directory / file.name, 1)
 
         content_manager.flush_cache()
-        content_manager.clean()
+        # content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -290,7 +318,7 @@ if is_vtflib_supported():
                         self.report({'INFO'}, '{} material already exists')
                 mat.create_material()
             content_manager.flush_cache()
-            content_manager.clean()
+            # content_manager.clean()
             return {'FINISHED'}
 
         def invoke(self, context, event):

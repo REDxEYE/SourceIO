@@ -20,7 +20,7 @@ class DetailSupportMixin(Source1ShaderBase):
 
     @property
     def detailfactor(self):
-        return self._vmt.get_float('$detailblendfactor', 1)
+        return self._vmt.get_float('$detailblendfactor', 1.0)
 
     @property
     def detailmode(self):
@@ -70,7 +70,7 @@ class DetailSupportMixin(Source1ShaderBase):
                                                       detailblend.inputs['$detail [texture]'],
                                                       detailblend.inputs.get('$detail alpha [texture alpha]', None),
                                                       name='$detail')
-        if (self.detailmode == 4):
+        if self.detailmode == 4:
             self.connect_nodes(albedo_socket.node.outputs['Alpha'], detailblend.intputs['$basetexture alpha [texture alpha]'])
         detail.location = [-1100, -130]
         scale = self.create_node("ShaderNodeVectorMath")
@@ -79,7 +79,7 @@ class DetailSupportMixin(Source1ShaderBase):
         scale.inputs[1].default_value = self.detailscale
         if self.detailtexturetransform:
             uv = UV
-            self.handle_transform(self.detailtexturetransform, scale.inputs[0], UV=uv)
+            self.handle_transform(self.detailtexturetransform, scale.inputs[0], uv_node=uv)
         else:
             if UV is not None:
                 uv = UV

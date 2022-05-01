@@ -45,11 +45,7 @@ class ValveCompiledTextureLoader(ValveCompiledTexture):
             image.file_format = 'TARGA'
         # image.filepath_raw = f'{name}.tga'
 
-        if pixel_data.shape[0] > 0:
-            if bpy.app.version > (2, 83, 0):
-                image.pixels.foreach_set(pixel_data.tolist())
-            else:
-                image.pixels[:] = pixel_data.tolist()
+        image.pixels.foreach_set(pixel_data.tolist())
         image.pack()
-        del pixel_data
+        # del pixel_data
         return image

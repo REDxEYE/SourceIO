@@ -77,10 +77,10 @@ class Lump:
         reader = self._bsp.reader
         reader.seek(self._lump.offset)
 
-        if not self._lump.compressed:
-            self.reader = ByteIO(reader.read(self._lump.size))
-        else:
+        if self._lump.compressed:
             self.reader = Lump.decompress_lump(reader)
+        else:
+            self.reader = ByteIO(reader.read(self._lump.size))
 
     def parse(self):
         return self

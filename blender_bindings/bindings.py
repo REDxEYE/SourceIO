@@ -18,6 +18,7 @@ from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_MDLImport,
                                           SOURCEIO_OT_DMXImporter,
+                                          SOURCEIO_OT_DMXAnimationImport,
                                           SOURCEIO_OT_RigImport,
                                           )
 from .operators.source2_operators import (SOURCEIO_OT_VMATImport,
@@ -63,6 +64,11 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         vtex_icon = custom_icons["main"]["vtex_icon"]
         vwrld_icon = custom_icons["main"]["vwrld_icon"]
         layout = self.layout
+        layout.operator(SOURCEIO_OT_GMDLImport.bl_idname, text="GoldSrc model (.mdl)",
+                        icon_value=crowbar_icon.icon_id)
+        layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
+                        icon_value=bsp_icon.icon_id)
+        layout.separator()
         layout.operator(SOURCEIO_OT_MDLImport.bl_idname, text="Source model (.mdl)",
                         icon_value=crowbar_icon.icon_id)
         layout.operator(SOURCEIO_OT_BSPImport.bl_idname, text="Source map (.bsp)",
@@ -70,11 +76,12 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         if is_vtflib_supported():
             layout.operator(SOURCEIO_OT_VTFImport.bl_idname, text="Source texture (.vtf)",
                             icon_value=vtf_icon.icon_id)
-            layout.operator(SOURCEIO_OT_SkyboxImport.bl_idname, text="Source Skybox (.vmt)",
-                            icon_value=vtf_icon.icon_id)
             layout.operator(SOURCEIO_OT_VMTImport.bl_idname, text="Source material (.vmt)",
                             icon_value=vmt_icon.icon_id)
-        layout.operator(SOURCEIO_OT_DMXImporter.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
+            layout.operator(SOURCEIO_OT_SkyboxImport.bl_idname, text="Source Skybox (.vmt)",
+                            icon_value=vtf_icon.icon_id)
+        # layout.operator(SOURCEIO_OT_DMXImporter.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
+        # layout.operator(SOURCEIO_OT_DMXAnimationImport.bl_idname, text="SFM animation (.dmx) [WIP]")
         layout.operator(SOURCEIO_OT_RigImport.bl_idname, text="SFM ik-rig script (.py)")
         layout.separator()
         layout.operator(SOURCEIO_OT_VMDLImport.bl_idname, text="Source2 model (.vmdl)",
@@ -88,11 +95,7 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         layout.operator(SOURCEIO_OT_VMATImport.bl_idname, text="Source2 material (.vmat)",
                         icon_value=vmat_icon.icon_id)
         layout.separator()
-        layout.operator(SOURCEIO_OT_GMDLImport.bl_idname, text="GoldSrc model (.mdl)",
-                        icon_value=crowbar_icon.icon_id)
-        layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
-                        icon_value=bsp_icon.icon_id)
-        layout.separator()
+
         layout.operator(SourceIO_OP_VPKBrowserLoader.bl_idname, text="[!!!WIP!!!]Browse new VPK (.vpk)",
                         icon_value=bsp_icon.icon_id)
         layout.operator(SourceIO_OP_VPKBrowser.bl_idname, text="[!!!WIP!!!]Browse already open VPK (.vpk)",
@@ -152,6 +155,7 @@ classes = (
     SOURCEIO_OT_MDLImport,
     SOURCEIO_OT_BSPImport,
     SOURCEIO_OT_DMXImporter,
+    SOURCEIO_OT_DMXAnimationImport,
     SOURCEIO_OT_RigImport,
 
     # Source2 stuff

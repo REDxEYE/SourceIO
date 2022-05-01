@@ -1,3 +1,5 @@
+import json
+
 import bpy
 
 from .detail import DetailSupportMixin
@@ -7,7 +9,6 @@ from ..source1_shader_base import Source1ShaderBase
 
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
-
 
     @property
     def bumpmap(self):
@@ -23,6 +24,13 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def basetexture(self):
         texture_path = self._vmt.get_string('$basetexture', None)
+        if texture_path is not None:
+            return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+        return None
+
+    @property
+    def decaltexture(self):
+        texture_path = self._vmt.get_string('$decaltexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
@@ -120,6 +128,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return self._vmt.get_int('$normalmapalphaenvmapmask', 0) == 1
 
     @property
+    def blendtintbybasealpha(self):
+        return self._vmt.get_int('$blendtintbybasealpha', 0) == 1
+
+    @property
     def envmap(self):
         return self._vmt.get_string('$envmap', None) is not None
 
@@ -135,7 +147,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def envmaptint(self):
-        color_value, value_type = self._vmt.get_vector('$envmaptint', [1, 1, 1])
+        color_value, value_type = self._vmt.get_vector('$envmaptint', [1.0, 1.0, 1.0])
         divider = 255 if value_type is int else 1
         color_value = list(map(lambda a: a / divider, color_value))
         if len(color_value) == 1:
@@ -308,38 +320,61 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['$selfillummask [texture alpha]'])
         else:
-            shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
-            self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
+            f = bpy.data.texts.new(material_name)
+            f.write(json.dumps(self._vmt.data.to_dict(), indent=1))
 
-            basetexture = self.basetexture
-            if basetexture:
+            shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+            shader_output = shader.outputs['BSDF']
+
+            base_texture = self.basetexture
+            if base_texture is not None:
                 basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
-                basetexture_node.image = basetexture
+                basetexture_node.image = base_texture
                 basetexture_node.id_data.nodes.active = basetexture_node
 
-                if self.color or self.color2:
-                    color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
-                    color_mix.blend_type = 'MULTIPLY'
-                    self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
-                    color_mix.inputs['Color2'].default_value = (self.color or self.color2)
-                    color_mix.inputs['Fac'].default_value = 1.0
-                    self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
-                else:
-                    self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
-                if self.translucent or self.alphatest:
-                    self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
+            else:
+                basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
+                basetexture_node.image = self.get_missing_texture(f'missing_$basetexture_{material_name}')
+                basetexture_node.id_data.nodes.active = basetexture_node
 
-                if self.additive:
-                    basetexture_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-                    basetexture_additive_mix_node = self.create_node(Nodes.ShaderNodeMixRGB)
-                    self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
-                                     basetexture_additive_mix_node.outputs['Color'])
-                    basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
+            base_texture_color_output = basetexture_node.outputs['Color']
+            base_texture_alpha_output = basetexture_node.outputs['Alpha']
 
-                    self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
-                    self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
-                    self.connect_nodes(basetexture_invert_node.outputs['Color'],
-                                       basetexture_additive_mix_node.inputs['Fac'])
+            if self.selfillum and not self.selfillummask:
+                math_node = self.create_node(Nodes.ShaderNodeMath)
+                math_node.operation = 'MULTIPLY'
+                self.connect_nodes(base_texture_alpha_output, math_node.inputs[0])
+                math_node.inputs[1].default_value = 5
+                self.connect_nodes(math_node.outputs[0], shader.inputs['Emission Strength'])
+                self.connect_nodes(base_texture_color_output, shader.inputs['Emission'])
+
+            detail = self.detail
+            if detail is not None:
+                detail_node = self.create_node(Nodes.ShaderNodeTexImage, '$detail')
+                detail_node.image = detail
+
+                detail_scale = self.detailscale
+                if detail_scale[0] != 1.0 or detail_scale[1] != 1.0:
+                    mapping_node = self.add_uv_mapping(detail_scale)
+                    self.connect_nodes(mapping_node.outputs[0], detail_node.inputs[0])
+                detail_color_output = detail_node.outputs['Color']
+                detail_alpha_output = detail_node.outputs['Alpha']
+            else:
+                detail_color_output = None
+                detail_alpha_output = None
+
+            decal_texture = self.decaltexture
+            if decal_texture is not None:
+                decal_texture_node = self.create_node(Nodes.ShaderNodeTexImage, '$decaltexture')
+                decal_texture_node.image = decal_texture
+
+                uv_node = self.add_uv_node(uv_layer_name='UV_1')
+                self.connect_nodes(uv_node.outputs[0], decal_texture_node.inputs[0])
+                decal_color_output = decal_texture_node.outputs['Color']
+                decal_alpha_output = decal_texture_node.outputs['Alpha']
+            else:
+                decal_color_output = None
+                decal_alpha_output = None
 
             bumpmap = self.bumpmap
             if bumpmap:
@@ -349,41 +384,196 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
 
                 self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
-                self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
 
-            if self.selfillum and basetexture:
-                basetexture_node = self.get_node('$basetexture')
-                if basetexture_node:
-                    selfillummask = self.selfillummask
-                    if selfillummask is not None:
-                        selfillummask_node = self.create_node(Nodes.ShaderNodeTexImage, '$selfillummask')
-                        selfillummask_node.image = selfillummask
-                        if 'Emission Strength' in shader.inputs:
-                            self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
+                normal_output = normalmap_node.outputs['Normal']
+                normal_alpha_output = bumpmap_node.outputs['Alpha']
+            else:
+                normal_output = None
+                normal_alpha_output = None
 
-                    else:
-                        if 'Emission Strength' in shader.inputs:
-                            self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
-                    self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
+            if (self.color or self.color2) or self.blendtintbybasealpha:
+                color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                color_mix.blend_type = 'MULTIPLY'
+                self.connect_nodes(base_texture_color_output, color_mix.inputs['Color1'])
+                color_mix.inputs['Color2'].default_value = (self.color or self.color2) or (1, 1, 1, 1)
+                if self.blendtintbybasealpha:
+                    self.connect_nodes(base_texture_alpha_output, color_mix.inputs['Fac'])
+                else:
+                    color_mix.inputs['Fac'].default_value = 1.0
+
+                base_texture_color_output = color_mix.outputs['Color']
+
+            if detail_color_output and detail_alpha_output:
+                detail_mode = self.detailmode
+                if detail_mode == 1:
+                    color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                    color_mix.blend_type = 'ADD'
+                    color_mix.inputs['Fac'].default_value = self.detailfactor
+
+                    self.connect_nodes(base_texture_color_output, color_mix.inputs['Color1'])
+                    self.connect_nodes(detail_color_output, color_mix.inputs['Color2'])
+                    base_texture_color_output = color_mix.outputs['Color']
+                elif detail_mode == 2:
+                    color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                    color_mix.blend_type = 'OVERLAY'
+
+                    self.connect_nodes(base_texture_alpha_output, color_mix.inputs['Fac'])
+                    self.connect_nodes(base_texture_color_output, color_mix.inputs['Color1'])
+                    self.connect_nodes(detail_color_output, color_mix.inputs['Color2'])
+                    base_texture_color_output = color_mix.outputs['Color']
+                elif detail_mode == 8 or detail_mode == -1:
+                    color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                    color_mix.blend_type = 'MULTIPLY'
+                    color_mix.inputs['Fac'].default_value = self.detailfactor
+
+                    self.connect_nodes(base_texture_color_output, color_mix.inputs['Color1'])
+                    self.connect_nodes(detail_color_output, color_mix.inputs['Color2'])
+                    base_texture_color_output = color_mix.outputs['Color']
+
+            if decal_color_output and decal_alpha_output:
+                math_node = self.create_node(Nodes.ShaderNodeMath)
+                math_node.operation = 'MULTIPLY'
+                self.connect_nodes(decal_alpha_output, math_node.inputs[0])
+                math_node.inputs[1].default_value = 2.0
+
+                color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                color_mix.blend_type = 'MIX'
+                self.connect_nodes(math_node.outputs[0], color_mix.inputs['Fac'])
+
+                self.connect_nodes(base_texture_color_output, color_mix.inputs['Color1'])
+                self.connect_nodes(decal_color_output, color_mix.inputs['Color2'])
+                base_texture_color_output = color_mix.outputs['Color']
+
+            if self.translucent or self.alphatest:
+                self.connect_nodes(base_texture_alpha_output, shader.inputs['Alpha'])
+
+            self.connect_nodes(shader.inputs['Base Color'], base_texture_color_output)
+
+            if normal_output:
+                self.connect_nodes(normal_output, shader.inputs['Normal'])
+
+            if self.normalmapalphaenvmapmask and normal_alpha_output:
+                self.connect_nodes(shader.inputs['Metallic'], normal_alpha_output)
+            elif self.envmap:
+                shader.inputs['Metallic'].default_value = sum(self.envmaptint[:3]) / 3
+
+            if self.normalmapalphaphongmask and normal_alpha_output:
+
+                if self.phongexponent:
+                    math_node = self.create_node(Nodes.ShaderNodeMath)
+                    math_node.operation = 'MULTIPLY'
+                    self.connect_nodes(normal_alpha_output, math_node.inputs[0])
+                    math_node.inputs[1].default_value = self.clamp_value(self.phongexponent / 256) * 20
+                    roughness_output = math_node.outputs[0]
+                else:
+                    roughness_output = normal_alpha_output
+
+                invert_node = self.create_node(Nodes.ShaderNodeInvert)
+                self.connect_nodes(roughness_output, invert_node.inputs[1])
+                roughness_output = invert_node.outputs[0]
+            elif self.phongexponent is not None and self.phongexponenttexture is None:
+                value_node = self.create_node(Nodes.ShaderNodeValue)
+                value_node.outputs[0].default_value = self.clamp_value(self.phongexponent / 256) * 25
+                roughness_output = value_node.outputs[0]
+            else:
+                value_node = self.create_node(Nodes.ShaderNodeValue)
+                value_node.outputs[0].default_value = 0.75
+                roughness_output = value_node.outputs[0]
+
+            self.connect_nodes(roughness_output, shader.inputs['Roughness'])
 
             if not self.phong:
                 shader.inputs['Specular'].default_value = 0
             elif self.phongboost is not None:
                 shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
-            phongexponenttexture = self.phongexponenttexture
-            if self.phongexponent is not None and phongexponenttexture is None:
-                shader.inputs['Roughness'].default_value = self.clamp_value(self.phongexponent / 256)
-            elif self.phongexponenttexture is not None:
-                phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
-                phongexponenttexture_node.image = phongexponenttexture
-                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
-                self.connect_nodes(phongexponenttexture_node.outputs['Color'],
-                                   phongexponenttexture_split_node.inputs['Image'])
 
-                phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-                self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
-                                   phongexponenttexture_r_invert_node.inputs['Color'])
-                self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
-                                   shader.inputs['Metallic'])
+            if self.phongtint is not None:
+                layer_weight_node = self.create_node(Nodes.ShaderNodeLayerWeight)
+                glossy_node = self.create_node(Nodes.ShaderNodeBsdfGlossy)
+                self.connect_nodes(normal_output, glossy_node.inputs['Normal'])
+                self.connect_nodes(roughness_output, glossy_node.inputs['Roughness'])
+                glossy_node.inputs['Color'].default_value = self.phongtint
+                mix_node = self.create_node(Nodes.ShaderNodeMixShader)
+                self.connect_nodes(layer_weight_node.outputs[0], mix_node.inputs[0])
+                self.connect_nodes(shader_output, mix_node.inputs[1])
+                self.connect_nodes(glossy_node.outputs['BSDF'], mix_node.inputs[2])
+                shader_output = mix_node.outputs[0]
 
-                self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])
+            self.connect_nodes(shader_output, material_output.inputs['Surface'])
+
+            # basetexture = self.basetexture
+            # if basetexture:
+            #     basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
+            #     basetexture_node.image = basetexture
+            #     basetexture_node.id_data.nodes.active = basetexture_node
+            #
+            #     if self.color or self.color2:
+            #         color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+            #         color_mix.blend_type = 'MULTIPLY'
+            #         self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
+            #         color_mix.inputs['Color2'].default_value = (self.color or self.color2)
+            #         color_mix.inputs['Fac'].default_value = 1.0
+            #         self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
+            #     else:
+            #         self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+            #     if self.translucent or self.alphatest:
+            #         self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
+            #
+            #     if self.additive:
+            #         basetexture_invert_node = self.create_node(Nodes.ShaderNodeInvert)
+            #         basetexture_additive_mix_node = self.create_node(Nodes.ShaderNodeMixRGB)
+            #         self.insert_node(basetexture_node.outputs['Color'], basetexture_additive_mix_node.inputs['Color1'],
+            #                          basetexture_additive_mix_node.outputs['Color'])
+            #         basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
+            #
+            #         self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
+            #         self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
+            #         self.connect_nodes(basetexture_invert_node.outputs['Color'],
+            #                            basetexture_additive_mix_node.inputs['Fac'])
+            #
+            # bumpmap = self.bumpmap
+            # if bumpmap:
+            #     bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
+            #     bumpmap_node.image = bumpmap
+            #
+            #     normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+            #
+            #     self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
+            #     self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
+            #
+            # if self.selfillum and basetexture:
+            #     basetexture_node = self.get_node('$basetexture')
+            #     if basetexture_node:
+            #         selfillummask = self.selfillummask
+            #         if selfillummask is not None:
+            #             selfillummask_node = self.create_node(Nodes.ShaderNodeTexImage, '$selfillummask')
+            #             selfillummask_node.image = selfillummask
+            #             if 'Emission Strength' in shader.inputs:
+            #                 self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
+            #
+            #         else:
+            #             if 'Emission Strength' in shader.inputs:
+            #                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
+            #         self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
+            #
+            # if not self.phong:
+            #     shader.inputs['Specular'].default_value = 0
+            # elif self.phongboost is not None:
+            #     shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
+            # phongexponenttexture = self.phongexponenttexture
+            # if self.phongexponent is not None and phongexponenttexture is None:
+            #     shader.inputs['Roughness'].default_value = self.clamp_value(self.phongexponent / 256)
+            # elif self.phongexponenttexture is not None:
+            #     phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
+            #     phongexponenttexture_node.image = phongexponenttexture
+            #     phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
+            #     self.connect_nodes(phongexponenttexture_node.outputs['Color'],
+            #                        phongexponenttexture_split_node.inputs['Image'])
+            #
+            #     phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
+            #     self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
+            #                        phongexponenttexture_r_invert_node.inputs['Color'])
+            #     self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
+            #                        shader.inputs['Metallic'])
+            #
+            #     self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])

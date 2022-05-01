@@ -33,13 +33,21 @@ if is_vtflib_supported():
     def texture_from_data(name, rgba_data, image_width, image_height, update):
         if bpy.data.images.get(name, None) and not update:
             return bpy.data.images.get(name)
-        pixels = np.divide(rgba_data, 255, dtype=np.float32).flatten()
+        if rgba_data.dtype == np.uint8:
+            pixels = np.divide(rgba_data, 255, dtype=np.float32).flatten()
+            hdr = False
+        elif rgba_data.dtype == np.uint16:
+            pixels = np.divide(rgba_data, 65535/2.0, dtype=np.float32).flatten()
+            hdr = True
+        else:
+            raise NotImplementedError(f'Numpy arrays of type {rgba_data.dtype} are not supported')
         image = bpy.data.images.get(name, None) or bpy.data.images.new(
             name,
             width=image_width,
             height=image_height,
             alpha=True,
         )
+        image.use_generated_float = hdr
         image.filepath = name + '.tga'
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
