@@ -57,4 +57,4 @@ if is_vtflib_supported():
         return None, 0, 0
 else:
     def load_texture(file_object):
-        return None
+        return None, 0, 0
