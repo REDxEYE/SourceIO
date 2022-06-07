@@ -358,13 +358,13 @@ class BinaryKeyValue:
         self.read_value(name, reader, data_type, parent, in_array)
 
     def read_value(self, name, reader: ByteIO, data_type: KVType, parent, is_array=False):
-        # def add(v):
-        #     if not is_array:
-        #         parent.update({name: v})
-        #     else:
-        #         parent.append(v)
+        def add(v):
+            if not is_array:
+                parent.update({name: v})
+            else:
+                parent.append(v)
 
-        add = lambda v: parent.append(v) if is_array else lambda v: parent.update({name: v})
+        # add = lambda v: parent.append(v) if is_array else lambda v: parent.update({name: v})
         if data_type == KVType.NULL:
             add(None)
             return
