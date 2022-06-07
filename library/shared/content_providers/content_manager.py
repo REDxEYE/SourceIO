@@ -47,6 +47,7 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.vindictus import VindictusDetector
         from .content_detectors.titanfall1 import TitanfallDetector
         from .content_detectors.goldsrc import GoldSrcDetector
+        from .content_detectors.sourcemod import SourceMod
         from .content_detectors.gmod import GModDetector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
@@ -56,6 +57,7 @@ class ContentManager(metaclass=SingletonMeta):
         self.detector_addons.append(SFMDetector())
         self.detector_addons.append(VindictusDetector())
         self.detector_addons.append(TitanfallDetector())
+        self.detector_addons.append(SourceMod())
         self.detector_addons.append(GModDetector())
 
     def _find_steam_appid(self, path: Path):

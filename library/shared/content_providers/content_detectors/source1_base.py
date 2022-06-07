@@ -41,8 +41,11 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
             elif game.is_absolute() and game.is_dir():
                 content_providers[game.stem] = NonSourceContentProvider(game)
             elif game.name.endswith('.vpk'):
-                game = game.with_name(game.stem + '_dir.vpk')
-                if (game_root / game).exists():
+                if "_dir" not in game.stem:
+                    game = game.with_name(game.stem + '_dir.vpk')
+                if game.is_absolute() and game.exists():
+                    content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
+                elif (game_root / game).exists():
                     content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
             else:
                 cls.recursive_traversal(game_root, game.stem, content_providers)
