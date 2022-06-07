@@ -89,9 +89,7 @@ class Portal2EntityHandler(PortalEntityHandler):
         self._put_into_collection('prop_exploding_futbol_spawner', obj, 'props')
 
     def handle_env_projectedtexture(self, entity: env_projectedtexture, entity_raw: dict):
-        color = srgb_to_linear(entity.lightcolor)
-        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
-        color = tuple(map(lambda a: a / brightness, color))
+        color, brightness = srgb_to_linear(entity.lightcolor)
 
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = False

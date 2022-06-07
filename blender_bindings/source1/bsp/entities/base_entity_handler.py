@@ -26,18 +26,18 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
-def srgb_to_linear(srgb: Tuple[float]) -> List[float]:
+def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
     final_color = []
     if len(srgb) == 4:
         scale = srgb[3] / 255
     else:
         scale = 1
     for component in srgb[:3]:
-        component = ((component / 255) ** 2.2) * scale
+        component = ((component / 255) ** 2.2)
         final_color.append(component)
     if len(final_color) == 1:
-        return ensure_length(final_color, 3, final_color[0])
-    return final_color
+        return ensure_length(final_color, 3, final_color[0]), 1
+    return final_color, scale
 
 
 class BaseEntityHandler(AbstractEntityHandler):
@@ -315,9 +315,7 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_light_spot(self, entity: light_spot, entity_raw: dict):
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
         color_value = entity._lightHDR if use_sdr else entity._light
-        color = srgb_to_linear(color_value)
-        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
-        color = tuple(map(lambda a: a / brightness, color))
+        color, brightness = srgb_to_linear(color_value)
         scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
         cone = float(entity_raw.get('_cone', 0)) or 60
         inner_cone = float(entity_raw.get('_inner_cone', 0)) or 60
@@ -337,9 +335,7 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_light_environment(self, entity: light_environment, entity_raw: dict):
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
         color_value = entity._lightHDR if use_sdr else entity._light
-        color = srgb_to_linear(color_value)
-        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
-        color = tuple(map(lambda a: a / brightness, color))
+        color, brightness = srgb_to_linear(color_value)
         scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
 
         light: bpy.types.SunLight = bpy.data.lights.new(f'{entity.class_name}_{entity.hammer_id}', 'SUN')
@@ -381,9 +377,7 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_light(self, entity: light, entity_raw: dict):
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
         color_value = entity._lightHDR if use_sdr else entity._light
-        color = srgb_to_linear(color_value)
-        brightness = math.sqrt(sum(map(lambda a: a ** 2, color)))
-        color = tuple(map(lambda a: a / brightness, color))
+        color, brightness = srgb_to_linear(color_value)
         scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
 
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
