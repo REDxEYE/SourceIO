@@ -16,7 +16,7 @@ class SourceMod(Source1Common):
         smods_dir = backwalk_file_resolver(path, 'sourcemods')
         mod_root = None
         mod_name = None
-        if smods_dir is not None:
+        if smods_dir is not None and path.is_relative_to(smods_dir):
             mod_name = path.relative_to(smods_dir).parts[0]
             mod_root = smods_dir / mod_name
         if mod_root is None:
