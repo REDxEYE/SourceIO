@@ -161,6 +161,21 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     def phongboost(self):
         value = self._vmt.get_float('$phongboost', 1)
         return value
+        
+    @property
+    def rimlight(self):
+        value = self._vmt.get_int('$rimlight', 1)
+        return value
+    
+    @property
+    def rimlightexponent(self):
+        value = self._vmt.get_int('$rimlightexponent', 1)
+        return value
+        
+    @property
+    def rimlightboost(self):
+        value = self._vmt.get_float('$rimlightboost', 1)
+        return value
 
     @property
     def phongalbedotint(self):
@@ -257,7 +272,14 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 elif self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
-
+            
+            if self.rimlight:
+                    group_node.inputs['$rimlight [bool]'].default_value = self.rimlight
+            if self.rimlightexponent:
+                    group_node.inputs['$rimlightexponent [value]'].default_value = self.rimlightexponent
+            if self.rimlightboost:
+                    group_node.inputs['$rimlightboost [value]'].default_value = self.rimlightboost
+            
             if self.phong:
                 group_node.inputs['$phong [bool]'].default_value = 1
                 if self.phongboost:
