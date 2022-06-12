@@ -164,17 +164,17 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         
     @property
     def rimlight(self):
-        value = self._vmt.get_int('$rimlight', 1)
+        value = self._vmt.get_int('$rimlight', 0)
         return value
     
     @property
     def rimlightexponent(self):
-        value = self._vmt.get_int('$rimlightexponent', 1)
+        value = self._vmt.get_int('$rimlightexponent', 0)
         return value
         
     @property
     def rimlightboost(self):
-        value = self._vmt.get_float('$rimlightboost', 1)
+        value = self._vmt.get_float('$rimlightboost', 0)
         return value
 
     @property
