@@ -8,6 +8,7 @@ from ...utils.kv_parser import ValveKeyValueParser, _KVDataProxy
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::VMT')
 
+values = ".1234567890"
 
 class VMT:
     def __init__(self, buffer: IO, filename: str):
@@ -84,7 +85,7 @@ class VMT:
         raw_value = self.get(name, None)
         if raw_value is None:
             return default
-        return float(raw_value)
+        return float(raw_value.replace("[", "").replace("]", ""))
 
     def get_transform_matrix(self, name, default=None):
         if default is None:
