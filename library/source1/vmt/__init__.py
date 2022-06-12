@@ -8,7 +8,6 @@ from ...utils.kv_parser import ValveKeyValueParser, _KVDataProxy
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::VMT')
 
-values = ".1234567890"
 
 class VMT:
     def __init__(self, buffer: IO, filename: str):
