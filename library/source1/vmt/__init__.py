@@ -84,7 +84,7 @@ class VMT:
         raw_value = self.get(name, None)
         if raw_value is None:
             return default
-        return float(raw_value)
+        return float(raw_value.replace("[", "").replace("]", ""))
 
     def get_transform_matrix(self, name, default=None):
         if default is None:
