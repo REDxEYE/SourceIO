@@ -2,16 +2,16 @@ from enum import IntEnum
 from typing import List
 import numpy as np
 
-from ...utils.pylib import (decode_vertex_buffer as decode_vertex_buffer_,
-                            decode_index_buffer as decode_index_buffer_)
+from ...utils.pylib_loader import pylib
 
 
 def decode_vertex_buffer(data, size, count):
-    return decode_vertex_buffer_(data, len(data), size, count)
+    return pylib.decode_vertex_buffer(data, len(data), size, count)
 
 
 def decode_index_buffer(data, size, count):
-    return decode_index_buffer_(data, len(data), size, count)
+    return pylib.decode_index_buffer(data, len(data), size, count)
+
 
 from ...utils.byte_io_mdl import ByteIO
 

@@ -5,8 +5,7 @@ import numpy as np
 
 from ..data_blocks.compiled_file_header import InfoBlock
 from ...utils.byte_io_mdl import ByteIO
-from ...utils import pylib
-
+from ...utils.pylib_loader import pylib
 lz4_decompress = pylib.lz4.decompress
 LZ4ChainDecoder = pylib.lz4.LZ4ChainDecoder
 
@@ -191,7 +190,7 @@ class BinaryKeyValue:
 
     def read_v2(self, reader: ByteIO):
         fmt = reader.read(16)
-        assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+        # assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
         compression_dict_id = reader.read_uint16()
@@ -312,7 +311,7 @@ class BinaryKeyValue:
 
         fmt = reader.read(16)
 
-        assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
+        # assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
         if encoding == self.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
             self.block_decompress(reader)
         elif encoding == self.KV3_ENCODING_BINARY_BLOCK_LZ4:

@@ -109,7 +109,7 @@ class ByteIO:
     def skip(self, amount):
         self.file.seek(amount, io.SEEK_CUR)
 
-    def seek(self, off, pos=io.SEEK_SET):
+    def seek(self, off, pos: int = io.SEEK_SET):
         self.file.seek(off, pos)
 
     def tell(self):
@@ -378,6 +378,11 @@ class ByteIO:
             obj.read(self, *args, **kwargs)
             object_list.append(obj)
         return object_list
+
+    def align(self, align_to):
+        value = self.tell()
+        padding = (align_to - value % align_to) % align_to
+        self.seek(padding, io.SEEK_CUR)
 
 
 if __name__ == '__main__':

@@ -8,10 +8,10 @@ from ...utils.byte_io_mdl import ByteIO
 from .base_block import DataBlock
 
 try:
-    from ...utils.pylib import lz4
+    from ...utils.pylib_loader import pylib
 
-    lz4_decompress = lz4.decompress
-    from ...utils.pylib import texture as tdc
+    lz4_decompress = pylib.lz4.decompress
+    tdc = pylib.texture
 
     NO_SOURCE_IO_UTILS = False
 except ImportError:

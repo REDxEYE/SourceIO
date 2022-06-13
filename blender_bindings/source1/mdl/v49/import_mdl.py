@@ -28,7 +28,7 @@ from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....utils.utils import get_material
 from .....library.utils.math_utilities import euler_to_quat
-from .....library.utils.pylib import source1
+# from .....library.utils.pylib_loader import source1
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -492,6 +492,7 @@ def import_materials(mdl: MdlV49, unique_material_names=False, use_bvlg=False):
 
 
 def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
+    return
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)
     bpy.context.view_layer.objects.active = armature
