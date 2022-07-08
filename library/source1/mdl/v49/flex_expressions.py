@@ -1,3 +1,6 @@
+import abc
+
+
 class Value:
     def __hash__(self):
         return hash(self.value)
@@ -65,10 +68,9 @@ class Expr:
         self.left = lhs
         self.right = rhs
 
+    @abc.abstractmethod
     def as_simple(self):
-        arg1 = self.left.as_simple()
-        arg2 = self.right.as_simple()
-        return f'({arg1} + {arg2})'
+        pass
 
 
 class Add(Expr):
@@ -77,12 +79,22 @@ class Add(Expr):
         arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
         return f'{arg1} + {arg2}'
 
+    def as_simple(self):
+        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
+        return f'({arg1} + {arg2})'
+
 
 class Sub(Expr):
     def __repr__(self):
         arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
         arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
         return f'{arg2} - {arg1}'
+
+    def as_simple(self):
+        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
+        return f'({arg1} - {arg2})'
 
 
 class Mul(Expr):
@@ -91,12 +103,22 @@ class Mul(Expr):
         arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
         return f'{arg1}*{arg2}'
 
+    def as_simple(self):
+        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
+        return f'({arg1} * {arg2})'
+
 
 class Div(Expr):
     def __repr__(self):
         arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
         arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
         return f'{arg1}/{arg2}'
+
+    def as_simple(self):
+        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
+        return f'({arg1} / {arg2})'
 
 
 class Function:
@@ -128,7 +150,12 @@ class CustomFunction(Function):
 
 class RClamp(Function):
     def as_simple(self):
-        return f'RemapValClamped({self.values[0].as_simple()}, {self.values[1]}, {self.values[2]}, {self.values[3]}, {self.values[4]})'
+        arg0 = self.values[0].as_simple() if isinstance(self.values[0], Value) else f'({self.values[0]})'
+        arg1 = self.values[1].as_simple() if isinstance(self.values[1], Value) else f'({self.values[1]})'
+        arg2 = self.values[2].as_simple() if isinstance(self.values[2], Value) else f'({self.values[2]})'
+        arg3 = self.values[3].as_simple() if isinstance(self.values[3], Value) else f'({self.values[3]})'
+        arg4 = self.values[4].as_simple() if isinstance(self.values[4], Value) else f'({self.values[4]})'
+        return f'RemapValClamped({arg0}, {arg1}, {arg2}, {arg3}, {arg4})'
 
     def __repr__(self) -> str:
         return f'rclamped({self.values[0]}, {self.values[1]}, {self.values[2]}, {self.values[3]}, {self.values[4]})'
@@ -136,7 +163,10 @@ class RClamp(Function):
 
 class Clamp(Function):
     def as_simple(self):
-        return f'min(max({self.values[0].as_simple()}, {self.values[1]}), {self.values[2]})'
+        arg0 = self.values[0].as_simple() if isinstance(self.values[0], Value) else f'({self.values[0]})'
+        arg1 = self.values[1].as_simple() if isinstance(self.values[1], Value) else f'({self.values[1]})'
+        arg2 = self.values[2].as_simple() if isinstance(self.values[2], Value) else f'({self.values[2]})'
+        return f'min(max({arg0}, {arg1}), {arg2})'
 
     def __repr__(self) -> str:
         return f'clamp({self.values[0]},{self.values[1]},{self.values[2]})'
@@ -149,8 +179,12 @@ class NWay(Function):
 
     def as_simple(self):
         multi_cnt, flex_cnt, f_x, f_y, f_z, f_w = self.values
-        multi_cnt = multi_cnt.as_simple()
-        flex_cnt = flex_cnt.as_simple()
+        f_x = f_x.as_simple() if isinstance(f_x, Value) else f'({f_x})'
+        f_y = f_y.as_simple() if isinstance(f_y, Value) else f'({f_y})'
+        f_z = f_z.as_simple() if isinstance(f_z, Value) else f'({f_z})'
+        f_w = f_w.as_simple() if isinstance(f_w, Value) else f'({f_w})'
+        multi_cnt = multi_cnt.as_simple() if isinstance(multi_cnt, Value) else f'({multi_cnt})'
+        flex_cnt = flex_cnt.as_simple() if isinstance(flex_cnt, Value) else f'({flex_cnt})'
         greater_than_x = f"min(1, (-min(0, ({f_x} - {multi_cnt} ))))"
         less_than_y = f"min(1, (-min(0, ({multi_cnt} - ({f_y})))))"
         remap_x = f"min(max(({flex_cnt} - {f_x}) / ({f_y} - ({f_x}) ), 0), 1)"
@@ -176,9 +210,9 @@ class Max(Function):
         return f'max({arg1},{arg2})'
 
     def as_simple(self):
-        arg1 = self.values[0] if isinstance(self.values[0], Value) else f'({self.values[0]})'
-        arg2 = self.values[1] if isinstance(self.values[1], Value) else f'({self.values[1]})'
-        return f'max({arg1.as_simple()},{arg2.as_simple()})'
+        arg1 = self.values[0].as_simple() if isinstance(self.values[0], Value) else f'({self.values[0]})'
+        arg2 = self.values[1].as_simple() if isinstance(self.values[1], Value) else f'({self.values[1]})'
+        return f'max({arg1},{arg2})'
 
 
 class Min(Function):
@@ -208,6 +242,6 @@ class Dominator(Function):
         return f'dom({self.values[0]}, {", ".join(map(str, self.values[1:]))})'
 
     def as_simple(self):
-        arg1 = self.values[-1].as_simple() if isinstance(self.values[0], Value) else f'({self.values[-1]})'
+        arg1 = self.values[-1].as_simple() if isinstance(self.values[-1], Value) else f'({self.values[-1]})'
         args = map(lambda x: x.as_simple() if isinstance(x, Value) else f'({x})', self.values[:-1])
         return f'((1 - {arg1}) * {"*".join(args)})'
