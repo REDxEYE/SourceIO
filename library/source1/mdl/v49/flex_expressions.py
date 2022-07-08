@@ -189,9 +189,9 @@ class Min(Function):
         return f'min({arg1},{arg2})'
 
     def as_simple(self):
-        arg1 = self.values[0] if isinstance(self.values[0], Value) else f'({self.values[0]})'
-        arg2 = self.values[1] if isinstance(self.values[1], Value) else f'({self.values[1]})'
-        return f'min({arg1.as_simple()},{arg2.as_simple()})'
+        arg1 = self.values[0].as_simple() if isinstance(self.values[0], Value) else f'({self.values[0]})'
+        arg2 = self.values[1].as_simple() if isinstance(self.values[1], Value) else f'({self.values[1]})'
+        return f'min({arg1},{arg2})'
 
 
 class Combo(Function):
@@ -199,7 +199,8 @@ class Combo(Function):
         return f'combo({", ".join(map(str, self.values))})'
 
     def as_simple(self):
-        return f'({"*".join(map(lambda x: x.as_simple(), self.values))})'
+        args = map(lambda x: x.as_simple() if isinstance(x, Value) else f'({x})', self.values)
+        return f'({"*".join(args)})'
 
 
 class Dominator(Function):
@@ -207,4 +208,6 @@ class Dominator(Function):
         return f'dom({self.values[0]}, {", ".join(map(str, self.values[1:]))})'
 
     def as_simple(self):
-        return f'((1 - {self.values[-1].as_simple()}) * {"*".join(map(lambda x: x.as_simple(), self.values[:-1]))})'
+        arg1 = self.values[-1].as_simple() if isinstance(self.values[0], Value) else f'({self.values[-1]})'
+        args = map(lambda x: x.as_simple() if isinstance(x, Value) else f'({x})', self.values[:-1])
+        return f'((1 - {arg1}) * {"*".join(args)})'
