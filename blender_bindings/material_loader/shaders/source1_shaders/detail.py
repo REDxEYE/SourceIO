@@ -54,7 +54,7 @@ class DetailSupportMixin(Source1ShaderBase):
         return self._vmt.get_transform_matrix('$detailtexturetransform', {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0), 'translate': (0, 0, 0)})
 
     def handle_detail(self, next_socket : bpy.types.NodeSocket, albedo_socket : bpy.types.NodeSocket, *, UV=None):
-        if (self.detailmode not in [0, 1, 2, 4, 5]):
+        if (self.detailmode not in [0, 1, 2, 5]):
             logger.error(f'Failed to load detail: unhandled Detail mode, got' + str(self.detailmode))
             return albedo_socket, None
         detailblend = self.create_node_group('$DetailBlendMode' + str(self.detailmode), [-500, -60], name='DetailBlend')
