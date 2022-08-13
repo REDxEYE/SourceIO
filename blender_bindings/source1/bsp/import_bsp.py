@@ -126,7 +126,7 @@ class BSP:
             self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection, self.scale)
 
         self.logger.debug('Adding map pack file to content manager')
-        content_manager.content_providers[Path(self.filepath).stem] = self.map_file.get_lump('LUMP_PAK')
+        content_manager.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump('LUMP_TEXDATA_STRING_TABLE')

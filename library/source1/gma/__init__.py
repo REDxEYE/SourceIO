@@ -48,13 +48,14 @@ class GMA:
                 break
             entry.offset = offset
             offset += entry.size
-            self.file_entries[entry.name] = entry
+            self.file_entries[entry.name.lower()] = entry
         self._content_offset = reader.tell()
 
     def find_file(self, filename):
+        filename = filename.as_posix().lower()
         if filename in self.file_entries:
             entry = self.file_entries[filename]
             self.reader.seek(self._content_offset + entry.offset)
-            data = self.reader.read(entry.size)
+            data = ByteIO(self.reader.read(entry.size))
             return data
         return None
