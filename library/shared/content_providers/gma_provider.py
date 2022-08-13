@@ -1,7 +1,7 @@
 from io import BytesIO
 from pathlib import Path
 from typing import Union
-import glob
+import fnmatch
 from ...source1.gma import open_gma
 from .content_provider_base import ContentProviderBase
 
@@ -15,7 +15,7 @@ class GMAContentProvider(ContentProviderBase):
     def glob(self, pattern: str):
         files = []
         for file_name, entry in self.gma_archive.file_entries.items():
-            if glob.fnmatch.fnmatch(file_name, pattern):
+            if fnmatch.fnmatch(file_name, pattern):
                 files.append((file_name, BytesIO(self.gma_archive.find_file(file_name))))
         return files
 
