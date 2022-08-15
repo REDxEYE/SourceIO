@@ -13,5 +13,6 @@ from . import (vr_complex,
                vr_bloody_simple,
                vr_simple_2way_blend,
                sky,
-               vr_generic
+               vr_generic,
+               dummy
                )

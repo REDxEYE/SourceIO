@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, Type, Union
 
 from .shader_base import ShaderBase
+from .shaders.source2_shaders.dummy import DummyShader
 from ...library.goldsrc.mdl_v10.structs.texture import StudioTexture
 from ...logger import SLoggingManager
 from ...library.source1.vmt import VMT
@@ -90,7 +91,7 @@ class Source2MaterialLoader(MaterialLoaderBase):
     def create_material(self):
         shader = self.texture_data['m_shaderName']
         handler: Source2ShaderBase = self._handlers.get(
-            shader, Source2ShaderBase)(self.texture_data, self.resources)
+            shader, DummyShader)(self.texture_data, self.resources)
 
         if shader not in self._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')

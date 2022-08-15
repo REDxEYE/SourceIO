@@ -46,7 +46,6 @@ class Source2ShaderBase(ShaderBase):
 
     def get_texture(self, name, default):
         param = self._get_param('m_textureParams', name, 'm_pValue', default)
-        print(name,param)
         return param
 
     def get_dynamic(self, name, default):
