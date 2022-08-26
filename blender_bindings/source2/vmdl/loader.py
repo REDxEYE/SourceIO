@@ -221,7 +221,6 @@ class ValveCompiledModelLoader(ValveCompiledModel):
 
                 positions = used_vertices['POSITION']
 
-
                 mesh.from_pydata(positions * self.scale, [], new_indices.reshape((-1, 3)).tolist())
                 mesh.update()
                 n = 0
@@ -280,6 +279,15 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                         normals = convert_normals(normals)
                     mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
+                if 'COLOR' in vertex_buffer.attribute_names:
+                    color = used_vertices['COLOR']
+                    vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
+                    mesh.loops.foreach_get('vertex_index', vertex_indices)
+
+                    vertex_colors = mesh.vertex_colors.get(name, False) or \
+                                    mesh.vertex_colors.new(name=name)
+                    vertex_colors_data = vertex_colors.data
+                    vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
                 if morphs_available:
                     mesh_obj.shape_key_add(name='base')
                     bundle_types = morph_block.data['m_bundleTypes']
