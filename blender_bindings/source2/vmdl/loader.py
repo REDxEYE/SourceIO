@@ -305,8 +305,8 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                             pre_computed_data = np.add(
                                 bundle_data[global_vertex_offset:global_vertex_offset + vertex_count][:, :3], vertices)
                             shape.data.foreach_set("co", pre_computed_data.reshape((-1,)))
-                    expressions = morph_block.rebuild_flex_expressions()
-                    print()
+                    # expressions = morph_block.rebuild_flex_expressions()
+                    # print()
                 global_vertex_offset += vertex_count
 
     def build_armature(self):

@@ -50,6 +50,8 @@ class MRPH(DATA):
                 rect_height = round(rect['m_flVHeightSrc'] * morph_atlas_data.height)
                 dst_x = rect['m_nXLeftDst']
                 dst_y = rect['m_nYTopDst']
+                y_slice = slice(dst_y, dst_y + rect_height)
+                x_slice = slice(dst_x, dst_x + rect_width)
                 for c, bundle in enumerate(rect['m_bundleDatas']):
                     rect_u = round(bundle['m_flULeftSrc'] * morph_atlas_data.width)
                     rect_v = round(bundle['m_flVTopSrc'] * morph_atlas_data.height)
@@ -58,8 +60,7 @@ class MRPH(DATA):
                     transformed_data = np.divide(morph_data_rect, 255)
                     transformed_data = np.multiply(transformed_data, bundle['m_ranges'])
                     transformed_data = np.add(transformed_data, bundle['m_offsets'])
-                    y_slice = slice(dst_y, dst_y + rect_height)
-                    x_slice = slice(dst_x, dst_x + rect_width)
+
                     self.flex_data[morph_name][c, y_slice, x_slice, :] = transformed_data
         for k, v in self.flex_data.items():
             self.flex_data[k] = v.reshape((len(bundle_types), width * height, 4))
