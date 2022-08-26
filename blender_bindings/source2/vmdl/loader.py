@@ -238,6 +238,14 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                         new_uv_data = uv_layer[vertex_indices]
                         uv_data.foreach_set('uv', new_uv_data.flatten())
                         n += 1
+                    if 'COLOR' in attrib.name.upper():
+                        color = used_vertices[attrib.name]
+                        vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
+                        mesh.loops.foreach_get('vertex_index', vertex_indices)
+                        vertex_colors = mesh.vertex_colors.get(attrib.name, False) or \
+                                        mesh.vertex_colors.new(name=attrib.name)
+                        vertex_colors_data = vertex_colors.data
+                        vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
                 if armature:
                     model_skeleton = data_block.data['m_modelSkeleton']
                     bone_names = model_skeleton['m_boneName']
@@ -279,15 +287,7 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                         normals = convert_normals(normals)
                     mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
-                if 'COLOR' in vertex_buffer.attribute_names:
-                    color = used_vertices['COLOR']
-                    vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
-                    mesh.loops.foreach_get('vertex_index', vertex_indices)
 
-                    vertex_colors = mesh.vertex_colors.get(name, False) or \
-                                    mesh.vertex_colors.new(name=name)
-                    vertex_colors_data = vertex_colors.data
-                    vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
                 if morphs_available:
                     mesh_obj.shape_key_add(name='base')
                     bundle_types = morph_block.data['m_bundleTypes']
