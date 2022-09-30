@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def running_in_blender():
-    return Path(sys.argv[0]).stem.lower() == 'blender'
+    return 'blender' in Path(sys.argv[0]).stem.lower()
 
 
 def loaded_as_addon():
