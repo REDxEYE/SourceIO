@@ -60,7 +60,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
                                                          flex_name,
                                                          mdl.flex_names[
                                                              flex.partner_index] if flex.partner_index > 0 else ''))
-            buffer.write("}")
+            buffer.write("}\n")
         else:
             buffer.write("\n")
 
