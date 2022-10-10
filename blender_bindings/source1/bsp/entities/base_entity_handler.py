@@ -626,25 +626,34 @@ class BaseEntityHandler(AbstractEntityHandler):
     # TODO(ShadelessFox): Handle 2 or more keyframe_rope in a chain
     def handle_move_rope(self, entity: move_rope, entity_raw: dict):
 
-        content_manager = ContentManager()
         if entity.NextKey is None:
             return
-        parent, parent_raw = self._get_entity_by_name(entity.NextKey)
-        parent: keyframe_rope
-        parent_raw: dict
-        if not parent:
+        next_entity, next_raw = self._get_entity_by_name(entity.NextKey)
+        next_entity: keyframe_rope
+        next_raw: dict
+        if not next_entity:
             self.logger.error(f'Cannot find rope parent \'{entity.NextKey}\', skipping')
             return
-        location_start = np.multiply(parse_float_vector(entity_raw['origin']), self.scale)
-        location_end = np.multiply(parse_float_vector(parent_raw['origin']), self.scale)
+        already_visited = set()
+        while next_entity is not None and next_entity.targetname not in already_visited:
+            curve_object = self._create_rope_part(entity, entity_raw, next_raw)
+            self._put_into_collection('move_rope', curve_object)
+            already_visited.add(entity.targetname)
+            entity = next_entity
+            entity_raw = next_raw
+            next_entity, next_raw = self._get_entity_by_name(entity.NextKey)
 
-        curve = bpy.data.curves.new(self._get_entity_name(entity), 'CURVE')
+    def _create_rope_part(self, start_entity: move_rope, start_entity_raw: dict, end_entity: dict):
+        location_start = np.multiply(parse_float_vector(start_entity_raw['origin']), self.scale)
+        location_end = np.multiply(parse_float_vector(end_entity['origin']), self.scale)
+
+        curve = bpy.data.curves.new(self._get_entity_name(start_entity), 'CURVE')
         curve.dimensions = '3D'
-        curve.bevel_depth = float(entity.Width) / 100
-        curve_object = bpy.data.objects.new(self._get_entity_name(entity), curve)
+        curve.bevel_depth = float(start_entity.Width) / 100
+        curve_object = bpy.data.objects.new(self._get_entity_name(start_entity), curve)
         curve_path = curve.splines.new('NURBS')
 
-        slack = entity.Slack
+        slack = start_entity.Slack
 
         point_start = (*location_start, 1)
         point_end = (*location_end, 1)
@@ -658,15 +667,15 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         curve_path.use_endpoint_u = True
 
-        material_name = entity.RopeMaterial
+        material_name = start_entity.RopeMaterial
         get_material(material_name, curve_object)
-
+        content_manager = ContentManager()
         material_file = content_manager.find_material(material_name)
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
             mat = Source1MaterialLoader(material_file, material_name)
             mat.create_material()
-        self._put_into_collection('move_rope', curve_object)
+        return curve_object
 
     def handle_path_track(self, entity: path_track, entity_raw: dict):
         if entity.targetname in self._handled_paths:
