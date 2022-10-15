@@ -277,18 +277,23 @@ class DmxModel:
             new_bone_ids.append(b)
         vertex_data[keywords["weight_indices"]] = datamodel.make_array(new_bone_ids, int)
         dme_face_sets = []
-        for face_set in face_sets:
+        used_materials = {}
+        for face_id, face_set in enumerate(face_sets):
             indices = face_set['indices']
             material_name = self.mdl.materials[face_set['material']].name
             material_elem = None
             for cd_mat in self.mdl.materials_paths:
                 full_path = ContentManager().find_material(Path(cd_mat) / material_name)
                 if full_path is not None:
-                    material_elem = self.dmx.add_element(
-                        (Path(normalize_path(cd_mat)) / normalize_path(material_name)).as_posix(), "DmeMaterial",
-                        id=f"{material_name}_mat")
+                    if used_materials.get(material_name, None) is None:
+                        material_elem = self.dmx.add_element(
+                            (Path(normalize_path(cd_mat)) / normalize_path(material_name)).as_posix(), "DmeMaterial",
+                            id=f"{material_name}_mat")
+                    else:
+                        material_elem = used_materials[material_name]
                     material_elem["mtlName"] = str(
                         Path('materials', normalize_path(cd_mat), normalize_path(material_name)))
+                    used_materials[material_name] = material_elem
                     break
             if material_elem is None:
                 material_elem = self.dmx.add_element(f'{material_name}_MISSING', "DmeMaterial",
@@ -297,7 +302,7 @@ class DmxModel:
                 material_elem["mtlName"] = Path('materials', normalize_path(cd_mat),
                                                 normalize_path(material_name)).as_posix()
             dme_face_set = self.dmx.add_element(normalize_path(material_name), "DmeFaceSet",
-                                                id=f"{mesh_name}_{material_name}_faces")
+                                                id=f"{mesh_name}_{material_name}_{face_id}_faces")
             dme_face_set["material"] = material_elem
 
             faces = np.full((len(indices) // 3, 4), -1)
