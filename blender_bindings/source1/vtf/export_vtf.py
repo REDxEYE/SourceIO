@@ -15,7 +15,7 @@ def export_texture(blender_texture, path, image_format=None, filter_mode=None):
     w, h = blender_texture.size
     image_data = np.zeros((w * h * 4,), np.float32)
     blender_texture.pixels.foreach_get(image_data)
-    image_data = image_data * 255
+    image_data = (image_data * 255).clip(0, 255)
     image_data = image_data.astype(np.uint8, copy=False)
     def_options = vtf_lib.create_default_params_structure()
     if filter_mode is not None:
