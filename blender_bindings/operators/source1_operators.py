@@ -46,9 +46,9 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
         from ..source1.mdl.v49.import_mdl import import_materials
 
         if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
+            directory = Path(self.filepath).parent.resolve()
         else:
-            directory = Path(self.filepath).absolute()
+            directory = Path(self.filepath).resolve()
         content_manager = ContentManager()
         content_manager.scan_for_content(directory)
 
