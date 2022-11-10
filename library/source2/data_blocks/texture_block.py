@@ -220,8 +220,9 @@ class TEXR(DataBlock):
         if self.compressed:
             return ByteIO(self.get_decompressed_at_mip(reader, mip_level))
         else:
-            for i in range(self.mipmap_count - 1, mip_level, -1):
-                reader.skip(self.calculate_buffer_size_for_mip(i))
+            if self.mipmap_count > 1:
+                for i in range(self.mipmap_count - 1, mip_level, -1):
+                    reader.skip(self.calculate_buffer_size_for_mip(i))
             return reader
 
     def read_image(self, flip=True):
@@ -255,3 +256,4 @@ class TEXR(DataBlock):
         elif self.format == VTexFormat.RGBA16161616F:
             data = np.frombuffer(data, np.float16, self.width * self.height * 4)
             self.image_data = data
+        return self.image_data
