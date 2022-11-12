@@ -6,13 +6,13 @@ Current TODO list -> [TODO.md](TODO.md)
 
 Small WIKI -> [WIKI](./wiki/init.md)
 
-# Used libraries
+# Credits
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
 * [BlenderVertexLitGeneric](https://github.com/syborg64/BlenderVertexLitGeneric) Shader nodegroup by [syborg64](https://github.com/syborg64)
 * [equilib](https://github.com/haruishi43/equilib) Cubemap to equirectangular converter by [haruishi43](https://github.com/haruishi43/equilib)
 * [HFSExtract](https://github.com/yretenai/HFSExtract) HFS extractor that was used to write native decryptor by [yretenai](https://github.com/yretenai)
 * Idea for better HWM expression handling by [hisanimations](youtube.com/c/hisanimations)
-# Supported formats (v3.9.3):
+# Supported formats (v4.0.4):
 
 ## Source 1
 | File Type | Contents                          | Import             | Export            |
