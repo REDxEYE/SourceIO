@@ -227,6 +227,10 @@ class ValveCompiledModelLoader(ValveCompiledModel):
                 for attrib in vertex_buffer.attributes:
                     if 'TEXCOORD' in attrib.name.upper():
                         uv_layer = used_vertices[attrib.name].copy()
+                        if uv_layer.dtype == np.uint16:
+                            uv_layer = uv_layer.astype(np.float32) / 65535
+                        elif uv_layer.dtype == np.int16:
+                            uv_layer = uv_layer.astype(np.float32) / 32767
                         if uv_layer.shape[1] != 2:
                             continue
                         if invert_uv:
