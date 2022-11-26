@@ -69,6 +69,8 @@ class TextureData:
         if resource:
             if isinstance(resource, MipTex):
                 resource: MipTex
+                self.width = resource.width
+                self.height = resource.height
                 self.data = resource.load_texture()
             else:
                 raise Exception(f"Unexpected resource type {type(resource)}")
