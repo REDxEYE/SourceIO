@@ -251,7 +251,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                        alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
                 if self.detail:
-                    albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, UV=uv)
+                    albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, uv_node=uv)
 
             if self.color or self.color2:
                 group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2

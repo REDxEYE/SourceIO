@@ -364,7 +364,6 @@ class BinaryKeyValue:
             else:
                 parent.append(v)
 
-        # add = lambda v: parent.append(v) if is_array else lambda v: parent.update({name: v})
         if data_type == KVType.NULL:
             add(None)
             return

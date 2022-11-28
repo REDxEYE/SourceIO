@@ -1,5 +1,5 @@
 from math import radians
-from typing import Tuple, Union, List, IO
+from typing import Union, IO
 
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager
@@ -56,14 +56,12 @@ class VMT:
 
         if raw_value[0] == '{':
             converter = int
-            pass
         elif raw_value[0] == '[':
             converter = float
         elif len(raw_value.split()) > 1:
             return tuple(map(float, raw_value.split())), float
         else:
             return [float(raw_value)], float
-            # raise ValueError(f'Not a vector value: {raw_value}')
 
         values = raw_value[1:-1].split()
         return tuple(map(converter, values)), converter

@@ -401,7 +401,7 @@ class NTROEnum:
                     self.fields.append(field)
 
 
-class NTROEnumField(DataBlock):
+class NTROEnumField:
     def __init__(self, ntro_enum):
         self.ntro_enum = ntro_enum
         self.name_offset = 0
