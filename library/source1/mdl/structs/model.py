@@ -178,7 +178,7 @@ class ModelV49(Base):
     def read(self, reader: ByteIO):
         entry = reader.tell()
         self.name = reader.read_ascii_string(64)
-        self.name, _ = self.name.rsplit(".", 1)
+        self.name, *_ = self.name.rsplit(".", 1)
         if not self.name:
             self.name = "blank"
 
