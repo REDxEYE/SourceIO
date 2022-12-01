@@ -32,7 +32,8 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
             body_part_collection = master_collection
 
         for mesh in meshes:
-            body_part_collection.objects.link(mesh)
+            body_collection = get_new_unique_collection(mesh.name, body_part_collection)
+            body_collection.objects.link(mesh)
     if model_container.armature:
         master_collection.objects.link(model_container.armature)
 
@@ -41,4 +42,3 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
         for attachment in model_container.attachments:
             attachments_collection.objects.link(attachment)
     return master_collection
-
