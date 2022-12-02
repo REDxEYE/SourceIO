@@ -19,7 +19,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
 
     def write_model(bodygroup: BodyPartV49):
         model = bodygroup.models[0]
-        name = Path(model.name if (model.name and model.name != 'blank') else f"{bodygroup.name}-{model.name}").stem
+        name = Path(model.name if (model.name and model.name != 'blank') else model.name).stem
         buffer.write(f"$model \"{name}\" \"{name}\"")
         if model.has_flexes or model.has_eyebals:
             buffer.write("{\n\n")

@@ -116,11 +116,12 @@ def import_model(file_list: FileImport,
 
             if model.vertex_count == 0:
                 continue
-            mesh_name = f'{body_part.name}_{model.name}'
+            object_name = model.name
+            mesh_name = f'{mdl.header.name}_{body_part.name}_{object_name}_MESH'
             used_copy = False
             if re_use_meshes:  # and static_prop:
-                mesh_obj_original = bpy.data.objects.get(mesh_name, None)
-                mesh_data_original = bpy.data.meshes.get(f'{mdl.header.name}_{mesh_name}_MESH', False)
+                mesh_obj_original = bpy.data.objects.get(object_name, None)
+                mesh_data_original = bpy.data.meshes.get(mesh_name, False)
                 if mesh_obj_original and mesh_data_original:
                     mesh_data = mesh_data_original  # .copy()
                     mesh_obj = mesh_obj_original.copy()
@@ -130,14 +131,14 @@ def import_model(file_list: FileImport,
                     mesh_obj.data = mesh_data
                     used_copy = True
                 else:
-                    mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
-                    mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
+                    mesh_data = bpy.data.meshes.new(mesh_name)
+                    mesh_obj = bpy.data.objects.new(object_name, mesh_data)
                     mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
                     mesh_obj['active_skin'] = '0'
                     mesh_obj['model_type'] = 's1'
             else:
-                mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
-                mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
+                mesh_data = bpy.data.meshes.new(mesh_name)
+                mesh_obj = bpy.data.objects.new(object_name, mesh_data)
                 mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
                 mesh_obj['active_skin'] = '0'
                 mesh_obj['model_type'] = 's1'
@@ -546,7 +547,6 @@ def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
                 bl_bone = armature.pose.bones.get(bone.name)
                 pos_curves, rot_curves = curve_per_bone[bone.name]
                 pos, rot = animation.get_frame_bone_data(frame_id, bone_id)
-
 
                 obj = bpy.data.objects.new(f'{animation.name}_{frame_id}_{bone.name}', None)
                 obj.empty_display_type = 'ARROWS'
