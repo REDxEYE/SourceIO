@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from typing import List
 
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import IBuffer
 
 
 class Entry:
@@ -16,15 +17,15 @@ class Entry:
         self.preload_data = b''
         self.loaded = False
 
-    def read(self, reader: ByteIO):
-        reader.seek(self._entry_offset)
-        (self.crc32, self.preload_data_size, self.archive_id, self.offset, self.size) = reader.read_fmt('I2H2I')
+    def read(self, buffer: IBuffer):
+        buffer.seek(self._entry_offset)
+        (self.crc32, self.preload_data_size, self.archive_id, self.offset, self.size) = buffer.read_fmt('I2H2I')
 
-        if reader.read_uint16() != 0xFFFF:
+        if buffer.read_uint16() != 0xFFFF:
             raise NotImplementedError('Invalid terminator')
 
         if self.preload_data_size > 0:
-            self.preload_data = reader.read(self.preload_data_size)
+            self.preload_data = buffer.read(self.preload_data_size)
 
         self.loaded = True
 
@@ -40,14 +41,13 @@ class TitanfallEntry(Entry):
         super().__init__(file_name, offset)
         self.blocks: List[TitanfallBlock] = []
 
-    def read(self, reader: ByteIO):
-        reader.seek(self._entry_offset)
-        self.crc32, self.preload_data_size, self.archive_id = reader.read_fmt('<I2H')
+    def read(self, buffer: IBuffer):
+        buffer.seek(self._entry_offset)
+        self.crc32, self.preload_data_size, self.archive_id = buffer.read_fmt('<I2H')
         while True:
-            block = TitanfallBlock()
-            block.read(reader)
+            block = TitanfallBlock.from_buffer(buffer)
             self.blocks.append(block)
-            if reader.read_uint16() == 0xFFFF:
+            if buffer.read_uint16() == 0xFFFF:
                 break
         self.loaded = True
 
@@ -55,14 +55,14 @@ class TitanfallEntry(Entry):
         return f'Entry("{self.file_name}") <Blocks:{len(self.blocks)}>'
 
 
+@dataclass(slots=True, frozen=True)
 class TitanfallBlock:
-    def __init__(self):
-        self.entry_flags = 0
-        self.texture_flags = 0
-        self.offset = 0
-        self.compressed_size = 0
-        self.uncompressed_size = 0
+    entry_flags: int
+    texture_flags: int
+    offset: int
+    compressed_size: int
+    uncompressed_size: int
 
-    def read(self, reader: ByteIO):
-        (self.entry_flags, self.texture_flags, self.offset, self.compressed_size,
-         self.uncompressed_size) = reader.read_fmt('<IH3Q')
+    @classmethod
+    def from_buffer(cls, buffer: IBuffer):
+        return cls(*buffer.read_fmt('<IH3Q'))

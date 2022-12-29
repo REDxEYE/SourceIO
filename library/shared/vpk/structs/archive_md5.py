@@ -1,4 +1,4 @@
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import IBuffer
 
 
 class ArchiveMD5Entry:
@@ -9,9 +9,9 @@ class ArchiveMD5Entry:
         self.size = 0
         self.crc32 = 0xBAADF00D
 
-    def read(self, reader: ByteIO):
-        (self.archive_id, self.offset, self.size) = reader.read_fmt('3I')
-        self.crc32 = reader.read(16)
+    def read(self, buffer: IBuffer):
+        (self.archive_id, self.offset, self.size) = buffer.read_fmt('3I')
+        self.crc32 = buffer.read(16)
 
     def __str__(self):
         return f'ArchiveMD5Entry(arch_id: {self.archive_id} size:{self.size})'
