@@ -24,6 +24,7 @@ def get_parent(collection):
     return bpy.context.scene.collection
 
 
+# noinspection PyPep8Naming
 class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
     bl_idname = "sourceio.load_placeholder"
     bl_label = "Load Entity"
@@ -106,7 +107,9 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                         vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         phy_file = content_manager.find_file(prop_path.with_suffix('.phy'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        file_list = FileImport(ByteIO(mld_file), ByteIO(vvd_file), ByteIO(vtx_file), ByteIO(vvc_file) if vvc_file else None, ByteIO(phy_file) if phy_file else None)
+                        file_list = FileImport(ByteIO(mld_file), ByteIO(vvd_file), ByteIO(vtx_file),
+                                               ByteIO(vvc_file) if vvc_file else None,
+                                               ByteIO(phy_file) if phy_file else None)
                         model_container = import_model_from_files(prop_path, file_list, 1.0, False, True,
                                                                   unique_material_names=unique_material_names)
                     else:
@@ -174,6 +177,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_OT_ChangeSkin(bpy.types.Operator):
     bl_idname = "sourceio.select_skin"
     bl_label = "Change skin"
@@ -237,6 +241,7 @@ class UITools:
     bl_category = "SourceIO"
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
     bl_label = "SourceIO utils"
     bl_idname = "SOURCEIO_PT_Utils"
@@ -251,9 +256,10 @@ class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
         return obj and (obj.get("entity_data", None) or obj.get("skin_groups", None))
 
 
-class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
-    bl_label = 'Placeholders loading'
-    bl_idname = 'SOURCEIO_PT_Placeholders'
+# noinspection PyPep8Naming
+class SOURCEIO_PT_EntityLoader(UITools, bpy.types.Panel):
+    bl_label = 'Entity loader'
+    bl_idname = 'SOURCEIO_PT_EntityLoader'
     bl_parent_id = "SOURCEIO_PT_Utils"
 
     @classmethod
@@ -266,15 +272,39 @@ class SOURCEIO_PT_Placeholders(UITools, bpy.types.Panel):
     def draw(self, context):
         self.layout.label(text="Entity loading")
         obj: bpy.types.Object = context.active_object
+        if obj is None and context.selected_objects:
+            obj = context.selected_objects[0]
         if obj.get("entity_data", None):
-            entiry_data = obj['entity_data']
-            entity_raw_data = entiry_data.get('entity', {})
+            entity_data = obj['entity_data']
             row = self.layout.row()
             row.label(text=f'Total selected entities:')
             row.label(text=str(len([obj for obj in context.selected_objects if 'entity_data' in obj])))
-            if entiry_data.get('prop_path', False):
+            if entity_data.get('prop_path', False):
                 box = self.layout.box()
                 box.operator('sourceio.load_placeholder')
+
+
+# noinspection PyPep8Naming
+class SOURCEIO_PT_EntityInfo(UITools, bpy.types.Panel):
+    bl_label = 'Entity Info'
+    bl_idname = 'SOURCEIO_PT_EntityInfo'
+    bl_parent_id = "SOURCEIO_PT_Utils"
+
+    @classmethod
+    def poll(cls, context):
+        obj: bpy.types.Object = context.active_object
+        if not obj and not context.selected_objects:
+            obj = context.selected_objects[0]
+        return obj and obj.get("entity_data", None)
+
+    def draw(self, context):
+        self.layout.label(text="Entity loading")
+        obj: bpy.types.Object = context.active_object
+        if obj is None and context.selected_objects:
+            obj = context.selected_objects[0]
+        if obj.get("entity_data", None):
+            entity_data = obj['entity_data']
+            entity_raw_data = entity_data.get('entity', {})
             box = self.layout.box()
             for k, v in entity_raw_data.items():
                 row = box.row()

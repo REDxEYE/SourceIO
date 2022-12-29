@@ -28,11 +28,12 @@ from .operators.source2_operators import (SOURCEIO_OT_VMATImport,
                                           SOURCEIO_OT_DMXCameraImport
                                           )
 from .operators.shared_operators import (SOURCEIO_PT_Utils,
-                                         SOURCEIO_PT_Placeholders,
+                                         SOURCEIO_PT_EntityLoader,
                                          SOURCEIO_PT_SkinChanger,
                                          SOURCEIO_OT_ChangeSkin,
                                          ChangeSkin_OT_LoadEntity,
                                          SOURCEIO_PT_Scene,
+                                         SOURCEIO_PT_EntityInfo,
                                          )
 from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
                                       SourceIO_OP_VPKBrowserLoader,
@@ -167,7 +168,8 @@ classes = (
     SourceIO_MT_Menu,
     SourceIOUtils_MT_Menu,
     SOURCEIO_PT_Utils,
-    SOURCEIO_PT_Placeholders,
+    SOURCEIO_PT_EntityLoader,
+    SOURCEIO_PT_EntityInfo,
     SOURCEIO_PT_SkinChanger,
     ChangeSkin_OT_LoadEntity,
     SOURCEIO_OT_ChangeSkin,
