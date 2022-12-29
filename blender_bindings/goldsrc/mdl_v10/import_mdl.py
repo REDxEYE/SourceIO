@@ -152,7 +152,8 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
             remap = {}
             for model_material_index in np.unique(model_materials):
                 model_texture_info = mdl_file_textures[model_material_index]
-                remap[model_material_index] = load_material(model_texture_info, model_object)
+                remap[model_material_index] = load_material(Path(mdl.header.name).stem, model_texture_info,
+                                                            model_object)
 
             model_mesh.from_pydata(model_vertices, [], model_indices)
             model_mesh.update()
@@ -180,9 +181,10 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
     return model_container
 
 
-def load_material(model_texture_info: StudioTexture, model_object):
-    mat_id = get_material(model_texture_info.name, model_object)
+def load_material(model_name: str, model_texture_info: StudioTexture, model_object):
+    material_name = f"{model_name}_{model_texture_info.name}"
+    mat_id = get_material(material_name, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
-    bpy_material.create_nodes(model_texture_info.name)
+    bpy_material.create_nodes(material_name, model_name=model_name)
     bpy_material.align_nodes()
     return mat_id

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import bpy
 
 from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
@@ -26,12 +28,16 @@ class GoldSrcShaderBase(ShaderBase):
 
         self.connect_nodes(shader_emit.outputs['Emission'], material_output.inputs['Surface'])
 
-    def load_texture(self, material_name, **kwargs):
+    def load_texture(self, material_name, model_name: Optional[str] = None, **kwargs):
         model_texture_info = self._valve_material
-        model_texture = bpy.data.images.get(material_name, None)
+        if model_name:
+            texture_name = f"{model_name}_{material_name}"
+        else:
+            texture_name = material_name
+        model_texture = bpy.data.images.get(texture_name, None)
         if model_texture is None:
             model_texture = bpy.data.images.new(
-                material_name,
+                texture_name,
                 width=model_texture_info.width,
                 height=model_texture_info.height,
                 alpha=True

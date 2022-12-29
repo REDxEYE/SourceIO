@@ -1,3 +1,5 @@
+from typing import Optional
+
 import bpy
 
 from ..goldsrc_shader_base import GoldSrcShaderBase
@@ -8,11 +10,11 @@ from .....library.goldsrc.mdl_v10.structs.texture import MdlTextureFlag
 class GoldSrcShaderMode1(GoldSrcShaderBase):
     SHADER: str = 'goldsrc_shader_mode1'
 
-    def create_nodes(self, material_name: str, rad_info=None):
+    def create_nodes(self, material_name: str, rad_info=None, model_name: Optional[str] = None):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return
 
-        basetexture = self.load_texture(material_name)
+        basetexture = self.load_texture(material_name, model_name)
         basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
         basetexture_node.image = basetexture
         basetexture_node.id_data.nodes.active = basetexture_node
