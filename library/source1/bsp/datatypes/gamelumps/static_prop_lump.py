@@ -1,10 +1,13 @@
 from enum import IntFlag
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from ......logger import SLoggingManager
 from .....shared.app_id import SteamAppId
 from .....shared.content_providers.content_manager import ContentManager
-from .. import ByteIO
+from .....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ...bsp_file import BSPFile
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('StaticPropLump')
@@ -60,7 +63,7 @@ class StaticProp:
         # Vindictus specific
         self.scaling = [1.0, 1.0, 1.0]
 
-    def parse(self, reader: ByteIO, version: int, size: int, app_id: int):
+    def parse(self, reader: IBuffer, version: int, size: int, app_id: int):
         if app_id == SteamAppId.LEFT_4_DEAD and version == 7 and size == 68:
             # Old Left 4 Dead maps use v7 and incompatible with newer v7 from Source 2013
             self._parse_v7_l4d(reader)
@@ -162,7 +165,7 @@ class StaticProp:
         logger.error(f'Cannot find handler for static prop of version {version} (size: {size}, app_id: {app_id})')
         reader.skip(size)
 
-    def _parse_v4(self, reader: ByteIO):
+    def _parse_v4(self, reader: IBuffer):
         self.origin = reader.read_fmt('3f')
         self.rotation = reader.read_fmt('3f')
         self.prop_type, self.first_leaf, self.leaf_count = reader.read_fmt('3H')
@@ -171,55 +174,55 @@ class StaticProp:
         self.fade_min_dist, self.fade_max_dist = reader.read_fmt('2f')
         self.lighting_origin = reader.read_fmt('3f')
 
-    def _parse_v5(self, reader: ByteIO):
+    def _parse_v5(self, reader: IBuffer):
         self._parse_v4(reader)
         self.forced_fade_scale = reader.read_float()
 
-    def _parse_v6_vin(self, reader: ByteIO):
+    def _parse_v6_vin(self, reader: IBuffer):
         self._parse_v5(reader)
 
-    def _parse_v6(self, reader: ByteIO):
+    def _parse_v6(self, reader: IBuffer):
         self._parse_v5(reader)
         self.min_dx_level, self.max_dx_level = reader.read_fmt('2H')
 
-    def _parse_v7_l4d(self, reader: ByteIO):
+    def _parse_v7_l4d(self, reader: IBuffer):
         self._parse_v6(reader)
         self.diffuse_modulation = reader.read_fmt('4B')
 
-    def _parse_v7_vin(self, reader: ByteIO):
+    def _parse_v7_vin(self, reader: IBuffer):
         self._parse_v6(reader)
 
-    def _parse_v8(self, reader: ByteIO):
+    def _parse_v8(self, reader: IBuffer):
         self._parse_v5(reader)
         self.min_cpu_level, self.max_cpu_level, self.min_gpu_level, self.max_gpu_level = reader.read_fmt('4B')
         self.diffuse_modulation = reader.read_fmt('4B')
 
-    def _parse_v9(self, reader: ByteIO):
+    def _parse_v9(self, reader: IBuffer):
         self._parse_v8(reader)
         self.disable_x360 = reader.read_fmt('I')
 
-    def _parse_v10(self, reader: ByteIO):
+    def _parse_v10(self, reader: IBuffer):
         self._parse_v6(reader)
         self.flags = StaticPropFlag(reader.read_uint32())
         self.lightmap_resolution = reader.read_fmt('2H')
 
-    def _parse_v10_csgo(self, reader: ByteIO):
+    def _parse_v10_csgo(self, reader: IBuffer):
         self._parse_v9(reader)
         reader.skip(4)
 
-    def _parse_v11_lite(self, reader: ByteIO):
+    def _parse_v11_lite(self, reader: IBuffer):
         self._parse_v10(reader)
         self.diffuse_modulation = reader.read_fmt('4B')
 
-    def _parse_v11(self, reader: ByteIO):
+    def _parse_v11(self, reader: IBuffer):
         self._parse_v11_lite(reader)
         self.flags_ex = reader.read_int32()
 
-    def _parse_v11_csgo(self, reader: ByteIO):
+    def _parse_v11_csgo(self, reader: IBuffer):
         self._parse_v10_csgo(reader)
         self.uniform_scale = reader.read_float()
 
-    def _parse_v12(self, reader: ByteIO):
+    def _parse_v12(self, reader: IBuffer):
         self.origin = reader.read_fmt('3f')
         self.rotation = reader.read_fmt('3f')
         self.prop_type = reader.read_int16()
@@ -236,7 +239,7 @@ class StaticPropLump:
         self.leafs: List[int] = []
         self.static_props: List[StaticProp] = []
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         content_manager = ContentManager()
         for _ in range(reader.read_int32()):
             self.model_names.append(reader.read_ascii_string(128))

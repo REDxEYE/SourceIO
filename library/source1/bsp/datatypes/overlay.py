@@ -1,14 +1,17 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 
 import numpy as np
 
 from .primitive import Primitive
-from . import ByteIO
+from ....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
 class Overlay(Primitive):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
+    def __init__(self, lump):
+        super().__init__(lump)
         self.id = 0
         self.tex_info = 0
         self.face_count_and_render_order = 0
@@ -63,7 +66,7 @@ class Overlay(Primitive):
 
         return dst_pos, dst_uv
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         self.id = reader.read_int32()
         self.tex_info = reader.read_int16()
         self.face_count_and_render_order = reader.read_uint16()
@@ -75,8 +78,9 @@ class Overlay(Primitive):
         self.normal = reader.read_fmt('fff')
         return self
 
+
 class VOverlay(Overlay):
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         self.id = reader.read_int32()
         self.tex_info = reader.read_int32()
         self.face_count_and_render_order = reader.read_uint32()

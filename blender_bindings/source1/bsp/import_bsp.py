@@ -84,7 +84,6 @@ class BSP:
         self.logger = log_manager.get_logger(self.filepath.name)
         self.logger.info(f'Loading map "{self.filepath}"')
         self.map_file = open_bsp(self.filepath)
-        self.map_file.parse()
         self.scale = scale
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
@@ -223,10 +222,10 @@ class BSP:
         for n, disp_info in enumerate(disp_info_lump.infos):
             self.logger.info(f'Processing {n + 1}/{info_count} displacement face')
             final_vertex_colors = {}
-            src_face = disp_info.source_face
+            src_face = disp_info.get_source_face(self.map_file)
 
-            texture_info = src_face.tex_info
-            texture_data = texture_info.tex_data
+            texture_info = src_face.get_tex_info(self.map_file)
+            texture_data = texture_info.get_texture_data(self.map_file)
             tv1, tv2 = texture_info.texture_vectors
 
             first_edge = src_face.first_edge

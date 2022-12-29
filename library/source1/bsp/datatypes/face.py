@@ -1,11 +1,18 @@
+from typing import TYPE_CHECKING
+
 from .primitive import Primitive
 
-from . import ByteIO
+from ....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ..lumps.texture_lump import TextureInfoLump
+    from ..lumps.displacement_lump import DispInfoLump
+    from ..bsp_file import BSPFile
 
 
 class Face(Primitive):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
+    def __init__(self, lump):
+        super().__init__(lump)
         self.plane_index = 0
         self.side = 0
         self.on_node = 0
@@ -24,7 +31,7 @@ class Face(Primitive):
         self.first_prim_id = 0
         self.smoothing_groups = 0
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         # TODO: Replace with single reader.read_fmt call
         self.plane_index = reader.read_uint16()
         self.side = reader.read_uint8()
@@ -45,29 +52,21 @@ class Face(Primitive):
         self.smoothing_groups = reader.read_uint32()
         return self
 
-    @property
-    def tex_info(self):
-        from ..lumps.texture_lump import TextureInfoLump
-        tex_info_lump: TextureInfoLump = self._bsp.get_lump('LUMP_TEXINFO')
+    def get_tex_info(self, bsp: 'BSPFile'):
+        tex_info_lump: TextureInfoLump = bsp.get_lump('LUMP_TEXINFO')
         if tex_info_lump:
             return tex_info_lump.texture_info[self.tex_info_id]
         return None
 
-    @property
-    def disp_info(self):
-        from ..lumps.displacement_lump import DispInfoLump
-        lump: DispInfoLump = self._bsp.get_lump('LUMP_DISPINFO')
+    def get_disp_info(self, bsp: 'BSPFile'):
+        lump: DispInfoLump = bsp.get_lump('LUMP_DISPINFO')
         if lump and self.disp_info_id != -1:
             return lump.infos[self.disp_info_id]
         return None
 
-    @property
-    def tex_data(self):
-        return self.tex_info.tex_data if self.tex_info else None
-
 
 class VFace1(Face):
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         # TODO: Replace with single reader.read_fmt call
         self.plane_index = reader.read_uint32()
         self.side = reader.read_uint8()
@@ -91,7 +90,7 @@ class VFace1(Face):
 
 
 class VFace2(VFace1):
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         # TODO: Replace with single reader.read_fmt call
         self.plane_index = reader.read_uint32()
         self.side = reader.read_uint8()

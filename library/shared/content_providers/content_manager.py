@@ -179,7 +179,6 @@ class ContentManager(metaclass=SingletonMeta):
             elif path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
                 bsp = open_bsp(path)
-                bsp.parse()
                 pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
                     self.content_providers[name] = pak_lump

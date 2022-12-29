@@ -1,8 +1,9 @@
 from typing import List, Dict
 
-from ....utils.byte_io_mdl import ByteIO
+from ..bsp_file import BSPFile
+from ....utils import IBuffer
 from ...phy.phy import SolidHeader
-from .. import Lump, lump_tag
+from .. import Lump, lump_tag, LumpInfo
 
 
 class SolidBlock:
@@ -10,32 +11,32 @@ class SolidBlock:
         self.solids = []
         self.kv = ''
 
-    def read(self, reader: ByteIO):
-        data_size, script_size, solid_count = reader.read_fmt("3I")
+    def parse(self, buffer: IBuffer):
+        data_size, script_size, solid_count = buffer.read_fmt("3I")
 
         for _ in range(solid_count):
             solid = SolidHeader()
-            solid.read(reader)
+            solid.read(buffer)
             self.solids.append(solid)
-        self.kv = reader.read_ascii_string(script_size)
+        self.kv = buffer.read_ascii_string(script_size)
 
 
 @lump_tag(29, 'LUMP_PHYSICS')
 class PhysicsLump(Lump):
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.solid_blocks: Dict[int, SolidBlock] = {}
 
-    def parse(self):
-        while self.reader:
-            solid_block_id = self.reader.read_int32()
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        while buffer:
+            solid_block_id = buffer.read_int32()
             if solid_block_id == -1:
-                assert self.reader.read_int32() == -1
-                self.reader.skip(8)
+                assert buffer.read_int32() == -1
+                buffer.skip(8)
                 break
             assert solid_block_id not in self.solid_blocks
             solid_block = SolidBlock()
-            solid_block.read(self.reader)
+            solid_block.parse(buffer)
             self.solid_blocks[solid_block_id] = solid_block
 
         return self

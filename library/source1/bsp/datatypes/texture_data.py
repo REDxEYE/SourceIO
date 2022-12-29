@@ -1,12 +1,17 @@
+from typing import TYPE_CHECKING
+
 from .primitive import Primitive
 from ..lumps.string_lump import StringsLump
-from . import ByteIO
+from ....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
 class TextureData(Primitive):
 
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
+    def __init__(self, lump):
+        super().__init__(lump)
         self.reflectivity = []
         self.name_id = 0
         self.width = 0
@@ -14,7 +19,7 @@ class TextureData(Primitive):
         self.view_width = 0
         self.view_height = 0
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         self.reflectivity = reader.read_fmt('3f')
         self.name_id = reader.read_int32()
         self.width = reader.read_int32()
@@ -23,9 +28,8 @@ class TextureData(Primitive):
         self.view_height = reader.read_int32()
         return self
 
-    @property
-    def name(self):
-        lump: StringsLump = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
+    def get_name(self, bsp: 'BSPFile'):
+        lump: StringsLump = bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
         if lump:
             return lump.strings[self.name_id]
         return None
@@ -33,11 +37,11 @@ class TextureData(Primitive):
 
 class RespawnTextureData(TextureData):
 
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
+    def __init__(self, lump):
+        super().__init__(lump)
         self.unk1 = 0
 
-    def parse(self, reader: ByteIO):
-        super().parse(reader)
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
+        super().parse(reader, bsp)
         self.unk1 = reader.read_int32()
         return self

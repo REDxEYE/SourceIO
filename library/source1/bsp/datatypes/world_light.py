@@ -1,10 +1,13 @@
 from enum import IntEnum
 
 import math
+from typing import TYPE_CHECKING
 
 from .primitive import Primitive
-from ..lumps.texture_lump import TextureInfoLump
-from . import ByteIO
+from ....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
 class EmitType(IntEnum):
@@ -71,8 +74,8 @@ class Color32:
 
 
 class WorldLight(Primitive):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
+    def __init__(self, lump):
+        super().__init__(lump)
         self.origin = []
         self.intensity = Color32()
         self.normal = []
@@ -91,11 +94,11 @@ class WorldLight(Primitive):
         self.tex_info_id = 0
         self.owner = 0
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         self.origin = reader.read_fmt('3f')
         self.intensity = Color32.from_array(reader.read_fmt('3f'))
         self.normal = reader.read_fmt('3f')
-        if self._bsp.version > 20:
+        if bsp.version > 20:
             self.shadow_cast_offset = reader.read_fmt('3f')
         self.cluster = reader.read_int32()
         self.type = EmitType(reader.read_int32())
@@ -112,14 +115,3 @@ class WorldLight(Primitive):
         self.owner = reader.read_int32()
         return self
 
-    @property
-    def tex_info(self):
-        tex_info_lump: TextureInfoLump = self._bsp.get_lump('LUMP_TEXINFO')
-        if tex_info_lump:
-            tex_infos = tex_info_lump.texture_info
-            return tex_infos[self.tex_info_id]
-        return None
-
-    @property
-    def tex_data(self):
-        return self.tex_info.tex_data if self.tex_info else None

@@ -1,7 +1,16 @@
+import abc
+from typing import TYPE_CHECKING
 
-class Primitive:
-    def __init__(self, lump, bsp):
-        from ..lump import Lump
-        from ..bsp_file import BSPFile
+from ....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ..lump import Lump
+    from ..bsp_file import BSPFile
+
+
+class Primitive(abc.ABC):
+    def __init__(self, lump):
         self._lump: Lump = lump
-        self._bsp: BSPFile = bsp
+
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
+        raise NotImplementedError()

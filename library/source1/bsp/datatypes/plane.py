@@ -1,4 +1,8 @@
-from . import ByteIO
+from typing import TYPE_CHECKING
+
+from ....utils.file_utils import IBuffer
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
 class Plane:
@@ -7,7 +11,7 @@ class Plane:
         self.dist = 0.0
         self.type = 0
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         self.normal = reader.read_fmt('fff')
         self.dist = reader.read_float()
         self.type = reader.read_int32()

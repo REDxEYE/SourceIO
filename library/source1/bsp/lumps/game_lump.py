@@ -1,54 +1,53 @@
 from typing import List
 
-from .. import Lump, lump_tag
+from .. import Lump, lump_tag, LumpInfo
+from ..bsp_file import BSPFile
 from ..datatypes.game_lump_header import GameLumpHeader, VindictusGameLumpHeader
 from ..datatypes.gamelumps.detail_prop_lump import DetailPropLump
 from ..datatypes.gamelumps.static_prop_lump import StaticPropLump
 from . import SteamAppId
-from . import ByteIO
+from ....utils import IBuffer
 
 
 @lump_tag(35, 'LUMP_GAME_LUMP')
 class GameLump(Lump):
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.lump_count = 0
         self.game_lumps_info: List[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self):
-        reader = self.reader
-        self.lump_count = reader.read_uint32()
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
-            lump = GameLumpHeader(self, self._bsp).parse(reader)
+            lump = GameLumpHeader(self).parse(buffer, bsp)
             if not lump.id:
                 continue
             self.game_lumps_info.append(lump)
         for lump in self.game_lumps_info:
-            relative_offset = lump.offset - self._lump.offset
+            relative_offset = lump.offset - self._info.offset
             print(f'GLump "{lump.id}" offset: {relative_offset} size: {lump.size} ')
-            with reader.save_current_pos():
-                reader.seek(relative_offset)
+            with buffer.save_current_offset():
+                buffer.seek(relative_offset)
                 if lump.flags == 1:
                     curr_index = self.game_lumps_info.index(lump)
                     if curr_index + 1 != len(self.game_lumps_info):
-                        next_offset = self.game_lumps_info[curr_index + 1].offset - self._lump.offset
+                        next_offset = self.game_lumps_info[curr_index + 1].offset - self._info.offset
                     else:
-                        next_offset = self._lump.size
+                        next_offset = self._info.size
                     compressed_size = next_offset - relative_offset
-                    buffer = reader.read(compressed_size)
-                    game_lump_reader = Lump.decompress_lump(ByteIO(buffer))
+                    game_lump_buffer = Lump.decompress_lump(buffer.slice(size=compressed_size))
                 else:
-                    game_lump_reader = ByteIO(reader.read(lump.size))
+                    game_lump_buffer = buffer.slice(size=lump.size)
 
                 pass  # TODO
             if lump.id == 'sprp':
                 game_lump = StaticPropLump(lump)
-                game_lump.parse(game_lump_reader)
+                game_lump.parse(game_lump_buffer, bsp)
                 self.game_lumps[lump.id] = game_lump
             elif lump.id == 'dprp':
                 detail_lump = DetailPropLump(lump)
-                detail_lump.parse(game_lump_reader)
+                detail_lump.parse(game_lump_buffer, bsp)
                 self.game_lumps[lump.id] = detail_lump
 
         return self
@@ -56,45 +55,43 @@ class GameLump(Lump):
 
 @lump_tag(35, 'LUMP_GAME_LUMP', steam_id=SteamAppId.VINDICTUS)
 class VGameLump(Lump):
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.lump_count = 0
         self.game_lumps_info: List[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self):
-        reader = self.reader
-        self.lump_count = reader.read_uint32()
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
-            lump = VindictusGameLumpHeader(self, self._bsp).parse(reader)
+            lump = VindictusGameLumpHeader(self).parse(buffer, bsp)
             if not lump.id:
                 continue
             self.game_lumps_info.append(lump)
         for lump in self.game_lumps_info:
-            relative_offset = lump.offset - self._lump.offset
+            relative_offset = lump.offset - self._info.offset
             print(f'GLump "{lump.id}" offset: {relative_offset} size: {lump.size} ')
-            with reader.save_current_pos():
-                reader.seek(relative_offset)
+            with buffer.save_current_offset():
+                buffer.seek(relative_offset)
                 if lump.flags == 1:
                     curr_index = self.game_lumps_info.index(lump)
                     if curr_index + 1 != len(self.game_lumps_info):
-                        next_offset = self.game_lumps_info[curr_index + 1].offset - self._lump.offset
+                        next_offset = self.game_lumps_info[curr_index + 1].offset - self._info.offset
                     else:
-                        next_offset = self._lump.size
+                        next_offset = self._info.size
                     compressed_size = next_offset - relative_offset
-                    buffer = reader.read(compressed_size)
-                    game_lump_reader = Lump.decompress_lump(ByteIO(buffer))
+                    game_lump_buffer = Lump.decompress_lump(buffer.slice(size=compressed_size))
                 else:
-                    game_lump_reader = ByteIO(reader.read(lump.size))
+                    game_lump_buffer = buffer.slice(size=lump.size)
 
                 pass  # TODO
             if lump.id == 'sprp':
                 game_lump = StaticPropLump(lump)
-                game_lump.parse(game_lump_reader)
+                game_lump.parse(game_lump_buffer, bsp)
                 self.game_lumps[lump.id] = game_lump
             elif lump.id == 'dprp':
                 detail_lump = DetailPropLump(lump)
-                detail_lump.parse(game_lump_reader)
+                detail_lump.parse(game_lump_buffer, bsp)
                 self.game_lumps[lump.id] = detail_lump
 
         return self

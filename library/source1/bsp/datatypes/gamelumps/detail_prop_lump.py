@@ -1,6 +1,6 @@
 from typing import List
 
-from .. import ByteIO
+from .....utils.file_utils import IBuffer
 
 
 class DetailPropLump:
@@ -11,7 +11,7 @@ class DetailPropLump:
         self.sprites: List[DetailSprite] = []
         self.detail_props: List[DetailProp] = []
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         for _ in range(reader.read_int32()):
             self.model_names.append(reader.read_ascii_string(128))
         if self._glump_info.version == 4:
@@ -33,7 +33,7 @@ class DetailSprite:
         self.upper_left_uv = []
         self.lower_right_uv = []
 
-    def parse(self, reader: ByteIO, version):
+    def parse(self, reader: IBuffer, version):
         self.upper_left = reader.read_fmt('2f')
         self.lower_right = reader.read_fmt('2f')
         self.upper_left_uv = reader.read_fmt('2f')
@@ -56,7 +56,7 @@ class DetailProp:
         self.type = 0
         self.scale = 0
 
-    def parse(self, reader: ByteIO, version):
+    def parse(self, reader: IBuffer, version):
         self.origin = reader.read_fmt('3f')
         self.rotation = reader.read_fmt('3f')
         self.model_id, self.leaf_id = reader.read_fmt('2H')

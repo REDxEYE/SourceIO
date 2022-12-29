@@ -1,7 +1,11 @@
 from enum import IntEnum
+from typing import TYPE_CHECKING
 
 from .primitive import Primitive
-from . import ByteIO
+from ....utils.file_utils import IBuffer
+
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
 class VertexType(IntEnum):
@@ -12,8 +16,8 @@ class VertexType(IntEnum):
 
 
 class Mesh(Primitive):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
+    def __init__(self, lump):
+        super().__init__(lump)
         self.triangle_start = 0
         self.triangle_count = 0
         self.unk1_offset = 0
@@ -26,7 +30,7 @@ class Mesh(Primitive):
         self.material_sort = 0
         self.flags = 0
 
-    def parse(self, reader: ByteIO):
+    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
         self.triangle_start = reader.read_uint32()  # 0-4
         self.triangle_count = reader.read_uint16()  # 4-6
         self.unk1_offset = reader.read_uint16()

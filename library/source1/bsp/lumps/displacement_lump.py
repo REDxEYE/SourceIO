@@ -2,34 +2,34 @@ from typing import List
 
 import numpy as np
 
+from ....utils import IBuffer
 from . import SteamAppId
-from .. import Lump, lump_tag
+from .. import Lump, lump_tag, LumpInfo
+from ..bsp_file import BSPFile
 from ..datatypes.displacement import DispInfo, VDispInfo
 
 
 @lump_tag(26, 'LUMP_DISPINFO')
 class DispInfoLump(Lump):
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.infos: List[DispInfo] = []
 
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.infos.append(DispInfo(self, self._bsp).parse(reader))
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        while buffer:
+            self.infos.append(DispInfo(self).parse(buffer, bsp))
         return self
 
 
 @lump_tag(26, 'LUMP_DISPINFO', steam_id=SteamAppId.VINDICTUS)
 class VDispInfoLump(Lump):
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.infos: List[DispInfo] = []
 
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.infos.append(VDispInfo(self, self._bsp).parse(reader))
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        while buffer:
+            self.infos.append(VDispInfo(self).parse(buffer, bsp))
         return self
 
 
@@ -44,14 +44,13 @@ class DispVert(Lump):
         ]
     )
 
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.vertices: np.ndarray = np.array(0, dtype=self.dtype)
         self.transformed_vertices = np.array((-1, 3))
 
-    def parse(self):
-        reader = self.reader
-        self.vertices = np.frombuffer(reader.read(), self.dtype)
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        self.vertices = np.frombuffer(buffer.read(), self.dtype)
 
         self.transformed_vertices = self.vertices['position'] * self.vertices['dist']
 
@@ -69,12 +68,11 @@ class DispMultiblend(Lump):
         ]
     )
 
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.blends = np.ndarray([])
 
-    def parse(self):
-        reader = self.reader
-        assert self._lump.size % self.dtype.itemsize == 0
-        self.blends = np.frombuffer(reader.read(), self.dtype)
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        assert self._info.size % self.dtype.itemsize == 0
+        self.blends = np.frombuffer(buffer.read(), self.dtype)
         return self

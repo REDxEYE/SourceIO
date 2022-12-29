@@ -1,28 +1,34 @@
 from io import BytesIO
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
+from ..bsp_file import BSPFile
 from ....shared.content_providers.content_provider_base import ContentProviderBase
-from .. import Lump, lump_tag
+from .. import Lump, lump_tag, LumpInfo
 import zipfile
+
+from ....utils import IBuffer
 
 
 @lump_tag(40, 'LUMP_PAK')
 class PakLump(Lump, ContentProviderBase):
 
+    def glob(self, pattern: str):
+        raise NotImplementedError
+
     def find_path(self, filepath: Union[str, Path]):
         pass
 
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
-        self.filepath = self._bsp.filepath
-        self.zip_file: zipfile.ZipFile = None
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
+        self.filepath = None
+        self.zip_file: Optional[zipfile.ZipFile] = None
         self._filename_cache = {}
 
-    def parse(self):
+    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+        self.filepath = bsp.filepath
         if self.zip_file is None:
-            self.reader.seek(0)
-            zip_data = BytesIO(self.reader.read())
+            zip_data = BytesIO(buffer.read())
             self.zip_file = zipfile.ZipFile(zip_data)
             self._filename_cache = {a.lower(): a for a in self.zip_file.NameToInfo}
         return self
