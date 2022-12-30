@@ -6,7 +6,7 @@ import os
 import struct
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import Optional, Protocol
+from typing import Optional, Protocol, Union
 
 
 class IBuffer(abc.ABC, io.RawIOBase):
@@ -182,7 +182,7 @@ class IBuffer(abc.ABC, io.RawIOBase):
 
 class MemoryBuffer(IBuffer):
 
-    def __init__(self, buffer: bytes | bytearray | memoryview):
+    def __init__(self, buffer: Union[bytes, bytearray, memoryview]):
         super().__init__()
         self._buffer = memoryview(buffer)
         self._offset = 0
@@ -204,10 +204,10 @@ class MemoryBuffer(IBuffer):
         self._offset += struct.calcsize(self._endian + fmt)
         return data
 
-    def write(self, __b: bytes | bytearray) -> int | None:
+    def write(self, __b: Union[bytes, bytearray]) -> Optional[int]:
         raise NotImplementedError()
 
-    def read(self, __size: int = -1) -> bytes | None:
+    def read(self, __size: int = -1) -> Optional[bytes]:
         if __size == -1:
             data = self._buffer[self._offset:]
             self._offset += len(data)
@@ -255,7 +255,7 @@ class MemoryBuffer(IBuffer):
 
 class FileBuffer(io.FileIO, IBuffer):
 
-    def __init__(self, file: str | Path | int, mode: str = 'r', closefd: bool = True, opener=None) -> None:
+    def __init__(self, file: Union[str, Path, int], mode: str = 'r', closefd: bool = True, opener=None) -> None:
         io.FileIO.__init__(self, file, mode, closefd, opener)
         IBuffer.__init__(self)
 

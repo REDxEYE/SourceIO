@@ -7,6 +7,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO, List, Union
 
+from . import IBuffer
+
 
 class OffsetOutOfBounds(Exception):
     pass
@@ -46,6 +48,8 @@ class ByteIO:
             self.file = path_or_file_or_data
         elif isinstance(path_or_file_or_data, ByteIO):
             self.file = path_or_file_or_data.file
+        elif isinstance(path_or_file_or_data, IBuffer):
+            self.file = path_or_file_or_data
         else:
             self.file = BytesIO()
 
@@ -286,6 +290,9 @@ class ByteIO:
 
     def write(self, t, value):
         self._write(struct.pack(t, value))
+
+    def write_fmt(self, fmt: str, *values):
+        self._write(struct.pack(fmt, *values))
 
     def write_uint64(self, value):
         self.write('Q', value)
