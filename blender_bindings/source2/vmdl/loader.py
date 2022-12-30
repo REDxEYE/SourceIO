@@ -1,24 +1,25 @@
 import math
+from itertools import chain
 from pathlib import Path
 from typing import Optional
 
 import bpy
-from itertools import chain
-
 import numpy as np
-from mathutils import Quaternion, Vector, Matrix, Euler
+from mathutils import Euler, Matrix, Quaternion, Vector
 
+from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.source2.common import convert_normals
+from ....library.source2.data_blocks import DATA, MRPH, VBIB
+from ....library.source2.resource_types import (ValveCompiledModel,
+                                                ValveCompiledResource)
+from ....library.source2.resource_types.vmesh import ValveCompiledMesh
+from ....library.source2.resource_types.vmorf.morph import ValveCompiledMorph
+from ....library.source2.utils.decode_animations import parse_anim_data
+from ...shared.model_container import Source2ModelContainer
+from ...utils.utils import (find_layer_collection, get_material,
+                            get_new_unique_collection)
 from ..vmat.loader import ValveCompiledMaterialLoader
 from ..vphys.loader import ValveCompiledPhysicsLoader
-from ...shared.model_container import Source2ModelContainer
-from ...utils.utils import get_material, get_new_unique_collection, find_layer_collection
-from ....library.source2.common import convert_normals
-from ....library.source2.data_blocks import MRPH, VBIB, DATA
-from ....library.source2.resource_types.vmesh import ValveCompiledMesh
-from ....library.source2.utils.decode_animations import parse_anim_data
-from ....library.source2.resource_types.vmorf.morph import ValveCompiledMorph
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source2.resource_types import ValveCompiledModel, ValveCompiledResource
 
 
 def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):

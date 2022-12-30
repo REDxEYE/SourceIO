@@ -1,8 +1,8 @@
 from ....utils import IBuffer
-from . import SteamAppId
-from .. import Lump, lump_tag, LumpInfo
+from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.overlay import Overlay, VOverlay
+from . import SteamAppId
 
 
 @lump_tag(45, 'LUMP_OVERLAYS')

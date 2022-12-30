@@ -1,13 +1,13 @@
+import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
-from ..bsp_file import BSPFile
-from ....shared.content_providers.content_provider_base import ContentProviderBase
-from .. import Lump, lump_tag, LumpInfo
-import zipfile
-
+from ....shared.content_providers.content_provider_base import \
+    ContentProviderBase
 from ....utils import IBuffer
+from .. import Lump, LumpInfo, lump_tag
+from ..bsp_file import BSPFile
 
 
 @lump_tag(40, 'LUMP_PAK')

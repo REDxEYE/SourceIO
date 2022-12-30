@@ -5,15 +5,17 @@ from pprint import pformat
 import bpy
 from mathutils import Euler
 
-from .base_entity_classes import *
-from ...vtex.loader import ValveCompiledTextureLoader
-from .....library.source2.resource_types import ValveCompiledResource, ValveCompiledMaterial
-from ....utils.utils import get_or_create_collection
-from .....logger import SLoggingManager
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
+from .....library.source2.resource_types import (ValveCompiledMaterial,
+                                                 ValveCompiledResource)
 from .....library.source2.utils.entity_keyvalues import EntityKeyValues
-from .....library.shared.content_providers.content_manager import ContentManager
 from .....library.utils.byte_io_mdl import ByteIO
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from .....logger import SLoggingManager
+from ....utils.utils import get_or_create_collection
+from ...vtex.loader import ValveCompiledTextureLoader
+from .base_entity_classes import *
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()

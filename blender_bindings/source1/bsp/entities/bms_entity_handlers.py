@@ -1,7 +1,7 @@
 import math
 
-from mathutils import Euler
 import bpy
+from mathutils import Euler
 
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .bms_entity_classes import *

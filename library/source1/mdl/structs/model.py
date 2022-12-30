@@ -2,10 +2,9 @@ from typing import List
 
 import numpy as np
 
-from . import Base
-from . import ByteIO
-from .mesh import MeshV36, MeshV49
+from . import Base, ByteIO
 from .eyeball import EyeballV36, EyeballV44, EyeballV49
+from .mesh import MeshV36, MeshV49
 
 
 class ModelV36(Base):

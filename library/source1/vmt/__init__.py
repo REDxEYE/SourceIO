@@ -1,5 +1,5 @@
 from math import radians
-from typing import Union, IO
+from typing import IO, Union
 
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager

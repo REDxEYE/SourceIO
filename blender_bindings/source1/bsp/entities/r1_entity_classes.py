@@ -1,5 +1,5 @@
-from .base_entity_classes import Parentname, Global, EnableDisable, Light, keyframe_rope, \
-    move_rope, prop_dynamic
+from .base_entity_classes import (EnableDisable, Global, Light, Parentname,
+                                  keyframe_rope, move_rope, prop_dynamic)
 
 
 def parse_source_value(value):

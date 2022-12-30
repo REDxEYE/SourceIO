@@ -1,6 +1,6 @@
 from typing import List
 
-from ..lump import Lump, LumpType, LumpInfo
+from ..lump import Lump, LumpInfo, LumpType
 from ..structs.texture import TextureInfo
 
 

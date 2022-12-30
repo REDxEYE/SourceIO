@@ -2,20 +2,16 @@ import traceback
 from pathlib import Path
 from typing import Dict, Type, Union
 
-from .shader_base import ShaderBase
-from .shaders.source2_shaders.dummy import DummyShader
 from ...library.goldsrc.mdl_v10.structs.texture import StudioTexture
-from ...logger import SLoggingManager
 from ...library.source1.vmt import VMT
-
+from ...logger import SLoggingManager
+from .shader_base import ShaderBase
+from .shaders import (debug_material, goldsrc_shaders, source1_shaders,
+                      source2_shaders)
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 from .shaders.source1_shader_base import Source1ShaderBase
 from .shaders.source2_shader_base import Source2ShaderBase
-
-from .shaders import source1_shaders
-from .shaders import source2_shaders
-from .shaders import goldsrc_shaders
-from .shaders import debug_material
+from .shaders.source2_shaders.dummy import DummyShader
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('MaterialLoader')

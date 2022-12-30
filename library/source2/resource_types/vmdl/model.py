@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ...resource_types import ValveCompiledResource
 from ....shared.content_providers.content_manager import ContentManager
+from ...resource_types import ValveCompiledResource
 
 
 class ValveCompiledModel(ValveCompiledResource):

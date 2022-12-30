@@ -1,5 +1,6 @@
-from mathutils import Vector, Matrix, Euler, Quaternion
 from typing import List
+
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 
 def convert_source_rotation(rot: List[float]):

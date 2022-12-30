@@ -3,8 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ....library.source1.vtf.VTFWrapper import VTFLib
-from ....library.source1.vtf.VTFWrapper import VTFLibEnums
+from ....library.source1.vtf.VTFWrapper import VTFLib, VTFLibEnums
 
 
 def export_texture(blender_texture, path, image_format=None, filter_mode=None):

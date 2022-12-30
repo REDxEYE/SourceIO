@@ -1,8 +1,7 @@
 from typing import List
 
-from . import Base
-from . import ByteIO
-from .model import ModelV36, ModelV49, ModelV44
+from . import Base, ByteIO
+from .model import ModelV36, ModelV44, ModelV49
 
 
 class BodyPartV36(Base):

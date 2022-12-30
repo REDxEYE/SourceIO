@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ..utils.hexify import rhex
 from ..utils.byte_io_mdl import ByteIO
+from ..utils.hexify import rhex
 
 
 class CompiledShader:

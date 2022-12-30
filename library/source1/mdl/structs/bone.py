@@ -1,14 +1,12 @@
-from enum import IntFlag, IntEnum
+from enum import IntEnum, IntFlag
 
 import numpy as np
 
-from . import Base
-from . import ByteIO
-
+from ....utils.math_utilities import quat_to_matrix
+from . import Base, ByteIO
 from .axis_interp_rule import AxisInterpRule
 from .jiggle_bone import JiggleRule
 from .quat_interp_bone import QuatInterpRule
-from ....utils.math_utilities import quat_to_matrix
 
 
 class BoneFlags(IntFlag):

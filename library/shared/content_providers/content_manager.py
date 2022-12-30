@@ -1,16 +1,19 @@
-from pathlib import Path
-from typing import Union, Dict, List, TypeVar
 from collections import Counter, OrderedDict
+from pathlib import Path
+from typing import Dict, List, TypeVar, Union
 
-from .hfs_provider import HFS2ContentProvider, HFS1ContentProvider
+from ....library.utils.path_utilities import (backwalk_file_resolver,
+                                              corrected_path, get_mod_path)
 from ....logger import SLoggingManager
-from .non_source_sub_manager import NonSourceContentProvider
-from .vpk_provider import VPKContentProvider
-from .content_provider_base import ContentProviderBase
-from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
-from .source2_content_provider import Gameinfo2ContentProvider as Source2GameinfoContentProvider
-from ....library.utils.path_utilities import backwalk_file_resolver, get_mod_path, corrected_path
 from ...utils.singleton import SingletonMeta
+from .content_provider_base import ContentProviderBase
+from .hfs_provider import HFS1ContentProvider, HFS2ContentProvider
+from .non_source_sub_manager import NonSourceContentProvider
+from .source1_content_provider import \
+    GameinfoContentProvider as Source1GameinfoContentProvider
+from .source2_content_provider import \
+    Gameinfo2ContentProvider as Source2GameinfoContentProvider
+from .vpk_provider import VPKContentProvider
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('ContentManager')
@@ -39,16 +42,16 @@ class ContentManager(metaclass=SingletonMeta):
         self._register_supported_detectors()
 
     def _register_supported_detectors(self):
-        from .content_detectors.sbox import SBoxDetector
-        from .content_detectors.sfm import SFMDetector
+        from .content_detectors.gmod import GModDetector
+        from .content_detectors.goldsrc import GoldSrcDetector
         from .content_detectors.hla import HLADetector
         from .content_detectors.robot_repair import RobotRepairDetector
+        from .content_detectors.sbox import SBoxDetector
+        from .content_detectors.sfm import SFMDetector
         from .content_detectors.source1_common import Source1Common
-        from .content_detectors.vindictus import VindictusDetector
-        from .content_detectors.titanfall1 import TitanfallDetector
-        from .content_detectors.goldsrc import GoldSrcDetector
         from .content_detectors.sourcemod import SourceMod
-        from .content_detectors.gmod import GModDetector
+        from .content_detectors.titanfall1 import TitanfallDetector
+        from .content_detectors.vindictus import VindictusDetector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())

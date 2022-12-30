@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import Dict
 
-from ..content_provider_base import ContentDetectorBase, ContentProviderBase
-from ..goldsrc_content_provider import GoldSrcContentProvider, GoldSrcWADContentProvider
-from ....global_config import GoldSrcConfig
 from .....library.utils.path_utilities import backwalk_file_resolver
+from ....global_config import GoldSrcConfig
+from ..content_provider_base import ContentDetectorBase, ContentProviderBase
+from ..goldsrc_content_provider import (GoldSrcContentProvider,
+                                        GoldSrcWADContentProvider)
 
 
 class GoldSrcDetector(ContentDetectorBase):

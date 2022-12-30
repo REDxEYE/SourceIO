@@ -4,30 +4,28 @@ import warnings
 from pathlib import Path
 
 import bpy
-
 import numpy as np
-from mathutils import Vector, Matrix, Euler, Quaternion
+from mathutils import Euler, Matrix, Quaternion, Vector
 
-from .. import FileImport
-from ..common import get_slice, merge_meshes
-from .....library.utils.byte_io_mdl import ByteIO
-from .....logger import SLoggingManager
-from .....library.shared.content_providers.content_manager import ContentManager
-
-from .....library.source1.vvd import Vvd
-
-from .....library.source1.vtx.v7.vtx import Vtx
-
-from .....library.source1.mdl.v49.mdl_file import MdlV49
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
+from .....library.source1.mdl.v44.vertex_animation_cache import \
+    VertexAnimationCache
 from .....library.source1.mdl.v49.flex_expressions import *
-
-from ....shared.model_container import Source1ModelContainer
+from .....library.source1.mdl.v49.mdl_file import MdlV49
+from .....library.source1.vtx.v7.vtx import Vtx
+from .....library.source1.vvd import Vvd
+from .....library.utils.byte_io_mdl import ByteIO
+from .....library.utils.math_utilities import euler_to_quat
+from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
+from ....shared.model_container import Source1ModelContainer
 from ....utils.utils import get_material
-from .....library.utils.math_utilities import euler_to_quat
+from .. import FileImport
+from ..common import get_slice, merge_meshes
+
 # from .....library.utils.pylib_loader import source1
 
 log_manager = SLoggingManager()

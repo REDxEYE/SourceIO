@@ -3,20 +3,20 @@ from pathlib import Path
 import bpy
 import numpy as np
 
-from .. import FileImport
-from ..common import get_slice, merge_meshes
-from ..v49.import_mdl import collect_full_material_names, create_armature, create_attachments, create_flex_drivers
-
-from ....utils.utils import get_material
-from ....shared.model_container import Source1ModelContainer
-
-from .....logger import SLoggingManager
+from .....library.source1.mdl.structs.header import StudioHDRFlags
+from .....library.source1.mdl.v44.vertex_animation_cache import \
+    VertexAnimationCache
+from .....library.source1.mdl.v52.mdl_file import MdlV52
+from .....library.source1.vtx.v7.vtx import Vtx
 from .....library.source1.vvc import Vvc
 from .....library.source1.vvd import Vvd
-from .....library.source1.vtx.v7.vtx import Vtx
-from .....library.source1.mdl.v52.mdl_file import MdlV52
-from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
+from .....logger import SLoggingManager
+from ....shared.model_container import Source1ModelContainer
+from ....utils.utils import get_material
+from .. import FileImport
+from ..common import get_slice, merge_meshes
+from ..v49.import_mdl import (collect_full_material_names, create_armature,
+                              create_attachments, create_flex_drivers)
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')

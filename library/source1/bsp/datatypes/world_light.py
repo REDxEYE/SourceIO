@@ -1,10 +1,9 @@
-from enum import IntEnum
-
 import math
+from enum import IntEnum
 from typing import TYPE_CHECKING
 
-from .primitive import Primitive
 from ....utils.file_utils import IBuffer
+from .primitive import Primitive
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile

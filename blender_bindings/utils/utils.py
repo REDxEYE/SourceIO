@@ -1,5 +1,6 @@
-import bpy
 import random
+
+import bpy
 
 
 def find_layer_collection(layer_collection, name):

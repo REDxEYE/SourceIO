@@ -1,7 +1,6 @@
 from typing import List
 
-from . import Base
-from . import ByteIO
+from . import Base, ByteIO
 from .flex import FlexV36, FlexV49
 
 

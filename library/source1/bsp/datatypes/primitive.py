@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 from ....utils.file_utils import IBuffer
 
 if TYPE_CHECKING:
-    from ..lump import Lump
     from ..bsp_file import BSPFile
+    from ..lump import Lump
 
 
 class Primitive(abc.ABC):

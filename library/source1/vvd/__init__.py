@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import List, Dict
+from typing import Dict, List
 
 import numpy as np
 
-from .header import Header
-from .fixup import Fixup
 from ...shared.base import Base
 from ...utils.byte_io_mdl import ByteIO
+from .fixup import Fixup
+from .header import Header
 
 
 @dataclass

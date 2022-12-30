@@ -4,7 +4,6 @@ from typing import Optional
 import numpy as np
 
 from ...utils.byte_io_mdl import ByteIO
-
 from .base_block import DataBlock
 
 try:

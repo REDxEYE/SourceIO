@@ -1,7 +1,7 @@
 from collections import deque
 from io import BytesIO
 from pathlib import Path
-from typing import Union, Dict, Type
+from typing import Dict, Type, Union
 
 from ...utils.path_utilities import corrected_path
 

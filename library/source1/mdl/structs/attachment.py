@@ -1,8 +1,7 @@
 import numpy as np
 
-from . import ByteIO
-from . import Base
 from ....utils import math_utilities
+from . import Base, ByteIO
 
 
 class AttachmentV36(Base):

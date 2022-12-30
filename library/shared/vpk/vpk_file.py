@@ -1,12 +1,12 @@
 from functools import lru_cache
 from io import BytesIO
-from pathlib import Path, WindowsPath, PosixPath, PurePath
-from typing import Union, List, Dict
+from pathlib import Path, PosixPath, PurePath, WindowsPath
+from typing import Dict, List, Union
 
-from .structs.entry import TitanfallEntry
-from ...utils import FileBuffer, MemoryBuffer, IBuffer
-from .structs import *
+from ...utils import FileBuffer, IBuffer, MemoryBuffer
 from ...utils.thirdparty.lzham.lzham import LZHAM
+from .structs import *
+from .structs.entry import TitanfallEntry
 
 
 class InvalidMagic(Exception):

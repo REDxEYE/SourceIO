@@ -1,10 +1,12 @@
 import bpy
 
-from .base_entity_classes import *
-from .abstract_entity_handlers import AbstractEntityHandler, get_origin, get_angles
-from ...vmat.loader import ValveCompiledMaterialLoader
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from ....material_loader.shaders.source2_shaders.sky import Skybox
-from .....library.shared.content_providers.content_manager import ContentManager
+from ...vmat.loader import ValveCompiledMaterialLoader
+from .abstract_entity_handlers import (AbstractEntityHandler, get_angles,
+                                       get_origin)
+from .base_entity_classes import *
 
 
 class BaseEntityHandler(AbstractEntityHandler):

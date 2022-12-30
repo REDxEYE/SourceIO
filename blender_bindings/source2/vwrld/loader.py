@@ -1,19 +1,21 @@
+from pathlib import Path
+from typing import Any, Dict, List
+
 import bpy
 import numpy as np
-from pathlib import Path
 from mathutils import Matrix, Vector
-from typing import List, Dict, Any
 
-from .entities.steampal_entity_handlers import SteamPalEntityHandler
-from ....library.source2.resource_types import ValveCompiledResource, ValveCompiledWorld
+from ....library.shared.app_id import SteamAppId
+from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2.data_blocks import DataBlock
+from ....library.source2.resource_types import (ValveCompiledResource,
+                                                ValveCompiledWorld)
+from ....logger import SLogger, SLoggingManager
+from ...utils.utils import get_or_create_collection
 from .entities.base_entity_handlers import BaseEntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
 from .entities.sbox_entity_handlers import SBoxEntityHandler
-from ....logger import SLoggingManager, SLogger
-from ....library.shared.content_providers.content_manager import ContentManager
-from ...utils.utils import get_or_create_collection
-from ....library.shared.app_id import SteamAppId
+from .entities.steampal_entity_handlers import SteamPalEntityHandler
 
 log_manager = SLoggingManager()
 

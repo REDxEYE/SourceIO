@@ -1,5 +1,6 @@
 from ...utils.byte_io_mdl import ByteIO
 
+
 class Dependency:
     def read(self, reader: ByteIO):
         raise NotImplementedError

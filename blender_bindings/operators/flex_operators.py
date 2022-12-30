@@ -1,14 +1,9 @@
 import bpy
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       CollectionProperty,
-                       IntProperty,
-                       FloatProperty,
-                       PointerProperty
-                       )
+from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
+                       IntProperty, PointerProperty, StringProperty)
 
-from .shared_operators import UITools
 from ...library.source1.mdl.structs.flex import FlexController
+from .shared_operators import UITools
 
 
 def update_max_min(self: 'SourceIO_PG_FlexController', _):

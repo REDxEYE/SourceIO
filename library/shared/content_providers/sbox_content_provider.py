@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Union
 
-from .content_provider_base import ContentProviderBase
 from ...shared.app_id import SteamAppId
+from .content_provider_base import ContentProviderBase
 
 
 class SBoxAddonProvider(ContentProviderBase):

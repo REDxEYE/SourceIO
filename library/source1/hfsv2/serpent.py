@@ -1,8 +1,9 @@
 from pathlib import Path
 
+import numpy as np
+
 from ...utils.byte_io_mdl import ByteIO
 from ...utils.singleton import SingletonMeta
-import numpy as np
 from . import tables
 
 ROUND_ITER = 16

@@ -1,7 +1,7 @@
 from typing import List
 
-from .model import StudioModel
 from ....utils.byte_io_mdl import ByteIO
+from .model import StudioModel
 
 
 class StudioBodypart:

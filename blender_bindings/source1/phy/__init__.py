@@ -4,11 +4,11 @@ from typing import List
 import bpy
 import numpy as np
 
-from ....library.source1.phy.phy import TreeNode, ConvexLeaf, Phy
+from ....library.source1.phy.phy import ConvexLeaf, Phy, TreeNode
 from ....library.utils.math_utilities import vector_transform_v
+from ...shared.model_container import Source1ModelContainer
 from ...utils.utils import get_new_unique_collection
 from ..mdl import FileImport
-from ...shared.model_container import Source1ModelContainer
 
 
 def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):

@@ -1,5 +1,5 @@
-from .base_block import DataBlock
 from ..utils.binary_keyvalue import BinaryKeyValue
+from .base_block import DataBlock
 from .ntro_block import NTRO
 
 
@@ -38,6 +38,7 @@ class DATA(DataBlock):
                 struct_name = {
                     "DATA": ntro.structs[0].name,
                     "PHYS": "VPhysXAggregateData_t",
+                    'ASEQ': 'AnimationResourceData_t'
                 }
 
                 struct = ntro.get_struct_by_name(struct_name[self.info_block.block_name])

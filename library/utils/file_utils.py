@@ -5,9 +5,8 @@ import io
 import os
 import struct
 from pathlib import Path
-
-from struct import unpack, calcsize, pack
-from typing import Protocol, Optional
+from struct import calcsize, pack, unpack
+from typing import Optional, Protocol
 
 
 class IBuffer(abc.ABC, io.RawIOBase):

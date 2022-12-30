@@ -1,7 +1,8 @@
+import fnmatch
 from io import BytesIO
 from pathlib import Path
 from typing import Union
-import fnmatch
+
 from ...source1.gma import open_gma
 from .content_provider_base import ContentProviderBase
 

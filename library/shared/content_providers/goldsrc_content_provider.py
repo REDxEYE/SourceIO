@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Union
 
-from .content_provider_base import ContentProviderBase
-from ...goldsrc.wad import WadFile
 from ...global_config import GoldSrcConfig
+from ...goldsrc.wad import WadFile
+from .content_provider_base import ContentProviderBase
 
 
 class GoldSrcContentProvider(ContentProviderBase):

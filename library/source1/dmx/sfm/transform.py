@@ -9,4 +9,4 @@ class Transform(BaseElement):
 
     @property
     def orientation(self):
-        return self._element['orientation'][1:] + [self._element['orientation'][0]]
+        return self._element['orientation'][3:] + self._element['orientation'][:3]

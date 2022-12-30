@@ -1,13 +1,12 @@
-from typing import List, TYPE_CHECKING
-
-from .primitive import Primitive
-from ..lumps.plane_lump import PlaneLump
+from typing import TYPE_CHECKING, List
 
 from ....utils.file_utils import IBuffer
+from ..lumps.plane_lump import PlaneLump
+from .primitive import Primitive
 
 if TYPE_CHECKING:
-    from ..lumps.node_lump import NodeLump
     from ..bsp_file import BSPFile
+    from ..lumps.node_lump import NodeLump
 
 
 class Node(Primitive):

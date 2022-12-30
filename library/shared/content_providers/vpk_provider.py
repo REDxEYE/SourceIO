@@ -1,6 +1,7 @@
+import glob
 from pathlib import Path
 from typing import Union
-import glob
+
 from ...shared.vpk.vpk_file import open_vpk
 from .content_provider_base import ContentProviderBase
 

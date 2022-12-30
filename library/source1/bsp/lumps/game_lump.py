@@ -1,12 +1,13 @@
 from typing import List
 
-from .. import Lump, lump_tag, LumpInfo
+from ....utils import IBuffer
+from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
-from ..datatypes.game_lump_header import GameLumpHeader, VindictusGameLumpHeader
+from ..datatypes.game_lump_header import (GameLumpHeader,
+                                          VindictusGameLumpHeader)
 from ..datatypes.gamelumps.detail_prop_lump import DetailPropLump
 from ..datatypes.gamelumps.static_prop_lump import StaticPropLump
 from . import SteamAppId
-from ....utils import IBuffer
 
 
 @lump_tag(35, 'LUMP_GAME_LUMP')

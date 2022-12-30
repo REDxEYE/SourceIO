@@ -10,7 +10,8 @@ from ....library.source1.vtf import is_vtflib_supported
 
 if is_vtflib_supported():
     from ....library.source1.vtf import load_texture
-    from ....library.source1.vtf.cubemap_to_envmap import convert_skybox_to_equiangular, SkyboxException
+    from ....library.source1.vtf.cubemap_to_envmap import (
+        SkyboxException, convert_skybox_to_equiangular)
 
 
     def import_texture(name, file_object, update=False):

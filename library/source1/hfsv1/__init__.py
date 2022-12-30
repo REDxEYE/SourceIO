@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Dict
 
+from ...utils.byte_io_mdl import ByteIO
 from .directory import Directory
 from .file import File
 from .index import Index
-from ...utils.byte_io_mdl import ByteIO
 
 
 # noinspection PyShadowingNames

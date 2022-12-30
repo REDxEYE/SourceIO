@@ -1,11 +1,12 @@
-from ..structs.header import MdlHeaderV49
-from ..structs.bone import BoneV49
-from ..structs.material import MaterialV49
-from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
+from ....utils.kv_parser import ValveKeyValueParser
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV49
+from ..structs.bone import BoneV49
+from ..structs.flex import (FlexController, FlexControllerUI, FlexOpType,
+                            FlexRule)
+from ..structs.header import MdlHeaderV49
+from ..structs.material import MaterialV49
 from ..v49 import MdlV49
-from ....utils.kv_parser import ValveKeyValueParser
 
 
 class _AnimBlocks:

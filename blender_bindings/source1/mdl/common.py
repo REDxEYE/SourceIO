@@ -2,7 +2,7 @@ from typing import Iterable, Sized, Union
 
 import numpy as np
 
-from ....library.source1.mdl.structs.model import ModelV49, ModelV36
+from ....library.source1.mdl.structs.model import ModelV36, ModelV49
 from ....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
 from ....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 

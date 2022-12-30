@@ -1,9 +1,9 @@
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 
-from .primitive import Primitive
 from ....utils.file_utils import IBuffer
+from .primitive import Primitive
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile

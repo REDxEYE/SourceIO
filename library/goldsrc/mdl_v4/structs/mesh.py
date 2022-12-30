@@ -1,7 +1,7 @@
 from typing import List
 
-from .texture import StudioTexture
 from ....utils.byte_io_mdl import ByteIO
+from .texture import StudioTexture
 
 
 class StudioTrivert:

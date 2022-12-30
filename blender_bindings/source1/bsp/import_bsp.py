@@ -1,54 +1,54 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any
-
-import numpy as np
+from typing import Any, Dict, Optional
 
 import bpy
-from mathutils import Vector, Quaternion, Matrix
+import numpy as np
+from mathutils import Matrix, Quaternion, Vector
 
-from ...shared.model_container import Source1ModelContainer
-from ...utils.utils import get_material, get_or_create_collection
-from ...material_loader.material_loader import Source1MaterialLoader
-from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
-
-from .entities.tf2_entity_handler import TF2EntityHandler
-from .entities.base_entity_handler import BaseEntityHandler
-from .entities.csgo_entity_handlers import CSGOEntityHandler
-from .entities.bms_entity_handlers import BlackMesaEntityHandler
-from .entities.portal_entity_handlers import PortalEntityHandler
-from .entities.portal2_entity_handlers import Portal2EntityHandler
-from .entities.halflife2_entity_handler import HalfLifeEntityHandler
-from .entities.titanfall_entity_handler import TitanfallEntityHandler
-from .entities.vindictus_entity_handler import VindictusEntityHandler
-from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
-
-from ....logger import SLoggingManager
 from ....library.shared.app_id import SteamAppId
-from ....library.utils.singleton import SingletonMeta
+from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.bsp.bsp_file import open_bsp
 from ....library.source1.bsp.datatypes.face import Face
-
-from ....library.source1.bsp.lumps.pak_lump import PakLump
+from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import \
+    StaticPropLump
+from ....library.source1.bsp.lumps.cubemap import CubemapLump
+from ....library.source1.bsp.lumps.displacement_lump import (DispInfoLump,
+                                                             DispMultiblend,
+                                                             DispVert)
 from ....library.source1.bsp.lumps.edge_lump import EdgeLump
+from ....library.source1.bsp.lumps.entity_lump import EntityLump
 from ....library.source1.bsp.lumps.face_lump import FaceLump
 from ....library.source1.bsp.lumps.game_lump import GameLump
-from ....library.source1.bsp.lumps.cubemap import CubemapLump
+from ....library.source1.bsp.lumps.model_lump import ModelLump
+from ....library.source1.bsp.lumps.overlay_lump import OverlayLump
+from ....library.source1.bsp.lumps.pak_lump import PakLump
 from ....library.source1.bsp.lumps.physics import PhysicsLump
 from ....library.source1.bsp.lumps.plane_lump import PlaneLump
-from ....library.source1.bsp.lumps.model_lump import ModelLump
-from ....library.source1.bsp.lumps.vertex_lump import VertexLump
-from ....library.source1.bsp.lumps.entity_lump import EntityLump
 from ....library.source1.bsp.lumps.string_lump import StringsLump
-from ....library.source1.bsp.lumps.overlay_lump import OverlayLump
 from ....library.source1.bsp.lumps.surf_edge_lump import SurfEdgeLump
-
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
-from ....library.source1.bsp.lumps.texture_lump import TextureInfoLump, TextureDataLump
-from ....library.utils.math_utilities import convert_rotation_source1_to_blender, UnitPlane
-from ....library.source1.bsp.lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
+from ....library.source1.bsp.lumps.texture_lump import (TextureDataLump,
+                                                        TextureInfoLump)
+from ....library.source1.bsp.lumps.vertex_lump import VertexLump
+from ....library.utils.math_utilities import (
+    UnitPlane, convert_rotation_source1_to_blender)
+from ....library.utils.singleton import SingletonMeta
+from ....logger import SLoggingManager
+from ...material_loader.material_loader import Source1MaterialLoader
+from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
+from ...shared.model_container import Source1ModelContainer
+from ...utils.utils import get_material, get_or_create_collection
+from .entities.base_entity_handler import BaseEntityHandler
+from .entities.bms_entity_handlers import BlackMesaEntityHandler
+from .entities.csgo_entity_handlers import CSGOEntityHandler
+from .entities.halflife2_entity_handler import HalfLifeEntityHandler
+from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
+from .entities.portal2_entity_handlers import Portal2EntityHandler
+from .entities.portal_entity_handlers import PortalEntityHandler
+from .entities.tf2_entity_handler import TF2EntityHandler
+from .entities.titanfall_entity_handler import TitanfallEntityHandler
+from .entities.vindictus_entity_handler import VindictusEntityHandler
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()

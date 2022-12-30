@@ -5,7 +5,6 @@ from ...data_blocks import TEXR
 from ...data_blocks.texture_block import VTexFormat
 from ...resource_types import ValveCompiledResource
 
-
 logger = SLoggingManager().get_logger("Source2::Texture")
 
 

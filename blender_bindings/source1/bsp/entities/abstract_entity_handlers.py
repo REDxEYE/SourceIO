@@ -1,27 +1,26 @@
-import re
 import math
-from typing import List
+import re
 from pathlib import Path
 from pprint import pformat
+from typing import List
 
 import bpy
+import numpy as np
 from mathutils import Euler
 
-import numpy as np
-
-from ...vtf import import_texture
-from .base_entity_classes import *
-from .....logger import SLoggingManager
-from ....utils.utils import get_material, get_or_create_collection
-
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from .....library.source1.bsp.bsp_file import BSPFile
-from .....library.source1.vmt import VMT
 from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
-from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....library.source1.bsp.datatypes.texture_data import TextureData
 from .....library.source1.bsp.datatypes.texture_info import TextureInfo
-from .....library.shared.content_providers.content_manager import ContentManager
+from .....library.source1.vmt import VMT
+from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
+from .....logger import SLoggingManager
+from ....utils.utils import get_material, get_or_create_collection
+from ...vtf import import_texture
+from .base_entity_classes import *
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()

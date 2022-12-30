@@ -1,8 +1,6 @@
 from typing import List
 
-from . import Base
-from . import ByteIO
-
+from . import Base, ByteIO
 from .lod import ModelLod
 
 

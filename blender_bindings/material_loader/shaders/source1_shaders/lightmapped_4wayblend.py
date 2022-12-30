@@ -1,6 +1,7 @@
+import bpy
+
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
-import bpy
 
 
 class Lightmapped4WayBlend(Source1ShaderBase):

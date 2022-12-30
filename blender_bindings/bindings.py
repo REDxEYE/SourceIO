@@ -1,47 +1,34 @@
 from pathlib import Path
 
 import bpy
-
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       CollectionProperty,
-                       IntProperty,
-                       FloatProperty,
-                       PointerProperty
-                       )
+from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
+                       IntProperty, PointerProperty, StringProperty)
 
 from ..library.source1.vtf import is_vtflib_supported
-
+from .operators.flex_operators import SourceIO_PG_FlexController
+from .operators.flex_operators import classes as flex_classes
 from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
                                           SOURCEIO_OT_GMDLImport)
-
-from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
-                                          SOURCEIO_OT_MDLImport,
-                                          SOURCEIO_OT_DMXImporter,
-                                          SOURCEIO_OT_RigImport,
-                                          )
-from .operators.source2_operators import (SOURCEIO_OT_VMATImport,
-                                          SOURCEIO_OT_VTEXImport,
-                                          SOURCEIO_OT_VMDLImport,
-                                          SOURCEIO_OT_VWRLDImport,
-                                          SOURCEIO_OT_VPK_VWRLDImport,
-                                          SOURCEIO_OT_DMXCameraImport
-                                          )
-from .operators.shared_operators import (SOURCEIO_PT_Utils,
-                                         SOURCEIO_PT_EntityLoader,
-                                         SOURCEIO_PT_SkinChanger,
+from .operators.shared_operators import (ChangeSkin_OT_LoadEntity,
                                          SOURCEIO_OT_ChangeSkin,
-                                         ChangeSkin_OT_LoadEntity,
-                                         SOURCEIO_PT_Scene,
                                          SOURCEIO_PT_EntityInfo,
-                                         )
+                                         SOURCEIO_PT_EntityLoader,
+                                         SOURCEIO_PT_Scene,
+                                         SOURCEIO_PT_SkinChanger,
+                                         SOURCEIO_PT_Utils)
+from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
+                                          SOURCEIO_OT_DMXImporter,
+                                          SOURCEIO_OT_MDLImport,
+                                          SOURCEIO_OT_RigImport)
+from .operators.source2_operators import (SOURCEIO_OT_DMXCameraImport,
+                                          SOURCEIO_OT_VMATImport,
+                                          SOURCEIO_OT_VMDLImport,
+                                          SOURCEIO_OT_VPK_VWRLDImport,
+                                          SOURCEIO_OT_VTEXImport,
+                                          SOURCEIO_OT_VWRLDImport)
 from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
-                                      SourceIO_OP_VPKBrowserLoader,
-                                      )
+                                      SourceIO_OP_VPKBrowserLoader)
 from .operators.vpk_operators import classes as vpk_classes
-
-from .operators.flex_operators import classes as flex_classes, SourceIO_PG_FlexController
-
 from .ui.export_nodes import register_nodes, unregister_nodes
 
 custom_icons = {}
@@ -180,11 +167,10 @@ classes = (
 )
 
 if is_vtflib_supported():
-    from .operators.source1_operators import (SOURCEIO_OT_VTFExport,
-                                              SOURCEIO_OT_VTFImport,
+    from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
                                               SOURCEIO_OT_VMTImport,
-                                              SOURCEIO_OT_SkyboxImport,
-                                              )
+                                              SOURCEIO_OT_VTFExport,
+                                              SOURCEIO_OT_VTFImport)
 
     classes = tuple([*classes, SOURCEIO_OT_VTFExport, SOURCEIO_OT_VTFImport,
                      SOURCEIO_OT_VMTImport, SOURCEIO_OT_SkyboxImport])

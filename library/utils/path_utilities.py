@@ -1,6 +1,6 @@
+import os
 import platform
 from pathlib import Path
-import os
 
 
 def pop_path_back(path: Path):

@@ -1,17 +1,18 @@
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, BoolProperty, CollectionProperty, FloatProperty
+from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
+                       StringProperty)
 
-from ..utils.utils import get_new_unique_collection
-from ..source2.dmx.camera_loader import load_camera
-from ..source2.vmdl.loader import put_into_collections
-from ..source2.vmdl.loader import ValveCompiledModelLoader
-from ..source2.vwrld.loader import ValveCompiledWorldLoader
-from ..source2.vtex.loader import ValveCompiledTextureLoader
-from ..source2.vmat.loader import ValveCompiledMaterialLoader
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from ..source2.dmx.camera_loader import load_camera
+from ..source2.vmat.loader import ValveCompiledMaterialLoader
+from ..source2.vmdl.loader import (ValveCompiledModelLoader,
+                                   put_into_collections)
+from ..source2.vtex.loader import ValveCompiledTextureLoader
+from ..source2.vwrld.loader import ValveCompiledWorldLoader
+from ..utils.utils import get_new_unique_collection
 
 
 class SOURCEIO_OT_VMDLImport(bpy.types.Operator):

@@ -3,8 +3,9 @@ import numpy as np
 from ....utils.byte_io_mdl import ByteIO
 from ...data_blocks import DATA
 from ...data_blocks.compiled_file_header import InfoBlock
+from ...data_blocks.vbib_block import (VBIB, DxgiFormat, IndexBuffer,
+                                       VertexAttribute, VertexBuffer)
 from ...resource_types import ValveCompiledResource
-from ...data_blocks.vbib_block import IndexBuffer, VertexBuffer, VBIB, VertexAttribute, DxgiFormat
 
 semantic_id_to_name = {
     80: 'POSITION',

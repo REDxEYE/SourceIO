@@ -1,9 +1,9 @@
+from io import BufferedIOBase, BytesIO, StringIO, TextIOBase
 from pathlib import Path
-from typing import Union, IO, List
-from io import TextIOBase, BufferedIOBase, BytesIO, StringIO
+from typing import IO, List, Union
 
-from ..utils.s1_keyvalues import KVParser
 from ...logger import SLoggingManager
+from ..utils.s1_keyvalues import KVParser
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('GameInfoParser')

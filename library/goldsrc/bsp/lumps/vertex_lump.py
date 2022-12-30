@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..lump import Lump, LumpType, LumpInfo
+from ..lump import Lump, LumpInfo, LumpType
 
 
 class VertexLump(Lump):

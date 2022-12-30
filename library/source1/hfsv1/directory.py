@@ -1,6 +1,6 @@
+from ...utils.byte_io_mdl import ByteIO
 from .file import CompressionMethod, File
 from .xor_key import xor_decode
-from ...utils.byte_io_mdl import ByteIO
 
 
 class Directory:

@@ -1,15 +1,14 @@
 import math
+from pathlib import Path
 from typing import List
 
 import numpy as np
 
-from ..mdl.v49.mdl_file import MdlV49
+from ...utils.math_utilities import vector_transform
+from ..mdl.structs.bodygroup import BodyPartV49
 from ..mdl.structs.bone import ProceduralBoneType
 from ..mdl.structs.header import StudioHDRFlags
-from ..mdl.structs.bodygroup import BodyPartV49
-from pathlib import Path
-
-from ...utils.math_utilities import vector_transform
+from ..mdl.v49.mdl_file import MdlV49
 
 
 def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):

@@ -1,5 +1,5 @@
-from .source2_shader_base import Source2ShaderBase
 from ..shader_base import Nodes
+from .source2_shader_base import Source2ShaderBase
 
 
 class DebugMaterial(Source2ShaderBase):

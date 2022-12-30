@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Optional
 
-from .lump import LumpType, LumpInfo, Lump
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.byte_io_mdl import ByteIO
+from .lump import Lump, LumpInfo, LumpType
 
 
 class BspFile:

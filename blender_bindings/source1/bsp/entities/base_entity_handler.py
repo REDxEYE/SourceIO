@@ -4,23 +4,21 @@ import traceback
 from pathlib import Path
 from typing import List, Tuple
 
-import numpy as np
-
 import bpy
+import numpy as np
 from mathutils import Vector
 
-from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
-from .base_entity_classes import *
-from .base_entity_classes import entity_class_handle as base_entity_classes
-from ...vtf import SkyboxException
-from ...vtf import load_skybox_texture
-
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
+from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
 from ....utils.utils import get_material
-from .....library.shared.content_providers.content_manager import ContentManager
-from .....library.utils.math_utilities import lerp_vec, ensure_length
+from ...vtf import SkyboxException, load_skybox_texture
+from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
+from .base_entity_classes import *
+from .base_entity_classes import entity_class_handle as base_entity_classes
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()

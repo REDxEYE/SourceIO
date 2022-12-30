@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Iterable
+
+import numpy as np
 
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase

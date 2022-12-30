@@ -2,9 +2,9 @@ from typing import Optional
 
 import bpy
 
-from ..goldsrc_shader_base import GoldSrcShaderBase
-from ...shader_base import Nodes
 from .....library.goldsrc.mdl_v10.structs.texture import MdlTextureFlag
+from ...shader_base import Nodes
+from ..goldsrc_shader_base import GoldSrcShaderBase
 
 
 class GoldSrcShaderMode1(GoldSrcShaderBase):

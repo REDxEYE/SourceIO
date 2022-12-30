@@ -1,6 +1,6 @@
+from ....library.utils.singleton import SingletonMeta
 from . import vs
 from .sfm import SFM, Dag, get_bone
-from ....library.utils.singleton import SingletonMeta
 
 sfm = SFM()
 

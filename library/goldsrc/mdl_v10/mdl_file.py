@@ -1,11 +1,11 @@
 from typing import List
 
-from .structs.bone import StudioBone
-from .structs.texture import StudioTexture
-from .structs.bodypart import StudioBodypart
-from .structs.studioheader import StudioHeader
 from ....library.shared.base import Base
 from ....library.utils.byte_io_mdl import ByteIO
+from .structs.bodypart import StudioBodypart
+from .structs.bone import StudioBone
+from .structs.studioheader import StudioHeader
+from .structs.texture import StudioTexture
 
 
 class Mdl(Base):

@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import Dict
 
 from .....logger import SLoggingManager
-from ..content_provider_base import ContentDetectorBase, ContentProviderBase
-
-from ..source1_content_provider import GameinfoContentProvider
-from ..non_source_sub_manager import NonSourceContentProvider
-from ..vpk_provider import VPKContentProvider
 from ...vpk.vpk_file import InvalidMagic
+from ..content_provider_base import ContentDetectorBase, ContentProviderBase
+from ..non_source_sub_manager import NonSourceContentProvider
+from ..source1_content_provider import GameinfoContentProvider
+from ..vpk_provider import VPKContentProvider
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1DetectorBase')

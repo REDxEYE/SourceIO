@@ -1,5 +1,4 @@
-from . import ByteIO
-from . import Base
+from . import Base, ByteIO
 
 
 class AutoLayer(Base):

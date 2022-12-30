@@ -1,5 +1,4 @@
-from . import Base
-from . import ByteIO
+from . import Base, ByteIO
 
 
 class MaterialV36(Base):

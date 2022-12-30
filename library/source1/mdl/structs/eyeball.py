@@ -1,7 +1,6 @@
 from typing import Optional
 
-from . import Base
-from . import ByteIO
+from . import Base, ByteIO
 from .material import MaterialV36, MaterialV49
 
 

@@ -1,10 +1,9 @@
-import json
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
+from ...utils import FileBuffer, IBuffer
 from .file_entry import FileEntry
-from ...utils.byte_io_mdl import ByteIO
 
 
 def open_gma(filepath: Union[str, Path]):
@@ -16,7 +15,7 @@ def open_gma(filepath: Union[str, Path]):
 class GMA:
     def __init__(self, filepath: Path):
         self.filepath = filepath
-        self.reader = ByteIO(filepath)
+        self.reader = FileBuffer(filepath)
         self.version = 0
         self.steam_id = b''
         self.timestamp = datetime(1970, 1, 1)
@@ -43,19 +42,18 @@ class GMA:
 
         offset = 0
         while True:
-            entry = FileEntry()
-            if not entry.read(reader):
+            entry = FileEntry.from_buffer(reader)
+            if entry is None:
                 break
             entry.offset = offset
             offset += entry.size
             self.file_entries[entry.name.lower()] = entry
         self._content_offset = reader.tell()
 
-    def find_file(self, filename):
+    def find_file(self, filename) -> Optional[IBuffer]:
         filename = filename.as_posix().lower()
         if filename in self.file_entries:
             entry = self.file_entries[filename]
-            self.reader.seek(self._content_offset + entry.offset)
-            data = ByteIO(self.reader.read(entry.size))
+            data = self.reader.slice(self._content_offset + entry.offset, entry.size)
             return data
         return None

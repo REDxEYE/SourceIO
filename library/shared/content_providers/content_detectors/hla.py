@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Dict
 
-from .source2_base import Source2DetectorBase
-from ..content_provider_base import ContentProviderBase
 from .....library.utils.path_utilities import backwalk_file_resolver
+from ..content_provider_base import ContentProviderBase
 from ..hla_content_provider import HLAAddonProvider
+from .source2_base import Source2DetectorBase
 
 
 class HLADetector(Source2DetectorBase):

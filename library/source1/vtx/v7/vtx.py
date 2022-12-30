@@ -1,9 +1,8 @@
 import struct
 
-from .structs.material_replacement_list import MaterialReplacementList
-
 from ..v6.vtx import Vtx as Vtx6
 from .structs.bodypart import BodyPart
+from .structs.material_replacement_list import MaterialReplacementList
 
 
 class Vtx(Vtx6):

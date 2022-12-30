@@ -1,5 +1,5 @@
-from . import Base
-from . import ByteIO
+from . import Base, ByteIO
+
 
 class Header(Base):
     def __init__(self):

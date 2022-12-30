@@ -1,11 +1,11 @@
 from .resource import ValveCompiledResource
-from .vphys import ValveCompiledPhysics
 from .vmat import ValveCompiledMaterial
-from .vtex import ValveCompiledTexture
 from .vmdl import ValveCompiledModel
-from .vwrld import ValveCompiledWorld
 from .vmorf import ValveCompiledMorph
+from .vphys import ValveCompiledPhysics
 from .vrman import ValveCompiledResourceManifest
+from .vtex import ValveCompiledTexture
+from .vwrld import ValveCompiledWorld
 
 
 def get_resource_loader_from_ext(ext: str):

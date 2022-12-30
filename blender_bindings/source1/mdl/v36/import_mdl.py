@@ -4,20 +4,21 @@ from typing import Iterable, Sized, Union
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler, Quaternion
+from mathutils import Euler, Matrix, Quaternion, Vector
 
-from .. import FileImport
-from ..common import merge_meshes
-from .....logger import SLoggingManager
-from .....library.source1.mdl.v49.flex_expressions import *
-from .....library.source1.mdl.v36.mdl_file import MdlV36
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from .....library.source1.mdl.structs.header import StudioHDRFlags
+from .....library.source1.mdl.v36.mdl_file import MdlV36
+from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.vtx import open_vtx
-from .....library.shared.content_providers.content_manager import ContentManager
+from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ....utils.utils import get_material
 from ....shared.model_container import Source1ModelContainer
+from ....utils.utils import get_material
+from .. import FileImport
+from ..common import merge_meshes
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')

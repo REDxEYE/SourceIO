@@ -2,18 +2,18 @@ import os
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProperty, FloatProperty
+from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
+                       FloatProperty, StringProperty)
 
+from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.source1.vtf import is_vtflib_supported
+from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
+from ...logger import SLoggingManager
 from ..material_loader.material_loader import Source1MaterialLoader
 from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ..source1.bsp.import_bsp import BSP, BPSPropCache
 from ..source1.dmx.load_sfm_session import load_session
 from ..source1.mdl.model_loader import import_model_from_full_path
-
-from ...library.source1.vtf import is_vtflib_supported
-from ...library.shared.content_providers.content_manager import ContentManager
-from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-from ...logger import SLoggingManager
 
 logger = SLoggingManager().get_logger("SourceIO::Operators")
 
@@ -73,8 +73,8 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
             #     logger.info('Loading animations')
             #     import_animations(model_container.mdl, model_container.armature, self.scale)
             if self.write_qc:
-                from ...library.source1.qc.qc import generate_qc
                 from ... import bl_info
+                from ...library.source1.qc.qc import generate_qc
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         content_manager.flush_cache()
@@ -187,9 +187,8 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
 
 
 if is_vtflib_supported():
-    from ..source1.vtf.export_vtf import export_texture
     from ..source1.vtf import import_texture, load_skybox_texture
-
+    from ..source1.vtf.export_vtf import export_texture
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
     class SOURCEIO_OT_VTFImport(bpy.types.Operator):

@@ -1,11 +1,11 @@
+import glob
 from pathlib import Path
 from typing import Union
 
+from ...shared.app_id import SteamAppId
 from ...source1.hfsv1 import HFS
 from ...source1.hfsv2 import HFSv2
 from .content_provider_base import ContentProviderBase
-from ...shared.app_id import SteamAppId
-import glob
 
 
 class HFS2ContentProvider(ContentProviderBase):

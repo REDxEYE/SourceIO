@@ -1,14 +1,14 @@
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, CollectionProperty, BoolProperty, FloatProperty
+from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
+                       StringProperty)
 
 from ...library.global_config import GoldSrcConfig
+from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ...logger import SLoggingManager
 from ..goldsrc import import_model
 from ..goldsrc.bsp.import_bsp import BSP
-from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-
 
 logger = SLoggingManager().get_logger("GoldSrc::Operators")
 

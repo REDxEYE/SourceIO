@@ -1,7 +1,7 @@
 from typing import List
 
 import bpy
-from bpy.types import NodeTree, Node, Operator
+from bpy.types import Node, NodeTree, Operator
 
 from . import nodes
 

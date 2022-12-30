@@ -2,7 +2,7 @@ import warnings
 from enum import Enum
 from pathlib import Path
 from pprint import pprint
-from typing import Tuple, Union, List
+from typing import List, Tuple, Union
 
 KeyValuePair = Tuple[str, Union[str, 'KeyValuePair', List['KeyValuePair']]]
 

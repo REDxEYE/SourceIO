@@ -1,20 +1,20 @@
 import math
 import traceback
-from typing import List, Dict
+from typing import Dict, List
 
 import numpy as np
 
-from .. import Mdl
 from ....utils.byte_io_mdl import ByteIO
-
-from ..v49.flex_expressions import *
-from ..structs.header import MdlHeaderV44
-from ..structs.bone import BoneV49
-from ..structs.material import MaterialV49
-from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
+from ....utils.kv_parser import ValveKeyValueParser
+from .. import Mdl
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV44
-from ....utils.kv_parser import ValveKeyValueParser
+from ..structs.bone import BoneV49
+from ..structs.flex import (FlexController, FlexControllerUI, FlexOpType,
+                            FlexRule)
+from ..structs.header import MdlHeaderV44
+from ..structs.material import MaterialV49
+from ..v49.flex_expressions import *
 
 
 class _AnimBlocks:

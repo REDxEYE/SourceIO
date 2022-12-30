@@ -2,8 +2,8 @@ import zlib
 from enum import IntEnum
 from pathlib import Path
 
-from .xor_key import xor_decode
 from ...utils.byte_io_mdl import ByteIO
+from .xor_key import xor_decode
 
 
 class CompressionMethod(IntEnum):

@@ -1,10 +1,10 @@
 import importlib
 import importlib.util
-import sys
-from importlib.abc import MetaPathFinder, Loader
-from pathlib import Path
 import logging
+import sys
+from importlib.abc import Loader, MetaPathFinder
 from lib2to3.refactor import RefactoringTool, get_fixers_from_package
+from pathlib import Path
 
 logger = logging.getLogger('SFMHook')
 
@@ -51,9 +51,7 @@ class dummy:
 
 
 def load_script(script_path: Path):
-    from . import sfm
-    from . import vs
-    from . import sfm_utils
+    from . import sfm, sfm_utils, vs
     hooks = {
         'vs': vs,
         'sfm': sfm.SFM(),

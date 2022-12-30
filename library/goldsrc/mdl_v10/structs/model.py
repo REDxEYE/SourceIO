@@ -2,9 +2,8 @@ from typing import List
 
 import numpy as np
 
-from .mesh import StudioMesh
 from ....utils.byte_io_mdl import ByteIO
-
+from .mesh import StudioMesh
 
 # // studio models
 # struct mstudiomodel_t

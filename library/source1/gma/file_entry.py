@@ -1,22 +1,25 @@
-from ...utils.byte_io_mdl import ByteIO
+from dataclasses import dataclass, field
+from typing import Optional
+
+from ...utils import IBuffer
 
 
+@dataclass(slots=True)
 class FileEntry:
+    id: int
+    name: str
+    size: int
+    crc: int
+    offset: int = field(init=False)
 
-    def __init__(self):
-        self.id = 0
-        self.name = ''
-        self.size = 0
-        self.crc = 0
-        self.offset = 0
-
-    def read(self, reader: ByteIO):
-        self.id = reader.read_uint32()
-        if self.id == 0:
-            return False
-        self.name = reader.read_ascii_string()
-        self.size, self.crc = reader.read_fmt('<IQ')
-        return True
+    @classmethod
+    def from_buffer(cls, buffer: IBuffer) -> Optional['FileEntry']:
+        entry_id = buffer.read_uint32()
+        if entry_id == 0:
+            return None
+        name = buffer.read_ascii_string()
+        size, crc = buffer.read_fmt('<IQ')
+        return cls(entry_id, name, size, crc)
 
     def __repr__(self) -> str:
         return f'FileEntry "{self.name}":0x{self.crc:X} {self.offset}:{self.size}'

@@ -1,5 +1,5 @@
-from .base_element import BaseElement
 from .....library.utils.datamodel import Element
+from .base_element import BaseElement
 
 
 class TimeFrame(BaseElement):

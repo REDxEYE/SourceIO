@@ -1,5 +1,6 @@
 from .data_block import DATA
 
+
 class ANIM(DATA):
 
     def __init__(self, valve_file, info_block):

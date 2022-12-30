@@ -1,7 +1,7 @@
 import struct
 from enum import IntEnum
 from pathlib import Path
-from typing import Optional, BinaryIO
+from typing import BinaryIO, Optional
 
 import numpy as np
 

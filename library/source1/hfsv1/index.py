@@ -1,5 +1,5 @@
-from .xor_key import xor_decode
 from ...utils.byte_io_mdl import ByteIO
+from .xor_key import xor_decode
 
 
 class Index:

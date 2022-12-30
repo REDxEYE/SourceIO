@@ -4,14 +4,15 @@ from typing import BinaryIO
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Quaternion
+from mathutils import Matrix, Quaternion, Vector
 
 from ....library.goldsrc.mdl_v4.mdl_file import Mdl
 from ....library.goldsrc.mdl_v4.structs.sequence import euler_to_quat
 from ....library.goldsrc.mdl_v4.structs.texture import StudioTexture
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
-from ...utils.utils import get_new_unique_collection, get_material
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
+    GoldSrcShader
 from ...shared.model_container import GoldSrcV4ModelContainer
+from ...utils.utils import get_material, get_new_unique_collection
 
 
 def get_name(mdl_file: BinaryIO):

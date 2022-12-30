@@ -1,11 +1,11 @@
 import struct
 from collections import defaultdict
 
-from .data_block import DATA
 import numpy as np
 
-from ...source1.mdl.v49.flex_expressions import *
 from ...shared.content_providers.content_manager import ContentManager
+from ...source1.mdl.v49.flex_expressions import *
+from .data_block import DATA
 
 
 class MRPH(DATA):

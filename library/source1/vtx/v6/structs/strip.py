@@ -1,7 +1,6 @@
 from enum import IntFlag
 
-from . import Base
-from . import ByteIO
+from . import Base, ByteIO
 
 
 class StripHeaderFlags(IntFlag):

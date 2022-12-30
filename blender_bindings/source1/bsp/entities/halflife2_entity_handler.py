@@ -1,7 +1,8 @@
 import math
 
-from mathutils import Euler
 import bpy
+from mathutils import Euler
+
 from .base_entity_handler import BaseEntityHandler
 from .halflife2_entity_classes import *
 

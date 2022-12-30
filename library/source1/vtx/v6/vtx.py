@@ -1,11 +1,10 @@
 from typing import List
 
-from .structs.material_replacement_list import MaterialReplacementList
 from ....shared.base import Base
 from ....utils.byte_io_mdl import ByteIO
-
-from .structs.header import Header
 from .structs.bodypart import BodyPart
+from .structs.header import Header
+from .structs.material_replacement_list import MaterialReplacementList
 
 
 class Vtx(Base):

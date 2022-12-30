@@ -4,25 +4,24 @@ from typing import Union
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler, Quaternion
+from mathutils import Euler, Matrix, Quaternion, Vector
 
-from .. import FileImport
-from ..common import get_slice, merge_meshes
-from .....logger import SLoggingManager
-from .....library.shared.content_providers.content_manager import ContentManager
-
-from .....library.source1.vvd import Vvd
-
-from .....library.source1.vtx.v7.vtx import Vtx
-from .....library.source1.mdl.v44.mdl_file import MdlV44
-from .....library.source1.mdl.v49.flex_expressions import *
-from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from .....library.source1.mdl.structs.header import StudioHDRFlags
-
-from ....shared.model_container import Source1ModelContainer
+from .....library.source1.mdl.v44.mdl_file import MdlV44
+from .....library.source1.mdl.v44.vertex_animation_cache import \
+    VertexAnimationCache
+from .....library.source1.mdl.v49.flex_expressions import *
+from .....library.source1.vtx.v7.vtx import Vtx
+from .....library.source1.vvd import Vvd
+from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
+from ....shared.model_container import Source1ModelContainer
 from ....utils.utils import get_material
+from .. import FileImport
+from ..common import get_slice, merge_meshes
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')

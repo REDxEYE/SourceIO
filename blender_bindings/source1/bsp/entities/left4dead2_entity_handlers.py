@@ -1,10 +1,11 @@
 import math
 
-from mathutils import Euler
 import bpy
-from .left4dead2_entity_classes import *
+from mathutils import Euler
+
 from .halflife2_entity_classes import entity_class_handle as hl2_entity_classes
 from .halflife2_entity_handler import HalfLifeEntityHandler
+from .left4dead2_entity_classes import *
 
 local_entity_lookup_table = HalfLifeEntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)

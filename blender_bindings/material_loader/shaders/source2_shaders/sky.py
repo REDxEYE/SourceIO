@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import Dict, Union
 
+import bpy
+
 from .....logger import SLoggingManager
 from ...shader_base import Nodes
 from ..source2_shader_base import Source2ShaderBase
-import bpy
 
 log_manager = SLoggingManager()
 

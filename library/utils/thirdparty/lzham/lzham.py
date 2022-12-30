@@ -1,10 +1,10 @@
 import ctypes
 import os
-from pathlib import Path
 import platform
-
-from ctypes import CDLL, c_uint32, c_char_p, POINTER, Structure, create_string_buffer, pointer, cast
+from ctypes import (CDLL, POINTER, Structure, c_char_p, c_uint32, cast,
+                    create_string_buffer, pointer)
 from enum import IntEnum, auto
+from pathlib import Path
 
 platform_name = platform.system()
 

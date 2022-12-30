@@ -1,11 +1,9 @@
-from typing import List, TYPE_CHECKING
+from typing import List
 
 from ....utils import IBuffer
+from .. import Lump, LumpInfo, lump_tag
+from ..bsp_file import BSPFile
 from ..datatypes.cubemap import Cubemap
-from .. import Lump, lump_tag, LumpInfo
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
 
 
 @lump_tag(42, 'LUMP_CUBEMAPS')

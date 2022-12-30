@@ -4,16 +4,15 @@ from typing import List
 
 import numpy as np
 
-from .. import Mdl
 from ....utils.byte_io_mdl import ByteIO
-
-from ..v49.flex_expressions import *
-from ..structs.header import MdlHeaderV36
-from ..structs.bone import BoneV36
-from ..structs.material import MaterialV36
-from ..structs.flex import FlexController, FlexRule, FlexOpType
+from .. import Mdl
 from ..structs.attachment import AttachmentV36
 from ..structs.bodygroup import BodyPartV36
+from ..structs.bone import BoneV36
+from ..structs.flex import FlexController, FlexOpType, FlexRule
+from ..structs.header import MdlHeaderV36
+from ..structs.material import MaterialV36
+from ..v49.flex_expressions import *
 
 
 class _AnimBlocks:

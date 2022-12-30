@@ -1,11 +1,12 @@
+from typing import Any, Dict
+
 import bpy
-from typing import Dict, Any
 import numpy as np
 
-from ..shader_base import ShaderBase
-from ...source1.vtf import import_texture
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.vmt import VMT
+from ...source1.vtf import import_texture
+from ..shader_base import ShaderBase
 
 
 class Source1ShaderBase(ShaderBase):

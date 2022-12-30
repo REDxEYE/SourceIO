@@ -1,9 +1,9 @@
-from typing import List, Dict
+from typing import Dict, List
 
-from ..bsp_file import BSPFile
 from ....utils import IBuffer
 from ...phy.phy import SolidHeader
-from .. import Lump, lump_tag, LumpInfo
+from .. import Lump, LumpInfo, lump_tag
+from ..bsp_file import BSPFile
 
 
 class SolidBlock:

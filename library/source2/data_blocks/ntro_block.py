@@ -5,8 +5,7 @@ from typing import List
 import numpy as np
 
 from ...utils.byte_io_mdl import ByteIO
-from ..common import Matrix, CTransform
-
+from ..common import CTransform, Matrix
 from .base_block import DataBlock
 
 

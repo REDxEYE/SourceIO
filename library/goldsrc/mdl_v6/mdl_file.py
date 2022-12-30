@@ -2,14 +2,14 @@ from typing import List
 
 import numpy as np
 
+from ...shared.base import Base
+from ...utils.byte_io_mdl import ByteIO
 from .structs.animation import StudioAnimation
+from .structs.bodypart import StudioBodypart
 from .structs.bone import StudioBone
 from .structs.sequence import StudioSequence
 from .structs.studioheader import StudioHeader
-from .structs.bodypart import StudioBodypart
 from .structs.texture import StudioTexture
-from ...shared.base import Base
-from ...utils.byte_io_mdl import ByteIO
 
 
 class Mdl(Base):

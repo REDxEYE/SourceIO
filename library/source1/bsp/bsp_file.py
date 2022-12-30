@@ -1,11 +1,10 @@
 from pathlib import Path
-
 from typing import Dict, Tuple
 
-from .lump import *
-from ...utils.file_utils import FileBuffer
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager
+from ...utils.file_utils import FileBuffer
+from .lump import *
 
 log_manager = SLoggingManager()
 

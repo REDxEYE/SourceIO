@@ -2,7 +2,6 @@ from typing import List, Tuple
 
 from .....library.utils.byte_io_mdl import ByteIO
 
-
 # // meshes
 # struct mstudiomesh_t
 # {

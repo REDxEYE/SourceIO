@@ -1,14 +1,14 @@
-from ....utils.byte_io_mdl import ByteIO
 from .....logger import SLoggingManager
-from ..v44.mdl_file import MdlV44
-
-from ..structs.header import MdlHeaderV49
-from ..structs.bone import BoneV49
-from ..structs.material import MaterialV49
-from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
+from ....utils.byte_io_mdl import ByteIO
+from ....utils.kv_parser import KVParserException, ValveKeyValueParser
 from ..structs.attachment import AttachmentV49
 from ..structs.bodygroup import BodyPartV49
-from ....utils.kv_parser import ValveKeyValueParser, KVParserException
+from ..structs.bone import BoneV49
+from ..structs.flex import (FlexController, FlexControllerUI, FlexOpType,
+                            FlexRule)
+from ..structs.header import MdlHeaderV49
+from ..structs.material import MaterialV49
+from ..v44.mdl_file import MdlV44
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('MDL49')

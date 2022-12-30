@@ -87,11 +87,7 @@ __all__ = [
 import io
 import os
 
-from ._cffi import (  # type: ignore
-    ffi,
-    lib,
-)
-
+from ._cffi import ffi, lib  # type: ignore
 
 backend_features = set()  # type: ignore
 

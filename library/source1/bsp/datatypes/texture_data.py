@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING
 
-from .primitive import Primitive
-from ..lumps.string_lump import StringsLump
 from ....utils.file_utils import IBuffer
+from ..lumps.string_lump import StringsLump
+from .primitive import Primitive
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile

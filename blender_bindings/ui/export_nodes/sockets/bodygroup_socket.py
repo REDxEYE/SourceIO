@@ -1,5 +1,5 @@
-from bpy.types import NodeSocket
 import bpy
+from bpy.types import NodeSocket
 
 
 class SourceIOBodygroupSocket(NodeSocket):

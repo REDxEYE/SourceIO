@@ -1,10 +1,10 @@
 from typing import List
 
 from ....utils import IBuffer
-from . import SteamAppId
-from .. import Lump, lump_tag, LumpInfo
+from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.face import Face, VFace1, VFace2
+from . import SteamAppId
 
 
 @lump_tag(7, 'LUMP_FACES')

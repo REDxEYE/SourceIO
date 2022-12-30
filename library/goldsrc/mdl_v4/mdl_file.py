@@ -2,12 +2,11 @@ from typing import List
 
 from ...shared.base import Base
 from ...utils.byte_io_mdl import ByteIO
-
+from .structs.bodypart import StudioBodypart
 from .structs.bone import StudioBone
 from .structs.model import StudioModel
 from .structs.sequence import StudioSequence
 from .structs.studioheader import StudioHeader
-from .structs.bodypart import StudioBodypart
 
 
 class Mdl(Base):

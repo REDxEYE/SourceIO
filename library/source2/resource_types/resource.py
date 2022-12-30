@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import List, BinaryIO, Union, Optional, TypeVar, Dict
-from ..data_blocks.compiled_file_header import CompiledHeader, InfoBlock
-from ..data_blocks import DATA
-from ..data_blocks.redi_block import RED2
+from typing import BinaryIO, Dict, List, Optional, TypeVar, Union
+
 from ...utils.byte_io_mdl import ByteIO
+from ..data_blocks import DATA
+from ..data_blocks.compiled_file_header import CompiledHeader, InfoBlock
+from ..data_blocks.redi_block import RED2
 
 AnyBlock = TypeVar('AnyBlock', bound='DataBlock')
 OptionalBlock = Optional[AnyBlock]
@@ -81,7 +82,7 @@ class ValveCompiledResource:
             return blocks
 
     def get_data_block_class(self, block_name):
-        from ..data_blocks import DATA, NTRO, REDI, RERL, VBIB, MRPH, ANIM
+        from ..data_blocks import ANIM, DATA, MRPH, NTRO, REDI, RERL, VBIB
 
         data_classes = {
             "NTRO": NTRO,

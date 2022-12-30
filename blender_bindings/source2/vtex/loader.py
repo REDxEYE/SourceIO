@@ -3,7 +3,6 @@ import bpy
 from ....library.source2.data_blocks import TEXR
 from ....library.source2.data_blocks.texture_block import VTexFormat
 from ....library.source2.resource_types import ValveCompiledTexture
-
 from ....logger import SLoggingManager
 
 logger = SLoggingManager().get_logger("Source2::Texture")

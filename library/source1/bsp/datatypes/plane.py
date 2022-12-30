@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from ....utils.file_utils import IBuffer
+
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
 

@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from .. import Lump, lump_tag, LumpInfo
-from ..bsp_file import BSPFile
 from ....utils import IBuffer
 from ....utils.kv_parser import ValveKeyValueParser
 from ....utils.s1_keyvalues import KVParser
+from .. import Lump, LumpInfo, lump_tag
+from ..bsp_file import BSPFile
 
 
 @lump_tag(0, 'LUMP_ENTITIES')

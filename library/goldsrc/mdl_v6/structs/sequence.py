@@ -2,10 +2,10 @@ from typing import List
 
 import numpy as np
 
-from .event import StudioPivot
-from .pivot import StudioEvent
 from ....shared.base import Base
 from ....utils.byte_io_mdl import ByteIO
+from .event import StudioPivot
+from .pivot import StudioEvent
 
 
 class StudioSequence(Base):

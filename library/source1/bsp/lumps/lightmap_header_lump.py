@@ -1,7 +1,7 @@
 from typing import List
 
 from ....utils import IBuffer
-from .. import Lump, lump_tag, LumpInfo
+from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.lightmap_header import LightmapHeader
 

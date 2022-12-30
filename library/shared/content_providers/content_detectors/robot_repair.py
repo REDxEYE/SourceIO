@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Dict
 
-from .source2_base import Source2DetectorBase
-from ..content_provider_base import ContentProviderBase
 from .....library.utils.path_utilities import backwalk_file_resolver
+from ..content_provider_base import ContentProviderBase
+from .source2_base import Source2DetectorBase
 
 
 class RobotRepairDetector(Source2DetectorBase):

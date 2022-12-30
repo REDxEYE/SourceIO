@@ -1,5 +1,5 @@
 from enum import IntFlag
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from ......logger import SLoggingManager
 from .....shared.app_id import SteamAppId

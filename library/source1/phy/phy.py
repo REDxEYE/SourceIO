@@ -2,8 +2,8 @@ from typing import List, Optional
 
 import numpy as np
 
-from ...utils.byte_io_mdl import ByteIO
 from ...shared.base import Base
+from ...utils.byte_io_mdl import ByteIO
 
 
 class Header(Base):

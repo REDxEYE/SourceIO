@@ -3,13 +3,14 @@ from typing import BinaryIO, Optional
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler
+from mathutils import Euler, Matrix, Vector
 
 from ....library.goldsrc.mdl_v10.mdl_file import Mdl
 from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
-from ...utils.utils import get_new_unique_collection, get_material
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
+    GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
+from ...utils.utils import get_material, get_new_unique_collection
 
 
 def create_armature(mdl: Mdl, collection, scale):

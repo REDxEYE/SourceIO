@@ -1,9 +1,9 @@
 from typing import List
 
 from ....utils import IBuffer
-from .. import Lump, lump_tag, LumpInfo
+from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
-from ..datatypes.texture_data import TextureData, RespawnTextureData
+from ..datatypes.texture_data import RespawnTextureData, TextureData
 from ..datatypes.texture_info import TextureInfo
 
 

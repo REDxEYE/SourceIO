@@ -1,11 +1,9 @@
 from enum import IntEnum
-
 from typing import List
 
 import numpy as np
 
-from . import Base
-from . import ByteIO
+from . import Base, ByteIO
 
 
 class FlexOpType(IntEnum):

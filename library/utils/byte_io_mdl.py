@@ -5,7 +5,7 @@ import struct
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Union, BinaryIO, List
+from typing import BinaryIO, List, Union
 
 
 class OffsetOutOfBounds(Exception):

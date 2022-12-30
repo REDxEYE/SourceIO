@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Dict
 
+from ...utils.byte_io_mdl import ByteIO
+from ...utils.singleton import SingletonMeta
 from .archive import Archive
 from .file import File
-from ...utils.singleton import SingletonMeta
-from ...utils.byte_io_mdl import ByteIO
-
 
 # Based on yretenai code from https://github.com/yretenai/HFSExtract
 

@@ -1,8 +1,9 @@
-from . import load_texture
+import numpy as np
+
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
 from ..vmt import VMT
-import numpy as np
+from . import load_texture
 
 
 def pad_to(im: np.ndarray, s_size: int):

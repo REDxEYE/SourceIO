@@ -20,9 +20,14 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
-import struct, array, io, binascii, collections, uuid
-from struct import unpack, calcsize, pack
-from typing import Union, List, Set
+import array
+import binascii
+import collections
+import io
+import struct
+import uuid
+from struct import calcsize, pack, unpack
+from typing import List, Set, Union
 
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")

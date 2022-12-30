@@ -1,8 +1,8 @@
 from typing import List
 
-from .redi_block_types import *
-from .base_block import DataBlock
 from ..utils.binary_keyvalue import BinaryKeyValue
+from .base_block import DataBlock
+from .redi_block_types import *
 
 redi_blocks = [InputDependencies,
                AdditionalInputDependencies,

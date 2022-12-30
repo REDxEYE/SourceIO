@@ -5,19 +5,8 @@
 # of the BSD license. See the LICENSE file for details.
 
 import os
-
-from typing import (
-    BinaryIO,
-    ByteString,
-    Generator,
-    IO,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import (IO, BinaryIO, ByteString, Generator, Iterable, List,
+                    Optional, Set, Tuple, Union)
 
 FLUSH_BLOCK: int
 FLUSH_FRAME: int

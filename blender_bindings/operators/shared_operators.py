@@ -4,17 +4,19 @@ from pathlib import Path
 
 import bpy
 
-from ..utils.utils import get_or_create_collection
-from ..source1.bsp.import_bsp import BPSPropCache
-from ..source1.mdl.model_loader import import_model_from_files
-from ..source1.mdl.v49.import_mdl import import_materials
-from ..source1.mdl import put_into_collections as s1_put_into_collections, FileImport
-from ..source2.vmdl.loader import put_into_collections as s2_put_into_collections, ValveCompiledModelLoader
-
-from ...library.source1.vtf import is_vtflib_supported
 from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.source1.vtf import is_vtflib_supported
 from ...library.utils.byte_io_mdl import ByteIO
 from ...library.utils.path_utilities import find_vtx_cm
+from ..source1.bsp.import_bsp import BPSPropCache
+from ..source1.mdl import FileImport
+from ..source1.mdl import put_into_collections as s1_put_into_collections
+from ..source1.mdl.model_loader import import_model_from_files
+from ..source1.mdl.v49.import_mdl import import_materials
+from ..source2.vmdl.loader import ValveCompiledModelLoader
+from ..source2.vmdl.loader import \
+    put_into_collections as s2_put_into_collections
+from ..utils.utils import get_or_create_collection
 
 
 def get_parent(collection):

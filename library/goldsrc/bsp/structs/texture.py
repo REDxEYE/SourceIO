@@ -2,10 +2,10 @@ from typing import Optional
 
 import numpy as np
 
-from ..bsp_file import BspFile
-from ...wad import make_texture, flip_texture, MipTex, WadLump
-from ....utils.byte_io_mdl import ByteIO
 from .....logger import SLoggingManager
+from ....utils.byte_io_mdl import ByteIO
+from ...wad import MipTex, WadLump, flip_texture, make_texture
+from ..bsp_file import BspFile
 
 logger = SLoggingManager().get_logger("GoldSrc::Texture")
 

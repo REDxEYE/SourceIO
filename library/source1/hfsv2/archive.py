@@ -1,11 +1,11 @@
 import zlib
 from typing import Dict, Tuple
 
+from ...utils.byte_io_mdl import ByteIO
 from .file import File
 from .header import Header
 from .serpent import *
-from .utils import calculate_header_offset, calculate_entry_table_offset
-from ...utils.byte_io_mdl import ByteIO
+from .utils import calculate_entry_table_offset, calculate_header_offset
 
 BLOCK_SIZE = 1024
 

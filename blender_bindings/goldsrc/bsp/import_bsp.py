@@ -1,36 +1,41 @@
 import math
 from pathlib import Path
-from typing import Dict, Any, cast, Optional
+from typing import Any, Dict, Optional, cast
 
 import bpy
 import numpy as np
 from mathutils import Vector
 
-from ...goldsrc.bsp.entity_handlers import entity_handlers
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import GoldSrcShaderMode1
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import GoldSrcShaderMode2
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import GoldSrcShaderMode5
-from ...utils.utils import get_or_create_collection, get_material
-from ....library.goldsrc.bsp.structs.texture import TextureInfo
-from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
-from ....library.goldsrc.rad import parse_rad, convert_light_value
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
-from ....library.utils.path_utilities import backwalk_file_resolver
-
-from ....logger import SLoggingManager
-from ....library.goldsrc.bsp.lump import LumpType
 from ....library.goldsrc.bsp.bsp_file import BspFile
-from ....library.goldsrc.bsp.lumps.face_lump import FaceLump
+from ....library.goldsrc.bsp.lump import LumpType
 from ....library.goldsrc.bsp.lumps.edge_lump import EdgeLump
-from ....library.goldsrc.bsp.lumps.model_lump import ModelLump
 from ....library.goldsrc.bsp.lumps.entity_lump import EntityLump
-from ....library.goldsrc.bsp.lumps.vertex_lump import VertexLump
+from ....library.goldsrc.bsp.lumps.face_lump import FaceLump
+from ....library.goldsrc.bsp.lumps.model_lump import ModelLump
+from ....library.goldsrc.bsp.lumps.surface_edge_lump import SurfaceEdgeLump
 from ....library.goldsrc.bsp.lumps.texture_data import TextureDataLump
 from ....library.goldsrc.bsp.lumps.texture_info import TextureInfoLump
-from ....library.goldsrc.bsp.lumps.surface_edge_lump import SurfaceEdgeLump
-from ....library.utils.math_utilities import parse_hammer_vector, convert_to_radians
+from ....library.goldsrc.bsp.lumps.vertex_lump import VertexLump
+from ....library.goldsrc.bsp.structs.texture import TextureInfo
+from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
+from ....library.goldsrc.rad import convert_light_value, parse_rad
+from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_providers.goldsrc_content_provider import \
+    GoldSrcWADContentProvider
+from ....library.utils.math_utilities import (convert_to_radians,
+                                              parse_hammer_vector)
+from ....library.utils.path_utilities import backwalk_file_resolver
+from ....logger import SLoggingManager
+from ...goldsrc.bsp.entity_handlers import entity_handlers
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
+    GoldSrcShader
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import \
+    GoldSrcShaderMode1
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
+    GoldSrcShaderMode2
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
+    GoldSrcShaderMode5
+from ...utils.utils import get_material, get_or_create_collection
 
 log_manager = SLoggingManager()
 content_manager = ContentManager()

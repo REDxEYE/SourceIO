@@ -1,6 +1,6 @@
 import os
 
-from .library import running_in_blender, loaded_as_addon
+from .library import loaded_as_addon, running_in_blender
 
 NO_BPY = int(os.environ.get('NO_BPY', '0'))
 

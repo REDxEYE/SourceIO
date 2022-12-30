@@ -1,13 +1,12 @@
 from typing import TYPE_CHECKING
 
+from ....utils.file_utils import IBuffer
 from .primitive import Primitive
 
-from ....utils.file_utils import IBuffer
-
 if TYPE_CHECKING:
-    from ..lumps.texture_lump import TextureInfoLump
-    from ..lumps.displacement_lump import DispInfoLump
     from ..bsp_file import BSPFile
+    from ..lumps.displacement_lump import DispInfoLump
+    from ..lumps.texture_lump import TextureInfoLump
 
 
 class Face(Primitive):

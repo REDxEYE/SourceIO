@@ -1,14 +1,15 @@
 from collections import defaultdict
-from typing import List, Optional, Dict, Union
+from typing import Dict, List, Optional, Union
+
 import bpy
 
+from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
+from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
 from ...library.source1.mdl.v36.mdl_file import MdlV36 as S1MdlV36
 from ...library.source1.mdl.v44.mdl_file import MdlV44 as S1MdlV44
-from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
-from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
-from ...library.source2.resource_types import ValveCompiledModel
 from ...library.source1.vtx.v7.vtx import Vtx
 from ...library.source1.vvd import Vvd
+from ...library.source2.resource_types import ValveCompiledModel
 
 
 class ModelContainer:

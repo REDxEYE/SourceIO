@@ -1,15 +1,16 @@
 # from pprint import pformat
 
-import bpy
 from pathlib import Path
-from typing import Dict, Any, Union
+from typing import Any, Dict, Union
+
+import bpy
 import numpy as np
 
-from ..shader_base import ShaderBase
-from ...source2.vtex.loader import ValveCompiledTextureLoader
-from ....logger import SLoggingManager
-from ....library.source2.resource_types import ValveCompiledTexture
 from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.source2.resource_types import ValveCompiledTexture
+from ....logger import SLoggingManager
+from ...source2.vtex.loader import ValveCompiledTextureLoader
+from ..shader_base import ShaderBase
 
 logger = SLoggingManager().get_logger("Source2::Shader")
 

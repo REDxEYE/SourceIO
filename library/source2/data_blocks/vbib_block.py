@@ -1,5 +1,6 @@
 from enum import IntEnum
 from typing import List
+
 import numpy as np
 
 from ...utils.pylib_loader import pylib
@@ -14,7 +15,6 @@ def decode_index_buffer(data, size, count):
 
 
 from ...utils.byte_io_mdl import ByteIO
-
 from .base_block import DataBlock
 
 

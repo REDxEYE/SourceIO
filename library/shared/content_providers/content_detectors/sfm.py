@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import Dict
 
-from .source1_common import Source1Common
-from ..content_provider_base import ContentProviderBase
 from .....library.utils.path_utilities import backwalk_file_resolver
-
-from ..source1_content_provider import GameinfoContentProvider
+from ..content_provider_base import ContentProviderBase
 from ..non_source_sub_manager import NonSourceContentProvider
+from ..source1_content_provider import GameinfoContentProvider
+from .source1_common import Source1Common
 
 
 class SFMDetector(Source1Common):

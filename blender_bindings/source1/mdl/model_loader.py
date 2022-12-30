@@ -1,19 +1,18 @@
 from pathlib import Path
 from typing import Union
 
-from . import FileImport, put_into_collections
-from ..phy import import_physics
-from ...shared.model_container import Source1ModelContainer
-from ....logger import SLoggingManager
-
-from ..bsp.import_bsp import BPSPropCache
+from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.utils.byte_io_mdl import ByteIO
 from ....library.utils.path_utilities import find_vtx, find_vtx_cm
+from ....logger import SLoggingManager
+from ...shared.model_container import Source1ModelContainer
 from ...source1.mdl.v36.import_mdl import import_model as import_model_v36
 from ...source1.mdl.v44.import_mdl import import_model as import_model_v44
 from ...source1.mdl.v49.import_mdl import import_model as import_model_v49
 from ...source1.mdl.v52.import_mdl import import_model as import_model_v52
-from ....library.shared.content_providers.content_manager import ContentManager
+from ..bsp.import_bsp import BPSPropCache
+from ..phy import import_physics
+from . import FileImport, put_into_collections
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')

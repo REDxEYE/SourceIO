@@ -25,6 +25,7 @@ def is_vtflib_supported():
 
 if is_vtflib_supported():
     import numpy as np
+
     from .VTFWrapper import VTFLib
     from .VTFWrapper.VTFLibEnums import ImageFormat
 

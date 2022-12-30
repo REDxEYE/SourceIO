@@ -1,16 +1,12 @@
-import bpy
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       CollectionProperty,
-                       IntProperty,
-                       PointerProperty
-                       )
-
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
+import bpy
+from bpy.props import (BoolProperty, CollectionProperty, IntProperty,
+                       PointerProperty, StringProperty)
+
+from ...library.shared.vpk.vpk_file import VPKFile, open_vpk
 from ...library.utils.singleton import SingletonMeta
-from ...library.shared.vpk.vpk_file import open_vpk, VPKFile
 
 
 class VPKFileHandle(metaclass=SingletonMeta):
