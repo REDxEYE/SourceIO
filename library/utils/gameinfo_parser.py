@@ -8,6 +8,7 @@ from ...logger import SLoggingManager
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('GameInfoParser')
 
+
 class GameInfoParser:
     class HiddenMaps:
         def __init__(self, raw_data):
@@ -99,7 +100,7 @@ class GameInfoParser:
                 else:
                     paths.append(Path(path))
             except Exception as e:
-                logger.exception()
+                logger.exception("failed to parse path", e)
         return paths
 
     @property
