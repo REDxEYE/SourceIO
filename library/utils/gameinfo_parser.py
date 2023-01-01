@@ -84,7 +84,10 @@ class GameInfoParser:
                     path = f"{self.root.as_posix()}/{path.replace('|gameinfo_path|', '')}"
                     if path.endswith('*'):
                         path = path[:-1]
-                        for sub_path in (self.root / path).iterdir():
+                        sub_mod = (self.root / path)
+                        if not sub_mod.exists():
+                            continue
+                        for sub_path in sub_mod.iterdir():
                             paths.append(sub_path)
                     else:
                         paths.append(Path(path))
