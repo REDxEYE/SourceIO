@@ -8,6 +8,12 @@ from ...utils.byte_io_mdl import ByteIO
 
 
 def open_gma(filepath: Union[str, Path]):
+    tmp = ByteIO(filepath)
+    if tmp.read(4) != b'GMAD':
+        return None
+    tmp.close()
+    del tmp
+
     gma = GMA(Path(filepath))
     gma.read()
     return gma

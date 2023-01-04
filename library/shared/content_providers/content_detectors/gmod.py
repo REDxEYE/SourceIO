@@ -25,7 +25,10 @@ class GModDetector(Source1Common):
         if (gmod_dir / 'addons').exists():
             for addon in (gmod_dir / 'addons').iterdir():
                 if addon.suffix == '.gma':
-                    content_providers[addon.name] = GMAContentProvider(addon, 4000)
+                    provider = GMAContentProvider(addon, 4000)
+                    if provider.gma_archive is None:
+                        continue
+                    content_providers[addon.name] = provider
                 elif addon.is_dir():
                     content_providers[addon.stem] = NonSourceContentProvider(addon, 4000)
 
