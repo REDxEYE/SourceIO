@@ -1,6 +1,10 @@
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
 
+from SourceIO.library.utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
+
+if TYPE_CHECKING:
+    from ..bsp_file import BspFile
 
 
 class EntityLump(Lump):
@@ -10,8 +14,8 @@ class EntityLump(Lump):
         super().__init__(info)
         self.values: List[Dict[str, str]] = []
 
-    def parse(self):
-        entities = self.buffer.read_ascii_string(self.info.length)
+    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+        entities = buffer.read_ascii_string(self.info.length)
         entity = {}
         for line in entities.splitlines():
             if line == '{' or len(line) == 0:

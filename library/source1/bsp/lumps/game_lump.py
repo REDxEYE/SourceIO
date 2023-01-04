@@ -1,6 +1,6 @@
 from typing import List
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.game_lump_header import (GameLumpHeader,
@@ -18,7 +18,7 @@ class GameLump(Lump):
         self.game_lumps_info: List[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
             lump = GameLumpHeader(self).parse(buffer, bsp)
@@ -62,7 +62,7 @@ class VGameLump(Lump):
         self.game_lumps_info: List[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
             lump = VindictusGameLumpHeader(self).parse(buffer, bsp)

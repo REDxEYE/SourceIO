@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -11,6 +11,6 @@ class IndicesLump(Lump):
         super().__init__(lump_info)
         self.indices = np.array([], np.uint16)
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
-        self.indices = np.frombuffer(buffer.read(-1), np.uint16)
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+        self.indices = np.frombuffer(buffer.read(), np.uint16)
         return self

@@ -1,26 +1,27 @@
-from typing import TYPE_CHECKING, List
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Tuple
 
 import numpy as np
+import numpy.typing as npt
 
-from ....utils.file_utils import IBuffer
-from .primitive import Primitive
+from ....shared.types import Vector3, Vector2
+from ....utils.file_utils import Buffer
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
 
 
-class Overlay(Primitive):
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.id = 0
-        self.tex_info = 0
-        self.face_count_and_render_order = 0
-        self.ofaces: List[int] = []
-        self.u = []
-        self.v = []
-        self.uv_points: np.ndarray = np.zeros((4, 3))
-        self.origin = []
-        self.normal = []
+@dataclass(slots=True)
+class Overlay:
+    id: int
+    tex_info: int
+    face_count_and_render_order: int
+    ofaces: Tuple[int, ...]
+    u: Vector2[float]
+    v: Vector2[float]
+    uv_points: npt.NDArray[np.float32]
+    origin: Vector3[float]
+    normal: Vector3[float]
 
     @property
     def face_count(self):
@@ -66,27 +67,30 @@ class Overlay(Primitive):
 
         return dst_pos, dst_uv
 
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.id = reader.read_int32()
-        self.tex_info = reader.read_int16()
-        self.face_count_and_render_order = reader.read_uint16()
-        self.ofaces = reader.read_fmt('64i')
-        self.u = reader.read_fmt('ff')
-        self.v = reader.read_fmt('ff')
-        self.uv_points = np.array(reader.read_fmt('12f'), dtype=np.float32).reshape((4, 3))
-        self.origin = reader.read_fmt('fff')
-        self.normal = reader.read_fmt('fff')
-        return self
-
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        id = buffer.read_int32()
+        tex_info = buffer.read_int16()
+        face_count_and_render_order = buffer.read_uint16()
+        ofaces = buffer.read_fmt('64i')
+        u = buffer.read_fmt('ff')
+        v = buffer.read_fmt('ff')
+        uv_points = np.array(buffer.read_fmt('12f'), dtype=np.float32).reshape((4, 3))
+        origin = buffer.read_fmt('fff')
+        normal = buffer.read_fmt('fff')
+        return cls(id, tex_info, face_count_and_render_order, ofaces, u, v, uv_points, origin, normal)
 
 class VOverlay(Overlay):
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.id = reader.read_int32()
-        self.tex_info = reader.read_int32()
-        self.face_count_and_render_order = reader.read_uint32()
-        self.ofaces = reader.read_fmt('64i')
-        self.u = reader.read_fmt('ff')
-        self.v = reader.read_fmt('ff')
-        self.uv_points = np.array(reader.read_fmt('12f'), dtype=np.float32).reshape((4, 3))
-        self.origin = reader.read_fmt('fff')
-        self.normal = reader.read_fmt('fff')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        id = buffer.read_int32()
+        tex_info = buffer.read_int32()
+        face_count_and_render_order = buffer.read_uint32()
+        ofaces = buffer.read_fmt('64i')
+        u = buffer.read_fmt('ff')
+        v = buffer.read_fmt('ff')
+        uv_points = np.array(buffer.read_fmt('12f'), dtype=np.float32).reshape((4, 3))
+        origin = buffer.read_fmt('fff')
+        normal = buffer.read_fmt('fff')
+
+        return cls(id, tex_info, face_count_and_render_order, ofaces, u, v, uv_points, origin, normal)

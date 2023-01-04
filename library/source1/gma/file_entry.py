@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from ...utils import IBuffer
+from ...utils import Buffer
 
 
 @dataclass(slots=True)
@@ -13,7 +13,7 @@ class FileEntry:
     offset: int = field(init=False)
 
     @classmethod
-    def from_buffer(cls, buffer: IBuffer) -> Optional['FileEntry']:
+    def from_buffer(cls, buffer: Buffer) -> Optional['FileEntry']:
         entry_id = buffer.read_uint32()
         if entry_id == 0:
             return None

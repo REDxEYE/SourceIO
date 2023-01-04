@@ -89,8 +89,7 @@ def import_model(file_list: FileImport,
 
     full_material_names = collect_full_material_names(mdl)
 
-    vvd = Vvd(file_list.vvd_file)
-    vvd.read()
+    vvd = Vvd.from_buffer(file_list.vvd_file)
     vtx = Vtx(file_list.vtx_file)
     vtx.read()
 

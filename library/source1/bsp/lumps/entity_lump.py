@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from ....utils.kv_parser import ValveKeyValueParser
 from ....utils.s1_keyvalues import KVParser
 from .. import Lump, LumpInfo, lump_tag
@@ -13,7 +13,7 @@ class EntityLump(Lump):
         super().__init__(lump_info)
         self.entities = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         buffer = buffer.read(-1).strip(b"\x00").decode('latin')
         parser = ValveKeyValueParser(buffer_and_name=(buffer, 'EntityLump'), self_recover=True, array_of_blocks=True)
         parser.parse()
@@ -28,7 +28,7 @@ class EntityPartitionsLump(Lump):
         super().__init__(lump_info)
         self.entities = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         data = buffer.read_ascii_string(-1)
         entity_files = data.split(' ')[1:]
         for ent_file in entity_files:

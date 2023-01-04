@@ -1,7 +1,9 @@
 import zlib
 from typing import Dict, Tuple
 
-from ...utils.byte_io_mdl import ByteIO
+import numpy as np
+
+from ...utils import Buffer, MemoryBuffer
 from .file import File
 from .header import Header
 from .serpent import *
@@ -21,7 +23,7 @@ class Archive:
         self.filename = filename
         self.serpent = Serpent()
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.reader = reader
         self.header_offset = calculate_header_offset(self.filename)
         self.table_offset = calculate_entry_table_offset(self.filename) + self.header_offset + 9
@@ -68,10 +70,10 @@ class Archive:
             new_buffer = np.frombuffer(buffer, np.uint8).copy()
             del buffer
             new_buffer[:min(len(new_buffer), 1024)] = self.serpent.decrypt(new_buffer[:min(len(new_buffer), 1024)])
-            file_reader = ByteIO(new_buffer.tobytes())
+            file_reader = MemoryBuffer(new_buffer.tobytes())
 
         if file.compressed:
             data = zlib.decompress(file_reader.read(file.buffer_size))
             assert len(data) == file.file_size
-            file_reader = ByteIO(data)
+            file_reader = MemoryBuffer(data)
         return file_reader

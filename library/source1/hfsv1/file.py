@@ -1,8 +1,9 @@
 import zlib
+from dataclasses import dataclass
 from enum import IntEnum
-from pathlib import Path
+from typing import Optional
 
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer, MemoryBuffer
 from .xor_key import xor_decode
 
 
@@ -10,58 +11,56 @@ class CompressionMethod(IntEnum):
     HFSCompressionMethod = 0
 
 
+@dataclass(slots=True)
 class File:
-    def __init__(self):
-        self.reader = None
-        self.extract_version = 0
-        self.bit_flag = 0
-        self.compressed_method = 0
-        self.mod_file_time = 0
-        self.mod_file_date = 0
-        self.checksum = 0
-        self.compressed_size = 0
-        self.decompressed_size = 0
-        self.filename = ''
-        self.extra = ''
-        self.data = b''
-        self.file_data_offset = 0
+    extract_version: int
+    bit_flag: int
+    compressed_method: CompressionMethod
+    mod_file_time: int
+    mod_file_date: int
+    checksum: Optional[int]
+    compressed_size: int
+    decompressed_size: int
+    filename: str
+    extra: str
+    file_data_offset: int
 
-    def read(self, reader: ByteIO, slim=False):
-        self.reader = reader
-        assert reader.read_uint32() == 0x02014648
-        self.extract_version = reader.read_int16()
-        self.bit_flag = reader.read_int16()
-        self.compressed_method = CompressionMethod(reader.read_int16())
-        self.mod_file_time = reader.read_int16()
-        self.mod_file_date = reader.read_int16()
-        if not slim:
-            self.checksum = reader.read_int32()
-            self.compressed_size = reader.read_int32()
-            self.decompressed_size = reader.read_int32()
-            length = reader.read_int16()
-            extra_length = reader.read_int16()
-            pos = reader.tell()
-            self.filename = xor_decode(reader.read(length), key_offset=pos).decode('utf-8')
-            pos = reader.tell()
-            self.extra = xor_decode(reader.read(extra_length), key_offset=pos).decode('utf-8')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, slim=False):
+        assert buffer.read_uint32() == 0x02014648
+        extract_version = buffer.read_int16()
+        bit_flag = buffer.read_int16()
+        compressed_method = CompressionMethod(buffer.read_int16())
+        mod_file_time = buffer.read_int16()
+        mod_file_date = buffer.read_int16()
+        if slim:
+            compressed_size = decompressed_size = buffer.size() - buffer.tell()
+            filename = 'unknown.bin'
+            return cls(extract_version, bit_flag, compressed_method, mod_file_time, mod_file_date, None,
+                       compressed_size, decompressed_size, filename, "", buffer.tell())
         else:
-            self.compressed_size = self.decompressed_size = reader.size() - reader.tell()
-            self.filename = 'unknown.bin'
+            checksum = buffer.read_int32()
+            compressed_size = buffer.read_int32()
+            decompressed_size = buffer.read_int32()
+            length = buffer.read_int16()
+            extra_length = buffer.read_int16()
+            pos = buffer.tell()
+            filename = xor_decode(buffer.read(length), key_offset=pos).decode('utf-8')
+            pos = buffer.tell()
+            extra = xor_decode(buffer.read(extra_length), key_offset=pos).decode('utf-8')
+            return cls(extract_version, bit_flag, compressed_method, mod_file_time, mod_file_date, checksum,
+                       compressed_size, decompressed_size, filename, extra, buffer.tell())
 
-        self.file_data_offset = reader.tell()
-
-    def read_file(self):
-        reader = self.reader
-        reader.seek(self.file_data_offset)
-        self.data = ByteIO(xor_decode(reader.read(self.compressed_size), key_offset=self.file_data_offset))
+    def read_file(self, buffer: Buffer):
+        buffer.seek(self.file_data_offset)
+        data = MemoryBuffer(xor_decode(buffer.read(self.compressed_size), key_offset=self.file_data_offset))
         if self.filename.endswith('.comp'):
-            compression_header = self.data.read_int32()
-            compression_size = self.data.read_int32()
+            compression_header = data.read_int32()
             if compression_header == 0x706D6F63:
-                reader.skip(2)
-                self.decompressed_size = compression_size
-                self.filename = Path(self.filename).stem
-                self.data = ByteIO(zlib.decompress(self.data.read(-1), self.compressed_size))
+                buffer.skip(6)
+                return MemoryBuffer(zlib.decompress(data.read(), self.compressed_size))
+            raise NotImplementedError(f"Unknown compression header: {compression_header:08X}")
+        return data
 
     def __repr__(self):
         return f'<HFSFile "{self.filename}">'

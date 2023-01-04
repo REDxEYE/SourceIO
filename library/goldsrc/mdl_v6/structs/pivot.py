@@ -1,4 +1,4 @@
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class StudioEvent:
@@ -7,6 +7,6 @@ class StudioEvent:
         self.start = 0
         self.end = 0
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.point = reader.read_fmt('3f')
         self.start, self.end = reader.read_fmt('2I')

@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 raw_pos_dtype = np.dtype([
     ('frame_id', np.int32, (1,)),
@@ -26,10 +26,10 @@ class StudioAnimation:
 
         self.frames = np.array([])
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.pos_count, self.pos_offset, self.rot_count, self.rot_offset = reader.read_fmt('4I')
 
-    def read_anim_values(self, reader: ByteIO):
+    def read_anim_values(self, reader: Buffer):
         reader.seek(self.pos_offset)
         raw_pos_data = np.frombuffer(reader.read(self.pos_count * raw_pos_dtype.itemsize), raw_pos_dtype)
 

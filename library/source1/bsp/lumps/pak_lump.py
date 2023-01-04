@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 from ....shared.content_providers.content_provider_base import \
     ContentProviderBase
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -25,7 +25,7 @@ class PakLump(Lump, ContentProviderBase):
         self.zip_file: Optional[zipfile.ZipFile] = None
         self._filename_cache = {}
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.filepath = bsp.filepath
         if self.zip_file is None:
             zip_data = BytesIO(buffer.read())

@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.displacement import DispInfo, VDispInfo
@@ -15,9 +15,9 @@ class DispInfoLump(Lump):
         super().__init__(lump_info)
         self.infos: List[DispInfo] = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            self.infos.append(DispInfo(self).parse(buffer, bsp))
+            self.infos.append(DispInfo.from_buffer(buffer, self.version, bsp))
         return self
 
 
@@ -27,9 +27,9 @@ class VDispInfoLump(Lump):
         super().__init__(lump_info)
         self.infos: List[DispInfo] = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            self.infos.append(VDispInfo(self).parse(buffer, bsp))
+            self.infos.append(VDispInfo.from_buffer(buffer, self.version, bsp))
         return self
 
 
@@ -49,7 +49,7 @@ class DispVert(Lump):
         self.vertices: np.ndarray = np.array(0, dtype=self.dtype)
         self.transformed_vertices = np.array((-1, 3))
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.vertices = np.frombuffer(buffer.read(), self.dtype)
 
         self.transformed_vertices = self.vertices['position'] * self.vertices['dist']
@@ -72,7 +72,7 @@ class DispMultiblend(Lump):
         super().__init__(lump_info)
         self.blends = np.ndarray([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         assert self._info.size % self.dtype.itemsize == 0
         self.blends = np.frombuffer(buffer.read(), self.dtype)
         return self

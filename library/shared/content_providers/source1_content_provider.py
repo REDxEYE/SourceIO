@@ -1,6 +1,8 @@
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional, Iterator, Tuple
 
+from ..app_id import SteamAppId
+from ...utils import FileBuffer, Buffer
 from ...utils.gameinfo_parser import GameInfoParser
 from ...utils.path_utilities import corrected_path
 from .content_provider_base import ContentProviderBase
@@ -31,9 +33,9 @@ class GameinfoContentProvider(ContentProviderBase):
         self.modname: str = self.modname_dir.stem
 
     @property
-    def steam_id(self):
+    def steam_id(self) -> SteamAppId:
         fs = self.gameinfo.file_system
-        return fs.steam_app_id
+        return SteamAppId(fs.steam_app_id)
 
     def get_search_paths(self):
         def convert_path(path_to_convert):
@@ -64,12 +66,12 @@ class GameinfoContentProvider(ContentProviderBase):
 
         return all_search_paths
 
-    def find_file(self, filepath: Union[str, Path]):
+    def find_file(self, filepath: Union[str, Path]) -> Optional[Buffer]:
         path = self.find_path(filepath)
         if path:
-            return path.open('rb')
+            return FileBuffer(path)
 
-    def find_path(self, filepath: Union[str, Path]):
+    def find_path(self, filepath: Union[str, Path]) -> Optional[Path]:
         filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = corrected_path(self.modname_dir / filepath.as_posix())
         if new_filepath.exists():
@@ -77,5 +79,5 @@ class GameinfoContentProvider(ContentProviderBase):
         else:
             return None
 
-    def glob(self, pattern: str):
+    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)

@@ -1,14 +1,16 @@
-from ....utils.byte_io_mdl import ByteIO
+from dataclasses import dataclass
+from typing import Tuple
+
+from SourceIO.library.shared.types import Vector3
+from SourceIO.library.utils import Buffer
 
 
+@dataclass(slots=True)
 class StudioBone:
-    def __init__(self):
-        self.parent = 0
-        self.flags = 0
-        self.pos = []
-        self.rot = []
+    parent: int
+    flags: int
+    pos: Vector3[float]
 
-    def read(self, reader: ByteIO):
-        self.parent = reader.read_int32()
-        self.flags = reader.read_int32()
-        self.pos = reader.read_fmt('3f')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_int32(), buffer.read_int32(), buffer.read_fmt('3f'))

@@ -25,7 +25,7 @@ CM = ContentManager()
 
 
 class BSPFile:
-    def __init__(self, filepath: Path, buffer: IBuffer):
+    def __init__(self, filepath: Path, buffer: Buffer):
         self.filepath = Path(filepath)
         self.buffer = buffer
         self.logger = log_manager.get_logger(self.filepath.stem)
@@ -35,10 +35,6 @@ class BSPFile:
         self.revision = 0
         self.content_manager = CM
         self.steam_app_id = CM.get_content_provider_from_path(filepath).steam_id
-
-    def __del__(self):
-        if not self.buffer.closed:
-            self.buffer.close()
 
     @classmethod
     def from_filename(cls, filepath: Path):
@@ -50,8 +46,7 @@ class BSPFile:
         is_l4d2 = buffer.peek_uint32() <= 1036 and self.version == 21
         self.lumps_info = [None] * 64
         for lump_id in range(64):
-            lump = LumpInfo.from_buffer(buffer, is_l4d2)
-            lump.id = lump_id
+            lump = LumpInfo.from_buffer(buffer, lump_id, is_l4d2)
             self.lumps_info[lump_id] = lump
         self.revision = buffer.read_int32()
         return self
@@ -92,7 +87,7 @@ class BSPFile:
             self.lumps[lump_name] = parsed_lump
             return parsed_lump
 
-    def _get_lump_buffer(self, lump_id: int, lump_info: LumpInfo) -> IBuffer:
+    def _get_lump_buffer(self, lump_id: int, lump_info: LumpInfo) -> Buffer:
         base_path = self.filepath.parent
         lump_path = base_path / f'{self.filepath.name}.{lump_id:04x}.bsp_lump'
 
@@ -117,7 +112,7 @@ class BSPFile:
 
 class RespawnBSPFile(BSPFile):
 
-    def __init__(self, filepath: Path, buffer: IBuffer):
+    def __init__(self, filepath: Path, buffer: Buffer):
         super().__init__(filepath, buffer)
 
     @classmethod

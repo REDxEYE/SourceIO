@@ -1,4 +1,4 @@
-from ....utils import IBuffer
+from ....utils import Buffer
 
 
 class ArchiveMD5Entry:
@@ -9,7 +9,7 @@ class ArchiveMD5Entry:
         self.size = 0
         self.crc32 = 0xBAADF00D
 
-    def read(self, buffer: IBuffer):
+    def read(self, buffer: Buffer):
         (self.archive_id, self.offset, self.size) = buffer.read_fmt('3I')
         self.crc32 = buffer.read(16)
 

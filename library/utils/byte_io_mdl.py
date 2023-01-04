@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO, List, Union
 
-from . import IBuffer
+from . import Buffer
 
 
 class OffsetOutOfBounds(Exception):
@@ -48,7 +48,7 @@ class ByteIO:
             self.file = path_or_file_or_data
         elif isinstance(path_or_file_or_data, ByteIO):
             self.file = path_or_file_or_data.file
-        elif isinstance(path_or_file_or_data, IBuffer):
+        elif isinstance(path_or_file_or_data, Buffer):
             self.file = path_or_file_or_data
         else:
             self.file = BytesIO()
@@ -67,6 +67,8 @@ class ByteIO:
             res = bool(input_data)
         elif isinstance(input_data, ByteIO):
             res = bool(input_data.file)
+        elif isinstance(input_data, Buffer):
+            res = not input_data.closed
         elif isinstance(input_data, (BinaryIO, io.BufferedReader, BytesIO)):
             res = not input_data.closed
         else:

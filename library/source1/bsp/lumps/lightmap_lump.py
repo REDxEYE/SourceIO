@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -12,7 +12,7 @@ class LightmapDataSkyLump(Lump):
         super().__init__(lump_info)
         self.lightmap_data = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.lightmap_data = np.frombuffer(buffer.read(), np.uint8).reshape((-1, 4))
         return self
 
@@ -32,7 +32,7 @@ class LightmapDataLump(Lump):
         super().__init__(lump_info)
         self.lightmap_data = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.lightmap_data = np.frombuffer(buffer.read(), lightmap_dtype)
         return self
 
@@ -44,7 +44,7 @@ class LightmapDataHDRLump(Lump):
         super().__init__(lump_info)
         self.lightmap_data = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.lightmap_data = np.frombuffer(buffer.read(), lightmap_dtype)
         return self
 

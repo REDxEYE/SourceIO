@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Tuple
 
-from ....utils.file_utils import IBuffer
-from .primitive import Primitive
+from ....shared.types import Vector2
+from ....utils.file_utils import Buffer
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
@@ -9,47 +10,37 @@ if TYPE_CHECKING:
     from ..lumps.texture_lump import TextureInfoLump
 
 
-class Face(Primitive):
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.plane_index = 0
-        self.side = 0
-        self.on_node = 0
-        self.first_edge = 0
-        self.edge_count = 0
-        self.tex_info_id = 0
-        self.disp_info_id = 0
-        self.surface_fog_volume_id = 0
-        self.styles = []
-        self.light_offset = 0
-        self.area = 0.0
-        self.lightmap_texture_mins_in_luxels = []
-        self.lightmap_texture_size_in_luxels = []
-        self.orig_face = 0
-        self.prim_count = 0
-        self.first_prim_id = 0
-        self.smoothing_groups = 0
+@dataclass(slots=True)
+class Face:
+    plane_index: int
+    side: int
+    on_node: int
+    first_edge: int
+    edge_count: int
+    tex_info_id: int
+    disp_info_id: int
+    surface_fog_volume_id: int
+    styles: Tuple[int, ...]
+    light_offset: int
+    area: float
+    lightmap_texture_mins_in_luxels: Vector2[int]
+    lightmap_texture_size_in_luxels: Vector2[int]
+    orig_face: int
+    prim_count: int
+    first_prim_id: int
+    smoothing_groups: int
 
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        # TODO: Replace with single reader.read_fmt call
-        self.plane_index = reader.read_uint16()
-        self.side = reader.read_uint8()
-        self.on_node = reader.read_uint8()
-        self.first_edge = reader.read_int32()
-        self.edge_count = reader.read_int16()
-        self.tex_info_id = reader.read_int16()
-        self.disp_info_id = reader.read_int16()
-        self.surface_fog_volume_id = reader.read_int16()
-        self.styles = [reader.read_int8() for _ in range(4)]
-        self.light_offset = reader.read_int32()
-        self.area = reader.read_float()
-        self.lightmap_texture_mins_in_luxels = [reader.read_int32() for _ in range(2)]
-        self.lightmap_texture_size_in_luxels = [reader.read_int32() for _ in range(2)]
-        self.orig_face = reader.read_int32()
-        self.prim_count = reader.read_uint16()
-        self.first_prim_id = reader.read_uint16()
-        self.smoothing_groups = reader.read_uint32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        (plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id, surface_fog_volume_id, *styles,
+         light_offset, area) = buffer.read_fmt("H2BI4h4bif")
+        lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
+        lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
+        orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("i2Hi")
+        return cls(plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id,
+                   surface_fog_volume_id, styles, light_offset, area,
+                   lightmap_texture_mins_in_luxels, lightmap_texture_size_in_luxels,
+                   orig_face, prim_count, first_prim_id, smoothing_groups)
 
     def get_tex_info(self, bsp: 'BSPFile'):
         tex_info_lump: TextureInfoLump = bsp.get_lump('LUMP_TEXINFO')
@@ -65,49 +56,31 @@ class Face(Primitive):
 
 
 class VFace1(Face):
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        # TODO: Replace with single reader.read_fmt call
-        self.plane_index = reader.read_uint32()
-        self.side = reader.read_uint8()
-        self.on_node = reader.read_uint8()
-        unk = reader.read_uint16()
-        self.first_edge = reader.read_int32()
-        self.edge_count = reader.read_int32()
-        self.tex_info_id = reader.read_int32()
-        self.disp_info_id = reader.read_int32()
-        self.surface_fog_volume_id = reader.read_int32()
-        self.styles = [reader.read_int8() for _ in range(4)]
-        self.light_offset = reader.read_int32()
-        self.area = reader.read_float()
-        self.lightmap_texture_mins_in_luxels = [reader.read_int32() for _ in range(2)]
-        self.lightmap_texture_size_in_luxels = [reader.read_int32() for _ in range(2)]
-        self.orig_face = reader.read_int32()
-        self.prim_count = reader.read_uint32()
-        self.first_prim_id = reader.read_uint32()
-        self.smoothing_groups = reader.read_uint32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        (plane_index, side, on_node, unk, first_edge, edge_count, tex_info_id, disp_info_id, surface_fog_volume_id,
+         *styles,
+         light_offset, area) = buffer.read_fmt("I2BH5I4bif")
+        lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
+        lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
+        orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("4I")
+        return cls(plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id,
+                   surface_fog_volume_id, styles, light_offset, area,
+                   lightmap_texture_mins_in_luxels, lightmap_texture_size_in_luxels,
+                   orig_face, prim_count, first_prim_id, smoothing_groups)
 
 
 class VFace2(VFace1):
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        # TODO: Replace with single reader.read_fmt call
-        self.plane_index = reader.read_uint32()
-        self.side = reader.read_uint8()
-        self.on_node = reader.read_uint8()
-        unk = reader.read_uint16()
-        self.first_edge = reader.read_int32()
-        self.edge_count = reader.read_int32()
-        self.tex_info_id = reader.read_int32()
-        self.disp_info_id = reader.read_int32()
-        self.surface_fog_volume_id = reader.read_int32()
-        self.styles = [reader.read_int8() for _ in range(4)]
-        unk2 = reader.read_int32()
-        self.light_offset = reader.read_int32()
-        self.area = reader.read_float()
-        self.lightmap_texture_mins_in_luxels = [reader.read_int32() for _ in range(2)]
-        self.lightmap_texture_size_in_luxels = [reader.read_int32() for _ in range(2)]
-        self.orig_face = reader.read_int32()
-        self.prim_count = reader.read_uint32()
-        self.first_prim_id = reader.read_uint32()
-        self.smoothing_groups = reader.read_uint32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        (plane_index, side, on_node, unk, first_edge, edge_count, tex_info_id, disp_info_id, surface_fog_volume_id,
+         *styles,
+         light_offset, area) = buffer.read_fmt("I2BH5I4b2if")
+        lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
+        lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
+        orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("4I")
+
+        return cls(plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id,
+                   surface_fog_volume_id, styles, light_offset, area,
+                   lightmap_texture_mins_in_luxels, lightmap_texture_size_in_luxels,
+                   orig_face, prim_count, first_prim_id, smoothing_groups)

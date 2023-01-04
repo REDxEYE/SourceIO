@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union
 
 from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.utils import FileBuffer, MemoryBuffer
 from ....library.utils.byte_io_mdl import ByteIO
 from ....library.utils.path_utilities import find_vtx, find_vtx_cm
 from ....logger import SLoggingManager
@@ -34,7 +35,7 @@ def import_model_from_full_path(mdl_path: Path,
     if mdl_path.is_absolute():
         mdl_file = ByteIO(mdl_path)
         vtx_file = ByteIO(find_vtx(mdl_path))
-        vvd_file = ByteIO(mdl_path.with_suffix('.vvd'))
+        vvd_file = FileBuffer(mdl_path.with_suffix('.vvd'))
         vvc_file = ByteIO(mdl_path.with_suffix('.vvc')) if mdl_path.with_suffix('.vvc').exists() else None
         phy_file = (ByteIO(mdl_path.with_suffix('.phy'))
                     if load_physics and mdl_path.with_suffix('.phy').exists() else None)
@@ -43,7 +44,7 @@ def import_model_from_full_path(mdl_path: Path,
 
     else:
         name = mdl_path
-        vvd_file = ByteIO(content_manager.find_file(mdl_path, extension='.vvd'))
+        vvd_file = MemoryBuffer(content_manager.find_file(mdl_path, extension='.vvd'))
         vvc_file = ByteIO(content_manager.find_file(mdl_path, extension='.vcc'))
         file = content_manager.find_file(mdl_path, extension='.phy')
         phy_file = ByteIO(file) if load_physics and file else None

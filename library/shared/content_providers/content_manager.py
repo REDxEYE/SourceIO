@@ -1,7 +1,8 @@
 from collections import Counter, OrderedDict
 from pathlib import Path
-from typing import Dict, List, TypeVar, Union
+from typing import Dict, List, TypeVar, Union, Optional
 
+from ...utils import Buffer
 from ....library.utils.path_utilities import (backwalk_file_resolver,
                                               corrected_path, get_mod_path)
 from ....logger import SLoggingManager
@@ -214,7 +215,8 @@ class ContentManager(metaclass=SingletonMeta):
         for content_provider in self.content_providers.values():
             yield from content_provider.glob(pattern)
 
-    def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *, silent=False):
+    def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *,
+                  silent=False) -> Optional[Buffer]:
 
         new_filepath = Path(str(filepath).replace('\\', '/').replace('//', '/').strip('\\/'))
         if additional_dir is not None:

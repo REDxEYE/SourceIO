@@ -1,6 +1,6 @@
 from enum import IntFlag
 
-from .....library.utils.byte_io_mdl import ByteIO
+from .....library.utils import Buffer
 
 
 class StudioHeaderFlags(IntFlag):
@@ -47,7 +47,7 @@ class StudioHeader:
         self.body_part_count = 0
         self.body_part_offset = 0
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.magic = reader.read_fourcc()
         assert self.magic == 'IDST', 'Not a GoldSrc model'
         self.version = reader.read_int32()

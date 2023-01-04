@@ -1,9 +1,12 @@
 import math
-from typing import List
+from dataclasses import dataclass
+from typing import List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 
-from ....utils.byte_io_mdl import ByteIO
+from ....shared.types import Vector3
+from ....utils import Buffer
 
 
 def euler_to_quat(euler):
@@ -28,38 +31,37 @@ def euler_to_quat(euler):
     return quat
 
 
+@dataclass(slots=True)
 class SequenceFrame:
-    def __init__(self):
-        self.global_frame_id = 0.0
-        self.unk = []
-        self.root_motion = []
-        self.animation_per_bone_rot = np.array([])
+    global_frame_id: float
+    unk: Tuple[int, ...]
+    root_motion: Vector3[float]
+    animation_per_bone_rot: npt.NDArray[np.float32]
 
-    def read(self, reader: ByteIO, bone_count):
-        self.global_frame_id = reader.read_float()
-        self.unk = reader.read_fmt('11I')
-        self.root_motion = reader.read_fmt('3f')
-        self.animation_per_bone_rot = np.frombuffer(reader.read(6 * bone_count), dtype=np.uint16).astype(np.float32)
-        self.animation_per_bone_rot *= 0.0001745329354889691
-        self.animation_per_bone_rot = self.animation_per_bone_rot.reshape((-1, 3))
+    @classmethod
+    def from_buffer(cls, reader: Buffer, bone_count: int):
+        global_frame_id = reader.read_float()
+        unk = reader.read_fmt('11I')
+        root_motion = reader.read_fmt('3f')
+        animation_per_bone_rot = np.frombuffer(reader.read(6 * bone_count), dtype=np.uint16).astype(np.float32)
+        animation_per_bone_rot *= 0.0001745329354889691
+        animation_per_bone_rot = animation_per_bone_rot.reshape((-1, 3))
+        return cls(global_frame_id, unk, root_motion, animation_per_bone_rot)
 
 
+@dataclass(slots=True)
 class StudioSequence:
-    def __init__(self):
-        self.name = ''
-        self.frame_count = 0
-        self.unk = 0
-        self.frame_helpers: List[SequenceFrame] = []
-        self.frames = []
+    name: str
+    frame_count: int
+    unk: int
 
-    def read(self, reader: ByteIO):
-        self.name = reader.read_ascii_string(32)
-        self.frame_count = reader.read_int32()
-        self.unk = reader.read_int32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_ascii_string(32), buffer.read_int32(), buffer.read_int32())
 
-    def read_anim_values(self, reader, bone_count):
+    def read_anim_values(self, buffer: Buffer, bone_count) -> List[Tuple[Vector3[float], npt.NDArray]]:
+        frames = []
         for _ in range(self.frame_count):
-            frame = SequenceFrame()
-            frame.read(reader, bone_count)
-            self.frame_helpers.append(frame)
-            self.frames.append(frame.animation_per_bone_rot)
+            frame = SequenceFrame.from_buffer(buffer, bone_count)
+            frames.append((frame.root_motion, frame.animation_per_bone_rot))
+        return frames

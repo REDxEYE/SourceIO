@@ -1,4 +1,4 @@
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class StudioBone:
@@ -8,7 +8,7 @@ class StudioBone:
         self.pos = []
         self.rot = []
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.name = reader.read_ascii_string(32)
         self.parent = reader.read_int32()
         self.pos = reader.read_fmt('3f')

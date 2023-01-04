@@ -32,7 +32,7 @@ from ....library.source1.bsp.lumps.texture_lump import (TextureDataLump,
                                                         TextureInfoLump)
 from ....library.source1.bsp.lumps.vertex_lump import VertexLump
 from ....library.utils.math_utilities import (
-    UnitPlane, convert_rotation_source1_to_blender)
+    UnitPlane, convert_rotation_source1_to_blender, SOURCE1_HAMMER_UNIT_TO_METERS)
 from ....library.utils.singleton import SingletonMeta
 from ....logger import SLoggingManager
 from ...material_loader.material_loader import Source1MaterialLoader
@@ -147,8 +147,9 @@ class BSP:
         for n, cubemap in enumerate(cubemap_lump.cubemaps):
             refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
             obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
-            obj.location = cubemap.origin * self.scale
-            # refl_probe.influence_distance = float(entity.cubemapsize)
+            obj.location = cubemap.origin
+            obj.location *= self.scale
+            refl_probe.influence_distance = (cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.scale * 1000
             parent_collection.objects.link(obj)
 
     def load_static_props(self):
@@ -238,16 +239,17 @@ class BSP:
             face_vertex_ids = used_edges[tmp, reverse]
             face_vertices = vertices[face_vertex_ids] * self.scale
 
+            start_pos = np.asarray(disp_info.start_position, np.float32)
             min_index = np.where(
                 np.sum(
                     np.isclose(face_vertices,
-                               disp_info.start_position * self.scale,
+                               start_pos * self.scale,
                                0.5e-2),
                     axis=1
                 ) == 3)
             if min_index[0].shape[0] == 0:
                 lowest = 999.e16
-                for i, value in enumerate(np.sum(face_vertices - disp_info.start_position, axis=1)):
+                for i, value in enumerate(np.sum(face_vertices - start_pos, axis=1)):
                     if value < lowest:
                         min_index = i
                         lowest = value

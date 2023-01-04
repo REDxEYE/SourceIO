@@ -1,6 +1,12 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
+from SourceIO.library.utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
+
+if TYPE_CHECKING:
+    from ..bsp_file import BspFile
 
 
 class EdgeLump(Lump):
@@ -10,5 +16,5 @@ class EdgeLump(Lump):
         super().__init__(info)
         self.values = np.array([])
 
-    def parse(self):
-        self.values = np.frombuffer(self.buffer.read(self.info.length), np.uint16).reshape((-1, 2))
+    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+        self.values = np.frombuffer(buffer.read(self.info.length), np.uint16).reshape((-1, 2))

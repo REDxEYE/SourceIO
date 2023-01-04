@@ -20,7 +20,7 @@ class SFMDetector(Source1Common):
         content_providers = {}
         cls.recursive_traversal(sfm_root, 'usermod', content_providers)
         for folder in sfm_root.iterdir():
-            if folder.stem in content_providers:
+            if folder.stem in content_providers or folder.is_file():
                 continue
             elif (folder / 'gameinfo.txt').exists():
                 content_providers[folder.stem] = GameinfoContentProvider(folder / 'gameinfo.txt')

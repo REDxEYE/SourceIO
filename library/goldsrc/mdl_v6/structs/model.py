@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from .....library.utils.byte_io_mdl import ByteIO
+from .....library.utils import Buffer
 from .mesh import StudioMesh
 
 # // studio models
@@ -40,7 +40,7 @@ class StudioModelData:
         self.vertices = np.array([])
         self.normals = np.array([])
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         (self.unk_01, self.unk_02, self.unk_03,
          self.vertex_count, self.vertex_offset,
          self.normal_count, self.normal_offset) = reader.read_fmt('7i')
@@ -79,7 +79,7 @@ class StudioModel:
                                            'to REDxEYE (https://github.com/REDxEYE/SourceIO) or in discord RED_EYE#9999'
         return self.model_datas[0].normals
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.name = reader.read_ascii_string(64)
         (self.type, unk_01, unused_01,
          self.mesh_count, self.mesh_offset,
@@ -88,7 +88,7 @@ class StudioModel:
          model_data_count, model_data_offset
          ) = reader.read_fmt('11i')
 
-        with reader.save_current_pos():
+        with reader.save_current_offset():
             reader.seek(self.vertex_info_offset)
             self.bone_vertex_info = reader.read_fmt(f'{self.vertex_count}B')
 

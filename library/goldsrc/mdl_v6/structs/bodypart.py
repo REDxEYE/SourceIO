@@ -1,6 +1,6 @@
 from typing import List
 
-from .....library.utils.byte_io_mdl import ByteIO
+from .....library.utils import Buffer
 from .model import StudioModel
 
 
@@ -12,10 +12,10 @@ class StudioBodypart:
         self.model_offset = 0
         self.models: List[StudioModel] = []
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.name = reader.read_ascii_string(64)
         (self.model_count, self.base, self.model_offset) = reader.read_fmt('3i')
-        with reader.save_current_pos():
+        with reader.save_current_offset():
             reader.seek(self.model_offset)
             for _ in range(self.model_count):
                 model = StudioModel()

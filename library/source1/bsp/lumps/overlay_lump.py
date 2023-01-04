@@ -1,4 +1,4 @@
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.overlay import Overlay, VOverlay
@@ -11,10 +11,9 @@ class OverlayLump(Lump):
         super().__init__(lump_info)
         self.overlays = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            overlay = Overlay(self).parse(buffer, bsp)
-            self.overlays.append(overlay)
+            self.overlays.append(Overlay.from_buffer(buffer, self.version, bsp))
         return self
 
 
@@ -24,8 +23,7 @@ class VOverlayLump(Lump):
         super().__init__(lump_info)
         self.overlays = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            overlay = VOverlay(self).parse(buffer, bsp)
-            self.overlays.append(overlay)
+            self.overlays.append(VOverlay.from_buffer(buffer, self.version, bsp))
         return self

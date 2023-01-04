@@ -1,7 +1,11 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 
+from SourceIO.library.utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
 from ..structs.model import Model
+
+if TYPE_CHECKING:
+    from ..bsp_file import BspFile
 
 
 class ModelLump(Lump):
@@ -11,8 +15,6 @@ class ModelLump(Lump):
         super().__init__(info)
         self.values: List[Model] = []
 
-    def parse(self):
-        while self.buffer:
-            model = Model()
-            model.parse(self.buffer)
-            self.values.append(model)
+    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+        while buffer:
+            self.values.append(Model.from_buffer(buffer))

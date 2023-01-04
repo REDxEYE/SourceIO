@@ -1,6 +1,6 @@
 from typing import List
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.node import Node, VNode
@@ -14,9 +14,9 @@ class NodeLump(Lump):
         super().__init__(lump_info)
         self.nodes: List[Node] = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            plane = Node(self).parse(buffer, bsp)
+            plane = Node.from_buffer(buffer, self.version, bsp)
             self.nodes.append(plane)
         return self
 
@@ -28,8 +28,8 @@ class VNodeLump(Lump):
         super().__init__(lump_info)
         self.nodes: List[VNode] = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            plane = VNode(self).parse(buffer, bsp)
+            plane = VNode.from_buffer(buffer, self.version, bsp)
             self.nodes.append(plane)
         return self

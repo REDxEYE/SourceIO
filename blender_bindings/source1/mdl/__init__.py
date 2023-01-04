@@ -3,6 +3,7 @@ from typing import Optional
 
 import bpy
 
+from ....library.utils import Buffer
 from ....library.utils.byte_io_mdl import ByteIO
 from ...shared.model_container import Source1ModelContainer
 from ...utils.utils import get_new_unique_collection
@@ -11,7 +12,7 @@ from ...utils.utils import get_new_unique_collection
 @dataclass
 class FileImport:
     mdl_file: ByteIO
-    vvd_file: ByteIO
+    vvd_file: Buffer
     vtx_file: ByteIO
     vvc_file: Optional[ByteIO]
     phy_file: Optional[ByteIO]

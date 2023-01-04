@@ -1,4 +1,4 @@
-from ....utils import IBuffer
+from ....utils import Buffer
 
 
 class Header:
@@ -14,7 +14,7 @@ class Header:
         self.other_md5_section_size = 0
         self.signature_section_size = 0
 
-    def read(self, reader: IBuffer):
+    def read(self, reader: Buffer):
         self.magic = reader.read_uint32()
         assert self.magic == self.MAGIC, "Not a VPK file"
 

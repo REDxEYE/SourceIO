@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from typing import List
 
+from ...utils import Buffer
 from ....library.shared.base import Base
 from ....library.utils.byte_io_mdl import ByteIO
 from .structs.bodypart import StudioBodypart
@@ -8,33 +10,32 @@ from .structs.studioheader import StudioHeader
 from .structs.texture import StudioTexture
 
 
+@dataclass(slots=True)
 class Mdl(Base):
+    header: StudioHeader
+    bones: List[StudioBone]
+    bodyparts: List[StudioBodypart]
+    textures: List[StudioTexture]
 
-    def __init__(self, filepath):
-        self.store_value("MDL", self)
-        self.reader = ByteIO(filepath)
-        self.header = StudioHeader()
-        self.bones: List[StudioBone] = []
-        self.bodyparts: List[StudioBodypart] = []
-        self.textures: List[StudioTexture] = []
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        header = StudioHeader.from_buffer(buffer)
 
-    def read(self):
-        self.header.read(self.reader)
+        buffer.seek(header.bone_offset)
+        bones = []
+        for _ in range(header.bone_count):
+            bone = StudioBone.from_buffer(buffer)
+            bones.append(bone)
 
-        self.reader.seek(self.header.bone_offset)
-        for _ in range(self.header.bone_count):
-            bone = StudioBone()
-            bone.read(self.reader)
-            self.bones.append(bone)
+        buffer.seek(header.body_part_offset)
+        bodyparts = []
+        for _ in range(header.body_part_count):
+            bodypart = StudioBodypart.from_buffer(buffer)
+            bodyparts.append(bodypart)
 
-        self.reader.seek(self.header.body_part_offset)
-        for _ in range(self.header.body_part_count):
-            bodypart = StudioBodypart()
-            bodypart.read(self.reader)
-            self.bodyparts.append(bodypart)
-
-        self.reader.seek(self.header.texture_offset)
-        for _ in range(self.header.texture_count):
-            texture = StudioTexture()
-            texture.read(self.reader)
-            self.textures.append(texture)
+        buffer.seek(header.texture_offset)
+        textures = []
+        for _ in range(header.texture_count):
+            texture = StudioTexture.from_buffer(buffer)
+            textures.append(texture)
+        return cls(header, bones, bodyparts, textures)

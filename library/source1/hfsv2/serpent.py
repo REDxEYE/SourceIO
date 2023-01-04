@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import MemoryBuffer
 from ...utils.singleton import SingletonMeta
 from . import tables
 
@@ -17,6 +17,7 @@ try:
     import ctypes
 
     rel_path = Path(__file__).absolute().parent
+
 
     class Serpent(metaclass=SingletonMeta):
         def __init__(self):
@@ -79,7 +80,7 @@ try:
 
         def decrypt_to_reader(self, data: bytes):
             buffer = np.frombuffer(data, np.uint8).copy()
-            return ByteIO(self.decrypt(buffer).tobytes())
+            return MemoryBuffer(self.decrypt(buffer).tobytes())
 
 
 except:
@@ -169,7 +170,7 @@ except:
 
         def decrypt_to_reader(self, data: bytes):
             buffer = np.frombuffer(data, np.uint8).copy()
-            return ByteIO(self.decrypt(buffer).tobytes())
+            return MemoryBuffer(self.decrypt(buffer).tobytes())
 
 
 def get_int_at_big(data: np.ndarray, index):
@@ -198,3 +199,6 @@ def generate_hashed_key(key: str, hash_table: bytes):
     for i in range(KEY_SIZE):
         key_blob[i] = ((hash_table[i % HASH_SIZE] + 2 + i % 5) * ord(key[i % len(key)]) + i)
     return key_blob
+
+
+__all__ = ["Serpent", "generate_key", "generate_encoding_key", "generate_hashed_key"]

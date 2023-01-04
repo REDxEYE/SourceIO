@@ -3,14 +3,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Type
 
 from ...shared.app_id import SteamAppId
-from ...utils.file_utils import FileBuffer, IBuffer, MemoryBuffer
+from ...utils.file_utils import FileBuffer, Buffer, MemoryBuffer
 from ...utils.math_utilities import sizeof_fmt
 
 if TYPE_CHECKING:
     from .bsp_file import BSPFile
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True)
 class LumpTag:
     lump_id: int
     lump_name: str
@@ -34,7 +34,7 @@ def lump_tag(lump_id, lump_name,
 
 @dataclass(slots=True)
 class LumpInfo:
-    id: int = field(init=False, default=-1)
+    id: int
     offset: int
     size: int
     version: int
@@ -45,7 +45,7 @@ class LumpInfo:
         return self.decompressed_size != 0
 
     @classmethod
-    def from_buffer(cls, buffer: IBuffer, is_l4d2: bool = False):
+    def from_buffer(cls, buffer: Buffer, lump_type: int, is_l4d2: bool = False):
         if is_l4d2:
             version = buffer.read_int32()
             offset = buffer.read_int32()
@@ -56,7 +56,7 @@ class LumpInfo:
             size = buffer.read_int32()
             version = buffer.read_int32()
             decompressed_size = buffer.read_uint32()
-        return cls(offset, size, version, decompressed_size)
+        return cls(lump_type, offset, size, version, decompressed_size)
 
     def __repr__(self):
         return f"<Lump{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size} bytes)>"
@@ -65,6 +65,10 @@ class LumpInfo:
 class Lump:
     tags: List[LumpTag] = []
 
+    @property
+    def version(self):
+        return self._info.version
+
     @classmethod
     def all_subclasses(cls):
         return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
@@ -72,12 +76,12 @@ class Lump:
     def __init__(self, lump_info: LumpInfo):
         self._info = lump_info
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         return self
 
     # noinspection PyUnresolvedReferences,PyProtectedMember
     @staticmethod
-    def decompress_lump(buffer: IBuffer) -> IBuffer:
+    def decompress_lump(buffer: Buffer) -> Buffer:
         magic = buffer.read_fourcc()
         assert magic == 'LZMA', f'Invalid LZMA compressed header: {magic}'
 

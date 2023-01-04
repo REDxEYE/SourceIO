@@ -1,9 +1,8 @@
 from functools import lru_cache
-from io import BytesIO
 from pathlib import Path, PosixPath, PurePath, WindowsPath
 from typing import Dict, List, Union
 
-from ...utils import FileBuffer, IBuffer, MemoryBuffer
+from ...utils import FileBuffer, Buffer, MemoryBuffer
 from ...utils.thirdparty.lzham.lzham import LZHAM
 from .structs import *
 from .structs.entry import TitanfallEntry
@@ -110,7 +109,7 @@ class VPKFile:
             full_path = Path(full_path).as_posix().lower()
         return self.entries.get(full_path, None)
 
-    def read_file(self, file_entry: Entry) -> IBuffer:
+    def read_file(self, file_entry: Entry) -> Buffer:
         if not file_entry.loaded:
             file_entry.read(self.buffer)
         if file_entry.archive_id == 0x7FFF:
@@ -172,7 +171,7 @@ class TitanfallVPKFile(VPKFile):
                     entry = self.entries[full_path] = TitanfallEntry(full_path, buffer.tell())
                     entry.read(buffer)
 
-    def read_file(self, file_entry: TitanfallEntry) -> IBuffer:
+    def read_file(self, file_entry: TitanfallEntry) -> Buffer:
         if not file_entry.loaded:
             file_entry.read(self.buffer)
         if file_entry.archive_id == 0x7FFF:

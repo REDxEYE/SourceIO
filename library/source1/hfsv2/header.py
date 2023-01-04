@@ -1,4 +1,4 @@
-from ....library.utils.byte_io_mdl import ByteIO
+from ....library.utils import Buffer
 
 
 class Header:
@@ -7,7 +7,7 @@ class Header:
         self.version = 0
         self.count = 0
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.checksum = reader.read_int32()
         self.version = reader.read_int8()
         self.count = reader.read_int32()

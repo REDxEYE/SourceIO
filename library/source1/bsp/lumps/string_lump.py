@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -12,7 +12,7 @@ class StringOffsetLump(Lump):
         super().__init__(lump_info)
         self.string_ids = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.string_ids = np.frombuffer(buffer.read(), np.int32)
         return self
 
@@ -24,7 +24,7 @@ class StringsLump(Lump):
         super().__init__(lump_info)
         self.strings = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         data = buffer.read(-1)
         self.strings = list(map(lambda a: a.decode("utf"), data.split(b'\x00')))
         return self

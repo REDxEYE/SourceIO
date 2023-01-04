@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -11,7 +11,7 @@ class VertexNormalLump(Lump):
         super().__init__(lump_info)
         self.normals = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.normals = np.frombuffer(buffer.read(), np.float32)
         self.normals = self.normals.reshape((-1, 3))
         return self
@@ -23,6 +23,6 @@ class VertexNormalIndicesLump(Lump):
         super().__init__(lump_info)
         self.indices = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.indices = np.frombuffer(buffer.read(), np.int16)
         return self

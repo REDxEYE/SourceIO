@@ -9,7 +9,7 @@ from struct import calcsize, pack, unpack
 from typing import Optional, Protocol, Union
 
 
-class IBuffer(abc.ABC, io.RawIOBase):
+class Buffer(abc.ABC, io.RawIOBase):
     def __init__(self):
         io.RawIOBase.__init__(self)
         self._endian = '<'
@@ -94,6 +94,8 @@ class IBuffer(abc.ABC, io.RawIOBase):
     def read_ascii_string(self, length=None):
         if length is not None:
             buffer = self.read(length).strip(b'\x00').rstrip(b'\x00')
+            if b'\x00' in buffer:
+                buffer = buffer[:buffer.index(b'\x00')]
             return buffer.decode('latin', errors='replace')
 
         buffer = bytearray()
@@ -176,11 +178,22 @@ class IBuffer(abc.ABC, io.RawIOBase):
     def __bool__(self):
         return self.tell() < self.size()
 
-    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'IBuffer':
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
         raise NotImplementedError
 
+    def read_structure_array(self, offset, count, data_class, *args, **kwargs):
+        if count == 0:
+            return []
+        self.seek(offset)
+        object_list = []
+        for _ in range(count):
+            obj = data_class()
+            obj.read(self, *args, **kwargs)
+            object_list.append(obj)
+        return object_list
 
-class MemoryBuffer(IBuffer):
+
+class MemoryBuffer(Buffer):
 
     def __init__(self, buffer: Union[bytes, bytearray, memoryview]):
         super().__init__()
@@ -204,16 +217,16 @@ class MemoryBuffer(IBuffer):
         self._offset += struct.calcsize(self._endian + fmt)
         return data
 
-    def write(self, __b: Union[bytes, bytearray]) -> Optional[int]:
+    def write(self, _b: Union[bytes, bytearray]) -> Optional[int]:
         raise NotImplementedError()
 
-    def read(self, __size: int = -1) -> Optional[bytes]:
-        if __size == -1:
+    def read(self, _size: int = -1) -> Optional[bytes]:
+        if _size == -1:
             data = self._buffer[self._offset:]
             self._offset += len(data)
             return data.tobytes()
-        data = self._buffer[self._offset:self._offset + __size]
-        self._offset += __size
+        data = self._buffer[self._offset:self._offset + _size]
+        self._offset += _size
         return data.tobytes()
 
     def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
@@ -244,7 +257,7 @@ class MemoryBuffer(IBuffer):
     def close(self) -> None:
         self._buffer = None
 
-    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'IBuffer':
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
         if offset is None:
             offset = self._offset
 
@@ -253,11 +266,11 @@ class MemoryBuffer(IBuffer):
         return MemoryBuffer(self._buffer[offset:offset + size])
 
 
-class FileBuffer(io.FileIO, IBuffer):
+class FileBuffer(io.FileIO, Buffer):
 
     def __init__(self, file: Union[str, Path, int], mode: str = 'r', closefd: bool = True, opener=None) -> None:
         io.FileIO.__init__(self, file, mode, closefd, opener)
-        IBuffer.__init__(self)
+        Buffer.__init__(self)
 
     def size(self):
         return os.fstat(self.fileno()).st_size
@@ -273,7 +286,7 @@ class FileBuffer(io.FileIO, IBuffer):
     def __str__(self) -> str:
         return f'<FileBuffer: {self.name!r} {self.tell()}/{self.size()}>'
 
-    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'IBuffer':
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
         with self.save_current_offset():
             if offset is not None:
                 self.seek(offset)
@@ -285,8 +298,8 @@ class FileBuffer(io.FileIO, IBuffer):
 
 class Readable(Protocol):
     @classmethod
-    def from_buffer(cls, buffer: IBuffer):
+    def from_buffer(cls, buffer: Buffer):
         ...
 
 
-__all__ = ['IBuffer', 'MemoryBuffer', 'FileBuffer', 'Readable']
+__all__ = ['Buffer', 'MemoryBuffer', 'FileBuffer', 'Readable']

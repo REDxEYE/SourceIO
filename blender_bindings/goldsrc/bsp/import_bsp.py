@@ -47,7 +47,7 @@ class BSP:
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
-        self.bsp_file = BspFile(map_path)
+        self.bsp_file = BspFile.from_filename(map_path)
         rad_file = content_manager.find_file(map_path.with_suffix('.rad').name, 'maps')
         shared_rad_file = content_manager.find_file('lights.rad', 'maps')
         rad_data = {}
@@ -113,13 +113,10 @@ class BSP:
         if material_name in materials_dict:
             texture_data = materials_dict[material_name]
             texture_info: TextureInfo = self.bsp_lump_textures_info.values[texture_data.info_id]
-            studio_texture = StudioTexture()
-            studio_texture.name = material_name
-            studio_texture.flags = texture_info.flags
-            studio_texture.data = texture_data.get_contents(self.bsp_file)
-            studio_texture.width = texture_data.width
-            studio_texture.height = texture_data.height
+            studio_texture = StudioTexture(material_name, texture_info.flags, texture_data.width, texture_data.height,
+                                           texture_data.get_contents(self.bsp_file))
             return studio_texture
+        return
 
     def load_material(self, material_name):
         materials_dict = self.bsp_lump_textures_data.key_values
@@ -240,8 +237,7 @@ class BSP:
             entity_class: str = entity['classname']
 
             if entity_class in entity_handlers:
-                entity_collection = self.get_collection(entity_class)
-                entity_handlers[entity_class](entity, self.scale, entity_collection)
+                entity_handlers[entity_class](entity, self.scale, self.bsp_collection, self._single_collection)
             else:
                 if entity_class == 'worldspawn':
                     for game_wad_path in entity.get('wad', '').split(';'):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from . import SteamAppId
@@ -13,7 +13,7 @@ class EdgeLump(Lump):
         super().__init__(lump_info)
         self.edges = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.edges = np.frombuffer(buffer.read(), np.uint16)
         self.edges = self.edges.reshape((-1, 2))
         return self
@@ -26,7 +26,7 @@ class VEdgeLump(Lump):
         super().__init__(lump_info)
         self.edges = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.edges = np.frombuffer(buffer.read(), np.uint32)
         self.edges = self.edges.reshape((-1, 2))
         return self

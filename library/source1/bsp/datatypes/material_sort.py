@@ -1,21 +1,20 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ....utils.file_utils import IBuffer
+from ....utils.file_utils import Buffer
 from .primitive import Primitive
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
 
 
-class MaterialSort(Primitive):
+@dataclass(slots=True)
+class MaterialSort:
+    texdata_index: int
+    lightmap_header_index: int
+    unk_1: int
+    vertex_offset: int
 
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.texdata_index = 0
-        self.lightmap_header_index = 0
-        self.unk_1 = 0
-        self.vertex_offset = 0
-
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.texdata_index, self.lightmap_header_index, self.unk_1, self.vertex_offset = reader.read_fmt('Hh2I')
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        return cls(*buffer.read_fmt('Hh2I'))

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from ....utils.file_utils import IBuffer
+from ....utils.file_utils import Buffer
 from .primitive import Primitive
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ class GameLumpHeader(Primitive):
         self.offset = 0
         self.size = 0
 
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
+    def parse(self, reader: Buffer, bsp: 'BSPFile'):
         self.id = reader.read_fourcc()[::-1]
         self.flags = reader.read_uint16()
         self.version = reader.read_uint16()
@@ -26,7 +26,7 @@ class GameLumpHeader(Primitive):
 
 
 class VindictusGameLumpHeader(GameLumpHeader):
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
+    def parse(self, reader: Buffer, bsp: 'BSPFile'):
         self.id = reader.read_fourcc()[::-1]
         self.flags = reader.read_uint32()
         self.version = reader.read_uint32()

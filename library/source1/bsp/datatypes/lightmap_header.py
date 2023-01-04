@@ -1,20 +1,19 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ....utils.file_utils import IBuffer
+from ....utils.file_utils import Buffer
 from .primitive import Primitive
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
 
 
-class LightmapHeader(Primitive):
+@dataclass(slots=True)
+class LightmapHeader:
+    count: int
+    width: int
+    height: int
 
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.count = 0
-        self.width = 0
-        self.height = 0
-
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.count, self.width, self.height = reader.read_fmt('I2H')
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        return cls(*buffer.read_fmt('I2H'))

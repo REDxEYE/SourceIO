@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import Optional
 
 import bpy
 import numpy as np
@@ -11,6 +11,7 @@ from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
 from ...utils.utils import get_material, get_new_unique_collection
+from ....library.utils import Buffer
 
 
 def create_armature(mdl: Mdl, collection, scale):
@@ -56,17 +57,15 @@ def create_armature(mdl: Mdl, collection, scale):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale=1.0,
+def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
 
-    mdl = Mdl(mdl_file)
-    mdl.read()
+    mdl = Mdl.from_buffer(mdl_file)
     mdl_file_textures = mdl.textures
     if not mdl_file_textures and mdl_texture_file is not None:
-        mdl_filet = Mdl(mdl_texture_file)
-        mdl_filet.read()
+        mdl_filet = Mdl.from_buffer(mdl_texture_file)
         mdl_file_textures = mdl_filet.textures
 
     model_container = GoldSrcModelContainer(mdl)
@@ -102,7 +101,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
                 model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                 model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
-            if body_part_model.vertex_count == 0:
+            if body_part_model.vertices.size == 0:
                 continue
 
             mdl_body_part_collection.objects.link(model_object)

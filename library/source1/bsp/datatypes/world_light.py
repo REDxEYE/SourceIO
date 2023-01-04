@@ -1,8 +1,10 @@
 import math
+from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
-from ....utils.file_utils import IBuffer
+from ....shared.types import Vector3
+from ....utils.file_utils import Buffer
 from .primitive import Primitive
 
 if TYPE_CHECKING:
@@ -18,22 +20,19 @@ class EmitType(IntEnum):
     emit_skyambient = 5  # spherical light source with no falloff (surface must trace to SKY texture)
 
 
+@dataclass(slots=True)
 class Color32:
-
-    def __init__(self):
-        self.r, self.g, self.b, self.a = 1, 1, 1, 1
+    r: float = field(default=0)
+    g: float = field(default=0)
+    b: float = field(default=0)
+    a: float = field(default=1)
 
     @staticmethod
     def from_array(rgba):
-        color = Color32()
-        if len(rgba) >= 4:
-            color.r, color.g, color.b, color.a = rgba
-        color.r, color.g, color.b = rgba
-        return color
+        return Color32(*rgba)
 
     def magnitude(self):
-        magn = math.sqrt(self.r ** 2 + self.g ** 2 + self.b ** 2)
-        return magn
+        return math.sqrt(self.r ** 2 + self.g ** 2 + self.b ** 2)
 
     def normalize(self):
         magn = self.magnitude()
@@ -48,11 +47,7 @@ class Color32:
         magn = self.magnitude()
         if magn == 0:
             return self
-        color = Color32()
-        color.r = self.r / magn
-        color.g = self.g / magn
-        color.b = self.b / magn
-        return color
+        return Color32(self.r / magn, self.g / magn, self.b / magn)
 
     def __repr__(self):
         magn = self.magnitude()
@@ -72,45 +67,47 @@ class Color32:
         return self.r, self.g, self.b
 
 
-class WorldLight(Primitive):
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.origin = []
-        self.intensity = Color32()
-        self.normal = []
-        self.shadow_cast_offset = []
-        self.cluster = 0
-        self.type = []
-        self.style = 0
-        self.stopdot = 0.0
-        self.stopdot2 = 0.0
-        self.exponent = 0.0
-        self.radius = 0.0
-        self.constant_attn = 0.0
-        self.linear_attn = 0.0
-        self.quadratic_attn = 0.0
-        self.flags = 0
-        self.tex_info_id = 0
-        self.owner = 0
+@dataclass(slots=True)
+class WorldLight:
+    origin: Vector3[float]
+    intensity: Color32
+    normal: Vector3[float]
+    shadow_cast_offset: Vector3[float]
+    cluster: int
+    type: EmitType
+    style: int
+    stopdot: float
+    stopdot2: float
+    exponent: float
+    radius: float
+    constant_attn: float
+    linear_attn: float
+    quadratic_attn: float
+    flags: int
+    tex_info_id: int
+    owner: int
 
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.origin = reader.read_fmt('3f')
-        self.intensity = Color32.from_array(reader.read_fmt('3f'))
-        self.normal = reader.read_fmt('3f')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        origin = buffer.read_fmt('3f')
+        intensity = Color32.from_array(buffer.read_fmt('3f'))
+        normal = buffer.read_fmt('3f')
         if bsp.version > 20:
-            self.shadow_cast_offset = reader.read_fmt('3f')
-        self.cluster = reader.read_int32()
-        self.type = EmitType(reader.read_int32())
-        self.style = reader.read_int32()
-        self.stopdot = reader.read_float()
-        self.stopdot2 = reader.read_float()
-        self.exponent = reader.read_float()
-        self.radius = reader.read_float()
-        self.constant_attn = reader.read_float()
-        self.linear_attn = reader.read_float()
-        self.quadratic_attn = reader.read_float()
-        self.flags = reader.read_int32()
-        self.tex_info_id = reader.read_int32()
-        self.owner = reader.read_int32()
-        return self
-
+            shadow_cast_offset = buffer.read_fmt('3f')
+        else:
+            shadow_cast_offset = (0, 0, 0)
+        cluster = buffer.read_int32()
+        emit_type = EmitType(buffer.read_int32())
+        style = buffer.read_int32()
+        stopdot = buffer.read_float()
+        stopdot2 = buffer.read_float()
+        exponent = buffer.read_float()
+        radius = buffer.read_float()
+        constant_attn = buffer.read_float()
+        linear_attn = buffer.read_float()
+        quadratic_attn = buffer.read_float()
+        flags = buffer.read_int32()
+        tex_info_id = buffer.read_int32()
+        owner = buffer.read_int32()
+        return cls(origin, intensity, normal, shadow_cast_offset, cluster, emit_type, style, stopdot, stopdot2, exponent,
+                   radius, constant_attn, linear_attn, quadratic_attn, flags, tex_info_id, owner)

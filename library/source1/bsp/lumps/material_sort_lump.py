@@ -1,6 +1,6 @@
 from typing import List
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 from ..datatypes.material_sort import MaterialSort
@@ -12,7 +12,7 @@ class MaterialSortLump(Lump):
         super().__init__(lump_info)
         self.materials: List[MaterialSort] = []
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            self.materials.append(MaterialSort(self).parse(buffer, bsp))
+            self.materials.append(MaterialSort.from_buffer(buffer, self.version, bsp))
         return self

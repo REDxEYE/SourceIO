@@ -1,6 +1,12 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
+from SourceIO.library.utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
+
+if TYPE_CHECKING:
+    from ..bsp_file import BspFile
 
 
 class VertexLump(Lump):
@@ -10,5 +16,5 @@ class VertexLump(Lump):
         super().__init__(info)
         self.values = np.array([])
 
-    def parse(self):
-        self.values = np.frombuffer(self.buffer.read(self.info.length), np.float32).reshape((-1, 3))
+    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+        self.values = np.frombuffer(buffer.read(self.info.length), np.float32).reshape((-1, 3))

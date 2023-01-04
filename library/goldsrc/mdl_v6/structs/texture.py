@@ -2,7 +2,7 @@ from enum import IntFlag
 
 import numpy as np
 
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class MdlTextureFlag(IntFlag):
@@ -24,14 +24,14 @@ class StudioTexture:
         self.offset = 0
         self.data = np.array([])
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.name = reader.read_ascii_string(64)
         self.flags = MdlTextureFlag(reader.read_uint32())
         self.width = reader.read_uint32()
         self.height = reader.read_uint32()
         self.offset = reader.read_uint32()
 
-        with reader.save_current_pos():
+        with reader.save_current_offset():
             reader.seek(self.offset)
             indices = np.frombuffer(reader.read(self.width * self.height), np.uint8)
             palette = np.frombuffer(reader.read(256 * 3), np.uint8).reshape((-1, 3))

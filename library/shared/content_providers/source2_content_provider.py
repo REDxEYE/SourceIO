@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Union
 
+from ..app_id import SteamAppId
 from ...utils.kv_parser import ValveKeyValueParser
 from ...utils.path_utilities import corrected_path
 from .content_provider_base import ContentProviderBase
@@ -26,11 +27,11 @@ class Gameinfo2ContentProvider(ContentProviderBase):
         self.modname: str = self.modname_dir.stem
 
     @property
-    def steam_id(self):
+    def steam_id(self) -> SteamAppId:
         fs = self.data.get('filesystem', None)
         if not fs:
-            return 0
-        return int(fs.get('steamappid', 0))
+            return SteamAppId.UNKNOWN
+        return SteamAppId(fs.get('steamappid', 0))
 
     def get_paths(self):
         def convert_path(path_to_convert):

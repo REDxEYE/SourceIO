@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -11,6 +11,6 @@ class SurfEdgeLump(Lump):
         super().__init__(lump_info)
         self.surf_edges = np.array([])
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.surf_edges = np.frombuffer(buffer.read(), np.int32)
         return self

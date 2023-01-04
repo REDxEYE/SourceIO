@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 from ...shared.base import Base
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import FileBuffer
 from .structs.animation import StudioAnimation
 from .structs.bodypart import StudioBodypart
 from .structs.bone import StudioBone
@@ -16,7 +16,7 @@ class Mdl(Base):
 
     def __init__(self, filepath):
         self.store_value("MDL", self)
-        self.reader = ByteIO(filepath)
+        self.reader = FileBuffer(filepath)
         self.header = StudioHeader()
         self.bones: List[StudioBone] = []
         self.bodyparts: List[StudioBodypart] = []

@@ -1,4 +1,4 @@
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class StudioPivot:
@@ -6,5 +6,5 @@ class StudioPivot:
         self.frame_index = 0
         self.event_type = 0
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.frame_index, self.event_type = reader.read_fmt('2H')

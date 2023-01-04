@@ -1,24 +1,23 @@
+from dataclasses import dataclass
+from typing import Tuple
+
+from ....shared.types import Vector3
+from ....utils import Buffer
 from ....utils.byte_io_mdl import ByteIO
 
 
+@dataclass(slots=True)
 class StudioBone:
-    def __init__(self):
-        self.name = ''
-        self.parent = 0
-        self.flags = 0
-        self.bone_controllers = []
-        self.pos = []
-        self.rot = []
-        self.pos_scale = []
-        self.rot_scale = []
+    name: str
+    parent: int
+    flags: int
+    bone_controllers: Tuple[int, ...]
+    pos: Vector3[float]
+    rot: Vector3[float]
+    pos_scale: Vector3[float]
+    rot_scale: Vector3[float]
 
-    def read(self, reader: ByteIO):
-        self.name = reader.read_ascii_string(32)
-        self.parent = reader.read_int32()
-        self.flags = reader.read_int32()
-        self.bone_controllers = reader.read_fmt('6i')
-        self.pos = reader.read_fmt('3f')
-        self.rot = reader.read_fmt('3f')
-        # self.rot = [self.rot[1], self.rot[0], self.rot[2]]
-        self.pos_scale = reader.read_fmt('3f')
-        self.rot_scale = reader.read_fmt('3f')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_ascii_string(32), buffer.read_int32(), buffer.read_int32(), buffer.read_fmt('6i'),
+                   buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'))

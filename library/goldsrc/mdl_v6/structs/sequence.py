@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 from ....shared.base import Base
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 from .event import StudioPivot
 from .pivot import StudioEvent
 
@@ -25,7 +25,7 @@ class StudioSequence(Base):
         self.pivots: List[StudioPivot] = []
         self.frame_per_bone: List[np.ndarray] = []
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.name = reader.read_ascii_string(32)
         (self.fps, self.flags,
          event_count, event_offset,
@@ -39,6 +39,6 @@ class StudioSequence(Base):
         self.anim_offset = reader.read_uint32()
         reader.skip(8)
 
-        with reader.save_current_pos():
+        with reader.save_current_offset():
             self.events = reader.read_structure_array(event_offset, event_count, StudioEvent)
             self.pivots = reader.read_structure_array(pivot_offset, pivot_count, StudioPivot)

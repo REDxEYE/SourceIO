@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from ....utils import IBuffer
+from ....utils import Buffer
 from ...phy.phy import SolidHeader
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
@@ -11,7 +11,7 @@ class SolidBlock:
         self.solids = []
         self.kv = ''
 
-    def parse(self, buffer: IBuffer):
+    def parse(self, buffer: Buffer):
         data_size, script_size, solid_count = buffer.read_fmt("3I")
 
         for _ in range(solid_count):
@@ -27,7 +27,7 @@ class PhysicsLump(Lump):
         super().__init__(lump_info)
         self.solid_blocks: Dict[int, SolidBlock] = {}
 
-    def parse(self, buffer: IBuffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
             solid_block_id = buffer.read_int32()
             if solid_block_id == -1:

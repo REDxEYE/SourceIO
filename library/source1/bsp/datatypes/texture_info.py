@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 from enum import IntFlag
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 
-from ....utils.file_utils import IBuffer
-from .primitive import Primitive
+from ....shared.types import Vector4
+from ....utils.file_utils import Buffer
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
@@ -26,21 +27,20 @@ class SurfaceInfo(IntFlag):
     SURF_HITBOX = 0x8000  # surface is part of a hitbox
 
 
-class TextureInfo(Primitive):
+@dataclass(slots=True)
+class TextureInfo:
+    texture_vectors: Tuple[Vector4[float], Vector4[float]]
+    lightmap_vectors: Tuple[Vector4[float], Vector4[float]]
+    flags: SurfaceInfo
+    texture_data_id: int
 
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.texture_vectors = []
-        self.lightmap_vectors = []
-        self.flags = SurfaceInfo(0)
-        self.texture_data_id = 0
-
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.texture_vectors = [reader.read_fmt('4f'), reader.read_fmt('4f')]
-        self.lightmap_vectors = [reader.read_fmt('4f'), reader.read_fmt('4f')]
-        self.flags = SurfaceInfo(reader.read_uint32())
-        self.texture_data_id = reader.read_int32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        texture_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
+        lightmap_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
+        flags = SurfaceInfo(buffer.read_uint32())
+        texture_data_id = buffer.read_int32()
+        return cls(texture_vectors, lightmap_vectors, flags, texture_data_id)
 
     def get_texture_data(self, bsp: 'BSPFile') -> Optional['TextureData']:
         tex_data_lump: TextureDataLump = bsp.get_lump('LUMP_TEXDATA')

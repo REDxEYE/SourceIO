@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from ....utils import IBuffer
+from ....utils import Buffer
 
 
 class Entry:
@@ -17,7 +17,7 @@ class Entry:
         self.preload_data = b''
         self.loaded = False
 
-    def read(self, buffer: IBuffer):
+    def read(self, buffer: Buffer):
         buffer.seek(self._entry_offset)
         (self.crc32, self.preload_data_size, self.archive_id, self.offset, self.size) = buffer.read_fmt('I2H2I')
 
@@ -41,7 +41,7 @@ class TitanfallEntry(Entry):
         super().__init__(file_name, offset)
         self.blocks: List[TitanfallBlock] = []
 
-    def read(self, buffer: IBuffer):
+    def read(self, buffer: Buffer):
         buffer.seek(self._entry_offset)
         self.crc32, self.preload_data_size, self.archive_id = buffer.read_fmt('<I2H')
         while True:
@@ -55,7 +55,7 @@ class TitanfallEntry(Entry):
         return f'Entry("{self.file_name}") <Blocks:{len(self.blocks)}>'
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True)
 class TitanfallBlock:
     entry_flags: int
     texture_flags: int
@@ -64,5 +64,5 @@ class TitanfallBlock:
     uncompressed_size: int
 
     @classmethod
-    def from_buffer(cls, buffer: IBuffer):
+    def from_buffer(cls, buffer: Buffer):
         return cls(*buffer.read_fmt('<IH3Q'))

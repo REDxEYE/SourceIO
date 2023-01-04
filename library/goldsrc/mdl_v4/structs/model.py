@@ -1,58 +1,58 @@
+from dataclasses import dataclass
 from typing import List
 
 import numpy as np
+import numpy.typing as npt
 
-from .....library.utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 from .mesh import StudioMesh
 
+vertex_dtype = np.dtype([
+    ('id', np.uint32, (1,)),
+    ('pos', np.float32, (3,)),
+])
 
+
+@dataclass(slots=True)
 class StudioModel:
-    vertex_dtype = np.dtype([
-        ('id', np.uint32, (1,)),
-        ('pos', np.float32, (3,)),
-    ])
-
-    def __init__(self):
-        self.name = ''
-        self.unk_1 = 0
-        self.unk_2 = 0
-        self.bounding_radius = 0.0
-        self.vertex_count = 0
-        self.normal_count = 0
-        self.mesh_count = 0
-
-        self._vertices = np.array([])
-        self._normals = np.array([])
-        self.meshes: List[StudioMesh] = []
+    name: str
+    unk_1: int
+    unk_2: int
+    bounding_radius: float
+    meshes: List[StudioMesh]
+    vertices: npt.NDArray[vertex_dtype]
+    normals: npt.NDArray[vertex_dtype]
 
     @property
     def bone_vertex_info(self):
-        return self._vertices['id'].flatten()
+        return self.vertices['id'].flatten()
 
     @property
     def bone_normal_info(self):
-        return self._normals['id'].flatten()
+        return self.normals['id'].flatten()
 
     @property
     def vertices(self):
-        return self._vertices['pos']
+        return self.vertices['pos']
 
     @property
     def normals(self):
-        return self._normals['pos']
+        return self.normals['pos']
 
-    def read(self, reader: ByteIO):
-        self.name = reader.read_ascii_string(32)
-        (self.unk_1, self.unk_2,
-         self.bounding_radius,
-         self.vertex_count,
-         self.normal_count,
-         self.mesh_count,
-         ) = reader.read_fmt('2if3i')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        name = buffer.read_ascii_string(32)
+        (unk_1, unk_2,
+         bounding_radius,
+         vertex_count,
+         normal_count,
+         mesh_count,
+         ) = buffer.read_fmt('2if3i')
 
-        self._vertices = np.frombuffer(reader.read(16 * self.vertex_count), self.vertex_dtype)
-        self._normals = np.frombuffer(reader.read(16 * self.normal_count), self.vertex_dtype)
-        for _ in range(self.mesh_count):
-            mesh = StudioMesh()
-            mesh.read(reader)
-            self.meshes.append(mesh)
+        vertices = np.frombuffer(buffer.read(16 * vertex_count), vertex_dtype)
+        normals = np.frombuffer(buffer.read(16 * normal_count), vertex_dtype)
+        meshes = []
+        for _ in range(mesh_count):
+            mesh = StudioMesh.from_buffer(buffer)
+            meshes.append(mesh)
+        return cls(name, unk_1, unk_2, bounding_radius, vertices, normals, meshes)

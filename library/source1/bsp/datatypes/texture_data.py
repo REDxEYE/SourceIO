@@ -1,32 +1,32 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ....utils.file_utils import IBuffer
+from ....shared.types import Vector3
+from ....utils.file_utils import Buffer
 from ..lumps.string_lump import StringsLump
-from .primitive import Primitive
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
 
 
-class TextureData(Primitive):
+@dataclass(slots=True)
+class TextureData:
+    reflectivity: Vector3[float]
+    name_id: int
+    width: int
+    height: int
+    view_width: int
+    view_height: int
 
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.reflectivity = []
-        self.name_id = 0
-        self.width = 0
-        self.height = 0
-        self.view_width = 0
-        self.view_height = 0
-
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        self.reflectivity = reader.read_fmt('3f')
-        self.name_id = reader.read_int32()
-        self.width = reader.read_int32()
-        self.height = reader.read_int32()
-        self.view_width = reader.read_int32()
-        self.view_height = reader.read_int32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        reflectivity = buffer.read_fmt('3f')
+        name_id = buffer.read_int32()
+        width = buffer.read_int32()
+        height = buffer.read_int32()
+        view_width = buffer.read_int32()
+        view_height = buffer.read_int32()
+        return cls(reflectivity, name_id, width, height, view_width, view_height)
 
     def get_name(self, bsp: 'BSPFile'):
         lump: StringsLump = bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
@@ -35,13 +35,17 @@ class TextureData(Primitive):
         return None
 
 
+@dataclass(slots=True)
 class RespawnTextureData(TextureData):
+    unk1: int
 
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.unk1 = 0
-
-    def parse(self, reader: IBuffer, bsp: 'BSPFile'):
-        super().parse(reader, bsp)
-        self.unk1 = reader.read_int32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        reflectivity = buffer.read_fmt('3f')
+        name_id = buffer.read_int32()
+        width = buffer.read_int32()
+        height = buffer.read_int32()
+        view_width = buffer.read_int32()
+        view_height = buffer.read_int32()
+        unk1 = buffer.read_int32()
+        return cls(reflectivity, name_id, width, height, view_width, view_height, unk1)

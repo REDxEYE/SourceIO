@@ -1,6 +1,6 @@
 from typing import List
 
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class StudioTrivert:
@@ -9,7 +9,7 @@ class StudioTrivert:
         self.normal_index = 0
         self.uv = []
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.vertex_index = reader.read_uint16()
         self.normal_index = reader.read_uint16()
         self.uv = [reader.read_uint16(), reader.read_uint16()]
@@ -24,11 +24,11 @@ class StudioMesh:
         self.normal_offset = 0
         self.triangles: List[StudioTrivert] = []
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         (self.triangle_count, self.triangle_offset,
          self.skin_ref,
          self.normal_count, self.normal_offset) = reader.read_fmt('5i')
-        with reader.save_current_pos():
+        with reader.save_current_offset():
             reader.seek(self.triangle_offset)
             for _ in range(self.triangle_count * 3):
                 trivert = StudioTrivert()
