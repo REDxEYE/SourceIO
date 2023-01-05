@@ -32,7 +32,7 @@ class ByteIO:
         yield
         self.seek(entry)
 
-    def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
+    def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray, Buffer] = None,
                  open_to_read=True):
         if path_or_file_or_data is not None:
             self.assert_file_exists(path_or_file_or_data)

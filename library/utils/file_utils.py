@@ -252,7 +252,7 @@ class MemoryBuffer(Buffer):
 
     @property
     def closed(self) -> bool:
-        return self._buffer is not None
+        return self._buffer is None
 
     def close(self) -> None:
         self._buffer = None

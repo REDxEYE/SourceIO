@@ -59,7 +59,7 @@ class LumpInfo:
         return cls(lump_type, offset, size, version, decompressed_size)
 
     def __repr__(self):
-        return f"<Lump{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size} bytes)>"
+        return f"<Lump{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size})>"
 
 
 class Lump:

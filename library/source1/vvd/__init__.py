@@ -59,30 +59,29 @@ class Vvd(Base):
         vertices = np.frombuffer(buffer.read(cls.vertex_t.itemsize * header.lod_vertex_count[0]),
                                  dtype=cls.vertex_t)
 
-        lod_data = []
+        lod_datas = []
         for count in header.lod_vertex_count[:header.lod_count]:
-            lod_data.append(np.zeros((count,), dtype=cls.vertex_t))
+            lod_datas.append(np.zeros((count,), dtype=cls.vertex_t))
 
         buffer.seek(header.fixup_table_offset)
         fixups = [Fixup.from_buffer(buffer) for _ in range(header.fixup_count)]
 
         if header.fixup_count:
-            lod_offsets = np.zeros(len(lod_data), dtype=np.uint32)
+            lod_offsets = np.zeros(len(lod_datas), dtype=np.uint32)
             for lod_id in range(header.lod_count):
                 for fixup in fixups:
                     if fixup.lod_index >= lod_id:
-                        lod_data = lod_data[lod_id]
+                        lod_data = lod_datas[lod_id]
                         assert fixup.vertex_index + fixup.vertex_count <= vertices.size, \
                             f"{fixup.vertex_index + fixup.vertex_count}>{vertices.size}"
                         lod_offset = lod_offsets[lod_id]
                         vertex_index = fixup.vertex_index
                         vertex_count = fixup.vertex_count
-                        lod_data[lod_offset:lod_offset + vertex_count] = vertices[
-                                                                         vertex_index:vertex_index + vertex_count]
+                        lod_data[lod_offset:lod_offset + vertex_count] = vertices[vertex_index:vertex_index + vertex_count]
                         lod_offsets[lod_id] += fixup.vertex_count
 
         else:
-            lod_data[0][:] = vertices[:]
+            lod_datas[0][:] = vertices[:]
 
         if header.tangent_data_offset > 0:
             buffer.seek(header.tangent_data_offset)
@@ -101,4 +100,4 @@ class Vvd(Base):
                     buffer.read(extra_attribute.item_size * header.lod_vertex_count[0]), np.float32)
         assert not buffer
 
-        return cls(header, lod_data, extra_data)
+        return cls(header, lod_datas, extra_data)

@@ -109,9 +109,9 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                         vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                         phy_file = content_manager.find_file(prop_path.with_suffix('.phy'))
                         vtx_file = find_vtx_cm(prop_path, content_manager)
-                        file_list = FileImport(ByteIO(mld_file), ByteIO(vvd_file), ByteIO(vtx_file),
+                        file_list = FileImport(ByteIO(mld_file), vvd_file, ByteIO(vtx_file),
                                                ByteIO(vvc_file) if vvc_file else None,
-                                               ByteIO(phy_file) if phy_file else None)
+                                               phy_file if phy_file else None)
                         model_container = import_model_from_files(prop_path, file_list, 1.0, False, True,
                                                                   unique_material_names=unique_material_names)
                     else:

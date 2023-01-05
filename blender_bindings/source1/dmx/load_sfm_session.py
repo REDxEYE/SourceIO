@@ -9,6 +9,7 @@ from ....library.source1.dmx.sfm.animation_set import AnimationSet
 from ....library.source1.dmx.sfm.camera import Camera
 from ....library.source1.dmx.sfm.film_clip import FilmClip
 from ....library.source1.dmx.sfm_utils import *
+from ....library.utils.byte_io_mdl import ByteIO
 from ....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ....library.utils.path_utilities import find_vtx_cm
 from ...shared.model_container import Source1ModelContainer
@@ -17,7 +18,7 @@ from ..mdl import FileImport, put_into_collections
 
 
 def _convert_quat(quat):
-    return Quaternion([quat[0],quat[1],quat[2],quat[3]])
+    return Quaternion([quat[0], quat[1], quat[2], quat[3]])
     # return quat
 
 
@@ -27,7 +28,7 @@ def import_gamemodel(mdl_path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     if mld_file:
         vvd_file = ContentManager().find_file(mdl_path.with_suffix('.vvd'))
         vtx_file = find_vtx_cm(mdl_path, ContentManager())
-        file_list = FileImport(mld_file, vvd_file, vtx_file, None, None)
+        file_list = FileImport(ByteIO(mld_file), vvd_file, vtx_file, None, None)
         model_container = import_model(file_list, scale, False, True, True)
         # import_materials(model_container.mdl)
         put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=True)

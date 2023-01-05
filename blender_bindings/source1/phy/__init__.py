@@ -26,8 +26,7 @@ def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):
 def import_physics(file_list: FileImport, container: Source1ModelContainer, scale: float = 1.0):
     assert file_list.phy_file, "Missing .phy file"
 
-    phy = Phy(file_list.phy_file)
-    phy.read()
+    phy = Phy.from_buffer(file_list.phy_file)
     mdl = container.mdl
 
     mesh_name = Path(mdl.header.name).stem
@@ -38,7 +37,7 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
         meshes: List[ConvexLeaf] = []
         vertex_count = len(_collect_meshes(solid.collision_model.root_tree, meshes))
 
-        vertex_data = solid.collision_model.get_vertex_data(phy.reader, solid.collision_model.root_tree.convex_leaf,
+        vertex_data = solid.collision_model.get_vertex_data(file_list.phy_file, solid.collision_model.root_tree.convex_leaf,
                                                             vertex_count)
         for j, mesh in enumerate(meshes):
             used_vertices_ids, _, new_indices = np.unique(mesh.triangles, return_index=True, return_inverse=True)

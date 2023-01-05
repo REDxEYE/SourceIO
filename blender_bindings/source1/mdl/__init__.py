@@ -15,7 +15,7 @@ class FileImport:
     vvd_file: Buffer
     vtx_file: ByteIO
     vvc_file: Optional[ByteIO]
-    phy_file: Optional[ByteIO]
+    phy_file: Optional[Buffer]
 
 
 def put_into_collections(model_container: Source1ModelContainer, model_name,

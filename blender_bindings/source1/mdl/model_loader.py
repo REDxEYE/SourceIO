@@ -37,17 +37,17 @@ def import_model_from_full_path(mdl_path: Path,
         vtx_file = ByteIO(find_vtx(mdl_path))
         vvd_file = FileBuffer(mdl_path.with_suffix('.vvd'))
         vvc_file = ByteIO(mdl_path.with_suffix('.vvc')) if mdl_path.with_suffix('.vvc').exists() else None
-        phy_file = (ByteIO(mdl_path.with_suffix('.phy'))
+        phy_file = (FileBuffer(mdl_path.with_suffix('.phy'))
                     if load_physics and mdl_path.with_suffix('.phy').exists() else None)
         content_root = content_manager.get_content_provider_from_path(mdl_path)
         name = mdl_path.relative_to(content_root.root)
 
     else:
         name = mdl_path
-        vvd_file = MemoryBuffer(content_manager.find_file(mdl_path, extension='.vvd'))
+        vvd_file = content_manager.find_file(mdl_path, extension='.vvd')
         vvc_file = ByteIO(content_manager.find_file(mdl_path, extension='.vcc'))
         file = content_manager.find_file(mdl_path, extension='.phy')
-        phy_file = ByteIO(file) if load_physics and file else None
+        phy_file = file if load_physics and file else None
         vtx_file = ByteIO(find_vtx_cm(mdl_path, content_manager))
         mdl_file = ByteIO(content_manager.find_file(mdl_path))
 
