@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from typing import List
 
 from ...utils import Buffer
-from ....library.shared.base import Base
-from ....library.utils.byte_io_mdl import ByteIO
 from .structs.bodypart import StudioBodypart
 from .structs.bone import StudioBone
 from .structs.studioheader import StudioHeader
@@ -11,7 +9,7 @@ from .structs.texture import StudioTexture
 
 
 @dataclass(slots=True)
-class Mdl(Base):
+class Mdl:
     header: StudioHeader
     bones: List[StudioBone]
     bodyparts: List[StudioBodypart]

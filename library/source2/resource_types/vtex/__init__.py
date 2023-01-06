@@ -1,1 +1,0 @@
-from .texture import ValveCompiledTexture

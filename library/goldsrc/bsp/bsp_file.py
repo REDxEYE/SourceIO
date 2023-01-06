@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 from ...shared.content_providers.content_manager import ContentManager
-from ...utils import FileBuffer, Buffer
+from ...utils import Buffer, FileBuffer
 from .lump import Lump, LumpInfo, LumpType
 
 

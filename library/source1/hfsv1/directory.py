@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from ...utils.byte_io_mdl import ByteIO
 from .file import CompressionMethod, File
 from .xor_key import xor_decode
 
@@ -26,7 +25,7 @@ from .xor_key import xor_decode
 #         self.comment = ''
 #         self.file = File()
 #
-#     def read(self, reader: ByteIO):
+#     def read(self, reader: Buffer):
 #         assert reader.read_int32() == 0x02014648
 #         self.version = reader.read_int16()
 #         self.extract_version = reader.read_int16()

@@ -1,33 +1,38 @@
-from . import Base, ByteIO
+from dataclasses import dataclass
+from typing import List
+
+from ....shared.types import Vector3, Vector4
+from ....utils import Buffer
 
 
-class QuatInterpRuleInfo(Base):
-    def __init__(self):
-        self.inverseToleranceAngle = 0
-        self.trigger = []
-        self.pos = []
-        self.quat = []
+@dataclass(slots=True)
+class QuatInterpRuleInfo:
+    inverse_tolerance_angle: int
+    trigger: Vector4[float]
+    pos: Vector3[float]
+    quat: Vector4[float]
 
-    def read(self, reader: ByteIO):
-        self.inverseToleranceAngle = reader.read_float()
-        self.trigger = reader.read_fmt('4f')
-        self.pos = reader.read_fmt('3f')
-        self.quat = reader.read_fmt('4f')
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        inverse_tolerance_angle = buffer.read_float()
+        trigger = buffer.read_fmt('4f')
+        pos = buffer.read_fmt('3f')
+        quat = buffer.read_fmt('4f')
+        return cls(inverse_tolerance_angle, trigger, pos, quat)
 
 
-class QuatInterpRule(Base):
-    def __init__(self):
-        self.control_bone_index = 0
-        self.trigger_count = 0
-        self.trigger_offset = 0
-        self.triggers = []
+@dataclass(slots=True)
+class QuatInterpRule:
+    control_bone_index: int
+    triggers: List[QuatInterpRuleInfo]
 
-    def read(self, reader: ByteIO):
-        self.control_bone_index = reader.read_uint32()
-        self.trigger_count = reader.read_uint32()
-        self.trigger_offset = reader.read_uint32()
-        if self.trigger_count and self.trigger_offset:
-            self.triggers = [QuatInterpRuleInfo().read(
-                reader) for _ in range(self.trigger_count)]
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        control_bone_index = buffer.read_uint32()
+        trigger_count = buffer.read_uint32()
+        trigger_offset = buffer.read_uint32()
+        if trigger_count and trigger_offset:
+            triggers = [QuatInterpRuleInfo.from_buffer(buffer) for _ in range(trigger_count)]
+        else:
+            triggers = []
+        return cls(control_bone_index, triggers)

@@ -1,10 +1,10 @@
 from pathlib import Path
-from typing import Union, Optional, Iterator, Tuple
+from typing import Iterator, Optional, Tuple, Union
 
 from ...global_config import GoldSrcConfig
 from ...goldsrc.wad import WadFile
-from .content_provider_base import ContentProviderBase
 from ...utils import Buffer
+from .content_provider_base import ContentProviderBase
 
 
 class GoldSrcContentProvider(ContentProviderBase):

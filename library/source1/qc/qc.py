@@ -1,11 +1,8 @@
 import math
 from pathlib import Path
-from typing import List
-
-import numpy as np
 
 from ...utils.math_utilities import vector_transform
-from ..mdl.structs.bodygroup import BodyPartV49
+from ..mdl.structs.bodygroup import BodyPart
 from ..mdl.structs.bone import ProceduralBoneType
 from ..mdl.structs.header import StudioHDRFlags
 from ..mdl.v49.mdl_file import MdlV49
@@ -16,7 +13,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
 
     buffer.write(f"$modelname \"{mdl.header.name}\"\n")
 
-    def write_model(bodygroup: BodyPartV49):
+    def write_model(bodygroup: BodyPart):
         model = bodygroup.models[0]
         name = Path(model.name if (model.name and model.name != 'blank') else model.name).stem
         buffer.write(f"$model \"{name}\" \"{name}\"")
@@ -63,7 +60,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
         else:
             buffer.write("\n")
 
-    def write_bodygroup(bodygroup: BodyPartV49):
+    def write_bodygroup(bodygroup: BodyPart):
         buffer.write(f"$bodygroup \"{bodygroup.name}\" ")
         buffer.write("{\n")
         for model in bodygroup.models:

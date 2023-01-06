@@ -57,7 +57,7 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
             mesh_data = bpy.data.meshes.new(f'{mesh_name}_solid_{i}{j}_MESH')
             mesh_obj = bpy.data.objects.new(f'{mesh_name}_solid_{i}{j}', mesh_data)
 
-            mesh_data.from_pydata(vertices.tolist(), [], new_indices.reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices.tolist(), [], new_indices.reshape((-1, 3)))
             mesh_data.update()
             if container.armature:
                 bone = mdl.bones[mesh.bone_id - 1]

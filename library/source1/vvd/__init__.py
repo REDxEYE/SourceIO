@@ -5,7 +5,6 @@ from typing import Dict, List
 import numpy as np
 import numpy.typing as npt
 
-from ...shared.base import Base
 from ...utils import Buffer
 from .fixup import Fixup
 from .header import Header
@@ -36,7 +35,7 @@ class ExtraVertexAttribute:
 
 
 @dataclass(slots=True)
-class Vvd(Base):
+class Vvd:
     vertex_t = np.dtype([('weight', np.float32, 3),
                          ('bone_id', np.uint8, 3),
                          ("pad", np.uint8),

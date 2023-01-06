@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path, PosixPath, PurePath, WindowsPath
 from typing import Dict, List, Union
 
-from ...utils import FileBuffer, Buffer, MemoryBuffer
+from ...utils import Buffer, FileBuffer, MemoryBuffer
 from ...utils.thirdparty.lzham.lzham import LZHAM
 from .structs import *
 from .structs.entry import TitanfallEntry

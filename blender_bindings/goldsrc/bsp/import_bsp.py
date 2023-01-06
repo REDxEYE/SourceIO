@@ -35,7 +35,7 @@ from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
     GoldSrcShaderMode2
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
     GoldSrcShaderMode5
-from ...utils.utils import get_material, get_or_create_collection
+from ...utils.utils import add_material, get_or_create_collection
 
 log_manager = SLoggingManager()
 content_manager = ContentManager()
@@ -168,7 +168,7 @@ class BSP:
             face_texture_info = self.bsp_lump_textures_info.values[texture_info_index]
             face_texture_data = self.bsp_lump_textures_data.values[face_texture_info.texture]
             face_texture_name = face_texture_data.name
-            material_lookup_table[texture_info_index] = get_material(face_texture_name, model_object)
+            material_lookup_table[texture_info_index] = add_material(face_texture_name, model_object)
             self.load_material(face_texture_name)
 
         uvs_per_face = []

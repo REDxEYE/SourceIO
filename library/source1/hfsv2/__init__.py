@@ -6,7 +6,6 @@ from ...utils.singleton import SingletonMeta
 from .archive import Archive
 from .file import File
 
-
 # Based on yretenai code from https://github.com/yretenai/HFSExtract
 
 class HFSv2(metaclass=SingletonMeta):

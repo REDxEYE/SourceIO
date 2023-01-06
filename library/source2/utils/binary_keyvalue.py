@@ -4,11 +4,8 @@ from io import BytesIO
 import numpy as np
 
 from ...utils.byte_io_mdl import ByteIO
-from ...utils.pylib_loader import pylib
-from ..data_blocks.compiled_file_header import InfoBlock
-
-lz4_decompress = pylib.lz4.decompress
-LZ4ChainDecoder = pylib.lz4.LZ4ChainDecoder
+from ...utils.pylib import LZ4ChainDecoder, lz4_decompress
+from ..data_types.compiled_file_header import InfoBlock
 
 
 def uncompress(compressed_data, compressed_size, decompressed_size):
@@ -61,26 +58,16 @@ class BinaryKeyValue:
     def __init__(self, block_info: InfoBlock = None):
         super().__init__()
         self.block_info = block_info
-        self.mode = 0
         self.strings = []
         self.types = np.array([])
         self.current_type = 0
         self.kv = []
-        self.flags = 0
         self.buffer = ByteIO()  # type: ByteIO
-
-        self.bin_blob_count = 0
-        self.bin_blob_offset = -1
-        self.int_count = 0
-        self.int_offset = -1
-        self.double_count = 0
-        self.double_offset = -1
 
         self.byte_buffer = ByteIO()
         self.int_buffer = ByteIO()
         self.double_buffer = ByteIO()
 
-        self.block_data = bytearray()
         self.block_reader = ByteIO()
         self.block_sizes = []
         self.next_block_id = 0
@@ -96,8 +83,8 @@ class BinaryKeyValue:
             self.read_v3(reader)
 
     def block_decompress(self, reader):
-        self.flags = reader.read(4)
-        if self.flags[3] & 0x80:
+        flags = reader.read(4)
+        if flags[3] & 0x80:
             self.buffer.write_bytes(reader.read(-1))
         working = True
         while reader.tell() != reader.size() and working:
@@ -119,7 +106,7 @@ class BinaryKeyValue:
                 else:
                     data = reader.read_int8()
                     self.buffer.write_int8(data)
-                if self.buffer.size() == (self.flags[2] << 16) + (self.flags[1] << 8) + self.flags[0]:
+                if self.buffer.size() == (flags[2] << 16) + (flags[1] << 8) + flags[0]:
                     working = False
                     break
         self.buffer.seek(0)
@@ -137,15 +124,15 @@ class BinaryKeyValue:
         assert fmt == self.KV3_FORMAT_GENERIC, 'Unrecognised KV3 Format'
 
         compression_method = reader.read_uint32()
-        self.bin_blob_count = reader.read_uint32()
-        self.int_count = reader.read_uint32()
-        self.double_count = reader.read_uint32()
+        bin_blob_count = reader.read_uint32()
+        int_count = reader.read_uint32()
+        double_count = reader.read_uint32()
         if compression_method == 0:
             length = reader.read_uint32()
             self.buffer.write_bytes(reader.read(length))
         elif compression_method == 1:
             uncompressed_size = reader.read_uint32()
-            compressed_size = self.block_info.block_size - reader.tell()
+            compressed_size = self.block_info.size - reader.tell()
             data = reader.read(compressed_size)
             u_data = uncompress(data, compressed_size, uncompressed_size)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
@@ -155,19 +142,19 @@ class BinaryKeyValue:
 
         self.buffer.seek(0)
 
-        self.byte_buffer.write_bytes(self.buffer.read(self.bin_blob_count))
+        self.byte_buffer.write_bytes(self.buffer.read(bin_blob_count))
         self.byte_buffer.seek(0)
 
         if self.buffer.tell() % 4 != 0:
             self.buffer.seek(self.buffer.tell() + (4 - (self.buffer.tell() % 4)))
 
-        self.int_buffer.write_bytes(self.buffer.read(self.int_count * 4))
+        self.int_buffer.write_bytes(self.buffer.read(int_count * 4))
         self.int_buffer.seek(0)
 
         if self.buffer.tell() % 8 != 0:
             self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
 
-        self.double_buffer.write_bytes(self.buffer.read(self.double_count * 8))
+        self.double_buffer.write_bytes(self.buffer.read(double_count * 8))
         self.double_buffer.seek(0)
 
         for _ in range(self.int_buffer.read_uint32()):
@@ -197,9 +184,9 @@ class BinaryKeyValue:
         compression_dict_id = reader.read_uint16()
         compression_frame_size = reader.read_uint16()
 
-        self.bin_blob_count = reader.read_uint32()
-        self.int_count = reader.read_uint32()
-        self.double_count = reader.read_uint32()
+        bin_blob_count = reader.read_uint32()
+        int_count = reader.read_uint32()
+        double_count = reader.read_uint32()
 
         string_and_types_buffer_size, b, c = reader.read_fmt('I2H')
 
@@ -244,19 +231,19 @@ class BinaryKeyValue:
 
         self.buffer.seek(0)
 
-        self.byte_buffer.write_bytes(self.buffer.read(self.bin_blob_count))
+        self.byte_buffer.write_bytes(self.buffer.read(bin_blob_count))
         self.byte_buffer.seek(0)
 
         if self.buffer.tell() % 4 != 0:
             self.buffer.seek(self.buffer.tell() + (4 - (self.buffer.tell() % 4)))
 
-        self.int_buffer.write_bytes(self.buffer.read(self.int_count * 4))
+        self.int_buffer.write_bytes(self.buffer.read(int_count * 4))
         self.int_buffer.seek(0)
 
         if self.buffer.tell() % 8 != 0:
             self.buffer.seek(self.buffer.tell() + (8 - (self.buffer.tell() % 8)))
 
-        self.double_buffer.write_bytes(self.buffer.read(self.double_count * 8))
+        self.double_buffer.write_bytes(self.buffer.read(double_count * 8))
         self.double_buffer.seek(0)
 
         string_start = self.buffer.tell()
@@ -275,20 +262,22 @@ class BinaryKeyValue:
             self.block_sizes = [self.buffer.read_uint32() for _ in range(block_count)]
             assert self.buffer.read_uint32() == 0xFFEEDD00, 'Invalid terminator'
 
+            block_data = bytearray()
+
             if compression_method == 0:
                 for uncompressed_block_size in self.block_sizes:
-                    self.block_data += reader.read(uncompressed_block_size)
+                    block_data += reader.read(uncompressed_block_size)
             elif compression_method == 1:
                 cd = LZ4ChainDecoder(block_total_size, 0)
                 for uncompressed_block_size in self.block_sizes:
                     compressed_block_size = self.buffer.read_uint16()
-                    self.block_data += cd.decompress(reader.read(compressed_block_size), uncompressed_block_size)
+                    block_data += cd.decompress(reader.read(compressed_block_size), uncompressed_block_size)
             elif compression_method == 2:
-                self.block_data += self.buffer.read()
+                block_data += self.buffer.read()
             else:
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
 
-            self.block_reader.write_bytes(self.block_data)
+            self.block_reader.write_bytes(block_data)
             self.block_reader.seek(0)
             self.parse(self.buffer, self.kv, True)
             self.kv = self.kv[0]

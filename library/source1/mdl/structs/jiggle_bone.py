@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from enum import IntFlag
 
-from . import Base, ByteIO
+from ....utils import Buffer
 
 
 class JiggleRuleFlags(IntFlag):
@@ -13,55 +14,57 @@ class JiggleRuleFlags(IntFlag):
     HAS_BASE_SPRING = 0x40
 
 
-class JiggleRule(Base):
+@dataclass(slots=True)
+class JiggleRule:
+    flags: JiggleRuleFlags
+    length: float
+    tip_mass: float
+    yaw_stiffness: float
+    yaw_damping: float
+    pitch_stiffness: float
+    pitch_damping: float
+    along_stiffness: float
+    along_damping: float
+    angle_limit: float
+    min_yaw: float
+    max_yaw: float
+    yaw_friction: float
+    yaw_bounce: float
+    min_pitch: float
+    max_pitch: float
+    pitch_bounce: float
+    pitch_friction: float
+    base_mass: float
+    base_stiffness: float
+    base_damping: float
+    base_min_left: float
+    base_max_left: float
+    base_left_friction: float
+    base_min_up: float
+    base_max_up: float
+    base_up_friction: float
+    base_min_forward: float
+    base_max_forward: float
+    base_forward_friction: float
 
-    def __init__(self):
-        self.flags = JiggleRuleFlags(0)
-        self.length = 0.0
-        self.tip_mass = 0.0
-        self.yaw_stiffness = 0.0
-        self.yaw_damping = 0.0
-        self.pitch_stiffness = 0.0
-        self.pitch_damping = 0.0
-        self.along_stiffness = 0.0
-        self.along_damping = 0.0
-        self.angle_limit = 0.0
-        self.min_yaw = 0.0
-        self.max_yaw = 0.0
-        self.yaw_friction = 0.0
-        self.yaw_bounce = 0.0
-        self.min_pitch = 0.0
-        self.max_pitch = 0.0
-        self.pitch_bounce = 0.0
-        self.pitch_friction = 0.0
-        self.base_mass = 0.0
-        self.base_stiffness = 0.0
-        self.base_damping = 0.0
-        self.base_min_left = 0.0
-        self.base_max_left = 0.0
-        self.base_left_friction = 0.0
-        self.base_min_up = 0.0
-        self.base_max_up = 0.0
-        self.base_up_friction = 0.0
-        self.base_min_forward = 0.0
-        self.base_max_forward = 0.0
-        self.base_forward_friction = 0.0
-
-    def read(self, reader: ByteIO):
-        self.flags = JiggleRuleFlags(reader.read_int32())
-        self.length = reader.read_float()
-        self.tip_mass = reader.read_float()
-        self.yaw_stiffness, self.yaw_damping = reader.read_fmt('2f')
-        self.pitch_stiffness, self.pitch_damping = reader.read_fmt('2f')
-        self.along_stiffness, self.along_damping = reader.read_fmt('2f')
-        self.angle_limit = reader.read_float()
-        self.min_yaw, self.max_yaw = reader.read_fmt('2f')
-        self.yaw_friction, self.yaw_bounce = reader.read_fmt('2f')
-        self.min_pitch, self.max_pitch = reader.read_fmt('2f')
-        self.pitch_friction, self.pitch_bounce = reader.read_fmt('2f')
-        self.base_mass, self.base_min_left, self.base_max_left = reader.read_fmt('3f')
-        self.base_left_friction, self.base_min_up, self.base_max_up = reader.read_fmt('3f')
-        self.base_up_friction, self.base_min_forward, self.base_max_forward = reader.read_fmt('3f')
-        self.base_forward_friction = reader.read_float()
-        return self
-
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        flags = JiggleRuleFlags(buffer.read_int32())
+        length = buffer.read_float()
+        tip_mass = buffer.read_float()
+        yaw_stiffness, yaw_damping = buffer.read_fmt('2f')
+        pitch_stiffness, pitch_damping = buffer.read_fmt('2f')
+        along_stiffness, along_damping = buffer.read_fmt('2f')
+        angle_limit = buffer.read_float()
+        min_yaw, max_yaw = buffer.read_fmt('2f')
+        yaw_friction, yaw_bounce = buffer.read_fmt('2f')
+        min_pitch, max_pitch = buffer.read_fmt('2f')
+        pitch_friction, pitch_bounce = buffer.read_fmt('2f')
+        (base_mass, base_stiffness, base_damping, base_min_left, base_max_left, base_left_friction, base_min_up,
+         base_max_up, base_up_friction, base_min_forward, base_max_forward,
+         base_forward_friction) = buffer.read_fmt("12f")
+        return cls(flags, length, tip_mass, yaw_stiffness, yaw_damping, pitch_stiffness, pitch_damping, along_stiffness,
+                   along_damping, angle_limit, min_yaw, max_yaw, yaw_friction, yaw_bounce, min_pitch, max_pitch,
+                   pitch_bounce, pitch_friction, base_mass, base_stiffness, base_damping, base_min_left,
+                   base_max_left, base_left_friction, base_min_up, base_max_up, base_up_friction, base_min_forward,
+                   base_max_forward, base_forward_friction)

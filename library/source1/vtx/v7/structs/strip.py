@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from enum import IntFlag
 
-from . import Base, ByteIO
+from .....utils import Buffer
 
 
 class StripHeaderFlags(IntFlag):
@@ -9,30 +10,29 @@ class StripHeaderFlags(IntFlag):
     IS_QUADLIST_EXTRA = 0x04  # Extraordinary
 
 
-class Strip(Base):
-    def __init__(self):
-        self.index_count = 0
-        self.index_mesh_offset = 0
-        self.vertex_count = 0
-        self.vertex_mesh_offset = 0
-        self.bone_count = 0
-        self.flags = 0
-        self.bone_state_change_count = 0
-        self.bone_state_change_offset = 0
-        self.topology_indices_count = 0
-        self.topology_offset = 0
+@dataclass(slots=True)
+class Strip:
+    index_count: int
+    index_mesh_offset: int
+    vertex_count: int
+    vertex_mesh_offset: int
+    bone_count: int
+    flags: int
+    bone_state_change_count: int
+    bone_state_change_offset: int
 
-    def read(self, reader: ByteIO):
-        (self.index_count,
-         self.index_mesh_offset,
-         self.vertex_count,
-         self.vertex_mesh_offset,
-         self.bone_count) = reader.read_fmt('4IH')
-        self.flags = StripHeaderFlags(reader.read_uint8())
-        self.bone_state_change_count, self.bone_state_change_offset = reader.read_fmt('2I')
-        if self.get_value('extra8'):
-            self.topology_indices_count = reader.read_int32()
-            self.topology_offset = reader.read_int32()
-            assert self.topology_offset < reader.size()
-        assert self.bone_state_change_offset < reader.size()
-        assert self.bone_count < 255
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, extra8: bool = False):
+        (index_count,
+         index_mesh_offset,
+         vertex_count,
+         vertex_mesh_offset,
+         bone_count) = buffer.read_fmt('4IH')
+        flags = StripHeaderFlags(buffer.read_uint8())
+        bone_state_change_count, bone_state_change_offset = buffer.read_fmt('2I')
+        if extra8:
+            buffer.skip(8)
+        assert bone_state_change_offset < buffer.size()
+        assert bone_count < 255
+        return cls(index_count, index_mesh_offset, vertex_count, vertex_mesh_offset, bone_count, flags,
+                   bone_state_change_count, bone_state_change_offset)

@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import List, Union
 
-from ..app_id import SteamAppId
+from ...utils import FileBuffer
 from ...utils.kv_parser import ValveKeyValueParser
 from ...utils.path_utilities import corrected_path
+from ..app_id import SteamAppId
 from .content_provider_base import ContentProviderBase
 
 
@@ -89,7 +90,7 @@ class Gameinfo2ContentProvider(ContentProviderBase):
         filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = corrected_path(self.modname_dir / filepath)
         if new_filepath.exists():
-            return new_filepath.open('rb')
+            return FileBuffer(new_filepath)
         else:
             return None
 

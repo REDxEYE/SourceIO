@@ -12,7 +12,7 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def color_texture(self):
-        texture_path = self.get_texture('g_tColor', None)
+        texture_path = self._material_resource.get_texture_property('g_tColor', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -20,7 +20,7 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def occlusion_texture(self):
-        texture_path = self.get_texture('g_tOcclusion', None)
+        texture_path = self._material_resource.get_texture_property('g_tOcclusion', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -28,7 +28,7 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def iris_texture(self):
-        texture_path = self.get_texture('g_tIris', None)
+        texture_path = self._material_resource.get_texture_property('g_tIris', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -36,7 +36,7 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def iris_mask_texture(self):
-        texture_path = self.get_texture('g_tIrisMask', None)
+        texture_path = self._material_resource.get_texture_property('g_tIrisMask', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -44,7 +44,7 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def ambient_occlusion(self):
-        texture_path = self.get_texture('g_tAmbientOcclusion', None)
+        texture_path = self._material_resource.get_texture_property('g_tAmbientOcclusion', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -54,7 +54,7 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def normal_texture(self):
-        texture_path = self.get_texture('g_tNormal', None)
+        texture_path = self._material_resource.get_texture_property('g_tNormal', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -65,27 +65,27 @@ class VrEyeball(Source2ShaderBase):
 
     @property
     def color(self):
-        return self.get_vector('g_vColorTint', np.ones(4, dtype=np.float32))
+        return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
 
     @property
     def alpha_test(self):
-        return self.get_int('F_ALPHA_TEST', 0)
+        return self._material_resource.get_int_property('F_ALPHA_TEST', 0)
 
     @property
     def metalness(self):
-        return self.get_int('F_METALNESS_TEXTURE', 0)
+        return self._material_resource.get_int_property('F_METALNESS_TEXTURE', 0)
 
     @property
     def translucent(self):
-        return self.get_int('F_TRANSLUCENT', 0)
+        return self._material_resource.get_int_property('F_TRANSLUCENT', 0)
 
     @property
     def specular(self):
-        return self.get_int('F_SPECULAR', 0)
+        return self._material_resource.get_int_property('F_SPECULAR', 0)
 
     @property
     def roughness_value(self):
-        value = self.get_vector('TextureRoughness', None)
+        value = self._material_resource.get_vector_property('TextureRoughness', None)
         if value is None:
             return
         return value[0]

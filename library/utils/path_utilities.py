@@ -54,26 +54,6 @@ def backwalk_file_resolver(current_path, file_to_find):
         current_path = pop_path_front(current_path)
 
 
-def case_insensitive_file_resolution(path):
-    """
-    There are a lot of cases where the .mdl file is lowercase whereas
-    the .vvd/vtx files are mixed case. Resolving the file based on the
-    same file name will work fine on case-insensitive
-    operating systems (Windows 🤮) but on Linux (and some specific macOS
-    installations) we need to work around this behavior by walking through
-    the files in the directory and do a lowercase comparison on
-    all the files in there.
-    """
-
-    directory = os.path.dirname(path)
-    filename = os.path.basename(path)
-    for root, dirs, files in os.walk(directory, topdown=False):
-        for name in files:
-            if filename.lower() == name.lower():
-                print(os.path.join(root, name))
-                return os.path.join(root, name)
-
-
 def corrected_path(path: Path):
     if platform.system() == "Windows" or path.exists():  # Shortcut for windows
         return path
@@ -113,29 +93,6 @@ def get_materials_path(path):
     return root_path / 'materials'
 
 
-class NonSourceInstall:
-
-    def __init__(self, start_dir):
-        self.start_dir = Path(start_dir)
-
-    def find_file(self, filepath: str, additional_dir=None, extention=None, use_recursive=False):
-        if additional_dir is not None:
-            filepath = Path(additional_dir) / filepath
-
-        if extention is not None:
-            filepath = filepath.with_suffix(extention)
-
-        return backwalk_file_resolver(self.start_dir, filepath)
-
-    def find_texture(self, filepath, use_recursive=False):
-        return self.find_file(filepath, 'materials',
-                              extention='.vtf', use_recursive=use_recursive)
-
-    def find_material(self, filepath, use_recursive=False):
-        return self.find_file(filepath, 'materials',
-                              extention='.vmt', use_recursive=use_recursive)
-
-
 def get_mod_path(path: Path) -> Path:
     _path = path
     while len(path.parts) > 1:
@@ -152,11 +109,3 @@ def get_mod_path(path: Path) -> Path:
             return _path
         path = path.parent
     return _path
-
-
-def is_valid_path(path: str):
-    invalid_chars = '<>:"|?*'
-    for char in invalid_chars:
-        if char in path:
-            return False
-    return True

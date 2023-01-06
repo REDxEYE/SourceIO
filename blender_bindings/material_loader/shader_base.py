@@ -170,10 +170,7 @@ class ShaderBase:
         image = bpy.data.images.new(texture_name, width=texture_dimm[0], height=texture_dimm[1], alpha=True)
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
-        if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(texture_data.flatten().tolist())
-        else:
-            image.pixels[:] = texture_data.flatten().tolist()
+        image.pixels.foreach_set(texture_data.ravel())
         image.pack()
         if raw_texture:
             image.colorspace_settings.is_data = True

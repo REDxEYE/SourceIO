@@ -12,7 +12,7 @@ def find_layer_collection(layer_collection, name):
             return found
 
 
-def get_material(mat_name, model_ob):
+def add_material(mat_name, model_ob):
     md = model_ob.data
     mat = bpy.data.materials.get(mat_name, None)
     if mat:
@@ -52,3 +52,11 @@ def append_blend(filepath, type_name, link=False):
         setattr(data_to, type_name, [asset for asset in getattr(data_from, type_name)])
     for o in getattr(data_to, type_name):
         o.use_fake_user = True
+
+
+def new_collection(name: str, parent: bpy.types.Collection):
+    collection = bpy.data.collections.new(name)
+    if collection.name not in parent.children:
+        parent.children.link(collection)
+    collection.name = name
+    return collection

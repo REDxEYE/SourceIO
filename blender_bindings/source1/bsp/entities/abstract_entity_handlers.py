@@ -18,7 +18,7 @@ from .....library.source1.bsp.datatypes.texture_info import TextureInfo
 from .....library.source1.vmt import VMT
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....logger import SLoggingManager
-from ....utils.utils import get_material, get_or_create_collection
+from ....utils.utils import add_material, get_or_create_collection
 from ...vtf import import_texture
 from .base_entity_classes import *
 
@@ -138,7 +138,7 @@ class AbstractEntityHandler:
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = self._get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-            material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
+            material_lookup_table[texture_data.name_id] = add_material(material_name, mesh_obj)
 
         uvs_per_face = []
         luvs_per_face = []

@@ -32,13 +32,14 @@ from ....library.source1.bsp.lumps.texture_lump import (TextureDataLump,
                                                         TextureInfoLump)
 from ....library.source1.bsp.lumps.vertex_lump import VertexLump
 from ....library.utils.math_utilities import (
-    UnitPlane, convert_rotation_source1_to_blender, SOURCE1_HAMMER_UNIT_TO_METERS)
+    SOURCE1_HAMMER_UNIT_TO_METERS, UnitPlane,
+    convert_rotation_source1_to_blender)
 from ....library.utils.singleton import SingletonMeta
 from ....logger import SLoggingManager
 from ...material_loader.material_loader import Source1MaterialLoader
 from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ...shared.model_container import Source1ModelContainer
-from ...utils.utils import get_material, get_or_create_collection
+from ...utils.utils import add_material, get_or_create_collection
 from .entities.base_entity_handler import BaseEntityHandler
 from .entities.bms_entity_handlers import BlackMesaEntityHandler
 from .entities.csgo_entity_handlers import CSGOEntityHandler
@@ -56,26 +57,6 @@ log_manager = SLoggingManager()
 
 def get_entity_name(entity_data: Dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
-
-
-class BPSPropCache(metaclass=SingletonMeta):
-    def __init__(self):
-        self.logger = log_manager.get_logger('BPSPropCache')
-        self.object_cache: Dict[str, Source1ModelContainer] = {}
-
-    def add_object(self, name, container):
-        self.logger.info(f"Adding {name} to cache")
-        self.object_cache[str(name)] = container
-
-    def get_object(self, name):
-        obj = self.object_cache.get(str(name), None)
-        if obj:
-            self.logger.info(f"Using cached model for {name}")
-            return obj
-        return obj
-
-    def purge(self):
-        self.object_cache.clear()
 
 
 class BSP:
@@ -350,7 +331,7 @@ class BSP:
 
             material_name = self.get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-            get_material(material_name, mesh_obj)
+            add_material(material_name, mesh_obj)
 
     def load_overlays(self):
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')

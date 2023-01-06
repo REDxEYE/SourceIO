@@ -2,12 +2,12 @@ import warnings
 from enum import Enum
 from pathlib import Path
 from pprint import pprint
-from typing import List, Tuple, Union
+from typing import Iterator, List, Mapping, Tuple, Union
 
 KeyValuePair = Tuple[str, Union[str, 'KeyValuePair', List['KeyValuePair']]]
 
 
-class _KVDataProxy:
+class _KVDataProxy(Mapping):
     known_conditions = {'$X360': False,
                         '$WIN32': True,
                         '$WINDOWS': True,
@@ -20,6 +20,12 @@ class _KVDataProxy:
 
     def __contains__(self, item):
         return self.get(item) is not None
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __iter__(self) -> Iterator:
+        return iter(a[0] for a in self.data)
 
     def __getitem__(self, item):
         value = self.get(item)

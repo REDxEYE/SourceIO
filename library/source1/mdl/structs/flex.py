@@ -1,9 +1,12 @@
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import List
+from typing import List, Optional, Union
 
 import numpy as np
+import numpy.typing as npt
 
-from . import Base, ByteIO
+from ....shared.types import Vector4
+from ....utils import Buffer
 
 
 class FlexOpType(IntEnum):
@@ -42,109 +45,116 @@ class FlexControllerRemapType(IntEnum):
     EYELID = 3
 
 
-class FlexController(Base):
-    def __init__(self):
-        self.name = ''
-        self.type = ''
-        self.local_to_global = 0
-        self.min = 0.0
-        self.max = 0.0
+@dataclass(slots=True)
+class FlexController:
+    name: str
+    type: str
+    local_to_global: int
+    min: float
+    max: float
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.type = reader.read_source1_string(entry)
-        self.name = reader.read_source1_string(entry)
-        self.local_to_global = reader.read_int32()
-        self.min, self.max = reader.read_fmt('2f')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        start_offset = buffer.tell()
+        return cls(buffer.read_source1_string(start_offset),
+                   buffer.read_source1_string(start_offset),
+                   buffer.read_int32(),
+                   *(buffer.read_fmt('2f')))
 
     def __repr__(self):
         return f'<FlexController "{self.name}" {self.min}:{self.max}>'
 
 
-class FlexControllerUI(Base):
-    def __init__(self):
-        self.name = 0
-        self.controller = ''
-        self.left_controller = ''
-        self.right_controller = ''
-        self.nway_controller = ''
-        self.remap_type = FlexControllerRemapType(0)
-        self.stereo = False
-        self.unused = []
+@dataclass(slots=True)
+class FlexControllerUI:
+    name: str
+    controller: Optional[str]
+    left_controller: Optional[str]
+    right_controller: Optional[str]
+    nway_controller: Optional[str]
+    remap_type: FlexControllerRemapType
+    stereo: bool = False
+    unused = []
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.name = reader.read_source1_string(entry)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        start_offset = buffer.tell()
+        name = buffer.read_source1_string(start_offset)
         # TODO: https://github.com/Dmillz89/SourceSDK2013/blob/master/mp/src/public/studio.h#L924
-        index0, index1, index2 = reader.read_fmt('3i')
-        self.remap_type = FlexControllerRemapType(reader.read_uint8())
-        self.stereo = reader.read_uint8()
-        reader.skip(2)
-        with reader.save_current_pos():
-            if self.remap_type == FlexControllerRemapType.NWAY:
-                reader.seek(entry + index2)
-                reader.skip(4)
-                self.nway_controller = reader.read_source1_string(entry + index2)
-            elif self.remap_type == FlexControllerRemapType.EYELID:
-                reader.seek(entry + index2)
-                reader.skip(4)
-                self.nway_controller = reader.read_source1_string(entry + index2)
+        index0, index1, index2 = buffer.read_fmt('3i')
+        remap_type = FlexControllerRemapType(buffer.read_uint8())
+        stereo = buffer.read_uint8()
+        buffer.skip(2)
+        nway_controller = None
+        controller = None
+        left_controller = None
+        right_controller = None
+        with buffer.save_current_offset():
+            if remap_type == FlexControllerRemapType.NWAY:
+                buffer.seek(start_offset + index2)
+                buffer.skip(4)
+                nway_controller = buffer.read_source1_string(start_offset + index2)
+            elif remap_type == FlexControllerRemapType.EYELID:
+                buffer.seek(start_offset + index2)
+                buffer.skip(4)
+                nway_controller = buffer.read_source1_string(start_offset + index2)
 
-            if not self.stereo:
-                reader.seek(entry + index0)
-                reader.skip(4)
-                self.controller = reader.read_source1_string(entry + index0)
-            elif self.stereo:
-                reader.seek(entry + index0)
-                reader.skip(4)
-                self.left_controller = reader.read_source1_string(entry + index0)
+            if not stereo:
+                buffer.seek(start_offset + index0)
+                buffer.skip(4)
+                controller = buffer.read_source1_string(start_offset + index0)
+            elif stereo:
+                buffer.seek(start_offset + index0)
+                buffer.skip(4)
+                left_controller = buffer.read_source1_string(start_offset + index0)
 
-                reader.seek(entry + index1)
-                reader.skip(4)
-                self.right_controller = reader.read_source1_string(entry + index1)
+                buffer.seek(start_offset + index1)
+                buffer.skip(4)
+                right_controller = buffer.read_source1_string(start_offset + index1)
             else:
                 raise RuntimeError('Should never reach this')
-        pass
+        return cls(name, controller, left_controller, right_controller, nway_controller, remap_type, stereo)
 
     def __repr__(self):
         return f'<FlexControllerUI "{self.name}">'
 
 
-class FlexRule(Base):
-    def __init__(self):
-        self.flex_index = 0
-        self.flex_ops = []  # type:List[FlexOp]
+@dataclass(slots=True)
+class FlexOp:
+    op: FlexOpType
+    value: Union[float, int]
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.flex_index = reader.read_uint32()
-        op_count = reader.read_uint32()
-        op_offset = reader.read_uint32()
-        with reader.save_current_pos():
-            if op_count > 0 and op_offset != 0:
-                reader.seek(entry + op_offset)
-                for _ in range(op_count):
-                    flex_op = FlexOp()
-                    flex_op.read(reader)
-                    self.flex_ops.append(flex_op)
-
-
-class FlexOp(Base):
-
-    def __init__(self):
-        self.op = FlexOpType
-        self.index = 0
-        self.value = 0
-
-    def read(self, reader: ByteIO):
-        self.op = FlexOpType(reader.read_uint32())
-        if self.op == FlexOpType.CONST:
-            self.value = reader.read_float()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        op = FlexOpType(buffer.read_uint32())
+        if op == FlexOpType.CONST:
+            value = buffer.read_float()
         else:
-            self.index = reader.read_uint32()
+            value = buffer.read_uint32()
+        return cls(op, value)
 
     def __repr__(self):
-        return f"FlexOp({self.op.name} {self.value if self.op == FlexOpType.CONST else self.index})"
+        return f"FlexOp({self.op.name} {self.value})"
+
+
+@dataclass(slots=True)
+class FlexRule:
+    flex_index: int
+    flex_ops: List[FlexOp]
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        start_offset = buffer.tell()
+        flex_index = buffer.read_uint32()
+        op_count = buffer.read_uint32()
+        op_offset = buffer.read_uint32()
+        flex_ops = []
+        if op_count > 0 and op_offset != 0:
+            with buffer.read_from_offset(start_offset + op_offset):
+                for _ in range(op_count):
+                    flex_op = FlexOp.from_buffer(buffer, version)
+                    flex_ops.append(flex_op)
+        return cls(flex_index, flex_ops)
 
 
 class VertexAminationType(IntEnum):
@@ -152,69 +162,70 @@ class VertexAminationType(IntEnum):
     WRINKLE = 1
 
 
-class FlexV36(Base):
-    def __init__(self):
-        self.name = ''
-        self.flex_desc_index = 0
-        self.targets = [0.0]
+@dataclass(slots=True)
+class Flex:
+    vert_anim_fixed_point_scale = 1 / 4096
 
-        self.partner_index = 0
-        self.vertex_anim_type = 0
-        self.vertex_animations = np.array([])  # type:np.ndarray
+    flex_desc_index: int
+    targets: Vector4[float]
+
+    partner_index: Optional[int]
+    vertex_anim_type: int
+    vertex_animations: Optional[npt.NDArray]
 
     def __repr__(self) -> str:
-        return f'<Flex "{self.name}">'
+        return f'<Flex "{self.flex_desc_index}">'
 
-    def __eq__(self, other: 'FlexV36'):
+    def __eq__(self, other: 'Flex'):
         return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
 
     def __hash__(self):
         return hash(self.flex_desc_index) + hash(self.targets)
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.flex_desc_index = reader.read_uint32()
-        self.name = self.get_value('MDL').flex_names[self.flex_desc_index]
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        start_offset = buffer.tell()
+        flex_desc_index = buffer.read_uint32()
 
-        self.targets = reader.read_fmt('4f')
-        vert_count, vert_offset = reader.read_fmt('2I')
+        targets = buffer.read_fmt('4f')
+        vert_count, vert_offset = buffer.read_fmt('2I')
 
-        if vert_count > 0 and vert_offset != 0:
-            with reader.save_current_pos():
-                reader.seek(entry + vert_offset)
-                vert_anim_class = VertAnimV36
-
-                self.vertex_animations = np.frombuffer(reader.read(vert_count * vert_anim_class.dtype.itemsize),
-                                                       vert_anim_class.dtype)
-
-
-class FlexV49(FlexV36):
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.flex_desc_index = reader.read_uint32()
-        self.name = self.get_value('MDL').flex_names[self.flex_desc_index]
-
-        self.targets = reader.read_fmt('4f')
-        vert_count, vert_offset, self.partner_index = reader.read_fmt('3I')
-
-        self.vertex_anim_type = reader.read_uint8()
-        reader.skip(3)
-        reader.skip(6 * 4)
+        if version > 36:
+            partner_index = buffer.read_uint32()
+            vertex_anim_type = VertexAminationType(buffer.read_uint8())
+            if vertex_anim_type == VertexAminationType.WRINKLE:
+                vert_anim_class = VertAnimWrinkleV49
+            else:
+                vert_anim_class = VertAnimV49
+            buffer.skip(3)
+            buffer.skip(6 * 4)
+        else:
+            partner_index = None
+            vertex_anim_type = VertexAminationType.NORMAL
+            vert_anim_class = VertAnimV36
 
         if vert_count > 0 and vert_offset != 0:
-            with reader.save_current_pos():
-                reader.seek(entry + vert_offset)
-                if self.vertex_anim_type == VertexAminationType.WRINKLE:
-                    vert_anim_class = VertAnimWrinkleV49
-                else:
-                    vert_anim_class = VertAnimV49
+            with buffer.read_from_offset(start_offset + vert_offset):
+                vertex_animations = np.frombuffer(buffer.read(vert_count * vert_anim_class.dtype.itemsize),
+                                                  vert_anim_class.dtype)
+        else:
+            vertex_animations = None
 
-                self.vertex_animations = np.frombuffer(reader.read(vert_count * vert_anim_class.dtype.itemsize),
-                                                       vert_anim_class.dtype)
+        return cls(flex_desc_index, targets, partner_index, vertex_anim_type, vertex_animations)
 
 
-class VertAnimV49(Base):
-    vert_anim_fixed_point_scale = 1 / 4096
+class VertAnimV36:
+    is_wrinkle = False
+    dtype = np.dtype(
+        [
+            ('index', np.uint32, (1,)),
+            ('vertex_delta', np.float32, (3,)),
+            ('normal_delta', np.float32, (3,)),
+        ]
+    )
+
+
+class VertAnimV49:
     is_wrinkle = False
     dtype = np.dtype(
         [
@@ -237,17 +248,5 @@ class VertAnimWrinkleV49(VertAnimV49):
             ('vertex_delta', np.float16, (3,)),
             ('normal_delta', np.float16, (3,)),
             ('wrinkle_delta', np.float16, (1,)),
-        ]
-    )
-
-
-class VertAnimV36(Base):
-    vert_anim_fixed_point_scale = 1 / 4096
-    is_wrinkle = False
-    dtype = np.dtype(
-        [
-            ('index', np.uint32, (1,)),
-            ('vertex_delta', np.float32, (3,)),
-            ('normal_delta', np.float32, (3,)),
         ]
     )

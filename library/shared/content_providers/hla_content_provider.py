@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import Union, Optional, Iterator, Tuple
+from typing import Iterator, Optional, Tuple, Union
 
 from ...shared.app_id import SteamAppId
-from .content_provider_base import ContentProviderBase
 from ...utils import Buffer
+from .content_provider_base import ContentProviderBase
 
 
 class HLAAddonProvider(ContentProviderBase):

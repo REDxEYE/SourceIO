@@ -31,10 +31,10 @@ if is_vtflib_supported():
         return main_texture, hdr_main_texture, hdr_alpha_texture
 
 
-    def texture_from_data(name, rgba_data, image_width, image_height, update):
+    def texture_from_data(name: str, rgba_data: np.ndarray, image_width: int, image_height: int, update: bool):
         if bpy.data.images.get(name, None) and not update:
             return bpy.data.images.get(name)
-        pixels = np.divide(rgba_data, 255, dtype=np.float32).flatten()
+
         image = bpy.data.images.get(name, None) or bpy.data.images.new(
             name,
             width=image_width,
@@ -45,11 +45,9 @@ if is_vtflib_supported():
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
 
-        if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(pixels)
-        else:
-            image.pixels[:] = pixels.tolist()
+        image.pixels.foreach_set(rgba_data.ravel())
         image.pack()
+        del rgba_data
         return image
 
 else:

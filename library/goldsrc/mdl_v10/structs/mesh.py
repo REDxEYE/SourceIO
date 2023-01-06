@@ -3,7 +3,6 @@ from typing import List, Tuple
 
 from ....utils import Buffer
 
-
 # // meshes
 # struct mstudiomesh_t
 # {

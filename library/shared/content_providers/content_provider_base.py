@@ -1,10 +1,10 @@
 from collections import deque
 from pathlib import Path
-from typing import Dict, Type, Union, Deque, Tuple, Optional, Iterator
+from typing import Deque, Dict, Iterator, Optional, Tuple, Type, Union
 
-from ..app_id import SteamAppId
 from ...utils import Buffer, FileBuffer
 from ...utils.path_utilities import corrected_path
+from ..app_id import SteamAppId
 
 
 class ContentProviderBase:

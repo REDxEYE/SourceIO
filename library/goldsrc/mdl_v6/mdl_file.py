@@ -2,7 +2,6 @@ from typing import List
 
 import numpy as np
 
-from ...shared.base import Base
 from ...utils import FileBuffer
 from .structs.animation import StudioAnimation
 from .structs.bodypart import StudioBodypart
@@ -12,10 +11,9 @@ from .structs.studioheader import StudioHeader
 from .structs.texture import StudioTexture
 
 
-class Mdl(Base):
+class Mdl:
 
     def __init__(self, filepath):
-        self.store_value("MDL", self)
         self.reader = FileBuffer(filepath)
         self.header = StudioHeader()
         self.bones: List[StudioBone] = []

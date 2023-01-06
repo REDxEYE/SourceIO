@@ -15,7 +15,7 @@ from .....library.source1.bsp.lumps.material_sort_lump import *
 from .....library.source1.bsp.lumps.mesh_lump import *
 from .....library.source1.bsp.lumps.vertex_lump import *
 from .....library.source1.bsp.lumps.vertex_normal_lump import *
-from ....utils.utils import get_material
+from ....utils.utils import add_material
 from ..entities.base_entity_handler import BaseEntityHandler
 from ..entities.r1_entity_classes import (Base, entity_class_handle,
                                           func_window_hint,
@@ -71,11 +71,9 @@ class TitanfallEntityHandler(BaseEntityHandler):
                         image.alpha_mode = 'CHANNEL_PACKED'
                         image.file_format = 'TARGA'
 
-                        if bpy.app.version > (2, 83, 0):
-                            image.pixels.foreach_set(pixel_data.flatten().tolist())
-                        else:
-                            image.pixels[:] = pixel_data.flatten().tolist()
+                        image.pixels.foreach_set(pixel_data.ravel())
                         image.pack()
+                        del pixel_data
 
                     offset += pixel_count
 
@@ -139,7 +137,7 @@ class TitanfallEntityHandler(BaseEntityHandler):
             objs.append(mesh_obj)
             mesh_data = mesh_obj.data
             for mat in material_indices:
-                get_material(mat, mesh_obj)
+                add_material(mat, mesh_obj)
 
             unique_vertex_ids = np.unique(merged_vertex_ids)
 

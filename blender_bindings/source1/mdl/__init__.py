@@ -4,28 +4,23 @@ from typing import Optional
 import bpy
 
 from ....library.utils import Buffer
-from ....library.utils.byte_io_mdl import ByteIO
 from ...shared.model_container import Source1ModelContainer
 from ...utils.utils import get_new_unique_collection
 
 
 @dataclass
 class FileImport:
-    mdl_file: ByteIO
+    mdl_file: Buffer
     vvd_file: Buffer
-    vtx_file: ByteIO
-    vvc_file: Optional[ByteIO]
+    vtx_file: Buffer
+    vvc_file: Optional[Buffer]
     phy_file: Optional[Buffer]
 
 
 def put_into_collections(model_container: Source1ModelContainer, model_name,
                          parent_collection=None, bodygroup_grouping=False):
-    static_prop = model_container.armature is None
-    if not static_prop:
-        master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
-    else:
-        master_collection = parent_collection or bpy.context.scene.collection
-    model_container.collection = master_collection
+    master_collection = get_new_unique_collection(model_name, parent_collection or bpy.context.scene.collection)
+
     for bodygroup_name, meshes in model_container.bodygroups.items():
         if bodygroup_grouping:
             body_part_collection = get_new_unique_collection(bodygroup_name, master_collection)
@@ -42,4 +37,5 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
         attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
         for attachment in model_container.attachments:
             attachments_collection.objects.link(attachment)
+    model_container.collection = master_collection
     return master_collection

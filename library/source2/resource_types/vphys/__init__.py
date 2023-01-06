@@ -1,1 +1,0 @@
-from .physics import ValveCompiledPhysics

@@ -1,11 +1,11 @@
 import fnmatch
 from pathlib import Path
-from typing import Union, Iterator, Tuple, List, Optional
+from typing import Iterator, List, Optional, Tuple, Union
 
-from ..app_id import SteamAppId
 from ...source1.gma import open_gma
-from .content_provider_base import ContentProviderBase
 from ...utils import Buffer
+from ..app_id import SteamAppId
+from .content_provider_base import ContentProviderBase
 
 
 class GMAContentProvider(ContentProviderBase):

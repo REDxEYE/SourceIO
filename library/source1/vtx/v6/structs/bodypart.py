@@ -1,20 +1,23 @@
+from dataclasses import dataclass
 from typing import List
 
-from . import Base, ByteIO
+from .....utils import Buffer
 from .model import Model
 
 
-class BodyPart(Base):
-    def __init__(self):
-        self.models = []  # type: List[Model]
+@dataclass(slots=True)
+class BodyPart:
+    models: List[Model]
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        model_count, model_offset = reader.read_fmt('II')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        entry = buffer.tell()
+        model_count, model_offset = buffer.read_fmt('II')
 
-        with reader.save_current_pos():
-            reader.seek(entry + model_offset)
+        models = []
+        with buffer.save_current_offset():
+            buffer.seek(entry + model_offset)
             for _ in range(model_count):
-                model = Model()
-                model.read(reader)
-                self.models.append(model)
+                model = Model.from_buffer(buffer)
+                models.append(model)
+        return cls(models)

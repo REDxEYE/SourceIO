@@ -5,13 +5,14 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        FloatProperty, StringProperty)
 
+from ..source1.mdl import put_into_collections
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source1.vtf import is_vtflib_supported
 from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ...logger import SLoggingManager
 from ..material_loader.material_loader import Source1MaterialLoader
 from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ..source1.bsp.import_bsp import BSP, BPSPropCache
+from ..source1.bsp.import_bsp import BSP
 from ..source1.dmx.load_sfm_session import load_session
 from ..source1.mdl.model_loader import import_model_from_full_path
 
@@ -60,7 +61,7 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
                                                           unique_material_names=self.unique_materials_names,
                                                           bodygroup_grouping=self.bodygroup_grouping,
                                                           load_physics=self.import_physics)
-
+            put_into_collections(model_container, Path(model_container.mdl.header.name).stem, bodygroup_grouping=self.bodygroup_grouping)
             if self.import_textures and is_vtflib_supported():
                 try:
                     import_materials(model_container.mdl, unique_material_names=self.unique_materials_names,
@@ -137,7 +138,6 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
         bsp_map = BSP(self.filepath, scale=self.scale)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
-        BPSPropCache().purge()
 
         bsp_map.load_disp()
         bsp_map.load_entities()

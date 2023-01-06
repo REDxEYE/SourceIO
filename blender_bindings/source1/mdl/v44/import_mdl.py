@@ -13,13 +13,14 @@ from .....library.source1.mdl.v44.mdl_file import MdlV44
 from .....library.source1.mdl.v44.vertex_animation_cache import \
     VertexAnimationCache
 from .....library.source1.mdl.v49.flex_expressions import *
+from .....library.source1.vtx import open_vtx
 from .....library.source1.vtx.v7.vtx import Vtx
 from .....library.source1.vvd import Vvd
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import get_material
+from ....utils.utils import add_material
 from .. import FileImport
 from ..common import get_slice, merge_meshes
 
@@ -45,8 +46,8 @@ def create_armature(mdl: MdlV44, scale=1.0):
         bl_bones.append(bl_bone)
 
     for bl_bone, s_bone in zip(bl_bones, mdl.bones):
-        if s_bone.parent_bone_index != -1:
-            bl_parent = bl_bones[s_bone.parent_bone_index]
+        if s_bone.parent_bone_id != -1:
+            bl_parent = bl_bones[s_bone.parent_bone_id]
             bl_bone.parent = bl_parent
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 
@@ -68,12 +69,9 @@ def create_armature(mdl: MdlV44, scale=1.0):
 
 def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_meshes=False,
                  unique_material_names=False):
-    mdl = MdlV44(file_list.mdl_file)
-    mdl.read()
-    vvd = Vvd(file_list.vvd_file)
-    vvd.read()
-    vtx = Vtx(file_list.vtx_file)
-    vtx.read()
+    mdl = MdlV44.from_buffer(file_list.mdl_file)
+    vvd = Vvd.from_buffer(file_list.vvd_file)
+    vtx = open_vtx(file_list.vtx_file)
 
     container = Source1ModelContainer(mdl, vvd, vtx, file_list)
 
@@ -140,7 +138,7 @@ def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_
             indices_array = np.array(indices_array, dtype=np.uint32)
             vertices = model_vertices[vtx_vertices]
 
-            mesh_data.from_pydata(vertices['vertex'] * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices['vertex'] * scale, [], np.flip(indices_array).reshape((-1, 3)))
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
@@ -154,9 +152,9 @@ def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_
                     mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
                 else:
                     mat_name = mat_name[-63:]
-                material_remapper[mat_id] = get_material(mat_name, mesh_obj)
+                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
 
-            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
+            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]])
 
             uv_data = mesh_data.uv_layers.new()
 

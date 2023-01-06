@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ..utils.byte_io_mdl import ByteIO
+from ..utils import FileBuffer
 from ..utils.hexify import rhex
 
 
@@ -9,7 +9,7 @@ class CompiledShader:
 
     def __init__(self, path: str):
         self.path = Path(path)
-        self.reader = ByteIO(self.path)
+        self.reader = FileBuffer(self.path)
         self.shader_type = "UNKNOWN"
         self.version = 0
         self.file_id = b''

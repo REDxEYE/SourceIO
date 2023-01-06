@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Type
 
 from ...shared.app_id import SteamAppId
-from ...utils.file_utils import FileBuffer, Buffer, MemoryBuffer
+from ...utils.file_utils import Buffer, FileBuffer, MemoryBuffer
 from ...utils.math_utilities import sizeof_fmt
 
 if TYPE_CHECKING:

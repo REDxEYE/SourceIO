@@ -1,1 +1,0 @@
-from .material import ValveCompiledMaterial

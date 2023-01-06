@@ -8,7 +8,6 @@ from ....utils import Buffer
 from ....utils.byte_io_mdl import ByteIO
 from .mesh import StudioMesh
 
-
 # // studio models
 # struct mstudiomodel_t
 # {

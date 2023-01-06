@@ -2,13 +2,12 @@ from typing import List
 
 import numpy as np
 
-from ....shared.base import Base
 from ....utils import Buffer
 from .event import StudioPivot
 from .pivot import StudioEvent
 
 
-class StudioSequence(Base):
+class StudioSequence:
     def __init__(self):
         self.name = ''
         self.fps = 0

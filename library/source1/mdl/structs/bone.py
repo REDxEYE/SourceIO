@@ -1,9 +1,13 @@
+from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag
+from typing import Optional, Tuple, Union
 
 import numpy as np
+import numpy.typing as npt
 
+from ....shared.types import Vector3, Vector4
+from ....utils import Buffer
 from ....utils.math_utilities import quat_to_matrix
-from . import Base, ByteIO
 from .axis_interp_rule import AxisInterpRule
 from .jiggle_bone import JiggleRule
 from .quat_interp_bone import QuatInterpRule
@@ -127,42 +131,29 @@ class ProceduralBoneType(IntEnum):
     JIGGLE = 5
 
 
-class BoneV36(Base):
-    def __init__(self, bone_id: int):
-        self.bone_id = bone_id
-        self.name = ""
-        self.parent_bone_index = 0
-        self.bone_controller_index = []
-        self.scale = 0
-        self.position = []
-        self.quat = []
-        self.anim_channels = 0
-        self.rotation = []
-        self.position_scale = []
-        self.rotation_scale = []
-        self.pose_to_bone = []
-        self.q_alignment = []
-        self.flags = BoneFlags(0)
-        self.procedural_rule_type = 0
-        self.physics_bone_index = 0
-        self.contents = Contents(0)
-        self.surface_prop = ''
+@dataclass(slots=True)
+class Bone:
+    bone_id: int = field(init=False)
+    name: str
+    parent_bone_id: int
+    bone_controller_ids: Tuple[float, ...]
 
-        self.procedural_rule = None
+    position: Vector3[float]
+    rotation: Vector3[float]
+    position_scale: Vector3[float]
+    rotation_scale: Vector3[float]
 
-    @property
-    def children(self):
-        from ..v36.mdl_file import MdlV36
-        mdl: MdlV36 = self.get_value("MDL")
-        childes = []
-        if mdl.bones:
-            bone_index = mdl.bones.index(self)
-            for bone in mdl.bones:
-                if bone.name == self.name:
-                    continue
-                if bone.parent_bone_index == bone_index:
-                    childes.append(bone)
-        return childes
+    pose_to_bone: npt.NDArray[np.float32]
+
+    q_alignment: Vector4[float]
+    flags: BoneFlags
+    procedural_rule_type: int
+    physics_bone_index: int
+    quat: Vector4[float]
+    contents: Contents
+    surface_prop: str
+
+    procedural_rule: Optional[Union[AxisInterpRule, JiggleRule, QuatInterpRule]]
 
     @property
     def matrix(self):
@@ -180,84 +171,46 @@ class BoneV36(Base):
 
         return np.identity(4) @ t_matrix @ tmp
 
-    @property
-    def parent(self):
-        from ..v36.mdl_file import MdlV36
-        mdl: MdlV36 = self.get_value("MDL")
-        if mdl.bones and self.parent_bone_index != -1:
-            return mdl.bones[self.parent_bone_index]
-        return None
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        start_offset = buffer.tell()
+        name = buffer.read_source1_string(start_offset)
+        parent_bone_id = buffer.read_int32()
+        bone_controller_ids = buffer.read_fmt('6f')
+        position = buffer.read_fmt('3f')
+        quat: Vector4 = (0, 0, 0, 1)
+        if version > 36:
+            quat = buffer.read_fmt('4f')
+        rotation = buffer.read_fmt('3f')
+        position_scale = buffer.read_fmt('3f')
+        rotation_scale = buffer.read_fmt('3f')
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.name = reader.read_source1_string(entry)
-        self.parent_bone_index = reader.read_int32()
-        self.bone_controller_index = reader.read_fmt('6f')
-        self.position = reader.read_fmt('3f')
-        self.rotation = reader.read_fmt('3f')
-        self.position_scale = reader.read_fmt('3f')
-        self.rotation_scale = reader.read_fmt('3f')
+        pose_to_bone = np.array(buffer.read_fmt('12f')).reshape((3, 4)).transpose()
 
-        self.pose_to_bone = np.array(reader.read_fmt('12f')).reshape((3, 4)).transpose()
-
-        self.q_alignment = reader.read_fmt('4f')
-        self.flags = BoneFlags(reader.read_uint32())
-        self.procedural_rule_type = reader.read_uint32()
-        procedural_rule_offset = reader.read_uint32()
-        self.physics_bone_index = reader.read_uint32()
-        self.surface_prop = reader.read_source1_string(entry)
-        self.quat = reader.read_fmt('4f')
-        self.contents = Contents(reader.read_uint32())
-        reader.skip(3 * 4)
-
-        if self.procedural_rule_type != 0 and procedural_rule_offset != 0:
-            with reader.save_current_pos():
-                reader.seek(entry + procedural_rule_offset)
-                if self.procedural_rule_type == ProceduralBoneType.AXISINTERP:
-                    self.procedural_rule = AxisInterpRule()
-                if self.procedural_rule_type == ProceduralBoneType.QUATINTERP:
-                    self.procedural_rule = QuatInterpRule()
-                if self.procedural_rule_type == ProceduralBoneType.JIGGLE:
-                    self.procedural_rule = JiggleRule()
-                if self.procedural_rule:
-                    self.procedural_rule.read(reader)
-
-
-class BoneV49(BoneV36):
-
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.name = reader.read_source1_string(entry)
-        self.parent_bone_index = reader.read_int32()
-        self.bone_controller_index = reader.read_fmt('6f')
-        self.position = reader.read_fmt('3f')
-        self.quat = reader.read_fmt('4f')
-        self.rotation = reader.read_fmt('3f')
-        self.position_scale = reader.read_fmt('3f')
-        self.rotation_scale = reader.read_fmt('3f')
-
-        self.pose_to_bone = np.array(reader.read_fmt('12f')).reshape((3, 4)).transpose()
-
-        self.q_alignment = reader.read_fmt('4f')
-        self.flags = BoneFlags(reader.read_uint32())
-        self.procedural_rule_type = reader.read_uint32()
-        procedural_rule_offset = reader.read_uint32()
-        self.physics_bone_index = reader.read_uint32()
-        self.surface_prop = reader.read_source1_string(entry)
-        self.contents = Contents(reader.read_uint32())
-        if self.get_value('mdl_version') >= 44:
-            _ = [reader.read_uint32() for _ in range(8)]
-        if self.get_value('mdl_version') >= 53:
-            reader.skip(4 * 7)
-
-        if self.procedural_rule_type != 0 and procedural_rule_offset != 0:
-            with reader.save_current_pos():
-                reader.seek(entry + procedural_rule_offset)
-                if self.procedural_rule_type == ProceduralBoneType.AXISINTERP:
-                    self.procedural_rule = AxisInterpRule()
-                if self.procedural_rule_type == ProceduralBoneType.QUATINTERP:
-                    self.procedural_rule = QuatInterpRule()
-                if self.procedural_rule_type == ProceduralBoneType.JIGGLE:
-                    self.procedural_rule = JiggleRule()
-                if self.procedural_rule:
-                    self.procedural_rule.read(reader)
+        q_alignment = buffer.read_fmt('4f')
+        flags = BoneFlags(buffer.read_uint32())
+        procedural_rule_type = buffer.read_uint32()
+        procedural_rule_offset = buffer.read_uint32()
+        physics_bone_index = buffer.read_uint32()
+        surface_prop = buffer.read_source1_string(start_offset)
+        if version == 36:
+            quat = buffer.read_fmt('4f')
+        contents = Contents(buffer.read_uint32())
+        if version == 36:
+            buffer.skip(3 * 4)
+        if version >= 44:
+            _ = [buffer.read_uint32() for _ in range(8)]
+        if version >= 53:
+            buffer.skip(4 * 7)
+        procedural_rule = None
+        if procedural_rule_type != 0 and procedural_rule_offset != 0:
+            with buffer.read_from_offset(start_offset + procedural_rule_offset):
+                if procedural_rule_type == ProceduralBoneType.AXISINTERP:
+                    procedural_rule = AxisInterpRule.from_buffer(buffer)
+                if procedural_rule_type == ProceduralBoneType.QUATINTERP:
+                    procedural_rule = QuatInterpRule.from_buffer(buffer)
+                if procedural_rule_type == ProceduralBoneType.JIGGLE:
+                    procedural_rule = JiggleRule.from_buffer(buffer)
+        return cls(name, parent_bone_id, bone_controller_ids, position, rotation, position_scale, rotation_scale,
+                   pose_to_bone, q_alignment, flags, procedural_rule, physics_bone_index, quat, contents, surface_prop,
+                   procedural_rule)

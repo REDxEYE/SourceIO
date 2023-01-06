@@ -49,23 +49,6 @@ def vector_transform_v(vectors: np.ndarray, matrix: np.ndarray):
     return vectors.T
 
 
-def quaternion_to_euler_angle(w, x, y, z):
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    x = math.degrees(math.atan2(t0, t1))
-
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    y = math.degrees(math.asin(t2))
-
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    z = math.degrees(math.atan2(t3, t4))
-
-    return x, y, z
-
-
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
     angle_y = -math.asin(round(m2, 6))
     c = math.cos(angle_y)
@@ -167,25 +150,6 @@ def quat_to_matrix(quat):
     return matrix
 
 
-def euler_to_matrix(theta):
-    r_x = np.array([[1, 0, 0],
-                    [0, math.cos(theta[0]), -math.sin(theta[0])],
-                    [0, math.sin(theta[0]), math.cos(theta[0])]
-                    ])
-
-    r_y = np.array([[math.cos(theta[1]), 0, math.sin(theta[1])],
-                    [0, 1, 0],
-                    [-math.sin(theta[1]), 0, math.cos(theta[1])]
-                    ])
-
-    r_z = np.array([[math.cos(theta[2]), -math.sin(theta[2]), 0],
-                    [math.sin(theta[2]), math.cos(theta[2]), 0],
-                    [0, 0, 1]
-                    ])
-
-    return np.dot(r_z, np.dot(r_y, r_x))
-
-
 def euler_to_quat(euler: np.ndarray):
     euler *= 0.5
     roll, pitch, yaw = euler
@@ -201,49 +165,6 @@ def euler_to_quat(euler: np.ndarray):
     quat[2] = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
     quat[3] = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
     return quat
-
-
-def quat_slerp(a, b, factor):
-    ax = a[0]
-    ay = a[1]
-    az = a[2]
-    aw = a[3]
-    bx = b[0]
-    by = b[1]
-    bz = b[2]
-    bw = b[3]
-
-    omega, cosom, sinom, scale0, scale1 = 0, 0, 0, 0, 0
-
-    cosom = ax * bx + ay * by + az * bz + aw * bw
-    if cosom < 0.0:
-        cosom = -cosom
-        bx = -bx
-        by = -by
-        bz = -bz
-        bw = -bw
-
-    if 1.0 - cosom > EPSILON:
-        omega = math.acos(cosom)
-        sinom = math.sin(omega)
-        scale0 = math.sin((1.0 - factor) * omega) / sinom
-        scale1 = math.sin(factor * omega) / sinom
-    else:
-        scale0 = 1.0 - factor
-        scale1 = factor
-    out = np.zeros((4,), np.float32)
-    out[0] = scale0 * ax + scale1 * bx
-    out[1] = scale0 * ay + scale1 * by
-    out[2] = scale0 * az + scale1 * bz
-    out[3] = scale0 * aw + scale1 * bw
-
-    return out
-
-
-def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
-    # XYZ -> ZXY
-    return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
-            math.radians(source2_rotation[1])]
 
 
 def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:

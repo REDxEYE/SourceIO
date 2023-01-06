@@ -1,8 +1,8 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
-from ...utils import FileBuffer, Buffer
+from ...utils import Buffer, FileBuffer
 from .file_entry import FileEntry
 
 

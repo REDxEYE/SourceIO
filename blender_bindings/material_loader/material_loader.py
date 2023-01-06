@@ -4,6 +4,7 @@ from typing import Dict, Type, Union
 
 from ...library.goldsrc.mdl_v10.structs.texture import StudioTexture
 from ...library.source1.vmt import VMT
+from ...library.source2 import CompiledMaterialResource
 from ...logger import SLoggingManager
 from .shader_base import ShaderBase
 from .shaders import (debug_material, goldsrc_shaders, source1_shaders,
@@ -78,16 +79,17 @@ class Source2MaterialLoader(MaterialLoaderBase):
         logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
-    def __init__(self, source2_material_data, material_name, resources: Dict[Union[str, int], Path]):
+    def __init__(self, material_resource: CompiledMaterialResource, material_name):
         super().__init__(material_name)
         self.material_name: str = material_name[-63:]
-        self.resources = resources
-        self.texture_data = source2_material_data
+        self.material_resource = material_resource
 
     def create_material(self):
-        shader = self.texture_data['m_shaderName']
-        handler: Source2ShaderBase = self._handlers.get(
-            shader, DummyShader)(self.texture_data, self.resources)
+        data, = self.material_resource.get_data_block(block_name='DATA')
+        if not data:
+            return
+        shader = data['m_shaderName']
+        handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.material_resource)
 
         if shader not in self._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')

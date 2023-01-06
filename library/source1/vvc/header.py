@@ -1,29 +1,32 @@
+from dataclasses import dataclass
 from typing import List
 
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer
 
 
+@dataclass(slots=True)
 class Header:
-    def __init__(self):
-        self.id = ""
-        self.version = 0
-        self.checksum = 0
-        self.lod_count = 0
-        self.lod_vertex_count = []  # type: List[int]
-        self.vertex_colors_offset = 0
-        self.secondary_uv_offset = 0
-        self.unused_0_offset = 0
-        self.unused_1_offset = 0
+    version: int
+    checksum: int
+    lod_count: int
+    lod_vertex_count: List[int]
+    vertex_colors_offset: int
+    secondary_uv_offset: int
+    unused_0_offset: int
+    unused_1_offset: int
 
-    def read(self, reader: ByteIO):
-        self.id = reader.read_fourcc()
-        if self.id != 'IDCV':
-            raise NotImplementedError('Invalid VVD magic {}!'.format(self.id))
-        self.version = reader.read_uint32()
-        self.checksum = reader.read_uint32()
-        self.lod_count = reader.read_uint32()
-        self.lod_vertex_count = reader.read_fmt("8I")
-        self.vertex_colors_offset = reader.read_uint32()
-        self.secondary_uv_offset = reader.read_uint32()
-        self.unused_0_offset = reader.read_uint32()
-        self.unused_1_offset = reader.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        id = buffer.read_fourcc()
+        if id != 'IDCV':
+            raise NotImplementedError('Invalid VVD magic {}!'.format(id))
+        version = buffer.read_uint32()
+        checksum = buffer.read_uint32()
+        lod_count = buffer.read_uint32()
+        lod_vertex_count = buffer.read_fmt("8I")
+        vertex_colors_offset = buffer.read_uint32()
+        secondary_uv_offset = buffer.read_uint32()
+        unused_0_offset = buffer.read_uint32()
+        unused_1_offset = buffer.read_uint32()
+        return cls(version, checksum, lod_count, lod_vertex_count,
+                   vertex_colors_offset, secondary_uv_offset, unused_0_offset, unused_1_offset)

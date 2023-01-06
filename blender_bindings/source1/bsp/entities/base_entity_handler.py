@@ -14,7 +14,7 @@ from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.utils import get_material
+from ....utils.utils import add_material
 from ...vtf import SkyboxException, load_skybox_texture
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
@@ -666,7 +666,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         curve_path.use_endpoint_u = True
 
         material_name = start_entity.RopeMaterial
-        get_material(material_name, curve_object)
+        add_material(material_name, curve_object)
         content_manager = ContentManager()
         material_file = content_manager.find_material(material_name)
         if material_file:
@@ -754,7 +754,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
         uv_data = mesh_data.uv_layers.new().data
-        get_material(material_name, obj)
+        add_material(material_name, obj)
 
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, {'entity': entity_raw})

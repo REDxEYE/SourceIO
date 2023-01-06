@@ -1,9 +1,12 @@
+from pathlib import Path
+
 import bpy
 
 from .....library.shared.content_providers.content_manager import \
     ContentManager
+from .....library.source2 import CompiledMaterialResource
 from ....material_loader.shaders.source2_shaders.sky import Skybox
-from ...vmat.loader import ValveCompiledMaterialLoader
+from ...vmat_loader import load_material
 from .abstract_entity_handlers import (AbstractEntityHandler, get_angles,
                                        get_origin)
 from .base_entity_classes import *
@@ -186,10 +189,9 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_env_sky(self, entity: env_sky, entity_raw: dict):
         sky_mat = ContentManager().find_file(entity.skyname + '_c')
         if sky_mat is not None:
-            vmat = ValveCompiledMaterialLoader(sky_mat)
-            vmat.load()
-            data_block = vmat.get_data_block(block_name='DATA')[0]
-            Skybox(data_block.data, vmat.available_resources).create_nodes(entity.skyname)
+            vmat = CompiledMaterialResource.from_buffer(sky_mat, Path(entity.skyname))
+            # load_material(vmat, Path(entity.skyname))
+            Skybox(vmat).create_nodes(entity.skyname)
 
     def handle_point_clientui_world_panel(self, entity: point_clientui_world_panel, entity_raw: dict):
         pass

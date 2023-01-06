@@ -3,9 +3,9 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from ...mdl_v10.structs.texture import MdlTextureFlag
-from ....utils import Buffer
 from .....logger import SLoggingManager
+from ....utils import Buffer
+from ...mdl_v10.structs.texture import MdlTextureFlag
 from ...wad import MipTex, WadLump, flip_texture, make_texture
 from ..bsp_file import BspFile
 

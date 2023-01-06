@@ -21,11 +21,11 @@ from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_MDLImport,
                                           SOURCEIO_OT_RigImport)
 from .operators.source2_operators import (SOURCEIO_OT_DMXCameraImport,
+                                          SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMATImport,
                                           SOURCEIO_OT_VMDLImport,
-                                          SOURCEIO_OT_VPK_VWRLDImport,
-                                          SOURCEIO_OT_VTEXImport,
-                                          SOURCEIO_OT_VWRLDImport)
+                                          SOURCEIO_OT_VPK_VMAPImport,
+                                          SOURCEIO_OT_VTEXImport)
 from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
                                       SourceIO_OP_VPKBrowserLoader)
 from .operators.vpk_operators import classes as vpk_classes
@@ -67,9 +67,9 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         layout.separator()
         layout.operator(SOURCEIO_OT_VMDLImport.bl_idname, text="Source2 model (.vmdl)",
                         icon_value=model_doc_icon.icon_id)
-        layout.operator(SOURCEIO_OT_VWRLDImport.bl_idname, text="Source2 map (.vwrld)",
+        layout.operator(SOURCEIO_OT_VMAPImport.bl_idname, text="Source2 map (.vmap)",
                         icon_value=vwrld_icon.icon_id)
-        layout.operator(SOURCEIO_OT_VPK_VWRLDImport.bl_idname, text="Source2 packed map (.vpk)",
+        layout.operator(SOURCEIO_OT_VPK_VMAPImport.bl_idname, text="Source2 packed map (.vpk)",
                         icon_value=vwrld_icon.icon_id)
         layout.operator(SOURCEIO_OT_VTEXImport.bl_idname, text="Source2 texture (.vtex)",
                         icon_value=vtex_icon.icon_id)
@@ -147,8 +147,8 @@ classes = (
     SOURCEIO_OT_VMDLImport,
     SOURCEIO_OT_VTEXImport,
     SOURCEIO_OT_VMATImport,
-    SOURCEIO_OT_VPK_VWRLDImport,
-    SOURCEIO_OT_VWRLDImport,
+    SOURCEIO_OT_VPK_VMAPImport,
+    SOURCEIO_OT_VMAPImport,
 
     # Addon tools
     # SourceIOPreferences,

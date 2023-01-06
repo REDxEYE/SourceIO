@@ -7,10 +7,11 @@ from mathutils import Euler, Matrix, Vector
 
 from ....library.goldsrc.mdl_v6.mdl_file import Mdl
 from ....library.goldsrc.mdl_v6.structs.texture import StudioTexture
+from ....library.utils import Buffer
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
-from ...utils.utils import get_material, get_new_unique_collection
+from ...utils.utils import add_material, get_new_unique_collection
 
 
 def create_armature(mdl: Mdl, collection, scale):
@@ -57,7 +58,7 @@ def create_armature(mdl: Mdl, collection, scale):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale=1.0,
+def import_model(mdl_file: Buffer, mdl_texture_file: Optional[BinaryIO], scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
@@ -87,6 +88,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
             model_name = body_part_model.name
             used_copy = False
             model_object = None
+            model_mesh = None
 
             if re_use_meshes:
                 mesh_obj_original = bpy.data.objects.get(model_name, None)
@@ -100,7 +102,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
                     model_object.data = model_mesh
                     used_copy = True
 
-            if not re_use_meshes or not used_copy:
+            if model_mesh is None and model_object is None:
                 model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                 model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
@@ -166,7 +168,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
 
 
 def load_material(model_texture_info: StudioTexture, model_object):
-    mat_id = get_material(model_texture_info.name, model_object)
+    mat_id = add_material(model_texture_info.name, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
     bpy_material.create_nodes(model_texture_info.name)
     bpy_material.align_nodes()

@@ -1,11 +1,11 @@
 from collections import Counter, OrderedDict
 from pathlib import Path
-from typing import Dict, List, TypeVar, Union, Optional
+from typing import Dict, List, Optional, TypeVar, Union
 
-from ...utils import Buffer
 from ....library.utils.path_utilities import (backwalk_file_resolver,
                                               corrected_path, get_mod_path)
 from ....logger import SLoggingManager
+from ...utils import Buffer
 from ...utils.singleton import SingletonMeta
 from .content_provider_base import ContentProviderBase
 from .hfs_provider import HFS1ContentProvider, HFS2ContentProvider

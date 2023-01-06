@@ -39,4 +39,4 @@ class EntityKeyValuesKeys(metaclass=SingletonMeta):
             self.lookup_table[mhash] = skey
 
     def get(self, key_hash):
-        return self.lookup_table.get(key_hash, key_hash)
+        return self.lookup_table.get(key_hash, str(key_hash))

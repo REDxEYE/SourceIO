@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from SourceIO.library.utils import Buffer
+from ....utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
 
 if TYPE_CHECKING:

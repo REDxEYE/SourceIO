@@ -1,19 +1,19 @@
 import math
 
-from . import ByteIO
+from ....utils import Buffer
 
 
 class Quat:
     @staticmethod
-    def read(reader: ByteIO):
+    def read(buffer: Buffer):
         raise NotImplementedError('Override me')
 
 
 class Quat64(Quat):
     @staticmethod
-    def read(reader: ByteIO):
-        b0 = reader.read_uint32()
-        b1 = reader.read_uint32()
+    def read(buffer: Buffer):
+        b0 = buffer.read_uint32()
+        b1 = buffer.read_uint32()
         xs = b0 & 0x1FFFFF
         ys = (((b1 & 0x03FF) << 11) | (b0 >> 21)) >> 0
         zs = (b1 >> 10) & 0x1FFFFF
@@ -28,10 +28,10 @@ class Quat64(Quat):
 
 class Quat48(Quat):
     @staticmethod
-    def read(reader: ByteIO):
-        x = (reader.read_uint16() - 32768) / 32768
-        y = (reader.read_uint16() - 32768) / 32768
-        raw_z = reader.read_uint16()
+    def read(buffer: Buffer):
+        x = (buffer.read_uint16() - 32768) / 32768
+        y = (buffer.read_uint16() - 32768) / 32768
+        raw_z = buffer.read_uint16()
         z = ((raw_z & 0x7FFF) - 16384) / 16384
         w_neg = (raw_z >> 15) & 0x1
         w = math.sqrt(1 - x * x - y * y - z * z)
@@ -45,8 +45,8 @@ class Quat48S(Quat):
     SHIFT48S = 16384
 
     @staticmethod
-    def read(reader: ByteIO):
-        data = reader.read_fmt('3H')
+    def read(buffer: Buffer):
+        data = buffer.read_fmt('3H')
         ia = (data[1] & 1) + (data[0] & 1) * 2
         ib = (ia + 1) % 4
         ic = (ia + 2) % 4

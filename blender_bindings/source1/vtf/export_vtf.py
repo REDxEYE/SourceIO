@@ -43,8 +43,7 @@ def export_texture(blender_texture, path, image_format=None, filter_mode=None):
         def_options.Flags |= VTFLibEnums.ImageFlag.ImageFlagNormal
 
     def_options.Resize = 1
-    image_data = create_string_buffer(image_data.tobytes())
-    image_data = vtf_lib.flip_image_external(image_data, w, h)
-    vtf_lib.image_create_single(w, h, image_data, def_options)
-    vtf_lib.image_save(str(path))
+    image_data = np.flipud(image_data)
+    vtf_lib.image_create_single(w, h, image_data.tobytes(), def_options)
+    vtf_lib.image_save(path)
     vtf_lib.image_destroy()

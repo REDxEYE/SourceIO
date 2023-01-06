@@ -1,10 +1,10 @@
 from pathlib import Path
-from typing import List, Union, Optional, Iterator, Tuple
+from typing import Iterator, List, Optional, Tuple, Union
 
-from ..app_id import SteamAppId
-from ...utils import FileBuffer, Buffer
+from ...utils import Buffer, FileBuffer
 from ...utils.gameinfo_parser import GameInfoParser
 from ...utils.path_utilities import corrected_path
+from ..app_id import SteamAppId
 from .content_provider_base import ContentProviderBase
 
 

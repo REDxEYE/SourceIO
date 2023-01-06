@@ -1,18 +1,18 @@
-import math
 from pathlib import Path
 from typing import BinaryIO
 
 import bpy
 import numpy as np
-from mathutils import Matrix, Quaternion, Vector
+from mathutils import Matrix, Vector
 
 from ....library.goldsrc.mdl_v4.mdl_file import Mdl
 from ....library.goldsrc.mdl_v4.structs.sequence import euler_to_quat
 from ....library.goldsrc.mdl_v4.structs.texture import StudioTexture
+from ....library.utils import Buffer
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcV4ModelContainer
-from ...utils.utils import get_material, get_new_unique_collection
+from ...utils.utils import add_material, get_new_unique_collection
 
 
 def get_name(mdl_file: BinaryIO):
@@ -23,8 +23,7 @@ def get_name(mdl_file: BinaryIO):
     return model_name
 
 
-def create_armature(mdl: Mdl, collection, scale):
-    model_name = get_name(mdl.reader.file)
+def create_armature(model_name: str, mdl: Mdl, collection, scale):
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
     armature_obj['MODE'] = 'SourceIO'
@@ -65,24 +64,24 @@ def create_armature(mdl: Mdl, collection, scale):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: BinaryIO, scale=1.0,
+def import_model(name: str, mdl_buffer: Buffer, scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
 
-    mdl = Mdl(mdl_file)
-    mdl.read()
+    mdl = Mdl.from_buffer(mdl_buffer)
 
     model_container = GoldSrcV4ModelContainer(mdl)
-    master_collection = get_new_unique_collection(get_name(mdl_file), parent_collection)
+    master_collection = get_new_unique_collection(name, parent_collection)
 
-    armature, bone_transforms = create_armature(mdl, master_collection, scale)
-    load_animations(mdl, armature, get_name(mdl_file), scale)
+    armature, bone_transforms = create_armature(name, mdl, master_collection, scale)
+    load_animations(mdl, armature, name, scale)
     model_container.armature = armature
 
     for model in mdl.models:
         model_name = model.name
         used_copy = False
+        model_mesh = None
         model_object = None
 
         if re_use_meshes:
@@ -91,13 +90,11 @@ def import_model(mdl_file: BinaryIO, scale=1.0,
             if mesh_obj_original and mesh_data_original:
                 model_mesh = mesh_data_original.copy()
                 model_object = mesh_obj_original.copy()
-                # mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
-                # mesh_obj['active_skin'] = mesh_obj_original['active_skin']
-                model_object['model_type'] = 'goldsc'
+                model_object['model_type'] = 'goldsrc'
                 model_object.data = model_mesh
                 used_copy = True
 
-        if not re_use_meshes or not used_copy:
+        if model_mesh is None and model_object is None:
             model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
             model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
@@ -164,7 +161,7 @@ def import_model(mdl_file: BinaryIO, scale=1.0,
 
 
 def load_material(model_name, texture_id, model_texture_info: StudioTexture, model_object):
-    mat_id = get_material(f'{model_name}_texture_{texture_id}', model_object)
+    mat_id = add_material(f'{model_name}_texture_{texture_id}', model_object)
     bpy_material = GoldSrcShader(model_texture_info)
     bpy_material.create_nodes(f'{model_name}_texture_{texture_id}')
     bpy_material.align_nodes()
@@ -179,7 +176,7 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
     if not armature.animation_data:
         armature.animation_data_create()
 
-    for sequence in mdl.sequences:
+    for sequence, animation in zip(mdl.sequences, mdl.animations):
 
         action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
         action.use_fake_user = True
@@ -210,12 +207,11 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
             pos_curves, rot_curves = curve_per_bone[bone_name]
             motion = Vector([0, 0, 0])
             for n in range(sequence.frame_count):
-                bone_animations = sequence.frames[n]
-                frame_info = sequence.frame_helpers[n]
+                root_motion, bone_animations = animation[n]
                 frame = bone_animations[bone_id]
                 frame = euler_to_quat(frame)
                 if bone.parent == -1:
-                    rx, ry, rz = frame_info.root_motion
+                    rx, ry, rz = root_motion
                     root_motion = Vector([rx, ry, rz]) * scale
                     for i in range(3):
                         pos_curves[i].keyframe_points.add(1)

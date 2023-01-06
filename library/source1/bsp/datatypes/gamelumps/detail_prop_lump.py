@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 from .....shared.types import Vector2, Vector3
 from .....utils.file_utils import Buffer

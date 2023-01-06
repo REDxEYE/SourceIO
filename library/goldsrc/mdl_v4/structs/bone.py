@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-from SourceIO.library.shared.types import Vector3
-from SourceIO.library.utils import Buffer
+from ....shared.types import Vector3
+from ....utils import Buffer
 
 
 @dataclass(slots=True)

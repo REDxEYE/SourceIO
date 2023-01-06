@@ -1,28 +1,33 @@
-from . import Base, ByteIO
+from dataclasses import dataclass
+
+from .....utils import Buffer
 
 
-class Header(Base):
-    def __init__(self):
-        self.version = 0
-        self.vertex_cache_size = 0
-        self.max_bones_per_strip = 3
-        self.max_bones_per_tri = 3
-        self.max_bones_per_vertex = 3
-        self.checksum = 0
-        self.lod_count = 0
-        self.material_replacement_list_offset = 0
-        self.body_part_count = 0
-        self.body_part_offset = 0
+@dataclass(slots=True)
+class Header:
+    version: int
+    vertex_cache_size: int
+    max_bones_per_strip: int
+    max_bones_per_tri: int
+    max_bones_per_vertex: int
+    checksum: int
+    lod_count: int
+    material_replacement_list_offset: int
+    body_part_count: int
+    body_part_offset: int
 
-    def read(self, reader: ByteIO):
-        self.version = reader.read_uint32()
-        self.vertex_cache_size = reader.read_uint32()
-        self.max_bones_per_strip = reader.read_uint16()
-        self.max_bones_per_tri = reader.read_uint16()
-        self.max_bones_per_vertex = reader.read_uint32()
-        self.checksum = reader.read_uint32()
-        self.lod_count = reader.read_uint32()
-        self.material_replacement_list_offset = reader.read_uint32()
-        self.body_part_count = reader.read_uint32()
-        self.body_part_offset = reader.read_uint32()
-        assert 3 == self.max_bones_per_vertex, 'Unsupported count of bones per vertex'
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        version = buffer.read_uint32()
+        vertex_cache_size = buffer.read_uint32()
+        max_bones_per_strip = buffer.read_uint16()
+        max_bones_per_tri = buffer.read_uint16()
+        max_bones_per_vertex = buffer.read_uint32()
+        checksum = buffer.read_uint32()
+        lod_count = buffer.read_uint32()
+        material_replacement_list_offset = buffer.read_uint32()
+        body_part_count = buffer.read_uint32()
+        body_part_offset = buffer.read_uint32()
+        assert 3 == max_bones_per_vertex, 'Unsupported count of bones per vertex'
+        return cls(version, vertex_cache_size, max_bones_per_strip, max_bones_per_tri, max_bones_per_vertex, checksum,
+                   lod_count, material_replacement_list_offset, body_part_count, body_part_offset)

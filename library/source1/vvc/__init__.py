@@ -1,28 +1,25 @@
+from dataclasses import dataclass
 from typing import Dict
 
 import numpy as np
+import numpy.typing as npt
 
-from ...shared.base import Base
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer
 from .header import Header
 
 
-class Vvc(Base):
-    def __init__(self, filepath):
-        self.reader = ByteIO(filepath)
-        self.header = Header()
-        self.color_data = []
-        self.secondary_uv = []
-        self.lod_data = {}  # type:Dict[int,np.ndarray]
+@dataclass(slots=True)
+class Vvc:
+    header: Header
+    color_data: npt.NDArray[np.uint8]
+    secondary_uv: npt.NDArray[np.float32]
 
-    def read(self):
-        self.header.read(self.reader)
-        self.reader.seek(self.header.vertex_colors_offset)
-        self.color_data = np.frombuffer(self.reader.read(4 * self.header.lod_vertex_count[0]),
-                                        dtype=np.uint8).copy()
-        self.color_data = self.color_data / 255
-        self.color_data = self.color_data.reshape((-1, 4))
-        self.reader.seek(self.header.secondary_uv_offset)
-        self.secondary_uv = np.frombuffer(self.reader.read(8 * self.header.lod_vertex_count[0]),
-                                          dtype=np.float32)
-        self.secondary_uv = self.secondary_uv.reshape((-1, 2))
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        header = Header.from_buffer(buffer)
+        buffer.seek(header.vertex_colors_offset)
+        color_data = np.frombuffer(buffer.read(4 * header.lod_vertex_count[0]), dtype=np.uint8).reshape((-1, 4)).copy()
+        color_data = color_data / 255
+        buffer.seek(header.secondary_uv_offset)
+        secondary_uv = np.frombuffer(buffer.read(8 * header.lod_vertex_count[0]), dtype=np.float32).reshape((-1, 2))
+        return cls(header, color_data, secondary_uv)

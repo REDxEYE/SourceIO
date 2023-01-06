@@ -1,65 +1,39 @@
+from dataclasses import dataclass
 from typing import List
 
-from . import Base, ByteIO
-from .flex import FlexV36, FlexV49
+from ....shared.types import Vector3
+from ....utils import Buffer
+from .flex import Flex
 
 
-class MeshV36(Base):
-    def __init__(self):
-        self.material_index = 0
-        self.model_offset = 0
-        self.vertex_count = 0
-        self.vertex_index_start = 0
-        self.material_type = 0
-        self.material_param = 0
-        self.id = 0
-        self.center = []
+@dataclass(slots=True)
+class Mesh:
+    material_index: int
+    model_offset: int
+    vertex_count: int
+    vertex_index_start: int
+    material_type: int
+    material_param: int
+    id: int
+    center: Vector3[float]
 
-        self.flexes = []  # type: List[FlexV36]
+    flexes: List[Flex]
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        entry = buffer.tell()
 
-        self.material_index, self.model_offset, self.vertex_count, self.vertex_index_start = reader.read_fmt('4I')
-        flex_count, flex_offset, self.material_type, self.material_param, self.id = reader.read_fmt('5I')
-        self.center = reader.read_fmt('3f')
-        reader.skip(4 * 8)
-        with reader.save_current_pos():
-            if flex_count > 0 and flex_offset != 0:
-                reader.seek(entry + flex_offset, 0)
+        material_index, model_offset, vertex_count, vertex_index_start = buffer.read_fmt('4I')
+        flex_count, flex_offset, material_type, material_param, mesh_id = buffer.read_fmt('5I')
+        center = buffer.read_fmt('3f')
+        if version > 36:
+            buffer.skip(4 * 9)
+        buffer.skip(4 * 8)
+        flexes = []
+        if flex_count > 0 and flex_offset != 0:
+            with buffer.read_from_offset(entry + flex_offset):
                 for _ in range(flex_count):
-                    flex = FlexV36()
-                    flex.read(reader)
-                    self.flexes.append(flex)
-
-
-class MeshVertexData(Base):
-    def __init__(self):
-        self.model_vertex_data_pointer = 0
-        self.lod_vertex_count = []
-
-    def read(self, reader: ByteIO):
-        self.model_vertex_data_pointer = reader.read_uint32()
-        self.lod_vertex_count = reader.read_fmt('8I')
-
-
-class MeshV49(MeshV36):
-    def __init__(self):
-        super().__init__()
-        self.vertex_data = MeshVertexData()
-
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-
-        self.material_index, self.model_offset, self.vertex_count, self.vertex_index_start = reader.read_fmt('4I')
-        flex_count, flex_offset, self.material_type, self.material_param, self.id = reader.read_fmt('5I')
-        self.center = reader.read_fmt('3f')
-        self.vertex_data.read(reader)
-        reader.skip(4 * 8)
-        with reader.save_current_pos():
-            if flex_count > 0 and flex_offset != 0:
-                reader.seek(entry + flex_offset, 0)
-                for _ in range(flex_count):
-                    flex = FlexV49()
-                    flex.read(reader)
-                    self.flexes.append(flex)
+                    flex = Flex.from_buffer(buffer, version)
+                    flexes.append(flex)
+        return cls(material_index, model_offset, vertex_count, vertex_index_start,
+                   material_type, material_param, mesh_id, center, flexes)

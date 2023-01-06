@@ -1,16 +1,14 @@
 import numpy as np
 
 from .....logger import SLoggingManager
-from ....shared.base import Base
-from ...mdl.structs.mesh import MeshV49
+from ...mdl.structs.mesh import Mesh
 from ...vvd import Vvd
-from ..structs.flex import VertexAminationType
 from .mdl_file import MdlV44
 
 logger = SLoggingManager().get_logger("Source1::VertexAnimationCache")
 
 
-class VertexAnimationCache(Base):
+class VertexAnimationCache:
 
     def __init__(self, mdl: MdlV44, vvd: Vvd):
         self.vertex_cache = {}
@@ -33,14 +31,15 @@ class VertexAnimationCache(Base):
                 self.vertex_offset += model.vertex_count
         logger.info("[Done] Pre-computing vertex animation cache")
 
-    def process_mesh(self, mesh: MeshV49, desired_lod=0):
+    def process_mesh(self, mesh: Mesh, desired_lod=0):
         desired_lod_ = self.vvd.lod_data[desired_lod]
         # self.wrinkle_cache = np.zeros((len(desired_lod_), 4), np.float32)
         for flex in mesh.flexes:
-            if flex.name not in self.vertex_cache:
-                vertex_cache = self.vertex_cache[flex.name] = np.zeros_like(desired_lod_['vertex'])
+            flex_name = self.mdl.flex_names[flex.flex_desc_index]
+            if flex_name not in self.vertex_cache:
+                vertex_cache = self.vertex_cache[flex_name] = np.zeros_like(desired_lod_['vertex'])
             else:
-                vertex_cache = self.vertex_cache[flex.name]
+                vertex_cache = self.vertex_cache[flex_name]
             # Convert array to uint32 because uint16 could overflow on big models
             index_ = flex.vertex_animations['index'].astype(np.uint32).reshape(-1)
             vertex_indices = index_ + mesh.vertex_index_start + self.vertex_offset

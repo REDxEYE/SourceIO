@@ -27,6 +27,20 @@ class Buffer(abc.ABC, io.RawIOBase):
         yield
         self.seek(entry)
 
+    def read_source1_string(self, entry):
+        offset = self.read_int32()
+        if offset:
+            with self.read_from_offset(entry + offset):
+                return self.read_ascii_string()
+        else:
+            return ""
+
+    def read_source2_string(self):
+        entry = self.tell()
+        offset = self.read_int32()
+        with self.read_from_offset(entry + offset):
+            return self.read_ascii_string()
+
     @property
     @abc.abstractmethod
     def data(self):
@@ -101,7 +115,7 @@ class Buffer(abc.ABC, io.RawIOBase):
         buffer = bytearray()
 
         while True:
-            chunk = self.read(32)
+            chunk = self.read(min(32, self.remaining()))
             if chunk:
                 chunk_end = chunk.find(b'\x00')
             else:
@@ -218,7 +232,11 @@ class MemoryBuffer(Buffer):
         return data
 
     def write(self, _b: Union[bytes, bytearray]) -> Optional[int]:
-        raise NotImplementedError()
+        if self._offset + len(_b) > self.size():
+            raise BufferError(f"Not enough space left({self.remaining()}) in buffer to write {len(_b)} bytes")
+        self._buffer[self._offset:self._offset + len(_b)] = _b
+        self._offset += len(_b)
+        return len(_b)
 
     def read(self, _size: int = -1) -> Optional[bytes]:
         if _size == -1:
@@ -266,14 +284,44 @@ class MemoryBuffer(Buffer):
         return MemoryBuffer(self._buffer[offset:offset + size])
 
 
+class WritableMemoryBuffer(io.BytesIO, Buffer):
+
+    @property
+    def data(self):
+        return self.getbuffer()
+
+    def size(self):
+        return len(self.getbuffer())
+
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
+        if offset is None:
+            offset = self.tell()
+
+        if size == -1:
+            return MemoryBuffer(self.data[offset:])
+        return MemoryBuffer(self.data[offset:offset + size])
+
+
 class FileBuffer(io.FileIO, Buffer):
 
     def __init__(self, file: Union[str, Path, int], mode: str = 'r', closefd: bool = True, opener=None) -> None:
         io.FileIO.__init__(self, file, mode, closefd, opener)
         Buffer.__init__(self)
+        self._cached_size = None
+        self._is_read_only = mode == "r" or mode == "rb"
 
     def size(self):
-        return os.fstat(self.fileno()).st_size
+        if self._is_read_only:
+            if self._cached_size is None:
+                self._cached_size = os.fstat(self.fileno()).st_size
+            return self._cached_size
+        with self.save_current_offset():
+            self.seek(0, io.SEEK_END)
+            size = self.tell()
+            return size
+
+    def remaining(self):
+        return self.size() - self.tell()
 
     @property
     def data(self):
@@ -302,4 +350,4 @@ class Readable(Protocol):
         ...
 
 
-__all__ = ['Buffer', 'MemoryBuffer', 'FileBuffer', 'Readable']
+__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'Readable']

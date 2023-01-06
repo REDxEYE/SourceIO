@@ -7,11 +7,11 @@ from mathutils import Euler, Matrix, Vector
 
 from ....library.goldsrc.mdl_v10.mdl_file import Mdl
 from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
+from ....library.utils import Buffer
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
-from ...utils.utils import get_material, get_new_unique_collection
-from ....library.utils import Buffer
+from ...utils.utils import add_material, get_new_unique_collection
 
 
 def create_armature(mdl: Mdl, collection, scale):
@@ -84,6 +84,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0
             model_name = body_part_model.name
             used_copy = False
             model_object = None
+            model_mesh = None
 
             if re_use_meshes:
                 mesh_obj_original = bpy.data.objects.get(model_name, None)
@@ -97,7 +98,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0
                     model_object.data = model_mesh
                     used_copy = True
 
-            if not re_use_meshes or not used_copy:
+            if model_mesh is None and model_object is None:
                 model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                 model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
@@ -183,7 +184,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0
 
 def load_material(model_name: str, model_texture_info: StudioTexture, model_object):
     material_name = f"{model_name}_{model_texture_info.name}"
-    mat_id = get_material(material_name, model_object)
+    mat_id = add_material(material_name, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
     bpy_material.create_nodes(material_name, model_name=model_name)
     bpy_material.align_nodes()

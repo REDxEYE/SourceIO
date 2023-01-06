@@ -4,7 +4,6 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from ...shared.base import Base
 from ...shared.types import Vector3, Vector4
 from ...utils import Buffer, FileBuffer
 

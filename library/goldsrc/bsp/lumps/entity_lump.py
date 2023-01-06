@@ -1,6 +1,6 @@
-from typing import Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List
 
-from SourceIO.library.utils import Buffer
+from ....utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
 
 if TYPE_CHECKING:

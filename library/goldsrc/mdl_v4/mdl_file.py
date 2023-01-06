@@ -3,7 +3,6 @@ from typing import List, Tuple
 
 import numpy.typing as npt
 
-from ...shared.base import Base
 from ...shared.types import Vector3
 from ...utils import Buffer
 from .structs.bone import StudioBone
@@ -13,7 +12,7 @@ from .structs.studioheader import StudioHeader
 
 
 @dataclass(slots=True)
-class Mdl(Base):
+class Mdl:
     header: StudioHeader
     bones: List[StudioBone]
     bodyparts: List[int]

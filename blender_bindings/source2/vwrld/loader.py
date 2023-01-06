@@ -1,16 +1,17 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 
 import bpy
-import numpy as np
-from mathutils import Matrix, Vector
+from mathutils import Matrix
 
 from ....library.shared.app_id import SteamAppId
 from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source2.data_blocks import DataBlock
-from ....library.source2.resource_types import (ValveCompiledResource,
-                                                ValveCompiledWorld)
-from ....logger import SLogger, SLoggingManager
+from ....library.source2 import CompiledWorldResource
+from ....library.source2.data_types.keyvalues3.types import Object
+from ....library.source2.resource_types2.compiled_world_resource import (
+    CompiledEntityLumpResource, CompiledMapResource, CompiledWorldNodeResource)
+from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from ....logger import SLoggingManager
 from ...utils.utils import get_or_create_collection
 from .entities.base_entity_handlers import BaseEntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
@@ -19,96 +20,79 @@ from .entities.steampal_entity_handlers import SteamPalEntityHandler
 
 log_manager = SLoggingManager()
 
+logger = log_manager.get_logger("VWRLD")
+
 
 def get_entity_name(entity_data: Dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammeruniqueid", "missing_hammer_id"))}'
 
 
-class ValveCompiledWorldLoader(ValveCompiledWorld):
-    def __init__(self, path_or_file, *, invert_uv=False, scale=1.0):
-        super().__init__(path_or_file)
-        self.logger: SLogger = log_manager.get_logger("EMPTY_MAP")
-        self.invert_uv = invert_uv
-        self.scale = scale
-        self.master_collection = bpy.context.scene.collection
+def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float = SOURCE2_HAMMER_UNIT_TO_METERS):
+    world_resource = map_resource.get_child_resource(f"maps/{map_resource.name}/world.vwrld", cm)
+    return import_world(world_resource, map_resource, cm, scale)
 
-    def load(self, map_name):
-        self.logger = log_manager.get_logger(map_name)
-        self.master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
-        self.load_static_props()
-        self.load_entities()
 
-    def load_static_props(self):
-        data_block = self.get_data_block(block_name='DATA')[0]
-        if data_block:
-            for world_node_t in data_block.data['m_worldNodes']:
-                self.load_world_node(world_node_t)
+def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMapResource, cm: ContentManager,
+                 scale=SOURCE2_HAMMER_UNIT_TO_METERS):
+    map_name = map_resource.name
+    master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
+    for node_prefix in world_resource.get_worldnode_prefixes():
+        node_resource = map_resource.get_worldnode(node_prefix, cm)
+        collection = get_or_create_collection(f"static_props_{Path(node_prefix).name}", master_collection)
+        for scene_object in node_resource.get_scene_objects():
+            create_static_prop_placeholder(scene_object, node_resource, collection, scale)
+        for scene_object in node_resource.get_aggregate_scene_objects():
+            create_static_prop_placeholder(scene_object, node_resource, collection, scale)
+    load_entities(world_resource, master_collection, scale, cm)
 
-    def load_entities(self):
-        if ContentManager().steam_id == SteamAppId.HLA_STEAM_ID:
-            handler = HLVREntityHandler(self, self.master_collection, self.scale)
-        elif ContentManager().steam_id == SteamAppId.SBOX_STEAM_ID:
-            handler = SBoxEntityHandler(self, self.master_collection, self.scale)
-        elif ContentManager().steam_id == 890 and 'steampal' in ContentManager().content_providers:
-            handler = SteamPalEntityHandler(self, self.master_collection, self.scale)
-        else:
-            handler = BaseEntityHandler(self, self.master_collection, self.scale)
-        handler.load_entities()
 
-    def load_world_node(self, node: Dict[str, Any]):
-        content_manager = ContentManager()
-        node_path = node['m_worldNodePrefix'] + '.vwnod_c'
-        full_node_path = content_manager.find_file(node_path)
-        world_node_file = ValveCompiledResource(full_node_path)
-        world_node_file.read_block_info()
-        world_node_file.check_external_resources()
-        world_data: DataBlock = world_node_file.get_data_block(block_name="DATA")[0]
-        collection = get_or_create_collection(f"static_props_{Path(node_path).stem}", self.master_collection)
-        for n, aggregate_object in enumerate(world_data.data.get('m_aggregateSceneObjects', [])):
-            model_path = aggregate_object['m_renderableModel']
-            proper_path = world_node_file.available_resources.get(model_path)
-            self.logger.info(f"Loading ({n}/{len(world_data.data['m_aggregateSceneObjects'])}){model_path} mesh")
+def create_static_prop_placeholder(scene_object: Object, node_resource: CompiledWorldNodeResource,
+                                   collection: bpy.types.Collection, scale: float):
+    renderable_model = scene_object["m_renderableModel"]
+    proper_path = node_resource.get_child_resource_path(renderable_model)
+    mat_rows: List = scene_object['m_vTransform']
+    transform_mat = Matrix(mat_rows).to_4x4()
+    loc, rot, scl = transform_mat.decompose()
+    custom_data = {'prop_path': str(proper_path),
+                   'type': 'static_prop',
+                   'scale': scale,
+                   'entity': {k:str(v) for (k,v) in scene_object.to_dict().items()},
+                   'skin': scene_object.get('skin', 'default') or 'default'}
+    loc *= scale
+    empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
+    empty.matrix_world = Matrix.LocRotScale(loc, rot, scl)
+    collection.objects.link(empty)
 
-            custom_data = {'prop_path': str(proper_path),
-                           'type': 'static_prop',
-                           'scale': self.scale,
-                           'entity': aggregate_object,
-                           'skin': 'default'}
-            self.create_empty(proper_path.stem, Vector([0, 0, 0]),
-                              parent_collection=collection,
-                              custom_data=custom_data)
-        for n, static_object in enumerate(world_data.data['m_sceneObjects']):
-            model_path = static_object['m_renderableModel']
-            proper_path = world_node_file.available_resources.get(model_path)
-            self.logger.info(f"Loading ({n}/{len(world_data.data['m_sceneObjects'])}){model_path} mesh")
-            mat_rows: List = static_object['m_vTransform']
-            transform_mat = Matrix([mat_rows[0], mat_rows[1], mat_rows[2], [0, 0, 0, 1]])
-            loc, rot, sca = transform_mat.decompose()
 
-            custom_data = {'prop_path': str(proper_path),
-                           'type': 'static_prop',
-                           'scale': self.scale,
-                           'entity': static_object,
-                           'skin': static_object.get('skin', 'default') or 'default'}
-            loc = np.multiply(loc, self.scale)
-            self.create_empty(proper_path.stem, loc,
-                              rot.to_euler(),
-                              sca,
-                              parent_collection=collection,
-                              custom_data=custom_data)
+def create_empty(name: str, scale: float, custom_data=None):
+    placeholder = bpy.data.objects.new(name, None)
+    placeholder.empty_display_size = 16 * scale
+    placeholder['entity_data'] = custom_data
+    return placeholder
 
-    def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
-        if custom_data is None:
-            custom_data = {}
-        if scale is None:
-            scale = (1.0, 1.0, 1.0)
-        if rotation is None:
-            rotation = (0.0, 0.0, 0.0)
-        placeholder = bpy.data.objects.new(name, None)
-        placeholder.location = location
-        placeholder.rotation_euler = rotation
 
-        placeholder.empty_display_size = 16
-        placeholder.scale = np.multiply(scale, self.scale)
-        placeholder['entity_data'] = custom_data
-        (parent_collection or self.master_collection).objects.link(placeholder)
+def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.Collection,
+                  scale: float, cm: ContentManager):
+    data_block, = world_resource.get_data_block(block_name='DATA')
+    entity_lumps = data_block["m_entityLumps"]
+
+    if ContentManager().steam_id == SteamAppId.HLA_STEAM_ID:
+        handler = HLVREntityHandler
+    elif ContentManager().steam_id == SteamAppId.SBOX_STEAM_ID:
+        handler = SBoxEntityHandler
+    elif ContentManager().steam_id == 890 and 'steampal' in cm.content_providers:
+        handler = SteamPalEntityHandler
+    else:
+        handler = BaseEntityHandler
+
+    for entity_lump in entity_lumps:
+        entity_resource = world_resource.get_child_resource(entity_lump, cm, CompiledEntityLumpResource)
+        load_entity_lump(entity_resource, handler, collection, scale, cm)
+
+
+def load_entity_lump(entity_resource: CompiledEntityLumpResource, handler_class: Type[BaseEntityHandler],
+                     collection: bpy.types.Collection, scale: float, cm: ContentManager):
+    handler = handler_class(list(entity_resource.get_entities()), collection, cm, scale)
+    handler.load_entities()
+    for child in entity_resource.get_child_lumps(cm):
+        load_entity_lump(child, handler_class, collection, scale, cm)

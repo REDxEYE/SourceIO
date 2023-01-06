@@ -1,11 +1,11 @@
 import fnmatch
 from pathlib import Path
-from typing import Union, Iterator, Tuple, Optional
+from typing import Iterator, Optional, Tuple, Union
 
-from ..app_id import SteamAppId
 from ...shared.vpk.vpk_file import open_vpk
-from .content_provider_base import ContentProviderBase
 from ...utils import Buffer
+from ..app_id import SteamAppId
+from .content_provider_base import ContentProviderBase
 
 
 class VPKContentProvider(ContentProviderBase):

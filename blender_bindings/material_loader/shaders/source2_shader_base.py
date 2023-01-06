@@ -1,89 +1,62 @@
-# from pprint import pformat
-
+from array import array
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Dict, Union
 
 import bpy
 import numpy as np
 
 from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source2.resource_types import ValveCompiledTexture
+from ....library.source2.resource_types2 import (CompiledMaterialResource,
+                                                 CompiledTextureResource)
 from ....logger import SLoggingManager
-from ...source2.vtex.loader import ValveCompiledTextureLoader
+from ...source2.vtex_loader import import_texture
 from ..shader_base import ShaderBase
 
 logger = SLoggingManager().get_logger("Source2::Shader")
 
 
 class Source2ShaderBase(ShaderBase):
-    def __init__(self, source2_material, resources: Dict[Union[str, int], Path]):
+    def __init__(self, source2_material: CompiledMaterialResource):
         super().__init__()
-        self._material_data: Dict[str, Any] = source2_material
-        # logger.print(pformat(self._material_data))
-        self.resources: Dict[Union[str, int], Path] = resources
+        self._material_resource = source2_material
 
-    def _get_param(self, param_type, name, value_type, default):
-        for param in self._material_data[param_type]:
-            if param['m_name'] == name:
-                return param[value_type]
-        return default
+    def load_texture_or_default(self, name_or_id: Union[str, int], default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
+        print(f'Loading texture {name_or_id}')
+        resource = self._material_resource.get_child_resource(name_or_id, ContentManager(), CompiledTextureResource)
+        texture_name: str
+        if isinstance(name_or_id, int):
+            texture_name = f"0x{name_or_id:08}"
+        elif isinstance(name_or_id, str):
+            texture_name = name_or_id
+        else:
+            raise Exception(f"Invalid name or id: {name_or_id}")
 
-    def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
-        print(f'Loading texture {file}')
-        if isinstance(file, int):
-            file = self.resources.get(file, str(file))
-            file = {v: k for k, v in self.resources.items() if not isinstance(k, int)}[file]
-            print(f'Remapped to {file}')
-        return super().load_texture_or_default(file, default_color)
-
-    def get_int(self, name, default):
-        return self._get_param('m_intParams', name, 'm_nValue', default)
-
-    def get_float(self, name, default):
-        return self._get_param('m_floatParams', name, 'm_flValue', default)
-
-    def get_vector(self, name, default):
-        return self._get_param('m_vectorParams', name, 'm_value', default)
-
-    def get_texture(self, name, default):
-        param = self._get_param('m_textureParams', name, 'm_pValue', default)
-        return param
-
-    def get_dynamic(self, name, default):
-        return self._get_param('m_dynamicParams', name, 'error', default)
-
-    def get_dynamic_texture(self, name, default):
-        return self._get_param('m_dynamicTextureParams', name, 'error', default)
+        return self.load_texture(resource, Path(texture_name)) or self.get_missing_texture(f'missing_{texture_name}',
+                                                                                           default_color)
 
     def split_normal(self, image: bpy.types.Image):
         roughness_name = self.new_texture_name_with_suffix(image.name, 'roughness', 'tga')
         if image.get('normalmap_converted', None):
             return image, bpy.data.images.get(roughness_name, None)
-        if bpy.app.version > (2, 83, 0):
-            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
-            image.pixels.foreach_get(buffer)
-        else:
-            buffer = np.array(image.pixels[:])
+
+        buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+        image.pixels.foreach_get(buffer)
 
         mask = buffer[2::4]
         roughness_rgb = np.dstack((mask, mask, mask, np.ones_like(mask)))
 
-        roughness_texture = Source2ShaderBase.make_texture(roughness_name, image.size, roughness_rgb, True)
+        roughness_texture = self.make_texture(roughness_name, image.size, roughness_rgb, True)
         buffer[1::4] = np.subtract(1, buffer[1::4])
         buffer[2::4] = 1.0
-        if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(buffer.tolist())
-        else:
-            image.pixels[:] = buffer.tolist()
+
+        image.pixels.foreach_set(buffer.ravel())
+
         image.pack()
         image['normalmap_converted'] = True
         return image, roughness_texture
 
-    def load_texture(self, texture_name, texture_path):
-        if texture_path in self.resources:
-            proper_path = self.resources[texture_path]
-            texture_path = ContentManager().find_file(proper_path)
-            if texture_path:
-                texture = ValveCompiledTextureLoader(texture_path)
-                return texture.import_texture(proper_path.stem, True)
+    def load_texture(self, texture_resource, texture_path):
+        if texture_resource:
+            texture = import_texture(texture_resource, texture_path.stem, True)
+            return texture
         return None

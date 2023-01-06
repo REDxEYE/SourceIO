@@ -14,19 +14,17 @@ from .....library.source1.mdl.v44.vertex_animation_cache import \
     VertexAnimationCache
 from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v49.mdl_file import MdlV49
-from .....library.source1.vtx.v7.vtx import Vtx
+from .....library.source1.vtx import open_vtx
 from .....library.source1.vvd import Vvd
-from .....library.utils.byte_io_mdl import ByteIO
+from .....library.utils import Buffer
 from .....library.utils.math_utilities import euler_to_quat
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import get_material
+from ....utils.utils import add_material
 from .. import FileImport
 from ..common import get_slice, merge_meshes
-
-# from .....library.utils.pylib_loader import source1
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -39,7 +37,7 @@ def collect_full_material_names(mdl: MdlV49):
         for material in mdl.materials:
             real_material_path = content_manager.find_material(Path(material_path) / material.name)
             if real_material_path is not None:
-                full_mat_names[material] = str(Path(material_path) / material.name)
+                full_mat_names[material.name] = str(Path(material_path) / material.name)
     return full_mat_names
 
 
@@ -61,8 +59,8 @@ def create_armature(mdl: MdlV49, scale=1.0):
         bl_bones.append(bl_bone)
 
     for bl_bone, s_bone in zip(bl_bones, mdl.bones):
-        if s_bone.parent_bone_index != -1:
-            bl_parent = bl_bones[s_bone.parent_bone_index]
+        if s_bone.parent_bone_id != -1:
+            bl_parent = bl_bones[s_bone.parent_bone_id]
             bl_bone.parent = bl_parent
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 
@@ -84,14 +82,12 @@ def create_armature(mdl: MdlV49, scale=1.0):
 
 def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV49(file_list.mdl_file)
-    mdl.read()
+    mdl = MdlV49.from_buffer(file_list.mdl_file)
 
     full_material_names = collect_full_material_names(mdl)
 
     vvd = Vvd.from_buffer(file_list.vvd_file)
-    vtx = Vtx(file_list.vtx_file)
-    vtx.read()
+    vtx = open_vtx(file_list.vtx_file)
 
     container = Source1ModelContainer(mdl, vvd, vtx, file_list)
 
@@ -160,7 +156,7 @@ def import_model(file_list: FileImport,
             vertices = model_vertices[vtx_vertices]
             vertices_vertex = vertices['vertex']
 
-            mesh_data.from_pydata(vertices_vertex * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices_vertex * scale, [], np.flip(indices_array).reshape((-1, 3)))
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
@@ -174,9 +170,9 @@ def import_model(file_list: FileImport,
                     mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
                 else:
                     mat_name = mat_name[-63:]
-                material_remapper[mat_id] = get_material(mat_name, mesh_obj)
+                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
 
-            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
+            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]])
 
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
             mesh_data.loops.foreach_get('vertex_index', vertex_indices)
@@ -464,9 +460,11 @@ def import_materials(mdl: MdlV49, unique_material_names=False, use_bvlg=False):
         else:
             mat_name = material.name[-63:]
         material_eyeball = None
-        for eyeball in mdl.eyeballs:
-            if eyeball.material.name == material.name:
-                material_eyeball = eyeball
+        for bodypart in mdl.body_parts:
+            for model in bodypart.models:
+                for eyeball in model.eyeballs:
+                    if mdl.materials[eyeball.material_id] == material.name:
+                        material_eyeball = eyeball
 
         if bpy.data.materials.get(mat_name, False):
             if bpy.data.materials[mat_name].get('source1_loaded', False):
@@ -489,7 +487,7 @@ def import_materials(mdl: MdlV49, unique_material_names=False, use_bvlg=False):
             new_material.create_material()
 
 
-def import_animations(mdl_file: ByteIO, mdl: MdlV49, armature, scale):
+def import_animations(mdl_file: Buffer, mdl: MdlV49, armature, scale):
     return
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)

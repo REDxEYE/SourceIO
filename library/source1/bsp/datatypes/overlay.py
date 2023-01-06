@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Tuple
 import numpy as np
 import numpy.typing as npt
 
-from ....shared.types import Vector3, Vector2
+from ....shared.types import Vector2, Vector3
 from ....utils.file_utils import Buffer
 
 if TYPE_CHECKING:

@@ -1,12 +1,12 @@
 import fnmatch
 from pathlib import Path
-from typing import Union, Optional, Iterator, Tuple
+from typing import Iterator, Optional, Tuple, Union
 
 from ...shared.app_id import SteamAppId
 from ...source1.hfsv1 import HFS
 from ...source1.hfsv2 import HFSv2
-from .content_provider_base import ContentProviderBase
 from ...utils import Buffer
+from .content_provider_base import ContentProviderBase
 
 
 class HFS2ContentProvider(ContentProviderBase):

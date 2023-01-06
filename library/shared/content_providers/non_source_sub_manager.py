@@ -1,9 +1,9 @@
 from pathlib import Path
-from typing import Union, Optional, Iterator, Tuple
+from typing import Iterator, Optional, Tuple, Union
 
-from ..app_id import SteamAppId
-from ...utils import Buffer
+from ...utils import Buffer, FileBuffer
 from ...utils.path_utilities import backwalk_file_resolver
+from ..app_id import SteamAppId
 from .content_provider_base import ContentProviderBase
 
 
@@ -15,7 +15,7 @@ class NonSourceContentProvider(ContentProviderBase):
     def find_file(self, filepath: Union[str, Path]) -> Optional[Buffer]:
         file = backwalk_file_resolver(self.filepath, filepath)
         if file and file.is_file():
-            return file.open('rb')
+            return FileBuffer(file)
 
     def find_path(self, filepath: Union[str, Path]) -> Optional[Path]:
         file = backwalk_file_resolver(self.filepath, filepath)

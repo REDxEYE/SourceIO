@@ -7,7 +7,7 @@ from ...shared.content_providers.content_manager import ContentManager
 from ...utils import datamodel
 from ...utils.math_utilities import matrix_to_quat
 from ...utils.path_utilities import find_vtx
-from ..mdl.structs.bone import BoneV49
+from ..mdl.structs.bone import Bone
 from ..mdl.structs.model import ModelV49 as MdlModel
 from ..mdl.v49.mdl_file import MdlV49
 from ..vtx.v7.structs.mesh import Mesh as VtxMesh
@@ -173,7 +173,7 @@ class DmxModel:
 
         pass
 
-    def write_bone(self, bone: BoneV49):
+    def write_bone(self, bone: Bone):
         if isinstance(bone, str):
             bone_name = bone
             bone = None
