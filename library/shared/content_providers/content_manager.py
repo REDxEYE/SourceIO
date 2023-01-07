@@ -164,34 +164,36 @@ class ContentManager(metaclass=SingletonMeta):
                 self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
 
     def deserialize(self, data: Dict[str, str]):
-        for name, path in data.items():
-            if path.endswith('.vpk'):
-                sub_manager = VPKContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            elif path.endswith('.txt'):
-                sub_manager = Source1GameinfoContentProvider(Path(path))
+        for name, s_path in data.items():
+            path = Path(s_path)
+            if s_path.endswith('.vpk'):
+                sub_manager = VPKContentProvider(path)
+                self.content_providers[path.stem] = sub_manager
+            elif s_path.endswith('.txt'):
+                sub_manager = Source1GameinfoContentProvider(path)
                 if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
-                self.content_providers[name] = sub_manager
-            elif path.endswith('.gi'):
-                sub_manager = Source2GameinfoContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            elif path.endswith('.bsp'):
+                self.content_providers[path.stem] = sub_manager
+            elif s_path.endswith('.gi'):
+                sub_manager = Source2GameinfoContentProvider(path)
+                self.content_providers[path.stem] = sub_manager
+            elif s_path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
-                bsp = open_bsp(path)
+                bsp = open_bsp(s_path)
                 bsp.parse()
                 pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
-                    self.content_providers[name] = pak_lump
-            elif path.endswith('.hfs'):
-                sub_manager = HFS1ContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            elif name == 'hfs':
-                sub_manager = HFS2ContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                    self.content_providers[path.stem] = pak_lump
+            elif s_path.endswith('.hfs'):
+                sub_manager = HFS1ContentProvider(path)
+                self.content_providers[path.stem] = sub_manager
+            elif s_path.endswith('.hfs'):
+                sub_manager = HFS2ContentProvider(path)
+                self.content_providers[path.stem] = sub_manager
             else:
-                sub_manager = NonSourceContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                if path.is_dir():
+                    sub_manager = NonSourceContentProvider(path)
+                    self.content_providers[path.stem] = sub_manager
 
     @staticmethod
     def is_source_mod(path: Path, second=False):
@@ -256,7 +258,7 @@ class ContentManager(metaclass=SingletonMeta):
         serialized = {}
         for name, sub_manager in self.content_providers.items():
             name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
-            serialized[name[:63]] = str(sub_manager.filepath)
+            serialized[str(hash(name))] = str(sub_manager.filepath)
 
         return serialized
 
