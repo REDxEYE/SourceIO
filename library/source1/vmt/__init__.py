@@ -47,7 +47,10 @@ class VMT:
         self.data[key] = value
 
     def get(self, name, default=None) -> Union[_KVDataProxy, str]:
-        return self.data.get(name, default)
+        value = self.data.get(name, default)
+        if value == "":
+            return default
+        return value
 
     def get_vector(self, name, default=(0, 0, 0)):
         raw_value = self.get(name, None)
