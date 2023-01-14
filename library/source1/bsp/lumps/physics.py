@@ -15,8 +15,7 @@ class SolidBlock:
         data_size, script_size, solid_count = buffer.read_fmt("3I")
 
         for _ in range(solid_count):
-            solid = SolidHeader()
-            solid.read(buffer)
+            solid = SolidHeader.from_buffer(buffer)
             self.solids.append(solid)
         self.kv = buffer.read_ascii_string(script_size)
 

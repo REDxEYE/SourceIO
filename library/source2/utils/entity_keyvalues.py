@@ -41,7 +41,7 @@ class EntityKeyValues(Dict[str, Any]):
         elif value_type == 9:  # color
             parent[key] = buffer.read_fmt("4B")
         elif value_type == 26:
-            parent[key] = str(buffer.read_uint64())
+            parent[key] = buffer.read_int64()
         elif value_type == 37:
             parent[key] = buffer.read_int32()
         elif value_type in [3, 14, 40, 43, 45, 54, 39]:

@@ -15,6 +15,6 @@ class PlaneLump(Lump):
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
-            plane = Plane().parse(buffer, bsp)
+            plane = Plane.from_buffer(buffer, self.version, bsp)
             self.planes.append(plane)
         return self

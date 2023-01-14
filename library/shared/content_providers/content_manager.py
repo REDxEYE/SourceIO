@@ -1,4 +1,5 @@
 from collections import Counter, OrderedDict
+from hashlib import md5
 from pathlib import Path
 from typing import Dict, List, Optional, TypeVar, Union
 
@@ -167,35 +168,6 @@ class ContentManager(metaclass=SingletonMeta):
                 root_path = root_path.parent
                 self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
 
-    def deserialize(self, data: Dict[str, str]):
-        for name, path in data.items():
-            if path.endswith('.vpk'):
-                sub_manager = VPKContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            elif path.endswith('.txt'):
-                sub_manager = Source1GameinfoContentProvider(Path(path))
-                if sub_manager.gameinfo.game == 'Titanfall':
-                    self._titanfall_mode = True
-                self.content_providers[name] = sub_manager
-            elif path.endswith('.gi'):
-                sub_manager = Source2GameinfoContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            elif path.endswith('.bsp'):
-                from ...source1.bsp.bsp_file import open_bsp
-                bsp = open_bsp(path)
-                pak_lump = bsp.get_lump('LUMP_PAK')
-                if pak_lump:
-                    self.content_providers[name] = pak_lump
-            elif path.endswith('.hfs'):
-                sub_manager = HFS1ContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            elif name == 'hfs':
-                sub_manager = HFS2ContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-            else:
-                sub_manager = NonSourceContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
-
     @staticmethod
     def is_source_mod(path: Path, second=False):
         if path.name == 'gameinfo.txt':
@@ -260,9 +232,43 @@ class ContentManager(metaclass=SingletonMeta):
         serialized = {}
         for name, sub_manager in self.content_providers.items():
             name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
-            serialized[name[:63]] = str(sub_manager.filepath)
+            info = {"name": name, "path": str(sub_manager.filepath)}
+            serialized[md5(name.encode("ascii")).hexdigest()] = info
 
         return serialized
+
+    def deserialize(self, data: Dict[str, Union[str, dict]]):
+        for name, path in data.items():
+            if not isinstance(path, str):
+                name = path["name"]
+                path = path["path"]
+
+            if path.endswith('.vpk'):
+                sub_manager = VPKContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.txt'):
+                sub_manager = Source1GameinfoContentProvider(Path(path))
+                if sub_manager.gameinfo.game == 'Titanfall':
+                    self._titanfall_mode = True
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.gi'):
+                sub_manager = Source2GameinfoContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.bsp'):
+                from ...source1.bsp.bsp_file import open_bsp
+                bsp = open_bsp(path)
+                pak_lump = bsp.get_lump('LUMP_PAK')
+                if pak_lump:
+                    self.content_providers[name] = pak_lump
+            elif path.endswith('.hfs'):
+                sub_manager = HFS1ContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif name == 'hfs':
+                sub_manager = HFS2ContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            else:
+                sub_manager = NonSourceContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
 
     def get_content_provider_from_path(self, filepath):
         filepath = Path(filepath)

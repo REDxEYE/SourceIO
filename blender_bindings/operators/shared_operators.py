@@ -67,7 +67,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                 parent = get_parent(obj.users_collection[0])
                 if model_type == '.vmdl_c':
 
-                    instance_collection = get_collection(prop_path)
+                    instance_collection = get_collection(Path(prop_path))
                     if instance_collection:
                         collection = bpy.data.collections.get(instance_collection, None)
                         if collection is not None:
@@ -82,7 +82,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                         model_resource = CompiledModelResource.from_buffer(vmld_file, Path(prop_path))
                         container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1)
                         s2_put_into_collections(container, model_resource.name, master_instance_collection)
-                        add_collection(prop_path, container.collection)
+                        add_collection(Path(prop_path), container.collection)
 
                         obj.instance_type = 'COLLECTION'
                         obj.instance_collection = container.collection
