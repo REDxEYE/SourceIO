@@ -5,7 +5,6 @@ import numpy as np
 import numpy.typing as npt
 
 from ....utils import Buffer
-from ....utils.byte_io_mdl import ByteIO
 from .mesh import StudioMesh
 
 # // studio models

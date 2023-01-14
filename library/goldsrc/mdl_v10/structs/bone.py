@@ -3,7 +3,6 @@ from typing import Tuple
 
 from ....shared.types import Vector3
 from ....utils import Buffer
-from ....utils.byte_io_mdl import ByteIO
 
 
 @dataclass(slots=True)
