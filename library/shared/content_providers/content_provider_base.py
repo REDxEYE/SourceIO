@@ -8,7 +8,6 @@ from ..app_id import SteamAppId
 
 
 class ContentProviderBase:
-    __cache: Deque[Tuple[Path, Buffer]] = deque([], maxlen=16)
 
     @classmethod
     def class_name(cls):
@@ -17,28 +16,14 @@ class ContentProviderBase:
     def __init__(self, filepath: Path):
         self.filepath = filepath
 
-    def find_file(self, filepath: Union[str, Path]) -> Optional[Buffer]:
+    def find_file(self, filepath: Path) -> Optional[Buffer]:
         raise NotImplementedError('Implement me!')
 
-    def find_path(self, filepath: Union[str, Path]) -> Optional[Path]:
+    def find_path(self, filepath: Path) -> Optional[Path]:
         raise NotImplementedError('Implement me!')
 
     def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
         raise NotImplementedError('Implement me!')
-
-    def cache_file(self, filename: Path, file: Buffer) -> Buffer:
-        if (filename, file) not in self.__cache:
-            self.__cache.append((filename, file))
-        return file
-
-    def get_from_cache(self, filename) -> Optional[Buffer]:
-        for name, file in self.__cache:
-            if name == filename:
-                file.seek(0)
-                return file
-
-    def flush_cache(self):
-        self.__cache.clear()
 
     @property
     def steam_id(self) -> SteamAppId:

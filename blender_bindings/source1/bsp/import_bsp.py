@@ -490,16 +490,17 @@ class BSP:
     #         print(vbsp_file)
 
     def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
-        if scale is None:
-            scale = [1.0, 1.0, 1.0]
-        if rotation is None:
-            rotation = [0.0, 0.0, 0.0]
         placeholder = bpy.data.objects.new(name, None)
         placeholder.location = location
-        placeholder.rotation_euler = rotation
 
+        if scale is None:
+            placeholder.scale = scale
+        if rotation is None:
+            placeholder.rotation_euler = rotation
+
+        placeholder.scale *= self.scale
         placeholder.empty_display_size = 16
-        placeholder.scale = np.multiply(scale, self.scale)
+
         if custom_data:
             placeholder['entity_data'] = custom_data
         if parent_collection is not None:

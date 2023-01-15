@@ -17,13 +17,9 @@ class HFS2ContentProvider(ContentProviderBase):
         self.hfs_archive = HFSv2(root_path)
 
     def find_file(self, filepath: Union[str, Path]) -> Optional[Buffer]:
-        cached_file = self.get_from_cache(filepath)
-        if cached_file:
-            return cached_file
-
         file = self.hfs_archive.get_file(filepath)
         if file:
-            return self.cache_file(filepath, file)
+            return file
 
     def find_path(self, filepath: Union[str, Path]) -> Optional[Path]:
         if self.hfs_archive.has_file(filepath):
@@ -44,16 +40,12 @@ class HFS1ContentProvider(ContentProviderBase):
         super().__init__(root_path)
         self.hfs_archive = HFS(root_path)
 
-    def find_file(self, filepath: Union[str, Path]):
-        cached_file = self.get_from_cache(filepath)
-        if cached_file:
-            return cached_file
-
+    def find_file(self, filepath: Path):
         file = self.hfs_archive.get_file(filepath)
         if file:
-            return self.cache_file(filepath, file)
+            return file
 
-    def find_path(self, filepath: Union[str, Path]):
+    def find_path(self, filepath: Path):
         if self.hfs_archive.has_file(filepath):
             return filepath
 

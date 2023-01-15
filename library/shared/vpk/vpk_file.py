@@ -4,8 +4,7 @@ from typing import Dict, List, Union
 
 from ...utils import Buffer, FileBuffer, MemoryBuffer
 from ...utils.thirdparty.lzham.lzham import LZHAM
-from .structs import *
-from .structs.entry import TitanfallEntry
+from .structs import Header, Entry, MiniEntry, VPK_MAGIC, TitanfallEntry
 
 
 class InvalidMagic(Exception):
@@ -16,8 +15,8 @@ def open_vpk(filepath: Union[str, Path]):
     from struct import unpack
     with open(filepath, 'rb') as f:
         magic, version_mj, version_mn = unpack('IHH', f.read(8))
-    if magic != Header.MAGIC:
-        raise InvalidMagic(f'Not a VPK file, expected magic: {Header.MAGIC}, got {magic}')
+    if magic != VPK_MAGIC:
+        raise InvalidMagic(f'Not a VPK file, expected magic: {VPK_MAGIC}, got {magic}')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
     elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
@@ -32,40 +31,17 @@ class VPKFile:
     def __init__(self, filepath: Union[str, Path]):
         self.filepath = Path(filepath)
         self.buffer = FileBuffer(self.filepath)
-        self.header = Header()
-        self.archive_md5_entries: List[ArchiveMD5Entry] = []
+        self.header = Header((0, 0,), 0)
 
-        self.entries: Dict[str, Entry] = {}
+        self.entries: Dict[str, Union[MiniEntry, Entry]] = {}
         self.tree_offset = 0
-        self.tree_hash = b''
-        self.archive_md5_hash = b''
-        self.file_hash = b''
-
-        self.public_key = b''
-        self.signature = b''
 
         self._folders_in_current_dir = set()
 
     def read(self):
         buffer = self.buffer
-        self.header.read(buffer)
-        # entry = buffer.tell()
+        self.header = Header.from_buffer(buffer)
         self.read_entries()
-        # buffer.seek(entry + self.header.tree_size)
-        # if self.header.version == 2:
-        #     buffer.skip(self.header.file_data_section_size)
-        #     buffer.skip(self.header.archive_md5_section_size)
-        #
-        #     assert self.header.other_md5_section_size == 48, \
-        #         f'Invalid size of other_md5_section {self.header.other_md5_section_size} bytes, should be 48 bytes'
-        # if self.header.version == 2:
-        #     self.tree_hash = buffer.read(16)
-        #     self.archive_md5_hash = buffer.read(16)
-        #     self.file_hash = buffer.read(16)
-        #
-        #     if self.header.signature_section_size != 0:
-        #         self.public_key = buffer.read(buffer.read_int32())
-        #         self.signature = buffer.read(buffer.read_int32())
 
     def read_entries(self):
         buffer = self.buffer
@@ -84,30 +60,43 @@ class VPKFile:
                         break
 
                     full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
-                    self.entries[full_path] = Entry(full_path, buffer.tell())
+                    self.entries[full_path] = MiniEntry(buffer.tell(), full_path)
                     _, preload_size = buffer.read_fmt('IH')
                     buffer.skip(preload_size + 12)
 
-    def read_archive_md5_section(self):
-        buffer = self.buffer
+    def get_file(self, full_path: Path) -> Union[Buffer, None]:
+        normalized_path = full_path.as_posix().lower()
+        return self.get_file_str(normalized_path)
 
-        if self.header.archive_md5_section_size == 0:
-            return
+    def get_file_str(self, normalized_path: str) -> Union[Buffer, None]:
+        entry = self.entries.get(normalized_path, None)
+        if entry is None:
+            return None
+        if isinstance(entry, MiniEntry):
+            self.buffer.seek(entry.full_entry_offset)
+            entry = Entry(entry.file_name, entry.full_entry_offset).read(self.buffer)
+            self.entries[normalized_path] = entry
 
-        entry_count = self.header.archive_md5_section_size // 28
+        if entry.archive_id == 0x7FFF:
+            data = bytearray(entry.preload_data)
+            with self.buffer.read_from_offset(entry.offset + self.header.tree_size + self.tree_offset):
+                data.extend(self.buffer.read(entry.size))
 
-        for _ in range(entry_count):
-            md5_entry = ArchiveMD5Entry()
-            md5_entry.read(buffer)
-            self.archive_md5_entries.append(md5_entry)
-
-    @lru_cache(128)
-    def find_file(self, full_path: Union[Path, str]):
-        if isinstance(full_path, (Path, PurePath, PosixPath, WindowsPath)):
-            full_path = full_path.as_posix().lower()
+            reader = MemoryBuffer(data)
+            return reader
         else:
-            full_path = Path(full_path).as_posix().lower()
+            target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
+            with open(target_archive_path, 'rb') as target_archive:
+                target_archive.seek(entry.offset)
+                reader = MemoryBuffer(entry.preload_data + target_archive.read(entry.size))
+                return reader
+
+    def find_file(self, full_path: Path):
+        full_path = full_path.as_posix().lower()
         return self.entries.get(full_path, None)
+
+    def __contains__(self, item: Path):
+        return item.as_posix().lower() in self.entries
 
     def read_file(self, file_entry: Entry) -> Buffer:
         if not file_entry.loaded:

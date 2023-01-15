@@ -4,6 +4,12 @@ from typing import List
 from ....utils import Buffer
 
 
+@dataclass(slots=True)
+class MiniEntry:
+    full_entry_offset: int
+    file_name: str
+
+
 class Entry:
 
     def __init__(self, file_name, offset):
@@ -28,6 +34,7 @@ class Entry:
             self.preload_data = buffer.read(self.preload_data_size)
 
         self.loaded = True
+        return self
 
     def __repr__(self):
         return f'Entry("{self.file_name}"")'
@@ -50,6 +57,7 @@ class TitanfallEntry(Entry):
             if buffer.read_uint16() == 0xFFFF:
                 break
         self.loaded = True
+        return self
 
     def __str__(self):
         return f'Entry("{self.file_name}") <Blocks:{len(self.blocks)}>'

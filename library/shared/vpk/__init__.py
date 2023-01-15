@@ -1,1 +1,1 @@
-from .vpk_file import VPKFile
+from .vpk_file import open_vpk, VPKFile

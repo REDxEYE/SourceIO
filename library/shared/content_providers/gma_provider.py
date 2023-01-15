@@ -21,16 +21,12 @@ class GMAContentProvider(ContentProviderBase):
                 files.append((file_name, self.gma_archive.find_file(file_name)))
         return iter(files)
 
-    def find_file(self, filepath: Union[str, Path]) -> Optional[Buffer]:
-        cached_file = self.get_from_cache(filepath)
-        if cached_file:
-            return cached_file
-
+    def find_file(self, filepath: Path) -> Optional[Buffer]:
         entry = self.gma_archive.find_file(filename=filepath)
         if entry:
             return entry
 
-    def find_path(self, filepath: Union[str, Path]):
+    def find_path(self, filepath: Path):
         entry = self.gma_archive.find_file(filename=filepath)
         if entry:
             return Path(self.filepath.as_posix() + ":" + filepath.as_posix())

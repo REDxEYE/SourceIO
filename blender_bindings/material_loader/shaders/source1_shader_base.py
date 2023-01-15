@@ -30,11 +30,8 @@ class Source1ShaderBase(ShaderBase):
     def convert_ssbump(image: bpy.types.Image):
         if image.get('ssbump_converted', None):
             return image
-        if bpy.app.version > (2, 83, 0):
-            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
-            image.pixels.foreach_get(buffer)
-        else:
-            buffer = np.array(image.pixels[:])
+        buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+        image.pixels.foreach_get(buffer)
         buffer[0::4] *= 0.5
         buffer[0::4] += 0.33
         buffer[1::4] *= 0.5

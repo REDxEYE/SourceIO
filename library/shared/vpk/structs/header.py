@@ -1,36 +1,44 @@
+from dataclasses import dataclass, field
+from typing import Tuple, Optional
+
 from ....utils import Buffer
 
+VPK_MAGIC = 0x55AA1234
 
+
+@dataclass
 class Header:
-    MAGIC = 0x55AA1234
+    version: Tuple[int, int]
+    tree_size: int
+    file_data_section_size: Optional[int] = field(default=None)
+    archive_md5_section_size: Optional[int] = field(default=None)
+    other_md5_section_size: Optional[int] = field(default=None)
+    signature_section_size: Optional[int] = field(default=None)
 
-    def __init__(self):
-        self.magic = 0
-        self.version = (0, 0)
-        self.tree_size = 0
+    @classmethod
+    def from_buffer(cls, reader: Buffer):
+        magic = reader.read_uint32()
+        assert magic == VPK_MAGIC, "Not a VPK file"
 
-        self.file_data_section_size = 0
-        self.archive_md5_section_size = 0
-        self.other_md5_section_size = 0
-        self.signature_section_size = 0
+        version = reader.read_fmt('2H')
+        tree_size = reader.read_uint32()
 
-    def read(self, reader: Buffer):
-        self.magic = reader.read_uint32()
-        assert self.magic == self.MAGIC, "Not a VPK file"
+        file_data_section_size = None
+        archive_md5_section_size = None
+        other_md5_section_size = None
+        signature_section_size = None
 
-        self.version = reader.read_fmt('2H')
-        self.tree_size = reader.read_uint32()
-
-        if self.version[0] == 1:
+        if version[0] == 1:
             ...
-        elif self.version[0] == 2 and self.version[1] == 0:
-            self.file_data_section_size = reader.read_uint32()
-            self.archive_md5_section_size = reader.read_uint32()
-            self.other_md5_section_size = reader.read_uint32()
-            self.signature_section_size = reader.read_uint32()
-        elif self.version[0] == 2 and self.version[1] == 3:
-            self.file_data_section_size = reader.read_uint32()
+        elif version[0] == 2 and version[1] == 0:
+            file_data_section_size = reader.read_uint32()
+            archive_md5_section_size = reader.read_uint32()
+            other_md5_section_size = reader.read_uint32()
+            signature_section_size = reader.read_uint32()
+        elif version[0] == 2 and version[1] == 3:
+            file_data_section_size = reader.read_uint32()
             pass
         else:
-            raise NotImplementedError(f"Bad VPK version ({self.version})")
-
+            raise NotImplementedError(f"Bad VPK version ({version})")
+        return cls(version, tree_size,
+                   file_data_section_size, archive_md5_section_size, other_md5_section_size, signature_section_size)

@@ -39,9 +39,6 @@ def add_collection(model_path: Path, collection: bpy.types.Collection):
     bpy.context.scene["INSTANCE_CACHE"] = cache
 
 
-# INSTANCE_CACHE = InstanceCache()
-
-
 # noinspection PyPep8Naming
 class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
     bl_idname = "sourceio.load_placeholder"
@@ -52,12 +49,14 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
         content_manager = ContentManager()
         content_manager.deserialize(bpy.context.scene.get('content_manager_data', {}))
         unique_material_names = True
-        # INSTANCE_CACHE.wipe()
-        # INSTANCE_CACHE.load_from_blender_file()
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
-        for obj in context.selected_objects:
+        win = bpy.context.window_manager
+
+        win.progress_begin(0, len(context.selected_objects))
+        for n, obj in enumerate(context.selected_objects):
             print(f'Loading {obj.name}')
+            win.progress_update(n)
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
                 prop_path = custom_prop_data.get('prop_path', None)
@@ -231,6 +230,9 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                     #             print(f'Skin {skin} not found')
                     #
                     # bpy.data.objects.remove(obj)
+
+        win.progress_end()
+
         return {'FINISHED'}
 
 

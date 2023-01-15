@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 from ....shared.content_providers.content_provider_base import \
     ContentProviderBase
-from ....utils import Buffer
+from ....utils import Buffer, MemoryBuffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -44,12 +44,8 @@ class PakLump(Lump, ContentProviderBase):
         new_filepath = str(new_filepath.as_posix()).lower()
         new_filepath = self._filename_cache.get(new_filepath, None)
 
-        cached_file = self.get_from_cache(new_filepath)
-        if cached_file:
-            return cached_file
-
         if new_filepath is not None:
-            return self.cache_file(new_filepath, BytesIO(self.zip_file.open(new_filepath, 'r').read()))
+            return MemoryBuffer(self.zip_file.open(new_filepath, 'r').read())
         return None
 
     @property
