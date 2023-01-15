@@ -285,6 +285,9 @@ class MemoryBuffer(Buffer):
 
 
 class WritableMemoryBuffer(io.BytesIO, Buffer):
+    def __init__(self, initial_bytes=None):
+        io.BytesIO.__init__(self, initial_bytes)
+        Buffer.__init__(self)
 
     @property
     def data(self):

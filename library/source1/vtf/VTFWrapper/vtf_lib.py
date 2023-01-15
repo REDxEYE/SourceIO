@@ -5,10 +5,10 @@ from typing import Optional
 
 import numpy as np
 
-from .VTFLibEnums import (ImageFormat, Option, Proc, ImageFlag, KernelFilter,
-                          HeightConversionMethod, NormalAlphaResult,
-                          MipmapFilter, SharpenFilter)
-from .VTFLibStructures import CreateOptions, ImageFormatInfo
+from .enums import (ImageFormat, Option, Proc, ImageFlag, KernelFilter,
+                    HeightConversionMethod, NormalAlphaResult,
+                    MipmapFilter, SharpenFilter)
+from .structures import CreateOptions, ImageFormatInfo
 
 
 class UnsupportedOS(Exception):
@@ -617,5 +617,5 @@ class VTFLib:
         if _image_convert(image_data, new_buffer, width, height, self.get_image_format(), dst_image_format):
             return new_buffer
         else:
-            print("Failed to convert")
+            print(f"Failed to convert due to {self.get_last_error()}")
             return None

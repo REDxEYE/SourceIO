@@ -26,12 +26,12 @@ def is_vtflib_supported():
 if is_vtflib_supported():
     import numpy as np
 
-    from .VTFWrapper import VTFLib
-    from .VTFWrapper.VTFLibEnums import ImageFormat
+    from .VTFWrapper.vtf_lib import VTFLib
+    from .VTFWrapper.enums import ImageFormat
 
 
     def load_texture(file_object, hdr=False):
-        vtf_lib = VTFLib.VTFLib()
+        vtf_lib = VTFLib()
         try:
             vtf_lib.image_load_from_buffer(file_object.read())
             if not vtf_lib.image_is_loaded():

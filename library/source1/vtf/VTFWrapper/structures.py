@@ -1,6 +1,6 @@
 from ctypes import *
 
-from .VTFLibEnums import *
+from .enums import *
 
 
 class ImageFormatInfo(Structure):
