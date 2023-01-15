@@ -8,7 +8,7 @@ from ...utils import datamodel
 from ...utils.math_utilities import matrix_to_quat
 from ...utils.path_utilities import find_vtx
 from ..mdl.structs.bone import Bone
-from ..mdl.structs.model import ModelV49 as MdlModel
+from ..mdl.structs.model import Model as MdlModel
 from ..mdl.v49.mdl_file import MdlV49
 from ..vtx.v7.structs.mesh import Mesh as VtxMesh
 from ..vtx.v7.structs.model import Model as VtxModel
