@@ -14,6 +14,7 @@ def export_texture(blender_texture, path, image_format=None, filter_mode=None):
     w, h = blender_texture.size
     image_data = np.zeros((w * h * 4,), np.float32)
     blender_texture.pixels.foreach_get(image_data)
+    image_data = image_data.reshape((w, h, 4))
     image_data = (image_data * 255).clip(0, 255)
     image_data = image_data.astype(np.uint8, copy=False)
     def_options = vtf_lib.create_default_params_structure()
@@ -24,7 +25,7 @@ def export_texture(blender_texture, path, image_format=None, filter_mode=None):
         def_options.ImageFormat = ImageFormat.ImageFormatRGBA8888
         def_options.Flags |= ImageFlag.ImageFlagEightBitAlpha
 
-    if image_format.startswith('RGB888'):
+    elif image_format.startswith('RGB888'):
         def_options.ImageFormat = ImageFormat.ImageFormatRGB888
         def_options.Flags &= ~ImageFlag.ImageFlagEightBitAlpha
 
@@ -41,8 +42,8 @@ def export_texture(blender_texture, path, image_format=None, filter_mode=None):
 
     if "normal" in image_format.lower():
         def_options.Flags |= ImageFlag.ImageFlagNormal
-
     def_options.resize = 1
+
     image_data = np.flipud(image_data)
     vtf_lib.image_create_single(w, h, image_data.tobytes(), def_options)
     vtf_lib.image_save(path)
