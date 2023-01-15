@@ -22,25 +22,25 @@ def export_texture(blender_texture, path, image_format=None, filter_mode=None):
     def_options.resize_method = ResizeMethod.ResizeMethodNearestPowerTwo
     if image_format.startswith('RGBA8888'):
         def_options.ImageFormat = ImageFormat.ImageFormatRGBA8888
-        def_options.flags |= ImageFlag.ImageFlagEightBitAlpha
+        def_options.Flags |= ImageFlag.ImageFlagEightBitAlpha
 
     if image_format.startswith('RGB888'):
         def_options.ImageFormat = ImageFormat.ImageFormatRGB888
-        def_options.flags &= ~ImageFlag.ImageFlagEightBitAlpha
+        def_options.Flags &= ~ImageFlag.ImageFlagEightBitAlpha
 
     elif image_format.startswith('DXT1'):
         def_options.ImageFormat = ImageFormat.ImageFormatDXT1
 
     elif image_format.startswith('DXT5'):
         def_options.ImageFormat = ImageFormat.ImageFormatDXT5
-        def_options.flags |= ImageFlag.ImageFlagEightBitAlpha
+        def_options.Flags |= ImageFlag.ImageFlagEightBitAlpha
 
     else:
         def_options.ImageFormat = ImageFormat.ImageFormatRGBA8888
-        def_options.flags |= ImageFlag.ImageFlagEightBitAlpha
+        def_options.Flags |= ImageFlag.ImageFlagEightBitAlpha
 
     if "normal" in image_format.lower():
-        def_options.flags |= ImageFlag.ImageFlagNormal
+        def_options.Flags |= ImageFlag.ImageFlagNormal
 
     def_options.resize = 1
     image_data = np.flipud(image_data)

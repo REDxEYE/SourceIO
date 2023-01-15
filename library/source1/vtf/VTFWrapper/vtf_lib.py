@@ -414,6 +414,7 @@ _image_mirror_image.argtypes = [c_char_p, c_uint32, c_uint32]
 _image_mirror_image.restype = None
 
 
+# noinspection PyMethodMayBeStatic
 class VTFLib:
     def __init__(self):
         self.initialize()
