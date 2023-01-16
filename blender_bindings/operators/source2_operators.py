@@ -51,7 +51,7 @@ class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
                                        self.import_physics, self.import_attachments)
 
             master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
-            put_into_collections(container.container, Path(model_resource.name).stem, master_collection, False)
+            put_into_collections(container, Path(model_resource.name).stem, master_collection, False)
 
         return {'FINISHED'}
 
