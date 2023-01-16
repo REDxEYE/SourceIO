@@ -21,7 +21,8 @@ class TextureInfo:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
-        return cls(buffer.read_fmt('4f'), buffer.read_fmt('4f'), buffer.read_uint32(), buffer.read_uint32())
+        return cls(buffer.read_fmt('4f'), buffer.read_fmt('4f'),
+                   buffer.read_uint32(), MdlTextureFlag(buffer.read_uint32()))
 
 
 class TextureData:

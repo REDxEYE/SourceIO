@@ -19,7 +19,6 @@ class MdlTextureFlag(IntFlag):
 
 @dataclass(slots=True)
 class StudioTexture:
-    # flags = MdlTextureFlag(0)
     width: int
     height: int
     data: npt.NDArray[np.float32]
@@ -29,6 +28,6 @@ class StudioTexture:
         indices = np.frombuffer(reader.read(width * height), np.uint8)
         palette = np.frombuffer(reader.read(256 * 3), np.uint8).reshape((-1, 3))
         palette = np.insert(palette, 3, 255, 1)
-        colors = palette[indices].astype(np.float32)
-        data = np.flip(colors.reshape((height, width, 4)), 0).reshape((-1, 4))
-        return cls(width, height, data / 255)
+        colors = palette[indices]
+        data = np.flip(colors.reshape((height, width, 4)), 0)
+        return cls(width, height, data.astype(np.float32) / 255)

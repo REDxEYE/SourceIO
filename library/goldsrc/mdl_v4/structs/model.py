@@ -55,4 +55,4 @@ class StudioModel:
         for _ in range(mesh_count):
             mesh = StudioMesh.from_buffer(buffer)
             meshes.append(mesh)
-        return cls(name, unk_1, unk_2, bounding_radius, vertices, normals, meshes)
+        return cls(name, unk_1, unk_2, bounding_radius, meshes, vertices, normals)

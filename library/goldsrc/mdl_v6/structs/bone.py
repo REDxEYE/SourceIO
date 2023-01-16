@@ -1,15 +1,20 @@
+from dataclasses import dataclass
+
+from ....shared.types import Vector3
 from ....utils import Buffer
 
 
+@dataclass(slots=True)
 class StudioBone:
-    def __init__(self):
-        self.name = ''
-        self.parent = 0
-        self.pos = []
-        self.rot = []
+    name: str
+    parent: int
+    pos: Vector3[float]
+    rot: Vector3[float]
 
-    def read(self, reader: Buffer):
-        self.name = reader.read_ascii_string(32)
-        self.parent = reader.read_int32()
-        self.pos = reader.read_fmt('3f')
-        self.rot = reader.read_fmt('3f')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        name = buffer.read_ascii_string(32)
+        parent = buffer.read_int32()
+        pos = buffer.read_fmt('3f')
+        rot = buffer.read_fmt('3f')
+        return cls(name, parent, pos, rot)

@@ -1,10 +1,13 @@
+from dataclasses import dataclass
+
 from ....utils import Buffer
 
 
+@dataclass(slots=True)
 class StudioPivot:
-    def __init__(self):
-        self.frame_index = 0
-        self.event_type = 0
+    frame_index: int
+    event_type: int
 
-    def read(self, reader: Buffer):
-        self.frame_index, self.event_type = reader.read_fmt('2H')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(*buffer.read_fmt('2H'))

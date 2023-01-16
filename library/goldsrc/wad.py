@@ -10,22 +10,20 @@ import numpy.typing as npt
 from ..utils import Buffer, FileBuffer
 
 
-def make_texture(indices, palette, use_alpha: bool = False) -> npt.NDArray:
+def make_texture(indices, palette, use_alpha: bool = False) -> npt.NDArray[np.float32]:
     new_palette = np.full((len(palette), 4), 255, dtype=np.uint8)
     new_palette[:, :3] = palette
 
-    colors: np.ndarray = new_palette[np.array(indices)]
-    colors = colors.astype(np.float32)
+    colors: np.ndarray = new_palette[indices]
 
     if use_alpha:
         transparency_key = new_palette[-1]
         alpha = np.where((colors == transparency_key).all(axis=1))[0]
         colors[alpha] = [0, 0, 0, 0]
+    return np.divide(colors.astype(np.float32), 255)
 
-    return np.divide(colors, 255)
 
-
-def flip_texture(pixels: npt.NDArray, width: int, height: int) -> npt.NDArray:
+def flip_texture(pixels: npt.NDArray, width: int, height: int) -> npt.NDArray[np.float32]:
     pixels = pixels.reshape((height, width, 4))
     pixels = np.flip(pixels, 0)
     pixels = pixels.reshape((-1, 4))

@@ -16,11 +16,4 @@ class Face:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
-        plane = buffer.read_uint16()
-        plane_side = buffer.read_uint16()
-        first_edge = buffer.read_uint32()
-        edges = buffer.read_uint16()
-        texture_info = buffer.read_uint16()
-        styles = buffer.read_fmt('BBBB')
-        light_map_offset = buffer.read_uint32()
-        return cls(plane, plane_side, first_edge, edges, texture_info, styles, light_map_offset)
+        return cls(*buffer.read_fmt("2HI2H"), buffer.read_fmt('BBBB'), buffer.read_uint32())

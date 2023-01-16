@@ -1,36 +1,35 @@
+from dataclasses import dataclass
 from typing import List
 
+from ....shared.types import Vector2
 from ....utils import Buffer
 
 
+@dataclass(slots=True)
 class StudioTrivert:
-    def __init__(self):
-        self.vertex_index = 0
-        self.normal_index = 0
-        self.uv = []
+    vertex_index: int
+    normal_index: int
+    uv: Vector2[int]
 
-    def read(self, reader: Buffer):
-        self.vertex_index = reader.read_uint16()
-        self.normal_index = reader.read_uint16()
-        self.uv = [reader.read_uint16(), reader.read_uint16()]
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(*buffer.read_fmt("2H"), buffer.read_fmt("2H"))
 
 
+@dataclass(slots=True)
 class StudioMesh:
-    def __init__(self):
-        self.triangle_count = 0
-        self.triangle_offset = 0
-        self.skin_ref = 0
-        self.normal_count = 0
-        self.normal_offset = 0
-        self.triangles: List[StudioTrivert] = []
+    skin_ref: int
+    triangle_count: int
+    triangles: List[List[StudioTrivert]]
 
-    def read(self, reader: Buffer):
-        (self.triangle_count, self.triangle_offset,
-         self.skin_ref,
-         self.normal_count, self.normal_offset) = reader.read_fmt('5i')
-        with reader.save_current_offset():
-            reader.seek(self.triangle_offset)
-            for _ in range(self.triangle_count * 3):
-                trivert = StudioTrivert()
-                trivert.read(reader)
-                self.triangles.append(trivert)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        (triangle_count, triangle_offset,
+         skin_ref,
+         normal_count, normal_offset) = buffer.read_fmt('5i')
+        triangles = []
+        with buffer.read_from_offset(triangle_offset):
+            for _ in range(triangle_count * 3):
+                trivert = StudioTrivert.from_buffer(buffer)
+                triangles.append(trivert)
+        return cls(skin_ref, triangle_count, triangles)

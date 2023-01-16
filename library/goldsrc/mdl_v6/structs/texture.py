@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 from enum import IntFlag
 
 import numpy as np
+import numpy.typing as npt
 
 from ....utils import Buffer
 
@@ -15,32 +17,30 @@ class MdlTextureFlag(IntFlag):
     MASKED = 0x0040
 
 
+@dataclass(slots=True)
 class StudioTexture:
-    def __init__(self):
-        self.name = ''
-        self.flags = MdlTextureFlag(0)
-        self.width = 0
-        self.height = 0
-        self.offset = 0
-        self.data = np.array([])
+    name: str
+    flags: MdlTextureFlag
+    width: int
+    height: int
+    data: npt.NDArray[np.float32]
 
-    def read(self, reader: Buffer):
-        self.name = reader.read_ascii_string(64)
-        self.flags = MdlTextureFlag(reader.read_uint32())
-        self.width = reader.read_uint32()
-        self.height = reader.read_uint32()
-        self.offset = reader.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        name = buffer.read_ascii_string(64)
+        flags = MdlTextureFlag(buffer.read_uint32())
+        width = buffer.read_uint32()
+        height = buffer.read_uint32()
+        offset = buffer.read_uint32()
 
-        with reader.save_current_offset():
-            reader.seek(self.offset)
-            indices = np.frombuffer(reader.read(self.width * self.height), np.uint8)
-            palette = np.frombuffer(reader.read(256 * 3), np.uint8).reshape((-1, 3))
+        with buffer.read_from_offset(offset):
+            indices = np.frombuffer(buffer.read(width * height), np.uint8)
+            palette = np.frombuffer(buffer.read(256 * 3), np.uint8).reshape((-1, 3))
             palette = np.insert(palette, 3, 255, 1)
-            colors = palette[indices].astype(np.float32)
-            if '{' in self.name:
+            colors = palette[indices]
+            if '{' in name:
                 transparency_key = palette[-1]
                 alpha = np.where((colors == transparency_key).all(axis=1))[0]
                 colors[alpha] = [0, 0, 0, 0]
-            self.data = np.flip(colors.reshape((self.height, self.width, 4)), 0).reshape((-1, 4))
-
-            self.data = self.data / 255
+            data = np.flip(colors.reshape((height, width, 4)), 0)
+        return cls(name, flags, width, height, data.astype(np.float32) / 255)

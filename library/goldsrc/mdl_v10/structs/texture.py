@@ -38,10 +38,10 @@ class StudioTexture:
             indices = np.frombuffer(buffer.read(width * height), np.uint8)
             palette = np.frombuffer(buffer.read(256 * 3), np.uint8).reshape((-1, 3))
             palette = np.insert(palette, 3, 255, 1)
-            colors = palette[indices].astype(np.float32)
+            colors = palette[indices]
             if '{' in name:
                 transparency_key = palette[-1]
                 alpha = np.where((colors == transparency_key).all(axis=1))[0]
                 colors[alpha] = [0, 0, 0, 0]
-            data = np.flip(colors.reshape((height, width, 4)), 0).reshape((-1, 4)) / 255
-        return cls(name, flags, width, height, data)
+            data = np.flip(colors.reshape((height, width, 4)), 0)
+        return cls(name, flags, width, height, data.astype(np.float32)/255)
