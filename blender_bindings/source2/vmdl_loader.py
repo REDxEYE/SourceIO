@@ -21,7 +21,7 @@ from ...library.source2.data_types.blocks.vertex_index_buffer.vertex_buffer impo
     VertexBuffer
 from ...library.source2.data_types.keyvalues3.types import NullObject, Object
 from ...library.source2.exceptions import MissingBlock
-from ...library.source2.resource_types2 import CompiledMeshResource
+from ...library.source2.resource_types import CompiledMeshResource
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ..material_loader.material_loader import Source2MaterialLoader
 from ..shared.model_container import Source2ModelContainer

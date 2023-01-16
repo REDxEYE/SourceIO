@@ -6,8 +6,8 @@ import bpy
 import numpy as np
 
 from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source2.resource_types2 import (CompiledMaterialResource,
-                                                 CompiledTextureResource)
+from ....library.source2.resource_types import (CompiledMaterialResource,
+                                                CompiledTextureResource)
 from ....logger import SLoggingManager
 from ...source2.vtex_loader import import_texture
 from ..shader_base import ShaderBase

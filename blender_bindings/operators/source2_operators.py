@@ -8,7 +8,7 @@ from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.shared.content_providers.vpk_provider import VPKContentProvider
 from ...library.source2 import (CompiledMaterialResource,
                                 CompiledModelResource, CompiledTextureResource)
-from ...library.source2.resource_types2.compiled_world_resource import \
+from ...library.source2.resource_types.compiled_world_resource import \
     CompiledMapResource
 from ...library.utils import FileBuffer
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS

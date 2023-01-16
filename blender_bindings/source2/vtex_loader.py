@@ -1,7 +1,7 @@
 import bpy
 
 from ...library.source2.data_types.blocks.texture_data import VTexFormat
-from ...library.source2.resource_types2 import CompiledTextureResource
+from ...library.source2.resource_types import CompiledTextureResource
 from ...logger import SLoggingManager
 
 logger = SLoggingManager().get_logger("Source2::Texture")

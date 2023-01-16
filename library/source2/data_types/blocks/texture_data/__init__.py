@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 from .....utils import Buffer, MemoryBuffer
-from ....resource_types2.resource import CompiledResource
+from ....resource_types.resource import CompiledResource
 from ...blocks.base import BaseBlock
 from ...blocks.texture_data.enums import VTexExtraData, VTexFlags, VTexFormat
 

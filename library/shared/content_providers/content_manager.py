@@ -54,10 +54,12 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.sourcemod import SourceMod
         from .content_detectors.titanfall1 import TitanfallDetector
         from .content_detectors.vindictus import VindictusDetector
+        from .content_detectors.source2 import Source2Detector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())
         self.detector_addons.append(RobotRepairDetector())
+        self.detector_addons.append(Source2Detector())
         self.detector_addons.append(Source1Common())
         self.detector_addons.append(SFMDetector())
         self.detector_addons.append(VindictusDetector())
@@ -238,10 +240,9 @@ class ContentManager(metaclass=SingletonMeta):
         return serialized
 
     def deserialize(self, data: Dict[str, Union[str, dict]]):
-        for name, path in data.items():
-            if not isinstance(path, str):
-                name = path["name"]
-                path = path["path"]
+        for name, item in data.items():
+            name = item["name"]
+            path = item["path"]
 
             if path.endswith('.vpk'):
                 sub_manager = VPKContentProvider(Path(path))

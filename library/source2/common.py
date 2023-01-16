@@ -5,12 +5,12 @@ def lerp(a, b, f):
     return (a * (1.0 - f)) + (b * f)
 
 
-def convert_normals(inpurt_array: np.ndarray):
+def convert_normals(input_array: np.ndarray):
     # X Y Z
-    inpurt_array = inpurt_array.astype(np.int32)
-    output = np.zeros((len(inpurt_array), 3), dtype=np.float32)
-    xs = inpurt_array[:, 0]
-    ys = inpurt_array[:, 1]
+    input_array = input_array.astype(np.int32)
+    output = np.zeros((len(input_array), 3), dtype=np.float32)
+    xs = input_array[:, 0]
+    ys = input_array[:, 1]
 
     z_signs = -np.floor((xs - 128) / 128)
     t_signs = -np.floor((ys - 128) / 128)

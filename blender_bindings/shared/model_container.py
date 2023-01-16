@@ -9,7 +9,7 @@ from ...library.source1.mdl.v36.mdl_file import MdlV36 as S1MdlV36
 from ...library.source1.mdl.v44.mdl_file import MdlV44 as S1MdlV44
 from ...library.source1.vtx.v7.vtx import Vtx
 from ...library.source1.vvd import Vvd
-from ...library.source2.resource_types2 import CompiledModelResource
+from ...library.source2.resource_types import CompiledModelResource
 
 
 class ModelContainer:

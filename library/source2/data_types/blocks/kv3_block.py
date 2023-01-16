@@ -1,7 +1,7 @@
 from typing import Dict
 
 from ....utils import Buffer
-from ...resource_types2.resource import CompiledResource
+from ...resource_types.resource import CompiledResource
 from ..keyvalues3.binary_keyvalues import BinaryKeyValues
 from ..keyvalues3.enums import KV3Signatures
 from ..keyvalues3.types import BaseType

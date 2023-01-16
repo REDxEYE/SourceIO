@@ -6,8 +6,8 @@ from typing import Any, List, Optional, Tuple, Union
 import numpy as np
 
 from ....utils import Buffer, FileBuffer, MemoryBuffer, WritableMemoryBuffer
-from ....utils.pylib import LZ4ChainDecoder, lz4_compress, lz4_decompress
-from ....utils.thirdparty.zstandard import ZstdCompressor, ZstdDecompressor
+from ....utils.pylib import LZ4ChainDecoder, lz4_compress, lz4_decompress, zstd_compress, zstd_decompress, \
+    zstd_compress_stream, zstd_decompress_stream
 from .enums import *
 from .types import *
 
@@ -342,11 +342,7 @@ class BinaryKeyValues:
             del u_data, data
         elif compression_method == 2:
             data = buffer.read(compressed_size)
-            decompressor = ZstdDecompressor()
-            tmp = WritableMemoryBuffer()
-            decompressor.copy_stream(BytesIO(data), tmp, compressed_size, uncompressed_size)
-            tmp.seek(0)
-            u_data = tmp.read()
+            u_data = zstd_decompress_stream(data, compressed_size, uncompressed_size+block_total_size)
             assert len(
                 u_data) == uncompressed_size + block_total_size, "Decompressed data size does not match expected size"
             data_buffer = MemoryBuffer(u_data)
@@ -675,8 +671,7 @@ class BinaryKeyValues:
             buffer.write_fmt('4I', tmp_buff.size(), len(compressed_data), 0, 0)
             buffer.write(compressed_data)
         elif compression_method == KV3CompressionMethod.ZSTD:
-            compressor = ZstdCompressor()
-            compressed_data = compressor.compress(tmp_buff.read())
+            compressed_data = zstd_compress_stream(tmp_buff.read())
             buffer.write_fmt('4I', tmp_buff.size(), len(compressed_data), 0, 0)
             buffer.write(compressed_data)
         else:

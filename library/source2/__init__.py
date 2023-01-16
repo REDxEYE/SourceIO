@@ -26,11 +26,11 @@ def load_compiled_resource(buffer: Buffer, path: Path):
     return CompiledResource.from_buffer(buffer, path)
 
 
-from .resource_types2 import CompiledMorphResource, CompiledPhysicsResource
+from .resource_types import CompiledMorphResource, CompiledPhysicsResource
 # Recursive import bypass
-from .resource_types2.compiled_material_resource import \
+from .resource_types.compiled_material_resource import \
     CompiledMaterialResource
-from .resource_types2.compiled_model_resource import CompiledModelResource
-from .resource_types2.compiled_texture_resource import CompiledTextureResource
-from .resource_types2.compiled_world_resource import CompiledWorldResource
-from .resource_types2.resource import CompiledResource
+from .resource_types.compiled_model_resource import CompiledModelResource
+from .resource_types.compiled_texture_resource import CompiledTextureResource
+from .resource_types.compiled_world_resource import CompiledWorldResource
+from .resource_types.resource import CompiledResource

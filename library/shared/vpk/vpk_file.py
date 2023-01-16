@@ -3,7 +3,7 @@ from pathlib import Path, PosixPath, PurePath, WindowsPath
 from typing import Dict, List, Union
 
 from ...utils import Buffer, FileBuffer, MemoryBuffer
-from ...utils.thirdparty.lzham.lzham import LZHAM
+from ...utils.pylib import LZHAM
 from .structs import Header, Entry, MiniEntry, VPK_MAGIC, TitanfallEntry
 
 
@@ -19,11 +19,10 @@ def open_vpk(filepath: Union[str, Path]):
         raise InvalidMagic(f'Not a VPK file, expected magic: {VPK_MAGIC}, got {magic}')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
-    elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
+    elif version_mj == 2 and version_mn == 3 :
         return TitanfallVPKFile(filepath)
     else:
-        raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}. "
-                                  f"LZHAM:{'Available' if LZHAM.lib else 'Unavailable'}")
+        raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}.")
 
 
 class VPKFile:

@@ -1,5 +1,5 @@
 from .....utils import Buffer
-from ....resource_types2.resource import CompiledResource
+from ....resource_types.resource import CompiledResource
 from ...blocks.base import BaseBlock
 from ...keyvalues3.binary_keyvalues import BinaryKeyValues
 from .dependencies import *

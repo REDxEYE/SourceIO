@@ -8,7 +8,7 @@ from ....library.shared.app_id import SteamAppId
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2 import CompiledWorldResource
 from ....library.source2.data_types.keyvalues3.types import Object
-from ....library.source2.resource_types2.compiled_world_resource import (
+from ....library.source2.resource_types.compiled_world_resource import (
     CompiledEntityLumpResource, CompiledMapResource, CompiledWorldNodeResource)
 from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ....logger import SLoggingManager
@@ -50,17 +50,19 @@ def create_static_prop_placeholder(scene_object: Object, node_resource: Compiled
                                    collection: bpy.types.Collection, scale: float):
     renderable_model = scene_object["m_renderableModel"]
     proper_path = node_resource.get_child_resource_path(renderable_model)
-    mat_rows: List = scene_object['m_vTransform']
-    transform_mat = Matrix(mat_rows).to_4x4()
-    loc, rot, scl = transform_mat.decompose()
+    mat_rows: List = scene_object.get('m_vTransform', None)
+
     custom_data = {'prop_path': str(proper_path),
                    'type': 'static_prop',
                    'scale': scale,
-                   'entity': {k:str(v) for (k,v) in scene_object.to_dict().items()},
+                   'entity': {k: str(v) for (k, v) in scene_object.to_dict().items()},
                    'skin': scene_object.get('skin', 'default') or 'default'}
-    loc *= scale
     empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
-    empty.matrix_world = Matrix.LocRotScale(loc, rot, scl)
+    if mat_rows:
+        transform_mat = Matrix(mat_rows).to_4x4()
+        loc, rot, scl = transform_mat.decompose()
+        loc *= scale
+        empty.matrix_world = Matrix.LocRotScale(loc, rot, scl)
     collection.objects.link(empty)
 
 
