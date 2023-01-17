@@ -1,4 +1,4 @@
-from SourceIO.library.utils import Buffer
+from .....library.utils import Buffer
 
 from ... import CompiledResource
 from .kv3_block import KVBlock
