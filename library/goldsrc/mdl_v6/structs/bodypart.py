@@ -1,23 +1,24 @@
+from dataclasses import dataclass
 from typing import List
 
 from .....library.utils import Buffer
 from .model import StudioModel
 
 
+@dataclass(slots=True)
 class StudioBodypart:
-    def __init__(self):
-        self.name = ''
-        self.model_count = 0
-        self.base = 0
-        self.model_offset = 0
-        self.models: List[StudioModel] = []
+    name: str
+    base: int
+    models: List[StudioModel]
 
-    def read(self, reader: Buffer):
-        self.name = reader.read_ascii_string(64)
-        (self.model_count, self.base, self.model_offset) = reader.read_fmt('3i')
-        with reader.save_current_offset():
-            reader.seek(self.model_offset)
-            for _ in range(self.model_count):
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        name = buffer.read_ascii_string(64)
+        (model_count, base, model_offset) = buffer.read_fmt('3i')
+        models = []
+        with buffer.read_from_offset(model_offset):
+            for _ in range(model_count):
                 model = StudioModel()
-                model.read(reader)
-                self.models.append(model)
+                model.read(buffer)
+                models.append(model)
+        return cls(name, base, models)

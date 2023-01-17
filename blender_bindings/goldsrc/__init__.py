@@ -6,7 +6,7 @@ from ..goldsrc.mdl_v6.import_mdl import import_model as import_model_v6
 from ..goldsrc.mdl_v10.import_mdl import import_model as import_model_v10
 
 
-def import_model(name: str, mdl_buffer: Buffer, mdl_texture_file: Optional[BinaryIO], scale=1.0,
+def import_model(name: str, mdl_buffer: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     assert mdl_buffer.read(4) == b'IDST'
     version = mdl_buffer.read_int32()

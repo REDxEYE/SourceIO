@@ -6,7 +6,7 @@ import os
 import struct
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import Optional, Protocol, Union
+from typing import Optional, Protocol, Union, TypeVar, Type
 
 
 class Buffer(abc.ABC, io.RawIOBase):
@@ -195,14 +195,13 @@ class Buffer(abc.ABC, io.RawIOBase):
     def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
         raise NotImplementedError
 
-    def read_structure_array(self, offset, count, data_class, *args, **kwargs):
+    def read_structure_array(self, offset, count, data_class: Type['Readable']):
         if count == 0:
             return []
         self.seek(offset)
         object_list = []
         for _ in range(count):
-            obj = data_class()
-            obj.read(self, *args, **kwargs)
+            obj = data_class.from_buffer(self)
             object_list.append(obj)
         return object_list
 
@@ -347,9 +346,12 @@ class FileBuffer(io.FileIO, Buffer):
             return MemoryBuffer(self.read(size))
 
 
+T = TypeVar("T")
+
+
 class Readable(Protocol):
     @classmethod
-    def from_buffer(cls, buffer: Buffer):
+    def from_buffer(cls: Type[T], buffer: Buffer) -> T:
         ...
 
 

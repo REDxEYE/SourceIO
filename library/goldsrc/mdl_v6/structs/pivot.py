@@ -1,12 +1,13 @@
+from dataclasses import dataclass
+
 from ....utils import Buffer
 
 
-class StudioEvent:
-    def __init__(self):
-        self.point = []
-        self.start = 0
-        self.end = 0
+@dataclass(slots=True)
+class StudioPivot:
+    frame_index: int
+    event_type: int
 
-    def read(self, reader: Buffer):
-        self.point = reader.read_fmt('3f')
-        self.start, self.end = reader.read_fmt('2I')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(*buffer.read_fmt('2H'))

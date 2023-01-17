@@ -1,13 +1,16 @@
 from dataclasses import dataclass
 
+from ....shared.types import Vector3
 from ....utils import Buffer
 
 
 @dataclass(slots=True)
-class StudioPivot:
-    frame_index: int
-    event_type: int
+class StudioEvent:
+    point: Vector3[float]
+    start: int
+    end: int
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
-        return cls(*buffer.read_fmt('2H'))
+        point = buffer.read_fmt('3f')
+        return cls(point, *buffer.read_fmt('2I'))

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import Optional
 
 import bpy
 import numpy as np
@@ -58,17 +58,15 @@ def create_armature(mdl: Mdl, collection, scale):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: Buffer, mdl_texture_file: Optional[BinaryIO], scale=1.0,
+def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
 
-    mdl = Mdl(mdl_file)
-    mdl.read()
+    mdl = Mdl.from_buffer(mdl_file)
     mdl_file_textures = mdl.textures
     if not mdl_file_textures and mdl_texture_file is not None:
-        mdl_filet = Mdl(mdl_texture_file)
-        mdl_filet.read()
+        mdl_filet = Mdl.from_buffer(mdl_texture_file)
         mdl_file_textures = mdl_filet.textures
 
     model_container = GoldSrcModelContainer(mdl)
@@ -176,7 +174,7 @@ def load_material(model_texture_info: StudioTexture, model_object):
 
 
 def load_animations(mdl: Mdl, armature, model_name, scale):
-    sequence_zero = mdl.sequences[0]
+    # animation_zero = mdl.animations[0]
     bpy.ops.object.select_all(action="DESELECT")
     armature.select_set(True)
     bpy.context.view_layer.objects.active = armature
@@ -184,7 +182,7 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
     if not armature.animation_data:
         armature.animation_data_create()
 
-    for sequence in mdl.sequences:
+    for sequence, animation in zip(mdl.sequences, mdl.animations):
 
         action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
         armature.animation_data.action = action
@@ -209,10 +207,10 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
             curve_per_bone[bone.name] = pos_curves, rot_curves
 
         for bone_id, bone in enumerate(mdl.bones):
-            zero_anim = sequence_zero.frame_per_bone[bone_id][0]
+            # zero_anim = animation_zero[bone_id].frames[0]
             pos_curves, rot_curves = curve_per_bone[bone.name]
-            bone_animations = sequence.frame_per_bone[bone_id]
-            for n, frame in enumerate(bone_animations):
+            bone_animations = animation[bone_id]
+            for n, frame in enumerate(bone_animations.frames):
                 # print(zero_anim[0], zero_anim[1])
                 # print(frame[0], frame[1])
                 bone_pos = Vector((frame[0]).tolist()) * scale

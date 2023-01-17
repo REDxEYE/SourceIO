@@ -20,7 +20,7 @@ class StudioTrivert:
 class StudioMesh:
     skin_ref: int
     triangle_count: int
-    triangles: List[List[StudioTrivert]]
+    triangles: List[StudioTrivert]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
