@@ -24,7 +24,7 @@ class BlackMesaEntityHandler(HalfLifeEntityHandler):
         else:
             color = [color[0], color[0], color[0]]
         light.color = color
-        light.energy = entity.Intensity
+        light.energy = entity.Intensity * self.light_scale
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
@@ -41,7 +41,7 @@ class BlackMesaEntityHandler(HalfLifeEntityHandler):
             color = [color[0], color[0], color[0]]
 
         light.color = color
-        light.energy = entity.Intensity
+        light.energy = entity.Intensity  * self.light_scale
         light.spot_size = 2 * math.radians(entity.phi)
         light.spot_blend = 1 - (entity.theta / entity.phi)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),

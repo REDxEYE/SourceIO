@@ -24,7 +24,8 @@ class TextureDataLump(Lump):
             if texture_offset < 0:
                 continue
 
-            assert buffer.tell() == texture_offset
+            # assert buffer.tell() == texture_offset
+            buffer.seek(texture_offset)
 
             texture_data = TextureData()
             texture_data.parse(buffer)

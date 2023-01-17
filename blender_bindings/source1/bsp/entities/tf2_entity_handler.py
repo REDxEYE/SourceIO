@@ -21,9 +21,6 @@ from .tf_entity_classes import (func_nobuild, func_regenerate,
 class TF2EntityHandler(BaseEntityHandler):
     entity_lookup_table = tf2_entity_handlers
 
-    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS):
-        super().__init__(bsp_file, parent_collection, world_scale)
-
     def handle_func_nobuild(self, entity: func_nobuild, entity_raw: dict):
         if 'model' not in entity_raw:
             return

@@ -62,10 +62,12 @@ def _srgb2lin(s: float) -> float:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=SOURCE1_HAMMER_UNIT_TO_METERS):
+    def __init__(self, bsp_file: BSPFile, parent_collection,
+                 world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
         self.scale = world_scale
+        self.light_scale = light_scale
         self.parent_collection = parent_collection
 
         self._entites = self._bsp.get_lump('LUMP_ENTITIES').entities
@@ -174,7 +176,7 @@ class AbstractEntityHandler:
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
             l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
 
-            for vertex_id, uv,luv in zip(face_vertex_ids, v_uvs, l_uvs):
+            for vertex_id, uv, luv in zip(face_vertex_ids, v_uvs, l_uvs):
                 new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv

@@ -60,12 +60,13 @@ def get_entity_name(entity_data: Dict[str, Any]):
 
 
 class BSP:
-    def __init__(self, map_path, *, scale=1.0):
+    def __init__(self, map_path: Path, *, scale: float = 1.0, light_scale: float = 1.0):
         self.filepath = Path(map_path)
         self.logger = log_manager.get_logger(self.filepath.name)
         self.logger.info(f'Loading map "{self.filepath}"')
         self.map_file = open_bsp(self.filepath)
         self.scale = scale
+        self.light_scale = light_scale
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
         self.entry_cache = {}
@@ -82,28 +83,39 @@ class BSP:
 
         steam_id = content_manager.steam_id
         if steam_id == SteamAppId.TEAM_FORTRESS_2:
-            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection,
+                                                   self.scale, self.light_scale)
         elif steam_id == SteamAppId.SOURCE_FILMMAKER:  # SFM
-            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection,
+                                                   self.scale, self.light_scale)
         elif steam_id == SteamAppId.BLACK_MESA:  # BlackMesa
-            self.entity_handler = BlackMesaEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = BlackMesaEntityHandler(self.map_file, self.main_collection,
+                                                         self.scale, self.light_scale)
         elif steam_id == SteamAppId.COUNTER_STRIKE_GO:  # CS:GO
-            self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection,
+                                                    self.scale, self.light_scale)
         elif steam_id == SteamAppId.LEFT_4_DEAD_2:
-            self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection,
+                                                          self.scale, self.light_scale)
         elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
-            self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection,
+                                                         self.scale, self.light_scale)
         elif steam_id == SteamAppId.PORTAL:
-            self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection,
+                                                      self.scale, self.light_scale)
         elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
               and self.map_file.version != 29):  # Portal 2
-            self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection,
+                                                       self.scale, self.light_scale)
         elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
-            self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection,
+                                                        self.scale, self.light_scale)
         elif steam_id == SteamAppId.VINDICTUS:
-            self.entity_handler = VindictusEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = VindictusEntityHandler(self.map_file, self.main_collection,
+                                                         self.scale, self.light_scale)
         else:
-            self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection, self.scale)
+            self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection,
+                                                    self.scale, self.light_scale)
 
         self.logger.debug('Adding map pack file to content manager')
         content_manager.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')

@@ -61,7 +61,8 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
                                                           unique_material_names=self.unique_materials_names,
                                                           bodygroup_grouping=self.bodygroup_grouping,
                                                           load_physics=self.import_physics)
-            put_into_collections(model_container, Path(model_container.mdl.header.name).stem, bodygroup_grouping=self.bodygroup_grouping)
+            put_into_collections(model_container, Path(model_container.mdl.header.name).stem,
+                                 bodygroup_grouping=self.bodygroup_grouping)
             if self.import_textures and is_vtflib_supported():
                 try:
                     import_materials(model_container.mdl, unique_material_names=self.unique_materials_names,
@@ -124,6 +125,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
+    light_scale: FloatProperty(name="Light power scale", default=1, precision=6)
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
     import_cubemaps: BoolProperty(name="Import cubemaps", default=False, subtype='UNSIGNED')
     # import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
@@ -135,9 +137,8 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
 
-        bsp_map = BSP(self.filepath, scale=self.scale)
+        bsp_map = BSP(self.filepath, scale=self.scale, light_scale=self.light_scale)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
-
 
         bsp_map.load_disp()
         bsp_map.load_entities()
@@ -189,6 +190,7 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
 if is_vtflib_supported():
     from ..source1.vtf import import_texture, load_skybox_texture
     from ..source1.vtf.export_vtf import export_texture
+
 
     # noinspection PyUnresolvedReferences,PyPep8Naming
     class SOURCEIO_OT_VTFImport(bpy.types.Operator):

@@ -321,7 +321,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = brightness * scale * self.spotlight_power_multiplier * self.scale
+        light.energy = brightness * scale * self.spotlight_power_multiplier * self.scale * self.light_scale
         light.spot_size = 2 * math.radians(cone)
         light.spot_blend = 1 - (inner_cone / cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
@@ -340,7 +340,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light.cycles.use_multiple_importance_sampling = True
         light.angle = math.radians(entity.SunSpreadAngle)
         light.color = color
-        light.energy = brightness * scale * self.scale
+        light.energy = brightness * scale * self.scale * self.light_scale
         obj: bpy.types.Object = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', object_data=light)
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
@@ -381,7 +381,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = brightness * scale * self.pointlight_power_multiplier * self.scale
+        light.energy = brightness * scale * self.pointlight_power_multiplier * self.scale * self.light_scale
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
