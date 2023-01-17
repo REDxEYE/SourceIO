@@ -5,6 +5,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        FloatProperty, StringProperty)
 
+from .import_settings_base import MDLSettings, Source1BSPSettings
 from ..source1.mdl import put_into_collections
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source1.vtf import is_vtflib_supported
@@ -19,21 +20,8 @@ from ..source1.mdl.model_loader import import_model_from_full_path
 logger = SLoggingManager().get_logger("SourceIO::Operators")
 
 
-class MdlImportProps:
-    write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
-    import_physics: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
-    # import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
-    unique_materials_names: BoolProperty(name="Unique material names", default=False, subtype='UNSIGNED')
-
-    create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
-    bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
-    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
-    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
-    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
-
-
 # noinspection PyPep8Naming
-class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
+class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
     """Load Source Engine MDL models"""
     bl_idname = "sourceio.mdl"
     bl_label = "Import Source MDL file"
@@ -79,7 +67,6 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MdlImportProps):
                 from ...library.source1.qc.qc import generate_qc
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
-        content_manager.flush_cache()
         content_manager.clean()
         return {'FINISHED'}
 
@@ -117,19 +104,13 @@ class SOURCEIO_OT_RigImport(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
-class SOURCEIO_OT_BSPImport(bpy.types.Operator):
+class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
     """Load Source Engine BSP models"""
     bl_idname = "sourceio.bsp"
     bl_label = "Import Source BSP file"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype="FILE_PATH")
-    scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
-    light_scale: FloatProperty(name="Light power scale", default=1, precision=6)
-    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
-    import_cubemaps: BoolProperty(name="Import cubemaps", default=False, subtype='UNSIGNED')
     # import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
-    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
 
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
@@ -137,7 +118,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
 
-        bsp_map = BSP(self.filepath, scale=self.scale, light_scale=self.light_scale)
+        bsp_map = BSP(self.filepath, settings=self)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
         bsp_map.load_disp()
@@ -149,7 +130,6 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator):
         #     bsp_map.load_overlays()
         if self.import_textures:
             bsp_map.load_materials(self.use_bvlg)
-        content_manager.flush_cache()
         content_manager.clean()
         return {'FINISHED'}
 
@@ -177,7 +157,6 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
         for file in self.files:
             load_session(directory / file.name, 1)
 
-        content_manager.flush_cache()
         content_manager.clean()
         return {'FINISHED'}
 
@@ -290,7 +269,6 @@ if is_vtflib_supported():
                     else:
                         self.report({'INFO'}, '{} material already exists')
                 mat.create_material()
-            content_manager.flush_cache()
             content_manager.clean()
             return {'FINISHED'}
 

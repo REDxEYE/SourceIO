@@ -1,12 +1,14 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 import bpy
 import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
+from .entities.abstract_entity_handlers import AbstractEntityHandler
+from ...operators.import_settings_base import Source1BSPSettings
 from ....library.shared.app_id import SteamAppId
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.bsp.bsp_file import open_bsp
@@ -60,16 +62,16 @@ def get_entity_name(entity_data: Dict[str, Any]):
 
 
 class BSP:
-    def __init__(self, map_path: Path, *, scale: float = 1.0, light_scale: float = 1.0):
+    def __init__(self, map_path: Path, *, settings: Source1BSPSettings):
         self.filepath = Path(map_path)
         self.logger = log_manager.get_logger(self.filepath.name)
         self.logger.info(f'Loading map "{self.filepath}"')
         self.map_file = open_bsp(self.filepath)
-        self.scale = scale
-        self.light_scale = light_scale
+        self.settings = settings
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
         self.entry_cache = {}
+        self.cm = ContentManager()
 
         self.model_lump: Optional[ModelLump] = self.map_file.get_lump('LUMP_MODELS')
         self.vertex_lump: Optional[VertexLump] = self.map_file.get_lump('LUMP_VERTICES')
@@ -79,58 +81,48 @@ class BSP:
         self.texture_info_lump: Optional[TextureInfoLump] = self.map_file.get_lump('LUMP_TEXINFO')
         self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
 
-        content_manager = ContentManager()
-
-        steam_id = content_manager.steam_id
-        if steam_id == SteamAppId.TEAM_FORTRESS_2:
-            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection,
-                                                   self.scale, self.light_scale)
-        elif steam_id == SteamAppId.SOURCE_FILMMAKER:  # SFM
-            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection,
-                                                   self.scale, self.light_scale)
-        elif steam_id == SteamAppId.BLACK_MESA:  # BlackMesa
-            self.entity_handler = BlackMesaEntityHandler(self.map_file, self.main_collection,
-                                                         self.scale, self.light_scale)
-        elif steam_id == SteamAppId.COUNTER_STRIKE_GO:  # CS:GO
-            self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection,
-                                                    self.scale, self.light_scale)
-        elif steam_id == SteamAppId.LEFT_4_DEAD_2:
-            self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection,
-                                                          self.scale, self.light_scale)
-        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
-            self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection,
-                                                         self.scale, self.light_scale)
-        elif steam_id == SteamAppId.PORTAL:
-            self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection,
-                                                      self.scale, self.light_scale)
-        elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
-              and self.map_file.version != 29):  # Portal 2
-            self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection,
-                                                       self.scale, self.light_scale)
-        elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
-            self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection,
-                                                        self.scale, self.light_scale)
-        elif steam_id == SteamAppId.VINDICTUS:
-            self.entity_handler = VindictusEntityHandler(self.map_file, self.main_collection,
-                                                         self.scale, self.light_scale)
-        else:
-            self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection,
-                                                    self.scale, self.light_scale)
-
         self.logger.debug('Adding map pack file to content manager')
-        content_manager.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')
+        self.cm.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump('LUMP_TEXDATA_STRING_TABLE')
         return strings_lump.strings[string_id] or "NO_NAME"
 
     def load_entities(self):
+        steam_id = self.cm.steam_id
+        handler_class: Type[AbstractEntityHandler]
+        if steam_id == SteamAppId.TEAM_FORTRESS_2:
+            handler_class = TF2EntityHandler
+        elif steam_id == SteamAppId.SOURCE_FILMMAKER:  # SFM
+            handler_class = TF2EntityHandler
+        elif steam_id == SteamAppId.BLACK_MESA:  # BlackMesa
+            handler_class = BlackMesaEntityHandler
+        elif steam_id == SteamAppId.COUNTER_STRIKE_GO:  # CS:GO
+            handler_class = CSGOEntityHandler
+        elif steam_id == SteamAppId.LEFT_4_DEAD_2:
+            handler_class = Left4dead2EntityHandler
+        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
+            handler_class = TitanfallEntityHandler
+        elif steam_id == SteamAppId.PORTAL:
+            handler_class = PortalEntityHandler
+        elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
+              and self.map_file.version != 29):  # Portal 2
+            handler_class = Portal2EntityHandler
+        elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
+            handler_class = HalfLifeEntityHandler
+        elif steam_id == SteamAppId.VINDICTUS:
+            handler_class = VindictusEntityHandler
+        else:
+            handler_class = BaseEntityHandler
+
+        entity_handler = handler_class(self.map_file, self.main_collection,
+                                       self.settings.scale, self.settings.light_scale)
+
         entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
         if entity_lump:
-            entities_json = bpy.data.texts.new(
-                f'{self.filepath.stem}_entities.json')
+            entities_json = bpy.data.texts.new(f'{self.filepath.stem}_entities.json')
             json.dump(entity_lump.entities, entities_json, indent=1)
-        self.entity_handler.load_entities()
+        entity_handler.load_entities(self.settings)
 
     def load_cubemap(self):
         cubemap_lump: Optional[CubemapLump] = self.map_file.get_lump('LUMP_CUBEMAPS')
@@ -141,24 +133,25 @@ class BSP:
             refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
             obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
             obj.location = cubemap.origin
-            obj.location *= self.scale
-            refl_probe.influence_distance = (cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.scale * 1000
+            obj.location *= self.settings.scale
+            refl_probe.influence_distance = (
+                                                        cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.settings.scale * 1000
             parent_collection.objects.link(obj)
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')
-        if gamelump:
+        if gamelump and self.settings.load_static_props:
             static_prop_lump: StaticPropLump = gamelump.game_lumps.get('sprp', None)
             if static_prop_lump:
                 parent_collection = get_or_create_collection('static_props', self.main_collection)
                 for n, prop in enumerate(static_prop_lump.static_props):
                     model_name = static_prop_lump.model_names[prop.prop_type]
-                    location = np.multiply(prop.origin, self.scale)
+                    location = np.multiply(prop.origin, self.settings.scale)
                     rotation = convert_rotation_source1_to_blender(prop.rotation)
                     self.create_empty(f'static_prop_{n}', location, rotation, prop.scaling, parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
-                                                   'scale': self.scale,
+                                                   'scale': self.settings.scale,
                                                    'type': 'static_props',
                                                    'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    'entity': {
@@ -230,13 +223,13 @@ class BSP:
             used_edges = edges[np.abs(used_surf_edges)]
             tmp = np.arange(used_edges.shape[0])
             face_vertex_ids = used_edges[tmp, reverse]
-            face_vertices = vertices[face_vertex_ids] * self.scale
+            face_vertices = vertices[face_vertex_ids] * self.settings.scale
 
             start_pos = np.asarray(disp_info.start_position, np.float32)
             min_index = np.where(
                 np.sum(
                     np.isclose(face_vertices,
-                               start_pos * self.scale,
+                               start_pos * self.settings.scale,
                                0.5e-2),
                     axis=1
                 ) == 3)
@@ -274,10 +267,10 @@ class BSP:
 
                 for j in range(num_edge_vertices):
                     disp_vertices[(i * num_edge_vertices + j)] = left_end + (left_right_step * j)
-            disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * self.scale) / (
-                    texture_data.view_width * self.scale)
-            disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * self.scale) / (
-                    texture_data.view_height * self.scale))
+            disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * self.settings.scale) / (
+                    texture_data.view_width * self.settings.scale)
+            disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * self.settings.scale) / (
+                    texture_data.view_height * self.settings.scale))
 
             disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices]
             final_vertex_colors['vertex_alpha'] = np.concatenate(
@@ -329,7 +322,7 @@ class BSP:
                 parent_collection.objects.link(mesh_obj)
             else:
                 self.main_collection.objects.link(mesh_obj)
-            mesh_data.from_pydata(disp_vertices + disp_verts[disp_indices] * self.scale, [], face_indices)
+            mesh_data.from_pydata(disp_vertices + disp_verts[disp_indices] * self.settings.scale, [], face_indices)
 
             uv_data = mesh_data.uv_layers.new().data
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
@@ -471,7 +464,7 @@ class BSP:
 
                 for pos in range(0, 2):
                     for i in range(0, 3):
-                        obj.location[i] = obj.location[i] + (0.1 * self.scale * pos * that_normal[i])
+                        obj.location[i] = obj.location[i] + (0.1 * self.settings.scale * pos * that_normal[i])
 
                 that_normal = Vector(that_normal).to_track_quat('-Y', 'Z')
                 obj.rotation_mode = 'QUATERNION'
@@ -505,12 +498,12 @@ class BSP:
         placeholder = bpy.data.objects.new(name, None)
         placeholder.location = location
 
-        if scale is None:
+        if scale is not None:
             placeholder.scale = scale
-        if rotation is None:
+        if rotation is not None:
             placeholder.rotation_euler = rotation
 
-        placeholder.scale *= self.scale
+        placeholder.scale *= self.settings.scale
         placeholder.empty_display_size = 16
 
         if custom_data:

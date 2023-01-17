@@ -40,7 +40,6 @@ def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
 
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
-
     pointlight_power_multiplier = 1000000
     spotlight_power_multiplier = 1000000
 

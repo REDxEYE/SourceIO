@@ -283,10 +283,6 @@ class ContentManager(metaclass=SingletonMeta):
                 return content_provider
         return NonSourceContentProvider(filepath.parent)
 
-    def flush_cache(self):
-        for cp in self.content_providers.values():
-            cp.flush_cache()
-
     def clean(self):
         self.content_providers.clear()
         self._steam_id = -1

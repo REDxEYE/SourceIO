@@ -8,6 +8,7 @@ import bpy
 import numpy as np
 from mathutils import Euler
 
+from ....operators.import_settings_base import BSPSettings
 from .....library.shared.content_providers.content_manager import \
     ContentManager
 from .....library.source1.bsp.bsp_file import BSPFile
@@ -74,9 +75,26 @@ class AbstractEntityHandler:
         self._handled_paths = []
         self._entity_by_name_cache = {}
 
-    def load_entities(self):
+    def load_entities(self, settings: BSPSettings):
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
+            entity_class: str = entity_data['classname']
+            if entity_class.startswith("env_") or entity_class.startswith("ambient_") and not settings.load_env:
+                continue
+            elif entity_class.startswith("info_") and not settings.load_info:
+                continue
+            elif "decal" in entity_class and not settings.load_decals:
+                continue
+            elif "light" in entity_class and not settings.load_lights:
+                continue
+            elif entity_class.startswith("trigger_") and not settings.load_triggers:
+                continue
+            elif entity_class.startswith("prop_") and not settings.load_props:
+                continue
+            elif entity_class.startswith("logic_") and not settings.load_logic:
+                continue
+            elif entity_class.endswith("rope") and not settings.load_ropes:
+                continue
             if not self.handle_entity(entity_data):
                 self.logger.warn(pformat(entity_data))
         bpy.context.view_layer.update()
