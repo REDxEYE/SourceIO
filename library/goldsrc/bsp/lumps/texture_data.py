@@ -21,6 +21,7 @@ class TextureDataLump(Lump):
                 continue
 
             # assert self.buffer.tell() == texture_offset
+            self.buffer.seek(texture_offset)
 
             texture_data = TextureData()
             texture_data.parse(self.buffer)
