@@ -92,7 +92,7 @@ class WorldLight:
         origin = buffer.read_fmt('3f')
         intensity = Color32.from_array(buffer.read_fmt('3f'))
         normal = buffer.read_fmt('3f')
-        if bsp.version > 20:
+        if bsp.version[0] > 20:
             shadow_cast_offset = buffer.read_fmt('3f')
         else:
             shadow_cast_offset = (0, 0, 0)
@@ -109,5 +109,6 @@ class WorldLight:
         flags = buffer.read_int32()
         tex_info_id = buffer.read_int32()
         owner = buffer.read_int32()
-        return cls(origin, intensity, normal, shadow_cast_offset, cluster, emit_type, style, stopdot, stopdot2, exponent,
+        return cls(origin, intensity, normal, shadow_cast_offset, cluster, emit_type, style, stopdot, stopdot2,
+                   exponent,
                    radius, constant_attn, linear_attn, quadratic_attn, flags, tex_info_id, owner)

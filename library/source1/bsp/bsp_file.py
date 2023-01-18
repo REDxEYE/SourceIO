@@ -30,6 +30,7 @@ class BSPFile:
         self.buffer = buffer
         self.logger = log_manager.get_logger(self.filepath.stem)
         self.version = 0
+        self.is_l4d2 = False
         self.lumps_info: List[LumpInfo] = []
         self.lumps: Dict[str, Lump] = {}
         self.revision = 0
@@ -42,8 +43,12 @@ class BSPFile:
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "VBSP", "Invalid BSP header"
-        self.version = buffer.read_int32()
-        is_l4d2 = buffer.peek_uint32() <= 1036 and self.version == 21
+        version = buffer.read_int32()
+        if version > 0xFFFF:
+            self.version = version & 0xFFFF, version >> 16
+        else:
+            self.version = (version,)
+        self.is_l4d2 = is_l4d2 = buffer.peek_uint32() <= 1036 and self.version == (21, 0)
         self.lumps_info = [None] * 64
         for lump_id in range(64):
             lump = LumpInfo.from_buffer(buffer, lump_id, is_l4d2)
@@ -101,6 +106,18 @@ class BSPFile:
             assert self.buffer.size() == lump_info.decompressed_size
 
     def parse_lump(self, lump_class: Type[Lump], lump_id, lump_name):
+        base_path = self.filepath.parent
+        lump_path = base_path / f'{self.filepath.stem}_l_{lump_id}.lmp'
+        if lump_path.exists():
+            buffer = FileBuffer(lump_path)
+            lump_info = LumpInfo.from_buffer(buffer, lump_id, self.is_l4d2)
+            self.lumps_info[lump_id] = lump_info
+            buffer.seek(lump_info.offset)
+
+            parsed_lump = lump_class(lump_info).parse(buffer, self)
+            self.lumps[lump_id] = parsed_lump
+            return parsed_lump
+
         if self.lumps_info[lump_id].size != 0:
             lump_info = self.lumps_info[lump_id]
             buffer = self._get_lump_buffer(lump_id, lump_info)
@@ -126,7 +143,7 @@ class RespawnBSPFile(BSPFile):
         last_lump = buffer.read_uint32()
         self.lumps_info = [None] * last_lump
         for lump_id in range(last_lump + 1):
-            lump = LumpInfo.from_buffer(buffer)
+            lump = LumpInfo.from_buffer(buffer, lump_id)
             lump.id = lump_id
             self.lumps_info[lump_id] = lump
         return self

@@ -38,6 +38,8 @@ class TextureInfo:
     def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
         texture_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
         lightmap_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
+        if bsp.version == (20, 4):
+            buffer.skip(24)
         flags = SurfaceInfo(buffer.read_uint32())
         texture_data_id = buffer.read_int32()
         return cls(texture_vectors, lightmap_vectors, flags, texture_data_id)

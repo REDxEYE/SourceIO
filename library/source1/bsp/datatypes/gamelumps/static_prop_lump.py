@@ -1,5 +1,5 @@
 from enum import IntFlag
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Tuple
 
 from ......logger import SLoggingManager
 from .....shared.app_id import SteamAppId
@@ -63,7 +63,12 @@ class StaticProp:
         # Vindictus specific
         self.scaling = [1.0, 1.0, 1.0]
 
-    def parse(self, reader: Buffer, version: int, size: int, app_id: int):
+    def parse(self, reader: Buffer, version: int, bsp_version: Tuple[int, int], size: int, app_id: int):
+        if bsp_version == (20, 4):
+            self._parse_v6(reader)
+            reader.skip(72)
+            return
+
         if app_id == SteamAppId.LEFT_4_DEAD and version == 7 and size == 68:
             # Old Left 4 Dead maps use v7 and incompatible with newer v7 from Source 2013
             self._parse_v7_l4d(reader)
@@ -260,7 +265,7 @@ class StaticPropLump:
         prop_size = reader.remaining() // prop_count
         for i in range(prop_count):
             prop = StaticProp()
-            prop.parse(reader, self._glump_info.version, prop_size, content_manager.steam_id)
+            prop.parse(reader, self._glump_info.version, bsp.version, prop_size, content_manager.steam_id)
             self.static_props.append(prop)
         if prop_scaling:
             for prop_id, scale in prop_scaling.items():

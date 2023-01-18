@@ -28,7 +28,7 @@ class TextureDataLump(Lump):
         self.texture_data: List[TextureData] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
-        texture_data_class = TextureData if bsp.version < 29 else RespawnTextureData
+        texture_data_class = RespawnTextureData if bsp.version == (29, 0) else TextureData
         while buffer:
             self.texture_data.append(texture_data_class.from_buffer(buffer, self.version, bsp))
         return self

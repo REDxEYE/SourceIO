@@ -20,14 +20,24 @@ class Model:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
-        return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_int32(),
-                   buffer.read_int32(), buffer.read_int32())
+        return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("3i"))
 
     def get_node(self, bsp: 'BSPFile'):
         lump: NodeLump = bsp.get_lump('LUMP_NODES')
         if lump:
             return lump.nodes[self.head_node]
         return None
+
+
+@dataclass(slots=True)
+class DMModel(Model):
+    unk: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        head = buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f')
+        unk, *rest = buffer.read_fmt("4i")
+        return cls(*head, *rest, unk)
 
 
 @dataclass(slots=True)

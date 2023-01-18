@@ -25,6 +25,16 @@ class GameLumpHeader(Primitive):
         return self
 
 
+class DMGameLumpHeader(GameLumpHeader):
+    def parse(self, reader: Buffer, bsp: 'BSPFile'):
+        reader.skip(4)
+        self.id = reader.read_fourcc()[::-1]
+        self.flags = reader.read_uint16()
+        self.version = reader.read_uint16()
+        self.offset, self.size = reader.read_fmt('2i')
+        return self
+
+
 class VindictusGameLumpHeader(GameLumpHeader):
     def parse(self, reader: Buffer, bsp: 'BSPFile'):
         self.id = reader.read_fourcc()[::-1]

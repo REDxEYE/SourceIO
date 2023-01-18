@@ -1,6 +1,6 @@
 import lzma
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING, List, Optional, Type, Union, Tuple
 
 from ...shared.app_id import SteamAppId
 from ...utils.file_utils import Buffer, FileBuffer, MemoryBuffer
@@ -15,18 +15,22 @@ class LumpTag:
     lump_id: int
     lump_name: str
     lump_version: Optional[int] = field(default=None)
-    bsp_version: Optional[int] = field(default=None)
+    bsp_version: Optional[Union[int, Tuple[int, int]]] = field(default=None)
     steam_id: Optional[SteamAppId] = field(default=None)
 
 
 def lump_tag(lump_id, lump_name,
              lump_version: Optional[int] = None,
-             bsp_version: Optional[int] = None,
+             bsp_version: Optional[Union[int, Tuple[int, int]]] = None,
              steam_id: Optional[SteamAppId] = None):
     def loader(klass: Type[Lump]) -> Type[Lump]:
         if not klass.tags:
             klass.tags = []
-        klass.tags.append(LumpTag(lump_id, lump_name, lump_version, bsp_version, steam_id))
+        if bsp_version is not None and isinstance(bsp_version, int):
+            bsp_version_ = (bsp_version,)
+        else:
+            bsp_version_ = bsp_version
+        klass.tags.append(LumpTag(lump_id, lump_name, lump_version, bsp_version_, steam_id))
         return klass
 
     return loader
