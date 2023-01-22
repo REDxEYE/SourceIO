@@ -31,7 +31,7 @@ def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
     else:
         scale = 1
     for component in srgb[:3]:
-        component = ((component / 255) ** 2.2)
+        component = _srgb2lin(component / 255)
         final_color.append(component)
     if len(final_color) == 1:
         return ensure_length(final_color, 3, final_color[0]), 1
@@ -40,8 +40,9 @@ def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
 
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
-    pointlight_power_multiplier = 1000000
-    spotlight_power_multiplier = 1000000
+    light_power_multiplier = 1000
+    pointlight_power_multiplier = 1
+    spotlight_power_multiplier = 1
 
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:
@@ -320,7 +321,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = brightness * scale * self.spotlight_power_multiplier * self.scale * self.light_scale
+        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
         light.spot_size = 2 * math.radians(cone)
         light.spot_blend = 1 - (inner_cone / cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
@@ -339,7 +340,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light.cycles.use_multiple_importance_sampling = True
         light.angle = math.radians(entity.SunSpreadAngle)
         light.color = color
-        light.energy = brightness * scale * self.scale * self.light_scale
+        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
         obj: bpy.types.Object = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', object_data=light)
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
@@ -375,12 +376,12 @@ class BaseEntityHandler(AbstractEntityHandler):
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
         color_value = entity._lightHDR if use_sdr else entity._light
         color, brightness = srgb_to_linear(color_value)
-        scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
+        scale = float(entity_raw.get('_lightscaleHDR', entity_raw.get('_lightscalehdr', 1)) if use_sdr else 1)
 
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = brightness * scale * self.pointlight_power_multiplier * self.scale * self.light_scale
+        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)

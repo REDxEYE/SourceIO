@@ -55,7 +55,7 @@ class GameLump(Lump):
 
 
 @lump_tag(35, 'LUMP_GAME_LUMP', bsp_version=(20, 4))
-class GameLump(Lump):
+class GameLump204(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0

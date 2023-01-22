@@ -36,11 +36,9 @@ from ....library.source1.bsp.lumps.vertex_lump import VertexLump
 from ....library.utils.math_utilities import (
     SOURCE1_HAMMER_UNIT_TO_METERS, UnitPlane,
     convert_rotation_source1_to_blender)
-from ....library.utils.singleton import SingletonMeta
 from ....logger import SLoggingManager
 from ...material_loader.material_loader import Source1MaterialLoader
 from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ...shared.model_container import Source1ModelContainer
 from ...utils.utils import add_material, get_or_create_collection
 from .entities.base_entity_handler import BaseEntityHandler
 from .entities.bms_entity_handlers import BlackMesaEntityHandler
@@ -62,7 +60,7 @@ def get_entity_name(entity_data: Dict[str, Any]):
 
 
 class BSP:
-    def __init__(self, map_path: Path, *, settings: Source1BSPSettings):
+    def __init__(self, map_path: Path, content_manager: ContentManager, settings: Source1BSPSettings):
         self.filepath = Path(map_path)
         self.logger = log_manager.get_logger(self.filepath.name)
         self.logger.info(f'Loading map "{self.filepath}"')
@@ -71,7 +69,7 @@ class BSP:
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
         self.entry_cache = {}
-        self.cm = ContentManager()
+        self.cm = content_manager
 
         self.model_lump: Optional[ModelLump] = self.map_file.get_lump('LUMP_MODELS')
         self.vertex_lump: Optional[VertexLump] = self.map_file.get_lump('LUMP_VERTICES')
@@ -135,7 +133,7 @@ class BSP:
             obj.location = cubemap.origin
             obj.location *= self.settings.scale
             refl_probe.influence_distance = (
-                                                        cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.settings.scale * 1000
+                                                    cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.settings.scale * 1000
             parent_collection.objects.link(obj)
 
     def load_static_props(self):
@@ -165,12 +163,11 @@ class BSP:
 
     def load_materials(self, use_bvlg):
         Source1ShaderBase.use_bvlg(use_bvlg)
-        content_manager = ContentManager()
 
         texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
         pak_lump: Optional[PakLump] = self.map_file.get_lump('LUMP_PAK')
         if pak_lump:
-            content_manager.content_providers[self.filepath.stem] = pak_lump
+            self.cm.content_providers[self.filepath.stem] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
             tmp = strip_patch_coordinates.sub("", material_name)[-63:]
@@ -180,7 +177,7 @@ class BSP:
                         f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
                     continue
             self.logger.info(f"Loading {material_name} material")
-            material_file = content_manager.find_material(material_name)
+            material_file = self.cm.find_material(material_name)
 
             if material_file:
                 material_name = strip_patch_coordinates.sub("", material_name)
@@ -422,7 +419,7 @@ class BSP:
                 # self._rotate_infodecals()
 
     def _rotate_infodecals(self):
-        provider = ContentManager().get_content_provider_from_path(self.filepath)
+        provider = self.cm.get_content_provider_from_path(self.filepath)
         if 'infodecal' in bpy.data.collections:
             for obj in bpy.data.collections['infodecal'].all_objects:
                 world_obj = bpy.data.objects['world_geometry']

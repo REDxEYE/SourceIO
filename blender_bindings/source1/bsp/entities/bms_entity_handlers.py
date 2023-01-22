@@ -13,7 +13,7 @@ local_entity_lookup_table.update(entity_class_handle)
 
 class BlackMesaEntityHandler(HalfLifeEntityHandler):
     entity_lookup_table = local_entity_lookup_table
-    pointlight_power_multiplier = 250
+    pointlight_power_multiplier = 1
 
     def handle_newLight_Point(self, entity: newLight_Point, entity_raw: dict):
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')

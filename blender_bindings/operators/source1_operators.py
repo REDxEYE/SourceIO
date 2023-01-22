@@ -118,7 +118,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
 
-        bsp_map = BSP(self.filepath, settings=self)
+        bsp_map = BSP(self.filepath, content_manager,self)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
         bsp_map.load_disp()
@@ -130,7 +130,6 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
         #     bsp_map.load_overlays()
         if self.import_textures:
             bsp_map.load_materials(self.use_bvlg)
-        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):

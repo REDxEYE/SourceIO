@@ -15,7 +15,7 @@ local_entity_lookup_table.update(entity_class_handle)
 class Portal2EntityHandler(PortalEntityHandler):
     entity_lookup_table = local_entity_lookup_table
 
-    pointlight_power_multiplier = 1000
+    pointlight_power_multiplier = 1
 
     def handle_prop_weighted_cube(self, entity: prop_weighted_cube, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)

@@ -144,6 +144,12 @@ _image_decompress = LIB.image_decompress
 _image_decompress.argtypes = [c_char_p, c_size_t, c_char_p, c_size_t, c_int32, c_int32, c_uint32, c_uint32, c_uint32]
 _image_decompress.restype = c_bool
 
+# bool image_decode_bcn(char *src, size_t src_size, char *dst, size_t dst_size, int32_t width,
+#                                       int32_t height, BCnMode bc_mode, uint32_t flip);
+_image_decode_bcn = LIB.image_decode_bcn
+_image_decode_bcn.argtypes = [c_char_p, c_size_t, c_char_p, c_size_t, c_int32, c_int32, c_uint32, c_uint32]
+_image_decode_bcn.restype = c_bool
+
 _get_version = LIB.lzham_get_version
 _get_version.argtypes = []
 _get_version.restype = c_uint32
@@ -295,6 +301,20 @@ class ImageFormat(IntEnum):
     ETC2 = 0xD000320
 
 
+class BCnMode(IntEnum):
+    BC1 = 1
+    BC1A = 2
+    BC2 = 3
+    BC3 = 4
+    BC4 = 5
+    ATI1 = BC4
+    BC5 = 6
+    ATI2 = BC5
+    BC6U = 7
+    BC6S = 7
+    BC7 = 8
+
+
 def decompress_image(src: bytes, width: int, height: int, src_format: ImageFormat, dst_format: ImageFormat, flip: bool):
     assert dst_format in (ImageFormat.RGBA8, ImageFormat.RGBX16F)
     pixel_size = 4
@@ -302,6 +322,16 @@ def decompress_image(src: bytes, width: int, height: int, src_format: ImageForma
         pixel_size = 8
     dst = bytes(width * height * pixel_size)
     if not _image_decompress(src, len(src), dst, len(dst), width, height, src_format.value, dst_format.value, flip):
+        return None
+    return dst
+
+
+def decode_bnc(src: bytes, width: int, height: int, bcn_mode: BCnMode, flip: bool):
+    pixel_size = 4
+    if bcn_mode == BCnMode.BC6U:
+        pixel_size = 12
+    dst = bytes(width * height * pixel_size)
+    if not _image_decode_bcn(src, len(src), dst, len(dst), width, height, bcn_mode, flip):
         return None
     return dst
 

@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple, Type
 import numpy as np
 import numpy.typing as npt
 
-from ...utils.pylib import ImageFormat, decompress_image, lz4_decompress
+from ...utils.pylib import ImageFormat, decompress_image, lz4_decompress, decode_bnc, BCnMode
 from ..data_types.blocks.base import BaseBlock
 from ..data_types.blocks.texture_data import CompressedMip, TextureData
 from ..data_types.blocks.texture_data.enums import (VTexExtraData, VTexFlags,
@@ -125,12 +125,20 @@ class CompiledTextureResource(CompiledResource):
 
         if pixel_format == VTexFormat.RGBA8888:
             data = np.frombuffer(face_data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+        elif pixel_format == VTexFormat.DXT1:
+            data = decode_bnc(face_data, width, height, BCnMode.BC1, False)
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+        elif pixel_format == VTexFormat.DXT5:
+            data = decode_bnc(face_data, width, height, BCnMode.BC3, False)
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.BC6H:
-            data = decompress_image(face_data, width, height, ImageFormat.BC6U, ImageFormat.RGBX16F, False)
-            data = np.frombuffer(data, np.float16, width * height * 4).copy()
-            data[3::4] = 1
+            data = decode_bnc(face_data, width, height, BCnMode.BC6U, False)
+            full_buffer = np.ones((width * height, 4), np.float32)
+            data = np.frombuffer(data, np.float32, width * height * 3).reshape((width * height, 3))
+            full_buffer[:, :3] = data
+            data = full_buffer.reshape((width, height, 4))
         elif pixel_format == VTexFormat.BC7:
-            data = decompress_image(face_data, width, height, ImageFormat.BC7, ImageFormat.RGBA8, False)
+            data = decode_bnc(face_data, width, height, BCnMode.BC7, False)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.ATI1N:
             data = decompress_image(face_data, width, height, ImageFormat.ATI1, ImageFormat.RGBA8, False)
@@ -138,14 +146,10 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.ATI2N:
             data = decompress_image(face_data, width, height, ImageFormat.ATI2, ImageFormat.RGBA8, False)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.DXT1:
-            data = decompress_image(face_data, width, height, ImageFormat.BC1, ImageFormat.RGBA8, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.DXT5:
-            data = decompress_image(face_data, width, height, ImageFormat.BC3, ImageFormat.RGBA8, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.RGBA16161616F:
-            data = np.frombuffer(face_data, np.float16, width * height * 4)
+            data = np.frombuffer(face_data, np.float16, width * height * 4).astype(np.float32)
+        else:
+            raise Exception(f"Not supported format: {pixel_format}")
         return data, (width, height)
 
     def get_texture_data(self, mip_level: int = 0, flip=True):

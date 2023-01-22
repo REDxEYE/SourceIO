@@ -12,7 +12,7 @@ local_entity_lookup_table.update(entity_class_handle)
 
 class PortalEntityHandler(HalfLifeEntityHandler):
     entity_lookup_table = local_entity_lookup_table
-    pointlight_power_multiplier = 1000
+    pointlight_power_multiplier = 1
 
     def handle_func_portal_bumper(self, entity: func_portal_bumper, entity_raw: dict):
         if 'model' not in entity_raw:
