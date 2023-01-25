@@ -102,8 +102,9 @@ class BSPFile:
         if not lump_info.compressed:
             return self.buffer.slice(lump_info.offset, lump_info.size)
         else:
-            self.buffer = Lump.decompress_lump(self.buffer.slice(lump_info.offset, lump_info.size))
-            assert self.buffer.size() == lump_info.decompressed_size
+            buffer = Lump.decompress_lump(self.buffer.slice(lump_info.offset, lump_info.size))
+            assert buffer.size() == lump_info.decompressed_size
+            return buffer
 
     def parse_lump(self, lump_class: Type[Lump], lump_id, lump_name):
         base_path = self.filepath.parent
