@@ -187,10 +187,10 @@ def register():
     bpy.types.Mesh.flex_controllers = CollectionProperty(type=SourceIO_PG_FlexController)
     bpy.types.Mesh.flex_selected_index = IntProperty(default=0)
 
-    if is_vtflib_supported():
-        from ..library.source1.vtf import VTFLib
-        from .operators.source1_operators import export
-        bpy.types.IMAGE_MT_image.append(export)
+    # if is_vtflib_supported():
+    #     from ..library.source1.vtf import VTFLib
+    #     from .operators.source1_operators import export
+    #     bpy.types.IMAGE_MT_image.append(export)
 
 
 def unregister():

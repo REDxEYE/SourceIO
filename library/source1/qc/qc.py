@@ -61,8 +61,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
             buffer.write("\n")
 
     def write_bodygroup(bodygroup: BodyPart):
-        buffer.write(f"$bodygroup \"{bodygroup.name}\" ")
-        buffer.write("{\n")
+        buffer.write(f"$bodygroup \"{bodygroup.name}\" {{\n")
         for model in bodygroup.models:
             if len(model.meshes) == 0:
                 buffer.write("\tblank\n")

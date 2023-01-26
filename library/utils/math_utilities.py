@@ -5,6 +5,8 @@ import numpy as np
 
 # According to the Valve documentation,
 # one hammer unit is 1/16 of feet, and one feet is 30.48 cm
+from ..shared.types import Vector3
+
 SOURCE1_HAMMER_UNIT_TO_METERS = ((1 / 16) * 30.48) / 100
 # one hammer unit is 1/12 of feet, and one feet is 30.48 cm
 SOURCE2_HAMMER_UNIT_TO_METERS = ((1 / 12) * 30.48) / 100
@@ -25,7 +27,7 @@ def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
 
 
-def vector_transform(vector: List[float], matrix: List[List[float]]):
+def vector_transform(vector: Vector3[float], matrix: List[List[float]]):
     temp = np.zeros(3)
     output = np.zeros(3)
 

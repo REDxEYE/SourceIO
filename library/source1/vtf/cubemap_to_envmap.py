@@ -7,8 +7,8 @@ from . import load_texture
 
 
 def pad_to(im: np.ndarray, s_size: int):
-    new = np.zeros((s_size, s_size, 4), np.uint8)
-    new[:, :, 3] = 255
+    new = np.zeros((s_size, s_size, 4), im.dtype)
+    new[:, :, 3] = 1
     new[s_size - im.shape[0]:, s_size - im.shape[1]:, :] = im
     return new
 
@@ -35,7 +35,6 @@ def convert_skybox_to_equiangular(skyname, width=1024):
         texture_file = content_manager.find_texture(texture_path)
         if texture_file is None:
             raise SkyboxException(f'Failed to find skybox texture {texture_path}')
-
         side, h, w = load_texture(texture_file)
         side = side.reshape((w, h, 4))
         max_s = max(max(side.shape), max_s)
@@ -71,7 +70,6 @@ def convert_skybox_to_equiangular(skyname, width=1024):
             texture_file = content_manager.find_texture(texture_path)
             if texture_file is None:
                 raise SkyboxException(f'Failed to find skybox texture {texture_path}')
-
             side, h, w = load_texture(texture_file)
             side = side.reshape((w, h, 4))
             max_s = max(max(side.shape), max_s)

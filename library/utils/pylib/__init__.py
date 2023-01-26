@@ -1,9 +1,11 @@
 import platform
 from ctypes import (c_bool, c_char_p, c_int, c_int32, c_size_t, c_uint32,
                     c_void_p, cdll, POINTER, Structure, sizeof, create_string_buffer, pointer, c_ubyte, cast)
-from enum import IntEnum, auto
+from enum import IntEnum
 from pathlib import Path
 from typing import Optional
+
+import numpy as np
 
 platform_info = platform.uname()
 
@@ -145,10 +147,40 @@ _image_decompress.argtypes = [c_char_p, c_size_t, c_char_p, c_size_t, c_int32, c
 _image_decompress.restype = c_bool
 
 # bool image_decode_bcn(char *src, size_t src_size, char *dst, size_t dst_size, int32_t width,
-#                                       int32_t height, BCnMode bc_mode, uint32_t flip);
+#                                       int32_t height, BCnMode bc_mode, uint32_t flip)
 _image_decode_bcn = LIB.image_decode_bcn
 _image_decode_bcn.argtypes = [c_char_p, c_size_t, c_char_p, c_size_t, c_int32, c_int32, c_uint32, c_uint32]
 _image_decode_bcn.restype = c_bool
+
+# void *vtf_load_vtf(char *src, size_t src_size)
+_vtf_load_vtf = LIB.vtf_load_vtf
+_vtf_load_vtf.argtypes = [c_char_p, c_size_t]
+_vtf_load_vtf.restype = c_void_p
+
+# uint32_t vtf_width(VTFFile *vfile)
+_vtf_width = LIB.vtf_width
+_vtf_width.argtypes = [c_void_p]
+_vtf_width.restype = c_uint32
+
+# uint32_t vtf_height(VTFFile *vfile)
+_vtf_height = LIB.vtf_height
+_vtf_height.argtypes = [c_void_p]
+_vtf_height.restype = c_uint32
+
+# VTFImageFormat vtf_image_format(VTFFile *vfile)
+_vtf_image_format = LIB.vtf_image_format
+_vtf_image_format.argtypes = [c_void_p]
+_vtf_image_format.restype = c_uint32
+
+# bool vtf_get_as_rgba8888(VTFFile *vfile, char *dst, size_t dst_size, bool flip)
+_vtf_get_as_rgba8888 = LIB.vtf_get_as_rgba8888
+_vtf_get_as_rgba8888.argtypes = [c_void_p, c_char_p, c_size_t, c_bool]
+_vtf_get_as_rgba8888.restype = c_bool
+
+# void vtf_destroy(VTFFile *vfile)
+_vtf_destroy = LIB.vtf_destroy
+_vtf_destroy.argtypes = [c_void_p]
+_vtf_destroy.restype = None
 
 _get_version = LIB.lzham_get_version
 _get_version.argtypes = []
@@ -315,6 +347,41 @@ class BCnMode(IntEnum):
     BC7 = 8
 
 
+class VTFImageFormat(IntEnum):
+    RGBA8888 = 0
+    ABGR8888 = 1
+    RGB888 = 2
+    BGR888 = 3
+    RGB565 = 4
+    I8 = 5
+    IA88 = 6
+    P8 = 7
+    A8 = 8
+    RGB888BlueScreen = 9
+    BGR888BlueScreen = 10
+    ARGB8888 = 11
+    BGRA8888 = 12
+    DXT1 = 13
+    DXT3 = 14
+    DXT5 = 15
+    BGRX8888 = 16
+    BGR565 = 17
+    BGRX5551 = 18
+    BGRA4444 = 19
+    DXT1OneBitAlpha = 20
+    BGRA5551 = 21
+    UV88 = 22
+    UVWQ8888 = 23
+    RGBA16161616F = 24
+    RGBA16161616 = 25
+    UVLX8888 = 26
+    I32F = 27
+    RGB323232F = 28
+    RGBA32323232F = 29
+    Count = 30
+    NONE = -1
+
+
 def decompress_image(src: bytes, width: int, height: int, src_format: ImageFormat, dst_format: ImageFormat, flip: bool):
     assert dst_format in (ImageFormat.RGBA8, ImageFormat.RGBX16F)
     pixel_size = 4
@@ -334,6 +401,53 @@ def decode_bnc(src: bytes, width: int, height: int, bcn_mode: BCnMode, flip: boo
     if not _image_decode_bcn(src, len(src), dst, len(dst), width, height, bcn_mode, flip):
         return None
     return dst
+
+
+class VTFLibV2:
+    CHANNELS = [4, 4, 3, 3, 3, 1, 2, 1, 1, 3, 3, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 4, 2, 4, 4, 4, 4, 1, 3, 4, 0, 0, 0, 0, 0,
+                0, 0, 4, 4, ]
+    DTYPE = [np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8,
+             np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8,
+             np.uint8, np.uint8, np.uint8, np.uint8, np.float16, np.uint16, np.uint8, np.float32, np.float32,
+             np.float32, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, np.uint8, ]
+
+    def __init__(self, data: bytes):
+        self.handle = _vtf_load_vtf(data, len(data))
+        self.format = self.image_format()
+
+    def width(self):
+        return _vtf_width(self.handle)
+
+    def height(self):
+        return _vtf_height(self.handle)
+
+    def image_format(self):
+        return _vtf_image_format(self.handle)
+
+    def channels(self):
+        fmt = self.format
+        return self.CHANNELS[fmt]
+
+    def np_dtype(self):
+        fmt = self.format
+        return self.DTYPE[fmt]
+
+    def convert(self, flip: bool = False):
+        target_buffer = np.zeros((self.width(), self.height(), 4), np.float32)
+        target_buffer[:, :, 3] = 1
+        channels = self.channels()
+        buffer = np.zeros((self.width(), self.height(), channels), self.np_dtype())
+        _vtf_get_as_rgba8888(self.handle, buffer.ctypes.data_as(c_char_p), buffer.nbytes, flip)
+        if self.format == VTFImageFormat.RGBA16161616:
+            buffer = buffer.astype(np.float32) / 65535
+        elif self.format not in (VTFImageFormat.RGB323232F, VTFImageFormat.I32F, VTFImageFormat.RGBA32323232F,):
+            buffer = buffer.astype(np.float32) / 255
+        target_buffer[:, :, :channels] = buffer
+        return target_buffer
+
+    def destroy(self):
+        _vtf_destroy(self.handle)
+        self.handle = None
 
 
 class LZHAM:
