@@ -5,7 +5,6 @@ from pathlib import Path
 import bpy
 
 from ...library.shared.content_providers.content_manager import ContentManager
-from ...library.source1.vtf import is_vtflib_supported
 from ...library.source2 import CompiledModelResource
 from ...library.utils.path_utilities import find_vtx_cm
 from ..source1.mdl import FileImport
@@ -164,8 +163,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                                                               unique_material_names=unique_material_names)
                     if model_container is None:
                         continue
-                    if is_vtflib_supported():
-                        import_materials(model_container.mdl, unique_material_names=unique_material_names)
+                    import_materials(model_container.mdl, unique_material_names=unique_material_names)
 
                     s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
                     add_collection(prop_path, model_container.collection)
@@ -206,9 +204,8 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                     #
                     # for mesh_obj in model_container.objects:
                     #     mesh_obj['prop_path'] = prop_path
-                    # if is_vtflib_supported():
-                    #     if container is None:
-                    #         import_materials(model_container.mdl, unique_material_names=unique_material_names)
+                    # if container is None:
+                    #     import_materials(model_container.mdl, unique_material_names=unique_material_names)
                     # skin = custom_prop_data.get('skin', None)
                     # if skin:
                     #     for model in model_container.objects:

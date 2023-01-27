@@ -4,7 +4,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        IntProperty, PointerProperty, StringProperty)
 
-from ..library.source1.vtf import is_vtflib_supported
+# from ..library.source1.vtf import is_vtflib_supported
 from .operators.flex_operators import SourceIO_PG_FlexController
 from .operators.flex_operators import classes as flex_classes
 from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
@@ -26,6 +26,10 @@ from .operators.source2_operators import (SOURCEIO_OT_DMXCameraImport,
                                           SOURCEIO_OT_VMDLImport,
                                           SOURCEIO_OT_VPK_VMAPImport,
                                           SOURCEIO_OT_VTEXImport)
+from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
+                                          SOURCEIO_OT_VMTImport,
+                                          # SOURCEIO_OT_VTFExport,
+                                          SOURCEIO_OT_VTFImport)
 from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
                                       SourceIO_OP_VPKBrowserLoader)
 from .operators.vpk_operators import classes as vpk_classes
@@ -55,13 +59,12 @@ class SourceIO_MT_Menu(bpy.types.Menu):
                         icon_value=crowbar_icon.icon_id)
         layout.operator(SOURCEIO_OT_BSPImport.bl_idname, text="Source map (.bsp)",
                         icon_value=bsp_icon.icon_id)
-        if is_vtflib_supported():
-            layout.operator(SOURCEIO_OT_VTFImport.bl_idname, text="Source texture (.vtf)",
-                            icon_value=vtf_icon.icon_id)
-            layout.operator(SOURCEIO_OT_SkyboxImport.bl_idname, text="Source Skybox (.vmt)",
-                            icon_value=vtf_icon.icon_id)
-            layout.operator(SOURCEIO_OT_VMTImport.bl_idname, text="Source material (.vmt)",
-                            icon_value=vmt_icon.icon_id)
+        layout.operator(SOURCEIO_OT_VTFImport.bl_idname, text="Source texture (.vtf)",
+                        icon_value=vtf_icon.icon_id)
+        layout.operator(SOURCEIO_OT_SkyboxImport.bl_idname, text="Source Skybox (.vmt)",
+                        icon_value=vtf_icon.icon_id)
+        layout.operator(SOURCEIO_OT_VMTImport.bl_idname, text="Source material (.vmt)",
+                        icon_value=vmt_icon.icon_id)
         layout.operator(SOURCEIO_OT_DMXImporter.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
         layout.operator(SOURCEIO_OT_RigImport.bl_idname, text="SFM ik-rig script (.py)")
         layout.separator()
@@ -162,18 +165,13 @@ classes = (
     SOURCEIO_OT_ChangeSkin,
     SOURCEIO_PT_Scene,
 
+    SOURCEIO_OT_VTFImport,
+    SOURCEIO_OT_VMTImport,
+    SOURCEIO_OT_SkyboxImport
+
     *vpk_classes,
     *flex_classes,
 )
-
-if is_vtflib_supported():
-    from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
-                                              SOURCEIO_OT_VMTImport,
-                                              SOURCEIO_OT_VTFExport,
-                                              SOURCEIO_OT_VTFImport)
-
-    classes = tuple([*classes, SOURCEIO_OT_VTFExport, SOURCEIO_OT_VTFImport,
-                     SOURCEIO_OT_VMTImport, SOURCEIO_OT_SkyboxImport])
 
 register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
@@ -196,9 +194,9 @@ def register():
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
 
-    if is_vtflib_supported():
-        from .operators.source1_operators import export
-        bpy.types.IMAGE_MT_image.remove(export)
+    # if is_vtflib_supported():
+    #     from .operators.source1_operators import export
+    #     bpy.types.IMAGE_MT_image.remove(export)
     unregister_nodes()
     SingletonMeta.cleanup()
 
