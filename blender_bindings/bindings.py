@@ -167,7 +167,7 @@ classes = (
 
     SOURCEIO_OT_VTFImport,
     SOURCEIO_OT_VMTImport,
-    SOURCEIO_OT_SkyboxImport
+    SOURCEIO_OT_SkyboxImport,
 
     *vpk_classes,
     *flex_classes,
