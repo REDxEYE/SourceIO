@@ -58,10 +58,8 @@ if platform_info.system == "Windows":
 elif platform_info.system == 'Linux':
     pylib_path /= "unix/pylib.so"
 
-elif platform_info.system == 'Darwin' and platform_info.machine == "arm64":
-    pylib_path /= "macos_m1/pylib.dylib"
-elif platform_info.system == 'Darwin' and platform_info.machine == "x86_64":
-    pylib_path /= "macos_x86/pylib.dylib"
+elif platform_info.system == 'Darwin':
+    pylib_path /= "macos/pylib.dylib"
 else:
     raise UnsupportedSystem(f'System {platform_info} not suppported')
 
