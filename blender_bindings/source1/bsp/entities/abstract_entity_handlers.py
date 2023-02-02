@@ -79,7 +79,7 @@ class AbstractEntityHandler:
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
             entity_class: str = entity_data['classname']
-            if entity_class.startswith("env_") or entity_class.startswith("ambient_") and not settings.load_env:
+            if (entity_class.startswith("env_") or entity_class.startswith("ambient_")) and not settings.load_env:
                 continue
             elif entity_class.startswith("info_") and not settings.load_info:
                 continue
