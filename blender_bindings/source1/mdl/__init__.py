@@ -37,5 +37,9 @@ def put_into_collections(model_container: Source1ModelContainer, model_name,
         attachments_collection = get_new_unique_collection(model_name + '_ATTACHMENTS', master_collection)
         for attachment in model_container.attachments:
             attachments_collection.objects.link(attachment)
+    if model_container.physics:
+        physics_collection = get_new_unique_collection(model_name + '_PHYSICS', master_collection)
+        for physics in model_container.physics:
+            physics_collection.objects.link(physics)
     model_container.collection = master_collection
     return master_collection

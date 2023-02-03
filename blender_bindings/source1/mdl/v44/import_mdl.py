@@ -52,7 +52,7 @@ def create_armature(mdl: MdlV44, scale=1.0):
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 
     bpy.ops.object.mode_set(mode='POSE')
-    for se_bone in mdl.bones:
+    for n, se_bone in enumerate(mdl.bones):
         bl_bone = armature_obj.pose.bones.get(se_bone.name[-63:])
         pos = Vector(se_bone.position) * scale
         rot = Euler(se_bone.rotation)
@@ -60,11 +60,27 @@ def create_armature(mdl: MdlV44, scale=1.0):
         bl_bone.matrix_basis.identity()
 
         bl_bone.matrix = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+
     bpy.ops.pose.armature_apply()
+
+    ref_animation = mdl.animations[0]
+    frame_zero = ref_animation[0]
+    for bone, anim_data in enumerate(frame_zero):
+        mdl_bone = mdl.bones[bone]
+        bl_bone = armature_obj.pose.bones.get(mdl_bone.name[-63:])
+
+        pos = Vector(anim_data["pos"]) * scale
+        x, y, z, w = anim_data["rot"]
+        rot = Quaternion((w, x, y, z))
+        mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+        mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+        bl_bone.matrix = mat
+
     bpy.ops.object.mode_set(mode='OBJECT')
 
     bpy.context.scene.collection.objects.unlink(armature_obj)
     return armature_obj
+
 
 
 def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_meshes=False,
@@ -288,6 +304,65 @@ def import_materials(mdl, unique_material_names=False, use_bvlg=False):
 def __swap_components(vec, mp):
     __pat = 'XYZ'
     return [vec[__pat.index(k)] for k in mp]
+
+
+def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: str, armature: bpy.types.Object,
+                             scale: float):
+    bpy.context.view_layer.update()
+    for n, anim in enumerate(mdl.sequences):
+        if anim.name.strip("@") == animation_name:
+
+            ref_animation = mdl.animations[n]
+            frame_zero = ref_animation[0]
+
+            bpy.context.view_layer.objects.active = armature
+            armature.select_set(True)
+
+            bpy.ops.object.mode_set(mode='POSE')
+
+            for bone, anim_data in enumerate(frame_zero):
+                mdl_bone = mdl.bones[bone]
+                bl_bone = armature.pose.bones.get(mdl_bone.name[-63:])
+
+                pos = Vector(anim_data["pos"]) * scale
+                x, y, z, w = anim_data["rot"]
+                rot = Quaternion((w, x, y, z))
+                mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+                mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+                bl_bone.matrix = mat
+
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return
+
+    for include_model in mdl.include_models:
+        buffer = cm.find_file(include_model)
+        if buffer:
+            i_mdl = MdlV44.from_buffer(buffer)
+
+            for n, anim in enumerate(i_mdl.sequences):
+                if anim.name.strip("@") == animation_name:
+
+                    ref_animation = i_mdl.animations[n]
+                    frame_zero = ref_animation[0]
+
+                    armature.select_set(True)
+                    bpy.context.view_layer.objects.active = armature
+
+                    bpy.ops.object.mode_set(mode='POSE')
+
+                    for bone, anim_data in enumerate(frame_zero):
+                        mdl_bone = i_mdl.bones[bone]
+                        bl_bone = armature.pose.bones.get(mdl_bone.name[-63:])
+                        pos = Vector(anim_data["pos"]) * scale
+                        x, y, z, w = anim_data["rot"]
+                        rot = Quaternion((w, x, y, z))
+                        mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+                        mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+
+                        bl_bone.matrix = mat
+
+                    bpy.ops.object.mode_set(mode='OBJECT')
+                    return
 
 
 def import_animations(mdl: MdlV44, armature, scale):

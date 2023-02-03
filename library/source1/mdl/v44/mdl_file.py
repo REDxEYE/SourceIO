@@ -1,10 +1,11 @@
-import math
 import traceback
 from dataclasses import dataclass
 from typing import Dict, List, Mapping
 
-import numpy as np
+import numpy.typing as npt
 
+from ..structs.local_animation import StudioAnimDesc
+from ..structs.sequence import StudioSequence
 from ....utils import Buffer
 from ....utils.kv_parser import ValveKeyValueParser
 from .. import Mdl
@@ -42,8 +43,14 @@ class MdlV44(Mdl):
 
     attachments: List[Attachment]
 
+    anim_descs: List[StudioAnimDesc]
+    sequences: List[StudioSequence]
+    animations: List[npt.NDArray]
+
     key_values_raw: str
     key_values: Mapping
+
+    include_models: List[str]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

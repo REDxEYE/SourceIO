@@ -10,7 +10,7 @@ from ...library.utils.path_utilities import find_vtx_cm
 from ..source1.mdl import FileImport
 from ..source1.mdl import put_into_collections as s1_put_into_collections
 from ..source1.mdl.model_loader import import_model_from_files
-from ..source1.mdl.v49.import_mdl import import_materials
+from ..source1.mdl.v49.import_mdl import import_materials, import_static_animations
 from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
@@ -24,15 +24,23 @@ def get_parent(collection):
     return bpy.context.scene.collection
 
 
-def get_collection(model_path: Path):
-    key = md5(model_path.as_posix().encode("ascii")).hexdigest()
+def get_collection(model_path: Path, *other_args):
+    md_ = md5(model_path.as_posix().encode("ascii"))
+    for key in other_args:
+        if key:
+            md_.update(key.encode("ascii"))
+    key = md_.hexdigest()
     cache = bpy.context.scene.get("INSTANCE_CACHE", {})
     if key in cache:
         return cache[key]
 
 
-def add_collection(model_path: Path, collection: bpy.types.Collection):
-    key = md5(model_path.as_posix().encode("ascii")).hexdigest()
+def add_collection(model_path: Path, collection: bpy.types.Collection, *other_args):
+    md_ = md5(model_path.as_posix().encode("ascii"))
+    for key in other_args:
+        if key:
+            md_.update(key.encode("ascii"))
+    key = md_.hexdigest()
     cache = bpy.context.scene.get("INSTANCE_CACHE", {})
     cache[key] = collection.name
     bpy.context.scene["INSTANCE_CACHE"] = cache
@@ -137,9 +145,10 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                     else:
                         self.report({'INFO'}, f"Model '{prop_path}' not found!")
                 elif model_type == '.mdl':
+                    default_anim = custom_prop_data["entity"].get("defaultanim", None)
                     prop_path = Path(prop_path)
 
-                    instance_collection = get_collection(prop_path)
+                    instance_collection = get_collection(prop_path, default_anim)
                     if instance_collection:
                         collection = bpy.data.collections.get(instance_collection, None)
                         if collection is not None:
@@ -166,7 +175,11 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                     import_materials(model_container.mdl, unique_material_names=unique_material_names)
 
                     s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
-                    add_collection(prop_path, model_container.collection)
+                    add_collection(prop_path, model_container.collection, default_anim)
+
+                    if default_anim is not None:
+                        import_static_animations(content_manager, model_container.mdl, default_anim,
+                                                 model_container.armature, 1.0)
 
                     obj.instance_type = 'COLLECTION'
                     obj.instance_collection = model_container.collection

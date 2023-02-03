@@ -1,5 +1,8 @@
+import math
 from dataclasses import dataclass
 
+from ..structs.local_animation import StudioAnimDesc
+from ..structs.sequence import StudioSequence
 from .....logger import SLoggingManager
 from ....utils import Buffer
 from ....utils.kv_parser import KVParserException, ValveKeyValueParser
@@ -94,6 +97,29 @@ class MdlV49(MdlV44):
         for _ in range(header.body_part_count):
             body_part = BodyPart.from_buffer(buffer, header.version)
             body_parts.append(body_part)
+
+        local_animations = []
+        buffer.seek(header.local_animation_offset)
+        for _ in range(header.local_animation_count):
+            local_animations.append(StudioAnimDesc.from_buffer(buffer))
+
+        local_sequences = []
+        buffer.seek(header.local_sequence_offset)
+        for _ in range(header.local_sequence_count):
+            local_sequences.append(StudioSequence.from_buffer(buffer, header.version))
+
+        animations = []
+        for anim_desc in local_animations:
+            animations.append(anim_desc.read_animations(buffer, bones))
+
+        include_models = []
+        buffer.seek(header.include_model_offset)
+        for inc_model in range(header.include_model_count):
+            entry = buffer.tell()
+            label = buffer.read_source1_string(entry)
+            path = buffer.read_source1_string(entry)
+            include_models.append(path)
+
         buffer.seek(header.key_value_offset)
         key_values_raw = buffer.read(header.key_value_size).strip(b'\x00').decode('latin1')
         key_values = {}
@@ -107,4 +133,5 @@ class MdlV49(MdlV44):
                 logger.exception('Failed to parse key values due to', e)
 
         return cls(header, bones, skin_groups, materials, materials_paths, flex_names, flex_controllers,
-                   flex_ui_controllers, flex_rules, body_parts, attachments, key_values_raw, key_values)
+                   flex_ui_controllers, flex_rules, body_parts, attachments, local_animations, local_sequences,
+                   animations, key_values_raw, key_values, include_models)

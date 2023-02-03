@@ -1,5 +1,3 @@
-import math
-import sys
 import warnings
 from pathlib import Path
 
@@ -16,8 +14,6 @@ from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.mdl.v49.mdl_file import MdlV49
 from .....library.source1.vtx import open_vtx
 from .....library.source1.vvd import Vvd
-from .....library.utils import Buffer
-from .....library.utils.math_utilities import euler_to_quat
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -25,6 +21,7 @@ from ....shared.model_container import Source1ModelContainer
 from ....utils.utils import add_material
 from .. import FileImport
 from ..common import get_slice, merge_meshes
+from ..v44.import_mdl import create_armature
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -39,45 +36,6 @@ def collect_full_material_names(mdl: MdlV49):
             if real_material_path is not None:
                 full_mat_names[material.name] = str(Path(material_path) / material.name)
     return full_mat_names
-
-
-def create_armature(mdl: MdlV49, scale=1.0):
-    model_name = Path(mdl.header.name).stem
-    armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
-    armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
-    armature_obj['MODE'] = 'SourceIO'
-    armature_obj.show_in_front = True
-    bpy.context.scene.collection.objects.link(armature_obj)
-
-    armature_obj.select_set(True)
-    bpy.context.view_layer.objects.active = armature_obj
-
-    bpy.ops.object.mode_set(mode='EDIT')
-    bl_bones = []
-    for bone in mdl.bones:
-        bl_bone = armature.edit_bones.new(bone.name[-63:])
-        bl_bones.append(bl_bone)
-
-    for bl_bone, s_bone in zip(bl_bones, mdl.bones):
-        if s_bone.parent_bone_id != -1:
-            bl_parent = bl_bones[s_bone.parent_bone_id]
-            bl_bone.parent = bl_parent
-        bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
-
-    bpy.ops.object.mode_set(mode='POSE')
-    for n, se_bone in enumerate(mdl.bones):
-        bl_bone = armature_obj.pose.bones.get(se_bone.name[-63:])
-        pos = Vector(se_bone.position) * scale
-        rot = Euler(se_bone.rotation)
-        mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-        bl_bone.matrix_basis.identity()
-
-        bl_bone.matrix = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
-    bpy.ops.pose.armature_apply()
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    bpy.context.scene.collection.objects.unlink(armature_obj)
-    return armature_obj
 
 
 def import_model(file_list: FileImport,

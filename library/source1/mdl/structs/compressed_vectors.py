@@ -19,9 +19,9 @@ class Quat64(Quat):
         zs = (b1 >> 10) & 0x1FFFFF
         wn = -1 if (b1 & 0x80000000) else 1
 
-        x = (xs - 0x100000) / 0x100000
-        y = (ys - 0x100000) / 0x100000
-        z = (zs - 0x100000) / 0x100000
+        x = (xs - 1048576) * (1 / 1048576.5)
+        y = (ys - 1048576) * (1 / 1048576.5)
+        z = (zs - 1048576) * (1 / 1048576.5)
         w = wn * math.sqrt(1.0 - x * x - y * y - z * z)
         return x, y, z, w
 
@@ -29,14 +29,16 @@ class Quat64(Quat):
 class Quat48(Quat):
     @staticmethod
     def read(buffer: Buffer):
-        x = (buffer.read_uint16() - 32768) / 32768
-        y = (buffer.read_uint16() - 32768) / 32768
+        raw_x = buffer.read_uint16()
+        raw_y = buffer.read_uint16()
         raw_z = buffer.read_uint16()
-        z = ((raw_z & 0x7FFF) - 16384) / 16384
+        x = (raw_x - 32768) * (1 / 32768)
+        y = (raw_y - 32768) * (1 / 32768)
+        z = ((raw_z & 0x7FFF) - 16384) * (1 / 16384)
         w_neg = (raw_z >> 15) & 0x1
         w = math.sqrt(1 - x * x - y * y - z * z)
         if w_neg:
-            w *= -1
+            w = -w
         return x, y, z, w
 
 

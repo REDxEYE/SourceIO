@@ -31,13 +31,14 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
 
     mesh_name = Path(mdl.header.name).stem
 
-    phy_collection = get_new_unique_collection(mesh_name + '_PHYSICS', container.collection)
+    # phy_collection = get_new_unique_collection(mesh_name + '_PHYSICS', container.collection)
 
     for i, solid in enumerate(phy.solids):
         meshes: List[ConvexLeaf] = []
         vertex_count = len(_collect_meshes(solid.collision_model.root_tree, meshes))
 
-        vertex_data = solid.collision_model.get_vertex_data(file_list.phy_file, solid.collision_model.root_tree.convex_leaf,
+        vertex_data = solid.collision_model.get_vertex_data(file_list.phy_file,
+                                                            solid.collision_model.root_tree.convex_leaf,
                                                             vertex_count)
         for j, mesh in enumerate(meshes):
             used_vertices_ids, _, new_indices = np.unique(mesh.triangles, return_index=True, return_inverse=True)
@@ -69,5 +70,5 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
                     type="ARMATURE", name="Armature")
                 modifier.object = container.armature
                 mesh_obj.parent = container.armature
-
-            phy_collection.objects.link(mesh_obj)
+            container.physics.append(mesh_obj)
+            # phy_collection.objects.link(mesh_obj)

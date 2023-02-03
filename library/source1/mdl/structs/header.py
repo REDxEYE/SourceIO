@@ -479,7 +479,7 @@ class MdlHeaderV49:
     include_model_count: int
     include_model_offset: int
     virtual_model_pointer: int
-    anim_block_name_offset: int
+    anim_block_name: str
     anim_block_count: int
     anim_block_offset: int
     anim_block_model_pointer: int
@@ -559,7 +559,8 @@ class MdlHeaderV49:
         mass, contents = buffer.read_fmt('fI')
 
         include_model_count, include_model_offset = buffer.read_fmt('2I')
-        virtual_model_pointer, anim_block_name_offset = buffer.read_fmt('2I')
+        virtual_model_pointer = buffer.read_uint32()
+        anim_block_name = buffer.read_source1_string(0)
         anim_block_count, anim_block_offset = buffer.read_fmt('2I')
 
         anim_block_model_pointer, bone_table_by_name_offset = buffer.read_fmt('2I')
@@ -596,7 +597,7 @@ class MdlHeaderV49:
                    ik_chain_offset, mouth_count, mouth_offset, local_pose_paramater_count, local_pose_parameter_offset,
                    surface_prop, key_value_offset, key_value_size, local_ik_auto_play_lock_count,
                    local_ik_auto_play_lock_offset, mass, contents, include_model_count, include_model_offset,
-                   virtual_model_pointer, anim_block_name_offset, anim_block_count, anim_block_offset,
+                   virtual_model_pointer, anim_block_name, anim_block_count, anim_block_offset,
                    anim_block_model_pointer, bone_table_by_name_offset, vertex_base_pointer, index_base_pointer,
                    allowed_root_lod_count, unused4, flex_controller_ui_count, flex_controller_ui_offset,
                    vert_anim_fixed_point_scale, unused3, studio_header2_offset, unused2, source_bone_transform_count,

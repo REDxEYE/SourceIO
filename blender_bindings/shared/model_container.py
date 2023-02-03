@@ -72,6 +72,7 @@ class Source1ModelContainer(ModelContainer):
         self.vvd: Vvd = vvd
         self.vtx: Vtx = vtx
         self.file_list: FileImport = file_list
+        self.physics = []
         self.attachments = []
 
     def clone(self):

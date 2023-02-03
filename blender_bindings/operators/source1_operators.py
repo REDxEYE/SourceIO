@@ -11,7 +11,6 @@ from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 # from ..source1.vtf.export_vtf import export_texture
 
-from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ...logger import SLoggingManager
 from ..material_loader.material_loader import Source1MaterialLoader
 from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -120,7 +119,7 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
         content_manager = ContentManager()
         content_manager.scan_for_content(self.filepath)
 
-        bsp_map = BSP(self.filepath, content_manager,self)
+        bsp_map = BSP(self.filepath, content_manager, self)
         bpy.context.scene['content_manager_data'] = content_manager.serialize()
 
         bsp_map.load_disp()
@@ -165,8 +164,6 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
         wm = context.window_manager
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
-
-
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -274,7 +271,6 @@ class SOURCEIO_OT_VMTImport(bpy.types.Operator):
         wm = context.window_manager
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
-
 
     # # noinspection PyUnresolvedReferences,PyPep8Naming
     # class SOURCEIO_OT_VTFExport(bpy.types.Operator):
