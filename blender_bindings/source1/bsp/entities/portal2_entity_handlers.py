@@ -45,6 +45,10 @@ class Portal2EntityHandler(PortalEntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_tractor_beam', obj, 'props')
 
+    def handle_prop_wall_projector(self, entity: prop_wall_projector, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection('prop_wall_projector', obj, 'props')
+
     def handle_prop_laser_catcher(self, entity: prop_laser_catcher, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_laser_catcher', obj, 'props')
