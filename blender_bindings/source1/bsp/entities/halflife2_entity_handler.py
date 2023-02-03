@@ -518,8 +518,8 @@ class HalfLifeEntityHandler(BaseEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_monitor', mesh_object, 'brushes')
 

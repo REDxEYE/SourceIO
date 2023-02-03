@@ -49,8 +49,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_water_analog', mesh_object, 'brushes')
 
@@ -59,8 +58,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_door', mesh_object, 'brushes')
 
@@ -69,8 +68,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_movelinear', mesh_object, 'brushes')
 
@@ -79,8 +78,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_rotating', mesh_object, 'brushes')
 
@@ -89,8 +87,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_button', mesh_object, 'brushes')
 
@@ -115,8 +112,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_door_rotating', mesh_object, 'brushes')
 
@@ -125,8 +122,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_breakable', mesh_object, 'brushes')
 
@@ -233,6 +230,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_brush', mesh_object, 'brushes')
 
