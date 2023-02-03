@@ -54,6 +54,11 @@ class GameLump(Lump):
         return self
 
 
+@lump_tag(35, 'LUMP_GAME_LUMP', bsp_version=(21, 0))
+class GameLump21(GameLump):
+    pass
+
+
 @lump_tag(35, 'LUMP_GAME_LUMP', bsp_version=(20, 4))
 class GameLump204(Lump):
     def __init__(self, lump_info: LumpInfo):

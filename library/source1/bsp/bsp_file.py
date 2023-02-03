@@ -47,7 +47,7 @@ class BSPFile:
         if version > 0xFFFF:
             self.version = version & 0xFFFF, version >> 16
         else:
-            self.version = (version,)
+            self.version = (version, 0)
         self.is_l4d2 = is_l4d2 = buffer.peek_uint32() <= 1036 and self.version == (21, 0)
         self.lumps_info = [None] * 64
         for lump_id in range(64):
