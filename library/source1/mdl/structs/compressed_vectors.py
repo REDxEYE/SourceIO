@@ -48,16 +48,24 @@ class Quat48S(Quat):
 
     @staticmethod
     def read(buffer: Buffer):
+        quat = [0, 0, 0, 0]
         data = buffer.read_fmt('3H')
-        ia = (data[1] & 1) + (data[0] & 1) * 2
+        a = data[0] & 0x7FFF
+        offset_h = data[0] >> 15
+        b = data[1] & 0x7FFF
+        offset_l = data[1] >> 15
+        c = data[2] & 0x7FFF
+        d_neg = data[2] >> 15
+
+        ia = offset_l + offset_h * 2
         ib = (ia + 1) % 4
         ic = (ia + 2) % 4
         id = (ia + 3) % 4
-        quat = [0, 0, 0, 0]
-        quat[ia] = ((data[0] >> 1) - Quat48S.SCALE48S) * (1 / Quat48S.SCALE48S)
-        quat[ib] = ((data[1] >> 1) - Quat48S.SCALE48S) * (1 / Quat48S.SCALE48S)
-        quat[ic] = ((data[2] >> 1) - Quat48S.SCALE48S) * (1 / Quat48S.SCALE48S)
+
+        quat[ia] = (a - Quat48S.SHIFT48S) * (1 / Quat48S.SCALE48S)
+        quat[ib] = (b - Quat48S.SHIFT48S) * (1 / Quat48S.SCALE48S)
+        quat[ic] = (c - Quat48S.SHIFT48S) * (1 / Quat48S.SCALE48S)
         quat[id] = math.sqrt(1.0 - quat[ia] * quat[ia] - quat[ib] * quat[ib] - quat[ic] * quat[ic])
-        if data[2] & 1:
+        if d_neg:
             quat[id] = -quat[id]
         return quat

@@ -7,6 +7,7 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
 
 from .import_settings_base import MDLSettings, Source1BSPSettings
 from ..source1.mdl import put_into_collections
+from ..source1.mdl.v49.import_mdl import import_animations
 from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 # from ..source1.vtf.export_vtf import export_texture

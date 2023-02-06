@@ -5,7 +5,8 @@ from typing import List
 import numpy as np
 
 from .bone import Bone
-from .compressed_vectors import Quat64, Quat48
+from .compressed_vectors import Quat64, Quat48, Quat48S
+from .frame_anim import StudioFrameAnim
 from ....utils import Buffer
 
 ANIM_DTYPE = np.dtype([
@@ -41,6 +42,17 @@ class AnimBoneFlags(IntFlag):
     ANIM_ROT = 0x08
     ANIM_DELTA = 0x10
     ANIM_RAW_ROT2 = 0x20
+
+
+class AniBoneFlags(IntFlag):
+    RAW_POS = 0x1
+    RAW_ROT = 0x2
+    ANIM_POS = 0x4
+    ANIM_ROT = 0x8
+    FULL_ANIM_POS = 0x10
+    CONST_POS2 = 0x20
+    CONST_ROT2 = 0x40
+    ANIM_ROT2 = 0x80
 
 
 @dataclass(slots=True)
@@ -120,7 +132,7 @@ class StudioAnimDesc:
                         section_frame_count = self.frame_count - (len(sections) - 2) * frames_per_sec
 
                     buffer.seek(self._entry_offset + adjusted_anim_offset)
-                    if frame_offset==self.frame_count:
+                    if frame_offset == self.frame_count:
                         break
                     animation_section = self._read_animation_frames(buffer, bones, section_frame_count)
                     frame_buffer[frame_offset:frame_offset + section_frame_count, :] = animation_section
@@ -132,9 +144,48 @@ class StudioAnimDesc:
 
     def _read_animation_frames(self, buffer: Buffer, bones: List[Bone], section_frame_count: int):
         if self.flags & AnimDescFlags.FRAMEANIM:
-            assert False
+            return self._read_frame_animations(buffer, bones, section_frame_count)
         else:
             return self._read_mdl_animations(buffer, bones, section_frame_count)
+
+    def _read_frame_animations(self, buffer: Buffer, bones: List[Bone], section_frame_count: int):
+        entry_offset = buffer.tell()
+        frame_anim = StudioFrameAnim.from_buffer(buffer)
+        bone_flags = [AniBoneFlags(buffer.read_uint8()) for _ in bones]
+        constant_info = np.zeros((1, len(bones),), ANIM_DTYPE)
+        if frame_anim.constant_offset > 0:
+            assert frame_anim.frame_length == 0
+            buffer.seek(entry_offset + frame_anim.constant_offset)
+            for bone in bones:
+                flag = bone_flags[bone.bone_id]
+                if flag & AniBoneFlags.CONST_ROT2:
+                    constant_info[0, bone.bone_id]["rot"] = Quat48S.read(buffer)
+                if flag & AniBoneFlags.RAW_ROT:
+                    constant_info[0, bone.bone_id]["rot"] = Quat48.read(buffer)
+                if flag & AniBoneFlags.RAW_POS:
+                    constant_info[0, bone.bone_id]["pos"] = buffer.read_fmt("3e")
+                if flag & AniBoneFlags.CONST_POS2:
+                    constant_info[0, bone.bone_id]["pos"] = buffer.read_fmt("3f")
+            return constant_info
+
+        elif frame_anim.frame_offset != 0 and frame_anim.frame_length > 0:
+            section_frame_buffer = np.zeros((section_frame_count, len(bones)), ANIM_DTYPE)
+
+            assert frame_anim.constant_offset == 0
+            buffer.seek(entry_offset + frame_anim.frame_offset)
+            for frame_id in range(section_frame_count):
+                for bone in bones:
+                    bone_flag = bone_flags[bone.bone_id]
+
+                    if bone_flag & AniBoneFlags.ANIM_ROT2:
+                        section_frame_buffer[frame_id, bone.bone_id]["rot"] = Quat48S.read(buffer)
+                    if bone_flag & AniBoneFlags.ANIM_ROT:
+                        section_frame_buffer[frame_id, bone.bone_id]["rot"] = Quat48.read(buffer)
+                    if bone_flag & AniBoneFlags.ANIM_POS:
+                        section_frame_buffer[frame_id, bone.bone_id]["pos"] = buffer.read_fmt("3e")
+                    if bone_flag & AniBoneFlags.FULL_ANIM_POS:
+                        section_frame_buffer[frame_id, bone.bone_id]["pos"] = buffer.read_fmt("3f")
+            return section_frame_buffer
 
     def _read_mdl_animations(self, buffer: Buffer, bones: List[Bone], section_frame_count: int):
         animation_sections = []

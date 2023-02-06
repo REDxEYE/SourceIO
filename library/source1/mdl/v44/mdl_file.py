@@ -136,31 +136,33 @@ class MdlV44(Mdl):
             key_values = parser.tree
         else:
             key_values = {}
-        # buffer.seek(header.local_animation_offset)
-        # for _ in range(header.local_animation_count):
-        #     anim_desc = AnimDesc()
-        #     anim_desc.read(buffer)
-        #     anim_descs.append(anim_desc)
-        #
-        # buffer.seek(header.local_sequence_offset)
-        # for _ in range(header.local_sequence_count):
-        #     seq = Sequence()
-        #     seq.read(buffer)
-        #     sequences.append(seq)
 
-        # anim_block.name = buffer.read_from_offset(header.anim_block_name_offset,
-        #                                                     buffer.read_ascii_string)
-        # buffer.seek(header.anim_block_offset)
-        # for _ in range(header.anim_block_count):
-        #     anim_block.blocks.append(buffer.read_fmt('2i'))
-        #
-        # if header.bone_table_by_name_offset and bones:
-        #     buffer.seek(header.bone_table_by_name_offset)
-        #     bone_table_by_name = [buffer.read_uint8() for _ in range(len(bones))]
+        local_animations = []
+        buffer.seek(header.local_animation_offset)
+        for _ in range(header.local_animation_count):
+            local_animations.append(StudioAnimDesc.from_buffer(buffer))
+
+        local_sequences = []
+        buffer.seek(header.local_sequence_offset)
+        for _ in range(header.local_sequence_count):
+            local_sequences.append(StudioSequence.from_buffer(buffer, header.version))
+
+        animations = []
+        for anim_desc in local_animations:
+            animations.append(anim_desc.read_animations(buffer, bones))
+
+        include_models = []
+        buffer.seek(header.include_model_offset)
+        for inc_model in range(header.include_model_count):
+            entry = buffer.tell()
+            label = buffer.read_source1_string(entry)
+            path = buffer.read_source1_string(entry)
+            include_models.append(path)
 
         # for anim
         return cls(header, bones, skin_groups, materials, materials_paths, flex_names, flex_controllers,
-                   flex_ui_controllers, flex_rules, body_parts, attachments, key_values_raw, key_values)
+                   flex_ui_controllers, flex_rules, body_parts, attachments, local_animations, local_sequences,
+                   animations, key_values_raw, key_values, include_models)
 
     def rebuild_flex_rules(self):
         flex_controllers: Dict[str, FlexControllerUI] = {f.left_controller: f for f in self.flex_ui_controllers if

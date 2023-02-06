@@ -4,13 +4,14 @@ from pathlib import Path
 
 import bpy
 
+from ..source1.mdl.v44.import_mdl import import_static_animations
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ...library.utils.path_utilities import find_vtx_cm
 from ..source1.mdl import FileImport
 from ..source1.mdl import put_into_collections as s1_put_into_collections
 from ..source1.mdl.model_loader import import_model_from_files
-from ..source1.mdl.v49.import_mdl import import_materials, import_static_animations
+from ..source1.mdl.v49.import_mdl import import_materials
 from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
