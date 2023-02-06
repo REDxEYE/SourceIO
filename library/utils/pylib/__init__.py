@@ -376,7 +376,16 @@ class VTFImageFormat(IntEnum):
     I32F = 27
     RGB323232F = 28
     RGBA32323232F = 29
-    Count = 30
+    NV_DST16 = 30
+    NV_DST24 = 31
+    NV_INTZ = 32
+    NV_RAWZ = 33
+    ATI_DST16 = 34
+    ATI_DST24 = 35
+    NV_NULL = 36
+    ATI2N = 37
+    ATI1N = 38
+    Count = 39
     NONE = -1
 
 
@@ -436,6 +445,11 @@ class VTFLibV2:
         channels = self.channels()
         buffer = np.zeros((self.width(), self.height(), channels), self.np_dtype())
         _vtf_get_as_rgba8888(self.handle, buffer.ctypes.data_as(c_char_p), buffer.nbytes, flip)
+        if self.format not in (
+                VTFImageFormat.DXT1, VTFImageFormat.DXT1OneBitAlpha, VTFImageFormat.DXT3, VTFImageFormat.DXT5,
+                VTFImageFormat.ATI1N, VTFImageFormat.ATI2N):
+            buffer = np.flipud(buffer)
+
         if self.format == VTFImageFormat.RGBA16161616:
             buffer = buffer.astype(np.float32) / 65535
         elif self.format not in (VTFImageFormat.RGB323232F, VTFImageFormat.I32F, VTFImageFormat.RGBA32323232F,):
