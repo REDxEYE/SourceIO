@@ -61,9 +61,8 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
                     logger.error(f'Failed to import materials, caused by {t_ex}')
                     import traceback
                     traceback.print_exc()
-            # if self.import_animations and model_container.armature:
-            #     logger.info('Loading animations')
-            #     import_animations(model_container.mdl, model_container.armature, self.scale)
+            if self.import_animations and model_container.armature:
+                import_animations(content_manager, model_container.mdl, model_container.armature, self.scale)
             if self.write_qc:
                 from ... import bl_info
                 from ...library.source1.qc.qc import generate_qc

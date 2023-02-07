@@ -31,7 +31,7 @@ class GMA:
         buffer = self.buffer
         magic = buffer.read(4)
         assert magic == b'GMAD'
-        self.version, self.steam_id, timestamp = buffer.read_fmt('>BQQ')
+        self.version, self.steam_id, timestamp = buffer.read_fmt('BQQ')
         self.timestamp = timestamp
         if self.version > 1:
             self.required_content = buffer.read_ascii_string()
