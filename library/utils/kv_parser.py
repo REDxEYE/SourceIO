@@ -56,9 +56,10 @@ class _KVDataProxy(Mapping):
 
     def top(self) -> Tuple[str, Union[str, '_KVDataProxy']]:
         # assert len(self.data) == 1
-        print("More than one root node:")
-        print(self.data[0])
-        print(self.data[1])
+        if len(self.data)>1:
+            print("More than one root node:")
+            print(self.data[0])
+            print(self.data[1])
         key, value = self.data[0]
         return key, self._wrap_value(value)
 
