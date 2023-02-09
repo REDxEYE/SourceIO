@@ -16,6 +16,13 @@ class FileImport:
     vvc_file: Optional[Buffer]
     phy_file: Optional[Buffer]
 
+    def is_valid(self):
+        if self.mdl_file is None:
+            return False
+        if self.mdl_file.size() == 0:
+            return False
+        return True
+
 
 def put_into_collections(model_container: Source1ModelContainer, model_name,
                          parent_collection=None, bodygroup_grouping=False):
