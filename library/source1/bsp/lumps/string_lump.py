@@ -25,5 +25,5 @@ class StringsLump(Lump):
     def parse(self):
         reader = self.reader
         data = reader.read(-1)
-        self.strings = list(map(lambda a: a.decode("utf"), data.split(b'\x00')))
+        self.strings = list(map(lambda a: a.decode("latin1"), data.split(b'\x00')))
         return self
