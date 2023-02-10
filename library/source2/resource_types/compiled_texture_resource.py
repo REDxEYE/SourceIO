@@ -7,6 +7,7 @@ from typing import Dict, Optional, Tuple, Type
 import numpy as np
 import numpy.typing as npt
 
+from ..data_types.blocks.resource_edit_info import ResourceEditInfo
 from ...utils.pylib import ImageFormat, decompress_image, lz4_decompress, decode_bnc, BCnMode
 from ..data_types.blocks.base import BaseBlock
 from ..data_types.blocks.texture_data import CompressedMip, TextureData
@@ -24,7 +25,7 @@ class CompiledTextureResource(CompiledResource):
     def _get_block_class(self, name) -> Type[BaseBlock]:
         if name == 'DATA':
             return TextureData
-        return super()._get_block_class(name)
+        return super(CompiledTextureResource, self)._get_block_class(name)
 
     def _calculate_buffer_size_for_mip(self, data_block: TextureData, mip_level):
         texture_info = data_block.texture_info
@@ -123,33 +124,7 @@ class CompiledTextureResource(CompiledResource):
         width = data_block.texture_info.width >> mip_level
         height = data_block.texture_info.height >> mip_level
 
-        if pixel_format == VTexFormat.RGBA8888:
-            data = np.frombuffer(face_data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.DXT1:
-            data = decode_bnc(face_data, width, height, BCnMode.BC1, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.DXT5:
-            data = decode_bnc(face_data, width, height, BCnMode.BC3, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.BC6H:
-            data = decode_bnc(face_data, width, height, BCnMode.BC6U, False)
-            full_buffer = np.ones((width * height, 4), np.float32)
-            data = np.frombuffer(data, np.float32, width * height * 3).reshape((width * height, 3))
-            full_buffer[:, :3] = data
-            data = full_buffer.reshape((width, height, 4))
-        elif pixel_format == VTexFormat.BC7:
-            data = decode_bnc(face_data, width, height, BCnMode.BC7, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.ATI1N:
-            data = decompress_image(face_data, width, height, ImageFormat.ATI1, ImageFormat.RGBA8, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.ATI2N:
-            data = decompress_image(face_data, width, height, ImageFormat.ATI2, ImageFormat.RGBA8, False)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-        elif pixel_format == VTexFormat.RGBA16161616F:
-            data = np.frombuffer(face_data, np.float16, width * height * 4).astype(np.float32)
-        else:
-            raise Exception(f"Not supported format: {pixel_format}")
+        data = self._decompress_texture(face_data, False, height, pixel_format, width)
         return data, (width, height)
 
     def get_texture_data(self, mip_level: int = 0, flip=True):
@@ -159,6 +134,7 @@ class CompiledTextureResource(CompiledResource):
             if block.name == 'DATA':
                 info_block = block
                 break
+
         data_block: TextureData
         data_block, = self.get_data_block(block_name='DATA')
         buffer = self._buffer
@@ -192,6 +168,15 @@ class CompiledTextureResource(CompiledResource):
         height = data_block.texture_info.height
         if self.is_cubemap():
             height *= 6
+        data = self._decompress_texture(data, flip, height, pixel_format, width)
+        return data, (width, height)
+
+    def _decompress_texture(self, data, flip, height, pixel_format, width):
+        resource_info_block: ResourceEditInfo
+        resource_info_block, = self.get_data_block(block_name="REDI")
+        if resource_info_block is None:
+            resource_info_block, = self.get_data_block(block_name="RED2")
+
         if pixel_format == VTexFormat.RGBA8888:
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
             if flip:
@@ -202,19 +187,109 @@ class CompiledTextureResource(CompiledResource):
             data[3::4] = 1
         elif pixel_format == VTexFormat.BC7:
             data = decompress_image(data, width, height, ImageFormat.BC7, ImageFormat.RGBA8, flip)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
+            hemi_oct_aniso_roughness = False
+            invert = False
+            if resource_info_block:
+                for spec in resource_info_block.special_deps:
+                    if spec.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
+                        hemi_oct_aniso_roughness = True
+                    elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
+                        invert = True
+            output = data.copy()
+            del data
+            if hemi_oct_aniso_roughness:
+                output = output.astype(np.float32)
+                nx = ((output[:, :, 0] + output[:, :, 1]) / 255) - 1.003922
+                ny = ((output[:, :, 0] - output[:, :, 1]) / 255)
+                nz = 1 - np.abs(nx) - np.abs(ny)
+
+                l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
+                output[:, :, 3] = output[:, :, 2]
+                output[:, :, 0] = ((nx / l * 0.5) + 0.5) * 255
+                output[:, :, 1] = ((ny / l * 0.5) + 0.5) * 255
+                output[:, :, 2] = ((nz / l * 0.5) + 0.5) * 255
+                output = output.astype(np.uint8)
+
+            if invert:
+                output[:, :, 1] = np.invert(output[:, :, 1])
+
+            data = output.astype(np.float32) / 255
         elif pixel_format == VTexFormat.ATI1N:
             data = decompress_image(data, width, height, ImageFormat.ATI1, ImageFormat.RGBA8, flip)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.ATI2N:
             data = decompress_image(data, width, height, ImageFormat.ATI2, ImageFormat.RGBA8, flip)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
+
+            if resource_info_block:
+                for spec in resource_info_block.special_deps:
+                    if spec.string == "Texture Compiler Version Image NormalizeNormals":
+                        output = data.copy()
+                        del data
+
+                        swizzle_r = output[:, :, 0] * 2 - 255
+                        swizzle_g = output[:, :, 1] * 2 - 255
+                        derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))
+                        output[:, :, 0] = np.clip((swizzle_r / 2) + 128, 0, 255)
+                        output[:, :, 1] = np.clip((swizzle_g / 2) + 128, 0, 255)
+                        output[:, :, 2] = np.clip((derive_b / 2) + 128, 0, 255)
+                        data = output
+            data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.DXT1:
             data = decompress_image(data, width, height, ImageFormat.BC1, ImageFormat.RGBA8, flip)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.DXT5:
             data = decompress_image(data, width, height, ImageFormat.BC3, ImageFormat.RGBA8, flip)
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
+            y_co_cg = False
+            hemi_oct_aniso_roughness = False
+            normalize = False
+            invert = False
+            if resource_info_block:
+                for spec in resource_info_block.special_deps:
+                    if spec.string == "Texture Compiler Version Image YCoCg Conversion":
+                        y_co_cg = True
+                    elif spec.string == "Texture Compiler Version Mip HemiOctAnisoRoughness":
+                        hemi_oct_aniso_roughness = True
+                    elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
+                        invert = True
+                    elif spec.string == "Texture Compiler Version Image NormalizeNormals":
+                        normalize = True
+            output = data.copy()
+
+            if y_co_cg:
+                s = (output[:, :, 2] >> 3) + 1
+                co = (output[:, :, 0] - 128) / s
+                cg = (output[:, :, 1] - 128) / s
+                output[:, :, 0] = np.clip(output[:, :, 3] + co - cg, 0, 255)
+                output[:, :, 1] = np.clip(output[:, :, 3] + cg, 0, 255)
+                output[:, :, 2] = np.clip(output[:, :, 3] - co - cg, 0, 255)
+                output[:, :, 3] = 255
+
+            if normalize:
+                if hemi_oct_aniso_roughness:
+                    nx = (output[:, :, 0] + output[:, :, 1]) - 1.003922
+                    ny = (output[:, :, 0] - output[:, :, 1])
+                    nz = 1 - np.abs(nx) - np.abs(ny)
+
+                    l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
+                    output[:, :, 3] = output[:, :, 2]
+                    output[:, :, 0] = (nx / l * 0.5) + 0.5
+                    output[:, :, 1] = (ny / l * 0.5) + 0.5
+                    output[:, :, 2] = (nz / l * 0.5) + 0.5
+                else:
+                    swizzle_r = output[:, :, 0] * 2 - 255
+                    swizzle_g = output[:, :, 1] * 2 - 255
+                    derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))
+                    output[:, :, 0] = np.clip((swizzle_r / 2) + 128, 0, 255)
+                    output[:, :, 1] = np.clip((swizzle_g / 2) + 128, 0, 255)
+                    output[:, :, 2] = np.clip((derive_b / 2) + 128, 0, 255)
+                if invert:
+                    output[:, :, 1] = 1 - output[:, :, 1]
+
+            data = output
+            data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.RGBA16161616F:
             data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32)
-        return data, (width, height)
+        return data

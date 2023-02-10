@@ -13,7 +13,6 @@ def get_block_class(name) -> Type['BaseBlock']:
     from .resource_edit_info import ResourceEditInfo, ResourceEditInfo2
     from .resource_external_reference_list import ResourceExternalReferenceList
     from .resource_introspection_manifest import ResourceIntrospectionManifest
-    from .texture_data import TextureData
     from .vertex_index_buffer import VertexIndexBuffer
 
     if name == "NTRO":
