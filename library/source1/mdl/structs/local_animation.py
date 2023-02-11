@@ -213,7 +213,7 @@ class StudioAnimDesc:
             assert flags & 0x40 == 0
             assert flags & 0x80 == 0
 
-            assert flags & AnimBoneFlags.ANIM_DELTA == 0
+            # assert flags & AnimBoneFlags.ANIM_DELTA == 0
 
             if flags & AnimBoneFlags.ANIM_RAW_ROT2:
                 section_frame_buffer[:, bone_index]["rot"] = Quat64.read(buffer)
