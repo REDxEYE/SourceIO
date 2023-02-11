@@ -46,7 +46,6 @@ class Source2ShaderBase(ShaderBase):
         roughness_rgb = np.dstack((mask, mask, mask, np.ones_like(mask)))
 
         roughness_texture = self.make_texture(roughness_name, image.size, roughness_rgb, True)
-        buffer[1::4] = np.subtract(1, buffer[1::4])
         buffer[2::4] = 1.0
 
         image.pixels.foreach_set(buffer.ravel())
