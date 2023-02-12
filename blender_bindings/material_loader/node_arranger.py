@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from itertools import repeat
+
 import bpy
+
 
 class values():
     average_y = 0

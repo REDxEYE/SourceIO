@@ -1,18 +1,3 @@
-from . import (vr_complex,
-               vr_skin,
-               vr_eyeball,
-               vr_simple,
-               vr_glass,
-               hero,
-               simple,
-               eyeball,
-               complex,
-               generic,
-               blend,
-               static_overlay,
-               vr_bloody_simple,
-               vr_simple_2way_blend,
-               sky,
-               vr_generic,
-               dummy
-               )
+from . import (blend, complex, dummy, eyeball, generic, hero, simple, sky,
+               static_overlay, vr_bloody_simple, vr_complex, vr_eyeball,
+               vr_generic, vr_glass, vr_simple, vr_simple_2way_blend, vr_skin)

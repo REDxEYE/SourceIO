@@ -1,29 +1,32 @@
-from typing import List
+from dataclasses import dataclass
+from typing import Tuple
 
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer
 
 
+@dataclass(slots=True)
 class Header:
-    def __init__(self):
-        self.id = ""
-        self.version = 0
-        self.checksum = 0
-        self.lod_count = 0
-        self.lod_vertex_count = []  # type: List[int]
-        self.fixup_count = 0
-        self.fixup_table_offset = 0
-        self.vertex_data_offset = 0
-        self.tangent_data_offset = 0
+    version: int
+    checksum: int
+    lod_count: int
+    lod_vertex_count: Tuple[int, int, int, int, int, int, int, int]
+    fixup_count: int
+    fixup_table_offset: int
+    vertex_data_offset: int
+    tangent_data_offset: int
 
-    def read(self, reader: ByteIO):
-        self.id = reader.read_fourcc()
-        if self.id != 'IDSV':
-            raise NotImplementedError('Invalid VVD magic {}!'.format(self.id))
-        self.version = reader.read_uint32()
-        self.checksum = reader.read_uint32()
-        self.lod_count = reader.read_uint32()
-        self.lod_vertex_count = reader.read_fmt("8I")
-        self.fixup_count = reader.read_uint32()
-        self.fixup_table_offset = reader.read_uint32()
-        self.vertex_data_offset = reader.read_uint32()
-        self.tangent_data_offset = reader.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        ident = buffer.read_ascii_string(4)
+        if ident != 'IDSV':
+            raise NotImplementedError('Invalid VVD magic {}!'.format(ident))
+        version = buffer.read_uint32()
+        checksum = buffer.read_uint32()
+        lod_count = buffer.read_uint32()
+        lod_vertex_count = buffer.read_fmt("8I")
+        fixup_count = buffer.read_uint32()
+        fixup_table_offset = buffer.read_uint32()
+        vertex_data_offset = buffer.read_uint32()
+        tangent_data_offset = buffer.read_uint32()
+        return cls(version, checksum, lod_count, lod_vertex_count, fixup_count, fixup_table_offset,
+                   vertex_data_offset, tangent_data_offset)

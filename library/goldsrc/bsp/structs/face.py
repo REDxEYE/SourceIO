@@ -1,21 +1,19 @@
-from ....utils.byte_io_mdl import ByteIO
+from dataclasses import dataclass
+from typing import Tuple
+
+from ....utils import Buffer
 
 
+@dataclass(slots=True)
 class Face:
-    def __init__(self):
-        self.plane = 0
-        self.plane_side = 0
-        self.first_edge = 0
-        self.edges = 0
-        self.texture_info = 0
-        self.styles = (0, 0, 0, 0)
-        self.light_map_offset = 0
+    plane: int
+    plane_side: int
+    first_edge: int
+    edges: int
+    texture_info: int
+    styles: Tuple[int, int, int, int]
+    light_map_offset: int
 
-    def parse(self, buffer: ByteIO):
-        self.plane = buffer.read_uint16()
-        self.plane_side = buffer.read_uint16()
-        self.first_edge = buffer.read_uint32()
-        self.edges = buffer.read_uint16()
-        self.texture_info = buffer.read_uint16()
-        self.styles = buffer.read_fmt('BBBB')
-        self.light_map_offset = buffer.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(*buffer.read_fmt("2HI2H"), buffer.read_fmt('BBBB'), buffer.read_uint32())

@@ -1,7 +1,7 @@
 import math
 
-from mathutils import Euler
 import bpy
+from mathutils import Euler
 
 from .abstract_entity_handlers import _srgb2lin
 from .base_entity_handler import srgb_to_linear
@@ -15,7 +15,7 @@ local_entity_lookup_table.update(entity_class_handle)
 class Portal2EntityHandler(PortalEntityHandler):
     entity_lookup_table = local_entity_lookup_table
 
-    pointlight_power_multiplier = 1000
+    pointlight_power_multiplier = 1
 
     def handle_prop_weighted_cube(self, entity: prop_weighted_cube, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -44,6 +44,10 @@ class Portal2EntityHandler(PortalEntityHandler):
     def handle_prop_tractor_beam(self, entity: prop_tractor_beam, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection('prop_tractor_beam', obj, 'props')
+
+    def handle_prop_wall_projector(self, entity: prop_wall_projector, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection('prop_wall_projector', obj, 'props')
 
     def handle_prop_laser_catcher(self, entity: prop_laser_catcher, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -94,7 +98,7 @@ class Portal2EntityHandler(PortalEntityHandler):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = False
         light.color = color
-        light.energy = brightness * self.spotlight_power_multiplier * self.scale
+        light.energy = brightness * self.spotlight_power_multiplier * self.scale * self.light_scale
         light.spot_size = 2 * math.radians(entity.lightfov)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
                                                      object_data=light)

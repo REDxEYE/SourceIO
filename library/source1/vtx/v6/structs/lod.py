@@ -1,26 +1,26 @@
+from dataclasses import dataclass
 from typing import List
 
-from . import Base
-from . import ByteIO
+from .....utils import Buffer
 from .mesh import Mesh
 
 
-class ModelLod(Base):
-    def __init__(self, lod_id):
-        self.lod = lod_id
-        self.switchPoint = 0
-        self.meshes = []  # type: List[Mesh]
+@dataclass(slots=True)
+class ModelLod:
+    lod: int
+    switch_point: float
+    meshes: List[Mesh]
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        mesh_count = reader.read_uint32()
-        mesh_offset = reader.read_uint32()
-        self.switchPoint = reader.read_float()
-        with reader.save_current_pos():
-            if mesh_offset > 0:
-                reader.seek(entry + mesh_offset)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, lod_id: int):
+        entry = buffer.tell()
+        mesh_count = buffer.read_uint32()
+        mesh_offset = buffer.read_uint32()
+        switch_point = buffer.read_float()
+        meshes = []
+        if mesh_offset > 0:
+            with buffer.read_from_offset(entry + mesh_offset):
                 for _ in range(mesh_count):
-                    mesh = Mesh()
-                    mesh.read(reader)
-                    self.meshes.append(mesh)
-        return self
+                    mesh = Mesh.from_buffer(buffer)
+                    meshes.append(mesh)
+        return cls(lod_id, switch_point, meshes)

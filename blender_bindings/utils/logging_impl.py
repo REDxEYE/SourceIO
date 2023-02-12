@@ -1,9 +1,9 @@
 import sys
+from logging import DEBUG, Filter, Formatter, Logger, LogRecord, StreamHandler
+from typing import Dict
 
 import bpy
 
-from typing import Dict
-from logging import Formatter, Filter, LogRecord, StreamHandler, DEBUG, Logger
 from ...library.utils.singleton import SingletonMeta
 
 

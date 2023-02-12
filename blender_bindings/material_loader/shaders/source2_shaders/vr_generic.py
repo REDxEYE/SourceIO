@@ -1,7 +1,7 @@
 import numpy as np
 
-from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
+from ..source2_shader_base import Source2ShaderBase
 
 
 class VRGeneric(Source2ShaderBase):
@@ -9,7 +9,7 @@ class VRGeneric(Source2ShaderBase):
 
     @property
     def color_texture(self):
-        texture_path = self.get_texture('g_tColor', None)
+        texture_path = self._material_resource.get_texture_property('g_tColor', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -17,7 +17,7 @@ class VRGeneric(Source2ShaderBase):
 
     @property
     def ambient_occlusion(self):
-        texture_path = self.get_texture('g_tAmbientOcclusion', None)
+        texture_path = self._material_resource.get_texture_property('g_tAmbientOcclusion', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -27,7 +27,7 @@ class VRGeneric(Source2ShaderBase):
 
     @property
     def normal_texture(self):
-        texture_path = self.get_texture('g_tNormal', None)
+        texture_path = self._material_resource.get_texture_property('g_tNormal', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -38,27 +38,27 @@ class VRGeneric(Source2ShaderBase):
 
     @property
     def color(self):
-        return self.get_vector('g_vColorTint', np.ones(4, dtype=np.float32))
+        return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
 
     @property
     def alpha_test(self):
-        return self.get_int('F_ALPHA_TEST', 0)
+        return self._material_resource.get_int_property('F_ALPHA_TEST', 0)
 
     @property
     def metalness(self):
-        return self.get_int('F_METALNESS_TEXTURE', 0)
+        return self._material_resource.get_int_property('F_METALNESS_TEXTURE', 0)
 
     @property
     def translucent(self):
-        return self.get_int('F_TRANSLUCENT', 0)
+        return self._material_resource.get_int_property('F_TRANSLUCENT', 0)
 
     @property
     def specular(self):
-        return self.get_vector('g_vGlossinessRange', [0, 1, 0, 0])[0]
+        return self._material_resource.get_vector_property('g_vGlossinessRange', [0, 1, 0, 0])[0]
 
     @property
     def roughness(self):
-        return self.get_vector('g_vGlossinessRange', [0, 1, 0, 0])[1]
+        return self._material_resource.get_vector_property('g_vGlossinessRange', [0, 1, 0, 0])[1]
 
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:

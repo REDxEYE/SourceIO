@@ -2,6 +2,7 @@ from typing import TextIO
 
 import bpy
 from bpy.types import Node
+
 from .base_node import SourceIOModelTreeNode
 
 

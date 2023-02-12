@@ -1,27 +1,28 @@
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 import numpy as np
 
-from ..bsp_file import BspFile
-from ...wad import make_texture, flip_texture, MipTex, WadLump
-from ....utils.byte_io_mdl import ByteIO
 from .....logger import SLoggingManager
+from ....utils import Buffer
+from ...mdl_v10.structs.texture import MdlTextureFlag
+from ...wad import MipTex, WadLump, flip_texture, make_texture
+from ..bsp_file import BspFile
 
 logger = SLoggingManager().get_logger("GoldSrc::Texture")
 
 
+@dataclass(slots=True)
 class TextureInfo:
-    def __init__(self):
-        self.s = (0, 0, 0, 0)
-        self.t = (0, 0, 0, 0)
-        self.texture = 0
-        self.flags = 0
+    s: Tuple[float, float, float, float]
+    t: Tuple[float, float, float, float]
+    texture: int
+    flags: MdlTextureFlag
 
-    def parse(self, buffer: ByteIO):
-        self.s = buffer.read_fmt('4f')
-        self.t = buffer.read_fmt('4f')
-        self.texture = buffer.read_uint32()
-        self.flags = buffer.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_fmt('4f'), buffer.read_fmt('4f'),
+                   buffer.read_uint32(), MdlTextureFlag(buffer.read_uint32()))
 
 
 class TextureData:
@@ -33,7 +34,7 @@ class TextureData:
         self.data: Optional[np.array] = None
         self.info_id = -1
 
-    def parse(self, buffer: ByteIO):
+    def parse(self, buffer: Buffer):
         entry_offset = buffer.tell()
 
         self.name = buffer.read_ascii_string(16).upper()
@@ -68,7 +69,6 @@ class TextureData:
         resource: WadLump
         if resource:
             if isinstance(resource, MipTex):
-                resource: MipTex
                 self.width = resource.width
                 self.height = resource.height
                 self.data = resource.load_texture()

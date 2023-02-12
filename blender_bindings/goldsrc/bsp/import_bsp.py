@@ -1,36 +1,41 @@
 import math
 from pathlib import Path
-from typing import Dict, Any, cast, Optional
+from typing import Any, Dict, Optional, cast
 
 import bpy
 import numpy as np
 from mathutils import Vector
 
-from ...goldsrc.bsp.entity_handlers import entity_handlers
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import GoldSrcShaderMode1
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import GoldSrcShaderMode2
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import GoldSrcShaderMode5
-from ...utils.utils import get_or_create_collection, get_material
-from ....library.goldsrc.bsp.structs.texture import TextureInfo
-from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
-from ....library.goldsrc.rad import parse_rad, convert_light_value
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
-from ....library.utils.path_utilities import backwalk_file_resolver
-
-from ....logger import SLoggingManager
-from ....library.goldsrc.bsp.lump import LumpType
 from ....library.goldsrc.bsp.bsp_file import BspFile
-from ....library.goldsrc.bsp.lumps.face_lump import FaceLump
+from ....library.goldsrc.bsp.lump import LumpType
 from ....library.goldsrc.bsp.lumps.edge_lump import EdgeLump
-from ....library.goldsrc.bsp.lumps.model_lump import ModelLump
 from ....library.goldsrc.bsp.lumps.entity_lump import EntityLump
-from ....library.goldsrc.bsp.lumps.vertex_lump import VertexLump
+from ....library.goldsrc.bsp.lumps.face_lump import FaceLump
+from ....library.goldsrc.bsp.lumps.model_lump import ModelLump
+from ....library.goldsrc.bsp.lumps.surface_edge_lump import SurfaceEdgeLump
 from ....library.goldsrc.bsp.lumps.texture_data import TextureDataLump
 from ....library.goldsrc.bsp.lumps.texture_info import TextureInfoLump
-from ....library.goldsrc.bsp.lumps.surface_edge_lump import SurfaceEdgeLump
-from ....library.utils.math_utilities import parse_hammer_vector, convert_to_radians
+from ....library.goldsrc.bsp.lumps.vertex_lump import VertexLump
+from ....library.goldsrc.bsp.structs.texture import TextureInfo
+from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
+from ....library.goldsrc.rad import convert_light_value, parse_rad
+from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_providers.goldsrc_content_provider import \
+    GoldSrcWADContentProvider
+from ....library.utils.math_utilities import (convert_to_radians,
+                                              parse_hammer_vector)
+from ....library.utils.path_utilities import backwalk_file_resolver
+from ....logger import SLoggingManager
+from ...goldsrc.bsp.entity_handlers import entity_handlers
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
+    GoldSrcShader
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import \
+    GoldSrcShaderMode1
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
+    GoldSrcShaderMode2
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
+    GoldSrcShaderMode5
+from ...utils.utils import add_material, get_or_create_collection
 
 log_manager = SLoggingManager()
 content_manager = ContentManager()
@@ -42,7 +47,7 @@ class BSP:
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
-        self.bsp_file = BspFile(map_path)
+        self.bsp_file = BspFile.from_filename(map_path)
         rad_file = content_manager.find_file(map_path.with_suffix('.rad').name, 'maps')
         shared_rad_file = content_manager.find_file('lights.rad', 'maps')
         rad_data = {}
@@ -108,13 +113,10 @@ class BSP:
         if material_name in materials_dict:
             texture_data = materials_dict[material_name]
             texture_info: TextureInfo = self.bsp_lump_textures_info.values[texture_data.info_id]
-            studio_texture = StudioTexture()
-            studio_texture.name = material_name
-            studio_texture.flags = texture_info.flags
-            studio_texture.data = texture_data.get_contents(self.bsp_file)
-            studio_texture.width = texture_data.width
-            studio_texture.height = texture_data.height
+            studio_texture = StudioTexture(material_name, texture_info.flags, texture_data.width, texture_data.height,
+                                           texture_data.get_contents(self.bsp_file))
             return studio_texture
+        return
 
     def load_material(self, material_name):
         materials_dict = self.bsp_lump_textures_data.key_values
@@ -166,7 +168,7 @@ class BSP:
             face_texture_info = self.bsp_lump_textures_info.values[texture_info_index]
             face_texture_data = self.bsp_lump_textures_data.values[face_texture_info.texture]
             face_texture_name = face_texture_data.name
-            material_lookup_table[texture_info_index] = get_material(face_texture_name, model_object)
+            material_lookup_table[texture_info_index] = add_material(face_texture_name, model_object)
             self.load_material(face_texture_name)
 
         uvs_per_face = []
@@ -235,8 +237,7 @@ class BSP:
             entity_class: str = entity['classname']
 
             if entity_class in entity_handlers:
-                entity_collection = self.get_collection(entity_class)
-                entity_handlers[entity_class](entity, self.scale, entity_collection)
+                entity_handlers[entity_class](entity, self.scale, self.bsp_collection, self._single_collection)
             else:
                 if entity_class == 'worldspawn':
                     for game_wad_path in entity.get('wad', '').split(';'):

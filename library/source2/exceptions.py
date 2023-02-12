@@ -1,0 +1,2 @@
+class MissingBlock(Exception):
+    pass

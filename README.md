@@ -25,10 +25,10 @@ Small WIKI -> [WIKI](./wiki/init.md)
 | .VMT      | Materials                         | :heavy_check_mark: | :x:               |
 
 ## Source 2
-| File Type | Contents                          | Import | Export |
-| ------    | ------                            | ------ | ------ |
-| .VMDL     | Model                             | :heavy_check_mark: | Not Planned      |
-| .VWRLD    | Map Files (Compiled)              | :heavy_check_mark: | Not Planned      |
-| .VMAP     | Map Files (Hammer Format)         | Not Planned        | Not Planned      |
-| .VTEX     | Textures                          | :heavy_check_mark: | :x:              |
-| .VMAT     | Materials                         | :heavy_check_mark: | :x:              |
+| File Type | Contents                          | Import              | Export       |
+|-----------| ------                            |---------------------|--------------|
+| .VMDL     | Model                             | :heavy_check_mark:  | Not Planned  |
+| .VMAP     | Map Files (Compiled)              | :heavy_check_mark:  | Not Planned  |
+| .VMAP     | Map Files (Hammer Format)         | Not Planned         | Not Planned  |
+| .VTEX     | Textures                          | :heavy_check_mark:  | :x:          |
+| .VMAT     | Materials                         | :heavy_check_mark:  | :x:          |

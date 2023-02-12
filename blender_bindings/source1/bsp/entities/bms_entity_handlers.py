@@ -1,7 +1,7 @@
 import math
 
-from mathutils import Euler
 import bpy
+from mathutils import Euler
 
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .bms_entity_classes import *
@@ -13,7 +13,7 @@ local_entity_lookup_table.update(entity_class_handle)
 
 class BlackMesaEntityHandler(HalfLifeEntityHandler):
     entity_lookup_table = local_entity_lookup_table
-    pointlight_power_multiplier = 250
+    pointlight_power_multiplier = 1
 
     def handle_newLight_Point(self, entity: newLight_Point, entity_raw: dict):
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
@@ -24,7 +24,7 @@ class BlackMesaEntityHandler(HalfLifeEntityHandler):
         else:
             color = [color[0], color[0], color[0]]
         light.color = color
-        light.energy = entity.Intensity
+        light.energy = entity.Intensity * self.light_scale
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
@@ -41,7 +41,7 @@ class BlackMesaEntityHandler(HalfLifeEntityHandler):
             color = [color[0], color[0], color[0]]
 
         light.color = color
-        light.energy = entity.Intensity
+        light.energy = entity.Intensity  * self.light_scale
         light.spot_size = 2 * math.radians(entity.phi)
         light.spot_blend = 1 - (entity.theta / entity.phi)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),

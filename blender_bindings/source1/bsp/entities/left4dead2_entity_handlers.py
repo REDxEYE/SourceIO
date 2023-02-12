@@ -1,10 +1,11 @@
 import math
 
-from mathutils import Euler
 import bpy
-from .left4dead2_entity_classes import *
+from mathutils import Euler
+
 from .halflife2_entity_classes import entity_class_handle as hl2_entity_classes
 from .halflife2_entity_handler import HalfLifeEntityHandler
+from .left4dead2_entity_classes import *
 
 local_entity_lookup_table = HalfLifeEntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)
@@ -15,7 +16,7 @@ local_entity_lookup_table['fog_flooded_basement'] = Base
 class Left4dead2EntityHandler(HalfLifeEntityHandler):
     entity_lookup_table = local_entity_lookup_table
 
-    pointlight_power_multiplier = 1000
+    pointlight_power_multiplier = 1
 
     def handle_func_nav_attribute_region(self, entity: func_nav_attribute_region, entity_raw: dict):
         if 'model' not in entity_raw:

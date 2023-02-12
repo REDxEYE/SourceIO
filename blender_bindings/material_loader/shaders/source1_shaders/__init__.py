@@ -1,14 +1,4 @@
-from . import (eyerefract,
-               cable,
-               unlit_generic,
-               lightmap_generic,
-               vertexlit_generic,
-               worldvertextransition,
-               unlittwotexture,
-               lightmapped_4wayblend,
-               decalmodulate,
-               refract,
-               water,
-               heroes_faceskin,
-               heroes_armor
-               )
+from . import (cable, decalmodulate, eyerefract, heroes_armor, heroes_faceskin,
+               lightmap_generic, lightmapped_4wayblend, refract, unlit_generic,
+               unlittwotexture, vertexlit_generic, water,
+               worldvertextransition)

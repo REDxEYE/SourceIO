@@ -1,20 +1,18 @@
-from . import ByteIO
-from . import Base
+from dataclasses import dataclass
+
+from ....utils import Buffer
 
 
-class AutoLayer(Base):
+@dataclass(slots=True)
+class AutoLayer:
+    sequence_id: int
+    pose_id: int
+    flags: int
+    start: float
+    peak: float
+    tail: float
+    end: float
 
-    def __init__(self):
-        self.sequence_id = 0
-        self.pose_id = 0
-        self.flags = 0
-        self.start = 0.0
-        self.peak = 0.0
-        self.tail = 0.0
-        self.end = 0.0
-
-    def read(self, reader: ByteIO):
-        self.sequence_id = reader.read_int32()
-        self.pose_id = reader.read_int32()
-        self.flags = reader.read_int32()
-        self.start, self.peak, self.tail, self.end = reader.read_fmt('4f')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_int32(), buffer.read_int32(), buffer.read_int32(), *buffer.read_fmt('4f'))

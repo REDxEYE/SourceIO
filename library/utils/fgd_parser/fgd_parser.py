@@ -1,6 +1,6 @@
 from enum import Enum
-from typing import Union, Tuple, List
 from pathlib import Path
+from typing import List, Tuple, Union
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.fgd_parser.fgd_classes import FGDEntity

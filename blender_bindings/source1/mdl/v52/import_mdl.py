@@ -3,20 +3,21 @@ from pathlib import Path
 import bpy
 import numpy as np
 
-from .. import FileImport
-from ..common import get_slice, merge_meshes
-from ..v49.import_mdl import collect_full_material_names, create_armature, create_attachments, create_flex_drivers
-
-from ....utils.utils import get_material
-from ....shared.model_container import Source1ModelContainer
-
-from .....logger import SLoggingManager
+from .....library.source1.mdl.structs.header import StudioHDRFlags
+from .....library.source1.mdl.v44.vertex_animation_cache import \
+    VertexAnimationCache
+from .....library.source1.mdl.v52.mdl_file import MdlV52
+from .....library.source1.vtx import open_vtx
+from .....library.source1.vtx.v7.vtx import Vtx
 from .....library.source1.vvc import Vvc
 from .....library.source1.vvd import Vvd
-from .....library.source1.vtx.v7.vtx import Vtx
-from .....library.source1.mdl.v52.mdl_file import MdlV52
-from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.v44.vertex_animation_cache import VertexAnimationCache
+from .....logger import SLoggingManager
+from ....shared.model_container import Source1ModelContainer
+from ....utils.utils import add_material
+from .. import FileImport
+from ..common import get_slice, merge_meshes
+from ..v49.import_mdl import (collect_full_material_names, create_armature,
+                              create_attachments, create_flex_drivers)
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -24,18 +25,14 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV52(file_list.mdl_file)
-    mdl.read()
-    vvd = Vvd(file_list.vvd_file)
-    vvd.read()
-    vtx = Vtx(file_list.vtx_file)
-    vtx.read()
+    mdl = MdlV52.from_buffer(file_list.mdl_file)
+    vvd = Vvd.from_buffer(file_list.vvd_file)
+    vtx = open_vtx(file_list.vtx_file)
 
     full_material_names = collect_full_material_names(mdl)
 
     if file_list.vvc_file is not None:
-        vvc = Vvc(file_list.vvc_file)
-        vvc.read()
+        vvc = Vvc.from_buffer(file_list.vvc_file)
     else:
         vvc = None
 
@@ -105,7 +102,7 @@ def import_model(file_list: FileImport,
             vertices = model_vertices[vtx_vertices]
             vertices_vertex = vertices['vertex']
 
-            mesh_data.from_pydata(vertices_vertex * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices_vertex * scale, [], np.flip(indices_array).reshape((-1, 3)))
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
@@ -119,9 +116,9 @@ def import_model(file_list: FileImport,
                     mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
                 else:
                     mat_name = mat_name[-63:]
-                material_remapper[mat_id] = get_material(mat_name, mesh_obj)
+                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
 
-            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
+            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]])
 
             uv_data = mesh_data.uv_layers.new()
 
@@ -159,9 +156,9 @@ def import_model(file_list: FileImport,
                         flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
                 if flexes:
-                    wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
-                    vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
-                    vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
+                    # wrinkle_cache = get_slice(vac.wrinkle_cache, model.vertex_offset, model.vertex_count)
+                    # vc = mesh_data.vertex_colors.new(name=f'speed_and_wrinkle')
+                    # vc.data.foreach_set('color', wrinkle_cache[vtx_vertices][vertex_indices].flatten().tolist())
                     mesh_obj.shape_key_add(name='base')
                 for flex_name, flex_desc in flexes:
                     vertex_animation = vac.vertex_cache[flex_name]

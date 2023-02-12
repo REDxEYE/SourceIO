@@ -27,12 +27,11 @@ import collections
 import io
 import struct
 import uuid
+from bisect import bisect_left
 from functools import lru_cache
 from pprint import pprint
-from struct import unpack, calcsize
+from struct import calcsize, unpack
 from typing import List, Union
-
-from bisect import bisect_left
 
 
 # noinspection PyProtectedMember

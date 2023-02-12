@@ -1,5 +1,4 @@
-from ...shared.base import Base
 
 
-class Mdl(Base):
+class Mdl:
     pass

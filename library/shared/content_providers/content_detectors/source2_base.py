@@ -3,9 +3,8 @@ from pathlib import Path
 from typing import Dict
 
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
-
-from ..source2_content_provider import Gameinfo2ContentProvider
 from ..non_source_sub_manager import NonSourceContentProvider
+from ..source2_content_provider import Gameinfo2ContentProvider
 from ..vpk_provider import VPKContentProvider
 
 

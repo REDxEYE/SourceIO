@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import Dict
 
-from .source1_common import Source1Common
-from ..content_provider_base import ContentProviderBase
 from .....library.utils.path_utilities import backwalk_file_resolver
-
-from ..source1_content_provider import GameinfoContentProvider
+from ..content_provider_base import ContentProviderBase
 from ..non_source_sub_manager import NonSourceContentProvider
+from ..source1_content_provider import GameinfoContentProvider
+from .source1_common import Source1Common
 
 
 class SFMDetector(Source1Common):
@@ -21,7 +20,7 @@ class SFMDetector(Source1Common):
         content_providers = {}
         cls.recursive_traversal(sfm_root, 'usermod', content_providers)
         for folder in sfm_root.iterdir():
-            if folder.stem in content_providers:
+            if folder.stem in content_providers or folder.is_file():
                 continue
             elif (folder / 'gameinfo.txt').exists():
                 content_providers[folder.stem] = GameinfoContentProvider(folder / 'gameinfo.txt')

@@ -1,5 +1,7 @@
-from . import nodes
-from . import sockets
+import nodeitems_utils
+from nodeitems_utils import NodeCategory, NodeItem
+
+from . import nodes, sockets
 from .model_tree_nodes import *
 from .nodes import materials as material_nodes
 
@@ -8,8 +10,6 @@ from .nodes import materials as material_nodes
 # extending the Add menu, toolbar panels and search operator.
 # For more examples see release/scripts/startup/nodeitems_builtins.py
 
-import nodeitems_utils
-from nodeitems_utils import NodeCategory, NodeItem
 
 
 # our own base class with an appropriate poll function,

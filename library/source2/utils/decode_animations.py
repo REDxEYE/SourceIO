@@ -1,6 +1,7 @@
 import math
-import numpy as np
 from typing import List
+
+import numpy as np
 
 from ...utils.byte_io_mdl import ByteIO
 

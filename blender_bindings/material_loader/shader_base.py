@@ -1,13 +1,13 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Optional, Tuple
 
 import bpy
 import numpy as np
 
-from .node_arranger import nodes_iterate
-from ..utils.utils import append_blend
 from ...logger import SLoggingManager
+from ..utils.utils import append_blend
+from .node_arranger import nodes_iterate
 
 
 class Nodes:
@@ -170,10 +170,7 @@ class ShaderBase:
         image = bpy.data.images.new(texture_name, width=texture_dimm[0], height=texture_dimm[1], alpha=True)
         image.alpha_mode = 'CHANNEL_PACKED'
         image.file_format = 'TARGA'
-        if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(texture_data.flatten().tolist())
-        else:
-            image.pixels[:] = texture_data.flatten().tolist()
+        image.pixels.foreach_set(texture_data.ravel())
         image.pack()
         if raw_texture:
             image.colorspace_settings.is_data = True

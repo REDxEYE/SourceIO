@@ -1,74 +1,38 @@
-from typing import List, Optional
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 import numpy as np
 
-from ...utils.byte_io_mdl import ByteIO
-from ...shared.base import Base
+from ...shared.types import Vector3, Vector4
+from ...utils import Buffer, FileBuffer
 
 
-class Header(Base):
-    def __init__(self):
-        self.size = 0
-        self.id = 0
-        self.solid_count = 0
-        self.checksum = 0
+@dataclass(slots=True)
+class Header:
+    size: int
+    id: int
+    solid_count: int
+    checksum: int
 
-    def read(self, reader: ByteIO):
-        reader.begin_region('Header')
-        self.size = reader.read_uint32()
-        self.id = reader.read_uint32()
-        self.solid_count = reader.read_uint32()
-        self.checksum = reader.read_uint32()
-        reader.end_region()
-
-
-class TreeNode:
-    def __init__(self):
-        self._entry = 0
-        self.right_node_offset = 0
-        self.convex_offset = 0
-        self.center = []
-        self.radius = 0.0
-        self.bbox_size = []
-
-        self.left_node: Optional[TreeNode] = None
-        self.right_node: Optional[TreeNode] = None
-        self.convex_leaf: Optional[ConvexLeaf] = None
-
-    @property
-    def is_leaf(self):
-        return self.right_node_offset == 0
-
-    def read(self, reader: ByteIO):
-        self._entry = reader.tell()
-        reader.begin_region('TreeNode')
-        self.right_node_offset, self.convex_offset, *self.center, self.radius = reader.read_fmt('2i4f')
-        self.bbox_size = reader.read_fmt('4B')
-        reader.end_region()
-        with reader.save_current_pos():
-            if self.convex_offset:
-                with reader.save_current_pos():
-                    reader.seek(self._entry + self.convex_offset)
-                    self.convex_leaf = ConvexLeaf(not self.is_leaf)
-                    self.convex_leaf.read(reader)
-                if self.is_leaf:
-                    return
-            self.left_node = TreeNode()
-            self.left_node.read(reader)
-            with reader.save_current_pos():
-                reader.seek(self._entry + self.right_node_offset)
-                self.right_node = TreeNode()
-                self.right_node.read(reader)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        size = buffer.read_uint32()
+        ident = buffer.read_uint32()
+        solid_count = buffer.read_uint32()
+        checksum = buffer.read_uint32()
+        return cls(size, ident, solid_count, checksum)
 
 
+@dataclass(slots=True)
 class ConvexTriangle:
-    def __init__(self):
-        self.pad = 0
-        self.edges = []
+    pad: int
+    edges: Tuple[int, ...]
 
-    def read(self, reader: ByteIO):
-        self.pad, *self.edges = reader.read_fmt('i6h')
-        pass
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        pad, *edges = buffer.read_fmt('i6h')
+        return cls(pad, edges)
 
     def get_vertex_id(self, index):
         return self.edges[index * 2]
@@ -91,21 +55,23 @@ class ConvexLeaf:
         self.triangles = []
         self.unique_vertices = set()
 
-    def child_node(self, reader: ByteIO):
+    def read(self, buffer: Buffer):
+        self._entry = buffer.tell()
+        self.vertex_offset, self.bone_id, self.flags, self.triangle_count, self.unused = buffer.read_fmt('3i2h')
+        triangles = []
+        for _ in range(self.triangle_count):
+            tri = ConvexTriangle.from_buffer(buffer)
+            triangles.append(tri.vertex_ids)
+            self.unique_vertices.update(tri.vertex_ids)
+        self.triangles = triangles
+
+    def child_node(self, buffer: Buffer):
         if self.has_children:
-            with reader.save_current_pos():
-                reader.seek(self._entry + self.bone_id)
-                child = TreeNode()
-                child.read(reader)
+            with buffer.save_current_offset():
+                buffer.seek(self._entry + self.bone_id)
+                child = TreeNode.from_buffer(buffer)
             return child
 
-        # struct {
-
-    #       uint	has_chilren_flag:2;
-    #       int		is_compact_flag:2;  // if false than compact ledge uses points outside this piece of memory
-    #       uint	dummy:4;
-    #       uint	size_div_16:24;
-    #   };
     @property
     def has_children(self):
         return (self.flags >> 0) & 3
@@ -126,47 +92,62 @@ class ConvexLeaf:
     def vertex_data_offset(self):
         return self._entry + self.vertex_offset
 
-    def read(self, reader: ByteIO):
-        self._entry = reader.tell()
-        reader.begin_region('ConvexLeaf')
-        self.vertex_offset, self.bone_id, self.flags, self.triangle_count, self.unused = reader.read_fmt('3i2h')
-        triangles = []
-        for _ in range(self.triangle_count):
-            tri = ConvexTriangle()
-            tri.read(reader)
-            triangles.append(tri.vertex_ids)
-            self.unique_vertices.update(tri.vertex_ids)
-        self.triangles = triangles
-        reader.end_region()
+
+@dataclass(slots=True)
+class TreeNode:
+    center: Vector3[float]
+    radius: float
+    bbox_size: Vector4[int]
+    left_node: Optional['TreeNode'] = field(default=None)
+    right_node: Optional['TreeNode'] = field(default=None)
+    convex_leaf: Optional[ConvexLeaf] = field(default=None)
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        entry_offset = buffer.tell()
+        right_node_offset, convex_offset, *center, radius = buffer.read_fmt('2i4f')
+        bbox_size = buffer.read_fmt('4B')
+        is_leaf = right_node_offset == 0
+        convex_leaf: Optional[ConvexLeaf] = None
+        with buffer.save_current_offset():
+            if convex_offset:
+                with buffer.save_current_offset():
+                    buffer.seek(entry_offset + convex_offset)
+                    convex_leaf = ConvexLeaf(not is_leaf)
+                    convex_leaf.read(buffer)
+                if is_leaf:
+                    return cls(center, radius, bbox_size, None, None, convex_leaf)
+            left_node = TreeNode.from_buffer(buffer)
+            with buffer.save_current_offset():
+                buffer.seek(entry_offset + right_node_offset)
+                right_node = TreeNode.from_buffer(buffer)
+        return cls(center, radius, bbox_size, left_node, right_node, convex_leaf)
 
 
+@dataclass(slots=True)
 class CollisionModel:
-    def __init__(self):
-        self._entry = 0
-        self.values = []
-        self.surface = 0
-        self.offset_tree = 0
-        self.pad = []
-        self.root_tree = TreeNode()
+    values: Tuple[float, ...]
+    surface: int
+    offset_tree: int
+    root_tree: TreeNode
 
-    def read(self, reader: ByteIO):
-        self._entry = reader.tell()
-        reader.begin_region('CollisionModel')
-        self.values = reader.read_fmt('7f')
-        self.surface, self.offset_tree, *self.pad = reader.read_fmt('4I')
-        ivps_magic = reader.read_fourcc()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        entry_offset = buffer.tell()
+        values = buffer.read_fmt('7f')
+        surface, offset_tree, *_ = buffer.read_fmt('4I')
+        ivps_magic = buffer.read_fourcc()
         assert ivps_magic == 'IVPS'
-        reader.end_region()
-        with reader.save_current_pos():
-            reader.seek(self._entry + self.offset_tree)
-            self.root_tree.read(reader)
+        with buffer.save_current_offset():
+            buffer.seek(entry_offset + offset_tree)
+            root_tree = TreeNode.from_buffer(buffer)
+        return cls(values, surface, offset_tree, root_tree)
 
     @staticmethod
-    def get_vertex_data(reader: ByteIO, convex_leaf: ConvexLeaf, vertex_count):
-        with reader.save_current_pos():
-            reader.seek(convex_leaf.vertex_data_offset)
-            reader.begin_region('VertexData')
-            vertex_data = np.frombuffer(reader.read(4 * 4 * vertex_count), np.float32).copy()
+    def get_vertex_data(buffer: Buffer, convex_leaf: ConvexLeaf, vertex_count):
+        with buffer.save_current_offset():
+            buffer.seek(convex_leaf.vertex_data_offset)
+            vertex_data = np.frombuffer(buffer.read(4 * 4 * vertex_count), np.float32).copy()
             vertex_data = vertex_data.reshape((-1, 4))[:, :3]
 
             y = vertex_data[:, 1].copy()
@@ -174,67 +155,58 @@ class CollisionModel:
             vertex_data[:, 1] = z
             vertex_data[:, 2] = y
 
-            reader.end_region()
         return vertex_data
 
 
+@dataclass(slots=True)
 class SolidHeader:
+    solid_size: int
+    version: int
+    type: int
+    size: int
+    areas: Vector3[float]
+    axis_map_size: int
+    collision_model: CollisionModel
 
-    def __init__(self):
-        self._entry = 0
-        self.solid_size = 0
-        self.id = ''
-        self.version = 0
-        self.type = 0
-        self.size = 0
-        self.areas = []
-        self.axis_map_size = 0
-        self.collision_model = CollisionModel()
-
-    def read(self, reader: ByteIO):
-        self._entry = reader.tell()
-        reader.begin_region('SolidHeader')
-        self.solid_size = reader.read_uint32()
-        self.id = reader.read_fourcc()
-        assert self.id == 'VPHY'
-        self.version = reader.read_uint16()
-        self.type = reader.read_uint16()
-        self.size = reader.read_uint32()
-        self.areas = reader.read_fmt('3f')
-        self.axis_map_size = reader.read_uint32()
-        reader.end_region()
-        self.collision_model.read(reader)
-
-    def next_solid(self, reader: ByteIO):
-        with reader.save_current_pos():
-            reader.seek(self._entry + self.solid_size + 4)
-            solid = SolidHeader()
-            solid.read(reader)
-            return solid
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        solid_size = buffer.read_uint32()
+        ident = buffer.read_fourcc()
+        assert ident == 'VPHY'
+        version = buffer.read_uint16()
+        type = buffer.read_uint16()
+        size = buffer.read_uint32()
+        areas = buffer.read_fmt('3f')
+        axis_map_size = buffer.read_uint32()
+        collision_model = CollisionModel.from_buffer(buffer)
+        return cls(solid_size, version, type, size, areas, axis_map_size, collision_model)
 
     def end(self):
-        return self._entry + self.solid_size + 4
+        return self.solid_size + 4
 
 
-class Phy(Base):
-    def __init__(self, filepath):
-        self.reader = ByteIO(filepath)
-        self.header = Header()
-        self.solids = []  # type:List[SolidHeader]
-        self.kv = ''
+@dataclass(slots=True)
+class Phy:
+    header: Header
+    solids: List[SolidHeader]
+    kv: str
 
-    def read(self):
-        reader = self.reader
-        self.header.read(reader)
-        reader.seek(self.header.size)
-        solid = SolidHeader()
-        solid.read(reader)
-        self.solids.append(solid)
-        for _ in range(self.header.solid_count - 1):
-            solid = solid.next_solid(reader)
-            self.solids.append(solid)
-        reader.seek(solid.end())
-        reader.begin_region('KV')
-        self.kv = self.reader.read_ascii_string()
-        reader.end_region()
-        pass
+    @classmethod
+    def from_filepath(cls, filepath: Path):
+        return cls.from_buffer(FileBuffer(filepath))
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        header = Header.from_buffer(buffer)
+        buffer.seek(header.size)
+        solids = []
+        solid_start = buffer.tell()
+        for _ in range(header.solid_count):
+            solid = SolidHeader.from_buffer(buffer)
+            buffer.seek(solid_start + solid.end())
+            solid_start = buffer.tell()
+            solids.append(solid)
+        if solids:
+            buffer.seek(solid_start + solids[-1].end())
+        kv = buffer.read_ascii_string()
+        return cls(header, solids, kv)

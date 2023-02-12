@@ -1,5 +1,5 @@
 from .bodygroup_socket import SourceIOBodygroupSocket
-from .object_socket import SourceIOObjectSocket
 from .material_socket import SourceIOMaterialSocket
-from .skin_socket import SourceIOSkinSocket,SourceIOSkinGroupSocket
+from .object_socket import SourceIOObjectSocket
+from .skin_socket import SourceIOSkinGroupSocket, SourceIOSkinSocket
 from .texture_socket import SourceIOTextureSocket

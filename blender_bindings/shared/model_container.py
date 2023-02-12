@@ -1,14 +1,15 @@
 from collections import defaultdict
-from typing import List, Optional, Dict, Union
+from typing import Dict, List, Optional, Union
+
 import bpy
 
+from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
+from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
 from ...library.source1.mdl.v36.mdl_file import MdlV36 as S1MdlV36
 from ...library.source1.mdl.v44.mdl_file import MdlV44 as S1MdlV44
-from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
-from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
-from ...library.source2.resource_types import ValveCompiledModel
 from ...library.source1.vtx.v7.vtx import Vtx
 from ...library.source1.vvd import Vvd
+from ...library.source2.resource_types import CompiledModelResource
 
 
 class ModelContainer:
@@ -71,13 +72,14 @@ class Source1ModelContainer(ModelContainer):
         self.vvd: Vvd = vvd
         self.vtx: Vtx = vtx
         self.file_list: FileImport = file_list
+        self.physics = []
         self.attachments = []
 
     def clone(self):
         new_container = Source1ModelContainer(self.mdl, self.vvd, self.vtx, self.file_list)
         for body_group_name, objects in self.bodygroups.items():
             for obj in objects:
-                mesh_data = obj.data  # .copy()
+                mesh_data = obj.data.copy()
                 mesh_obj = obj.copy()
 
                 mesh_obj['skin_groups'] = obj['skin_groups']
@@ -100,7 +102,7 @@ class Source1ModelContainer(ModelContainer):
 
 
 class Source2ModelContainer(ModelContainer):
-    def __init__(self, vmdl: ValveCompiledModel):
+    def __init__(self, vmdl: CompiledModelResource):
         super().__init__()
         self.vmdl = vmdl
         self.physics_objects: List[bpy.types.Object] = []

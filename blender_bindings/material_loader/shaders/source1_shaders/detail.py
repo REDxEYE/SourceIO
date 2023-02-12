@@ -1,4 +1,5 @@
 import bpy
+
 from .....logger import SLoggingManager
 from ..source1_shader_base import Source1ShaderBase
 

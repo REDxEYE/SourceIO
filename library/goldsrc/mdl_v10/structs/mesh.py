@@ -1,7 +1,7 @@
+from dataclasses import dataclass
 from typing import List, Tuple
 
-from .....library.utils.byte_io_mdl import ByteIO
-
+from ....utils import Buffer
 
 # // meshes
 # struct mstudiomesh_t
@@ -13,43 +13,40 @@ from .....library.utils.byte_io_mdl import ByteIO
 # 	int		normindex;		// normal glm::vec3
 # };
 
+@dataclass(slots=True)
 class StudioTrivert:
-    def __init__(self):
-        self.vertex_index = 0
-        self.normal_index = 0
-        self.uv = []
+    vertex_index: int
+    normal_index: int
+    uv: Tuple[int, int]
 
-    def read(self, reader: ByteIO):
-        self.vertex_index = reader.read_uint16()
-        self.normal_index = reader.read_uint16()
-        self.uv = [reader.read_uint16(), reader.read_uint16()]
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_uint16(), buffer.read_uint16(), buffer.read_fmt("2H"))
 
 
+@dataclass(slots=True)
 class StudioMesh:
-    def __init__(self):
-        self.triangle_count = 0
-        self.triangle_offset = 0
-        self.skin_ref = 0
-        self.normal_count = 0
-        self.normal_offset = 0
-        self.triangles: List[Tuple[List[StudioTrivert], bool]] = []
+    skin_ref: int
+    triangle_count: int
+    triangles: List[Tuple[List[StudioTrivert], bool]]
 
-    def read(self, reader: ByteIO):
-        (self.triangle_count, self.triangle_offset,
-         self.skin_ref,
-         self.normal_count, self.normal_offset) = reader.read_fmt('5i')
-        with reader.save_current_pos():
-            reader.seek(self.triangle_offset)
-
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        (triangle_count, triangle_offset,
+         skin_ref,
+         normal_count, normal_offset) = buffer.read_fmt('5i')
+        with buffer.save_current_offset():
+            buffer.seek(triangle_offset)
+            triangles = []
             while True:
-                trivert_count = reader.read_int16()
+                trivert_count = buffer.read_int16()
                 trivert_fan = trivert_count < 0
                 trivert_count = abs(trivert_count)
                 if trivert_count == 0:
                     break
                 triverts = []
                 for _ in range(trivert_count):
-                    trivert = StudioTrivert()
-                    trivert.read(reader)
+                    trivert = StudioTrivert.from_buffer(buffer)
                     triverts.append(trivert)
-                self.triangles.append((triverts, trivert_fan))
+                triangles.append((triverts, trivert_fan))
+        return cls(skin_ref, triangle_count, triangles)

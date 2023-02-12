@@ -1,23 +1,24 @@
 from pathlib import Path
+
 import bpy
 
-from ..mdl import put_into_collections
+from ....blender_bindings.source1.bsp.import_bsp import BSP
+from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.source1.dmx.sfm import open_session
 from ....library.source1.dmx.sfm.animation_set import AnimationSet
+from ....library.source1.dmx.sfm.camera import Camera
 from ....library.source1.dmx.sfm.film_clip import FilmClip
 from ....library.source1.dmx.sfm_utils import *
-from ....library.shared.content_providers.content_manager import ContentManager
-from ...shared.model_container import Source1ModelContainer
 from ....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ....library.utils.path_utilities import find_vtx_cm
-from ....library.source1.dmx.sfm import open_session
-from ....library.source1.dmx.sfm.camera import Camera
-from ....blender_bindings.source1.bsp.import_bsp import BSP
+from ...shared.model_container import Source1ModelContainer
 from ...source1.mdl.v49.import_mdl import import_model
+from ..mdl import FileImport, put_into_collections
 
 
 def _convert_quat(quat):
-    # return Quaternion(quat[1:] + [quat[0]])
-    return quat
+    return Quaternion([quat[3], quat[0], quat[1], quat[2]])
+    # return quat
 
 
 def import_gamemodel(mdl_path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
@@ -26,7 +27,8 @@ def import_gamemodel(mdl_path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     if mld_file:
         vvd_file = ContentManager().find_file(mdl_path.with_suffix('.vvd'))
         vtx_file = find_vtx_cm(mdl_path, ContentManager())
-        model_container = import_model(mld_file, vvd_file, vtx_file, None, scale, False, True)
+        file_list = FileImport(mld_file, vvd_file, vtx_file, None, None)
+        model_container = import_model(file_list, scale, False, True, True)
         # import_materials(model_container.mdl)
         put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=True)
         return model_container
@@ -41,7 +43,7 @@ def create_camera(dme_camera: Camera, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
 
     camera_obj.location = Vector(dme_camera.transform.position) * scale
     camera_obj.rotation_mode = 'QUATERNION'
-    camera_obj.rotation_quaternion = Quaternion(dme_camera.transform.orientation)
+    camera_obj.rotation_quaternion = _convert_quat(dme_camera.transform.orientation)
     camera.lens = dme_camera.milliliters
 
 
@@ -63,17 +65,10 @@ def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, s
                 arm = container.armature
                 bone = arm.pose.bones.get(bone_name, None)
                 if bone:
-                    qrot = Quaternion()
-                    qrot.x, qrot.y, qrot.z, qrot.w = rot
-                    # rot.x,rot.y,rot.z,rot.w = bone_.valueOrientation
-                    erot = qrot.to_euler('YXZ')
-
-                    if not bone.parent:
-                        pos = arm.data.bones.get(bone_name).head - pos
-                    # new_rot = Euler([math.pi / 2, 0, 0]).rotate(erot)
-                    mat = Matrix.Translation(pos) @ erot.to_matrix().to_4x4()
-                    bone.matrix_basis.identity()
-                    bone.matrix = bone.parent.matrix @ mat if bone.parent else mat
+                    mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+                    mat = bone.parent.matrix @ mat if bone.parent else mat
+                    bone.matrix = mat
+                    # bone.matrix_basis.identity()
 
 
 def load_animset(animset: AnimationSet, shot: FilmClip, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
@@ -103,17 +98,16 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=SOURCE1_HAMMER_UNI
 def load_session(session_path: Path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     session = open_session(session_path)
     active_clip = session.active_clip
-    map_file = active_clip.map_file
-    if map_file:
-        print(f'Loading {active_clip.map_name}')
-
-        bsp_map = BSP(map_file, scale=scale)
-
-        # bsp_map.load_disp()
-        # bsp_map.load_entities()
-        # bsp_map.load_static_props()
-        # bsp_map.load_detail_props()
-        # bsp_map.load_materials()
+    # map_file = active_clip.map_file
+    # if map_file:
+    #     print(f'Loading {active_clip.map_name}')
+    #
+    #     bsp_map = BSP(map_file, scale=scale)
+    #
+    #     bsp_map.load_disp()
+    #     bsp_map.load_entities()
+    #     bsp_map.load_static_props()
+    #     # bsp_map.load_materials()
 
     for shot in active_clip.sub_clip_track_group.tracks[0].children[:1]:
         camera = shot.camera

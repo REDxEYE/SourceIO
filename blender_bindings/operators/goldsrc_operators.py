@@ -1,14 +1,15 @@
 from pathlib import Path
 
 import bpy
-from bpy.props import StringProperty, CollectionProperty, BoolProperty, FloatProperty
+from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
+                       StringProperty)
 
 from ...library.global_config import GoldSrcConfig
+from ...library.utils import FileBuffer
+from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ...logger import SLoggingManager
 from ..goldsrc import import_model
 from ..goldsrc.bsp.import_bsp import BSP
-from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-
 
 logger = SLoggingManager().get_logger("GoldSrc::Operators")
 
@@ -67,7 +68,10 @@ class SOURCEIO_OT_GMDLImport(bpy.types.Operator):
         for n, file in enumerate(self.files):
             logger.info(f"Loading {n}/{len(self.files)}")
             texture_file = (directory / file.name).with_name(Path(file.name).stem + 't.mdl')
-            import_model(directory / file.name, texture_file if texture_file.exists() else None, self.scale)
+            import_model(Path(file.name).stem,
+                         FileBuffer(directory / file.name),
+                         FileBuffer(texture_file) if texture_file.exists() else None,
+                         self.scale)
         return {'FINISHED'}
 
     def invoke(self, context, event):

@@ -2,12 +2,12 @@ import warnings
 from enum import Enum
 from pathlib import Path
 from pprint import pprint
-from typing import Tuple, Union, List
+from typing import Iterator, List, Mapping, Tuple, Union
 
 KeyValuePair = Tuple[str, Union[str, 'KeyValuePair', List['KeyValuePair']]]
 
 
-class _KVDataProxy:
+class _KVDataProxy(Mapping):
     known_conditions = {'$X360': False,
                         '$WIN32': True,
                         '$WINDOWS': True,
@@ -20,6 +20,12 @@ class _KVDataProxy:
 
     def __contains__(self, item):
         return self.get(item) is not None
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __iter__(self) -> Iterator:
+        return iter(a[0] for a in self.data)
 
     def __getitem__(self, item):
         value = self.get(item)
@@ -49,7 +55,11 @@ class _KVDataProxy:
         return default
 
     def top(self) -> Tuple[str, Union[str, '_KVDataProxy']]:
-        assert len(self.data) == 1
+        # assert len(self.data) == 1
+        if len(self.data)>1:
+            print("More than one root node:")
+            print(self.data[0])
+            print(self.data[1])
         key, value = self.data[0]
         return key, self._wrap_value(value)
 
@@ -392,34 +402,27 @@ if __name__ == '__main__':
     }
 }
 """
-    debug_data = r""""VertexlitGeneric"
+    debug_data = r""""// envmaptint_fix
+"vertexlitgeneric"
 {
-	"$basetexture" "models\tetTris\FNaF\SB\GlamFreddy\Eye_D"
-	"$bumpmap" "models\tetTris\FNaF\SB\GlamFreddy\Eye_N"
 
-	"$phongexponenttexture" "models\tetTris\FNaF\SB\GlamFreddy\Eye_E"
-
-	"$color2"	"[0 0 0]"
-	"$blendTintByBaseAlpha"	"1"
-
-	"$phong" "1"
-	"$phongboost"	"9.9934895"
-
-	"$phongfresnelranges"	"[0.1 0.23 0.945]"
-
-	"$phongdisablehalflambert"	"1"
-
-	"$envmap" "models\cubemaps\fallout4cube_dithered_grey"
-	"$normalmapalphaenvmapmask"		"1"
-	"$envmapfresnel"	"1"
-
-	"$envmaptint"		"[0 0 0]"
+	"$basetexture" "props/plasticceiling003a"
+	"$bumpmap" "props/plasticceiling003a_normal"
+	"$normalmapalpha" "1"
+	"$surfaceprop" "plastic"
+	"$envmap" "env_cubemap"
+	"$envmaptint" "[ .36 .36 .36 ]"
+	"$envmapcontrast" ".6"
+	"$envmapsaturation" "[.5 .5 .5]"
+	"%keywords" "borealis"
+	"$normalmapalphaenvmapmask" 1
 }
+
 """
 
-    print(debug_data)
-    with open("D:\SteamLibrary\steamapps\common\Aperture Desk Job\game\steampal\gameinfo.gi", 'r') as f:
+    with open(r"C:\Users\AORUS\Downloads\plasticceiling003a.vmt", 'r') as f:
         debug_data = f.read()
+    print(debug_data)
     parser = ValveKeyValueParser(buffer_and_name=(debug_data, 'memory'), self_recover=True)
     parser.parse()
     pprint(parser.tree.to_dict())

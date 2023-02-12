@@ -1,8 +1,9 @@
 import sys
+from logging import (DEBUG, Filter, Formatter, LogRecord, StreamHandler,
+                     getLogger)
 from typing import Dict
 
 from ..utils.singleton import SingletonMeta
-from logging import getLogger, Formatter, Filter, LogRecord, StreamHandler, DEBUG
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):

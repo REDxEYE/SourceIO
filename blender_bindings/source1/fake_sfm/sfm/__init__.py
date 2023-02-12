@@ -1,13 +1,13 @@
 from collections import deque
 from typing import Deque
 
-from mathutils import Matrix, Vector, Quaternion
-
-from ..vs import Vector as SVector, Color
-from .....library.utils.singleton import SingletonMeta
-from .....logger import SLoggingManager, SLogger
-
 import bpy
+from mathutils import Matrix, Quaternion, Vector
+
+from .....library.utils.singleton import SingletonMeta
+from .....logger import SLogger, SLoggingManager
+from ..vs import Color
+from ..vs import Vector as SVector
 
 
 def get_bone(obj, bone, mode=None):

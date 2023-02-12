@@ -1,51 +1,48 @@
+from dataclasses import dataclass
 from typing import List
 
 import numpy as np
 
+from ...utils import FileBuffer, Buffer
 from .structs.animation import StudioAnimation
+from .structs.bodypart import StudioBodypart
 from .structs.bone import StudioBone
 from .structs.sequence import StudioSequence
 from .structs.studioheader import StudioHeader
-from .structs.bodypart import StudioBodypart
 from .structs.texture import StudioTexture
-from ...shared.base import Base
-from ...utils.byte_io_mdl import ByteIO
 
 
-class Mdl(Base):
+@dataclass(slots=True)
+class Mdl:
+    header: StudioHeader
+    bones: List[StudioBone]
+    bodyparts: List[StudioBodypart]
+    sequences: List[StudioSequence]
+    textures: List[StudioTexture]
 
-    def __init__(self, filepath):
-        self.store_value("MDL", self)
-        self.reader = ByteIO(filepath)
-        self.header = StudioHeader()
-        self.bones: List[StudioBone] = []
-        self.bodyparts: List[StudioBodypart] = []
-        self.sequences: List[StudioSequence] = []
-        self.textures: List[StudioTexture] = []
-        self.animations: List[StudioAnimation] = []
+    animations: List[List[StudioAnimation]]
 
-    def read(self):
-        header = self.header
-        reader = self.reader
-        header.read(reader)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        header = StudioHeader.from_buffer(buffer)
 
-        self.bones = reader.read_structure_array(header.bone_offset, header.bone_count, StudioBone)
+        bones = buffer.read_structure_array(header.bone_offset, header.bone_count, StudioBone)
 
-        self.sequences = reader.read_structure_array(header.sequence_offset, header.sequence_count, StudioSequence)
+        sequences = buffer.read_structure_array(header.sequence_offset, header.sequence_count, StudioSequence)
 
-        self.bodyparts = reader.read_structure_array(header.body_part_offset, header.body_part_count, StudioBodypart)
-        self.textures = reader.read_structure_array(header.texture_offset, header.texture_count, StudioTexture)
-        for sequence in self.sequences:
+        bodyparts = buffer.read_structure_array(header.body_part_offset, header.body_part_count, StudioBodypart)
+        textures = buffer.read_structure_array(header.texture_offset, header.texture_count, StudioTexture)
+        animations = []
+        for sequence in sequences:
+            sequence_animations = []
             sequence: StudioSequence
-            animation_frames = reader.read_structure_array(sequence.anim_offset, header.bone_count, StudioAnimation)
-            for anim in animation_frames:
-                anim: StudioAnimation
-                anim.frames = np.zeros((sequence.frame_count, 2, 3,), dtype=np.float32)
-                anim.read_anim_values(reader)
-                sequence.frame_per_bone.append(anim.frames)
-        sequence = self.sequences[0]
+            for _ in range(header.bone_count):
+                sequence_animations.append(StudioAnimation.from_buffer(buffer, sequence.frame_count))
+            animations.append(sequence_animations)
+        # sequence = self.sequences[0]
         # for n, bone in enumerate(self.bones):
         #     bone: StudioBone
         #     frame = sequence.frame_per_bone[n]
         #     bone.pos = frame[0][0].tolist()
         #     bone.rot = frame[0][1].tolist()
+        return cls(header, bones, bodyparts, sequences, textures, animations)

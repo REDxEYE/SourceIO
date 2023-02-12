@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import List, Dict
+from typing import Dict, List
 
 import numpy as np
+import numpy.typing as npt
 
-from .header import Header
+from ...utils import Buffer
 from .fixup import Fixup
-from ...shared.base import Base
-from ...utils.byte_io_mdl import ByteIO
+from .header import Header
 
 
 @dataclass
@@ -34,7 +34,8 @@ class ExtraVertexAttribute:
     item_size: int
 
 
-class Vvd(Base):
+@dataclass(slots=True)
+class Vvd:
     vertex_t = np.dtype([('weight', np.float32, 3),
                          ('bone_id', np.uint8, 3),
                          ("pad", np.uint8),
@@ -43,63 +44,59 @@ class Vvd(Base):
                          ("uv", np.float32, 2),
                          ])
 
-    def __init__(self, filepath):
-        self.reader = ByteIO(filepath)
-        assert self.reader.size() > 0, "Empty or missing file"
-        self.header = Header()
-        self._vertices = np.array([], dtype=self.vertex_t)
-        self._tangents = np.array([], dtype=np.float32)
-        self.fixups: List[Fixup] = []
-        self.lod_data: Dict[int, np.ndarray] = {}
-        self.extra_data: Dict[ExtraAttributeTypes, np.ndarray] = {}
+    header: Header
+    lod_data: List[npt.NDArray[vertex_t]]
+    extra_data: Dict[ExtraAttributeTypes, npt.NDArray]
 
-    def read(self):
-        reader = self.reader
-        self.header.read(reader)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        assert buffer.size() > 0
+        header = Header.from_buffer(buffer)
 
-        reader.seek(self.header.vertex_data_offset)
-        self._vertices = np.frombuffer(reader.read(self.vertex_t.itemsize * self.header.lod_vertex_count[0]),
-                                       dtype=self.vertex_t)
+        buffer.seek(header.vertex_data_offset)
 
-        for n, count in enumerate(self.header.lod_vertex_count[:self.header.lod_count]):
-            self.lod_data[n] = np.zeros((count,), dtype=self.vertex_t)
+        vertices = np.frombuffer(buffer.read(cls.vertex_t.itemsize * header.lod_vertex_count[0]),
+                                 dtype=cls.vertex_t)
 
-        reader.seek(self.header.fixup_table_offset)
-        for _ in range(self.header.fixup_count):
-            fixup = Fixup()
-            fixup.read(reader)
-            self.fixups.append(fixup)
+        lod_datas = []
+        for count in header.lod_vertex_count[:header.lod_count]:
+            lod_datas.append(np.zeros((count,), dtype=cls.vertex_t))
 
-        if self.header.fixup_count:
-            lod_offsets = np.zeros(len(self.lod_data), dtype=np.uint32)
-            for lod_id in range(self.header.lod_count):
-                for fixup in self.fixups:
+        buffer.seek(header.fixup_table_offset)
+        fixups = [Fixup.from_buffer(buffer) for _ in range(header.fixup_count)]
+
+        if header.fixup_count:
+            lod_offsets = np.zeros(len(lod_datas), dtype=np.uint32)
+            for lod_id in range(header.lod_count):
+                for fixup in fixups:
                     if fixup.lod_index >= lod_id:
-                        lod_data = self.lod_data[lod_id]
-                        assert fixup.vertex_index + fixup.vertex_count <= self._vertices.size, \
-                            f"{fixup.vertex_index + fixup.vertex_count}>{self._vertices.size}"
+                        lod_data = lod_datas[lod_id]
+                        assert fixup.vertex_index + fixup.vertex_count <= vertices.size, \
+                            f"{fixup.vertex_index + fixup.vertex_count}>{vertices.size}"
                         lod_offset = lod_offsets[lod_id]
                         vertex_index = fixup.vertex_index
                         vertex_count = fixup.vertex_count
-                        lod_data[lod_offset:lod_offset + vertex_count] = self._vertices[
-                                                                         vertex_index:vertex_index + vertex_count]
+                        lod_data[lod_offset:lod_offset + vertex_count] = vertices[vertex_index:vertex_index + vertex_count]
                         lod_offsets[lod_id] += fixup.vertex_count
 
         else:
-            self.lod_data[0][:] = self._vertices[:]
+            lod_datas[0][:] = vertices[:]
 
-        if self.header.tangent_data_offset > 0:
-            reader.seek(self.header.tangent_data_offset)
-            reader.skip(4 * 4 * self.header.lod_vertex_count[0])
-            # self._tangents = np.frombuffer(self.reader.read(4 * 4 * self.header.lod_vertex_count[0]), dtype=np.float32)
+        if header.tangent_data_offset > 0:
+            buffer.seek(header.tangent_data_offset)
+            buffer.skip(4 * 4 * header.lod_vertex_count[0])
+            # self._tangents = np.frombuffer(self.buffer.read(4 * 4 * self.header.lod_vertex_count[0]), dtype=np.float32)
 
-        if reader:
-            extra_data_start = reader.tell()
-            extra_header = ExtraData(*reader.read_fmt('2i'))
+        extra_data = {}
+        if buffer:
+            extra_data_start = buffer.tell()
+            extra_header = ExtraData(*buffer.read_fmt('2i'))
             for buffer_id in range(extra_header.count):
-                extra_attribute = ExtraVertexAttribute(ExtraAttributeTypes(reader.read_uint32()),
-                                                       *reader.read_fmt('2i'))
-                reader.seek(extra_data_start + extra_attribute.offset)
-                self.extra_data[extra_attribute.type] = np.frombuffer(
-                    reader.read(extra_attribute.item_size * self.header.lod_vertex_count[0]), np.float32)
-        assert not self.reader
+                extra_attribute = ExtraVertexAttribute(ExtraAttributeTypes(buffer.read_uint32()),
+                                                       *buffer.read_fmt('2i'))
+                buffer.seek(extra_data_start + extra_attribute.offset)
+                extra_data[extra_attribute.type] = np.frombuffer(
+                    buffer.read(extra_attribute.item_size * header.lod_vertex_count[0]), np.float32)
+        assert not buffer
+
+        return cls(header, lod_datas, extra_data)

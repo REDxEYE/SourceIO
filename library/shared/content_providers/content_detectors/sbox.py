@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Dict
 
-from .source2_base import Source2DetectorBase
-from ..content_provider_base import ContentProviderBase
-from ..sbox_content_provider import SBoxDownloadsProvider, SBoxAddonProvider
 from .....library.utils.path_utilities import backwalk_file_resolver
+from ..content_provider_base import ContentProviderBase
+from ..sbox_content_provider import SBoxAddonProvider, SBoxDownloadsProvider
+from .source2_base import Source2DetectorBase
 
 
 class SBoxDetector(Source2DetectorBase):

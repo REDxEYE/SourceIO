@@ -1,20 +1,20 @@
 from pathlib import Path
-from typing import Iterable, Sized, List, Dict
+from typing import Dict, Iterable, List, Sized
 
 import numpy as np
 
+from ...shared.content_providers.content_manager import ContentManager
+from ...utils import datamodel
+from ...utils.math_utilities import matrix_to_quat
+from ...utils.path_utilities import find_vtx
+from ..mdl.structs.bone import Bone
+from ..mdl.structs.model import Model as MdlModel
 from ..mdl.v49.mdl_file import MdlV49
-from ..mdl.structs.bone import BoneV49
-from ..mdl.structs.model import ModelV49 as MdlModel
 from ..vtx.v7.structs.mesh import Mesh as VtxMesh
 from ..vtx.v7.structs.model import Model as VtxModel
 from ..vtx.v7.structs.model import ModelLod as VtxModelLod
 from ..vtx.v7.vtx import Vtx
 from ..vvd import Vvd
-from ...shared.content_providers.content_manager import ContentManager
-from ...utils import datamodel
-from ...utils.math_utilities import matrix_to_quat
-from ...utils.path_utilities import find_vtx
 
 
 def sanitize_name(name):
@@ -173,7 +173,7 @@ class DmxModel:
 
         pass
 
-    def write_bone(self, bone: BoneV49):
+    def write_bone(self, bone: Bone):
         if isinstance(bone, str):
             bone_name = bone
             bone = None

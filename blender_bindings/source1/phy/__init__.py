@@ -4,11 +4,11 @@ from typing import List
 import bpy
 import numpy as np
 
-from ....library.source1.phy.phy import TreeNode, ConvexLeaf, Phy
+from ....library.source1.phy.phy import ConvexLeaf, Phy, TreeNode
 from ....library.utils.math_utilities import vector_transform_v
+from ...shared.model_container import Source1ModelContainer
 from ...utils.utils import get_new_unique_collection
 from ..mdl import FileImport
-from ...shared.model_container import Source1ModelContainer
 
 
 def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):
@@ -26,19 +26,19 @@ def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):
 def import_physics(file_list: FileImport, container: Source1ModelContainer, scale: float = 1.0):
     assert file_list.phy_file, "Missing .phy file"
 
-    phy = Phy(file_list.phy_file)
-    phy.read()
+    phy = Phy.from_buffer(file_list.phy_file)
     mdl = container.mdl
 
     mesh_name = Path(mdl.header.name).stem
 
-    phy_collection = get_new_unique_collection(mesh_name + '_PHYSICS', container.collection)
+    # phy_collection = get_new_unique_collection(mesh_name + '_PHYSICS', container.collection)
 
     for i, solid in enumerate(phy.solids):
         meshes: List[ConvexLeaf] = []
         vertex_count = len(_collect_meshes(solid.collision_model.root_tree, meshes))
 
-        vertex_data = solid.collision_model.get_vertex_data(phy.reader, solid.collision_model.root_tree.convex_leaf,
+        vertex_data = solid.collision_model.get_vertex_data(file_list.phy_file,
+                                                            solid.collision_model.root_tree.convex_leaf,
                                                             vertex_count)
         for j, mesh in enumerate(meshes):
             used_vertices_ids, _, new_indices = np.unique(mesh.triangles, return_index=True, return_inverse=True)
@@ -58,7 +58,7 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
             mesh_data = bpy.data.meshes.new(f'{mesh_name}_solid_{i}{j}_MESH')
             mesh_obj = bpy.data.objects.new(f'{mesh_name}_solid_{i}{j}', mesh_data)
 
-            mesh_data.from_pydata(vertices.tolist(), [], new_indices.reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices.tolist(), [], new_indices.reshape((-1, 3)))
             mesh_data.update()
             if container.armature:
                 bone = mdl.bones[mesh.bone_id - 1]
@@ -70,5 +70,5 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
                     type="ARMATURE", name="Armature")
                 modifier.object = container.armature
                 mesh_obj.parent = container.armature
-
-            phy_collection.objects.link(mesh_obj)
+            container.physics.append(mesh_obj)
+            # phy_collection.objects.link(mesh_obj)

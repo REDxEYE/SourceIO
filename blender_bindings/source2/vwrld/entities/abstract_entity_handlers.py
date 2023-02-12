@@ -1,19 +1,20 @@
 import math
 import re
-from pprint import pformat
+from pathlib import Path
+from typing import Dict, List
 
 import bpy
 from mathutils import Euler
 
-from .base_entity_classes import *
-from ...vtex.loader import ValveCompiledTextureLoader
-from .....library.source2.resource_types import ValveCompiledResource, ValveCompiledMaterial
-from ....utils.utils import get_or_create_collection
-from .....logger import SLoggingManager
-from .....library.source2.utils.entity_keyvalues import EntityKeyValues
-from .....library.shared.content_providers.content_manager import ContentManager
-from .....library.utils.byte_io_mdl import ByteIO
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
+from .....library.source2 import (CompiledMaterialResource,
+                                  CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from .....logger import SLoggingManager
+from ....utils.utils import get_new_unique_collection, get_or_create_collection
+from ...vtex_loader import import_texture
+from .base_entity_classes import *
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
@@ -55,68 +56,21 @@ class Base:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file, parent_collection, world_scale=SOURCE2_HAMMER_UNIT_TO_METERS):
-        from ..loader import ValveCompiledWorld
+    def __init__(self, entities: List[Dict], parent_collection, cm: ContentManager,
+                 scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
-        self._world: ValveCompiledWorld = bsp_file
-        self.scale = world_scale
+        self.scale = scale
+        self.cm = cm
         self.parent_collection = parent_collection
 
-        self._entities = []
-        self._loaded_entities = []
+        self._entities = entities
 
-        self._handled_paths = []
         self._entity_by_name_cache = {}
+        self._collections = {}
 
     def load_entities(self):
-        self.load_all_entities()
-        for entity_data in self._entities:
-            if not self.handle_entity(entity_data):
-                self.logger.warn(pformat(entity_data))
-        bpy.context.view_layer.update()
-        # for entity_data in entity_lump.entities:
-        #     self.resolve_parents(entity_data)
-        pass
-
-    def load_all_entities(self):
-        content_manager = ContentManager()
-        data_block = self._world.get_data_block(block_name='DATA')[0]
-        if data_block and data_block.data.get('m_entityLumps', False):
-            for elump in data_block.data.get('m_entityLumps'):
-                self.logger.info(f"Loading entity lump {elump}")
-                proper_path = self._world.available_resources.get(elump, None)
-                if not proper_path:
-                    continue
-                elump_file = content_manager.find_file(proper_path)
-                if not elump_file:
-                    continue
-                self.handle_child_lump(proper_path.stem, ValveCompiledResource(elump_file))
-
-    def handle_child_lump(self, name, child_lump):
-        if child_lump:
-            self.load_entity_lump(name, child_lump)
-        else:
-            self.logger.warn(f'Missing {child_lump.filepath} entity lump')
-        entity_data_block = child_lump.get_data_block(block_name='DATA')[0]
-        for child_lump_path in entity_data_block.data['m_childLumps']:
-            self.logger.info(f"Loading next child entity lump \"{child_lump_path}\"")
-            proper_path = child_lump.available_resources.get(child_lump_path, None)
-            if not proper_path:
-                continue
-            next_lump = ContentManager().find_file(proper_path)
-            if not next_lump:
-                continue
-            self.handle_child_lump(proper_path.stem, ValveCompiledResource(next_lump))
-
-    def load_entity_lump(self, lump_name, entity_lump):
-        entity_data_block = entity_lump.get_data_block(block_name='DATA')[0]
-        for entity_kv in entity_data_block.data['m_entityKeyValues']:
-            if entity_kv['m_keyValuesData']:
-                a = EntityKeyValues()
-                reader = ByteIO(entity_kv['m_keyValuesData'])
-                a.read(reader)
-                entity_data = a.base
-                self._entities.append(entity_data)
+        for entity in self._entities:
+            self.handle_entity(entity)
 
     def handle_entity(self, entity_data: dict):
         entity_class = entity_data['classname']
@@ -172,7 +126,7 @@ class AbstractEntityHandler:
     def _set_location_and_scale(self, obj, location, additional_scale=1.0):
         obj.location = location
         obj.location *= self.scale * additional_scale
-        obj.scale *= self.scale * additional_scale
+        obj.scale *= additional_scale
 
     def _set_location(self, obj, location):
         obj.location = location
@@ -196,23 +150,22 @@ class AbstractEntityHandler:
 
     def _set_icon_if_present(self, obj, entity):
         if hasattr(entity, 'icon_sprite'):
-            icon_path = getattr(entity, 'icon_sprite')
+            icon_path = Path(entity.icon_sprite)
             icon_material_file = ContentManager().find_file(icon_path, additional_dir='materials', extension='.vmat_c',
                                                             silent=True)
             if not icon_material_file:
                 return
-            vmt = ValveCompiledMaterial(icon_material_file)
-            data_block = vmt.get_data_block(block_name='DATA')[0]
-            if data_block.data['m_shaderName'] == 'tools_sprite.vfx':
-                path_texture = [a[1] for a in vmt.available_resources.items() if a[1].suffix == ".vtex_c"][0]
-                texture = ContentManager().find_file(path_texture, extension='.vtex_c',
-                                                     silent=True)
-                if not texture:
-                    return
-                obj.empty_display_type = 'IMAGE'
-                obj.empty_display_size = (1 / self.scale)
-                image = ValveCompiledTextureLoader(texture)
-                obj.data = image.import_texture(path_texture.stem, True)
+            vmt = CompiledMaterialResource.from_buffer(icon_material_file, icon_path)
+            data_block, = vmt.get_data_block(block_name='DATA')
+            if data_block['m_shaderName'] == 'tools_sprite.vfx':
+                path_texture = [a for a in vmt.get_child_resources() if isinstance(a, str) and ".vtex" in a]
+                if path_texture:
+                    image_resource = vmt.get_child_resource(path_texture.pop(0), self.cm, CompiledTextureResource)
+                    if not image_resource:
+                        return
+                    obj.empty_display_type = 'IMAGE'
+                    obj.empty_display_size = 16 * self.scale  # (1 / self.scale)
+                    obj.data = import_texture(image_resource, image_resource.name, True)
 
     @staticmethod
     def _create_lines(name, points, closed=False):
@@ -246,10 +199,9 @@ class AbstractEntityHandler:
                 obj = bpy.data.objects[entity.targetname]
                 self._set_parent_if_exist(obj, entity.parentname)
 
-    @staticmethod
-    def _create_empty(name):
+    def _create_empty(self, name):
         empty = bpy.data.objects.new(name, None)
-        empty.empty_display_size = 16
+        empty.empty_display_size = 16 * self.scale
         return empty
 
     def _handle_entity_with_model(self, entity, entity_raw: dict):
@@ -262,7 +214,7 @@ class AbstractEntityHandler:
         elif 'model' in entity_raw:
             model_path = entity_raw.get('model')
         else:
-            model_path = 'error.mdl'
+            model_path = 'error.vmdl'
         obj = self._create_empty(self._get_entity_name(entity))
         properties = {'prop_path': model_path.replace('.vmdl', '.vmdl_c'),
                       'type': entity_raw['classname'],

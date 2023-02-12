@@ -1,7 +1,10 @@
+import fnmatch
 from pathlib import Path
-from typing import Union
-import glob
+from typing import Iterator, Optional, Tuple
+
 from ...shared.vpk.vpk_file import open_vpk
+from ...utils import Buffer
+from ..app_id import SteamAppId
 from .content_provider_base import ContentProviderBase
 
 
@@ -12,29 +15,23 @@ class VPKContentProvider(ContentProviderBase):
         self.vpk_archive = open_vpk(filepath)
         self.vpk_archive.read()
 
-    def glob(self, pattern: str):
+    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
         files = []
-        for file_name, entry in self.vpk_archive.entries.items():
-            if glob.fnmatch.fnmatch(file_name, pattern):
-                files.append((file_name, self.vpk_archive.read_file(entry)))
+        for file_name in self.vpk_archive.entries.values():
+            if fnmatch.fnmatch(file_name, pattern):
+                files.append((file_name, self.vpk_archive.get_file_str(file_name)))
         return files
 
-    def find_file(self, filepath: Union[str, Path]):
-        cached_file = self.get_from_cache(filepath)
-        if cached_file:
-            return cached_file
+    def find_file(self, filepath: Path) -> Optional[Buffer]:
+        file = self.vpk_archive.get_file(filepath)
+        if file:
+            return file
 
-        entry = self.vpk_archive.find_file(full_path=filepath)
+    def find_path(self, filepath: Path) -> Optional[Path]:
+        entry = filepath in self.vpk_archive
         if entry:
-            file = self.vpk_archive.read_file(entry)
-            return self.cache_file(filepath, file)
-
-    def find_path(self, filepath: Union[str, Path]):
-        entry = self.vpk_archive.find_file(full_path=filepath)
-        if entry:
-            return None
-            # raise NotImplementedError('Cannot get path from VPK file')
+            return Path(self.filepath.as_posix() + ":" + filepath.as_posix())
 
     @property
-    def steam_id(self):
+    def steam_id(self) -> SteamAppId:
         return self._override_steamid or super().steam_id

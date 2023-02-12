@@ -1,3 +1,2 @@
-from .header import Header
-from .entry import Entry
-from .archive_md5 import ArchiveMD5Entry
+from .entry import Entry, MiniEntry, TitanfallEntry
+from .header import Header, VPK_MAGIC

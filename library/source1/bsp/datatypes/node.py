@@ -1,52 +1,56 @@
-from typing import List
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Tuple
 
-from .primitive import Primitive
+from ....shared.types import Vector3
+from ....utils.file_utils import Buffer
 from ..lumps.plane_lump import PlaneLump
 
-from . import ByteIO
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
+    from ..lumps.node_lump import NodeLump
 
 
-class Node(Primitive):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
-        self.plane_index = 0
-        self.childes_id: List[int] = []
-        self.min = []
-        self.max = []
-        self.first_face = 0
-        self.face_count = 0
-        self.area = 0
+@dataclass(slots=True)
+class Node:
+    plane_index: int
+    childes_id: Tuple[int, int]
+    min: Vector3[int]
+    max: Vector3[int]
+    first_face: int
+    face_count: int
+    area: int
 
-    def parse(self, reader: ByteIO):
-        self.plane_index = reader.read_int32()
-        self.childes_id = reader.read_fmt('2i')
-        self.min = reader.read_fmt('3h')
-        self.max = reader.read_fmt('3h')
-        self.first_face, self.face_count, self.area = reader.read_fmt('3hxx')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        plane_index = buffer.read_int32()
+        childes_id = buffer.read_fmt('2i')
+        b_min = buffer.read_fmt('3h')
+        b_max = buffer.read_fmt('3h')
+        first_face, face_count, area = buffer.read_fmt('3hxx')
 
-        return self
+        return cls(plane_index, childes_id, b_min, b_max, first_face, face_count, area)
 
-    @property
-    def plane(self):
-        plane_lump: PlaneLump = self._bsp.get_lump('LUMP_PLANES')
+    def get_plane(self, bsp: 'BSPFile'):
+        plane_lump: PlaneLump = bsp.get_lump('LUMP_PLANES')
         if plane_lump:
             planes = plane_lump.planes
             return planes[self.plane_index]
         return None
 
-    @property
-    def childes(self):
-        from ..lumps.node_lump import NodeLump
-        lump: NodeLump = self._bsp.get_lump('LUMP_NODES')
+    def get_children(self, bsp: 'BSPFile'):
+        lump: NodeLump = bsp.get_lump('LUMP_NODES')
         if lump:
             return lump.nodes[self.childes_id[0]], lump.nodes[self.childes_id[1]]
         return None
 
 
 class VNode(Node):
-    def parse(self, reader: ByteIO):
-        self.plane_index = reader.read_int32()
-        self.childes_id = reader.read_fmt('2i')
-        self.min = reader.read_fmt('3i')
-        self.max = reader.read_fmt('3i')
-        self.first_face, self.face_count, self.area = reader.read_fmt('3i')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        plane_index = buffer.read_int32()
+        childes_id = buffer.read_fmt('2i')
+        b_min = buffer.read_fmt('3i')
+        b_max = buffer.read_fmt('3i')
+        first_face, face_count, area = buffer.read_fmt('3i')
+
+        return cls(plane_index, childes_id, b_min, b_max, first_face, face_count, area)

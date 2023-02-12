@@ -1,9 +1,10 @@
 from typing import Optional
+
 import bpy
 import numpy as np
 
-from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
+from ..source2_shader_base import Source2ShaderBase
 
 
 class VrComplex(Source2ShaderBase):
@@ -11,7 +12,7 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def color_texture(self):
-        texture_path = self.get_texture('g_tColor', None)
+        texture_path = self._material_resource.get_texture_property('g_tColor', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
             return image
@@ -19,7 +20,7 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def normal_texture(self):
-        texture_path = self.get_texture('g_tNormal', None)
+        texture_path = self._material_resource.get_texture_property('g_tNormal', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -30,7 +31,7 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def detail_2(self):
-        texture_path = self.get_texture('g_tDetail2', None)
+        texture_path = self._material_resource.get_texture_property('g_tDetail2', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -41,7 +42,7 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def mask_2(self):
-        texture_path = self.get_texture('g_tMasks2', None)
+        texture_path = self._material_resource.get_texture_property('g_tMasks2', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -52,7 +53,7 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def mask_1(self):
-        texture_path = self.get_texture('g_tMasks1', None)
+        texture_path = self._material_resource.get_texture_property('g_tMasks1', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -63,7 +64,7 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def self_illum_mask_texture(self):
-        texture_path = self.get_texture('g_tSelfIllumMask', None)
+        texture_path = self._material_resource.get_texture_property('g_tSelfIllumMask', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 1.0))
             image.colorspace_settings.is_data = True
@@ -73,35 +74,35 @@ class VrComplex(Source2ShaderBase):
 
     @property
     def color(self):
-        return self.get_vector('g_vColorTint', np.ones(4, dtype=np.float32))
+        return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
 
     @property
     def alpha_test(self):
-        return self.get_int('F_ALPHA_TEST', 0)
+        return self._material_resource.get_int_property('F_ALPHA_TEST', 0)
 
     @property
     def mask_2_enabled(self):
-        return self.get_int('F_MASKS_2', 0)
+        return self._material_resource.get_int_property('F_MASKS_2', 0)
 
     @property
     def mask_1_enabled(self):
-        return self.get_int('F_MASKS_1', 0)
+        return self._material_resource.get_int_property('F_MASKS_1', 0)
 
     @property
     def metalness(self):
-        return self.get_int('F_METALNESS_TEXTURE', 0)
+        return self._material_resource.get_int_property('F_METALNESS_TEXTURE', 0)
 
     @property
     def translucent(self):
-        return self.get_int('F_TRANSLUCENT', 0)
+        return self._material_resource.get_int_property('F_TRANSLUCENT', 0)
 
     @property
     def specular(self):
-        return self.get_int('F_SPECULAR', 0)
+        return self._material_resource.get_int_property('F_SPECULAR', 0)
 
     @property
     def roughness_value(self):
-        value = self.get_vector('TextureRoughness', None)
+        value = self._material_resource.get_vector_property('TextureRoughness', None)
         if value is None:
             return
         return value[0]

@@ -1,33 +1,33 @@
+from dataclasses import dataclass
 from typing import List
 
-from . import Base
-from . import ByteIO
+from .....utils import Buffer
 
 
-class MaterialReplacementList(Base):
+@dataclass(slots=True)
+class MaterialReplacement:
+    material_id: int
+    replacement_material_name: str
 
-    def __init__(self):
-        self.replacements = []  # type: List[MaterialReplacement]
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        entry = buffer.tell()
+        material_id = buffer.read_int16()
+        replacement_material_name = buffer.read_source1_string(entry)
+        return cls(material_id, replacement_material_name)
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        replacements_count, replacement_offset = reader.read_fmt('2i')
-        with reader.save_current_pos():
-            reader.seek(entry + replacement_offset)
+
+@dataclass(slots=True)
+class MaterialReplacementList:
+    replacements: List[MaterialReplacement]
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        entry = buffer.tell()
+        replacements_count, replacement_offset = buffer.read_fmt('2i')
+        replacements = []
+        with buffer.read_from_offset(entry + replacement_offset):
             for _ in range(replacements_count):
-                mat = MaterialReplacement()
-                mat.read(reader)
-                self.replacements.append(mat)
-        return self
-
-
-class MaterialReplacement(Base):
-
-    def __init__(self):
-        self.material_id = 0
-        self.replacement_material_name = ''
-
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.material_id = reader.read_int16()
-        self.replacement_material_name = reader.read_source1_string(entry)
+                mat = MaterialReplacement.from_buffer(buffer)
+                replacements.append(mat)
+        return cls(replacements)

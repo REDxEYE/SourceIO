@@ -1,43 +1,52 @@
-from .primitive import Primitive
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from ....shared.types import Vector3
+from ....utils.file_utils import Buffer
 from ..lumps.node_lump import NodeLump
-from . import ByteIO
+
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
-class Model(Primitive):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
-        self.mins = []
-        self.maxs = []
-        self.origin = []
-        self.head_node = 0
-        self.first_face = 0
-        self.face_count = 0
+@dataclass(slots=True)
+class Model:
+    mins: Vector3[float]
+    maxs: Vector3[float]
+    origin: Vector3[float]
+    head_node: int
+    first_face: int
+    face_count: int
 
-    def parse(self, reader: ByteIO):
-        self.mins = reader.read_fmt('3f')
-        self.maxs = reader.read_fmt('3f')
-        self.origin = reader.read_fmt('3f')
-        self.head_node = reader.read_int32()
-        self.first_face = reader.read_int32()
-        self.face_count = reader.read_int32()
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("3i"))
 
-    @property
-    def node(self):
-        lump: NodeLump = self._bsp.get_lump('LUMP_NODES')
+    def get_node(self, bsp: 'BSPFile'):
+        lump: NodeLump = bsp.get_lump('LUMP_NODES')
         if lump:
             return lump.nodes[self.head_node]
         return None
 
 
-class RespawnModel(Model):
-    def __init__(self, lump, bsp):
-        super().__init__(lump, bsp)
-        self.first_mesh = 0
-        self.mesh_count = 0
+@dataclass(slots=True)
+class DMModel(Model):
+    unk: int
 
-    def parse(self, reader: ByteIO):
-        self.mins = reader.read_fmt('3f')
-        self.maxs = reader.read_fmt('3f')
-        self.first_mesh, self.mesh_count = reader.read_fmt('2I')
-        return self
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        head = buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f')
+        unk, *rest = buffer.read_fmt("4i")
+        return cls(*head, *rest, unk)
+
+
+@dataclass(slots=True)
+class RespawnModel:
+    mins: Vector3[float]
+    maxs: Vector3[float]
+    first_mesh: int
+    mesh_count: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("2I"))

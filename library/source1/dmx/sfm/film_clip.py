@@ -1,10 +1,10 @@
+from ....shared.content_providers.content_manager import ContentManager
+from ....utils.datamodel import Element
 from .animation_set import AnimationSet
 from .base_element import BaseElement
 from .camera import Camera
 from .time_frame import TimeFrame
 from .track_group import TrackGroup
-from ....shared.content_providers.content_manager import ContentManager
-from ....utils.datamodel import Element
 
 
 class FilmClip(BaseElement):

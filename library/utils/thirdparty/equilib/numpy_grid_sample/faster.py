@@ -38,13 +38,21 @@ def grid_sample(
     # Image conversion values (Lookup Image dtype)
     if img.dtype == np.uint8:
         # uint8 is faster
-        _min = 0
-        _max = 255
+        # _min = 0
+        # _max = 255
         _dtype = np.uint8
     elif img.dtype == np.float64:
-        _min = 0.0
-        _max = 1.0
+        # _min = 0.0
+        # _max = 100.0
         _dtype = np.float64
+    elif img.dtype == np.float32:
+        # _min = 0.0
+        # _max = 100.0
+        _dtype = np.float32
+    elif img.dtype == np.float16:
+        # _min = 0.0
+        # _max = 100.0
+        _dtype = np.float16
     else:
         raise ValueError("{} is not supported".format(img.dtype))
 
@@ -101,7 +109,7 @@ def grid_sample(
     else:
         raise ValueError("{} is not available".format(mode))
 
-    out = np.where(out >= _max, _max, out)
-    out = np.where(out < _min, _min, out)
+    # out = np.where(out >= _max, _max, out)
+    # out = np.where(out < _min, _min, out)
     out = out.reshape(channels, h_out, w_out)
     return out.astype(_dtype)

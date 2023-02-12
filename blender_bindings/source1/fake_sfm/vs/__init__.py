@@ -3,8 +3,9 @@ REPARENT_LOGS_OVERWRITE = 1  # Overwrite the logs with new local transform of th
 REPARENT_LOGS_OFFSET_LOCAL = 2  # Apply the transform required to maintain the world space transform of the dag to all log samples
 REPARENT_LOGS_MAINTAIN_WORLD = 3  # Modify the logs so that the world space position and orientation animation is maintained
 
-from mathutils import Vector as BVector
 from mathutils import Color as BColor
+from mathutils import Vector as BVector
+
 from . import mathlib
 
 

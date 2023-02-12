@@ -1,20 +1,22 @@
-import math
 import traceback
-from typing import List, Dict
+from dataclasses import dataclass
+from typing import Dict, List, Mapping
 
-import numpy as np
+import numpy.typing as npt
 
-from .. import Mdl
-from ....utils.byte_io_mdl import ByteIO
-
-from ..v49.flex_expressions import *
-from ..structs.header import MdlHeaderV44
-from ..structs.bone import BoneV49
-from ..structs.material import MaterialV49
-from ..structs.flex import FlexController, FlexRule, FlexControllerUI, FlexOpType
-from ..structs.attachment import AttachmentV49
-from ..structs.bodygroup import BodyPartV44
+from ..structs.local_animation import StudioAnimDesc
+from ..structs.sequence import StudioSequence
+from ....utils import Buffer
 from ....utils.kv_parser import ValveKeyValueParser
+from .. import Mdl
+from ..structs.attachment import Attachment
+from ..structs.bodygroup import BodyPart
+from ..structs.bone import Bone
+from ..structs.flex import (FlexController, FlexControllerUI, FlexOpType,
+                            FlexRule)
+from ..structs.header import MdlHeaderV44
+from ..structs.material import MaterialV49
+from ..v49.flex_expressions import *
 
 
 class _AnimBlocks:
@@ -23,162 +25,144 @@ class _AnimBlocks:
         self.blocks = []
 
 
+@dataclass(slots=True)
 class MdlV44(Mdl):
+    header: MdlHeaderV44
 
-    def __init__(self, filepath):
-        self.store_value("MDL", self)
-        self.reader = ByteIO(filepath)
-        self.header = MdlHeaderV44()
-        self.bones = []  # type: List[BoneV49]
-        self.skin_groups = []  # type: List[List[str]]
-        self.materials = []  # type: List[MaterialV49]
-        self.materials_paths = []
+    bones: List[Bone]
+    skin_groups: List[List[str]]
+    materials: List[MaterialV49]
+    materials_paths: List[str]
 
-        self.flex_names = []  # type:List[str]
-        self.flex_controllers = []  # type:List[FlexController]
-        self.flex_ui_controllers = []  # type:List[FlexControllerUI]
-        self.flex_rules = []  # type:List[FlexRule]
+    flex_names: List[str]
+    flex_controllers: List[FlexController]
+    flex_ui_controllers: List[FlexControllerUI]
+    flex_rules: List[FlexRule]
 
-        self.body_parts = []  # type:List[BodyPartV44]
+    body_parts: List[BodyPart]
 
-        self.attachments = []  # type:List[AttachmentV49]
-        self.anim_block = _AnimBlocks()
+    attachments: List[Attachment]
 
-        self.bone_table_by_name = []
-        self.eyeballs = []
+    anim_descs: List[StudioAnimDesc]
+    sequences: List[StudioSequence]
+    animations: List[npt.NDArray]
 
-        self.key_values_raw = ''
-        self.key_values = {}
+    key_values_raw: str
+    key_values: Mapping
 
-    @staticmethod
-    def calculate_crc(buffer):
-        correct_buffer_size = math.ceil(len(buffer) / 4) * 4
-        buffer += b'\x00' * (correct_buffer_size - len(buffer))
+    include_models: List[str]
 
-        buffer: np.ndarray = np.frombuffer(buffer, np.uint32).copy()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        header = MdlHeaderV44.from_buffer(buffer)
 
-        orig_checksum = buffer[2]
-        buffer[8 // 4] = 0
-        buffer[76 // 4] = 0
-        buffer[1432 // 4:1432 // 4 + 2] = 0
-        buffer[1520 // 4:(1520 + 36) // 4] = 0
-        buffer[1604 // 4] = 0
-        with open('test.bin', 'wb') as f:
-            f.write(buffer.tobytes())
-
-        new_checksum = 0
-        for i in range(buffer.shape[0]):
-            tmp = buffer[i] + (new_checksum >> 27 & 1)
-
-            new_checksum = (tmp & 0xFFFFFFFF) + ((2 * new_checksum) & 0xFFFFFFFF)
-            new_checksum &= 0xFFFFFFFF
-            print(f'{i * 4 + 4}: {new_checksum:08x} : {new_checksum}')
-            buffer[2] = new_checksum
-        print(orig_checksum, new_checksum)
-
-    def read(self):
-        reader = self.reader
-        header = self.header
-        header.read(reader)
-
-        reader.seek(header.bone_offset)
+        bones = []
+        buffer.seek(header.bone_offset)
         for bone_id in range(header.bone_count):
-            bone = BoneV49(bone_id)
-            bone.read(reader)
-            self.bones.append(bone)
+            bone = Bone.from_buffer(buffer, header.version)
+            bone.bone_id = bone_id
+            bones.append(bone)
 
-        reader.seek(header.texture_offset)
+        materials = []
+        buffer.seek(header.texture_offset)
         for _ in range(header.texture_count):
-            texture = MaterialV49()
-            texture.read(reader)
-            self.materials.append(texture)
+            texture = MaterialV49.from_buffer(buffer, header.version)
+            materials.append(texture)
 
-        reader.seek(header.texture_path_offset)
+        materials_paths = []
+        buffer.seek(header.texture_path_offset)
         for _ in range(header.texture_path_count):
-            self.materials_paths.append(reader.read_source1_string(0))
+            materials_paths.append(buffer.read_source1_string(0))
 
-        reader.seek(header.skin_family_offset)
+        skin_groups = []
+        buffer.seek(header.skin_family_offset)
         for _ in range(header.skin_family_count):
             skin_group = []
             for _ in range(header.skin_reference_count):
-                texture_index = reader.read_uint16()
-                skin_group.append(self.materials[texture_index].name)
-            self.skin_groups.append(skin_group)
+                texture_index = buffer.read_uint16()
+                skin_group.append(materials[texture_index].name)
+            skin_groups.append(skin_group)
 
         diff_start = 0
-        for skin_info in self.skin_groups[1:]:
-            for n, (a, b) in enumerate(zip(self.skin_groups[0], skin_info)):
+        for skin_info in skin_groups[1:]:
+            for n, (a, b) in enumerate(zip(skin_groups[0], skin_info)):
                 if a == b:
                     diff_start = max(n, diff_start)
                     break
 
-        for n, skin_info in enumerate(self.skin_groups):
-            self.skin_groups[n] = skin_info[:diff_start]
+        for n, skin_info in enumerate(skin_groups):
+            skin_groups[n] = skin_info[:diff_start]
 
-        reader.seek(header.flex_desc_offset)
+        flex_names = []
+        buffer.seek(header.flex_desc_offset)
         for _ in range(header.flex_desc_count):
-            self.flex_names.append(reader.read_source1_string(reader.tell()))
+            flex_names.append(buffer.read_source1_string(buffer.tell()))
 
-        reader.seek(header.flex_controller_offset)
+        flex_controllers = []
+        buffer.seek(header.flex_controller_offset)
         for _ in range(header.flex_controller_count):
-            controller = FlexController()
-            controller.read(reader)
-            self.flex_controllers.append(controller)
+            controller = FlexController.from_buffer(buffer, header.version)
+            flex_controllers.append(controller)
 
-        reader.seek(header.flex_rule_offset)
+        flex_rules = []
+        buffer.seek(header.flex_rule_offset)
         for _ in range(header.flex_rule_count):
-            rule = FlexRule()
-            rule.read(reader)
-            self.flex_rules.append(rule)
+            rule = FlexRule.from_buffer(buffer, header.version)
+            flex_rules.append(rule)
 
-        reader.seek(header.local_attachment_offset)
+        attachments = []
+        buffer.seek(header.local_attachment_offset)
         for _ in range(header.local_attachment_count):
-            attachment = AttachmentV49()
-            attachment.read(reader)
-            self.attachments.append(attachment)
+            attachment = Attachment.from_buffer(buffer, header.version)
+            attachments.append(attachment)
 
-        reader.seek(header.flex_controller_ui_offset)
+        flex_ui_controllers = []
+        buffer.seek(header.flex_controller_ui_offset)
         for _ in range(header.flex_controller_ui_count):
-            flex_controller = FlexControllerUI()
-            flex_controller.read(reader)
-            self.flex_ui_controllers.append(flex_controller)
+            flex_controller = FlexControllerUI.from_buffer(buffer, header.version)
+            flex_ui_controllers.append(flex_controller)
 
-        reader.seek(header.body_part_offset)
+        body_parts = []
+        buffer.seek(header.body_part_offset)
         for _ in range(header.body_part_count):
-            body_part = BodyPartV44()
-            body_part.read(reader)
-            self.body_parts.append(body_part)
+            body_part = BodyPart.from_buffer(buffer, header.version)
+            body_parts.append(body_part)
 
-        reader.seek(header.key_value_offset)
-        self.key_values_raw = reader.read(header.key_value_size).strip(b'\x00').decode('latin1')
-        if self.key_values_raw:
-            parser = ValveKeyValueParser(buffer_and_name=(self.key_values_raw, 'memory'), self_recover=True)
+        buffer.seek(header.key_value_offset)
+        key_values_raw = buffer.read(header.key_value_size).strip(b'\x00').decode('latin1')
+        if key_values_raw:
+            parser = ValveKeyValueParser(buffer_and_name=(key_values_raw, 'memory'), self_recover=True)
             parser.parse()
-            self.key_values = parser.tree
+            key_values = parser.tree
+        else:
+            key_values = {}
 
-        # self.reader.seek(self.header.local_animation_offset)
-        # for _ in range(self.header.local_animation_count):
-        #     anim_desc = AnimDesc()
-        #     anim_desc.read(self.reader)
-        #     self.anim_descs.append(anim_desc)
-        #
-        # self.reader.seek(self.header.local_sequence_offset)
-        # for _ in range(self.header.local_sequence_count):
-        #     seq = Sequence()
-        #     seq.read(self.reader)
-        #     self.sequences.append(seq)
+        local_animations = []
+        buffer.seek(header.local_animation_offset)
+        for _ in range(header.local_animation_count):
+            local_animations.append(StudioAnimDesc.from_buffer(buffer))
 
-        # self.anim_block.name = self.reader.read_from_offset(self.header.anim_block_name_offset,
-        #                                                     self.reader.read_ascii_string)
-        # self.reader.seek(self.header.anim_block_offset)
-        # for _ in range(self.header.anim_block_count):
-        #     self.anim_block.blocks.append(self.reader.read_fmt('2i'))
-        #
-        # if self.header.bone_table_by_name_offset and self.bones:
-        #     self.reader.seek(self.header.bone_table_by_name_offset)
-        #     self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
+        local_sequences = []
+        buffer.seek(header.local_sequence_offset)
+        for _ in range(header.local_sequence_count):
+            local_sequences.append(StudioSequence.from_buffer(buffer, header.version))
+
+        animations = []
+        for anim_desc in local_animations:
+            animations.append(anim_desc.read_animations(buffer, bones))
+
+        include_models = []
+        buffer.seek(header.include_model_offset)
+        for inc_model in range(header.include_model_count):
+            entry = buffer.tell()
+            label = buffer.read_source1_string(entry)
+            path = buffer.read_source1_string(entry)
+            include_models.append(path)
 
         # for anim
+        return cls(header, bones, skin_groups, materials, materials_paths, flex_names, flex_controllers,
+                   flex_ui_controllers, flex_rules, body_parts, attachments, local_animations, local_sequences,
+                   animations, key_values_raw, key_values, include_models)
 
     def rebuild_flex_rules(self):
         flex_controllers: Dict[str, FlexControllerUI] = {f.left_controller: f for f in self.flex_ui_controllers if
@@ -197,12 +181,12 @@ class MdlV44(Mdl):
                     if flex_op == FlexOpType.CONST:
                         stack.append(Value(op.value))
                     elif flex_op == FlexOpType.FETCH1:
-                        inputs.append((self.flex_controllers[op.index].name, 'fetch1'))
-                        fc_ui = flex_controllers[self.flex_controllers[op.index].name]
+                        inputs.append((self.flex_controllers[op.value].name, 'fetch1'))
+                        fc_ui = flex_controllers[self.flex_controllers[op.value].name]
                         stack.append(FetchController(fc_ui.name, fc_ui.stereo))
                     elif flex_op == FlexOpType.FETCH2:
-                        inputs.append((self.flex_names[op.index], 'fetch2'))
-                        stack.append(FetchFlex(self.flex_names[op.index]))
+                        inputs.append((self.flex_names[op.value], 'fetch2'))
+                        stack.append(FetchFlex(self.flex_names[op.value]))
                     elif flex_op == FlexOpType.ADD:
                         stack.append(Add(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.SUB:
@@ -218,22 +202,22 @@ class MdlV44(Mdl):
                     elif flex_op == FlexOpType.MIN:
                         stack.append(Min(stack.pop(-1), stack.pop(-1)))
                     elif flex_op == FlexOpType.COMBO:
-                        stack.append(Combo(*[stack.pop(-1) for _ in range(op.index)]))
+                        stack.append(Combo(*[stack.pop(-1) for _ in range(op.value)]))
                     elif flex_op == FlexOpType.DOMINATE:
-                        stack.append(Dominator(*[stack.pop(-1) for _ in range(op.index + 1)]))
+                        stack.append(Dominator(*[stack.pop(-1) for _ in range(op.value + 1)]))
                     elif flex_op == FlexOpType.TWO_WAY_0:
-                        inputs.append((self.flex_controllers[op.index].name, '2WAY0'))
-                        fc_ui = flex_controllers[self.flex_controllers[op.index].name]
+                        inputs.append((self.flex_controllers[op.value].name, '2WAY0'))
+                        fc_ui = flex_controllers[self.flex_controllers[op.value].name]
                         stack.append(RClamp(FetchController(fc_ui.name, fc_ui.stereo),
                                             -1, 0, 1, 0))
                     elif flex_op == FlexOpType.TWO_WAY_1:
-                        inputs.append((self.flex_controllers[op.index].name, '2WAY1'))
-                        fc_ui = flex_controllers[self.flex_controllers[op.index].name]
+                        inputs.append((self.flex_controllers[op.value].name, '2WAY1'))
+                        fc_ui = flex_controllers[self.flex_controllers[op.value].name]
                         stack.append(Clamp(FetchController(fc_ui.name, fc_ui.stereo), 0, 1), )
                     elif flex_op == FlexOpType.NWAY:
 
-                        inputs.append((self.flex_controllers[op.index].name, 'NWAY'))
-                        fc_ui = flex_controllers[self.flex_controllers[op.index].name]
+                        inputs.append((self.flex_controllers[op.value].name, 'NWAY'))
+                        fc_ui = flex_controllers[self.flex_controllers[op.value].name]
                         flex_cnt = FetchController(fc_ui.name, fc_ui.stereo)
 
                         flex_cnt_value = int(stack.pop(-1).value)
@@ -249,7 +233,7 @@ class MdlV44(Mdl):
                         final_expr = NWay(multi_cnt, flex_cnt, f_x, f_y, f_z, f_w)
                         stack.append(final_expr)
                     elif flex_op == FlexOpType.DME_UPPER_EYELID:
-                        close_lid_v_controller = self.flex_controllers[op.index]
+                        close_lid_v_controller = self.flex_controllers[op.value]
                         inputs.append((close_lid_v_controller.name, 'DUE'))
                         close_lid_v = RClamp(FetchController(close_lid_v_controller.name),
                                              close_lid_v_controller.min, close_lid_v_controller.max,
@@ -284,7 +268,7 @@ class MdlV44(Mdl):
 
                         stack.append(CustomFunction('upper_eyelid_case', eye_up_down, close_lid_v, close_lid))
                     elif flex_op == FlexOpType.DME_LOWER_EYELID:
-                        close_lid_v_controller = self.flex_controllers[op.index]
+                        close_lid_v_controller = self.flex_controllers[op.value]
                         inputs.append((close_lid_v_controller.name, 'DUE'))
                         close_lid_v = RClamp(FetchController(close_lid_v_controller.name),
                                              close_lid_v_controller.min, close_lid_v_controller.max,

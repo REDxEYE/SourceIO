@@ -1,20 +1,18 @@
 from abc import ABC
 from pathlib import Path
-from typing import Union, List
+from typing import List, Union
 
 import numpy as np
 
+from ...shared.content_providers.content_manager import ContentManager
+from ...utils.path_utilities import find_vtx_cm
+from ..mdl.structs.bone import Bone
+from ..mdl.structs.model import ModelV36
+from ..mdl.v36.mdl_file import MdlV36 as MdlV36
+from ..vtx.v6.vtx import Vtx as VtxV6
 from .game_model import GameModel
 from .parts.bone import SourceBone
 from .parts.mesh import SourceMesh
-from ..mdl.structs.bone import BoneV36, BoneV49
-from ...shared.content_providers.content_manager import ContentManager
-from ...utils.path_utilities import find_vtx_cm
-
-from ..mdl.v36.mdl_file import MdlV36 as MdlV36
-from ..vtx.v6.vtx import Vtx as VtxV6
-
-from ..mdl.structs.model import ModelV36
 
 
 class Source1GameModel(GameModel, ABC):
@@ -25,7 +23,7 @@ class Source1GameModel(GameModel, ABC):
 
 
 class Source1Bone(SourceBone):
-    def __init__(self, mdl_bone: Union[BoneV36, BoneV49]):
+    def __init__(self, mdl_bone: Union[Bone, Bone]):
         self.bone = mdl_bone
 
     @property

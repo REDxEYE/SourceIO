@@ -5,7 +5,9 @@ import struct
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Union, BinaryIO, List
+from typing import BinaryIO, List, Union
+
+from . import Buffer
 
 
 class OffsetOutOfBounds(Exception):
@@ -30,7 +32,7 @@ class ByteIO:
         yield
         self.seek(entry)
 
-    def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray] = None,
+    def __init__(self, path_or_file_or_data: Union[str, Path, BinaryIO, bytes, bytearray, Buffer] = None,
                  open_to_read=True):
         if path_or_file_or_data is not None:
             self.assert_file_exists(path_or_file_or_data)
@@ -46,6 +48,8 @@ class ByteIO:
             self.file = path_or_file_or_data
         elif isinstance(path_or_file_or_data, ByteIO):
             self.file = path_or_file_or_data.file
+        elif isinstance(path_or_file_or_data, Buffer):
+            self.file = path_or_file_or_data
         else:
             self.file = BytesIO()
 
@@ -63,6 +67,8 @@ class ByteIO:
             res = bool(input_data)
         elif isinstance(input_data, ByteIO):
             res = bool(input_data.file)
+        elif isinstance(input_data, Buffer):
+            res = not input_data.closed
         elif isinstance(input_data, (BinaryIO, io.BufferedReader, BytesIO)):
             res = not input_data.closed
         else:
@@ -286,6 +292,9 @@ class ByteIO:
 
     def write(self, t, value):
         self._write(struct.pack(t, value))
+
+    def write_fmt(self, fmt: str, *values):
+        self._write(struct.pack(fmt, *values))
 
     def write_uint64(self, value):
         self.write('Q', value)

@@ -1,11 +1,12 @@
+from typing import Any, Dict
+
 import bpy
-from typing import Dict, Any
 import numpy as np
 
-from ..shader_base import ShaderBase
-from ...source1.vtf import import_texture
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.vmt import VMT
+from ...source1.vtf import import_texture
+from ..shader_base import ShaderBase
 
 
 class Source1ShaderBase(ShaderBase):
@@ -29,22 +30,17 @@ class Source1ShaderBase(ShaderBase):
     def convert_ssbump(image: bpy.types.Image):
         if image.get('ssbump_converted', None):
             return image
-        if bpy.app.version > (2, 83, 0):
-            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
-            image.pixels.foreach_get(buffer)
-        else:
-            buffer = np.array(image.pixels[:])
+        buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+        image.pixels.foreach_get(buffer)
         buffer[0::4] *= 0.5
         buffer[0::4] += 0.33
         buffer[1::4] *= 0.5
         buffer[1::4] += 0.33
         buffer[2::4] *= 0.2
         buffer[2::4] += 0.8
-        if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(buffer.tolist())
-        else:
-            image.pixels[:] = buffer.tolist()
+        image.pixels.foreach_set(buffer.ravel())
         image.pack()
+        del buffer
         image['ssbump_converted'] = True
         return image
 
@@ -52,17 +48,13 @@ class Source1ShaderBase(ShaderBase):
     def convert_normalmap(image: bpy.types.Image):
         if image.get('normalmap_converted', None):
             return image
-        if bpy.app.version > (2, 83, 0):
-            buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
-            image.pixels.foreach_get(buffer)
-        else:
-            buffer = np.array(image.pixels[:])
+
+        buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
+        image.pixels.foreach_get(buffer)
 
         buffer[1::4] = np.subtract(1, buffer[1::4])
-        if bpy.app.version > (2, 83, 0):
-            image.pixels.foreach_set(buffer.tolist())
-        else:
-            image.pixels[:] = buffer.tolist()
+        image.pixels.foreach_set(buffer.ravel())
         image.pack()
+        del buffer
         image['normalmap_converted'] = True
         return image

@@ -2,20 +2,17 @@ import traceback
 from pathlib import Path
 from typing import Dict, Type, Union
 
-from .shader_base import ShaderBase
-from .shaders.source2_shaders.dummy import DummyShader
 from ...library.goldsrc.mdl_v10.structs.texture import StudioTexture
-from ...logger import SLoggingManager
 from ...library.source1.vmt import VMT
-
+from ...library.source2 import CompiledMaterialResource
+from ...logger import SLoggingManager
+from .shader_base import ShaderBase
+from .shaders import (debug_material, goldsrc_shaders, source1_shaders,
+                      source2_shaders)
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 from .shaders.source1_shader_base import Source1ShaderBase
 from .shaders.source2_shader_base import Source2ShaderBase
-
-from .shaders import source1_shaders
-from .shaders import source2_shaders
-from .shaders import goldsrc_shaders
-from .shaders import debug_material
+from .shaders.source2_shaders.dummy import DummyShader
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('MaterialLoader')
@@ -82,16 +79,17 @@ class Source2MaterialLoader(MaterialLoaderBase):
         logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
-    def __init__(self, source2_material_data, material_name, resources: Dict[Union[str, int], Path]):
+    def __init__(self, material_resource: CompiledMaterialResource, material_name):
         super().__init__(material_name)
         self.material_name: str = material_name[-63:]
-        self.resources = resources
-        self.texture_data = source2_material_data
+        self.material_resource = material_resource
 
     def create_material(self):
-        shader = self.texture_data['m_shaderName']
-        handler: Source2ShaderBase = self._handlers.get(
-            shader, DummyShader)(self.texture_data, self.resources)
+        data, = self.material_resource.get_data_block(block_name='DATA')
+        if not data:
+            return
+        shader = data['m_shaderName']
+        handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.material_resource)
 
         if shader not in self._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')

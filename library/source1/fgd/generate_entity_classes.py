@@ -1,7 +1,7 @@
+import os
 from pathlib import Path
 
-from valvefgd import FgdEntity, FgdParse, Fgd
-import os
+from valvefgd import Fgd, FgdEntity, FgdParse
 
 os.environ['NO_BPY'] = '1'
 from ...shared.content_providers.content_manager import ContentManager

@@ -1,6 +1,6 @@
 from enum import IntFlag
 
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer
 
 
 class FileFlags(IntFlag):
@@ -30,7 +30,7 @@ class File:
         self.file_size = 0
         self.buffer_size = 0
 
-    def read(self, reader: ByteIO):
+    def read(self, reader: Buffer):
         self.checksum = reader.read_uint32()
         self.flags = FileFlags(reader.read_uint32())
         self.start_block = reader.read_uint32()

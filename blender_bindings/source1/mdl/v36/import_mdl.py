@@ -4,20 +4,21 @@ from typing import Iterable, Sized, Union
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler, Quaternion
+from mathutils import Euler, Matrix, Quaternion, Vector
 
-from .. import FileImport
-from ..common import merge_meshes
-from .....logger import SLoggingManager
-from .....library.source1.mdl.v49.flex_expressions import *
-from .....library.source1.mdl.v36.mdl_file import MdlV36
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from .....library.source1.mdl.structs.header import StudioHDRFlags
+from .....library.source1.mdl.v36.mdl_file import MdlV36
+from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.vtx import open_vtx
-from .....library.shared.content_providers.content_manager import ContentManager
+from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ....utils.utils import get_material
 from ....shared.model_container import Source1ModelContainer
+from ....utils.utils import add_material
+from .. import FileImport
+from ..common import merge_meshes
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -41,8 +42,8 @@ def create_armature(mdl: MdlV36, scale=1.0):
         bl_bones.append(bl_bone)
 
     for bl_bone, s_bone in zip(bl_bones, mdl.bones):
-        if s_bone.parent_bone_index != -1:
-            bl_parent = bl_bones[s_bone.parent_bone_index]
+        if s_bone.parent_bone_id != -1:
+            bl_parent = bl_bones[s_bone.parent_bone_id]
             bl_bone.parent = bl_parent
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 
@@ -64,12 +65,10 @@ def create_armature(mdl: MdlV36, scale=1.0):
 
 def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
-    mdl = MdlV36(file_list.mdl_file)
-    mdl.read()
+    mdl = MdlV36.from_buffer(file_list.mdl_file)
     vtx = open_vtx(file_list.vtx_file)
-    vtx.read()
 
-    container = Source1ModelContainer(mdl, None, vtx)
+    container = Source1ModelContainer(mdl, None, vtx, file_list)
 
     desired_lod = 0
 
@@ -129,7 +128,7 @@ def import_model(file_list: FileImport,
             indices_array = np.array(indices_array, dtype=np.uint32)
             vertices = model_vertices[vtx_vertices]
 
-            mesh_data.from_pydata(vertices['vertex'] * scale, [], np.flip(indices_array).reshape((-1, 3)).tolist())
+            mesh_data.from_pydata(vertices['vertex'] * scale, [], np.flip(indices_array).reshape((-1, 3)))
             mesh_data.update()
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
@@ -143,9 +142,9 @@ def import_model(file_list: FileImport,
                     mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
                 else:
                     mat_name = mat_name[-63:]
-                material_remapper[mat_id] = get_material(mat_name, mesh_obj)
+                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
 
-            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].tolist())
+            mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].ravel())
 
             uv_data = mesh_data.uv_layers.new()
 

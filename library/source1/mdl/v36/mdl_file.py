@@ -1,166 +1,109 @@
-import math
 import traceback
+from dataclasses import dataclass
 from typing import List
 
-import numpy as np
-
+from ....utils import Buffer
 from .. import Mdl
-from ....utils.byte_io_mdl import ByteIO
-
-from ..v49.flex_expressions import *
+from ..structs.attachment import Attachment
+from ..structs.bodygroup import BodyPart
+from ..structs.bone import Bone
+from ..structs.flex import FlexController, FlexOpType, FlexRule
 from ..structs.header import MdlHeaderV36
-from ..structs.bone import BoneV36
 from ..structs.material import MaterialV36
-from ..structs.flex import FlexController, FlexRule, FlexOpType
-from ..structs.attachment import AttachmentV36
-from ..structs.bodygroup import BodyPartV36
+from ..v49.flex_expressions import *
 
 
-class _AnimBlocks:
-    def __init__(self):
-        self.name = ''
-        self.blocks = []
-
-
+@dataclass(slots=True)
 class MdlV36(Mdl):
+    header: MdlHeaderV36
 
-    def __init__(self, filepath):
-        self.store_value("MDL", self)
-        self.reader = ByteIO(filepath)
-        self.header = MdlHeaderV36()
-        self.bones = []  # type: List[BoneV36]
-        self.skin_groups = []  # type: List[List[str]]
-        self.materials = []  # type: List[MaterialV36]
-        self.materials_paths = []
+    bones: List[Bone]
+    skin_groups: List[List[str]]
+    materials: List[MaterialV36]
+    materials_paths: List[str]
 
-        self.flex_names = []  # type:List[str]
-        self.flex_controllers = []  # type:List[FlexController]
-        self.flex_rules = []  # type:List[FlexRule]
+    flex_names: List[str]
+    flex_controllers: List[FlexController]
+    flex_rules: List[FlexRule]
 
-        self.body_parts = []  # type:List[BodyPartV36]
+    body_parts: List[BodyPart]
 
-        self.attachments = []  # type:List[AttachmentV36]
-        self.anim_block = _AnimBlocks()
+    attachments: List[Attachment]
 
-        self.bone_table_by_name = []
-        self.eyeballs = []
+    bone_table_by_name = []
 
-    @staticmethod
-    def calculate_crc(buffer):
-        correct_buffer_size = math.ceil(len(buffer) / 4) * 4
-        buffer += b'\x00' * (correct_buffer_size - len(buffer))
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        header = MdlHeaderV36.from_buffer(buffer)
 
-        buffer: np.ndarray = np.frombuffer(buffer, np.uint32).copy()
-
-        orig_checksum = buffer[2]
-        buffer[8 // 4] = 0
-        buffer[76 // 4] = 0
-        buffer[1432 // 4:1432 // 4 + 2] = 0
-        buffer[1520 // 4:(1520 + 36) // 4] = 0
-        buffer[1604 // 4] = 0
-        with open('shit.bin', 'wb') as f:
-            f.write(buffer.tobytes())
-
-        new_checksum = 0
-        for i in range(buffer.shape[0]):
-            tmp = buffer[i] + (new_checksum >> 27 & 1)
-
-            new_checksum = (tmp & 0xFFFFFFFF) + ((2 * new_checksum) & 0xFFFFFFFF)
-            new_checksum &= 0xFFFFFFFF
-            print(f'{i * 4 + 4}: {new_checksum:08x} : {new_checksum}')
-            buffer[2] = new_checksum
-        print(orig_checksum, new_checksum)
-
-    def read(self):
-        reader = self.reader
-        header = self.header
-        header.read(reader)
-
-        reader.seek(header.bone_offset)
+        bones = []
+        buffer.seek(header.bone_offset)
         for bone_id in range(header.bone_count):
-            bone = BoneV36(bone_id)
-            bone.read(reader)
-            self.bones.append(bone)
+            bone = Bone.from_buffer(buffer, header.version)
+            bone.bone_id = bone_id
+            bones.append(bone)
 
-        reader.seek(header.texture_offset)
+        materials = []
+        buffer.seek(header.texture_offset)
         for _ in range(header.texture_count):
-            texture = MaterialV36()
-            texture.read(reader)
-            self.materials.append(texture)
+            texture = MaterialV36.from_buffer(buffer, header.version)
+            materials.append(texture)
 
-        reader.seek(header.texture_path_offset)
+        materials_paths = []
+        buffer.seek(header.texture_path_offset)
         for _ in range(header.texture_path_count):
-            self.materials_paths.append(reader.read_source1_string(0))
+            materials_paths.append(buffer.read_source1_string(0))
 
-        reader.seek(header.skin_family_offset)
+        skin_groups = []
+        buffer.seek(header.skin_family_offset)
         for _ in range(header.skin_family_count):
             skin_group = []
             for _ in range(header.skin_reference_count):
-                texture_index = reader.read_uint16()
-                skin_group.append(self.materials[texture_index].name)
-            self.skin_groups.append(skin_group)
+                texture_index = buffer.read_uint16()
+                skin_group.append(materials[texture_index].name)
+            skin_groups.append(skin_group)
 
         diff_start = 0
-        for skin_info in self.skin_groups[1:]:
-            for n, (a, b) in enumerate(zip(self.skin_groups[0], skin_info)):
+        for skin_info in skin_groups[1:]:
+            for n, (a, b) in enumerate(zip(skin_groups[0], skin_info)):
                 if a != b:
                     diff_start = max(n, diff_start)
                     break
 
-        for n, skin_info in enumerate(self.skin_groups):
-            self.skin_groups[n] = skin_info[diff_start:]
+        for n, skin_info in enumerate(skin_groups):
+            skin_groups[n] = skin_info[diff_start:]
 
-        reader.seek(header.flex_desc_offset)
+        flex_names = []
+        buffer.seek(header.flex_desc_offset)
         for _ in range(header.flex_desc_count):
-            self.flex_names.append(reader.read_source1_string(reader.tell()))
+            flex_names.append(buffer.read_source1_string(buffer.tell()))
 
-        reader.seek(header.flex_controller_offset)
+        flex_controllers = []
+        buffer.seek(header.flex_controller_offset)
         for _ in range(header.flex_controller_count):
-            controller = FlexController()
-            controller.read(reader)
-            self.flex_controllers.append(controller)
+            controller = FlexController.from_buffer(buffer, header.version)
+            flex_controllers.append(controller)
 
-        reader.seek(header.flex_rule_offset)
+        flex_rules = []
+        buffer.seek(header.flex_rule_offset)
         for _ in range(header.flex_rule_count):
-            rule = FlexRule()
-            rule.read(reader)
-            self.flex_rules.append(rule)
+            rule = FlexRule.from_buffer(buffer, header.version)
+            flex_rules.append(rule)
 
-        reader.seek(header.local_attachment_offset)
+        attachments = []
+        buffer.seek(header.local_attachment_offset)
         for _ in range(header.local_attachment_count):
-            attachment = AttachmentV36()
-            attachment.read(reader)
-            self.attachments.append(attachment)
+            attachment = Attachment.from_buffer(buffer, header.version)
+            attachments.append(attachment)
 
-        reader.seek(header.body_part_offset)
+        body_parts = []
+        buffer.seek(header.body_part_offset)
         for _ in range(header.body_part_count):
-            body_part = BodyPartV36()
-            body_part.read(reader)
-            self.body_parts.append(body_part)
+            body_part = BodyPart.from_buffer(buffer, header.version)
+            body_parts.append(body_part)
 
-        # self.reader.seek(self.header.local_animation_offset)
-        # for _ in range(self.header.local_animation_count):
-        #     anim_desc = AnimDesc()
-        #     anim_desc.read(self.reader)
-        #     self.anim_descs.append(anim_desc)
-        #
-        # self.reader.seek(self.header.local_sequence_offset)
-        # for _ in range(self.header.local_sequence_count):
-        #     seq = Sequence()
-        #     seq.read(self.reader)
-        #     self.sequences.append(seq)
-
-        # self.anim_block.name = self.reader.read_from_offset(self.header.anim_block_name_offset,
-        #                                                     self.reader.read_ascii_string)
-        # self.reader.seek(self.header.anim_block_offset)
-        # for _ in range(self.header.anim_block_count):
-        #     self.anim_block.blocks.append(self.reader.read_fmt('2i'))
-        #
-        # if self.header.bone_table_by_name_offset and self.bones:
-        #     self.reader.seek(self.header.bone_table_by_name_offset)
-        #     self.bone_table_by_name = [self.reader.read_uint8() for _ in range(len(self.bones))]
-
-        # for anim
+        return cls(header, bones, skin_groups, materials, materials_paths, flex_names, flex_controllers, flex_rules,
+                   body_parts, attachments)
 
     def rebuild_flex_rules(self):
         rules = {}
@@ -173,9 +116,9 @@ class MdlV36(Mdl):
                     if flex_op == FlexOpType.CONST:
                         stack.append(Value(op.value))
                     elif flex_op == FlexOpType.FETCH1:
-                        stack.append(FetchController(self.flex_controllers[op.index].name))
+                        stack.append(FetchController(self.flex_controllers[op.value].name))
                     elif flex_op == FlexOpType.FETCH2:
-                        stack.append(FetchFlex(self.flex_names[op.index]))
+                        stack.append(FetchFlex(self.flex_names[op.value]))
                     elif flex_op == FlexOpType.ADD:
                         right = stack.pop(-1)
                         left = stack.pop(-1)
@@ -203,22 +146,22 @@ class MdlV36(Mdl):
                         left = stack.pop(-1)
                         stack.append(Min(left, right))
                     elif flex_op == FlexOpType.COMBO:
-                        count = op.index
+                        count = op.value
                         values = [stack.pop(-1) for _ in range(count)]
                         combo = Combo(*values)
                         stack.append(combo)
                     elif flex_op == FlexOpType.DOMINATE:
-                        count = op.index + 1
+                        count = op.value + 1
                         values = [stack.pop(-1) for _ in range(count)]
                         dom = Dominator(*values)
                         stack.append(dom)
                     elif flex_op == FlexOpType.TWO_WAY_0:
-                        mx = Max(Add(FetchController(self.flex_controllers[op.index].name), Value(1.0)), Value(0.0))
+                        mx = Max(Add(FetchController(self.flex_controllers[op.value].name), Value(1.0)), Value(0.0))
                         mn = Min(mx, Value(1.0))
                         res = Sub(1, mn)
                         stack.append(res)
                     elif flex_op == FlexOpType.TWO_WAY_1:
-                        mx = Max(FetchController(self.flex_controllers[op.index].name), Value(0.0))
+                        mx = Max(FetchController(self.flex_controllers[op.value].name), Value(0.0))
                         mn = Min(mx, Value(1.0))
                         stack.append(mn)
                     elif flex_op == FlexOpType.NWAY:
@@ -239,7 +182,7 @@ class MdlV36(Mdl):
                                       Min(Max(Div(Sub(flex_cnt, f_z), (Sub(f_w, f_z))), Value(0.0)), Value(1.0)))
                         final_expr = Add(Add(Mul(Mul(gtx, lty), remap_x), Mul(gtey, ltez)), Mul(Mul(gtz, ltw), remap_z))
 
-                        final_expr = Mul(final_expr, FetchController(self.flex_controllers[op.index].name))
+                        final_expr = Mul(final_expr, FetchController(self.flex_controllers[op.value].name))
                         stack.append(final_expr)
                     elif flex_op == FlexOpType.DME_UPPER_EYELID:
                         stack.pop(-1)

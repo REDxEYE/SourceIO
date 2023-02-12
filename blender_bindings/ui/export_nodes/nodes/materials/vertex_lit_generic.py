@@ -1,6 +1,7 @@
+from typing import List, Union
+
 import bpy
 from bpy.types import Node
-from typing import List, Union
 
 from ..base_node import SourceIOModelTreeNode
 

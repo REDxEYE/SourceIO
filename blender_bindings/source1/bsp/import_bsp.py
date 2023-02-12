@@ -1,54 +1,55 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any
-
-import numpy as np
+from typing import Any, Dict, Optional, Type
 
 import bpy
-from mathutils import Vector, Quaternion, Matrix
+import numpy as np
+from mathutils import Matrix, Quaternion, Vector
 
-from ...shared.model_container import Source1ModelContainer
-from ...utils.utils import get_material, get_or_create_collection
-from ...material_loader.material_loader import Source1MaterialLoader
-from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
-
-from .entities.tf2_entity_handler import TF2EntityHandler
-from .entities.base_entity_handler import BaseEntityHandler
-from .entities.csgo_entity_handlers import CSGOEntityHandler
-from .entities.bms_entity_handlers import BlackMesaEntityHandler
-from .entities.portal_entity_handlers import PortalEntityHandler
-from .entities.portal2_entity_handlers import Portal2EntityHandler
-from .entities.halflife2_entity_handler import HalfLifeEntityHandler
-from .entities.titanfall_entity_handler import TitanfallEntityHandler
-from .entities.vindictus_entity_handler import VindictusEntityHandler
-from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
-
-from ....logger import SLoggingManager
+from .entities.abstract_entity_handlers import AbstractEntityHandler
+from ...operators.import_settings_base import Source1BSPSettings
 from ....library.shared.app_id import SteamAppId
-from ....library.utils.singleton import SingletonMeta
+from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.bsp.bsp_file import open_bsp
 from ....library.source1.bsp.datatypes.face import Face
-
-from ....library.source1.bsp.lumps.pak_lump import PakLump
+from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import \
+    StaticPropLump
+from ....library.source1.bsp.lumps.cubemap import CubemapLump
+from ....library.source1.bsp.lumps.displacement_lump import (DispInfoLump,
+                                                             DispMultiblend,
+                                                             DispVert)
 from ....library.source1.bsp.lumps.edge_lump import EdgeLump
+from ....library.source1.bsp.lumps.entity_lump import EntityLump
 from ....library.source1.bsp.lumps.face_lump import FaceLump
 from ....library.source1.bsp.lumps.game_lump import GameLump
-from ....library.source1.bsp.lumps.cubemap import CubemapLump
+from ....library.source1.bsp.lumps.model_lump import ModelLump
+from ....library.source1.bsp.lumps.overlay_lump import OverlayLump
+from ....library.source1.bsp.lumps.pak_lump import PakLump
 from ....library.source1.bsp.lumps.physics import PhysicsLump
 from ....library.source1.bsp.lumps.plane_lump import PlaneLump
-from ....library.source1.bsp.lumps.model_lump import ModelLump
-from ....library.source1.bsp.lumps.vertex_lump import VertexLump
-from ....library.source1.bsp.lumps.entity_lump import EntityLump
 from ....library.source1.bsp.lumps.string_lump import StringsLump
-from ....library.source1.bsp.lumps.overlay_lump import OverlayLump
 from ....library.source1.bsp.lumps.surf_edge_lump import SurfEdgeLump
-
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
-from ....library.source1.bsp.lumps.texture_lump import TextureInfoLump, TextureDataLump
-from ....library.utils.math_utilities import convert_rotation_source1_to_blender, UnitPlane
-from ....library.source1.bsp.lumps.displacement_lump import DispVert, DispInfoLump, DispMultiblend
+from ....library.source1.bsp.lumps.texture_lump import (TextureDataLump,
+                                                        TextureInfoLump)
+from ....library.source1.bsp.lumps.vertex_lump import VertexLump
+from ....library.utils.math_utilities import (
+    SOURCE1_HAMMER_UNIT_TO_METERS, UnitPlane,
+    convert_rotation_source1_to_blender)
+from ....logger import SLoggingManager
+from ...material_loader.material_loader import Source1MaterialLoader
+from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
+from ...utils.utils import add_material, get_or_create_collection
+from .entities.base_entity_handler import BaseEntityHandler
+from .entities.bms_entity_handlers import BlackMesaEntityHandler
+from .entities.csgo_entity_handlers import CSGOEntityHandler
+from .entities.halflife2_entity_handler import HalfLifeEntityHandler
+from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
+from .entities.portal2_entity_handlers import Portal2EntityHandler
+from .entities.portal_entity_handlers import PortalEntityHandler
+from .entities.tf2_entity_handler import TF2EntityHandler
+from .entities.titanfall_entity_handler import TitanfallEntityHandler
+from .entities.vindictus_entity_handler import VindictusEntityHandler
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
@@ -58,37 +59,17 @@ def get_entity_name(entity_data: Dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
 
 
-class BPSPropCache(metaclass=SingletonMeta):
-    def __init__(self):
-        self.logger = log_manager.get_logger('BPSPropCache')
-        self.object_cache: Dict[str, Source1ModelContainer] = {}
-
-    def add_object(self, name, container):
-        self.logger.info(f"Adding {name} to cache")
-        self.object_cache[str(name)] = container
-
-    def get_object(self, name):
-        obj = self.object_cache.get(str(name), None)
-        if obj:
-            self.logger.info(f"Using cached model for {name}")
-            return obj
-        return obj
-
-    def purge(self):
-        self.object_cache.clear()
-
-
 class BSP:
-    def __init__(self, map_path, *, scale=1.0):
+    def __init__(self, map_path: Path, content_manager: ContentManager, settings: Source1BSPSettings):
         self.filepath = Path(map_path)
         self.logger = log_manager.get_logger(self.filepath.name)
         self.logger.info(f'Loading map "{self.filepath}"')
         self.map_file = open_bsp(self.filepath)
-        self.map_file.parse()
-        self.scale = scale
+        self.settings = settings
         self.main_collection = bpy.data.collections.new(self.filepath.name)
         bpy.context.scene.collection.children.link(self.main_collection)
         self.entry_cache = {}
+        self.cm = content_manager
 
         self.model_lump: Optional[ModelLump] = self.map_file.get_lump('LUMP_MODELS')
         self.vertex_lump: Optional[VertexLump] = self.map_file.get_lump('LUMP_VERTICES')
@@ -98,47 +79,48 @@ class BSP:
         self.texture_info_lump: Optional[TextureInfoLump] = self.map_file.get_lump('LUMP_TEXINFO')
         self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
 
-        content_manager = ContentManager()
-
-        steam_id = content_manager.steam_id
-        if steam_id == SteamAppId.TEAM_FORTRESS_2:
-            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.SOURCE_FILMMAKER:  # SFM
-            self.entity_handler = TF2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.BLACK_MESA:  # BlackMesa
-            self.entity_handler = BlackMesaEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.COUNTER_STRIKE_GO:  # CS:GO
-            self.entity_handler = CSGOEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.LEFT_4_DEAD_2:
-            self.entity_handler = Left4dead2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
-            self.entity_handler = TitanfallEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.PORTAL:
-            self.entity_handler = PortalEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
-              and self.map_file.version != 29):  # Portal 2
-            self.entity_handler = Portal2EntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
-            self.entity_handler = HalfLifeEntityHandler(self.map_file, self.main_collection, self.scale)
-        elif steam_id == SteamAppId.VINDICTUS:
-            self.entity_handler = VindictusEntityHandler(self.map_file, self.main_collection, self.scale)
-        else:
-            self.entity_handler = BaseEntityHandler(self.map_file, self.main_collection, self.scale)
-
         self.logger.debug('Adding map pack file to content manager')
-        content_manager.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')
+        self.cm.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump('LUMP_TEXDATA_STRING_TABLE')
         return strings_lump.strings[string_id] or "NO_NAME"
 
     def load_entities(self):
+        steam_id = self.cm.steam_id
+        handler_class: Type[AbstractEntityHandler]
+        if steam_id == SteamAppId.TEAM_FORTRESS_2:
+            handler_class = TF2EntityHandler
+        elif steam_id == SteamAppId.SOURCE_FILMMAKER:  # SFM
+            handler_class = TF2EntityHandler
+        elif steam_id == SteamAppId.BLACK_MESA:  # BlackMesa
+            handler_class = BlackMesaEntityHandler
+        elif steam_id == SteamAppId.COUNTER_STRIKE_GO:  # CS:GO
+            handler_class = CSGOEntityHandler
+        elif steam_id == SteamAppId.LEFT_4_DEAD_2:
+            handler_class = Left4dead2EntityHandler
+        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
+            handler_class = TitanfallEntityHandler
+        elif steam_id == SteamAppId.PORTAL:
+            handler_class = PortalEntityHandler
+        elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
+              and self.map_file.version != 29):  # Portal 2
+            handler_class = Portal2EntityHandler
+        elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
+            handler_class = HalfLifeEntityHandler
+        elif steam_id == SteamAppId.VINDICTUS:
+            handler_class = VindictusEntityHandler
+        else:
+            handler_class = BaseEntityHandler
+
+        entity_handler = handler_class(self.map_file, self.main_collection,
+                                       self.settings.scale, self.settings.light_scale)
+
         entity_lump: Optional[EntityLump] = self.map_file.get_lump('LUMP_ENTITIES')
         if entity_lump:
-            entities_json = bpy.data.texts.new(
-                f'{self.filepath.stem}_entities.json')
+            entities_json = bpy.data.texts.new(f'{self.filepath.stem}_entities.json')
             json.dump(entity_lump.entities, entities_json, indent=1)
-        self.entity_handler.load_entities()
+        entity_handler.load_entities(self.settings)
 
     def load_cubemap(self):
         cubemap_lump: Optional[CubemapLump] = self.map_file.get_lump('LUMP_CUBEMAPS')
@@ -148,24 +130,26 @@ class BSP:
         for n, cubemap in enumerate(cubemap_lump.cubemaps):
             refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
             obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
-            obj.location = cubemap.origin * self.scale
-            # refl_probe.influence_distance = float(entity.cubemapsize)
+            obj.location = cubemap.origin
+            obj.location *= self.settings.scale
+            refl_probe.influence_distance = (
+                                                    cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.settings.scale * 1000
             parent_collection.objects.link(obj)
 
     def load_static_props(self):
         gamelump: Optional[GameLump] = self.map_file.get_lump('LUMP_GAME_LUMP')
-        if gamelump:
+        if gamelump and self.settings.load_static_props:
             static_prop_lump: StaticPropLump = gamelump.game_lumps.get('sprp', None)
             if static_prop_lump:
                 parent_collection = get_or_create_collection('static_props', self.main_collection)
                 for n, prop in enumerate(static_prop_lump.static_props):
                     model_name = static_prop_lump.model_names[prop.prop_type]
-                    location = np.multiply(prop.origin, self.scale)
+                    location = np.multiply(prop.origin, self.settings.scale)
                     rotation = convert_rotation_source1_to_blender(prop.rotation)
                     self.create_empty(f'static_prop_{n}', location, rotation, prop.scaling, parent_collection,
                                       custom_data={'parent_path': str(self.filepath.parent),
                                                    'prop_path': model_name,
-                                                   'scale': self.scale,
+                                                   'scale': self.settings.scale,
                                                    'type': 'static_props',
                                                    'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
                                                    'entity': {
@@ -179,12 +163,11 @@ class BSP:
 
     def load_materials(self, use_bvlg):
         Source1ShaderBase.use_bvlg(use_bvlg)
-        content_manager = ContentManager()
 
         texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
         pak_lump: Optional[PakLump] = self.map_file.get_lump('LUMP_PAK')
         if pak_lump:
-            content_manager.content_providers[self.filepath.stem] = pak_lump
+            self.cm.content_providers[self.filepath.stem] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = self.get_string(texture_data.name_id)
             tmp = strip_patch_coordinates.sub("", material_name)[-63:]
@@ -194,7 +177,7 @@ class BSP:
                         f'Skipping loading of {strip_patch_coordinates.sub("", material_name)} as it already loaded')
                     continue
             self.logger.info(f"Loading {material_name} material")
-            material_file = content_manager.find_material(material_name)
+            material_file = self.cm.find_material(material_name)
 
             if material_file:
                 material_name = strip_patch_coordinates.sub("", material_name)
@@ -223,10 +206,10 @@ class BSP:
         for n, disp_info in enumerate(disp_info_lump.infos):
             self.logger.info(f'Processing {n + 1}/{info_count} displacement face')
             final_vertex_colors = {}
-            src_face = disp_info.source_face
+            src_face = disp_info.get_source_face(self.map_file)
 
-            texture_info = src_face.tex_info
-            texture_data = texture_info.tex_data
+            texture_info = src_face.get_tex_info(self.map_file)
+            texture_data = texture_info.get_texture_data(self.map_file)
             tv1, tv2 = texture_info.texture_vectors
 
             first_edge = src_face.first_edge
@@ -237,18 +220,19 @@ class BSP:
             used_edges = edges[np.abs(used_surf_edges)]
             tmp = np.arange(used_edges.shape[0])
             face_vertex_ids = used_edges[tmp, reverse]
-            face_vertices = vertices[face_vertex_ids] * self.scale
+            face_vertices = vertices[face_vertex_ids] * self.settings.scale
 
+            start_pos = np.asarray(disp_info.start_position, np.float32)
             min_index = np.where(
                 np.sum(
                     np.isclose(face_vertices,
-                               disp_info.start_position * self.scale,
+                               start_pos * self.settings.scale,
                                0.5e-2),
                     axis=1
                 ) == 3)
             if min_index[0].shape[0] == 0:
                 lowest = 999.e16
-                for i, value in enumerate(np.sum(face_vertices - disp_info.start_position, axis=1)):
+                for i, value in enumerate(np.sum(face_vertices - start_pos, axis=1)):
                     if value < lowest:
                         min_index = i
                         lowest = value
@@ -280,10 +264,10 @@ class BSP:
 
                 for j in range(num_edge_vertices):
                     disp_vertices[(i * num_edge_vertices + j)] = left_end + (left_right_step * j)
-            disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * self.scale) / (
-                    texture_data.view_width * self.scale)
-            disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * self.scale) / (
-                    texture_data.view_height * self.scale))
+            disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * self.settings.scale) / (
+                    texture_data.view_width * self.settings.scale)
+            disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * self.settings.scale) / (
+                    texture_data.view_height * self.settings.scale))
 
             disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices]
             final_vertex_colors['vertex_alpha'] = np.concatenate(
@@ -335,7 +319,7 @@ class BSP:
                 parent_collection.objects.link(mesh_obj)
             else:
                 self.main_collection.objects.link(mesh_obj)
-            mesh_data.from_pydata(disp_vertices + disp_verts[disp_indices] * self.scale, [], face_indices)
+            mesh_data.from_pydata(disp_vertices + disp_verts[disp_indices] * self.settings.scale, [], face_indices)
 
             uv_data = mesh_data.uv_layers.new().data
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
@@ -349,7 +333,7 @@ class BSP:
 
             material_name = self.get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-            get_material(material_name, mesh_obj)
+            add_material(material_name, mesh_obj)
 
     def load_overlays(self):
         info_overlay_lump: Optional[OverlayLump] = self.map_file.get_lump('LUMP_OVERLAYS')
@@ -435,7 +419,7 @@ class BSP:
                 # self._rotate_infodecals()
 
     def _rotate_infodecals(self):
-        provider = ContentManager().get_content_provider_from_path(self.filepath)
+        provider = self.cm.get_content_provider_from_path(self.filepath)
         if 'infodecal' in bpy.data.collections:
             for obj in bpy.data.collections['infodecal'].all_objects:
                 world_obj = bpy.data.objects['world_geometry']
@@ -477,7 +461,7 @@ class BSP:
 
                 for pos in range(0, 2):
                     for i in range(0, 3):
-                        obj.location[i] = obj.location[i] + (0.1 * self.scale * pos * that_normal[i])
+                        obj.location[i] = obj.location[i] + (0.1 * self.settings.scale * pos * that_normal[i])
 
                 that_normal = Vector(that_normal).to_track_quat('-Y', 'Z')
                 obj.rotation_mode = 'QUATERNION'
@@ -508,16 +492,17 @@ class BSP:
     #         print(vbsp_file)
 
     def create_empty(self, name: str, location, rotation=None, scale=None, parent_collection=None, custom_data=None):
-        if scale is None:
-            scale = [1.0, 1.0, 1.0]
-        if rotation is None:
-            rotation = [0.0, 0.0, 0.0]
         placeholder = bpy.data.objects.new(name, None)
         placeholder.location = location
-        placeholder.rotation_euler = rotation
 
+        if scale is not None:
+            placeholder.scale = scale
+        if rotation is not None:
+            placeholder.rotation_euler = rotation
+
+        placeholder.scale *= self.settings.scale
         placeholder.empty_display_size = 16
-        placeholder.scale = np.multiply(scale, self.scale)
+
         if custom_data:
             placeholder['entity_data'] = custom_data
         if parent_collection is not None:

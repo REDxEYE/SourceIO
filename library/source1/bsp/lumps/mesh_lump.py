@@ -1,17 +1,18 @@
 from typing import List
 
-from .. import Lump, lump_tag
+from ....utils import Buffer
+from .. import Lump, LumpInfo, lump_tag
+from ..bsp_file import BSPFile
 from ..datatypes.mesh import Mesh
 
 
 @lump_tag(0x50, 'LUMP_MESHES', bsp_version=29)
 class MeshLump(Lump):
-    def __init__(self, bsp, lump_id):
-        super().__init__(bsp, lump_id)
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
         self.meshes: List[Mesh] = []
 
-    def parse(self):
-        reader = self.reader
-        while reader:
-            self.meshes.append(Mesh(self, self._bsp).parse(reader))
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+        while buffer:
+            self.meshes.append(Mesh(self).parse(buffer, bsp))
         return self

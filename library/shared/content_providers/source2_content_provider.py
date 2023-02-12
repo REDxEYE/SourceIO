@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import List, Union
 
+from ...utils import FileBuffer
 from ...utils.kv_parser import ValveKeyValueParser
-from .content_provider_base import ContentProviderBase
 from ...utils.path_utilities import corrected_path
+from ..app_id import SteamAppId
+from .content_provider_base import ContentProviderBase
 
 
 class Gameinfo2ContentProvider(ContentProviderBase):
@@ -26,11 +28,11 @@ class Gameinfo2ContentProvider(ContentProviderBase):
         self.modname: str = self.modname_dir.stem
 
     @property
-    def steam_id(self):
+    def steam_id(self) -> SteamAppId:
         fs = self.data.get('filesystem', None)
         if not fs:
-            return 0
-        return int(fs.get('steamappid', 0))
+            return SteamAppId.UNKNOWN
+        return SteamAppId(fs.get('steamappid', 0))
 
     def get_paths(self):
         def convert_path(path_to_convert):
@@ -88,7 +90,7 @@ class Gameinfo2ContentProvider(ContentProviderBase):
         filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = corrected_path(self.modname_dir / filepath)
         if new_filepath.exists():
-            return new_filepath.open('rb')
+            return FileBuffer(new_filepath)
         else:
             return None
 

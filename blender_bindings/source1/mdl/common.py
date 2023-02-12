@@ -2,7 +2,7 @@ from typing import Iterable, Sized, Union
 
 import numpy as np
 
-from ....library.source1.mdl.structs.model import ModelV49, ModelV36
+from ....library.source1.mdl.structs.model import Model
 from ....library.source1.vtx.v7.structs.mesh import Mesh as VtxMesh
 from ....library.source1.vtx.v7.structs.model import ModelLod as VtxModel
 
@@ -18,7 +18,7 @@ def merge_strip_groups(vtx_mesh: VtxMesh):
     return np.hstack(indices_accumulator), np.hstack(vertex_accumulator), vertex_offset
 
 
-def merge_meshes(model: Union[ModelV49, ModelV36], vtx_model: VtxModel):
+def merge_meshes(model: Model, vtx_model: VtxModel):
     vtx_vertices = []
     acc = 0
     mat_arrays = []

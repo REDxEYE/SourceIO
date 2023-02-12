@@ -1,145 +1,83 @@
+import abc
+from collections import defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, BinaryIO, Union, Optional, TypeVar, Dict
-from ..data_blocks.compiled_file_header import CompiledHeader, InfoBlock
-from ..data_blocks import DATA
-from ..data_blocks.redi_block import RED2
-from ...utils.byte_io_mdl import ByteIO
+from typing import Dict, List, Optional, Type, TypeVar, Union
 
-AnyBlock = TypeVar('AnyBlock', bound='DataBlock')
-OptionalBlock = Optional[AnyBlock]
+from ...shared.content_providers.content_manager import ContentManager
+from ...utils import Buffer, MemoryBuffer
+from .. import load_compiled_resource
+from ..data_types.blocks.all_blocks import get_block_class
+from ..data_types.blocks.base import BaseBlock
+from ..data_types.compiled_file_header import CompiledHeader
+
+T = TypeVar("T", bound="CompiledResource")
 
 
-class ValveCompiledResource:
-    data_block_class = DATA
+@dataclass(slots=True)
+class CompiledResource:
+    _buffer: Buffer
+    _filepath: Path
+    _header: CompiledHeader
+    _blocks: Dict[int, BaseBlock] = field(default_factory=lambda: defaultdict(None))
 
-    @classmethod
-    def parse_new(cls, filepath):
-        return cls(filepath)
-
-    def __init__(self, path_or_file):
-        self.header = CompiledHeader()
-        if path_or_file is not None:
-            self.reader = ByteIO(path_or_file)
-            self.header.read(self.reader)
-
-        self.info_blocks: List[InfoBlock] = []
-        self.data_blocks: List[OptionalBlock] = []
-        self.available_resources: Dict[Union[str, int], Path] = {}
-
-        self.read_block_info()
-        self.check_external_resources()
-        self.post_process()
-
-    def post_process(self):
-        pass
-
-    def read_block_info(self):
-        self.info_blocks.clear()
-        self.data_blocks.clear()
-        if self.header.block_count:
-            self.reader.seek(4 * 4)
-            for n in range(self.header.block_count):
-                block_info = InfoBlock()
-                block_info.read(self.reader)
-                self.info_blocks.append(block_info)
-                self.data_blocks.append(None)
-
-            for i in range(len(self.info_blocks)):
-                block_info = self.info_blocks[i]
-                if self.data_blocks[i] is not None:
-                    continue
-                with self.reader.save_current_pos():
-                    self.reader.seek(block_info.entry + block_info.block_offset)
-                    block_class = self.get_data_block_class(block_info.block_name)
-                    if block_class is None:
-                        self.data_blocks[self.info_blocks.index(block_info)] = None
-                        continue
-                    block = block_class(self, block_info)
-                    self.data_blocks[self.info_blocks.index(block_info)] = block
+    @property
+    def name(self):
+        return self._filepath.stem
 
     def get_data_block(self, *,
                        block_id: Optional[int] = None,
-                       block_name: Optional[str] = None) -> Union[OptionalBlock, List[OptionalBlock]]:
+                       block_name: Optional[str] = None) -> Union[Optional[BaseBlock], List[Optional[BaseBlock]]]:
         if block_id is not None:
             if block_id == -1:
                 return None
-            block = self.data_blocks[block_id]
-            if not block.parsed:
-                block.reader.seek(0)
-                block.read()
-                block.parsed = True
-            return block
+            data_block = self._blocks.get(block_id)
+            if data_block is None:
+                info_block = self._header.blocks[block_id]
+                data_block_class = self._get_block_class(info_block.name)
+                if data_block_class is None:
+                    return None
+                self._buffer.seek(info_block.absolute_offset)
+                data_block = data_block_class.from_buffer(MemoryBuffer(self._buffer.read(info_block.size)), self)
+                data_block.custom_name = info_block.name
+            self._blocks[block_id] = data_block
+            return data_block
         elif block_name is not None:
             blocks = []
-            for block in self.data_blocks:
-                if block is not None:
-                    if block.info_block.block_name == block_name:
-                        if not block.parsed:
-                            block.read()
-                            block.parsed = True
-                        blocks.append(block)
-            return blocks
+            for i, block in enumerate(self._header.blocks):
+                if block.name == block_name:
+                    data_block = self.get_data_block(block_id=i)
+                    if data_block is not None:
+                        blocks.append(data_block)
+            return blocks or (None,)
 
-    def get_data_block_class(self, block_name):
-        from ..data_blocks import DATA, NTRO, REDI, RERL, VBIB, MRPH, ANIM
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, filename: Path):
+        header = CompiledHeader.from_buffer(buffer)
 
-        data_classes = {
-            "NTRO": NTRO,
-            "REDI": REDI,
-            "RED2": RED2,
-            "RERL": RERL,
-            "VBIB": VBIB,
-            "VXVS": VBIB,
-            "DATA": self.data_block_class,
-            "CTRL": DATA,
-            "MBUF": VBIB,
-            "MDAT": DATA,
-            "PHYS": DATA,
-            "ASEQ": DATA,
-            "AGRP": DATA,
-            "ANIM": ANIM,
-            "MRPH": MRPH,
-        }
-        return data_classes.get(block_name, None)
+        return cls(buffer, filename, header)
 
-    def dump_block(self, file: BinaryIO, name: str):
-        for block in self.info_blocks:
-            if block.block_name == name:
-                with self.reader.save_current_pos():
-                    self.reader.seek(block.entry + block.block_offset)
-                    file.write(self.reader.read(block.block_size))
+    def _get_block_class(self, name) -> Type[BaseBlock]:
+        return get_block_class(name)
 
-    def dump_resources(self):
-        from ..data_blocks import RERL
-        relr_block: RERL = self.get_data_block(block_name="RERL")[0]
-        for block in relr_block.resources:
-            print(block)
+    def get_child_resource_path(self, name_or_id: Union[str, int]) -> Optional[Path]:
+        external_resource_list, = self.get_data_block(block_name='RERL')
+        for child_resource in external_resource_list:
+            if child_resource.hash == name_or_id or child_resource.name == name_or_id:
+                return Path(child_resource.name + '_c')
 
-    @staticmethod
-    def get_base_dir(full_path: Path, relative_path: Path):
-        addon_path = Path(full_path)
-        for p1, p2 in zip(reversed(addon_path.parts), reversed(relative_path.parts)):
-            if p1 == p2:
-                addon_path = addon_path.parent
+    def get_child_resource(self, name_or_id: Union[str, int], cm: ContentManager,
+                           resource_class: Optional[Type[T]] = None) -> Optional[T | 'CompiledResource']:
+        resource_path = self.get_child_resource_path(name_or_id)
+        if resource_path is not None:
+            file = cm.find_file(resource_path)
+            if file is None:
+                return None
+            if resource_class is None:
+                return load_compiled_resource(file, resource_path)
             else:
-                break
-        return addon_path
+                return resource_class.from_buffer(file, resource_path)
 
-    def check_external_resources(self):
-        from ..data_blocks import RERL
-        if self.get_data_block(block_name="RERL"):
-            relr_block: RERL = self.get_data_block(block_name="RERL")[0]
-            for block in relr_block.resources:
-                path = Path(block.resource_name)
-                asset = path.with_suffix(path.suffix + '_c')
-                if asset:
-                    self.available_resources[block.resource_name] = asset
-                    self.available_resources[block.resource_hash] = asset
-
-    def get_child_resource(self, name):
-        if self.available_resources.get(name, None) is not None:
-            res = ValveCompiledResource(self.available_resources.get(name))
-            res.read_block_info()
-            res.check_external_resources()
-            return res
-        return None
+    def get_child_resources(self):
+        external_resource_list, = self.get_data_block(block_name='RERL')
+        return [r.name for r in external_resource_list] + [r.hash for r in external_resource_list]

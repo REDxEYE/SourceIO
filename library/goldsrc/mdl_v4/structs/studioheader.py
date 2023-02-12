@@ -1,6 +1,7 @@
+from dataclasses import dataclass
 from enum import IntFlag
 
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class StudioHeaderFlags(IntFlag):
@@ -17,31 +18,23 @@ class StudioHeaderFlags(IntFlag):
     EF_FORCESKYLIGHT = 1024  # ! Forces the model to be lit by skybox lighting
 
 
+@dataclass(slots=True)
 class StudioHeader:
-    def __init__(self):
-        self.magic = ''
-        self.version = 0
-        self.flags = StudioHeaderFlags(0)
+    version: int
+    flags: StudioHeaderFlags
+    bone_count: int
+    body_part_count: int
+    total_model_count: int
+    sequence_count: int
+    total_frame_count: int
+    unk_1: int
 
-        self.bone_count = 0
-        self.body_part_count = 0
-        self.unk_count = 0
-        self.sequence_count = 0
-        self.total_frame_count = 0
-        self.unk_1 = 0
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        magic = buffer.read_fourcc()
+        assert magic == 'IDST', 'Not a GoldSrc model'
+        version = buffer.read_int32()
+        assert version == 4, f'MDL version {version} are not supported by GoldSrc importer'
 
-    def read(self, reader: ByteIO):
-        self.magic = reader.read_fourcc()
-        assert self.magic == 'IDST', 'Not a GoldSrc model'
-        self.version = reader.read_int32()
-        assert self.version == 4, f'MDL version {self.version} are not supported by GoldSrc importer'
-
-        self.flags = StudioHeaderFlags(reader.read_int32())
-
-        (self.bone_count,
-         self.body_part_count,
-         self.unk_count,
-         self.sequence_count,
-         self.total_frame_count,
-         self.unk_1,
-         ) = reader.read_fmt('6I')
+        flags = StudioHeaderFlags(buffer.read_int32())
+        return cls(version,flags,*buffer.read_fmt('6I'))

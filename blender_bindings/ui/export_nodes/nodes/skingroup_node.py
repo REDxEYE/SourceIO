@@ -1,10 +1,11 @@
-import bpy
-from bpy.types import Node
 from typing import List, Union
 
+import bpy
+from bpy.types import Node
+
+from ..sockets import SourceIOMaterialSocket, SourceIOSkinGroupSocket
 from .base_node import SourceIOModelTreeNode
 from .input_material_node import SourceIOMaterialNode
-from ..sockets import SourceIOMaterialSocket, SourceIOSkinGroupSocket
 
 
 class SourceIOSkinGroupProto:

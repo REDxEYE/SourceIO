@@ -1,10 +1,12 @@
 import math
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 
 # According to the Valve documentation,
 # one hammer unit is 1/16 of feet, and one feet is 30.48 cm
+from ..shared.types import Vector3
+
 SOURCE1_HAMMER_UNIT_TO_METERS = ((1 / 16) * 30.48) / 100
 # one hammer unit is 1/12 of feet, and one feet is 30.48 cm
 SOURCE2_HAMMER_UNIT_TO_METERS = ((1 / 12) * 30.48) / 100
@@ -25,7 +27,7 @@ def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
 
 
-def vector_transform(vector: List[float], matrix: List[List[float]]):
+def vector_transform(vector: Vector3[float], matrix: List[List[float]]):
     temp = np.zeros(3)
     output = np.zeros(3)
 
@@ -47,23 +49,6 @@ def vector_transform_v(vectors: np.ndarray, matrix: np.ndarray):
     vectors = matrix[:3] @ vectors.T
 
     return vectors.T
-
-
-def quaternion_to_euler_angle(w, x, y, z):
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    x = math.degrees(math.atan2(t0, t1))
-
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    y = math.degrees(math.asin(t2))
-
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    z = math.degrees(math.atan2(t3, t4))
-
-    return x, y, z
 
 
 def convert_rotation_matrix_to_degrees(m0, m1, m2, m3, m4, m5, m8):
@@ -167,25 +152,6 @@ def quat_to_matrix(quat):
     return matrix
 
 
-def euler_to_matrix(theta):
-    r_x = np.array([[1, 0, 0],
-                    [0, math.cos(theta[0]), -math.sin(theta[0])],
-                    [0, math.sin(theta[0]), math.cos(theta[0])]
-                    ])
-
-    r_y = np.array([[math.cos(theta[1]), 0, math.sin(theta[1])],
-                    [0, 1, 0],
-                    [-math.sin(theta[1]), 0, math.cos(theta[1])]
-                    ])
-
-    r_z = np.array([[math.cos(theta[2]), -math.sin(theta[2]), 0],
-                    [math.sin(theta[2]), math.cos(theta[2]), 0],
-                    [0, 0, 1]
-                    ])
-
-    return np.dot(r_z, np.dot(r_y, r_x))
-
-
 def euler_to_quat(euler: np.ndarray):
     euler *= 0.5
     roll, pitch, yaw = euler
@@ -201,49 +167,6 @@ def euler_to_quat(euler: np.ndarray):
     quat[2] = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
     quat[3] = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
     return quat
-
-
-def quat_slerp(a, b, factor):
-    ax = a[0]
-    ay = a[1]
-    az = a[2]
-    aw = a[3]
-    bx = b[0]
-    by = b[1]
-    bz = b[2]
-    bw = b[3]
-
-    omega, cosom, sinom, scale0, scale1 = 0, 0, 0, 0, 0
-
-    cosom = ax * bx + ay * by + az * bz + aw * bw
-    if cosom < 0.0:
-        cosom = -cosom
-        bx = -bx
-        by = -by
-        bz = -bz
-        bw = -bw
-
-    if 1.0 - cosom > EPSILON:
-        omega = math.acos(cosom)
-        sinom = math.sin(omega)
-        scale0 = math.sin((1.0 - factor) * omega) / sinom
-        scale1 = math.sin(factor * omega) / sinom
-    else:
-        scale0 = 1.0 - factor
-        scale1 = factor
-    out = np.zeros((4,), np.float32)
-    out[0] = scale0 * ax + scale1 * bx
-    out[1] = scale0 * ay + scale1 * by
-    out[2] = scale0 * az + scale1 * bz
-    out[3] = scale0 * aw + scale1 * bw
-
-    return out
-
-
-def convert_rotation_source2_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
-    # XYZ -> ZXY
-    return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
-            math.radians(source2_rotation[1])]
 
 
 def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:

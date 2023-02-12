@@ -1,8 +1,8 @@
 import bpy
 
-from .detail import DetailSupportMixin
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
+from .detail import DetailSupportMixin
 
 
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):

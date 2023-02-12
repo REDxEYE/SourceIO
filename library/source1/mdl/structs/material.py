@@ -1,44 +1,51 @@
-from . import Base
-from . import ByteIO
+from dataclasses import dataclass
+from typing import Tuple
+
+from ....utils import Buffer
 
 
-class MaterialV36(Base):
-    def __init__(self):
-        self.name = ''
-        self.flags = 0
-        self.width = 0
-        self.height = 0
-        self.dp_du = 0
-        self.dp_dv = 0
-        self.unknown = []
-
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.name = reader.read_source1_string(entry)
-        self.flags = reader.read_uint32()
-        self.width = reader.read_float()
-        self.height = reader.read_float()
-        self.dp_du = reader.read_float()
-        self.dp_dv = reader.read_float()
-        self.unknown = reader.read_fmt('2I')
+@dataclass(slots=True)
+class Material:
+    name: str
+    flags: int
 
 
-class MaterialV49(Base):
-    def __init__(self):
-        self.name = ''
-        self.flags = 0
-        self.used = 0
-        self.unused1 = 0
-        self.material_pointer = 0
-        self.client_material_pointer = 0
-        self.unused = []  # len 10
+@dataclass(slots=True)
+class MaterialV36(Material):
+    width: float
+    height: float
+    dp_du: float
+    dp_dv: float
+    unknown: Tuple[int, int]
 
-    def read(self, reader: ByteIO):
-        entry = reader.tell()
-        self.name = reader.read_source1_string(entry)
-        self.flags = reader.read_uint32()
-        self.used = reader.read_uint32()
-        self.unused1 = reader.read_uint32()
-        self.material_pointer = reader.read_uint32()
-        self.client_material_pointer = reader.read_uint32()
-        reader.skip((10 if self.get_value('mdl_version') < 53 else 5) * 4)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        entry = buffer.tell()
+        name = buffer.read_source1_string(entry)
+        flags = buffer.read_uint32()
+        width = buffer.read_float()
+        height = buffer.read_float()
+        dp_du = buffer.read_float()
+        dp_dv = buffer.read_float()
+        unknown = buffer.read_fmt('2I')
+        return cls(name, flags, width, height, dp_du, dp_dv, unknown)
+
+
+@dataclass(slots=True)
+class MaterialV49(Material):
+    used: int
+    unused1: int
+    material_pointer: int
+    client_material_pointer: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        entry = buffer.tell()
+        name = buffer.read_source1_string(entry)
+        flags = buffer.read_uint32()
+        used = buffer.read_uint32()
+        unused1 = buffer.read_uint32()
+        material_pointer = buffer.read_uint32()
+        client_material_pointer = buffer.read_uint32()
+        buffer.skip((10 if version < 53 else 5) * 4)
+        return cls(name, flags, used, unused1, material_pointer, client_material_pointer)

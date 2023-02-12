@@ -1,1 +1,0 @@
-from .mesh import ValveCompiledMesh

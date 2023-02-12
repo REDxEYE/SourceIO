@@ -1,10 +1,11 @@
+from dataclasses import dataclass
 from typing import List
 
 import numpy as np
+import numpy.typing as npt
 
+from ....utils import Buffer
 from .mesh import StudioMesh
-from ....utils.byte_io_mdl import ByteIO
-
 
 # // studio models
 # struct mstudiomodel_t
@@ -29,50 +30,42 @@ from ....utils.byte_io_mdl import ByteIO
 # 	int		groupindex;
 # };
 
+@dataclass(slots=True)
 class StudioModel:
-    def __init__(self):
-        self.name = ''
-        self.type = 0
-        self.bounding_radius = 0.0
-        self.mesh_count = 0
-        self.mesh_offset = 0
-        self.vertex_count = 0
-        self.vertex_info_offset = 0
-        self.vertex_offset = 0
-        self.normal_count = 0
-        self.normal_info_offset = 0
-        self.normal_offset = 0
-        self.group_count = 0
-        self.group_offset = 0
+    name: str
+    type: int
+    bounding_radius: float
+    bone_vertex_info: npt.NDArray[np.uint8]
+    bone_normal_info: npt.NDArray[np.uint8]
+    meshes: List[StudioMesh]
+    vertices: npt.NDArray[np.float32]
+    normals: npt.NDArray[np.float32]
 
-        self.bone_vertex_info = []
-        self.bone_normal_info = []
-        self.meshes: List[StudioMesh] = []
-        self.vertices = np.array([])
-        self.normals = np.array([])
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        name = buffer.read_ascii_string(64)
+        (type, bounding_radius,
+         mesh_count, mesh_offset,
+         vertex_count, vertex_info_offset, vertex_offset,
+         normal_count, normal_info_offset, normal_offset,
+         group_count, group_offset,
+         ) = buffer.read_fmt('if10i')
 
-    def read(self, reader: ByteIO):
-        self.name = reader.read_ascii_string(64)
-        (self.type, self.bounding_radius,
-         self.mesh_count, self.mesh_offset,
-         self.vertex_count, self.vertex_info_offset, self.vertex_offset,
-         self.normal_count, self.normal_info_offset, self.normal_offset,
-         self.group_count, self.group_offset,
-         ) = reader.read_fmt('if10i')
+        meshes = []
+        with buffer.save_current_offset():
+            buffer.seek(mesh_offset)
+            for _ in range(mesh_count):
+                mesh = StudioMesh.from_buffer(buffer)
+                meshes.append(mesh)
+            buffer.seek(vertex_info_offset)
+            bone_vertex_info = np.frombuffer(buffer.read(vertex_count), np.uint8)
 
-        with reader.save_current_pos():
-            reader.seek(self.mesh_offset)
-            for _ in range(self.mesh_count):
-                mesh = StudioMesh()
-                mesh.read(reader)
-                self.meshes.append(mesh)
-            reader.seek(self.vertex_info_offset)
-            self.bone_vertex_info = reader.read_fmt(f'{self.vertex_count}B')
+            buffer.seek(normal_info_offset)
+            bone_normal_info = np.frombuffer(buffer.read(vertex_count), np.uint8)
 
-            reader.seek(self.normal_info_offset)
-            self.bone_normal_info = reader.read_fmt(f'{self.vertex_count}B')
+            buffer.seek(vertex_offset)
+            vertices = np.frombuffer(buffer.read(12 * vertex_count), np.float32).reshape((-1, 3))
+            buffer.seek(normal_offset)
+            normals = np.frombuffer(buffer.read(12 * normal_count), np.float32).reshape((-1, 3))
 
-            reader.seek(self.vertex_offset)
-            self.vertices = np.frombuffer(reader.read(12 * self.vertex_count), np.float32).reshape((-1, 3))
-            reader.seek(self.normal_offset)
-            self.normals = np.frombuffer(reader.read(12 * self.normal_count), np.float32).reshape((-1, 3))
+        return cls(name, type, bounding_radius, bone_vertex_info, bone_normal_info, meshes, vertices, normals)

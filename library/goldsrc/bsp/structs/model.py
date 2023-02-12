@@ -1,21 +1,21 @@
-from ....utils.byte_io_mdl import ByteIO
+from dataclasses import dataclass
+from typing import Tuple
+
+from ....shared.types import Vector3
+from ....utils import Buffer
 
 
+@dataclass(slots=True)
 class Model:
-    def __init__(self):
-        self.mins = (0, 0, 0)
-        self.maxs = (0, 0, 0)
-        self.origin = (0, 0, 0)
-        self.head_nodes = (0, 0, 0, 0)
-        self.vis_leafs = 0
-        self.first_face = 0
-        self.faces = 0
+    mins: Vector3[float]
+    maxs: Vector3[float]
+    origin: Vector3[float]
+    head_nodes: Tuple[int, int, int, int]
+    vis_leafs: int
+    first_face: int
+    faces: int
 
-    def parse(self, buffer: ByteIO):
-        self.mins = buffer.read_fmt('3f')
-        self.maxs = buffer.read_fmt('3f')
-        self.origin = buffer.read_fmt('3f')
-        self.head_nodes = buffer.read_fmt('4I')
-        self.vis_leafs = buffer.read_uint32()
-        self.first_face = buffer.read_uint32()
-        self.faces = buffer.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'),
+                   buffer.read_fmt('4I'), *buffer.read_fmt("3I"))

@@ -1,17 +1,19 @@
-from . import ByteIO
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from ....shared.types import Vector3
+from ....utils.file_utils import Buffer
+
+if TYPE_CHECKING:
+    from ..bsp_file import BSPFile
 
 
+@dataclass(slots=True)
 class Plane:
-    def __init__(self):
-        self.normal = [0, 1, 0]
-        self.dist = 0.0
-        self.type = 0
+    normal: Vector3[float]
+    dist: float
+    type: int
 
-    def parse(self, reader: ByteIO):
-        self.normal = reader.read_fmt('fff')
-        self.dist = reader.read_float()
-        self.type = reader.read_int32()
-        return self
-
-    def __repr__(self):
-        return "<Plane normal:{} dist:{} type:{}>".format(self.normal, self.dist, self.type)
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        return cls(buffer.read_fmt('fff'), buffer.read_float(), buffer.read_int32())

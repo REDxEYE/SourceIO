@@ -1,16 +1,21 @@
-from pathlib import Path
-from typing import Union, Dict, List, TypeVar
 from collections import Counter, OrderedDict
+from hashlib import md5
+from pathlib import Path
+from typing import Dict, List, Optional, TypeVar, Union
 
-from .hfs_provider import HFS2ContentProvider, HFS1ContentProvider
+from ....library.utils.path_utilities import (backwalk_file_resolver,
+                                              corrected_path, get_mod_path)
 from ....logger import SLoggingManager
-from .non_source_sub_manager import NonSourceContentProvider
-from .vpk_provider import VPKContentProvider
-from .content_provider_base import ContentProviderBase
-from .source1_content_provider import GameinfoContentProvider as Source1GameinfoContentProvider
-from .source2_content_provider import Gameinfo2ContentProvider as Source2GameinfoContentProvider
-from ....library.utils.path_utilities import backwalk_file_resolver, get_mod_path, corrected_path
+from ...utils import Buffer
 from ...utils.singleton import SingletonMeta
+from .content_provider_base import ContentProviderBase
+from .hfs_provider import HFS1ContentProvider, HFS2ContentProvider
+from .non_source_sub_manager import NonSourceContentProvider
+from .source1_content_provider import \
+    GameinfoContentProvider as Source1GameinfoContentProvider
+from .source2_content_provider import \
+    Gameinfo2ContentProvider as Source2GameinfoContentProvider
+from .vpk_provider import VPKContentProvider
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('ContentManager')
@@ -39,20 +44,22 @@ class ContentManager(metaclass=SingletonMeta):
         self._register_supported_detectors()
 
     def _register_supported_detectors(self):
-        from .content_detectors.sbox import SBoxDetector
-        from .content_detectors.sfm import SFMDetector
+        from .content_detectors.gmod import GModDetector
+        from .content_detectors.goldsrc import GoldSrcDetector
         from .content_detectors.hla import HLADetector
         from .content_detectors.robot_repair import RobotRepairDetector
+        from .content_detectors.sbox import SBoxDetector
+        from .content_detectors.sfm import SFMDetector
         from .content_detectors.source1_common import Source1Common
-        from .content_detectors.vindictus import VindictusDetector
-        from .content_detectors.titanfall1 import TitanfallDetector
-        from .content_detectors.goldsrc import GoldSrcDetector
         from .content_detectors.sourcemod import SourceMod
-        from .content_detectors.gmod import GModDetector
+        from .content_detectors.titanfall1 import TitanfallDetector
+        from .content_detectors.vindictus import VindictusDetector
+        from .content_detectors.source2 import Source2Detector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(HLADetector())
         self.detector_addons.append(RobotRepairDetector())
+        self.detector_addons.append(Source2Detector())
         self.detector_addons.append(Source1Common())
         self.detector_addons.append(SFMDetector())
         self.detector_addons.append(VindictusDetector())
@@ -163,38 +170,6 @@ class ContentManager(metaclass=SingletonMeta):
                 root_path = root_path.parent
                 self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
 
-    def deserialize(self, data: Dict[str, str]):
-        for name, s_path in data.items():
-            path = Path(s_path)
-            if s_path.endswith('.vpk'):
-                sub_manager = VPKContentProvider(path)
-                self.content_providers[path.stem] = sub_manager
-            elif s_path.endswith('.txt'):
-                sub_manager = Source1GameinfoContentProvider(path)
-                if sub_manager.gameinfo.game == 'Titanfall':
-                    self._titanfall_mode = True
-                self.content_providers[path.stem] = sub_manager
-            elif s_path.endswith('.gi'):
-                sub_manager = Source2GameinfoContentProvider(path)
-                self.content_providers[path.stem] = sub_manager
-            elif s_path.endswith('.bsp'):
-                from ...source1.bsp.bsp_file import open_bsp
-                bsp = open_bsp(s_path)
-                bsp.parse()
-                pak_lump = bsp.get_lump('LUMP_PAK')
-                if pak_lump:
-                    self.content_providers[path.stem] = pak_lump
-            elif s_path.endswith('.hfs'):
-                sub_manager = HFS1ContentProvider(path)
-                self.content_providers[path.stem] = sub_manager
-            elif s_path.endswith('.hfs'):
-                sub_manager = HFS2ContentProvider(path)
-                self.content_providers[path.stem] = sub_manager
-            else:
-                if path.is_dir():
-                    sub_manager = NonSourceContentProvider(path)
-                    self.content_providers[path.stem] = sub_manager
-
     @staticmethod
     def is_source_mod(path: Path, second=False):
         if path.name == 'gameinfo.txt':
@@ -214,7 +189,8 @@ class ContentManager(metaclass=SingletonMeta):
         for content_provider in self.content_providers.values():
             yield from content_provider.glob(pattern)
 
-    def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *, silent=False):
+    def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *,
+                  silent=False) -> Optional[Buffer]:
 
         new_filepath = Path(str(filepath).replace('\\', '/').replace('//', '/').strip('\\/'))
         if additional_dir is not None:
@@ -258,9 +234,42 @@ class ContentManager(metaclass=SingletonMeta):
         serialized = {}
         for name, sub_manager in self.content_providers.items():
             name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
-            serialized[str(hash(name))] = str(sub_manager.filepath)
+            info = {"name": name, "path": str(sub_manager.filepath)}
+            serialized[md5(name.encode("ascii")).hexdigest()] = info
 
         return serialized
+
+    def deserialize(self, data: Dict[str, Union[str, dict]]):
+        for name, item in data.items():
+            name = item["name"]
+            path = item["path"]
+
+            if path.endswith('.vpk'):
+                sub_manager = VPKContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.txt'):
+                sub_manager = Source1GameinfoContentProvider(Path(path))
+                if sub_manager.gameinfo.game == 'Titanfall':
+                    self._titanfall_mode = True
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.gi'):
+                sub_manager = Source2GameinfoContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif path.endswith('.bsp'):
+                from ...source1.bsp.bsp_file import open_bsp
+                bsp = open_bsp(path)
+                pak_lump = bsp.get_lump('LUMP_PAK')
+                if pak_lump:
+                    self.content_providers[name] = pak_lump
+            elif path.endswith('.hfs'):
+                sub_manager = HFS1ContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            elif name == 'hfs':
+                sub_manager = HFS2ContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
+            else:
+                sub_manager = NonSourceContentProvider(Path(path))
+                self.content_providers[name] = sub_manager
 
     def get_content_provider_from_path(self, filepath):
         filepath = Path(filepath)
@@ -273,10 +282,6 @@ class ContentManager(metaclass=SingletonMeta):
             if fp_root == cp_root:
                 return content_provider
         return NonSourceContentProvider(filepath.parent)
-
-    def flush_cache(self):
-        for cp in self.content_providers.values():
-            cp.flush_cache()
 
     def clean(self):
         self.content_providers.clear()

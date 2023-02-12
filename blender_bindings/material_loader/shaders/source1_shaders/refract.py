@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Iterable
+
+import numpy as np
 
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
@@ -71,8 +72,15 @@ class Refract(Source1ShaderBase):
         self.bpy_material.use_screen_refraction = True
         self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
+
+        shader_mix = self.create_node(Nodes.ShaderNodeMixShader)
+        light_path = self.create_node(Nodes.ShaderNodeLightPath)
+        transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
-        self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
+        self.connect_nodes(light_path.outputs['Is Camera Ray'], shader_mix.inputs[0])
+        self.connect_nodes(transparent.outputs['BSDF'], shader_mix.inputs[1])
+        self.connect_nodes(shader.outputs['BSDF'], shader_mix.inputs[2])
+        self.connect_nodes(shader_mix.outputs[0], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
         if basetexture:

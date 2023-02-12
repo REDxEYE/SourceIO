@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
-from .murmurhash2 import murmur_hash2
+
 from ....logger import SLoggingManager
 from ...utils.singleton import SingletonMeta
+from .murmurhash2 import murmur_hash2
 
 MURMUR2SEED = 0x31415926
 
@@ -38,4 +39,4 @@ class EntityKeyValuesKeys(metaclass=SingletonMeta):
             self.lookup_table[mhash] = skey
 
     def get(self, key_hash):
-        return self.lookup_table.get(key_hash, key_hash)
+        return self.lookup_table.get(key_hash, str(key_hash))

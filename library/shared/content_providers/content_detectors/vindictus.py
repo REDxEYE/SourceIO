@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Dict
 
-from .source1_common import Source1Common
-from ..content_provider_base import ContentProviderBase
-from ..hfs_provider import HFS2ContentProvider, HFS1ContentProvider
 from .....library.utils.path_utilities import backwalk_file_resolver
+from ..content_provider_base import ContentProviderBase
+from ..hfs_provider import HFS1ContentProvider, HFS2ContentProvider
+from .source1_common import Source1Common
 
 
 class VindictusDetector(Source1Common):

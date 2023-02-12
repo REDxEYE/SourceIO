@@ -4,23 +4,21 @@ import traceback
 from pathlib import Path
 from typing import List, Tuple
 
-import numpy as np
-
 import bpy
+import numpy as np
 from mathutils import Vector
 
-from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
-from .base_entity_classes import *
-from .base_entity_classes import entity_class_handle as base_entity_classes
-from ...vtf import SkyboxException
-from ...vtf import load_skybox_texture
-
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
+from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.utils import get_material
-from .....library.shared.content_providers.content_manager import ContentManager
-from .....library.utils.math_utilities import lerp_vec, ensure_length
+from ....utils.utils import add_material
+from ...vtf import SkyboxException, load_skybox_texture
+from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
+from .base_entity_classes import *
+from .base_entity_classes import entity_class_handle as base_entity_classes
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
@@ -33,7 +31,7 @@ def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
     else:
         scale = 1
     for component in srgb[:3]:
-        component = ((component / 255) ** 2.2)
+        component = _srgb2lin(component / 255)
         final_color.append(component)
     if len(final_color) == 1:
         return ensure_length(final_color, 3, final_color[0]), 1
@@ -42,17 +40,16 @@ def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
 
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
-
-    pointlight_power_multiplier = 1000000
-    spotlight_power_multiplier = 1000000
+    light_power_multiplier = 1000
+    pointlight_power_multiplier = 1
+    spotlight_power_multiplier = 1
 
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_water_analog', mesh_object, 'brushes')
 
@@ -61,8 +58,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_door', mesh_object, 'brushes')
 
@@ -71,8 +68,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_movelinear', mesh_object, 'brushes')
 
@@ -81,8 +78,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_rotating', mesh_object, 'brushes')
 
@@ -91,8 +87,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_button', mesh_object, 'brushes')
 
@@ -117,8 +112,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_door_rotating', mesh_object, 'brushes')
 
@@ -127,8 +122,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
-        mesh_object.location = entity.origin
-        mesh_object.location *= self.scale
+        self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_breakable', mesh_object, 'brushes')
 
@@ -235,6 +230,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_location(mesh_object, entity.origin)
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_brush', mesh_object, 'brushes')
 
@@ -323,7 +319,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = brightness * scale * self.spotlight_power_multiplier * self.scale
+        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
         light.spot_size = 2 * math.radians(cone)
         light.spot_blend = 1 - (inner_cone / cone)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
@@ -342,7 +338,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light.cycles.use_multiple_importance_sampling = True
         light.angle = math.radians(entity.SunSpreadAngle)
         light.color = color
-        light.energy = brightness * scale * self.scale
+        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
         obj: bpy.types.Object = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', object_data=light)
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)
@@ -378,12 +374,12 @@ class BaseEntityHandler(AbstractEntityHandler):
         use_sdr = entity._lightHDR == [-1, -1, -1, -1]
         color_value = entity._lightHDR if use_sdr else entity._light
         color, brightness = srgb_to_linear(color_value)
-        scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
+        scale = float(entity_raw.get('_lightscaleHDR', entity_raw.get('_lightscalehdr', 1)) if use_sdr else 1)
 
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
-        light.energy = brightness * scale * self.pointlight_power_multiplier * self.scale
+        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
@@ -569,31 +565,31 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('color_correction', obj, 'logic')
-        if entity.filename:
-            lut_table_file = ContentManager().find_file(entity.filename)
-            if lut_table_file is not None:
-                lut_table = np.frombuffer(lut_table_file.read(), np.uint8).reshape((-1, 3))
-                lut_table = lut_table.astype(np.float32) / 255
-
-                def get_lut_at(r, g, b):
-                    index = (r // 8) + ((g // 8) + (b // 8) * 32) * 32
-                    return lut_table[index]
-
-                black_level = get_lut_at(0, 0, 0)
-                white_level = get_lut_at(255, 255, 255)
-                points = []
-                for i in range(1, 8):
-                    col = get_lut_at(i * 32, i * 32, i * 32)
-                    points.append(col)
-                bpy.context.scene.view_settings.use_curve_mapping = True
-                bpy.context.scene.view_settings.curve_mapping.black_level = black_level.tolist()
-                bpy.context.scene.view_settings.curve_mapping.white_level = white_level.tolist()
-                curves = bpy.context.scene.view_settings.curve_mapping.curves[:3]
-
-                for pos, color in enumerate([*points]):
-                    curves[0].points.new((pos + 1) / 8, color[0])
-                    curves[1].points.new((pos + 1) / 8, color[1])
-                    curves[2].points.new((pos + 1) / 8, color[2])
+        # if entity.filename:
+        #     lut_table_file = ContentManager().find_file(entity.filename)
+        #     if lut_table_file is not None:
+        #         lut_table = np.frombuffer(lut_table_file.read(), np.uint8).reshape((-1, 3))
+        #         lut_table = lut_table.astype(np.float32) / 255
+        #
+        #         def get_lut_at(r, g, b):
+        #             index = (r // 8) + ((g // 8) + (b // 8) * 32) * 32
+        #             return lut_table[index]
+        #
+        #         black_level = get_lut_at(0, 0, 0)
+        #         white_level = get_lut_at(255, 255, 255)
+        #         points = []
+        #         for i in range(1, 8):
+        #             col = get_lut_at(i * 32, i * 32, i * 32)
+        #             points.append(col)
+        #         bpy.context.scene.view_settings.use_curve_mapping = True
+        #         bpy.context.scene.view_settings.curve_mapping.black_level = black_level.tolist()
+        #         bpy.context.scene.view_settings.curve_mapping.white_level = white_level.tolist()
+        #         curves = bpy.context.scene.view_settings.curve_mapping.curves[:3]
+        #
+        #         for pos, color in enumerate([*points]):
+        #             curves[0].points.new((pos + 1) / 8, color[0])
+        #             curves[1].points.new((pos + 1) / 8, color[1])
+        #             curves[2].points.new((pos + 1) / 8, color[2])
 
     def handle_env_wind(self, entity: env_wind, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -668,7 +664,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         curve_path.use_endpoint_u = True
 
         material_name = start_entity.RopeMaterial
-        get_material(material_name, curve_object)
+        add_material(material_name, curve_object)
         content_manager = ContentManager()
         material_file = content_manager.find_material(material_name)
         if material_file:
@@ -756,7 +752,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
         uv_data = mesh_data.uv_layers.new().data
-        get_material(material_name, obj)
+        add_material(material_name, obj)
 
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, {'entity': entity_raw})

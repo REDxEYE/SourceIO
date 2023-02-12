@@ -1,7 +1,11 @@
-from typing import List
+from typing import TYPE_CHECKING, List
 
-from ..lump import Lump, LumpType, LumpInfo
+from ....utils import Buffer
+from ..lump import Lump, LumpInfo, LumpType
 from ..structs.texture import TextureInfo
+
+if TYPE_CHECKING:
+    from ..bsp_file import BspFile
 
 
 class TextureInfoLump(Lump):
@@ -11,8 +15,7 @@ class TextureInfoLump(Lump):
         super().__init__(info)
         self.values: List[TextureInfo] = []
 
-    def parse(self):
-        while self.buffer:
-            texture_info = TextureInfo()
-            texture_info.parse(self.buffer)
+    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+        while buffer:
+            texture_info = TextureInfo.from_buffer(buffer)
             self.values.append(texture_info)

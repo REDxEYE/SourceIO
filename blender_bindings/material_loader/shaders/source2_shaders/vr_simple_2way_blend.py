@@ -1,10 +1,11 @@
 from typing import Optional
+
 import bpy
 import numpy as np
 
-from .blend import Blend
-from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
+from ..source2_shader_base import Source2ShaderBase
+from .blend import Blend
 
 
 class VRSimple2WayBlend(Blend):

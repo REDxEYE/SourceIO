@@ -1,15 +1,17 @@
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import Optional
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix, Euler
+from mathutils import Euler, Matrix, Vector
 
 from ....library.goldsrc.mdl_v10.mdl_file import Mdl
 from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
-from ...utils.utils import get_new_unique_collection, get_material
+from ....library.utils import Buffer
+from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
+    GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
+from ...utils.utils import add_material, get_new_unique_collection
 
 
 def create_armature(mdl: Mdl, collection, scale):
@@ -55,17 +57,15 @@ def create_armature(mdl: Mdl, collection, scale):
     return armature_obj, mdl_bone_transforms
 
 
-def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale=1.0,
+def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0,
                  parent_collection=None, disable_collection_sort=False, re_use_meshes=False):
     if parent_collection is None:
         parent_collection = bpy.context.scene.collection
 
-    mdl = Mdl(mdl_file)
-    mdl.read()
+    mdl = Mdl.from_buffer(mdl_file)
     mdl_file_textures = mdl.textures
     if not mdl_file_textures and mdl_texture_file is not None:
-        mdl_filet = Mdl(mdl_texture_file)
-        mdl_filet.read()
+        mdl_filet = Mdl.from_buffer(mdl_texture_file)
         mdl_file_textures = mdl_filet.textures
 
     model_container = GoldSrcModelContainer(mdl)
@@ -84,6 +84,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
             model_name = body_part_model.name
             used_copy = False
             model_object = None
+            model_mesh = None
 
             if re_use_meshes:
                 mesh_obj_original = bpy.data.objects.get(model_name, None)
@@ -97,11 +98,11 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
                     model_object.data = model_mesh
                     used_copy = True
 
-            if not re_use_meshes or not used_copy:
+            if model_mesh is None and model_object is None:
                 model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
                 model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
-            if body_part_model.vertex_count == 0:
+            if body_part_model.vertices.size == 0:
                 continue
 
             mdl_body_part_collection.objects.link(model_object)
@@ -183,7 +184,7 @@ def import_model(mdl_file: BinaryIO, mdl_texture_file: Optional[BinaryIO], scale
 
 def load_material(model_name: str, model_texture_info: StudioTexture, model_object):
     material_name = f"{model_name}_{model_texture_info.name}"
-    mat_id = get_material(material_name, model_object)
+    mat_id = add_material(material_name, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
     bpy_material.create_nodes(material_name, model_name=model_name)
     bpy_material.align_nodes()

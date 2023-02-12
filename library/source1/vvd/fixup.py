@@ -1,13 +1,14 @@
-from ...utils.byte_io_mdl import ByteIO
+from dataclasses import dataclass
+
+from ...utils import Buffer
 
 
+@dataclass(slots=True)
 class Fixup:
-    def __init__(self):
-        self.lod_index = 0
-        self.vertex_index = 0
-        self.vertex_count = 0
+    lod_index: int
+    vertex_index: int
+    vertex_count: int
 
-    def read(self, reader: ByteIO):
-        self.lod_index = reader.read_uint32()
-        self.vertex_index = reader.read_uint32()
-        self.vertex_count = reader.read_uint32()
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(*buffer.read_fmt("3I"))

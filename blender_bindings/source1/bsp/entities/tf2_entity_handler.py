@@ -3,21 +3,23 @@ import math
 import bpy
 from mathutils import Euler
 
+from .....library.source1.bsp.bsp_file import BSPFile
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .base_entity_handler import BaseEntityHandler
-from .tf_entity_classes import entity_class_handle as tf2_entity_handlers, func_respawnroom, func_regenerate, \
-    func_respawnroomvisualizer, item_healthkit_small, parse_float_vector, info_player_teamspawn, info_observer_point, \
-    item_healthkit_medium, item_healthkit_full, item_ammopack_full, item_ammopack_small, item_ammopack_medium, \
-    dispenser_touch_trigger, trigger_capture_area, team_control_point
-from .tf_entity_classes import func_nobuild
-from .....library.source1.bsp.bsp_file import BSPFile
+from .tf_entity_classes import dispenser_touch_trigger
+from .tf_entity_classes import entity_class_handle as tf2_entity_handlers
+from .tf_entity_classes import (func_nobuild, func_regenerate,
+                                func_respawnroom, func_respawnroomvisualizer,
+                                info_observer_point, info_player_teamspawn,
+                                item_ammopack_full, item_ammopack_medium,
+                                item_ammopack_small, item_healthkit_full,
+                                item_healthkit_medium, item_healthkit_small,
+                                parse_float_vector, team_control_point,
+                                trigger_capture_area)
 
 
 class TF2EntityHandler(BaseEntityHandler):
     entity_lookup_table = tf2_entity_handlers
-
-    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS):
-        super().__init__(bsp_file, parent_collection, world_scale)
 
     def handle_func_nobuild(self, entity: func_nobuild, entity_raw: dict):
         if 'model' not in entity_raw:

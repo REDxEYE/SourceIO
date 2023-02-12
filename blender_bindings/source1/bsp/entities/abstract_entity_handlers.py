@@ -1,27 +1,27 @@
-import re
 import math
-from typing import List
+import re
 from pathlib import Path
 from pprint import pformat
+from typing import List
 
 import bpy
+import numpy as np
 from mathutils import Euler
 
-import numpy as np
-
-from ...vtf import import_texture
-from .base_entity_classes import *
-from .....logger import SLoggingManager
-from ....utils.utils import get_material, get_or_create_collection
-
+from ....operators.import_settings_base import BSPSettings
+from .....library.shared.content_providers.content_manager import \
+    ContentManager
 from .....library.source1.bsp.bsp_file import BSPFile
-from .....library.source1.vmt import VMT
 from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
-from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....library.source1.bsp.datatypes.texture_data import TextureData
 from .....library.source1.bsp.datatypes.texture_info import TextureInfo
-from .....library.shared.content_providers.content_manager import ContentManager
+from .....library.source1.vmt import VMT
+from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
+from .....logger import SLoggingManager
+from ....utils.utils import add_material, get_or_create_collection
+from ...vtf import import_texture
+from .base_entity_classes import *
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
@@ -63,19 +63,36 @@ def _srgb2lin(s: float) -> float:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale=SOURCE1_HAMMER_UNIT_TO_METERS):
+    def __init__(self, bsp_file: BSPFile, parent_collection,
+                 world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
         self.scale = world_scale
+        self.light_scale = light_scale
         self.parent_collection = parent_collection
 
         self._entites = self._bsp.get_lump('LUMP_ENTITIES').entities
         self._handled_paths = []
         self._entity_by_name_cache = {}
 
-    def load_entities(self):
+    def load_entities(self, settings: BSPSettings):
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
+            entity_class: str = entity_data['classname']
+            if entity_class.startswith("info_") and not settings.load_info:
+                continue
+            elif "decal" in entity_class and not settings.load_decals:
+                continue
+            elif "light" in entity_class and not settings.load_lights:
+                continue
+            elif entity_class.startswith("trigger_") and not settings.load_triggers:
+                continue
+            elif entity_class.startswith("prop_") and not settings.load_props:
+                continue
+            elif entity_class.startswith("logic_") and not settings.load_logic:
+                continue
+            elif entity_class.endswith("rope") and not settings.load_ropes:
+                continue
             if not self.handle_entity(entity_data):
                 self.logger.warn(pformat(entity_data))
         bpy.context.view_layer.update()
@@ -139,7 +156,7 @@ class AbstractEntityHandler:
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = self._get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)[-63:]
-            material_lookup_table[texture_data.name_id] = get_material(material_name, mesh_obj)
+            material_lookup_table[texture_data.name_id] = add_material(material_name, mesh_obj)
 
         uvs_per_face = []
         luvs_per_face = []
@@ -175,7 +192,7 @@ class AbstractEntityHandler:
             v_uvs = np.dstack([u, v]).reshape((-1, 2))
             l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
 
-            for vertex_id, uv,luv in zip(face_vertex_ids, v_uvs, l_uvs):
+            for vertex_id, uv, luv in zip(face_vertex_ids, v_uvs, l_uvs):
                 new_vertex_id = remapped[vertex_id]
                 face.append(new_vertex_id)
                 uvs[new_vertex_id] = uv

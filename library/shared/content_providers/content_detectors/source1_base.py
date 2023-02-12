@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import Dict
 
 from .....logger import SLoggingManager
-from ..content_provider_base import ContentDetectorBase, ContentProviderBase
-
-from ..source1_content_provider import GameinfoContentProvider
-from ..non_source_sub_manager import NonSourceContentProvider
-from ..vpk_provider import VPKContentProvider
 from ...vpk.vpk_file import InvalidMagic
+from ..content_provider_base import ContentDetectorBase, ContentProviderBase
+from ..non_source_sub_manager import NonSourceContentProvider
+from ..source1_content_provider import GameinfoContentProvider
+from ..vpk_provider import VPKContentProvider
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1DetectorBase')
@@ -32,14 +31,14 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
         if name in content_providers or not (game_root / name / 'gameinfo.txt').exists():
             return
         gh_provider = GameinfoContentProvider(game_root / name / 'gameinfo.txt')
-        content_providers[name] = gh_provider
+        cls.add_provider(name, gh_provider, content_providers)
         cls.scan_for_vpk(game_root / name, content_providers)
         for game in gh_provider.gameinfo.all_paths:
             if game.name.startswith('|'):
                 logger.warn(f"Encountered game path: with \"|\" in name: {game.as_posix()!r}")
                 continue
             elif game.is_absolute() and game.is_dir():
-                content_providers[game.stem] = NonSourceContentProvider(game)
+                cls.add_provider(game.stem, NonSourceContentProvider(game), content_providers)
             elif game.name.endswith('.vpk'):
                 if "_dir" not in game.stem:
                     game = game.with_name(game.stem + '_dir.vpk')

@@ -3,9 +3,9 @@ import math
 import bpy
 import numpy as np
 
-from .abstract_entity_handlers import get_origin, get_angles, get_scale
-from .hlvr_entity_classes import *
+from .abstract_entity_handlers import get_angles, get_origin, get_scale
 from .base_entity_handlers import BaseEntityHandler
+from .hlvr_entity_classes import *
 
 local_entity_lookup_table = BaseEntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)

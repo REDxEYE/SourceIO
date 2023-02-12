@@ -1,12 +1,6 @@
-import math
-
-import bpy
-import numpy as np
-
-from .abstract_entity_handlers import get_origin, get_angles, get_scale, Base
-from .sbox_entity_classes import *
-from .base_entity_handlers import BaseEntityHandler
+from .abstract_entity_handlers import Base
 from .hlvr_entity_handlers import HLVREntityHandler
+from .sbox_entity_classes import *
 
 local_entity_lookup_table = HLVREntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)

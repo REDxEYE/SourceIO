@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 from enum import IntFlag
 
 import numpy as np
+import numpy.typing as npt
 
-from ....utils.byte_io_mdl import ByteIO
+from ....utils import Buffer
 
 
 class MdlTextureFlag(IntFlag):
@@ -15,21 +17,17 @@ class MdlTextureFlag(IntFlag):
     MASKED = 0x0040
 
 
+@dataclass(slots=True)
 class StudioTexture:
-    def __init__(self):
-        self.flags = MdlTextureFlag(0)
-        self.width = 0
-        self.height = 0
-        self.data = np.array([])
+    width: int
+    height: int
+    data: npt.NDArray[np.float32]
 
-    def read(self, reader: ByteIO, width, height):
-        self.width = width
-        self.height = height
-
-        indices = np.frombuffer(reader.read(self.width * self.height), np.uint8)
+    @classmethod
+    def from_buffer(cls, reader: Buffer, width: int, height: int):
+        indices = np.frombuffer(reader.read(width * height), np.uint8)
         palette = np.frombuffer(reader.read(256 * 3), np.uint8).reshape((-1, 3))
         palette = np.insert(palette, 3, 255, 1)
-        colors = palette[indices].astype(np.float32)
-        self.data = np.flip(colors.reshape((self.height, self.width, 4)), 0).reshape((-1, 4))
-
-        self.data = self.data / 255
+        colors = palette[indices]
+        data = np.flip(colors.reshape((height, width, 4)), 0)
+        return cls(width, height, data.astype(np.float32) / 255)

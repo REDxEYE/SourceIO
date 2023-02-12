@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import Dict, Type
 
-from .source1_base import Source1DetectorBase
-from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 from .....library.utils.path_utilities import backwalk_file_resolver
-
-from ..source1_content_provider import GameinfoContentProvider
+from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 from ..non_source_sub_manager import NonSourceContentProvider
+from ..source1_content_provider import GameinfoContentProvider
+from .source1_base import Source1DetectorBase
 
 
 class Source1Common(Source1DetectorBase):

@@ -1,23 +1,31 @@
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
-from .lump import LumpType, LumpInfo, Lump
 from ...shared.content_providers.content_manager import ContentManager
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer, FileBuffer
+from .lump import Lump, LumpInfo, LumpType
 
 
 class BspFile:
-    def __init__(self, file: Path):
+    def __init__(self, filepath: Path, buffer: Buffer):
         self.manager: ContentManager = ContentManager()
-        self.manager.scan_for_content(file)
-        self.handle = ByteIO(file.open('rb'))
-        self.version = self.handle.read_uint32()
-        self.lumps_info = [LumpInfo(self, lump_type) for lump_type in LumpType]
+        self.manager.scan_for_content(filepath)
+        self.buffer = buffer
         self.lumps = {}
-        assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
+        self.lumps_info: List[LumpInfo] = []
+        self.version = 0
 
-    def __del__(self):
-        return self.handle.close()
+    @classmethod
+    def from_filename(cls, filepath: Path):
+        buffer = FileBuffer(filepath)
+        self = cls(filepath, buffer)
+        self.version = buffer.read_uint32()
+        self.lumps_info = []
+        for lump_id in LumpType:
+            lump_info = LumpInfo.from_buffer(buffer, lump_id)
+            self.lumps_info.append(lump_info)
+        assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
+        return self
 
     def get_lump(self, lump_type: LumpType) -> Optional[Lump]:
         if lump_type not in self.lumps:
@@ -28,7 +36,7 @@ class BspFile:
                 if getattr(lump_handler, 'LUMP_TYPE') == lump_type:
                     lump_info = self.lumps_info[lump_type.value]
                     lump_data = lump_handler(lump_info)
-                    lump_data.parse()
+                    lump_data.parse(self.buffer.slice(lump_info.offset, lump_info.length), self)
 
                     self.lumps[lump_type] = lump_data
 

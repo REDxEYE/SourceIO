@@ -1,10 +1,10 @@
 from typing import List
 
-from .film_clip import FilmClip
-from .base_element import BaseElement
 from ....shared.content_providers.content_manager import ContentManager
 from ....utils import datamodel
 from ....utils.datamodel import Element
+from .base_element import BaseElement
+from .film_clip import FilmClip
 
 
 def find_by_name_n_type(array, name, elem_type):

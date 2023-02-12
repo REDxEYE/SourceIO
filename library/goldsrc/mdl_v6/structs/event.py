@@ -1,10 +1,16 @@
-from ....utils.byte_io_mdl import ByteIO
+from dataclasses import dataclass
+
+from ....shared.types import Vector3
+from ....utils import Buffer
 
 
-class StudioPivot:
-    def __init__(self):
-        self.frame_index = 0
-        self.event_type = 0
+@dataclass(slots=True)
+class StudioEvent:
+    point: Vector3[float]
+    start: int
+    end: int
 
-    def read(self, reader: ByteIO):
-        self.frame_index, self.event_type = reader.read_fmt('2H')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        point = buffer.read_fmt('3f')
+        return cls(point, *buffer.read_fmt('2I'))

@@ -1,12 +1,10 @@
 from functools import lru_cache
-from io import BytesIO
-from pathlib import Path, WindowsPath, PosixPath, PurePath
-from typing import Union, List, Dict
+from pathlib import Path, PosixPath, PurePath, WindowsPath
+from typing import Dict, List, Union
 
-from .structs.entry import TitanfallEntry
-from ...utils.byte_io_mdl import ByteIO
-from .structs import *
-from ...utils.thirdparty.lzham.lzham import LZHAM
+from ...utils import Buffer, FileBuffer, MemoryBuffer
+from ...utils.pylib import LZHAM
+from .structs import Header, Entry, MiniEntry, VPK_MAGIC, TitanfallEntry
 
 
 class InvalidMagic(Exception):
@@ -17,116 +15,104 @@ def open_vpk(filepath: Union[str, Path]):
     from struct import unpack
     with open(filepath, 'rb') as f:
         magic, version_mj, version_mn = unpack('IHH', f.read(8))
-    if magic != Header.MAGIC:
-        raise InvalidMagic(f'Not a VPK file, expected magic: {Header.MAGIC}, got {magic}')
+    if magic != VPK_MAGIC:
+        raise InvalidMagic(f'Not a VPK file, expected magic: {VPK_MAGIC}, got {magic}')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
-    elif version_mj == 2 and version_mn == 3 and LZHAM.lib is not None:
+    elif version_mj == 2 and version_mn == 3 :
         return TitanfallVPKFile(filepath)
     else:
-        raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}. "
-                                  f"LZHAM:{'Available' if LZHAM.lib else 'Unavailable'}")
+        raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}.")
 
 
 class VPKFile:
 
     def __init__(self, filepath: Union[str, Path]):
         self.filepath = Path(filepath)
-        self.reader = ByteIO(self.filepath)
-        self.header = Header()
-        self.archive_md5_entries: List[ArchiveMD5Entry] = []
+        self.buffer = FileBuffer(self.filepath)
+        self.header = Header((0, 0,), 0)
 
-        self.entries: Dict[str, Entry] = {}
+        self.entries: Dict[str, Union[MiniEntry, Entry]] = {}
         self.tree_offset = 0
-        self.tree_hash = b''
-        self.archive_md5_hash = b''
-        self.file_hash = b''
-
-        self.public_key = b''
-        self.signature = b''
 
         self._folders_in_current_dir = set()
 
     def read(self):
-        reader = self.reader
-
-        self.header.read(reader)
-        entry = reader.tell()
+        buffer = self.buffer
+        self.header = Header.from_buffer(buffer)
         self.read_entries()
-        self.reader.seek(entry + self.header.tree_size)
-        if self.header.version == 2:
-            reader.skip(self.header.file_data_section_size)
-            reader.skip(self.header.archive_md5_section_size)
-
-            assert self.header.other_md5_section_size == 48, \
-                f'Invalid size of other_md5_section {self.header.other_md5_section_size} bytes, should be 48 bytes'
-        if self.header.version == 2:
-            self.tree_hash = reader.read(16)
-            self.archive_md5_hash = reader.read(16)
-            self.file_hash = reader.read(16)
-
-            if self.header.signature_section_size != 0:
-                self.public_key = reader.read(reader.read_int32())
-                self.signature = reader.read(reader.read_int32())
 
     def read_entries(self):
-        reader = self.reader
-        self.tree_offset = reader.tell()
+        buffer = self.buffer
+        self.tree_offset = buffer.tell()
         while 1:
-            type_name = reader.read_ascii_string()
+            type_name = buffer.read_ascii_string()
             if not type_name:
                 break
             while 1:
-                directory_name = reader.read_ascii_string()
+                directory_name = buffer.read_ascii_string()
                 if not directory_name:
                     break
                 while 1:
-                    file_name = reader.read_ascii_string()
+                    file_name = buffer.read_ascii_string()
                     if not file_name:
                         break
 
                     full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
-                    self.entries[full_path] = Entry(full_path, reader.tell())
-                    _, preload_size = reader.read_fmt('IH')
-                    reader.skip(preload_size + 12)
+                    self.entries[full_path] = MiniEntry(buffer.tell(), full_path)
+                    _, preload_size = buffer.read_fmt('IH')
+                    buffer.skip(preload_size + 12)
 
-    def read_archive_md5_section(self):
-        reader = self.reader
+    def get_file(self, full_path: Path) -> Union[Buffer, None]:
+        normalized_path = full_path.as_posix().lower()
+        return self.get_file_str(normalized_path)
 
-        if self.header.archive_md5_section_size == 0:
-            return
+    def get_file_str(self, normalized_path: str) -> Union[Buffer, None]:
+        entry = self.entries.get(normalized_path, None)
+        if entry is None:
+            return None
+        if isinstance(entry, MiniEntry):
+            self.buffer.seek(entry.full_entry_offset)
+            entry = Entry(entry.file_name, entry.full_entry_offset).read(self.buffer)
+            self.entries[normalized_path] = entry
 
-        entry_count = self.header.archive_md5_section_size // 28
-
-        for _ in range(entry_count):
-            md5_entry = ArchiveMD5Entry()
-            md5_entry.read(reader)
-            self.archive_md5_entries.append(md5_entry)
-
-    @lru_cache(128)
-    def find_file(self, full_path: Union[Path, str]):
-        if isinstance(full_path, (Path, PurePath, PosixPath, WindowsPath)):
-            full_path = full_path.as_posix().lower()
-        else:
-            full_path = Path(full_path).as_posix().lower()
-        return self.entries.get(full_path, None)
-
-    def read_file(self, entry: Entry) -> BytesIO:
-        if not entry.loaded:
-            entry.read(self.reader)
         if entry.archive_id == 0x7FFF:
             data = bytearray(entry.preload_data)
-            with self.reader.save_current_pos():
-                self.reader.seek(entry.offset + self.header.tree_size + self.tree_offset)
-                data.extend(self.reader.read(entry.size))
+            with self.buffer.read_from_offset(entry.offset + self.header.tree_size + self.tree_offset):
+                data.extend(self.buffer.read(entry.size))
 
-            reader = BytesIO(data)
+            reader = MemoryBuffer(data)
             return reader
         else:
             target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{entry.archive_id:03d}.vpk'
             with open(target_archive_path, 'rb') as target_archive:
                 target_archive.seek(entry.offset)
-                reader = BytesIO(entry.preload_data + target_archive.read(entry.size))
+                reader = MemoryBuffer(entry.preload_data + target_archive.read(entry.size))
+                return reader
+
+    def find_file(self, full_path: Path):
+        full_path = full_path.as_posix().lower()
+        return self.entries.get(full_path, None)
+
+    def __contains__(self, item: Path):
+        return item.as_posix().lower() in self.entries
+
+    def read_file(self, file_entry: Entry) -> Buffer:
+        if not file_entry.loaded:
+            file_entry.read(self.buffer)
+        if file_entry.archive_id == 0x7FFF:
+            data = bytearray(file_entry.preload_data)
+            with self.buffer.save_current_offset():
+                self.buffer.seek(file_entry.offset + self.header.tree_size + self.tree_offset)
+                data.extend(self.buffer.read(file_entry.size))
+
+            reader = MemoryBuffer(data)
+            return reader
+        else:
+            target_archive_path = self.filepath.parent / f'{self.filepath.stem[:-3]}{file_entry.archive_id:03d}.vpk'
+            with open(target_archive_path, 'rb') as target_archive:
+                target_archive.seek(file_entry.offset)
+                reader = MemoryBuffer(file_entry.preload_data + target_archive.read(file_entry.size))
                 return reader
 
     def files_in_path(self, partial_path):
@@ -149,49 +135,49 @@ class TitanfallVPKFile(VPKFile):
         self.entries: Dict[str, TitanfallEntry] = {}
 
     def read(self):
-        reader = self.reader
-        self.header.read(reader)
-        entry = reader.tell()
+        buffer = self.buffer
+        self.header.read(buffer)
+        # entry = buffer.tell()
         self.read_entries()
-        self.reader.seek(entry + self.header.tree_size)
+        # self.buffer.seek(entry + self.header.tree_size)
 
     def read_entries(self):
-        reader = self.reader
+        buffer = self.buffer
         while 1:
-            type_name = reader.read_ascii_string()
+            type_name = buffer.read_ascii_string()
             if not type_name:
                 break
             while 1:
-                directory_name = reader.read_ascii_string()
+                directory_name = buffer.read_ascii_string()
                 if not directory_name:
                     break
                 while 1:
-                    file_name = reader.read_ascii_string()
+                    file_name = buffer.read_ascii_string()
                     if not file_name:
                         break
                     full_path = f'{directory_name}/{file_name}.{type_name}'.lower()
-                    entry = self.entries[full_path] = TitanfallEntry(full_path, reader.tell())
-                    entry.read(reader)
+                    entry = self.entries[full_path] = TitanfallEntry(full_path, buffer.tell())
+                    entry.read(buffer)
 
-    def read_file(self, entry: TitanfallEntry) -> BytesIO:
-        if not entry.loaded:
-            entry.read(self.reader)
-        if entry.archive_id == 0x7FFF:
-            reader = BytesIO(entry.preload_data)
+    def read_file(self, file_entry: TitanfallEntry) -> Buffer:
+        if not file_entry.loaded:
+            file_entry.read(self.buffer)
+        if file_entry.archive_id == 0x7FFF:
+            reader = MemoryBuffer(file_entry.preload_data)
             return reader
         else:
             archive_name_base = self.filepath.stem[:-3]
             archive_name_base = 'client_' + archive_name_base.split('_', 1)[-1]
-            target_archive_path = self.filepath.parent / f'{archive_name_base}{entry.archive_id:03d}.vpk'
+            target_archive_path = self.filepath.parent / f'{archive_name_base}{file_entry.archive_id:03d}.vpk'
             with open(target_archive_path, 'rb') as target_archive:
 
-                buffer = entry.preload_data
-                for block in entry.blocks:
+                buffer = file_entry.preload_data
+                for block in file_entry.blocks:
                     target_archive.seek(block.offset)
                     block_data = target_archive.read(block.compressed_size)
                     if block.compressed_size == block.uncompressed_size:
                         buffer += block_data
                     else:
                         buffer += LZHAM.decompress_memory(block_data, block.uncompressed_size, 20, 1 << 0)
-                reader = BytesIO(buffer)
+                reader = MemoryBuffer(buffer)
                 return reader

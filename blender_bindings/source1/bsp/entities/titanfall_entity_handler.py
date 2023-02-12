@@ -1,24 +1,28 @@
 from collections import defaultdict
 from itertools import chain
 from pprint import pformat
+from typing import List
 
 import bpy
 import numpy as np
-from typing import List
 
 from .....library.source1.bsp.datatypes.model import RespawnModel
 from .....library.source1.bsp.datatypes.texture_data import TextureData
-from ....utils.utils import get_material
-from ..entities.base_entity_handler import BaseEntityHandler
-from ..entities.r1_entity_classes import entity_class_handle, worldspawn, func_window_hint, trigger_indoor_area, \
-    trigger_capture_point, trigger_out_of_bounds, trigger_soundscape, Base
 from .....library.source1.bsp.lumps.face_indices_lump import *
-from .....library.source1.bsp.lumps.mesh_lump import *
-from .....library.source1.bsp.lumps.material_sort_lump import *
 from .....library.source1.bsp.lumps.lightmap_header_lump import *
 from .....library.source1.bsp.lumps.lightmap_lump import *
+from .....library.source1.bsp.lumps.material_sort_lump import *
+from .....library.source1.bsp.lumps.mesh_lump import *
 from .....library.source1.bsp.lumps.vertex_lump import *
 from .....library.source1.bsp.lumps.vertex_normal_lump import *
+from ....utils.utils import add_material
+from ..entities.base_entity_handler import BaseEntityHandler
+from ..entities.r1_entity_classes import (Base, entity_class_handle,
+                                          func_window_hint,
+                                          trigger_capture_point,
+                                          trigger_indoor_area,
+                                          trigger_out_of_bounds,
+                                          trigger_soundscape, worldspawn)
 
 
 class TitanfallEntityHandler(BaseEntityHandler):
@@ -67,11 +71,9 @@ class TitanfallEntityHandler(BaseEntityHandler):
                         image.alpha_mode = 'CHANNEL_PACKED'
                         image.file_format = 'TARGA'
 
-                        if bpy.app.version > (2, 83, 0):
-                            image.pixels.foreach_set(pixel_data.flatten().tolist())
-                        else:
-                            image.pixels[:] = pixel_data.flatten().tolist()
+                        image.pixels.foreach_set(pixel_data.ravel())
                         image.pack()
+                        del pixel_data
 
                     offset += pixel_count
 
@@ -135,7 +137,7 @@ class TitanfallEntityHandler(BaseEntityHandler):
             objs.append(mesh_obj)
             mesh_data = mesh_obj.data
             for mat in material_indices:
-                get_material(mat, mesh_obj)
+                add_material(mat, mesh_obj)
 
             unique_vertex_ids = np.unique(merged_vertex_ids)
 

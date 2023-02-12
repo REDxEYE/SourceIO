@@ -1,6 +1,11 @@
+from dataclasses import dataclass
 from enum import IntEnum
+from typing import TYPE_CHECKING
 
-from ...utils.byte_io_mdl import ByteIO
+from ...utils import Buffer
+
+if TYPE_CHECKING:
+    from .bsp_file import BspFile
 
 
 class LumpType(IntEnum):
@@ -21,13 +26,15 @@ class LumpType(IntEnum):
     LUMP_MODELS = 14
 
 
+@dataclass(slots=True)
 class LumpInfo:
-    def __init__(self, bsp, lump_type: LumpType):
-        from .bsp_file import BspFile
-        self.bsp: BspFile = bsp
-        self.type = lump_type
-        self.offset = bsp.handle.read_uint32()
-        self.length = bsp.handle.read_uint32()
+    id: LumpType
+    offset: int
+    length: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, lump_type: LumpType):
+        return cls(lump_type, *buffer.read_fmt("2I"))
 
 
 class Lump:
@@ -36,12 +43,8 @@ class Lump:
     def __init__(self, info: LumpInfo):
         self.info = info
 
-        with self.info.bsp.handle.save_current_pos():
-            self.info.bsp.handle.seek(self.info.offset)
-            self.buffer = ByteIO(self.info.bsp.handle.read(self.info.length))
-
-    def parse(self):
+    def parse(self, buffer: Buffer, bsp: 'BspFile'):
         raise NotImplementedError
 
     def __repr__(self):
-        return f'<BspLump {self.info.type.name} at {self.info.offset}:{self.info.length}>'
+        return f'<BspLump {self.info.id.name} at {self.info.offset}:{self.info.length}>'
