@@ -3,7 +3,7 @@ from .library import loaded_as_addon, running_in_blender
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE, ShadelessFox, Syborg64",
-    "version": (4, 0, 4),
+    "version": (5, 0, 0),
     "blender": (3, 0, 0),
     "location": "File > Import-Export > SourceEngine assets",
     "description": "GoldSrc/Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
