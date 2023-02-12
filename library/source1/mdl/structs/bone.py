@@ -185,7 +185,7 @@ class Bone:
         position_scale = buffer.read_fmt('3f')
         rotation_scale = buffer.read_fmt('3f')
 
-        pose_to_bone = np.array(buffer.read_fmt('12f')).reshape((3, 4)).transpose()
+        pose_to_bone = np.array(buffer.read_fmt('12f'), np.float32).reshape((3, 4)).transpose()
 
         q_alignment = buffer.read_fmt('4f')
         flags = BoneFlags(buffer.read_uint32())
