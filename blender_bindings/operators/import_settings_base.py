@@ -21,7 +21,6 @@ class BSPSettings(SharedSettings):
     load_static_props: BoolProperty(name="Load static prop entities", default=True)
     load_triggers: BoolProperty(name="Load trigger entities", default=False)
     load_info: BoolProperty(name="Load info entities", default=False)
-    load_env: BoolProperty(name="Load env entities", default=False)
     load_logic: BoolProperty(name="Load logic entities", default=False)
     load_ropes: BoolProperty(name="Load rope entities", default=False)
 
