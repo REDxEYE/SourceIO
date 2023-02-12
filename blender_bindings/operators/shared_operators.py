@@ -171,6 +171,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                                            phy_file if phy_file else None)
                     if not file_list.is_valid():
                         self.report({"WARNING"}, f"Mdl file for {obj.name}({prop_path}) prop is invalid. Too small file or missing file")
+                        continue
                     model_container = import_model_from_files(prop_path, file_list, 1.0, False, True,
                                                               unique_material_names=unique_material_names)
                     if model_container is None:
