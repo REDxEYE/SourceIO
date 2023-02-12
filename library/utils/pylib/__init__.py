@@ -445,16 +445,30 @@ class VTFLibV2:
         channels = self.channels()
         buffer = np.zeros((self.width(), self.height(), channels), self.np_dtype())
         _vtf_get_as_rgba8888(self.handle, buffer.ctypes.data_as(c_char_p), buffer.nbytes, flip)
-        if self.format not in (
-                VTFImageFormat.DXT1, VTFImageFormat.DXT1OneBitAlpha, VTFImageFormat.DXT3, VTFImageFormat.DXT5,
-                VTFImageFormat.ATI1N, VTFImageFormat.ATI2N):
+        tex_format = self.format
+        if tex_format not in (
+            VTFImageFormat.DXT1, VTFImageFormat.DXT1OneBitAlpha, VTFImageFormat.DXT3, VTFImageFormat.DXT5,
+            VTFImageFormat.ATI1N, VTFImageFormat.ATI2N):
             buffer = np.flipud(buffer)
 
-        if self.format == VTFImageFormat.RGBA16161616:
+        if tex_format == VTFImageFormat.RGBA16161616:
             buffer = buffer.astype(np.float32) / 65535
-        elif self.format not in (VTFImageFormat.RGB323232F, VTFImageFormat.I32F, VTFImageFormat.RGBA32323232F,):
+        elif tex_format not in (VTFImageFormat.RGB323232F, VTFImageFormat.I32F, VTFImageFormat.RGBA32323232F,):
             buffer = buffer.astype(np.float32) / 255
-        target_buffer[:, :, :channels] = buffer
+
+        if tex_format == VTFImageFormat.BGRA8888:
+            target_buffer[:, :, 0] = buffer[:, :, 2]
+            target_buffer[:, :, 1] = buffer[:, :, 1]
+            target_buffer[:, :, 2] = buffer[:, :, 0]
+            target_buffer[:, :, 3] = buffer[:, :, 3]
+        elif tex_format == VTFImageFormat.BGR888:
+            target_buffer[:, :, 0], target_buffer[:, :, 2] = buffer[:, :, 2], buffer[:, :, 0]
+            target_buffer[:, :, 1] = buffer[:, :, 1]
+        elif tex_format == VTFImageFormat.ABGR8888:
+            target_buffer[:, :, 0], target_buffer[:, :, 1], target_buffer[:, :, 2], target_buffer[:, :, 3] = \
+                buffer[:, :, 3], buffer[:, :, 2], buffer[:, :, 1], buffer[:, :, 0]
+        else:
+            target_buffer[:, :, :channels] = buffer
         return target_buffer
 
     def destroy(self):
