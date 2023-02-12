@@ -394,7 +394,7 @@ class Element(collections.OrderedDict):
         super().__init__()
 
     def __eq__(self, other):
-        return self._id.int == other._id.int
+        return other is not None and self._id.int == other._id.int
 
     def __bool__(self):
         return True
