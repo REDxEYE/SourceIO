@@ -67,10 +67,10 @@ class Buffer(abc.ABC, io.RawIOBase):
         self.seek(size, io.SEEK_CUR)
 
     def read_fmt(self, fmt):
-        return unpack(self._endian + fmt, self.read(calcsize(fmt)))
+        return unpack(self._endian + fmt, self.read(calcsize(self._endian + fmt)))
 
     def _read(self, fmt):
-        return unpack(self._endian + fmt, self.read(calcsize(fmt)))[0]
+        return unpack(self._endian + fmt, self.read(calcsize(self._endian + fmt)))[0]
 
     def read_relative_offset32(self):
         return self.tell() + self.read_uint32()
