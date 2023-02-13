@@ -18,7 +18,7 @@ class FileEntry:
         if entry_id == 0:
             return None
         name = buffer.read_ascii_string()
-        size, crc = buffer.read_fmt('<IQ')
+        size, crc = buffer.read_fmt('IQ')
         return cls(entry_id, name, size, crc)
 
     def __repr__(self) -> str:
