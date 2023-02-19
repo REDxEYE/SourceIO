@@ -227,8 +227,7 @@ class DmxModel2:
     def mesh_add_attribute(self, mesh: datamodel.Element,
                            attribute_name: str,
                            attribute_data: np.ndarray,
-                           attribute_data_type: Type[int | float | datamodel.Vector3 | datamodel.Vector2],
-                           attribute_indices: np.ndarray):
+                           attribute_data_type: Type[int | float | datamodel.Vector3 | datamodel.Vector2]):
         if attribute_name not in self.supported_attributes():
             raise NotImplementedError(f"Attribute {attribute_name!r} not supported!")
 
@@ -236,8 +235,13 @@ class DmxModel2:
         dme_attribute_name = self.supported_attributes()[attribute_name]
         vertex_data["vertexFormat"].append(dme_attribute_name)
 
+        # TODO: Sparse data is good thing, but need to figure out how to index them from delta states properly
+        # sparse_data, attribute_indices = np.unique(attribute_data, return_inverse=True,axis=0)
+        # vertex_data[dme_attribute_name] = datamodel.make_array(sparse_data, attribute_data_type)
+        # vertex_data[dme_attribute_name + "Indices"] = datamodel.make_array(attribute_indices, int)
+
         vertex_data[dme_attribute_name] = datamodel.make_array(attribute_data, attribute_data_type)
-        vertex_data[dme_attribute_name + "Indices"] = datamodel.make_array(attribute_indices, int)
+        vertex_data[dme_attribute_name + "Indices"] = datamodel.make_array(np.arange(attribute_data.shape[0]), int)
 
     def mesh_add_bone_weights(self, mesh: datamodel.Element,
                               bone_names: List[str],
