@@ -140,16 +140,16 @@ class Bone:
 
     position: Vector3[float]
     rotation: Vector3[float]
-    position_scale: Vector3[float]
-    rotation_scale: Vector3[float]
+    position_scale: Vector3[float] = field(repr=False)
+    rotation_scale: Vector3[float] = field(repr=False)
 
-    pose_to_bone: npt.NDArray[np.float32]
+    pose_to_bone: npt.NDArray[np.float32] = field(repr=False)
 
-    q_alignment: Vector4[float]
+    q_alignment: Vector4[float] = field(repr=False)
     flags: BoneFlags
     procedural_rule_type: int
     physics_bone_index: int
-    quat: Vector4[float]
+    quat: Vector4[float] = field(repr=False)
     contents: Contents
     surface_prop: str
 

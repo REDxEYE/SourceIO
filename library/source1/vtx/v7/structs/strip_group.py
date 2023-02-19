@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntFlag
 from typing import List
 
@@ -29,9 +29,9 @@ VERTEX_DTYPE = np.dtype(
 @dataclass(slots=True)
 class StripGroup:
     flags: StripGroupFlags
-    vertexes: npt.NDArray[VERTEX_DTYPE]
-    indices: npt.NDArray[np.uint16]
-    strips: List[Strip]
+    vertexes: npt.NDArray[VERTEX_DTYPE] = field(repr=False)
+    indices: npt.NDArray[np.uint16] = field(repr=False)
+    strips: List[Strip] = field(repr=False)
 
     # topology: List[int]
 

@@ -183,14 +183,13 @@ class Flex:
         vert_count, vert_offset = buffer.read_fmt('2I')
 
         if version > 36:
-            partner_index = buffer.read_uint32()
+            partner_index = buffer.read_int32()
             vertex_anim_type = VertexAminationType(buffer.read_uint8())
             if vertex_anim_type == VertexAminationType.WRINKLE:
                 vert_anim_class = VertAnimWrinkleV49
             else:
                 vert_anim_class = VertAnimV49
-            buffer.skip(3)
-            buffer.skip(6 * 4)
+            buffer.skip(3+6*4)
         else:
             partner_index = None
             vertex_anim_type = VertexAminationType.NORMAL

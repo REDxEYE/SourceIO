@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 import numpy as np
@@ -33,7 +33,7 @@ class Model:
     meshes: List[Mesh]
     eyeballs: List[Eyeball]
 
-    vertices: Optional[npt.NDArray[VERTEX_DTYPE]]
+    vertices: Optional[npt.NDArray[VERTEX_DTYPE]] = field(repr=False)
 
     @property
     def has_flexes(self):
