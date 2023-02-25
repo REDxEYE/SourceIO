@@ -235,7 +235,7 @@ class ContentManager(metaclass=SingletonMeta):
         for name, sub_manager in self.content_providers.items():
             name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
             info = {"name": name, "path": str(sub_manager.filepath)}
-            serialized[md5(name.encode("ascii")).hexdigest()] = info
+            serialized[md5(name.encode("utf8")).hexdigest()] = info
 
         return serialized
 
