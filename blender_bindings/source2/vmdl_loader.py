@@ -1,4 +1,5 @@
 import logging
+from struct import pack, unpack
 from itertools import chain
 from pathlib import Path
 from typing import Any, List, Mapping, Optional, Tuple, cast
@@ -138,6 +139,7 @@ def create_armature(resource: CompiledModelResource, scale: float):
 
 def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, container: Source2ModelContainer,
                   scale: float, lod_mask: int, import_attachments: bool) -> List[bpy.types.Object]:
+    lod_mask = unpack("Q", pack("q", lod_mask))
     data, = model_resource.get_data_block(block_name='DATA')
     ctrl, = model_resource.get_data_block(block_name='CTRL')
     group_masks = {}
@@ -148,9 +150,9 @@ def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, con
         for i, group in enumerate(data['m_meshGroups']):
             group_masks[2 ** i] = group
     else:
-        group_masks[255] = model_resource.name + '_ALL'
+        group_masks[0xFFFF] = model_resource.name + '_ALL'
     for i, mesh in enumerate(data['m_refMeshes']):
-        mesh_mask = data['m_refMeshGroupMasks'][i]
+        mesh_mask = int(data['m_refMeshGroupMasks'][i])
         lod_id = data['m_refLODGroupMasks'][i]
         if lod_id & lod_mask == 0:
             continue

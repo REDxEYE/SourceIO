@@ -66,6 +66,8 @@ class VertexAttribute:
             return np.uint8, (4,)
         elif self.format == DxgiFormat.R16G16_UNORM:
             return np.uint16, (2,)
+        elif self.format == DxgiFormat.R16G16_SNORM:
+            return np.int16, (2,)
         else:
             raise NotImplementedError(f"Unsupported DXGI format {self.format.name}")
 

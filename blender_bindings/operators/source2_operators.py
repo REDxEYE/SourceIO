@@ -30,7 +30,7 @@ class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
     # invert_uv: BoolProperty(name="Invert UV", default=True)
     import_physics: BoolProperty(name="Import physics", default=False)
     import_attachments: BoolProperty(name="Import attachments", default=False)
-    lod_mask: IntProperty(name="Lod mask", default=255)
+    lod_mask: IntProperty(name="Lod mask", default=0xFFFF, subtype="UNSIGNED")
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
