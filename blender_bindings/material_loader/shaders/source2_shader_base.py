@@ -42,11 +42,11 @@ class Source2ShaderBase(ShaderBase):
         buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
         image.pixels.foreach_get(buffer)
 
-        mask = buffer[2::4]
+        mask = buffer[3::4]
         roughness_rgb = np.dstack((mask, mask, mask, np.ones_like(mask)))
 
         roughness_texture = self.make_texture(roughness_name, image.size, roughness_rgb, True)
-        buffer[2::4] = 1.0
+        buffer[3::4] = 1.0
 
         image.pixels.foreach_set(buffer.ravel())
 

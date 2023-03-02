@@ -196,6 +196,8 @@ class CompiledTextureResource(CompiledResource):
                         hemi_oct_aniso_roughness = True
                     elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
                         invert = True
+                    elif spec.string == "Texture Compiler Version Image Inverse":
+                        invert = True
             output = data.copy()
             del data
             if hemi_oct_aniso_roughness:
