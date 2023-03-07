@@ -170,14 +170,18 @@ class DmxModel2:
         bone_elem["transform"] = bone_transform = self._make_transform(name, dme_position, dme_rotation, "bone" + name)
         bone_transform_base = self._make_transform(name, dme_position, dme_rotation, "bone_base" + name)
 
+        self._root["skeleton"]["baseStates"][0]['transforms'].append(bone_transform_base)
+        
         if self.want_joint_list:
             self._root["skeleton"]["jointList"].append(bone_elem)
+            self._bones_ids[name] = self._root["skeleton"]["jointList"].index(bone_elem)
+        else:
+            self._bones_ids[name] = self._root["skeleton"]["baseStates"][0]['transforms'].index(bone_transform_base)
+        
         if self.want_joint_transforms:
             self._root["skeleton"]["jointTransforms"].append(bone_transform)
 
-        self._root["skeleton"]["baseStates"][0]['transforms'].append(bone_transform_base)
         self._bones[name] = bone_elem
-        self._bones_ids[name] = self._root["skeleton"]["jointList"].index(bone_elem)
         if parent and parent in self._bones:
             self._bones[parent]["children"].append(bone_elem)
         else:
