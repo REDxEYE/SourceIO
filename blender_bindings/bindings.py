@@ -5,6 +5,7 @@ from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        IntProperty, PointerProperty, StringProperty)
 
 # from ..library.source1.vtf import is_vtflib_supported
+from .attributes import register_props, unregister_props
 from .operators.flex_operators import SourceIO_PG_FlexController
 from .operators.flex_operators import classes as flex_classes
 from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
@@ -183,6 +184,7 @@ def register():
     register_custom_icon()
     register_()
     register_nodes()
+    register_props()
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
     bpy.types.Scene.use_bvlg = bpy.props.BoolProperty(
@@ -205,6 +207,7 @@ def unregister():
     #     from .operators.source1_operators import export
     #     bpy.types.IMAGE_MT_image.remove(export)
     unregister_nodes()
+    unregister_props()
     SingletonMeta.cleanup()
 
     unregister_custom_icon()

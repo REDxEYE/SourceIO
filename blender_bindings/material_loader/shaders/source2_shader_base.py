@@ -1,10 +1,8 @@
-from array import array
 from pathlib import Path
-from typing import Dict, Union
-
+from typing import Union
 import bpy
-import numpy as np
 
+from ...utils.texture_utils import check_texture_cache
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2.resource_types import (CompiledMaterialResource,
                                                 CompiledTextureResource)
@@ -58,6 +56,9 @@ class Source2ShaderBase(ShaderBase):
 
     def load_texture(self, texture_resource, texture_path, invert_y: bool = False):
         if texture_resource:
+            texture = check_texture_cache(texture_path.stem)
+            if texture is not None:
+                return texture
             texture = import_texture(texture_resource, texture_path.stem, True, invert_y)
             return texture
         return None

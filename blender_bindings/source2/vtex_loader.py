@@ -1,7 +1,6 @@
-from pathlib import Path
-
 import bpy
 
+from ..utils.texture_utils import create_and_cache_texture
 from ...library.source2.data_types.blocks.texture_data import VTexFormat
 from ...library.source2.resource_types import CompiledTextureResource
 from ...logger import SLoggingManager
@@ -18,26 +17,11 @@ def import_texture(resource: CompiledTextureResource, name: str, flip: bool, inv
 
     if pixel_data.shape[0] == 0:
         return None
-    image = bpy.data.images.new(
-        name + '.tga',
-        width=width,
-        height=height,
-        alpha=True
-    )
+    
+    pixel_format = resource.get_texture_format()
+    image = create_and_cache_texture(name, (width, height), pixel_data,
+                                     pixel_format in (VTexFormat.RGBA16161616F, VTexFormat.BC6H),invert_y)
 
     image.alpha_mode = 'CHANNEL_PACKED'
-
-    pixel_format = resource.get_texture_format()
-
-    if pixel_format in (VTexFormat.RGBA16161616F, VTexFormat.BC6H):
-        image.use_generated_float = True
-        image.file_format = 'HDR'
-    else:
-        if invert_y:
-            pixel_data[:, :, 1] = 1 - pixel_data[:, :, 1]
-        image.file_format = 'TARGA'
-    image.pixels.foreach_set(pixel_data.ravel())
-
-    image.pack()
     del pixel_data
     return image

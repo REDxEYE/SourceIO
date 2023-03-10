@@ -38,9 +38,9 @@ def texture_from_data(name: str, rgba_data: np.ndarray, image_width: int, image_
         height=image_height,
         alpha=True,
     )
-    image.filepath = name + '.tga'
+    image.filepath = name + '.png'
     image.alpha_mode = 'CHANNEL_PACKED'
-    image.file_format = 'TARGA'
+    image.file_format = 'PNG'
 
     image.pixels.foreach_set(rgba_data.ravel())
     image.pack()
