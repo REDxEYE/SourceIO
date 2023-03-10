@@ -139,7 +139,7 @@ def create_armature(resource: CompiledModelResource, scale: float):
 
 def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, container: Source2ModelContainer,
                   scale: float, lod_mask: int, import_attachments: bool) -> List[bpy.types.Object]:
-    lod_mask = unpack("Q", pack("q", lod_mask))
+    lod_mask = unpack("Q", pack("q", lod_mask))[0]
     data, = model_resource.get_data_block(block_name='DATA')
     ctrl, = model_resource.get_data_block(block_name='CTRL')
     group_masks = {}
