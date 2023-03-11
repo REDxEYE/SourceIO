@@ -220,12 +220,13 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     model_data_block, = model_resource.get_data_block(block_name='DATA')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
-    remap_table = model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:]
+    remap_table = model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:].astype(
+        np.uint32)
     if has_weights and has_indicies:
         weights_array = used_vertices["BLENDWEIGHT"] / 255
-        indices_array = used_vertices["BLENDINDICES"]
+        indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
     else:
-        indices_array = used_vertices["BLENDINDICES"]
+        indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
         weights_array = np.ones_like(indices_array, dtype=np.float32)
     remapped_indices = remap_table[indices_array]
     for n, bone_indices in enumerate(remapped_indices):
@@ -256,9 +257,12 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             vertex_buffer = vbib_block.vertex_buffers[vertex_buffer_info['m_hBuffer']]
             index_buffer = vbib_block.index_buffers[index_buffer_info['m_hBuffer']]
             material_name = draw_call['m_material']
-            material_resource: Optional[CompiledMaterialResource]
-            material_resource = mesh_resource.get_child_resource(material_name, ContentManager(),
-                                                                 CompiledMaterialResource)
+            material_resource: Optional[CompiledMaterialResource] = None
+            if not isinstance(material_name, NullObject):
+                material_resource = mesh_resource.get_child_resource(material_name, ContentManager(),
+                                                                     CompiledMaterialResource)
+            else:
+                material_name = "NullMaterial"
             if material_resource:
                 load_material(material_resource, Path(material_name))
                 morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED')
