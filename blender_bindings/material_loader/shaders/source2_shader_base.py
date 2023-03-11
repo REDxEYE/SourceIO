@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 import bpy
 
 from ...utils.texture_utils import check_texture_cache
@@ -54,8 +54,8 @@ class Source2ShaderBase(ShaderBase):
         image['normalmap_converted'] = True
         return image, roughness_texture
 
-    def load_texture(self, texture_resource, texture_path, invert_y: bool = False):
-        if texture_resource:
+    def load_texture(self, texture_resource: Optional[CompiledTextureResource], texture_path, invert_y: bool = False):
+        if texture_resource is not None:
             texture = check_texture_cache(texture_path.stem)
             if texture is not None:
                 return texture
