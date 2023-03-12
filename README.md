@@ -1,5 +1,5 @@
 # SourceIO
-SourceIO is a Blender(3.0+) addon for importing\exporting source engine textures/models/maps
+SourceIO is a Blender(3.1+) addon for importing\exporting source engine textures/models/maps
 Our Discord server https://discord.gg/SF82W6aZ67
 
 Current TODO list -> [TODO.md](TODO.md)
@@ -21,7 +21,7 @@ Small WIKI -> [WIKI](./wiki/init.md)
 | .MDL      | Model                             | :heavy_check_mark: | :x:               |
 | .BSP      | Map Files (Compiled)              | :heavy_check_mark: | Not Planned       |
 | .VMF      | Map Files (Hammer Format)         | Not Planned        | Not Planned       |
-| .VTF      | Textures                          | :heavy_check_mark: | :heavy_check_mark:|
+| .VTF      | Textures                          | :heavy_check_mark: | :x:|
 | .VMT      | Materials                         | :heavy_check_mark: | :x:               |
 
 ## Source 2
