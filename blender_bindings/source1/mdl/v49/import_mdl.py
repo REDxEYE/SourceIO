@@ -302,27 +302,33 @@ bpy.app.driver_namespace["nway"] = nway
 bpy.app.driver_namespace["rclamped"] = rclamped
 
     """
+
+    def normalize_name(name):
+        return name.replace("-", "_").replace(" ", "_")
+
     for flex_name, (expr, inputs) in all_exprs.items():
-        driver_name = f'{flex_name}_driver'.replace(' ', '_')
+        normalized_flex_name = normalize_name(flex_name)
+        driver_name = f"{normalized_flex_name}_driver"
         if driver_name in globals():
             continue
 
         input_definitions = []
         for inp in inputs:
             input_name = inp[0]
+            normalized_input_name = normalize_name(inp[0])
             if inp[1] in ('fetch1', '2WAY1', '2WAY0', 'NWAY', 'DUE'):
                 if 'left_' in input_name:
                     input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name.replace("left_", "")}"].value_left')
+                        f'{normalized_input_name} = obj_data.flex_controllers["{input_name.replace("left_", "")}"].value_left')
                 elif 'right_' in input_name:
                     input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{input_name.replace("right_", "")}"].value_right')
+                        f'{normalized_input_name} = obj_data.flex_controllers["{input_name.replace("right_", "")}"].value_right')
                 else:
                     input_definitions.append(
-                        f'{inp[0].replace(" ", "_")} = obj_data.flex_controllers["{inp[0]}"].value')
+                        f'{normalized_input_name} = obj_data.flex_controllers["{inp[0]}"].value')
             elif inp[1] == 'fetch2':
                 input_definitions.append(
-                    f'{inp[0].replace(" ", "_")} = obj_data.shape_keys.key_blocks["{input_name}"].value')
+                    f'{normalized_input_name} = obj_data.shape_keys.key_blocks["{input_name}"].value')
             else:
                 raise NotImplementedError(f'"{inp[1]}" is not supported')
         print(f"{flex_name} = {expr}")
@@ -338,6 +344,7 @@ bpy.app.driver_namespace["{driver_name}"] = {driver_name}
     for shape_key in shape_key_block.key_blocks:
 
         flex_name = shape_key.name
+        normalized_flex_name = normalize_name(flex_name)
 
         if flex_name == 'base':
             continue
@@ -352,18 +359,18 @@ bpy.app.driver_namespace["{driver_name}"] = {driver_name}
                 cont.value_min = 0
                 cont.value_max = 1
                 template_function = f"""
-def {flex_name.replace(' ', '_')}_driver(obj_data):
+def {normalized_flex_name}_driver(obj_data):
     return obj_data.flex_controllers["{flex_name}"].value
-bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.replace(' ', '_')}_driver
+bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_name}_driver
 
                                 """
                 blender_py_file += template_function
             else:
                 template_function = f"""
-def {flex_name.replace(' ', '_')}_driver(obj_data):
+def {normalized_flex_name}_driver(obj_data):
     {st.join(inputs)}
     return {expr}
-bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.replace(' ', '_')}_driver
+bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_name}_driver
 
                 """
                 blender_py_file += template_function
@@ -374,7 +381,7 @@ bpy.app.driver_namespace["{flex_name.replace(' ', '_')}_driver"] = {flex_name.re
 
         driver = fcurve.driver
         driver.type = 'SCRIPTED'
-        driver.expression = f"{flex_name.replace(' ', '_')}_driver(obj_data)"
+        driver.expression = f"{normalized_flex_name}_driver(obj_data)"
         var = driver.variables.new()
         var.name = 'obj_data'
         var.targets[0].id_type = 'OBJECT'
@@ -501,5 +508,5 @@ def import_animations(cm: ContentManager, mdl: MdlV49, armature: bpy.types.Objec
                     rot_curves[i].keyframe_points[frame_id].co = (frame_id, (bl_bone.rotation_quaternion[i]))
         for pos_curves, rot_curves in curve_per_bone.values():
             for curve in rot_curves + pos_curves:
-                    curve.update()
+                curve.update()
         bpy.ops.object.mode_set(mode='OBJECT')
