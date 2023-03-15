@@ -220,8 +220,7 @@ def create_flex_drivers(obj, mdl: MdlV44):
         obj.shape_key_add(name=controller.name)
 
     def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
-        if expr.__class__ in [FetchController, FetchFlex]:
-            expr: Value = expr
+        if issubclass(type(expr), (FetchController, FetchFlex)):
             logger.info(f"Parsing {expr} value")
             if driver.variables.get(expr.value, None) is not None:
                 return
@@ -231,12 +230,10 @@ def create_flex_drivers(obj, mdl: MdlV44):
             var.targets[0].id = shape_key_block
             var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
 
-        elif issubclass(expr.__class__, Expr):
-            expr: Expr = expr
+        elif issubclass(type(expr), Expr):
             parse_expr(expr.right, driver, shape_key_block)
             parse_expr(expr.left, driver, shape_key_block)
-        elif issubclass(expr.__class__, Function):
-            expr: Function = expr
+        elif issubclass(type(expr), Function):
             for var in expr.values:
                 parse_expr(var, driver, shape_key_block)
 
