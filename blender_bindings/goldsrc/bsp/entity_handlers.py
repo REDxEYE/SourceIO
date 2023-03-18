@@ -39,14 +39,15 @@ def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rot
     if not angles:
         angles = 0.0, math.radians(entity_data.get('angle', '0')), 0.0
     target_name = entity_data.get('targetname', entity_data['classname'])
-    model_path = content_manager.find_file(str(model_name))
-    if model_path:
+    mdl_buffer = content_manager.find_file(str(model_name))
+    if mdl_buffer:
         if single_collection:
             master_collection = parent_collection
         else:
             master_collection = get_new_unique_collection(target_name, parent_collection)
         model_texture_path = content_manager.find_file(str(model_name.with_name(model_name.stem + 't.mdl')))
-        model_container = import_model(model_path,
+        model_container = import_model(model_name,
+                                       mdl_buffer,
                                        model_texture_path if model_texture_path is not None else None, scale,
                                        master_collection, disable_collection_sort=True, re_use_meshes=True)
         if model_container.armature:
