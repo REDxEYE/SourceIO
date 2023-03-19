@@ -333,8 +333,9 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
             objects.append(mesh_obj)
             if morph_block and morph_supported:
-                pos_bundle_id = (morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED') or
-                                 morph_block.get_bundle_id('BUNDLE_TYPE_POSITION_SPEED'))
+                pos_bundle_id = morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED')
+                if pos_bundle_id is None:
+                    pos_bundle_id = morph_block.get_bundle_id('BUNDLE_TYPE_POSITION_SPEED')
                 if pos_bundle_id is not None:
                     mesh_obj.shape_key_add(name='base')
                     for flex_name_ in morph_block['m_FlexDesc']:
