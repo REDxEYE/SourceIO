@@ -1,9 +1,10 @@
+import traceback
 from math import radians
 from typing import IO, Union
 
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager
-from ...utils.kv_parser import ValveKeyValueParser, _KVDataProxy
+from ...utils.kv_parser import ValveKeyValueParser, _KVDataProxy, KVLexerException
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::VMT')
@@ -15,10 +16,16 @@ class VMT:
         if isinstance(data, bytes):
             data = data.decode('latin1')
         parser = ValveKeyValueParser(buffer_and_name=(data, filename), self_recover=True)
-        parser.parse()
-        self.shader, self.data = parser.tree.top()
-        del parser
-        self._postprocess()
+        try:
+            parser.parse()
+            self.shader, self.data = parser.tree.top()
+            del parser
+            self._postprocess()
+        except KVLexerException as ex:
+            logger.exception("Failed to parse material due to", ex)
+            traceback.print_exc()
+            self.shader = "FAILED_TO_LOAD"
+            self.data = _KVDataProxy([])
 
     def _postprocess(self):
         content_manager = ContentManager()
