@@ -85,9 +85,11 @@ def load_model(resource: CompiledModelResource, scale: float = SOURCE2_HAMMER_UN
 
     return container
 
+
 def clear_selection():
     for obj in bpy.context.selected_objects:
         obj.select_set(False)
+
 
 def create_armature(resource: CompiledModelResource, scale: float):
     name = resource.name
@@ -315,6 +317,13 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             for attribute in vertex_buffer.attributes:
                 if 'TEXCOORD' in attribute.name.upper():
                     uv_layer = used_vertices[attribute.name].copy()
+                    if uv_layer.dtype == np.int16:
+                        uv_layer = uv_layer.astype(np.float32)
+                        uv_layer /= 32767
+                    elif uv_layer.dtype == np.uint16:
+                        uv_layer = uv_layer.astype(np.float32)
+                        uv_layer /= 65535
+
                     if uv_layer.shape[1] != 2:
                         continue
                     uv_layer[:, 1] = np.subtract(1, uv_layer[:, 1])

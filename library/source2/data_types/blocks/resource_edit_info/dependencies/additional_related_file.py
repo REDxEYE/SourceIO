@@ -18,8 +18,7 @@ class AdditionalRelatedFile(Dependency):
 
     @classmethod
     def from_vkv3(cls, vkv: Object) -> 'Dependency':
-        raise NotImplementedError("Implement me")
-        pass
+        return cls(vkv["m_RelativeFilename"], vkv["m_SearchPath"])
 
 
 class AdditionalRelatedFiles(DependencyList[AdditionalRelatedFile]):

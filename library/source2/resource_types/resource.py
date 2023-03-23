@@ -1,4 +1,5 @@
 import abc
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -38,6 +39,9 @@ class CompiledResource:
                 if data_block_class is None:
                     return None
                 self._buffer.seek(info_block.absolute_offset)
+                if data_block_class is BaseBlock:
+                    warnings.warn(f"Block of type {info_block.name} is not supported")
+                    return None
                 data_block = data_block_class.from_buffer(MemoryBuffer(self._buffer.read(info_block.size)), self)
                 data_block.custom_name = info_block.name
             self._blocks[block_id] = data_block
