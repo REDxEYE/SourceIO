@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import bpy
 
 from ...library.source2.data_types.blocks.texture_data import VTexFormat
@@ -7,17 +9,18 @@ from ...logger import SLoggingManager
 logger = SLoggingManager().get_logger("Source2::Texture")
 
 
-def import_texture(resource: CompiledTextureResource, name, flip: bool):
+def import_texture(resource: CompiledTextureResource, name: Path, flip: bool):
+    l_name = name.with_suffix(".tga")
     logger.info(f'Loading {name} texture')
-    if name + '.tga' in bpy.data.images:
+    if l_name.as_posix() in bpy.data.images:
         logger.info('Using already loaded texture')
-        return bpy.data.images[f'{name}.tga']
+        return bpy.data.images[l_name.as_posix()]
     pixel_data, (width, height) = resource.get_texture_data(0, flip)
 
     if pixel_data.shape[0] == 0:
         return None
     image = bpy.data.images.new(
-        name + '.tga',
+        l_name.as_posix(),
         width=width,
         height=height,
         alpha=True

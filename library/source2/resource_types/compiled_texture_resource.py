@@ -227,11 +227,10 @@ class CompiledTextureResource(CompiledResource):
             if resource_info_block:
                 for spec in resource_info_block.special_deps:
                     if spec.string == "Texture Compiler Version Image NormalizeNormals":
-                        output = data.copy()
+                        output = data.copy().astype(np.int16)
                         del data
-
-                        swizzle_r = output[:, :, 0] * 2 - 255
-                        swizzle_g = output[:, :, 1] * 2 - 255
+                        swizzle_r = (output[:, :, 0] * 2) - 255
+                        swizzle_g = (output[:, :, 1] * 2) - 255
                         derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))
                         output[:, :, 0] = np.clip((swizzle_r / 2) + 128, 0, 255)
                         output[:, :, 1] = np.clip((swizzle_g / 2) + 128, 0, 255)
@@ -258,7 +257,7 @@ class CompiledTextureResource(CompiledResource):
                         invert = True
                     elif spec.string == "Texture Compiler Version Image NormalizeNormals":
                         normalize = True
-            output = data.copy()
+            output = data.copy().astype(np.int16)
 
             if y_co_cg:
                 s = (output[:, :, 2] >> 3) + 1
