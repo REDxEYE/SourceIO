@@ -85,15 +85,17 @@ def load_model(resource: CompiledModelResource, scale: float = SOURCE2_HAMMER_UN
 
     return container
 
+def clear_selection():
+    for obj in bpy.context.selected_objects:
+        obj.select_set(False)
 
 def create_armature(resource: CompiledModelResource, scale: float):
     name = resource.name
-    bpy.ops.object.mode_set(mode='OBJECT')
     armature_obj = bpy.data.objects.new(name + "_ARM", bpy.data.armatures.new(name + "_ARM_DATA"))
     armature_obj['MODE'] = 'SourceIO'
     armature_obj.show_in_front = True
     bpy.context.scene.collection.objects.link(armature_obj)
-    bpy.ops.object.select_all(action="DESELECT")
+    clear_selection()
     armature_obj.select_set(True)
     bpy.context.view_layer.objects.active = armature_obj
     bpy.ops.object.mode_set(mode='EDIT')
