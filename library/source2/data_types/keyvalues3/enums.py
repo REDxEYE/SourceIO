@@ -7,6 +7,7 @@ class KV3Signatures(ExtendedEnum):
     V1 = b'VKV\x03'
     V2 = b'\x013VK'
     V3 = b'\x023VK'
+    V4 = b'\x033VK'
 
 
 class KV3Encodings(ExtendedEnum):

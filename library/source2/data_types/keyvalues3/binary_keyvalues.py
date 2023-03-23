@@ -68,6 +68,7 @@ class BinaryKeyValues:
         self.version = version
         self.format = KV3Formats.KV3_FORMAT_GENERIC
         self.root = Object()
+        self._linear_flags = False
 
     def __str__(self) -> str:
         return f'<KV3 {self.version.name}>({self.root!s})'
@@ -79,12 +80,16 @@ class BinaryKeyValues:
             raise BufferError("Not a KV3 buffer")
         sig = KV3Signatures(sig)
         self = cls(sig)
-        if sig == KV3Signatures.V2:
+        if sig == KV3Signatures.V1:
+            self._read_v1(buffer)
+        elif sig == KV3Signatures.V2:
             self._read_v2(buffer)
         elif sig == KV3Signatures.V3:
             self._read_v3(buffer)
-        elif sig == KV3Signatures.V1:
-            self._read_v1(buffer)
+        elif sig == KV3Signatures.V4:
+            self._linear_flags = True
+            self._read_v3(buffer)
+
         return self
 
     def to_file(self, buffer: Buffer, version: Optional[KV3Signatures] = None, **kwargs):
@@ -99,15 +104,17 @@ class BinaryKeyValues:
         else:
             raise UnsupportedVersion()
 
-    @staticmethod
-    def _read_type(buffer: Buffer) -> Tuple[KV3Type, KV3TypeFlag]:
+    def _read_type(self,buffer: Buffer) -> Tuple[KV3Type, KV3TypeFlag]:
         data_type = buffer.read_uint8()
+        flag = KV3TypeFlag.NONE
 
-        if data_type & 0x80:
+        if self._linear_flags:
+            if data_type & 0x80:
+                data_type &= 0x3F
+                flag = KV3TypeFlag(buffer.read_uint8())
+        elif data_type & 0x80:
             data_type &= 0x7F
             flag = KV3TypeFlag(buffer.read_uint8())
-        else:
-            flag = KV3TypeFlag.NONE
         return KV3Type(data_type), flag
 
     def _read_null(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
@@ -342,7 +349,7 @@ class BinaryKeyValues:
             del u_data, data
         elif compression_method == 2:
             data = buffer.read(compressed_size)
-            u_data = zstd_decompress_stream(data, compressed_size, uncompressed_size+block_total_size)
+            u_data = zstd_decompress_stream(data, compressed_size, uncompressed_size + block_total_size)
             assert len(
                 u_data) == uncompressed_size + block_total_size, "Decompressed data size does not match expected size"
             data_buffer = MemoryBuffer(u_data)

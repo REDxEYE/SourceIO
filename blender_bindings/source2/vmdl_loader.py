@@ -88,6 +88,7 @@ def load_model(resource: CompiledModelResource, scale: float = SOURCE2_HAMMER_UN
 
 def create_armature(resource: CompiledModelResource, scale: float):
     name = resource.name
+    bpy.ops.object.mode_set(mode='OBJECT')
     armature_obj = bpy.data.objects.new(name + "_ARM", bpy.data.armatures.new(name + "_ARM_DATA"))
     armature_obj['MODE'] = 'SourceIO'
     armature_obj.show_in_front = True
