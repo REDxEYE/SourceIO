@@ -9,18 +9,17 @@ from ...logger import SLoggingManager
 logger = SLoggingManager().get_logger("Source2::Texture")
 
 
-def import_texture(resource: CompiledTextureResource, name: Path, flip: bool):
-    l_name = name.with_suffix(".tga")
+def import_texture(resource: CompiledTextureResource, name, flip: bool):
     logger.info(f'Loading {name} texture')
-    if l_name.as_posix() in bpy.data.images:
+    if name + '.tga' in bpy.data.images:
         logger.info('Using already loaded texture')
-        return bpy.data.images[l_name.as_posix()]
+        return bpy.data.images[f'{name}.tga']
     pixel_data, (width, height) = resource.get_texture_data(0, flip)
 
     if pixel_data.shape[0] == 0:
         return None
     image = bpy.data.images.new(
-        l_name.as_posix(),
+        name + '.tga',
         width=width,
         height=height,
         alpha=True

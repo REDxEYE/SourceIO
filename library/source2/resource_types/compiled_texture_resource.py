@@ -177,6 +177,25 @@ class CompiledTextureResource(CompiledResource):
         if resource_info_block is None:
             resource_info_block, = self.get_data_block(block_name="RED2")
 
+        invert = False
+        normalize = False
+        hemi_oct_aniso_roughness = False
+        y_co_cg = False
+        if resource_info_block:
+            for spec in resource_info_block.special_deps:
+                if spec.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
+                    hemi_oct_aniso_roughness = True
+                elif spec.string == "Texture Compiler Version Mip HemiOctAnisoRoughness":
+                    hemi_oct_aniso_roughness = True
+                elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
+                    invert = True
+                elif spec.string == "Texture Compiler Version Image Inverse":
+                    invert = True
+                elif spec.string == "Texture Compiler Version Image NormalizeNormals":
+                    normalize = True
+                elif spec.string == "Texture Compiler Version Image YCoCg Conversion":
+                    y_co_cg = True
+
         if pixel_format == VTexFormat.RGBA8888:
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
             if flip:
@@ -190,29 +209,11 @@ class CompiledTextureResource(CompiledResource):
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
             hemi_oct_aniso_roughness = False
             invert = False
-            if resource_info_block:
-                for spec in resource_info_block.special_deps:
-                    if spec.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
-                        hemi_oct_aniso_roughness = True
-                    elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
-                        invert = True
-                    elif spec.string == "Texture Compiler Version Image Inverse":
-                        invert = True
+
             output = data.copy()
             del data
             if hemi_oct_aniso_roughness:
-                output = output.astype(np.float32)
-                nx = ((output[:, :, 0] + output[:, :, 1]) / 255) - 1.003922
-                ny = ((output[:, :, 0] - output[:, :, 1]) / 255)
-                nz = 1 - np.abs(nx) - np.abs(ny)
-
-                l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
-                output[:, :, 3] = output[:, :, 2]
-                output[:, :, 0] = ((nx / l * 0.5) + 0.5) * 255
-                output[:, :, 1] = ((ny / l * 0.5) + 0.5) * 255
-                output[:, :, 2] = ((nz / l * 0.5) + 0.5) * 255
-                output = output.astype(np.uint8)
-
+                output = self._hemi_oct_aniso_roughness(output)
             if invert:
                 output[:, :, 1] = np.invert(output[:, :, 1])
 
@@ -224,18 +225,16 @@ class CompiledTextureResource(CompiledResource):
             data = decompress_image(data, width, height, ImageFormat.ATI2, ImageFormat.RGBA8, flip)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
 
-            if resource_info_block:
-                for spec in resource_info_block.special_deps:
-                    if spec.string == "Texture Compiler Version Image NormalizeNormals":
-                        output = data.copy().astype(np.int16)
-                        del data
-                        swizzle_r = (output[:, :, 0] * 2) - 255
-                        swizzle_g = (output[:, :, 1] * 2) - 255
-                        derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))
-                        output[:, :, 0] = np.clip((swizzle_r / 2) + 128, 0, 255)
-                        output[:, :, 1] = np.clip((swizzle_g / 2) + 128, 0, 255)
-                        output[:, :, 2] = np.clip((derive_b / 2) + 128, 0, 255)
-                        data = output
+            output = data.copy()
+            del data
+            if normalize:
+                output = self._normalize(output)
+            if hemi_oct_aniso_roughness:
+                output = self._hemi_oct_aniso_roughness(output)
+            if invert:
+                output[:, :, 1] = np.invert(output[:, :, 1])
+            data = output
+
             data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.DXT1:
             data = decompress_image(data, width, height, ImageFormat.BC1, ImageFormat.RGBA8, flip)
@@ -243,54 +242,56 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.DXT5:
             data = decompress_image(data, width, height, ImageFormat.BC3, ImageFormat.RGBA8, flip)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            y_co_cg = False
-            hemi_oct_aniso_roughness = False
-            normalize = False
-            invert = False
-            if resource_info_block:
-                for spec in resource_info_block.special_deps:
-                    if spec.string == "Texture Compiler Version Image YCoCg Conversion":
-                        y_co_cg = True
-                    elif spec.string == "Texture Compiler Version Mip HemiOctAnisoRoughness":
-                        hemi_oct_aniso_roughness = True
-                    elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
-                        invert = True
-                    elif spec.string == "Texture Compiler Version Image NormalizeNormals":
-                        normalize = True
-            output = data.copy().astype(np.int16)
-
+            output = data.copy()
             if y_co_cg:
-                s = (output[:, :, 2] >> 3) + 1
-                co = (output[:, :, 0] - 128) / s
-                cg = (output[:, :, 1] - 128) / s
-                output[:, :, 0] = np.clip(output[:, :, 3] + co - cg, 0, 255)
-                output[:, :, 1] = np.clip(output[:, :, 3] + cg, 0, 255)
-                output[:, :, 2] = np.clip(output[:, :, 3] - co - cg, 0, 255)
-                output[:, :, 3] = 255
-
+                output = self._y_co_cg(output)
             if normalize:
                 if hemi_oct_aniso_roughness:
-                    nx = (output[:, :, 0] + output[:, :, 1]) - 1.003922
-                    ny = (output[:, :, 0] - output[:, :, 1])
-                    nz = 1 - np.abs(nx) - np.abs(ny)
-
-                    l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
-                    output[:, :, 3] = output[:, :, 2]
-                    output[:, :, 0] = (nx / l * 0.5) + 0.5
-                    output[:, :, 1] = (ny / l * 0.5) + 0.5
-                    output[:, :, 2] = (nz / l * 0.5) + 0.5
+                    output = self._hemi_oct_aniso_roughness(output)
                 else:
-                    swizzle_r = output[:, :, 0] * 2 - 255
-                    swizzle_g = output[:, :, 1] * 2 - 255
-                    derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))
-                    output[:, :, 0] = np.clip((swizzle_r / 2) + 128, 0, 255)
-                    output[:, :, 1] = np.clip((swizzle_g / 2) + 128, 0, 255)
-                    output[:, :, 2] = np.clip((derive_b / 2) + 128, 0, 255)
-                if invert:
-                    output[:, :, 1] = 1 - output[:, :, 1]
+                    output = self._normalize(output)
+            if invert:
+                output[:, :, 1] = 1 - output[:, :, 1]
 
             data = output
             data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.RGBA16161616F:
             data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32)
         return data
+
+    @staticmethod
+    def _hemi_oct_aniso_roughness(output: np.ndarray) -> np.ndarray:
+        output = output.astype(np.float32)
+        nx = ((output[:, :, 0] + output[:, :, 1]) / 255) - 1.003922
+        ny = ((output[:, :, 0] - output[:, :, 1]) / 255)
+        nz = 1 - np.abs(nx) - np.abs(ny)
+
+        l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
+        output[:, :, 3] = output[:, :, 2]
+        output[:, :, 0] = ((nx / l * 0.5) + 0.5) * 255
+        output[:, :, 1] = ((ny / l * 0.5) + 0.5) * 255
+        output[:, :, 2] = ((nz / l * 0.5) + 0.5) * 255
+        return output.astype(np.uint8)
+
+    @staticmethod
+    def _normalize(output: np.ndarray) -> np.ndarray:
+        output = output.astype(np.int16)
+        swizzle_r = output[:, :, 0] * 2 - 255
+        swizzle_g = output[:, :, 1] * 2 - 255
+        derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))
+        output[:, :, 0] = np.clip((swizzle_r / 2) + 128, 0, 255)
+        output[:, :, 1] = np.clip((swizzle_g / 2) + 128, 0, 255)
+        output[:, :, 2] = np.clip((derive_b / 2) + 128, 0, 255)
+        return output.astype(np.uint8)
+
+    @staticmethod
+    def _y_co_cg(output: np.ndarray) -> np.ndarray:
+        output = output.astype(np.int16)
+        s = (output[:, :, 2] >> 3) + 1
+        co = (output[:, :, 0] - 128) / s
+        cg = (output[:, :, 1] - 128) / s
+        output[:, :, 0] = np.clip(output[:, :, 3] + co - cg, 0, 255)
+        output[:, :, 1] = np.clip(output[:, :, 3] + cg, 0, 255)
+        output[:, :, 2] = np.clip(output[:, :, 3] - co - cg, 0, 255)
+        output[:, :, 3] = 255
+        return output.astype(np.uint8)

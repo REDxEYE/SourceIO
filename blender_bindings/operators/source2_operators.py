@@ -183,7 +183,7 @@ class SOURCEIO_OT_VTEXImport(bpy.types.Operator):
         for file in self.files:
             with FileBuffer(directory / file.name) as f:
                 texture_resource = CompiledTextureResource.from_buffer(f, directory / file.name)
-                import_texture(texture_resource, Path(file.name), self.flip)
+                import_texture(texture_resource, file.name, self.flip)
         return {'FINISHED'}
 
     def invoke(self, context, event):
