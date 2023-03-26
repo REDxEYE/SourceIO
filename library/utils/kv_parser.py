@@ -56,7 +56,7 @@ class _KVDataProxy(Mapping):
 
     def top(self) -> Tuple[str, Union[str, '_KVDataProxy']]:
         # assert len(self.data) == 1
-        if len(self.data)>1:
+        if len(self.data) > 1:
             print("More than one root node:")
             print(self.data[0])
             print(self.data[1])
@@ -336,6 +336,13 @@ class ValveKeyValueParser:
         while self.match(VKVToken.NEWLINE):
             self.advance()
 
+    def _parse_expression(self):
+        expr = []
+        while not self.match(VKVToken.RBRACKET, consume=False):
+            expr.append(self.advance()[1])
+        self.expect(VKVToken.RBRACKET)
+        return expr
+
     def parse(self):
         node_stack = [self._tree]
         while self._lexer:
@@ -350,9 +357,8 @@ class ValveKeyValueParser:
                 elif self.match(VKVToken.STRING):
                     value = self.advance()
                     if self.match(VKVToken.LBRACKET, True):
-                        condition = self.advance()
-                        self.expect(VKVToken.RBRACKET)
-                        node_stack[-1].append((key.lower(), (value[1], condition[1])))
+                        condition = self._parse_expression()
+                        node_stack[-1].append((key.lower(), (value[1], condition)))
                     else:
                         node_stack[-1].append((key.lower(), value[1]))
                     self.expect(VKVToken.NEWLINE)

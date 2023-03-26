@@ -204,11 +204,13 @@ class ShaderBase:
         for node in self.bpy_material.node_tree.nodes:
             self.bpy_material.node_tree.nodes.remove(node)
 
-    def create_node(self, node_type: str, name: str = None):
+    def create_node(self, node_type: str, name: str = None, location=None):
         node = self.bpy_material.node_tree.nodes.new(node_type)
         if name:
             node.name = name
             node.label = name
+        if location is not None:
+            node.location = location
         return node
 
     def create_node_group(self, group_name, location=None, *, name=None):

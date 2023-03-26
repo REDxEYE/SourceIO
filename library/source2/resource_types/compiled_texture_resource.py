@@ -207,8 +207,6 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.BC7:
             data = decompress_image(data, width, height, ImageFormat.BC7, ImageFormat.RGBA8, flip)
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            hemi_oct_aniso_roughness = False
-            invert = False
 
             output = data.copy()
             del data

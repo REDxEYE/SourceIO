@@ -35,6 +35,8 @@ def get_block_class(name) -> Type['BaseBlock']:
         return KVBlock
     elif name == 'CTRL':
         return KVBlock
+    elif name == 'INSG':
+        return KVBlock
     elif name == 'MRPH':
         return MorphBlock
     elif name == 'MBUF':

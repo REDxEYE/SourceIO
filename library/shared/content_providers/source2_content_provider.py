@@ -36,6 +36,8 @@ class Gameinfo2ContentProvider(ContentProviderBase):
 
     def get_paths(self):
         def convert_path(path_to_convert):
+            if isinstance(path_to_convert, tuple):
+                path_to_convert = path_to_convert[0]
             if '|all_source_engine_paths|' in path_to_convert.lower():
                 return path_to_convert.lower().replace('|all_source_engine_paths|', '')
             elif '|gameinfo_path|' in path_to_convert.lower():
@@ -45,7 +47,9 @@ class Gameinfo2ContentProvider(ContentProviderBase):
         all_search_paths = []
         fs = self.data.get('filesystem', None)
         if fs and fs.get('searchpaths', None):
-            for paths in fs['searchpaths'].values():
+            for load_type, paths in fs['searchpaths'].items():
+                if load_type == "Game_LowViolence":
+                    continue
                 if isinstance(paths, list):
                     for path in paths:
                         all_search_paths.append(convert_path(path))
