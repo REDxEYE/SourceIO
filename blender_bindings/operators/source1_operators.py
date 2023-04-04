@@ -49,7 +49,8 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
             model_container = import_model_from_full_path(mdl_path, self.scale, self.create_flex_drivers,
                                                           unique_material_names=self.unique_materials_names,
                                                           bodygroup_grouping=self.bodygroup_grouping,
-                                                          load_physics=self.import_physics)
+                                                          load_physics=self.import_physics,
+                                                          load_refpose=self.load_refpose)
             put_into_collections(model_container, Path(model_container.mdl.header.name).stem,
                                  bodygroup_grouping=self.bodygroup_grouping)
             if self.import_textures:

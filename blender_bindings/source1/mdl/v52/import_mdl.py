@@ -24,7 +24,7 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def import_model(file_list: FileImport,
-                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
+                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False, load_refpose=False):
     mdl = MdlV52.from_buffer(file_list.mdl_file)
     vvd = Vvd.from_buffer(file_list.vvd_file)
     vtx = open_vtx(file_list.vtx_file)

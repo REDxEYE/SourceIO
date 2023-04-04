@@ -23,7 +23,8 @@ def import_model_from_full_path(mdl_path: Path,
                                 re_use_meshes: bool = False,
                                 unique_material_names: bool = False,
                                 bodygroup_grouping: bool = True,
-                                load_physics: bool = False
+                                load_physics: bool = False,
+                                load_refpose: bool = False
                                 ) -> Source1ModelContainer:
     # if re_use_meshes:
     #     container = BPSPropCache().get_object(mdl_path)
@@ -56,7 +57,8 @@ def import_model_from_full_path(mdl_path: Path,
                                    re_use_meshes,
                                    unique_material_names,
                                    bodygroup_grouping,
-                                   load_physics)
+                                   load_physics,
+                                   load_refpose)
 
 
 def import_model_from_files(name: Union[str, Path],
@@ -66,7 +68,8 @@ def import_model_from_files(name: Union[str, Path],
                             re_use_meshes: bool = False,
                             unique_material_names: bool = False,
                             bodygroup_grouping: bool = True,
-                            load_physics: bool = False
+                            load_physics: bool = False,
+                            load_refpose: bool = False
                             ) -> Source1ModelContainer:
     # if re_use_meshes:
     #     container = BPSPropCache().get_object(name)
@@ -78,16 +81,20 @@ def import_model_from_files(name: Union[str, Path],
     mdl_reader.seek(0)
     assert magic == b'IDST', f'Unknown Mdl magic "{magic}", expected "IDST"'
     if 35 <= version <= 37:
-        container = import_model_v36(file_list, scale, create_drives, re_use_meshes, unique_material_names)
+        container = import_model_v36(file_list, scale, create_drives, re_use_meshes, unique_material_names,
+                                     load_refpose)
 
     elif version == 44:
-        container = import_model_v44(file_list, scale, create_drives, re_use_meshes, unique_material_names)
+        container = import_model_v44(file_list, scale, create_drives, re_use_meshes, unique_material_names,
+                                     load_refpose)
 
     elif 45 <= version <= 49:
-        container = import_model_v49(file_list, scale, create_drives, re_use_meshes, unique_material_names)
+        container = import_model_v49(file_list, scale, create_drives, re_use_meshes, unique_material_names,
+                                     load_refpose)
 
     elif version == 52:
-        container = import_model_v52(file_list, scale, create_drives, re_use_meshes, unique_material_names)
+        container = import_model_v52(file_list, scale, create_drives, re_use_meshes, unique_material_names,
+                                     load_refpose)
     else:
         raise Exception(f'Unsupported version Mdl v{version}')
     # if re_use_meshes:

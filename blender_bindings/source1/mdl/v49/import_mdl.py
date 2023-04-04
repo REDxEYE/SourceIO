@@ -39,7 +39,7 @@ def collect_full_material_names(mdl: MdlV49):
 
 
 def import_model(file_list: FileImport,
-                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
+                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False, load_refpose=False):
     mdl = MdlV49.from_buffer(file_list.mdl_file)
 
     full_material_names = collect_full_material_names(mdl)
@@ -59,7 +59,7 @@ def import_model(file_list: FileImport,
         vac.process_data()
 
     if not static_prop:
-        armature = create_armature(mdl, scale)
+        armature = create_armature(mdl, scale, load_refpose)
         container.armature = armature
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):

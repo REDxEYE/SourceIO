@@ -28,7 +28,7 @@ log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def create_armature(mdl: MdlV44, scale=1.0):
+def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
     model_name = Path(mdl.header.name).stem
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -63,7 +63,7 @@ def create_armature(mdl: MdlV44, scale=1.0):
 
     bpy.ops.pose.armature_apply()
 
-    if mdl.animations:
+    if mdl.animations and load_refpose:
         ref_animation = mdl.animations[0]
         frame_zero = ref_animation[0]
         for bone, anim_data in enumerate(frame_zero):
@@ -84,7 +84,7 @@ def create_armature(mdl: MdlV44, scale=1.0):
 
 
 def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_meshes=False,
-                 unique_material_names=False):
+                 unique_material_names=False, load_refpose=False):
     mdl = MdlV44.from_buffer(file_list.mdl_file)
     vvd = Vvd.from_buffer(file_list.vvd_file)
     vtx = open_vtx(file_list.vtx_file)

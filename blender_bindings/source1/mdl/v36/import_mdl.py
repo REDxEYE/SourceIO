@@ -64,7 +64,7 @@ def create_armature(mdl: MdlV36, scale=1.0):
 
 
 def import_model(file_list: FileImport,
-                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False):
+                 scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False, load_refpose=False):
     mdl = MdlV36.from_buffer(file_list.mdl_file)
     vtx = open_vtx(file_list.vtx_file)
 
@@ -370,7 +370,7 @@ def import_animations(mdl: MdlV36, armature, scale):
                         fixed_rot.rotate(Euler([math.radians(90), math.radians(0), math.radians(0)]))
                         fixed_rot.rotate(Euler([math.radians(0), math.radians(0), math.radians(90)]))
                         fixed_rot = (
-                                fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
+                            fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
                         for i in range(3):
                             rot_curves[i].keyframe_points.add(1)
                             rot_curves[i].keyframe_points[-1].co = (n, fixed_rot[i])

@@ -36,6 +36,7 @@ class Source1BSPSettings(GoldSrcBspSettings, Source1SharedSettings):
 class MDLSettings(SharedSettings, Source1SharedSettings):
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
     import_physics: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
+    load_refpose: BoolProperty(name="Load Ref pose", default=False, subtype='UNSIGNED')
     import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
     unique_materials_names: BoolProperty(name="Unique material names", default=False, subtype='UNSIGNED')
 
