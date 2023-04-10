@@ -189,8 +189,8 @@ class CompiledTextureResource(CompiledResource):
                     hemi_oct_aniso_roughness = True
                 elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
                     invert = True
-                elif spec.string == "Texture Compiler Version Image Inverse":
-                    invert = True
+                # elif spec.string == "Texture Compiler Version Image Inverse":
+                #     invert = True
                 elif spec.string == "Texture Compiler Version Image NormalizeNormals":
                     normalize = True
                 elif spec.string == "Texture Compiler Version Image YCoCg Conversion":
@@ -254,7 +254,7 @@ class CompiledTextureResource(CompiledResource):
             data = output
             data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.RGBA16161616F:
-            data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32)
+            data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32).reshape((width, height, 4))
         return data
 
     @staticmethod
@@ -267,7 +267,7 @@ class CompiledTextureResource(CompiledResource):
         l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
         output[:, :, 3] = output[:, :, 2]
         output[:, :, 0] = ((nx / l * 0.5) + 0.5) * 255
-        output[:, :, 1] = ((ny / l * 0.5) + 0.5) * 255
+        output[:, :, 1] = 255 - ((ny / l * 0.5) + 0.5) * 255
         output[:, :, 2] = ((nz / l * 0.5) + 0.5) * 255
         return output.astype(np.uint8)
 

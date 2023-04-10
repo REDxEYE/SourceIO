@@ -80,7 +80,7 @@ class BSP:
         self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
 
         self.logger.debug('Adding map pack file to content manager')
-        self.cm.content_providers[Path(self.filepath).name] = self.map_file.get_lump('LUMP_PAK')
+        self.cm.register_content_provider(Path(self.filepath).name,self.map_file.get_lump('LUMP_PAK'))
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump('LUMP_TEXDATA_STRING_TABLE')

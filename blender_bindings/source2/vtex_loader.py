@@ -9,7 +9,7 @@ from ...logger import SLoggingManager
 logger = SLoggingManager().get_logger("Source2::Texture")
 
 
-def import_texture(resource: CompiledTextureResource, name, flip: bool):
+def import_texture(resource: CompiledTextureResource, name, flip: bool, invert_y: bool = False):
     logger.info(f'Loading {name} texture')
     if name + '.tga' in bpy.data.images:
         logger.info('Using already loaded texture')
@@ -33,6 +33,8 @@ def import_texture(resource: CompiledTextureResource, name, flip: bool):
         image.use_generated_float = True
         image.file_format = 'HDR'
     else:
+        if invert_y:
+            pixel_data[:, :, 1] = 1 - pixel_data[:, :, 1]
         image.file_format = 'TARGA'
     image.pixels.foreach_set(pixel_data.ravel())
 

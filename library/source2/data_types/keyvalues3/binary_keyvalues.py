@@ -104,7 +104,7 @@ class BinaryKeyValues:
         else:
             raise UnsupportedVersion()
 
-    def _read_type(self,buffer: Buffer) -> Tuple[KV3Type, KV3TypeFlag]:
+    def _read_type(self, buffer: Buffer) -> Tuple[KV3Type, KV3TypeFlag]:
         data_type = buffer.read_uint8()
         flag = KV3TypeFlag.NONE
 

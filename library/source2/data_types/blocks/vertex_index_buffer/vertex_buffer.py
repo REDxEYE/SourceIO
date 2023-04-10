@@ -30,7 +30,7 @@ class VertexAttribute:
     def from_buffer(cls, buffer: Buffer) -> 'VertexAttribute':
         name = buffer.read_ascii_string(32)
         index, fmt, offset, slot, slot_type, instance_step_rate = buffer.read_fmt('6I')
-        return cls(name, index, DxgiFormat(fmt),
+        return cls(name.upper(), index, DxgiFormat(fmt),
                    offset, slot, SlotType(slot_type), instance_step_rate)
 
     def get_numpy_type(self):

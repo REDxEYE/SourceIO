@@ -242,6 +242,21 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
                 weight_groups[bone_name].add([n], weight, 'REPLACE')
 
 
+def convert_to_float32(uv_array: np.ndarray):
+    if uv_array.dtype == np.float32 or uv_array.dtype == np.float16:
+        return uv_array
+    dtype_info = np.iinfo(uv_array.dtype)
+    dtype_min, dtype_max = dtype_info.min, dtype_info.max
+
+    if uv_array.shape[1] == 4:
+        uv_array = uv_array[:, :2]
+
+    if dtype_info.kind == 'u':  # Unsigned type
+        return (uv_array.astype(np.float32) - dtype_min) / (dtype_max - dtype_min)
+    else:  # Signed type
+        return (uv_array.astype(np.float32) - dtype_min) / (dtype_max - dtype_min) * 2 - 1
+
+
 def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, container: Source2ModelContainer,
                 data_block: KVBlock, vbib_block: VertexIndexBuffer, morph_block: MorphBlock,
                 scale: float, mesh_id: int,
@@ -317,23 +332,29 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             for attribute in vertex_buffer.attributes:
                 if 'TEXCOORD' in attribute.name.upper():
                     uv_layer = used_vertices[attribute.name].copy()
-                    if uv_layer.dtype == np.int16:
-                        uv_layer = uv_layer.astype(np.float32)
-                        uv_layer /= 32767
-                    elif uv_layer.dtype == np.uint16:
-                        uv_layer = uv_layer.astype(np.float32)
-                        uv_layer /= 65535
-
-                    if uv_layer.shape[1] != 2:
-                        continue
-                    uv_layer[:, 1] = np.subtract(1, uv_layer[:, 1])
-
-                    uv_data = mesh.uv_layers.new(name=attribute.name).data
                     vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
                     mesh.loops.foreach_get('vertex_index', vertex_indices)
-                    new_uv_data = uv_layer[vertex_indices]
-                    uv_data.foreach_set('uv', new_uv_data.flatten())
-                    del vertex_indices, uv_layer, uv_data, new_uv_data
+
+                    if uv_layer.shape[1] == 4:
+                        uv_layer_0 = convert_to_float32(uv_layer[:, :2])
+                        uv_layer_1 = convert_to_float32(uv_layer[:, 2:])
+                        uv_layer_0[:, 1] = np.subtract(1, uv_layer_0[:, 1])
+                        uv_layer_1[:, 1] = np.subtract(1, uv_layer_1[:, 1])
+
+                        uv_data = mesh.uv_layers.new(name=attribute.name).data
+                        uv_data.foreach_set('uv', uv_layer_0[vertex_indices].flatten())
+
+                        uv_data = mesh.uv_layers.new(name=attribute.name + "_2").data
+                        uv_data.foreach_set('uv', uv_layer_1[vertex_indices].flatten())
+                        del vertex_indices, uv_layer_0, uv_layer_1, uv_data
+
+                    else:
+                        uv_layer = convert_to_float32(uv_layer)
+                        uv_layer[:, 1] = np.subtract(1, uv_layer[:, 1])
+
+                        uv_data = mesh.uv_layers.new(name=attribute.name).data
+                        uv_data.foreach_set('uv', uv_layer[vertex_indices].flatten())
+                        del vertex_indices, uv_layer, uv_data
 
             if vertex_buffer.has_attribute('NORMAL'):
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
