@@ -332,6 +332,8 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             for attribute in vertex_buffer.attributes:
                 if 'TEXCOORD' in attribute.name.upper():
                     uv_layer = used_vertices[attribute.name].copy()
+                    if uv_layer.shape[1] < 2:
+                        continue
                     vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
                     mesh.loops.foreach_get('vertex_index', vertex_indices)
 
