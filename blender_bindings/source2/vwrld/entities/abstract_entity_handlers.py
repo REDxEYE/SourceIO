@@ -1,7 +1,7 @@
 import math
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Union, Tuple
 
 import bpy
 from mathutils import Euler
@@ -12,7 +12,7 @@ from .....library.source2 import (CompiledMaterialResource,
                                   CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from .....logger import SLoggingManager
-from ....utils.utils import get_new_unique_collection, get_or_create_collection
+from ....utils.utils import  get_or_create_collection
 from ...vtex_loader import import_texture
 from .base_entity_classes import *
 
@@ -20,12 +20,18 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
-def parse_int_vector(string):
-    return [parse_source_value(val) for val in string.replace('  ', ' ').split(' ')]
+def parse_int_vector(data: Union[str, Tuple[int, int, int]]):
+    if isinstance(data, str):
+        return [parse_source_value(val) for val in data.replace('  ', ' ').split(' ')]
+    assert isinstance(data, tuple)
+    return data
 
 
-def parse_float_vector(string):
-    return [float(val) for val in string.replace('  ', ' ').split(' ')]
+def parse_float_vector(data: Union[str, Tuple[float, float, float]]):
+    if isinstance(data, str):
+        return [float(val) for val in data.replace('  ', ' ').split(' ')]
+    assert isinstance(data, tuple)
+    return data
 
 
 def _srgb2lin(s: float) -> float:
@@ -86,6 +92,9 @@ class AbstractEntityHandler:
                 self.logger.error(traceback.format_exc())
                 return False
             return True
+        else:
+            self.logger.warn(f"Entity of type {entity_class} is not handled")
+            self.logger.warn(entity_data)
         return False
 
     def _get_entity_by_name(self, name):

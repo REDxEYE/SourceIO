@@ -1,4 +1,7 @@
-from .abstract_entity_handlers import Base
+import bpy
+import numpy as np
+
+from .abstract_entity_handlers import Base, get_origin, get_angles, get_scale
 from .hlvr_entity_handlers import HLVREntityHandler
 from .sbox_entity_classes import *
 
@@ -83,9 +86,23 @@ class SteamPalEntityHandler(HLVREntityHandler):
     #     # TODO:
     #     return
     #
-    # def handle_light_omni2(self, entity: object, entity_raw: dict):
-    #     # TODO:
-    #     return
+    def handle_light_omni2(self, entity: object, entity_raw: dict):
+        name = self._get_entity_name(entity)
+        lamp_data = bpy.data.lights.new(name + "_DATA", 'POINT')
+        lamp = bpy.data.objects.new(name, lamp_data)
+        self._set_location_and_scale(lamp, get_origin(entity_raw))
+        self._set_rotation(lamp, get_angles(entity_raw))
+        scale_vec = get_scale(entity_raw)
+
+        color = np.divide(entity_raw["color"], 255.0)
+        brightness = float(entity_raw["brightness"])
+        lamp_data.energy = brightness * 10000 * scale_vec[0] * self.scale
+        lamp_data.color = color[:3]
+        # lamp_data.shadow_soft_size = entity.lightsourceradius
+
+        self._set_entity_data(lamp, {'entity': entity_raw})
+        self._put_into_collection('light_omni', lamp, 'lights')
+        return
     #
     # def handle_steampal_kill_volume(self, entity: object, entity_raw: dict):
     #     # TODO:

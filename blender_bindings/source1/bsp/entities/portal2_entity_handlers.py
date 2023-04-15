@@ -98,14 +98,14 @@ class Portal2EntityHandler(PortalEntityHandler):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = False
         light.color = color
-        light.energy = brightness * self.spotlight_power_multiplier * self.scale * self.light_scale
+        light.energy = brightness * self.light_power_multiplier * self.scale * self.light_scale
         light.spot_size = 2 * math.radians(entity.lightfov)
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity),
                                                      object_data=light)
         self._set_location(obj, entity.origin)
         self._set_rotation(obj, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection('light_spot', obj, 'lights')
+        self._put_into_collection('env_projectedtexture', obj, 'lights')
 
     def handle_info_placement_helper(self, _1, _2):
         pass

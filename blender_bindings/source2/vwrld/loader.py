@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Type
 import bpy
 from mathutils import Matrix
 
+from .entities.cs2_entity_handlers import CS2EntityHandler
 from ....library.shared.app_id import SteamAppId
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2 import CompiledWorldResource
@@ -38,6 +39,8 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
     for node_prefix in world_resource.get_worldnode_prefixes():
         node_resource = map_resource.get_worldnode(node_prefix, cm)
+        if node_resource is None:
+            raise FileNotFoundError("Failed to find WorldNode resource")
         collection = get_or_create_collection(f"static_props_{Path(node_prefix).name}", master_collection)
         for scene_object in node_resource.get_scene_objects():
             create_static_prop_placeholder(scene_object, node_resource, collection, scale)
@@ -78,12 +81,14 @@ def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.C
     data_block, = world_resource.get_data_block(block_name='DATA')
     entity_lumps = data_block["m_entityLumps"]
 
-    if ContentManager().steam_id == SteamAppId.HLA_STEAM_ID:
+    if cm.steam_id == SteamAppId.HLA_STEAM_ID:
         handler = HLVREntityHandler
-    elif ContentManager().steam_id == SteamAppId.SBOX_STEAM_ID:
+    elif cm.steam_id == SteamAppId.SBOX_STEAM_ID:
         handler = SBoxEntityHandler
-    elif ContentManager().steam_id == 890 and 'steampal' in cm.content_providers:
+    elif cm.steam_id == 890 and 'steampal' in cm.content_providers:
         handler = SteamPalEntityHandler
+    elif 'csgo' in cm.content_providers and "csgo_core" in cm.content_providers:
+        handler = CS2EntityHandler
     else:
         handler = BaseEntityHandler
 

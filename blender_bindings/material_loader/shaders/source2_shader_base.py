@@ -20,7 +20,8 @@ class Source2ShaderBase(ShaderBase):
         super().__init__()
         self._material_resource = source2_material
 
-    def load_texture_or_default(self, name_or_id: Union[str, int], default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
+    def load_texture_or_default(self, name_or_id: Union[str, int], default_color: tuple = (1.0, 1.0, 1.0, 1.0),
+                                invert_y: bool = False):
         print(f'Loading texture {name_or_id}')
         resource = self._material_resource.get_child_resource(name_or_id, ContentManager(), CompiledTextureResource)
         texture_name: str
@@ -31,8 +32,9 @@ class Source2ShaderBase(ShaderBase):
         else:
             raise Exception(f"Invalid name or id: {name_or_id}")
 
-        return self.load_texture(resource, Path(texture_name)) or self.get_missing_texture(f'missing_{texture_name}',
-                                                                                           default_color)
+        return self.load_texture(resource, Path(texture_name), invert_y) or self.get_missing_texture(
+            f'missing_{texture_name}',
+            default_color)
 
     def split_normal(self, image: bpy.types.Image):
         roughness_name = self.new_texture_name_with_suffix(image.name, 'roughness', 'tga')
@@ -54,8 +56,8 @@ class Source2ShaderBase(ShaderBase):
         image['normalmap_converted'] = True
         return image, roughness_texture
 
-    def load_texture(self, texture_resource, texture_path):
+    def load_texture(self, texture_resource, texture_path, invert_y: bool = False):
         if texture_resource:
-            texture = import_texture(texture_resource, texture_path.stem, True)
+            texture = import_texture(texture_resource, texture_path.stem, True, invert_y)
             return texture
         return None
