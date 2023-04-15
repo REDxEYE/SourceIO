@@ -124,8 +124,7 @@ class DmxModel2:
         skeleton_elem["children"] = datamodel.make_array([], datamodel.Element)
 
         if self.is_source2:
-            axis_system = skeleton_elem["axisSystem"] = self.dmx.add_element("axisSystem", "DmeAxisSystem",
-                                                                             "AxisSys" + skeleton_name)
+            axis_system = skeleton_elem["axisSystem"] = self.dmx.add_element("axisSystem", "DmeAxisSystem", "AxisSys")
             axis_system["upAxis"] = axes_lookup_source2["Z"]
             axis_system["forwardParity"] = 1  # ??
             axis_system["coordSys"] = 0  # ??
@@ -134,7 +133,7 @@ class DmxModel2:
         skeleton_elem["baseStates"] = datamodel.make_array([transform_list], datamodel.Element)
         transform_list["transforms"] = datamodel.make_array([], datamodel.Element)
 
-        skeleton_elem["transform"] = self._make_transform("",
+        skeleton_elem["transform"] = self._make_transform(skeleton_name,
                                                           datamodel.Vector3([0, 0, 0]),
                                                           datamodel.Quaternion([0, 0, 0, 1]),
                                                           f'{skeleton_name}_transform')
@@ -268,7 +267,7 @@ class DmxModel2:
                                             id=f"{mesh}_{indices.shape}_{material_name}_faces")
         faces = np.full((len(indices) // 3, 4), -1)
         faces[:, :3] = np.flip(np.array(indices).reshape((-1, 3)), 1)
-        dme_face_set["material"] = self._materials[material_name]
+        dme_face_set["material"] = self._materials.get(material_name,"ERROR")
         dme_face_set["faces"] = datamodel.make_array(faces.flatten(), int)
         mesh["faceSets"].append(dme_face_set)
 
@@ -321,6 +320,7 @@ class DmxModel2:
                         position: datamodel.Vector3,
                         rotation: datamodel.Quaternion,
                         object_name: str) -> datamodel.Element:
+        assert name !=""
         new_transform = self.dmx.add_element(name, "DmeTransform", id=object_name + "transform")
         new_transform["position"] = position
         new_transform["orientation"] = rotation
