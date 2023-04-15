@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import List, Optional, Union
 
@@ -47,8 +47,8 @@ class FlexControllerRemapType(IntEnum):
 
 @dataclass(slots=True)
 class FlexController:
+    group: str
     name: str
-    type: str
     local_to_global: int
     min: float
     max: float
@@ -60,9 +60,6 @@ class FlexController:
                    buffer.read_source1_string(start_offset),
                    buffer.read_int32(),
                    *(buffer.read_fmt('2f')))
-
-    def __repr__(self):
-        return f'<FlexController "{self.name}" {self.min}:{self.max}>'
 
 
 @dataclass(slots=True)
@@ -115,8 +112,8 @@ class FlexControllerUI:
                 raise RuntimeError('Should never reach this')
         return cls(name, controller, left_controller, right_controller, nway_controller, remap_type, stereo)
 
-    def __repr__(self):
-        return f'<FlexControllerUI "{self.name}">'
+    # def __repr__(self):
+    #     return f'<FlexControllerUI "{self.name}">'
 
 
 @dataclass(slots=True)
@@ -164,17 +161,12 @@ class VertexAminationType(IntEnum):
 
 @dataclass(slots=True)
 class Flex:
-    vert_anim_fixed_point_scale = 1 / 4096
-
     flex_desc_index: int
     targets: Vector4[float]
 
     partner_index: Optional[int]
-    vertex_anim_type: int
-    vertex_animations: Optional[npt.NDArray]
-
-    def __repr__(self) -> str:
-        return f'<Flex "{self.flex_desc_index}">'
+    vertex_anim_type: VertexAminationType
+    vertex_animations: Optional[npt.NDArray] = field(repr=False)
 
     def __eq__(self, other: 'Flex'):
         return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
@@ -191,14 +183,13 @@ class Flex:
         vert_count, vert_offset = buffer.read_fmt('2I')
 
         if version > 36:
-            partner_index = buffer.read_uint32()
+            partner_index = buffer.read_int32()
             vertex_anim_type = VertexAminationType(buffer.read_uint8())
             if vertex_anim_type == VertexAminationType.WRINKLE:
                 vert_anim_class = VertAnimWrinkleV49
             else:
                 vert_anim_class = VertAnimV49
-            buffer.skip(3)
-            buffer.skip(6 * 4)
+            buffer.skip(3+6*4)
         else:
             partner_index = None
             vertex_anim_type = VertexAminationType.NORMAL

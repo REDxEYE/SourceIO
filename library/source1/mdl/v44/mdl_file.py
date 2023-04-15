@@ -1,5 +1,5 @@
 import traceback
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Mapping
 
 import numpy.typing as npt
@@ -29,23 +29,23 @@ class _AnimBlocks:
 class MdlV44(Mdl):
     header: MdlHeaderV44
 
-    bones: List[Bone]
+    bones: List[Bone] = field(repr=False)
     skin_groups: List[List[str]]
     materials: List[MaterialV49]
     materials_paths: List[str]
 
-    flex_names: List[str]
-    flex_controllers: List[FlexController]
-    flex_ui_controllers: List[FlexControllerUI]
-    flex_rules: List[FlexRule]
+    flex_names: List[str] = field(repr=False)
+    flex_controllers: List[FlexController] = field(repr=False)
+    flex_ui_controllers: List[FlexControllerUI] = field(repr=False)
+    flex_rules: List[FlexRule] = field(repr=False)
 
-    body_parts: List[BodyPart]
+    body_parts: List[BodyPart] = field(repr=False)
 
-    attachments: List[Attachment]
+    attachments: List[Attachment] = field(repr=False)
 
-    anim_descs: List[StudioAnimDesc]
-    sequences: List[StudioSequence]
-    animations: List[npt.NDArray]
+    anim_descs: List[StudioAnimDesc] = field(repr=False)
+    sequences: List[StudioSequence] = field(repr=False)
+    animations: List[npt.NDArray] = field(repr=False)
 
     key_values_raw: str
     key_values: Mapping

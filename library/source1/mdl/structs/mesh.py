@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 from ....shared.types import Vector3
@@ -17,13 +17,13 @@ class Mesh:
     id: int
     center: Vector3[float]
 
-    flexes: List[Flex]
+    flexes: List[Flex] = field(repr=False)
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):
         entry = buffer.tell()
 
-        material_index, model_offset, vertex_count, vertex_index_start = buffer.read_fmt('4I')
+        material_index, model_offset, vertex_count, vertex_index_start = buffer.read_fmt('Ii2I')
         flex_count, flex_offset, material_type, material_param, mesh_id = buffer.read_fmt('5I')
         center = buffer.read_fmt('3f')
         if version > 36:

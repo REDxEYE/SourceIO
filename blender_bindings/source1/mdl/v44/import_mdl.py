@@ -200,7 +200,7 @@ def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_
                         name=flex_name)
                     vertex_animation = vac.vertex_cache[flex_name]
 
-                    model_vertices = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                    model_vertices = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
                     flex_vertices = model_vertices[vtx_vertices] * scale
 
                     shape_key.data.foreach_set("co", flex_vertices.reshape(-1))

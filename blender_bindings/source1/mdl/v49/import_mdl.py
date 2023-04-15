@@ -168,7 +168,7 @@ def import_model(file_list: FileImport,
                     mesh_obj.shape_key_add(name='base')
                     for flex_name, flex_desc in flexes:
                         vertex_animation = vac.vertex_cache[flex_name]
-                        flex_delta = get_slice(vertex_animation, model.vertex_offset, model.vertex_count)
+                        flex_delta = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
                         flex_delta = flex_delta[vtx_vertices] * scale
                         model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
                         model_vertices = model_vertices[vtx_vertices] * scale
