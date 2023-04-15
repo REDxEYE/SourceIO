@@ -6,7 +6,7 @@ import numpy as np
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...shared.types import Vector3, Vector4
-from ...utils import datamodel
+from ...utils import datamodel, FileBuffer
 from ...utils.math_utilities import matrix_to_quat
 from ...utils.path_utilities import find_vtx
 from ..mdl.structs.bone import Bone
@@ -170,13 +170,13 @@ class DmxModel2:
         bone_transform_base = self._make_transform(name, dme_position, dme_rotation, "bone_base" + name)
 
         self._root["skeleton"]["baseStates"][0]['transforms'].append(bone_transform_base)
-        
+
         if self.want_joint_list:
             self._root["skeleton"]["jointList"].append(bone_elem)
             self._bones_ids[name] = self._root["skeleton"]["jointList"].index(bone_elem)
         else:
             self._bones_ids[name] = self._root["skeleton"]["baseStates"][0]['transforms'].index(bone_transform_base)
-        
+
         if self.want_joint_transforms:
             self._root["skeleton"]["jointTransforms"].append(bone_transform)
 
@@ -267,7 +267,7 @@ class DmxModel2:
                                             id=f"{mesh}_{indices.shape}_{material_name}_faces")
         faces = np.full((len(indices) // 3, 4), -1)
         faces[:, :3] = np.flip(np.array(indices).reshape((-1, 3)), 1)
-        dme_face_set["material"] = self._materials.get(material_name,"ERROR")
+        dme_face_set["material"] = self._materials.get(material_name, None)
         dme_face_set["faces"] = datamodel.make_array(faces.flatten(), int)
         mesh["faceSets"].append(dme_face_set)
 
@@ -320,7 +320,7 @@ class DmxModel2:
                         position: datamodel.Vector3,
                         rotation: datamodel.Quaternion,
                         object_name: str) -> datamodel.Element:
-        assert name !=""
+        assert name != ""
         new_transform = self.dmx.add_element(name, "DmeTransform", id=object_name + "transform")
         new_transform["position"] = position
         new_transform["orientation"] = rotation
@@ -441,7 +441,8 @@ class DmxModel:
         else:
             if not bone:
                 children = []
-                for child_elems in [self.write_bone(child) for child in bone.children]:
+                for child_elems in [self.write_bone(child) for child in
+                                    [c_bone for c_bone in self.mdl.bones if c_bone.parent_bone_id == bone.bone_id]]:
                     if child_elems:
                         children.extend(child_elems)
                 return children
@@ -454,11 +455,11 @@ class DmxModel:
         if not bone:
             rel_mat = np.identity(4)
         else:
-            cur_p = bone.parent
-            while cur_p:
-                cur_p = cur_p.parent
+            cur_p = self.mdl.bones[bone.parent_bone_id]
+            while cur_p and cur_p.parent_bone_id != -1:
+                cur_p = self.mdl.bones[cur_p.parent_bone_id]
             if cur_p:
-                rel_mat = cur_p.matrix.inverted() @ bone.matrix
+                rel_mat = np.linalg.inv(cur_p.matrix) @ bone.matrix
             else:
                 rel_mat = np.identity(4) @ bone.matrix
 
@@ -473,7 +474,8 @@ class DmxModel:
 
         if bone:
             children = bone_elem["children"] = datamodel.make_array([], datamodel.Element)
-            for child_elems in [self.write_bone(child) for child in bone.children]:
+            for child_elems in [self.write_bone(child) for child in
+                                [c_bone for c_bone in self.mdl.bones if c_bone.parent_bone_id == bone.bone_id]]:
                 if child_elems:
                     children.extend(child_elems)
 
@@ -666,7 +668,7 @@ class DmxModel:
 
     def save(self, output_path: Path):
         self.dmx.write((output_path / self.mesh_name).with_suffix('.dmx'),
-                       'binary', 9)
+                       'keyvalues2', 1)
 
 
 class ModelDecompiler:
@@ -678,12 +680,12 @@ class ModelDecompiler:
         self.vtx_file = find_vtx(model_path)
         assert self.mdl_file.exists() and self.vvd_file.exists() and self.vtx_file.exists(), \
             "One or more of model files are missing"
-        self.mdl = MdlV49(self.mdl_file)
-        self.mdl.read()
-        self.vvd = Vvd(self.vvd_file)
-        self.vvd.read()
-        self.vtx = Vtx(self.vtx_file)
-        self.vtx.read()
+        with FileBuffer(self.mdl_file) as f:
+            self.mdl = MdlV49.from_buffer(f)
+        with FileBuffer(self.vvd_file) as f:
+            self.vvd = Vvd.from_buffer(f)
+        with FileBuffer(self.vtx_file) as f:
+            self.vtx = Vtx.from_buffer(f)
 
         self.dmx_models: Dict[str, DmxModel] = {}
         self._blank_counter = 0
