@@ -40,9 +40,10 @@ def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
 
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
-    light_power_multiplier = 1000
-    pointlight_power_multiplier = 1
-    spotlight_power_multiplier = 1
+    light_power_multiplier = 100000
+
+    # pointlight_power_multiplier = 100
+    # spotlight_power_multiplier = 100
 
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:
@@ -338,7 +339,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         light.cycles.use_multiple_importance_sampling = True
         light.angle = math.radians(entity.SunSpreadAngle)
         light.color = color
-        light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
+        light.energy = brightness * scale * self.light_power_multiplier / 100 * self.scale * self.light_scale
         obj: bpy.types.Object = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', object_data=light)
         self._set_location(obj, entity.origin)
         self._apply_light_rotation(obj, entity)

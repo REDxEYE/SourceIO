@@ -1,10 +1,8 @@
 from collections import defaultdict
 from itertools import chain
 from pprint import pformat
-from typing import List
 
 import bpy
-import numpy as np
 
 from .....library.source1.bsp.datatypes.model import RespawnModel
 from .....library.source1.bsp.datatypes.texture_data import TextureData
@@ -67,9 +65,9 @@ class TitanfallEntityHandler(BaseEntityHandler):
                             height=header.height,
                             alpha=True,
                         )
-                        image.filepath = name + '.tga'
+                        image.filepath = name + '.png'
                         image.alpha_mode = 'CHANNEL_PACKED'
-                        image.file_format = 'TARGA'
+                        image.file_format = 'PNG'
 
                         image.pixels.foreach_set(pixel_data.ravel())
                         image.pack()
