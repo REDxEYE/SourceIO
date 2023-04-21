@@ -360,7 +360,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             if vertex_buffer.has_attribute('NORMAL'):
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
                 normals = used_vertices['NORMAL']
-                if draw_call.get('m_bUseCompressedNormalTangent', False):
+                if draw_call.get('m_bUseCompressedNormalTangent', False) or "COMPRESSED_NORMAL_TANGENT" in draw_call["m_nFlags"]:
                     normals = convert_normals(normals)
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
