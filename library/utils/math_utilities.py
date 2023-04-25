@@ -169,6 +169,29 @@ def euler_to_quat(euler: np.ndarray):
     return quat
 
 
+def quat_to_euler(q):
+    x, y, z, w = q
+    # Compute the yaw (y-axis rotation)
+    siny_cosp = 2 * (w * y + z * x)
+    cosy_cosp = 1 - 2 * (x * x + y * y)
+    yaw = math.atan2(siny_cosp, cosy_cosp)
+
+    # Compute the pitch (x-axis rotation)
+    sinp = 2 * (w * x - y * z)
+    if abs(sinp) >= 1:
+        # Use 90 degrees if out of range
+        pitch = math.copysign(math.pi / 2, sinp)
+    else:
+        pitch = math.asin(sinp)
+
+    # Compute the roll (z-axis rotation)
+    sinr_cosp = 2 * (w * z + x * y)
+    cosr_cosp = 1 - 2 * (y * y + z * z)
+    roll = math.atan2(sinr_cosp, cosr_cosp)
+
+    return pitch, yaw, roll
+
+
 def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
     # XYZ -> ZXY
     return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
@@ -215,7 +238,7 @@ def watt_power_point(lumen, color):
 
 def watt_power_spot(lumen, color, cone):
     return lumen * (1 / (MAX_LIGHT_EFFICIENCY_EFFICACY * 2 * math.pi * (
-            1 - math.cos(math.radians(cone) / 2))) * 4 * math.pi) / srgb_to_luminance(color)
+        1 - math.cos(math.radians(cone) / 2))) * 4 * math.pi) / srgb_to_luminance(color)
 
 
 def lerp(v0, v1, t):
