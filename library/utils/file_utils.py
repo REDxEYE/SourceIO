@@ -6,7 +6,7 @@ import os
 import struct
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import Optional, Protocol, Union, TypeVar, Type
+from typing import Optional, Protocol, Union, TypeVar, Type, TextIO
 
 
 class Buffer(abc.ABC, io.RawIOBase):
@@ -346,6 +346,30 @@ class FileBuffer(io.FileIO, Buffer):
             return MemoryBuffer(self.read(size))
 
 
+class AsciiBufferWrapper(Buffer, TextIO):
+
+    @property
+    def data(self):
+        return self._buffer.data
+
+    def size(self):
+        return self._buffer.size()
+
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
+        return AsciiBufferWrapper(self._buffer.slice(offset, size), self._encoding)
+
+    def __init__(self, buffer: Buffer, encoding: str = "utf-8"):
+        super().__init__()
+        self._encoding = encoding
+        self._buffer = buffer
+
+    def write(self, data: str) -> int | None:
+        return self._buffer.write(data.encode(self._encoding))
+
+    def read(self, __size: int = ...) -> str | None:
+        return self._buffer.read(__size).decode(self._encoding)
+
+
 T = TypeVar("T")
 
 
@@ -355,4 +379,4 @@ class Readable(Protocol):
         ...
 
 
-__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'Readable']
+__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'AsciiBufferWrapper', 'FileBuffer', 'Readable']
