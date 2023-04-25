@@ -269,6 +269,8 @@ class AbstractEntityHandler:
 
     @staticmethod
     def _set_rotation(obj, angles):
+        if len(angles) == 1:
+            return
         obj.rotation_euler.rotate(Euler((math.radians(angles[2]),
                                          math.radians(angles[0]),
                                          math.radians(angles[1]))))
