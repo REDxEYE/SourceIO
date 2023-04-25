@@ -5,7 +5,7 @@ import numpy as np
 
 from ...shared.intermidiate_data.bone import Bone, BoneFlags
 from ..exceptions import MissingBlock
-from .resource import CompiledResource
+from .compiled_resource import CompiledResource
 
 
 class CompiledModelResource(CompiledResource):

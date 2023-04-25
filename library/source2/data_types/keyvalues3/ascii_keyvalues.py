@@ -3,6 +3,13 @@ import typing
 import uuid
 from pathlib import Path
 
+import numpy as np
+
+from SourceIO.library.source2.data_types.keyvalues3.enums import KV3Encodings, KV3Formats
+from SourceIO.library.source2.data_types.keyvalues3.keyvalues import KeyValues
+from SourceIO.library.utils import Buffer
+from SourceIO.library.utils.file_utils import AsciiBufferWrapper
+
 
 class Lexer:
     def __init__(self, stream: typing.TextIO, filename: str):
@@ -211,10 +218,13 @@ class Parser(Lexer):
                 self.next()
                 return True
 
-            if value == 'false':
+            elif value == 'false':
                 self.next()
                 return False
-
+            elif value == 'resource':
+                self.next()
+                self._expect('colon')
+                return self._expect('string')[2]
         self._report(pos, f'Unexpected token \'{tag}\'')
 
     def _parse_header(self):
@@ -293,7 +303,7 @@ class Writer:
     def write(self, value, indentation: int, append_newline: bool):
         if isinstance(value, dict):
             self.write_dict(value, indentation, append_newline)
-        elif isinstance(value, list):
+        elif isinstance(value, (list, np.ndarray, tuple)):
             self.write_list(value, indentation, append_newline)
         elif isinstance(value, Path):
             self.write_string(str(value).replace('\\', '/'), indentation, append_newline)
@@ -306,39 +316,64 @@ class Writer:
         else:
             raise TypeError(f'Invalid type: {value.__class__}')
 
+    def preview(self):
+        a = self.stream.tell()
+        self.stream.seek(0)
+        data = self.stream.read()
+        self.stream.seek(a)
+        return data
+
     def write_dict(self, items: dict, indentation: int, append_newline: bool):
         self.print('{', indentation, True)
 
         for key, value in items.items():
-            if isinstance(value, (dict, list)):
-                self.print(f'{key} = ', indentation + 1, True)
+            if isinstance(value, dict):
+                self._write_key(key, indentation + 1, True)
                 self.write(value, indentation + 1, True)
+            elif isinstance(value, list):
+                self._write_key(key, indentation + 1, True)
+                self.write(value, (indentation + 1), True)
             else:
-                self.print(f'{key} = ', indentation + 1, False)
+                self._write_key(key, indentation + 1, False)
                 self.write(value, 0, True)
 
         self.print('}', indentation, append_newline)
 
+    def _write_key(self, value: str, indentation: int, append_newline: bool):
+        wrap = "." in value
+        if wrap:
+            self.print(f'"{value}" = ', indentation, append_newline)
+        else:
+            self.print(f'{value} = ', indentation, append_newline)
+
     def write_list(self, items: list, indentation: int, append_newline: bool):
-        self.print('[', indentation, True)
+        if len(items) == 0:
+            self.print('[  ]', indentation, append_newline)
+            return
+
+        inline = 4 >= len(items) > 0 and isinstance(items[0], (float, int))
+        self.print('[', indentation, not inline)
 
         for index, value in enumerate(items):
-            self.write(value, indentation + 1, False)
+            self.write(value, (indentation + 1) * (0 if inline else 1), False)
 
             if index < len(items) - 1:
-                self.print(',', 0, False)
+                self.print(', ', 0, False)
 
-            self.print('', 0, True)
+            if not inline:
+                self.print('', 0, True)
 
-        self.print(']', indentation, append_newline)
+        self.print(']', indentation * (0 if inline else 1), append_newline)
 
     def write_string(self, value: str, indentation: int, append_newline: bool):
         value = f'"{value}"' if value.find('\n') < 0 else f'"""{value}"""'
         self.print(value, indentation, append_newline)
 
     def write_number(self, value: int, indentation: int, append_newline: bool):
-        value = str(value if isinstance(value, int) else round(value, 6))
-        self.print(value, indentation, append_newline)
+        if isinstance(value, float):
+            self.print(f"{value:.4f}", indentation, append_newline)
+        else:
+            self.print(str(value), indentation, append_newline)
 
     def write_bool(self, value: bool, indentation: int, append_newline: bool):
         self.print('true' if value else 'false', indentation, append_newline)
@@ -350,25 +385,50 @@ class Writer:
             self.stream.write('\n')
 
 
-class KeyValues:
-    @staticmethod
-    def read_file(filename: str):
-        return KeyValues.read_data(open(filename, 'r', encoding='latin', errors='replace'), filename)
+class AsciiKeyValues(KeyValues, typing.Dict):
 
-    @staticmethod
-    def read_data(stream: typing.TextIO, filename: str = '<input>'):
+    def __init__(self) -> None:
+        super().__init__()
+        self.encoding = KV3Encodings.text
+        self.format = KV3Formats.generic
+
+    @property
+    def root(self):
+        return self
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, filename: Path = Path("FILE")):
+        header, root = cls.read_data(AsciiBufferWrapper(buffer), filename.as_posix())
+        _, (_, encoding_uuid), (_, format_uuid) = header
+        self = cls()
+        self.update(root)
+        self.encoding = KV3Encodings(uuid.UUID(hex=encoding_uuid))
+        self.format = KV3Formats(uuid.UUID(hex=format_uuid))
+
+    def to_file(self, buffer: Buffer, **kwargs):
+        writer = Writer(AsciiBufferWrapper(buffer))
+        writer.write_header("kv3", (self.encoding.name, self.encoding.value), (self.format.name, self.format.value))
+        writer.write(self.root, 0, False)
+        return writer
+
+    @classmethod
+    def read_file(cls, filename: str):
+        return cls.read_data(open(filename, 'r', encoding='latin', errors='replace'), filename)
+
+    @classmethod
+    def read_data(cls, stream: typing.TextIO, filename: str = '<input>'):
         return Parser(stream, filename).parse_file()
 
-    @staticmethod
-    def dump(name: str, enc: tuple, fmt: tuple, data, out: typing.TextIO):
+    @classmethod
+    def dump(cls, name: str, enc: tuple, fmt: tuple, data, out: typing.TextIO):
         writer = Writer(out)
         writer.write_header(name, enc, fmt)
         writer.write(data, 0, False)
         return writer
 
-    @staticmethod
-    def dump_str(name: str, enc: tuple, fmt: tuple, data):
+    @classmethod
+    def dump_str(cls, name: str, enc: tuple, fmt: tuple, data):
         buf = io.StringIO()
-        KeyValues.dump(name, enc, fmt, data, buf)
+        cls.dump(name, enc, fmt, data, buf)
         buf.seek(0)
         return buf.read()

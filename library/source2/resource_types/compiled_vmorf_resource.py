@@ -2,7 +2,7 @@ from typing import Type
 
 from ..data_types.blocks.base import BaseBlock
 from ..data_types.blocks.morph_block import MorphBlock
-from .resource import CompiledResource
+from .compiled_resource import CompiledResource
 
 
 class CompiledMorphResource(CompiledResource):

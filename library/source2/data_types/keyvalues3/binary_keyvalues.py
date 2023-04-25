@@ -1,12 +1,13 @@
+import uuid
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
+from SourceIO.library.source2.data_types.keyvalues3.keyvalues import KeyValues
 from ....utils import Buffer, FileBuffer, MemoryBuffer, WritableMemoryBuffer
-from ....utils.pylib import LZ4ChainDecoder, lz4_compress, lz4_decompress, zstd_compress, zstd_decompress, \
+from ....utils.pylib import LZ4ChainDecoder, lz4_compress, lz4_decompress, \
     zstd_compress_stream, zstd_decompress_stream
 from .enums import *
 from .types import *
@@ -63,11 +64,11 @@ def _decompress_lz4(in_buffer: Buffer) -> Buffer:
     return MemoryBuffer(lz4_decompress(in_buffer.read(-1), compressed_size, decompressed_size))
 
 
-class BinaryKeyValues:
+class BinaryKeyValues(KeyValues):
     def __init__(self, version: KV3Signatures):
         self.version = version
-        self.format = KV3Formats.KV3_FORMAT_GENERIC
-        self.root = Object()
+        self.format = KV3Formats.generic
+        self.root: Object = Object()
         self._linear_flags = False
 
     def __str__(self) -> str:
@@ -241,17 +242,17 @@ class BinaryKeyValues:
     )
 
     def _read_v1(self, buffer: Buffer):
-        encoding = buffer.read(16)
+        encoding = uuid.UUID(bytes=buffer.read(16))
         if not KV3Encodings.is_valid(encoding):
             raise BufferError(f'Buffer contains unknown encoding: {encoding!r}')
         encoding = KV3Encodings(encoding)
-        self.format = buffer.read(16)
+        self.format = KV3Formats(uuid.UUID(bytes=buffer.read(16)))
         # assert fmt in KV3Formats
-        if encoding == KV3Encodings.KV3_ENCODING_BINARY_UNCOMPRESSED:
+        if encoding == KV3Encodings.binary_uncompressed:
             data_buffer = MemoryBuffer(buffer.read())
-        elif encoding == KV3Encodings.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
+        elif encoding == KV3Encodings.binary_block_compressed:
             data_buffer = _block_decompress(buffer)
-        elif encoding == KV3Encodings.KV3_ENCODING_BINARY_BLOCK_LZ4:
+        elif encoding == KV3Encodings.binary_block_lz4:
             data_buffer = _decompress_lz4(buffer)
         else:
             raise Exception('Should not reach here')
@@ -267,7 +268,7 @@ class BinaryKeyValues:
         self.root.flag = data_flag
 
     def _read_v2(self, buffer: Buffer):
-        self.format = buffer.read(16)
+        self.format = KV3Formats(uuid.UUID(bytes=buffer.read(16)))
         # assert fmt in KV3Formats
 
         compression_method = buffer.read_uint32()
@@ -310,7 +311,7 @@ class BinaryKeyValues:
         self.root.flag = data_flag
 
     def _read_v3(self, buffer: Buffer):
-        self.format = buffer.read(16)
+        self.format = KV3Formats(uuid.UUID(bytes=buffer.read(16)))
         # assert fmt in KV3Formats
 
         compression_method = buffer.read_uint32()
@@ -550,14 +551,14 @@ class BinaryKeyValues:
         else:
             raise NotImplementedError(f'Type: {type(value)} is not implemented')
 
-    def _write_v1(self, buffer: Buffer, encoding=KV3Encodings.KV3_ENCODING_BINARY_UNCOMPRESSED):
+    def _write_v1(self, buffer: Buffer, encoding=KV3Encodings.binary_uncompressed):
         assert encoding.value in KV3Encodings
         buffer.write(KV3Signatures.V1.value)
         buffer.write(encoding.value)
-        buffer.write(self.format or KV3Formats.KV3_FORMAT_GENERIC.value)
-        if encoding == KV3Encodings.KV3_ENCODING_BINARY_UNCOMPRESSED:
+        buffer.write(self.format or KV3Formats.generic.value)
+        if encoding == KV3Encodings.binary_uncompressed:
             tmp_buff = buffer
-        elif encoding == KV3Encodings.KV3_ENCODING_BINARY_BLOCK_COMPRESSED:
+        elif encoding == KV3Encodings.binary_block_compressed:
             raise NotImplementedError(f'Encoding {encoding!r} is not supported')
         else:
             tmp_buff = WritableMemoryBuffer()
@@ -570,14 +571,14 @@ class BinaryKeyValues:
 
         self._write_value(bg, strings, self.root)
 
-        if encoding == KV3Encodings.KV3_ENCODING_BINARY_BLOCK_LZ4:
+        if encoding == KV3Encodings.binary_block_lz4:
             buffer.write_uint32(tmp_buff.size())
             tmp_buff.seek(0)
             buffer.write(lz4_compress(tmp_buff.read()))
 
     def _write_v2(self, buffer: Buffer, compression_method: KV3CompressionMethod = KV3CompressionMethod.UNCOMPRESSED):
         buffer.write(KV3Signatures.V2.value)
-        buffer.write(KV3Formats.KV3_FORMAT_GENERIC.value)
+        buffer.write(KV3Formats.generic.value)
         if compression_method.value > 1:
             raise NotImplementedError(f'Compression {compression_method!r} not supported by V2 format')
         buffer.write_uint32(compression_method.value)
@@ -626,7 +627,7 @@ class BinaryKeyValues:
     def _write_v3(self, buffer: Buffer, compression_method: KV3CompressionMethod = KV3CompressionMethod.UNCOMPRESSED):
 
         buffer.write(KV3Signatures.V3.value)
-        buffer.write(KV3Formats.KV3_FORMAT_GENERIC.value)
+        buffer.write(KV3Formats.generic.value)
 
         buffer.write_uint32(compression_method.value)
 

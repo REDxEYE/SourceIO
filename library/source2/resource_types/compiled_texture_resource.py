@@ -13,7 +13,7 @@ from ..data_types.blocks.base import BaseBlock
 from ..data_types.blocks.texture_data import CompressedMip, TextureData
 from ..data_types.blocks.texture_data.enums import (VTexExtraData, VTexFlags,
                                                     VTexFormat)
-from .resource import CompiledResource
+from .compiled_resource import CompiledResource
 
 logger = logging.getLogger('CompiledTextureResource')
 

@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from .resource import CompiledResource
+from .compiled_resource import CompiledResource
 
 
 class CompiledMaterialResource(CompiledResource):

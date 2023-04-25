@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 from ....utils import Buffer
 
 if TYPE_CHECKING:
-    from ...resource_types.resource import CompiledResource
+    from ...resource_types.compiled_resource import CompiledResource
 
 
 class BaseBlock:

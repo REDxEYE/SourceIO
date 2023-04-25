@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple, Union
 
 from .....utils import Buffer
-from ....resource_types.resource import CompiledResource
+from ....resource_types.compiled_resource import CompiledResource
 from ...keyvalues3.binary_keyvalues import (Bool, Double, Int32, Int64,
                                             KV3Type, KV3TypeFlag, NullObject,
                                             Object, String, TypedArray, UInt32,

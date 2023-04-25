@@ -1,87 +1,73 @@
-import abc
-import warnings
-from collections import defaultdict
-from dataclasses import dataclass, field
+from collections.abc import Collection
 from pathlib import Path
-from typing import Dict, List, Optional, Type, TypeVar, Union
+from typing import Dict, TypeVar, List
 
-from ...shared.content_providers.content_manager import ContentManager
-from ...utils import Buffer, MemoryBuffer
-from .. import load_compiled_resource
-from ..data_types.blocks.all_blocks import get_block_class
-from ..data_types.blocks.base import BaseBlock
-from ..data_types.compiled_file_header import CompiledHeader
+from SourceIO.library.source2.data_types.keyvalues3.ascii_keyvalues import AsciiKeyValues
+from SourceIO.library.source2.data_types.keyvalues3.enums import KV3Encodings, KV3Formats
+from SourceIO.library.utils import Buffer
 
-T = TypeVar("T", bound="CompiledResource")
+K = TypeVar("K", bound=str)
+V = TypeVar("V")
 
 
-@dataclass(slots=True)
-class CompiledResource:
-    _buffer: Buffer
-    _filepath: Path
-    _header: CompiledHeader
-    _blocks: Dict[int, BaseBlock] = field(default_factory=lambda: defaultdict(None))
+class Node(Dict[K, V]):
 
-    @property
-    def name(self):
-        return self._filepath.stem
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    def get_data_block(self, *,
-                       block_id: Optional[int] = None,
-                       block_name: Optional[str] = None) -> Union[Optional[BaseBlock], List[Optional[BaseBlock]]]:
-        if block_id is not None:
-            if block_id == -1:
-                return None
-            data_block = self._blocks.get(block_id)
-            if data_block is None:
-                info_block = self._header.blocks[block_id]
-                data_block_class = self._get_block_class(info_block.name)
-                if data_block_class is None:
-                    return None
-                self._buffer.seek(info_block.absolute_offset)
-                if data_block_class is BaseBlock:
-                    warnings.warn(f"Block of type {info_block.name} is not supported")
-                    return None
-                data_block = data_block_class.from_buffer(MemoryBuffer(self._buffer.read(info_block.size)), self)
-                data_block.custom_name = info_block.name
-            self._blocks[block_id] = data_block
-            return data_block
-        elif block_name is not None:
-            blocks = []
-            for i, block in enumerate(self._header.blocks):
-                if block.name == block_name:
-                    data_block = self.get_data_block(block_id=i)
-                    if data_block is not None:
-                        blocks.append(data_block)
-            return blocks or (None,)
+
+N = TypeVar("N", bound=Node)
+
+
+class ClassNode(Node):
+    def __init__(self, **kwargs):
+        super().__init__(_class=self.__class__.__name__, **kwargs)
+
+
+class NodeList(Node, Collection[N]):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._children: List[Node] = []
+        self["children"] = self._children
+
+    def insert(self, index: int, value: Node) -> None:
+        self._children.insert(index, value)
+
+    def append(self, value: Node):
+        self._children.append(value)
+
+    def __len__(self) -> int:
+        return len(self._children)
+
+    def __contains__(self, item: V):
+        return item in self._children
+
+    def __iter__(self):
+        return iter(self._children)
+
+
+class ClassNodeList(NodeList, Collection[N]):
+    def __init__(self, **kwargs):
+        super().__init__(_class=self.__class__.__name__, **kwargs)
+        self._children: List[ClassNode] = []
+        self["children"] = self._children
+
+
+class Resource:
+    encoding: KV3Encodings = KV3Encodings.text
+    format: KV3Formats = KV3Formats.generic
+
+    def __init__(self) -> None:
+        self._root: Node = Node()
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, filename: Path):
-        header = CompiledHeader.from_buffer(buffer)
+        node = AsciiKeyValues.from_buffer(buffer, filename)
+        self = cls()
+        self._root.update(node)
+        return self
 
-        return cls(buffer, filename, header)
-
-    def _get_block_class(self, name) -> Type[BaseBlock]:
-        return get_block_class(name)
-
-    def get_child_resource_path(self, name_or_id: Union[str, int]) -> Optional[Path]:
-        external_resource_list, = self.get_data_block(block_name='RERL')
-        for child_resource in external_resource_list:
-            if child_resource.hash == name_or_id or child_resource.name == name_or_id:
-                return Path(child_resource.name + '_c')
-
-    def get_child_resource(self, name_or_id: Union[str, int], cm: ContentManager,
-                           resource_class: Optional[Type[T]] = None) -> Optional[T | 'CompiledResource']:
-        resource_path = self.get_child_resource_path(name_or_id)
-        if resource_path is not None:
-            file = cm.find_file(resource_path)
-            if file is None:
-                return None
-            if resource_class is None:
-                return load_compiled_resource(file, resource_path)
-            else:
-                return resource_class.from_buffer(file, resource_path)
-
-    def get_child_resources(self):
-        external_resource_list, = self.get_data_block(block_name='RERL')
-        return [r.name for r in external_resource_list] + [r.hash for r in external_resource_list]
+    def to_buffer(self, buffer: Buffer):
+        data = AsciiKeyValues.dump_str("kv3", (self.encoding.name, self.encoding.value),
+                                       (self.format.name, self.format.value), self._root)
+        buffer.write(data.encode("utf8"))

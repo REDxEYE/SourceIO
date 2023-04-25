@@ -5,7 +5,7 @@ from ...shared.content_providers.content_manager import ContentManager
 from ...utils import MemoryBuffer
 from ..data_types.keyvalues3.types import Object
 from ..utils.entity_keyvalues import EntityKeyValues
-from .resource import CompiledResource
+from .compiled_resource import CompiledResource
 
 
 class CompiledEntityLumpResource(CompiledResource):

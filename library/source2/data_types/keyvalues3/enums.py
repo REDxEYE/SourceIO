@@ -1,3 +1,4 @@
+from uuid import UUID
 from enum import IntEnum, IntFlag
 
 from ....utils import ExtendedEnum
@@ -11,19 +12,21 @@ class KV3Signatures(ExtendedEnum):
 
 
 class KV3Encodings(ExtendedEnum):
-    KV3_ENCODING_BINARY_BLOCK_COMPRESSED = b"\x46\x1A\x79\x95\xBC\x95\x6C\x4F\xA7\x0B\x05\xBC\xA1\xB7\xDF\xD2"
-    KV3_ENCODING_BINARY_UNCOMPRESSED = b"\x00\x05\x86\x1B\xD8\xF7\xC1\x40\xAD\x82\x75\xA4\x82\x67\xE7\x14"
-    KV3_ENCODING_BINARY_BLOCK_LZ4 = b"\x8A\x34\x47\x68\xA1\x63\x5C\x4F\xA1\x97\x53\x80\x6F\xD9\xB1\x19"
+    binary_block_compressed = UUID(hex="461a7995-bc95-6c4f-a70b-05bca1b7dfd2")
+    binary_uncompressed = UUID(hex="0005861b-d8f7-c140-ad82-75a48267e714")
+    binary_block_lz4 = UUID(hex="8a344768-a163-5c4f-a197-53806fd9b119")
+    text = UUID(hex="e21c7f3c-8a33-41c5-9977-a76d3a32aa0d")
+
+
+class KV3Formats(ExtendedEnum):
+    generic = UUID(hex="7c161274-e906-9846-aff2-e63eb59037e7")
+    modeldoc29 = UUID(hex="3cec427c-1b0e-4d48-a90a-0436f33a6041")
 
 
 class KV3CompressionMethod(IntEnum, ExtendedEnum):
     UNCOMPRESSED = 0
     LZ4 = 1
     ZSTD = 2
-
-
-class KV3Formats(ExtendedEnum):
-    KV3_FORMAT_GENERIC = b"\x7C\x16\x12\x74\xE9\x06\x98\x46\xAF\xF2\xE6\x3E\xB5\x90\x37\xE7"
 
 
 class KV3TypeFlag(IntFlag):

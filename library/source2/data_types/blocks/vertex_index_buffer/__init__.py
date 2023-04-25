@@ -1,7 +1,7 @@
 from typing import List
 
 from .....utils import Buffer
-from ....resource_types.resource import CompiledResource
+from ....resource_types.compiled_resource import CompiledResource
 from ..base import BaseBlock
 from .index_buffer import IndexBuffer
 from .vertex_buffer import VertexBuffer

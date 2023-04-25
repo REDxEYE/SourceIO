@@ -1,7 +1,7 @@
 from typing import Dict
 
 from ....utils import Buffer
-from ...resource_types.resource import CompiledResource
+from ...resource_types.compiled_resource import CompiledResource
 from ..keyvalues3.binary_keyvalues import BinaryKeyValues
 from ..keyvalues3.enums import KV3Signatures
 from ..keyvalues3.types import BaseType
@@ -15,7 +15,7 @@ class KVBlock(Dict[str, BaseType], BaseBlock):
 
     @property
     def has_ntro(self):
-        return bool(self._resource.get_data_block(block_name="NTRO"))
+        return bool(self._resource.get_data_block(block_name="NTRO")[0])
 
     def __str__(self) -> str:
         str_data = dict.__str__(self)

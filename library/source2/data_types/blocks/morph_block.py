@@ -9,7 +9,7 @@ from ....shared.content_providers.content_manager import ContentManager
 from ....utils import Buffer
 from ...resource_types.compiled_texture_resource import \
     CompiledTextureResource
-from ...resource_types.resource import CompiledResource
+from ...resource_types.compiled_resource import CompiledResource
 from .kv3_block import KVBlock
 
 
