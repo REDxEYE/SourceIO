@@ -6,6 +6,7 @@ import numpy as np
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...shared.types import Vector3, Vector4
+from ...source2.data_types.blocks.resource_introspection_manifest import Enum
 from ...utils import datamodel, FileBuffer
 from ...utils.math_utilities import matrix_to_quat
 from ...utils.path_utilities import find_vtx
@@ -83,18 +84,31 @@ def optimize_indices(vertex_indices, polygon_indices):
 axes_lookup_source2 = {'X': 1, 'Y': 2, 'Z': 3}
 
 
+class DmxVertexAttribute(Enum):
+    pos = "pos"
+    norm = "norm"
+    texco = "texco"
+    wrinkle = "wrinkle"
+    balance = "balance"
+    weight = "weight"
+    weight_indices = "weight_indices"
+    valvesource_vertex_blend = "valvesource_vertex_blend"
+    valvesource_vertex_blend1 = "valvesource_vertex_blend1"
+    valvesource_vertex_paint = "valvesource_vertex_paint"
+
+
 def get_dmx_keywords():
     return {
-        'pos': "position$0",
-        'norm': "normal$0",
-        'texco': "texcoord$0",
-        'wrinkle': "wrinkle$0",
-        'balance': "balance$0",
-        'weight': "blendweights$0",
-        'weight_indices': "blendindices$0",
-        'valvesource_vertex_blend': "VertexPaintBlendParams$0",
-        'valvesource_vertex_blend1': "VertexPaintBlendParams1$0",
-        'valvesource_vertex_paint': "VertexPaintTintColor$0"
+        'pos': "position$",
+        'norm': "normal$",
+        'texco': "texcoord$",
+        'wrinkle': "wrinkle$",
+        'balance': "balance$",
+        'weight': "blendweights$",
+        'weight_indices': "blendindices$",
+        'valvesource_vertex_blend': "VertexPaintBlendParams$",
+        'valvesource_vertex_blend1': "VertexPaintBlendParams1$",
+        'valvesource_vertex_paint': "VertexPaintTintColor$"
     }
 
 
@@ -230,12 +244,13 @@ class DmxModel2:
     def mesh_add_attribute(self, mesh: datamodel.Element,
                            attribute_name: str,
                            attribute_data: np.ndarray,
-                           attribute_data_type: Type[int | float | datamodel.Vector3 | datamodel.Vector2]):
+                           attribute_data_type: Type[int | float | datamodel.Vector3 | datamodel.Vector2],
+                           slot: int = 0):
         if attribute_name not in self.supported_attributes():
             raise NotImplementedError(f"Attribute {attribute_name!r} not supported!")
 
         vertex_data = mesh["bindState"]
-        dme_attribute_name = self.supported_attributes()[attribute_name]
+        dme_attribute_name = self.supported_attributes()[attribute_name] + str(slot)
         vertex_data["vertexFormat"].append(dme_attribute_name)
 
         # TODO: Sparse data is good thing, but need to figure out how to index them from delta states properly
@@ -308,8 +323,8 @@ class DmxModel2:
                                                  id=f"{mesh.name}_{delta_name}")
         attribute_names = self.supported_attributes()
         vertex_delta_data["vertexFormat"] = datamodel.make_array([
-            attribute_names["pos"],
-            attribute_names["norm"],
+            attribute_names["pos"]+"0",
+            attribute_names["norm"]+"0",
         ], str)
 
         mesh["deltaStates"].append(vertex_delta_data)
@@ -337,13 +352,13 @@ class DmxModel2:
     def supported_attributes(self):
         if self.dmx.format_ver >= 22:
             return {
-                'pos': "position$0",
-                'norm': "normal$0",
-                'wrinkle': "wrinkle$0",
-                'balance': "balance$0",
-                'weight': "blendweights$0",
-                'weight_indices': "blendindices$0",
-                'texco': "texcoord$0"
+                'pos': "position$",
+                'norm': "normal$",
+                'wrinkle': "wrinkle$",
+                'balance': "balance$",
+                'weight': "blendweights$",
+                'weight_indices': "blendindices$",
+                'texco': "texcoord$"
             }
         else:
             return {
