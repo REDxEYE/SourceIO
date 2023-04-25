@@ -203,7 +203,10 @@ def load_external_mesh(model_resource: CompiledModelResource, cm: ContentManager
     vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
     if morph_set_path := data_block['m_morphSet']:
         morph_resource = mesh_resource.get_child_resource(morph_set_path, cm, CompiledMorphResource)
-        morph_block, = morph_resource.get_data_block(block_name='DATA')
+        if morph_resource:
+            morph_block, = morph_resource.get_data_block(block_name='DATA')
+        else:
+            morph_block = None
     else:
         morph_block, = mesh_resource.get_data_block(block_name='MRPH')
     if data_block and vbib_block:
@@ -225,7 +228,8 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     model_data_block, = model_resource.get_data_block(block_name='DATA')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
-    remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:], np.uint32)
+    remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
+                             np.uint32)
     if has_weights and has_indicies:
         weights_array = used_vertices["BLENDWEIGHT"] / 255
         indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
