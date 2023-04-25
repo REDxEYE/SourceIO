@@ -265,10 +265,11 @@ class DmxModel2:
                               bone_names: List[str],
                               weights: np.ndarray,
                               bone_ids: np.ndarray,
+                              slot: int = 0
                               ):
         vertex_data = mesh["bindState"]
-        weights_attribute_name = self.supported_attributes()["weight"]
-        bone_ids_attribute_name = self.supported_attributes()["weight_indices"]
+        weights_attribute_name = self.supported_attributes()["weight"] + str(slot)
+        bone_ids_attribute_name = self.supported_attributes()["weight_indices"] + str(slot)
         vertex_data["vertexFormat"].append(weights_attribute_name)
         vertex_data["vertexFormat"].append(bone_ids_attribute_name)
 
@@ -323,8 +324,8 @@ class DmxModel2:
                                                  id=f"{mesh.name}_{delta_name}")
         attribute_names = self.supported_attributes()
         vertex_delta_data["vertexFormat"] = datamodel.make_array([
-            attribute_names["pos"]+"0",
-            attribute_names["norm"]+"0",
+            attribute_names["pos"] + "0",
+            attribute_names["norm"] + "0",
         ], str)
 
         mesh["deltaStates"].append(vertex_delta_data)
