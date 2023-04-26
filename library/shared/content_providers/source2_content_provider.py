@@ -60,6 +60,8 @@ class Gameinfo2ContentProvider(ContentProviderBase):
 
     def get_search_paths(self):
         def convert_path(path_to_convert):
+            if isinstance(path_to_convert, tuple):
+                path_to_convert = path_to_convert[0]
             if '|all_source_engine_paths|' in path_to_convert.lower():
                 return self.project_dir / path_to_convert.lower().replace('|all_source_engine_paths|', '')
             elif '|gameinfo_path|' in path_to_convert.lower():
