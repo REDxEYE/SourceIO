@@ -35,10 +35,14 @@ def check_texture_cache(name: str) -> Optional[bpy.types.Image]:
     return image
 
 
-def create_and_cache_texture(name: str, dimensions: Tuple[int, int], data: np.ndarray, is_hdr: bool = False):
+def create_and_cache_texture(name: str, dimensions: Tuple[int, int], data: np.ndarray, is_hdr: bool = False,
+                             invert_y: bool = False):
     image = bpy.data.images.new(name, width=dimensions[0], height=dimensions[1], alpha=True)
     image.alpha_mode = "CHANNEL_PACKED"
     image.file_format = "HDR" if is_hdr else "PNG"
+
+    if invert_y and not is_hdr:
+        data[:, :, 1] = 1 - data[:, :, 1]
     image.pixels.foreach_set(data.ravel())
     if bpy.context.scene.TextureCachePath != "":
         save_path = (Path(bpy.context.scene.TextureCachePath) / name).with_suffix(".hdr" if is_hdr else ".png")

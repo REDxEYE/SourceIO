@@ -20,7 +20,7 @@ def import_texture(resource: CompiledTextureResource, name: str, flip: bool, inv
     
     pixel_format = resource.get_texture_format()
     image = create_and_cache_texture(name, (width, height), pixel_data,
-                                     pixel_format in (VTexFormat.RGBA16161616F, VTexFormat.BC6H),invert_y)
+                                     pixel_format in (VTexFormat.RGBA16161616F, VTexFormat.BC6H), invert_y)
 
     image.alpha_mode = 'CHANNEL_PACKED'
     del pixel_data
