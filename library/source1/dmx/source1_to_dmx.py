@@ -281,13 +281,14 @@ class DmxModel2:
     def mesh_add_faceset(self, mesh: datamodel.Element, material_name: str, indices: np.ndarray):
         dme_face_set = self.dmx.add_element(sanitize_name(material_name), "DmeFaceSet",
                                             id=f"{mesh}_{indices.shape}_{material_name}_faces")
-        faces = np.full((len(indices) // 3, 4), -1)
-        faces[:, :3] = np.flip(np.array(indices).reshape((-1, 3)), 1)
+        array = np.array(indices).ravel()
+        faces = np.full((len(array) // 3, 4), -1)
+        faces[:, :3] = np.flip(array.reshape((-1, 3)), 1)
         dme_face_set["material"] = self._materials.get(material_name, None)
         dme_face_set["faces"] = datamodel.make_array(faces.flatten(), int)
         mesh["faceSets"].append(dme_face_set)
 
-    def add_flex_controller(self, flex_name: str, stereo: bool, eyelid: bool = False):
+    def add_flex_controller(self, flex_name: str, stereo: bool, eyelid: bool = False, flex_max=1.0, flex_min=0.0):
         combination_input_control = self.dmx.add_element(flex_name, "DmeCombinationInputControl",
                                                          id=f"{flex_name}_inputcontrol")
 
@@ -295,8 +296,8 @@ class DmxModel2:
         combination_input_control["stereo"] = stereo
         combination_input_control["eyelid"] = eyelid
 
-        combination_input_control["flexMax"] = 1.0
-        combination_input_control["flexMin"] = 0.0
+        combination_input_control["flexMax"] = float(flex_max)
+        combination_input_control["flexMin"] = float(flex_min)
 
         combination_input_control["wrinkleScales"] = datamodel.make_array([], float)
         self._root["combinationOperator"]["controls"].append(combination_input_control)
@@ -331,6 +332,19 @@ class DmxModel2:
         mesh["deltaStates"].append(vertex_delta_data)
         mesh["deltaStateWeights"].append(datamodel.Vector2([0.0, 0.0]))
         return vertex_delta_data
+
+    def add_flex_rules(self):
+        flex_rules = self.dmx.add_element("FlexRules", "DmeFlexRules", id=f"FlexRules_DmeFlexRules")
+        flex_rules["deltaStates"] = datamodel.make_array([], datamodel.Element)
+        self._root["combinationOperator"]["targets"].append(flex_rules)
+        return flex_rules
+
+    def add_flex_rules_rule(self, flex_rules: datamodel.Element, name: str, expr: str):
+        flex_rule = self.dmx.add_element(name, "DmeFlexRuleExpression", id=f"{name}_DmeFlexRuleExpression")
+        flex_rule["result"] = 0.0
+        flex_rule["expr"] = expr
+        flex_rules["deltaStates"].append(flex_rule)
+        return flex_rule
 
     def _make_transform(self, name: str,
                         position: datamodel.Vector3,
