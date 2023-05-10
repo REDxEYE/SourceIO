@@ -5,10 +5,10 @@ from pathlib import Path
 
 import numpy as np
 
-from SourceIO.library.source2.data_types.keyvalues3.enums import KV3Encodings, KV3Formats
-from SourceIO.library.source2.data_types.keyvalues3.keyvalues import KeyValues
-from SourceIO.library.utils import Buffer
-from SourceIO.library.utils.file_utils import AsciiBufferWrapper
+from .enums import KV3Encodings, KV3Formats
+from .keyvalues import KeyValues
+from ....utils import Buffer
+from ....utils.file_utils import AsciiBufferWrapper
 
 
 class Lexer:

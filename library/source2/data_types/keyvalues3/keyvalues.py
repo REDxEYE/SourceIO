@@ -1,8 +1,8 @@
 import abc
 from typing import Dict
 
-from SourceIO.library.source2.data_types.keyvalues3.enums import KV3Formats, KV3Encodings
-from SourceIO.library.utils import Buffer
+from .enums import KV3Formats, KV3Encodings
+from ....utils import Buffer
 
 
 class KeyValues(abc.ABC):

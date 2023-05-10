@@ -1,11 +1,15 @@
 from pathlib import Path
 from typing import Iterator, List, Optional, Tuple, Union
 
+from ....logger import SLoggingManager
 from ...utils import Buffer, FileBuffer
 from ...utils.gameinfo_parser import GameInfoParser
 from ...utils.path_utilities import corrected_path
 from ..app_id import SteamAppId
 from .content_provider_base import ContentProviderBase
+
+log_manager = SLoggingManager()
+logger = log_manager.get_logger('Source1ContentProvider')
 
 
 class GameinfoContentProvider(ContentProviderBase):
@@ -38,32 +42,39 @@ class GameinfoContentProvider(ContentProviderBase):
         return SteamAppId(fs.steam_app_id)
 
     def get_search_paths(self):
-        def convert_path(path_to_convert):
-            if '|all_source_engine_paths|' in path_to_convert.lower():
-                return self.project_dir / path_to_convert.lower().replace('|all_source_engine_paths|', '')
-            elif '|gameinfo_path|' in path_to_convert.lower():
-                return self.modname_dir / path_to_convert.lower().replace('|gameinfo_path|', '')
-            return self.project_dir / path_to_convert
+        logger.info(f"Collecting search paths for {self.modname}. "
+                    f"Mod path: {self.modname_dir}, project path: {self.project_dir}")
 
-        all_search_paths = []
+        def convert_path(path_to_convert):
+            logger.info(f'Converting {path_to_convert!r} path.')
+            if '|all_source_engine_paths|' in path_to_convert.lower():
+                result = self.project_dir / path_to_convert.lower().replace('|all_source_engine_paths|', '')
+            elif '|gameinfo_path|' in path_to_convert.lower():
+                result = self.modname_dir / path_to_convert.lower().replace('|gameinfo_path|', '')
+            else:
+                result = self.project_dir / path_to_convert
+            logger.info(f'Converted {path_to_convert!r} path to {result}.')
+            return result
+
+        all_search_paths = set()
         for paths in self.gameinfo.file_system.search_paths.game:
             if isinstance(paths, list):
                 for path in paths:
-                    all_search_paths.append(convert_path(path))
+                    all_search_paths.add(convert_path(path))
             else:
-                all_search_paths.append(convert_path(paths))
+                all_search_paths.add(convert_path(paths))
         for file in self.modname_dir.glob('*_dir.vpk'):
             if file.suffix == '.vpk':
-                all_search_paths.append(file)
+                all_search_paths.add(file)
 
         for file in self.project_dir.iterdir():
             if file.is_file():
                 continue
             if (file / 'gameinfo.txt').exists():
-                all_search_paths.append(file)
+                all_search_paths.add(file)
             for vpk_file in file.glob('*_dir.vpk'):
-                all_search_paths.append(vpk_file)
-
+                all_search_paths.add(vpk_file)
+        logger.info(f"Collected {len(all_search_paths)} paths: {all_search_paths}")
         return all_search_paths
 
     def find_file(self, filepath: Union[str, Path]) -> Optional[Buffer]:

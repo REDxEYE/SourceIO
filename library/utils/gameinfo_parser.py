@@ -73,7 +73,7 @@ class GameInfoParser:
         else:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')
 
-        self._parser = KVParser('<input>', self._buffer)
+        self._parser = KVParser(path.as_posix(), self._buffer)
         self.header, self._raw_data = self._parser.parse()
 
     @property

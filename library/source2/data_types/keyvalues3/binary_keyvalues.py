@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
-from SourceIO.library.source2.data_types.keyvalues3.keyvalues import KeyValues
+from .keyvalues import KeyValues
 from ....utils import Buffer, FileBuffer, MemoryBuffer, WritableMemoryBuffer
 from ....utils.pylib import LZ4ChainDecoder, lz4_compress, lz4_decompress, \
     zstd_compress_stream, zstd_decompress_stream

@@ -1,8 +1,7 @@
-from pathlib import Path
 from typing import List, Optional
 
-from SourceIO.library.shared.types import Vector3
-from SourceIO.library.source2.resource_types.resource import Resource, ClassNode, ClassNodeList, Node
+from ...shared.types import Vector3
+from .resource import Resource, ClassNode, ClassNodeList, Node
 
 
 class PhysicsShape(ClassNode):

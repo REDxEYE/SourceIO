@@ -2,9 +2,9 @@ from collections.abc import Collection
 from pathlib import Path
 from typing import Dict, TypeVar, List
 
-from SourceIO.library.source2.data_types.keyvalues3.ascii_keyvalues import AsciiKeyValues
-from SourceIO.library.source2.data_types.keyvalues3.enums import KV3Encodings, KV3Formats
-from SourceIO.library.utils import Buffer
+from ..data_types.keyvalues3.ascii_keyvalues import AsciiKeyValues
+from ..data_types.keyvalues3.enums import KV3Encodings, KV3Formats
+from ...utils import Buffer
 
 K = TypeVar("K", bound=str)
 V = TypeVar("V")
