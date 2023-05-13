@@ -440,10 +440,10 @@ class VTFLibV2:
         return self.DTYPE[fmt]
 
     def convert(self, flip: bool = False):
-        target_buffer = np.zeros((self.width(), self.height(), 4), np.float32)
+        target_buffer = np.zeros((self.height(), self.width(), 4), np.float32)
         target_buffer[:, :, 3] = 1
         channels = self.channels()
-        buffer = np.zeros((self.width(), self.height(), channels), self.np_dtype())
+        buffer = np.zeros((self.height(), self.width(), channels), self.np_dtype())
         _vtf_get_as_rgba8888(self.handle, buffer.ctypes.data_as(c_char_p), buffer.nbytes, flip)
         tex_format = self.format
         if tex_format not in (

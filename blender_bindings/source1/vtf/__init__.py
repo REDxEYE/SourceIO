@@ -13,7 +13,7 @@ from ....library.source1.vtf.cubemap_to_envmap import (
 
 def import_texture(name, file_object, update=False):
     logger.info(f'Loading "{name}" texture')
-    rgba_data, image_width, image_height = load_texture(file_object)
+    rgba_data, image_height, image_width = load_texture(file_object)
     return texture_from_data(name, rgba_data, image_width, image_height, update)
 
 
