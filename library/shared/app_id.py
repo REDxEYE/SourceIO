@@ -27,12 +27,12 @@ class SteamAppId(IntEnum):
         possible_member = cls._value2member_map_.get(value, None)
 
         if possible_member is None:
-            possible_member = cls._create_pseudo_member_(value)
+            possible_member = cls.create_pseudo_member(value)
 
         return possible_member
 
     @classmethod
-    def _create_pseudo_member_(cls, value):
+    def create_pseudo_member(cls, value):
         """
         Create a default-name member.
         """
