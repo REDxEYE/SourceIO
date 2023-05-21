@@ -155,7 +155,7 @@ class SOURCEIO_OT_VMATImport(bpy.types.Operator):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
                 material_resource = CompiledMaterialResource.from_buffer(f, directory / file.name)
-                load_material(material_resource, Path(file))
+                load_material(material_resource, Path(file.name))
         return {'FINISHED'}
 
     def invoke(self, context, event):
