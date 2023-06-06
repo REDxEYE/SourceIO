@@ -5,8 +5,8 @@ from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
 
-class CSGOVertexLitGeneric(Source2ShaderBase):
-    SHADER: str = 'csgo_vertexlitgeneric.vfx'
+class CSGOUnlitGeneric(Source2ShaderBase):
+    SHADER: str = 'csgo_unlitgeneric.vfx'
 
     def _get_texture(self, slot_name: str, default_color: Tuple[float, float, float, float],
                      is_data=False,
@@ -51,7 +51,7 @@ class CSGOVertexLitGeneric(Source2ShaderBase):
         # if roughness_override is not None:
         #     shader.inputs["Roughness"].default_value = roughness_override[0]
         # else:
-        #     self.connect_nodes(metalness_conv.outputs[0], shader.inputs["Roughness"])
+        #     self.connect_nodes(normal_conv.outputs[1], shader.inputs["Roughness"])
 
         # metallic_override = self._material_resource.get_vector_property("TextureMetalness", None)
         # if metallic_override is not None:
@@ -61,4 +61,10 @@ class CSGOVertexLitGeneric(Source2ShaderBase):
 
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0):
             self.bpy_material.blend_method = 'HASHED'
+            self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
+        if self._material_resource.get_int_property("F_OVERLAY", 0):
+            self.bpy_material.blend_method = 'BLEND'
+            self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
+        if self._material_resource.get_int_property("F_BLEND_MODE", 0):
+            self.bpy_material.blend_method = 'BLEND'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
