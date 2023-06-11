@@ -1,9 +1,11 @@
+import typing
 from dataclasses import dataclass
 from typing import Dict, List
 
 from ....utils import Buffer
-from ...resource_types.resource import CompiledResource
 from .base import BaseBlock
+if typing.TYPE_CHECKING:
+    from ...resource_types.resource import CompiledResource
 
 
 @dataclass(slots=True)
@@ -33,7 +35,7 @@ class ResourceExternalReferenceList(List[ResourceExternalReference], BaseBlock):
         return f"<ResourceExternalReferenceList  \"{str_data if len(str_data) < 50 else str_data[:50] + '...'}\">"
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, resource: CompiledResource) -> 'ResourceExternalReferenceList':
+    def from_buffer(cls, buffer: Buffer, resource: 'CompiledResource') -> 'ResourceExternalReferenceList':
         offset = buffer.read_relative_offset32()
         count = buffer.read_uint32()
         self = cls(buffer, resource)

@@ -1,10 +1,10 @@
-import abc
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Type, TypeVar, Union
 
+from ..data_types.blocks.resource_external_reference_list import ResourceExternalReferenceList
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils import Buffer, MemoryBuffer
 from .. import load_compiled_resource
@@ -57,9 +57,9 @@ class CompiledResource:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, filename: Path):
-        header = CompiledHeader.from_buffer(buffer)
-
-        return cls(buffer, filename, header)
+        inmemory_buffer = MemoryBuffer(buffer.read())
+        header = CompiledHeader.from_buffer(inmemory_buffer)
+        return cls(inmemory_buffer, filename, header)
 
     def _get_block_class(self, name) -> Type[BaseBlock]:
         return get_block_class(name)
@@ -85,3 +85,14 @@ class CompiledResource:
     def get_child_resources(self):
         external_resource_list, = self.get_data_block(block_name='RERL')
         return [r.name for r in external_resource_list] + [r.hash for r in external_resource_list]
+
+    def get_dependencies(self):
+        external_resource_list: ResourceExternalReferenceList
+        external_resource_list, = self.get_data_block(block_name='RERL')
+        if not external_resource_list:
+            return []
+        deps = []
+        for dep in external_resource_list:
+            path = Path(dep.name)
+            deps.append(path.with_suffix(path.suffix + "_c"))
+        return deps
