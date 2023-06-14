@@ -1,4 +1,5 @@
 import math
+import traceback
 from hashlib import md5
 from pathlib import Path
 
@@ -185,8 +186,12 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                     add_collection(prop_path, model_container.collection, default_anim)
 
                     if default_anim is not None and model_container.armature is not None:
-                        import_static_animations(content_manager, model_container.mdl, default_anim,
-                                                 model_container.armature, 1.0)
+                        try:
+                            import_static_animations(content_manager, model_container.mdl, default_anim,
+                                                     model_container.armature, 1.0)
+                        except RuntimeError:
+                            self.report({"WARNING"}, "Failed to load animation")
+                            traceback.print_exc()
 
                     obj.instance_type = 'COLLECTION'
                     obj.instance_collection = model_container.collection
