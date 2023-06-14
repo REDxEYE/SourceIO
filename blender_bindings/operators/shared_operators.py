@@ -184,7 +184,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                     s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
                     add_collection(prop_path, model_container.collection, default_anim)
 
-                    if default_anim is not None:
+                    if default_anim is not None and model_container.armature is not None:
                         import_static_animations(content_manager, model_container.mdl, default_anim,
                                                  model_container.armature, 1.0)
 
