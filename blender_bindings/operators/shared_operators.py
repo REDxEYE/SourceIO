@@ -1,8 +1,8 @@
-import math
 import traceback
 from hashlib import md5
 from pathlib import Path
-
+from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
+                       FloatProperty, StringProperty)
 import bpy
 
 from ..source1.mdl.v44.import_mdl import import_static_animations
@@ -53,6 +53,8 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
     bl_idname = "sourceio.load_placeholder"
     bl_label = "Load Entity"
     bl_options = {'UNDO'}
+
+    use_bvlg: BoolProperty(default=True)
 
     def execute(self, context):
         content_manager = ContentManager()
@@ -180,10 +182,9 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                                                               unique_material_names=unique_material_names)
                     if model_container is None:
                         continue
-                    import_materials(model_container.mdl, unique_material_names=unique_material_names)
+                    import_materials(model_container.mdl, unique_material_names=unique_material_names, use_bvlg=context.scene.use_bvlg)
 
                     s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
-                    add_collection(prop_path, model_container.collection, default_anim)
 
                     if default_anim is not None and model_container.armature is not None:
                         try:
@@ -192,6 +193,8 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                         except RuntimeError:
                             self.report({"WARNING"}, "Failed to load animation")
                             traceback.print_exc()
+
+                    add_collection(prop_path, model_container.collection, default_anim)
 
                     obj.instance_type = 'COLLECTION'
                     obj.instance_collection = model_container.collection
@@ -355,6 +358,8 @@ class SOURCEIO_PT_EntityLoader(UITools, bpy.types.Panel):
 
     def draw(self, context):
         self.layout.label(text="Entity loading")
+        layout = self.layout.box()
+        layout.prop(context.scene, "use_bvlg")
         obj: bpy.types.Object = context.active_object
         if obj is None and context.selected_objects:
             obj = context.selected_objects[0]

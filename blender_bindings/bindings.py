@@ -185,6 +185,10 @@ def register():
     register_nodes()
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
+    bpy.types.Scene.use_bvlg = bpy.props.BoolProperty(
+        name="Use BVLG",
+        default=True
+    )
     bpy.types.Mesh.flex_controllers = CollectionProperty(type=SourceIO_PG_FlexController)
     bpy.types.Mesh.flex_selected_index = IntProperty(default=0)
 
@@ -196,7 +200,7 @@ def register():
 
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
-
+    del bpy.types.Scene.use_bvlg
     # if is_vtflib_supported():
     #     from .operators.source1_operators import export
     #     bpy.types.IMAGE_MT_image.remove(export)
