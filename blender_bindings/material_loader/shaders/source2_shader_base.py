@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Union, Optional
 import bpy
+import numpy as np
 
 from ...utils.texture_utils import check_texture_cache
 from ....library.shared.content_providers.content_manager import ContentManager
@@ -56,9 +57,9 @@ class Source2ShaderBase(ShaderBase):
 
     def load_texture(self, texture_resource: Optional[CompiledTextureResource], texture_path, invert_y: bool = False):
         if texture_resource is not None:
-            texture = check_texture_cache(texture_path.stem)
+            texture = check_texture_cache(texture_path)
             if texture is not None:
                 return texture
-            texture = import_texture(texture_resource, texture_path.stem, True, invert_y)
+            texture = import_texture(texture_resource, texture_path, True, invert_y)
             return texture
         return None

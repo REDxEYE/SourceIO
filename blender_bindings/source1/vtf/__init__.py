@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import bpy
 import numpy as np
 
+from ...utils.texture_utils import create_and_cache_texture
 from ....logger import SLoggingManager
 
 log_manager = SLoggingManager()
@@ -11,10 +14,13 @@ from ....library.source1.vtf.cubemap_to_envmap import (
     SkyboxException, convert_skybox_to_equiangular)
 
 
-def import_texture(name, file_object, update=False):
-    logger.info(f'Loading "{name}" texture')
+def import_texture(texture_path: Path, file_object, update=False):
+    logger.info(f'Loading "{texture_path.name}" texture')
     rgba_data, image_height, image_width = load_texture(file_object)
-    return texture_from_data(name, rgba_data, image_width, image_height, update)
+
+    return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
+
+    # return texture_from_data(texture_path.name, rgba_data, image_width, image_height, update)
 
 
 def load_skybox_texture(skyname, width=1024):

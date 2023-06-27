@@ -183,7 +183,7 @@ class SOURCEIO_OT_VTFImport(bpy.types.Operator):
         else:
             directory = Path(self.filepath).absolute()
         for file in self.files:
-            import_texture(file.name, (directory / file.name).open('rb'), True)
+            import_texture(Path(file.name), (directory / file.name).open('rb'), True)
         return {'FINISHED'}
 
     def invoke(self, context, event):
