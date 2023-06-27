@@ -1,4 +1,5 @@
 import math
+import traceback
 from dataclasses import dataclass
 
 from ..structs.local_animation import StudioAnimDesc
@@ -112,7 +113,8 @@ class MdlV49(MdlV44):
         for anim_desc in local_animations:
             try:
                 animations.append(anim_desc.read_animations(buffer, bones))
-            except AssertionError:
+            except (AssertionError, ValueError):
+                traceback.print_exc()
                 animations.append(None)
 
         include_models = []
