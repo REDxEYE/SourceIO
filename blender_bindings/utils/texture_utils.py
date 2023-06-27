@@ -1,4 +1,5 @@
 import os
+from hashlib import md5
 from pathlib import Path
 from typing import Tuple, Optional
 
@@ -10,10 +11,30 @@ from ...logger import SLoggingManager
 logger = SLoggingManager().get_logger("TextureUtils")
 
 
+def _get_texture(texture_path: Path, *other_args):
+    md_ = md5(texture_path.as_posix().encode("ascii"))
+    for key in other_args:
+        if key:
+            md_.update(key.encode("ascii"))
+    key = md_.hexdigest()
+    cache = bpy.context.scene.get("texture_name_to_texture", {})
+    if key in cache:
+        return cache[key]
+
+
+def _add_texture(texture_path: Path, real_name: str, *other_args):
+    md_ = md5(texture_path.as_posix().encode("ascii"))
+    for key in other_args:
+        if key:
+            md_.update(key.encode("ascii"))
+    key = md_.hexdigest()
+    cache = bpy.context.scene.get("texture_name_to_texture", {})
+    cache[key] = real_name
+    bpy.context.scene["texture_name_to_texture"] = cache
+
+
 def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
-    if bpy.context.scene.get("texture_name_to_texture", None) is None:
-        bpy.context.scene["texture_name_to_texture"] = {}
-    short_name = bpy.context.scene["texture_name_to_texture"].get(texture_path.as_posix(), None)
+    short_name = _get_texture(texture_path)
     if short_name is not None:
         if short_name + '.png' in bpy.data.images:
             return bpy.data.images[f'{short_name}.png']
@@ -41,12 +62,10 @@ def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
 
 def create_and_cache_texture(texture_path: Path, dimensions: Tuple[int, int], data: np.ndarray, is_hdr: bool = False,
                              invert_y: bool = False):
-    if bpy.context.scene.get("texture_name_to_texture", None) is None:
-        bpy.context.scene["texture_name_to_texture"] = {}
     image = bpy.data.images.new(texture_path.stem, width=dimensions[0], height=dimensions[1], alpha=True)
     image.alpha_mode = "CHANNEL_PACKED"
     image.file_format = "HDR" if is_hdr else "PNG"
-    bpy.context.scene["texture_name_to_texture"][texture_path.as_posix()] = image.name
+    _add_texture(texture_path, image.name)
 
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
