@@ -110,7 +110,10 @@ class MdlV49(MdlV44):
 
         animations = []
         for anim_desc in local_animations:
-            animations.append(anim_desc.read_animations(buffer, bones))
+            try:
+                animations.append(anim_desc.read_animations(buffer, bones))
+            except AssertionError:
+                animations.append(None)
 
         include_models = []
         buffer.seek(header.include_model_offset)

@@ -65,17 +65,18 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
     if mdl.animations and load_refpose:
         ref_animation = mdl.animations[0]
-        frame_zero = ref_animation[0]
-        for bone, anim_data in enumerate(frame_zero):
-            mdl_bone = mdl.bones[bone]
-            bl_bone = armature_obj.pose.bones.get(mdl_bone.name[-63:])
+        if ref_animation is not None:
+            frame_zero = ref_animation[0]
+            for bone, anim_data in enumerate(frame_zero):
+                mdl_bone = mdl.bones[bone]
+                bl_bone = armature_obj.pose.bones.get(mdl_bone.name[-63:])
 
-            pos = Vector(anim_data["pos"]) * scale
-            x, y, z, w = anim_data["rot"]
-            rot = Quaternion((w, x, y, z))
-            mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-            mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
-            bl_bone.matrix = mat
+                pos = Vector(anim_data["pos"]) * scale
+                x, y, z, w = anim_data["rot"]
+                rot = Quaternion((w, x, y, z))
+                mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+                mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+                bl_bone.matrix = mat
 
     bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -306,18 +307,20 @@ def __swap_components(vec, mp):
 def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: str, armature: bpy.types.Object,
                              scale: float):
     bpy.context.view_layer.update()
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='OBJECT')
     if mdl.animations:
+        bpy.ops.object.select_all(action="DESELECT")
+        armature.select_set(True)
+        bpy.context.view_layer.objects.active = armature
+        print(bpy.context.view_layer.objects.active)
+        bpy.ops.object.mode_set(mode='POSE')
         for n, anim in enumerate(mdl.sequences):
             if anim.name.strip("@") == animation_name:
-
                 ref_animation = mdl.animations[n]
+                if ref_animation is None:
+                    return
                 frame_zero = ref_animation[0]
-
-                bpy.context.view_layer.objects.active = armature
-                armature.select_set(True)
-
-                bpy.ops.object.mode_set(mode='POSE')
-
                 for bone, anim_data in enumerate(frame_zero):
                     mdl_bone = mdl.bones[bone]
                     bl_bone = armature.pose.bones.get(mdl_bone.name[-63:])
@@ -341,6 +344,8 @@ def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: st
                     if anim.name.strip("@") == animation_name:
 
                         ref_animation = i_mdl.animations[n]
+                        if ref_animation is None:
+                            return
                         frame_zero = ref_animation[0]
 
                         armature.select_set(True)
