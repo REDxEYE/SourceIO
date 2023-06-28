@@ -298,7 +298,7 @@ class AbstractEntityHandler:
                 texture = ContentManager().find_texture(vmt.get_string('$basetexture', None), silent=True)
                 if not texture:
                     return
-                icon = import_texture(Path(icon_path).stem, texture)
+                icon = import_texture(Path(Path(icon_path).stem), texture)
 
             obj.empty_display_type = 'IMAGE'
             obj.empty_display_size = (1 / self.scale)

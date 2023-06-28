@@ -1,10 +1,9 @@
-from array import array
 from pathlib import Path
-from typing import Dict, Union
-
+from typing import Union, Optional
 import bpy
 import numpy as np
 
+from ...utils.texture_utils import check_texture_cache
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2.resource_types import (CompiledMaterialResource,
                                                 CompiledTextureResource)
@@ -56,8 +55,11 @@ class Source2ShaderBase(ShaderBase):
         image['normalmap_converted'] = True
         return image, roughness_texture
 
-    def load_texture(self, texture_resource, texture_path, invert_y: bool = False):
-        if texture_resource:
-            texture = import_texture(texture_resource, texture_path.stem, True, invert_y)
+    def load_texture(self, texture_resource: Optional[CompiledTextureResource], texture_path, invert_y: bool = False):
+        if texture_resource is not None:
+            texture = check_texture_cache(texture_path)
+            if texture is not None:
+                return texture
+            texture = import_texture(texture_resource, texture_path, True, invert_y)
             return texture
         return None

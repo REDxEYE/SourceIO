@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Any, Dict
 
 import bpy
 import numpy as np
 
+from ...utils.texture_utils import check_texture_cache, create_and_cache_texture
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.vmt import VMT
 from ...source1.vtf import import_texture
@@ -15,15 +17,18 @@ class Source1ShaderBase(ShaderBase):
         self._vmt: VMT = vmt
         self.textures = {}
 
-    def load_texture(self, texture_name, texture_path):
+    def load_texture(self, texture_name: str, texture_path: Path):
+        image = check_texture_cache(texture_path / texture_name)
+        if image is not None:
+            return image
         if bpy.data.images.get(texture_name, False):
             self.logger.debug(f'Using existing texture {texture_name}')
             return bpy.data.images.get(texture_name)
 
         content_manager = ContentManager()
-        texture_file = content_manager.find_texture(texture_path)
+        texture_file = content_manager.find_texture(texture_path/texture_name)
         if texture_file is not None:
-            return import_texture(texture_name, texture_file)
+            return import_texture(texture_path / texture_name, texture_file)
         return None
 
     @staticmethod

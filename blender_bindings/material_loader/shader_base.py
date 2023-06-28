@@ -187,9 +187,8 @@ class ShaderBase:
         return buffer[0::4], buffer[1::4], buffer[2::4], buffer[3::4],
 
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
-        texture_name = Path(file).stem
-        texture = self.load_texture(texture_name, file)
-        return texture or self.get_missing_texture(f'missing_{texture_name}', default_color)
+        texture = self.load_texture(Path(file).stem, Path(file).parent)
+        return texture or self.get_missing_texture(f'missing_{Path(file).stem}', default_color)
 
     @staticmethod
     def clamp_value(value, min_value=0.0, max_value=1.0):

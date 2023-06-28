@@ -167,14 +167,14 @@ class AbstractEntityHandler:
             vmt = CompiledMaterialResource.from_buffer(icon_material_file, icon_path)
             data_block, = vmt.get_data_block(block_name='DATA')
             if data_block['m_shaderName'] == 'tools_sprite.vfx':
-                path_texture = [a for a in vmt.get_child_resources() if isinstance(a, str) and ".vtex" in a]
-                if path_texture:
-                    image_resource = vmt.get_child_resource(path_texture.pop(0), self.cm, CompiledTextureResource)
+                path_texture = next((a for a in vmt.get_child_resources() if isinstance(a, str) and ".vtex" in a), None)
+                if path_texture is not None:
+                    image_resource = vmt.get_child_resource(path_texture, self.cm, CompiledTextureResource)
                     if not image_resource:
                         return
                     obj.empty_display_type = 'IMAGE'
                     obj.empty_display_size = 16 * self.scale  # (1 / self.scale)
-                    obj.data = import_texture(image_resource, image_resource.name, True)
+                    obj.data = import_texture(image_resource, Path(path_texture), True)
 
     @staticmethod
     def _create_lines(name, points, closed=False):

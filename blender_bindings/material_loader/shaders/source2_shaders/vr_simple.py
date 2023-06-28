@@ -35,9 +35,8 @@ class VrSimple(Source2ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
-            image, roughness = self.split_normal(image)
-            return image, roughness
-        return None, None
+            return image
+        return None
 
     @property
     def self_illum_mask_texture(self):
@@ -85,7 +84,7 @@ class VrSimple(Source2ShaderBase):
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         color_texture = self.color_texture
-        normal_texture, roughness_texture = self.normal_texture
+        normal_texture = self.normal_texture
         self_illum_mask_texture = self.self_illum_mask_texture
 
         albedo_node = self.create_node(Nodes.ShaderNodeTexImage, 'albedo')
@@ -129,9 +128,7 @@ class VrSimple(Source2ShaderBase):
             roughness_node.image = roughness_texture
             self.connect_nodes(roughness_node.outputs['Color'], shader.inputs['Roughness'])
         elif self.roughness_value is None:
-            roughness_node = self.create_node(Nodes.ShaderNodeTexImage, 'roughness')
-            roughness_node.image = roughness_texture
-            self.connect_nodes(roughness_node.outputs['Color'], shader.inputs['Roughness'])
+            self.connect_nodes(normal_map_texture.outputs['Alpha'], shader.inputs['Roughness'])
         elif self.roughness_value is not None:
             shader.inputs['Roughness'].default_value = self.roughness_value
         # if self.selfillum:

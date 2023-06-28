@@ -435,6 +435,8 @@ class SOURCEIO_PT_Scene(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.label(text="SourceIO configuration")
+        layout.prop(context.scene, "TextureCachePath")
+
         box = layout.box()
         box.label(text='Mounted folders')
         box2 = box.box()

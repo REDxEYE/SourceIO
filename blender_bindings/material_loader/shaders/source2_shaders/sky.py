@@ -64,7 +64,7 @@ class Skybox(Source2ShaderBase):
                 image.file_format = 'HDR'
                 image.pixels.foreach_set(pixel_data.astype(np.float32).ravel())
             else:
-                image.file_format = 'TARGA'
+                image.file_format = 'PNG'
                 image.pixels.foreach_set(pixel_data.ravel())
 
             image.pack()

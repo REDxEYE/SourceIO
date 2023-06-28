@@ -35,9 +35,8 @@ class Generic(Source2ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
-            image, roughness = self.split_normal(image)
-            return image, roughness
-        return None, None
+            return image
+        return None
 
     @property
     def color(self):
@@ -73,7 +72,7 @@ class Generic(Source2ShaderBase):
         shader.inputs['Roughness'].default_value = self.roughness
         shader.inputs['Specular'].default_value = self.specular
         color_texture = self.color_texture
-        normal_texture, roughness_texture = self.normal_texture
+        normal_texture = self.normal_texture
 
         albedo_node = self.create_node(Nodes.ShaderNodeTexImage, 'albedo')
         albedo_node.image = color_texture
