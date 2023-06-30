@@ -3,9 +3,14 @@ from hashlib import md5
 from pathlib import Path
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        FloatProperty, StringProperty)
+from bpy.types import (Panel,
+                       Operator,
+                       AddonPreferences,
+                       PropertyGroup)
 import bpy
 
 from ..source1.mdl.v44.import_mdl import import_static_animations
+from ..utils.resource_utils import deserialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ...library.utils.path_utilities import find_vtx_cm
@@ -49,7 +54,7 @@ def add_collection(model_path: Path, collection: bpy.types.Collection, *other_ar
 
 
 # noinspection PyPep8Naming
-class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
+class ChangeSkin_OT_LoadEntity(Operator):
     bl_idname = "sourceio.load_placeholder"
     bl_label = "Load Entity"
     bl_options = {'UNDO'}
@@ -58,7 +63,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
 
     def execute(self, context):
         content_manager = ContentManager()
-        content_manager.deserialize(bpy.context.scene.get('content_manager_data', {}))
+        deserialize_mounted_content(content_manager)
         unique_material_names = True
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
@@ -182,7 +187,8 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
                                                               unique_material_names=unique_material_names)
                     if model_container is None:
                         continue
-                    import_materials(model_container.mdl, unique_material_names=unique_material_names, use_bvlg=context.scene.use_bvlg)
+                    import_materials(model_container.mdl, unique_material_names=unique_material_names,
+                                     use_bvlg=context.scene.use_bvlg)
 
                     s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
 
@@ -265,7 +271,7 @@ class ChangeSkin_OT_LoadEntity(bpy.types.Operator):
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_OT_ChangeSkin(bpy.types.Operator):
+class SOURCEIO_OT_ChangeSkin(Operator):
     bl_idname = "sourceio.select_skin"
     bl_label = "Change skin"
     bl_options = {'UNDO'}
@@ -329,7 +335,7 @@ class UITools:
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
+class SOURCEIO_PT_Utils(UITools, Panel):
     bl_label = "SourceIO utils"
     bl_idname = "SOURCEIO_PT_Utils"
 
@@ -344,7 +350,7 @@ class SOURCEIO_PT_Utils(UITools, bpy.types.Panel):
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_PT_EntityLoader(UITools, bpy.types.Panel):
+class SOURCEIO_PT_EntityLoader(UITools, Panel):
     bl_label = 'Entity loader'
     bl_idname = 'SOURCEIO_PT_EntityLoader'
     bl_parent_id = "SOURCEIO_PT_Utils"
@@ -374,7 +380,7 @@ class SOURCEIO_PT_EntityLoader(UITools, bpy.types.Panel):
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_PT_EntityInfo(UITools, bpy.types.Panel):
+class SOURCEIO_PT_EntityInfo(UITools, Panel):
     bl_label = 'Entity Info'
     bl_idname = 'SOURCEIO_PT_EntityInfo'
     bl_parent_id = "SOURCEIO_PT_Utils"
@@ -401,7 +407,7 @@ class SOURCEIO_PT_EntityInfo(UITools, bpy.types.Panel):
                 row.label(text=str(v))
 
 
-class SOURCEIO_PT_SkinChanger(UITools, bpy.types.Panel):
+class SOURCEIO_PT_SkinChanger(UITools, Panel):
     bl_label = 'Model skins'
     bl_idname = 'SOURCEIO_PT_SkinChanger'
     bl_parent_id = "SOURCEIO_PT_Utils"
@@ -425,7 +431,142 @@ class SOURCEIO_PT_SkinChanger(UITools, bpy.types.Panel):
                     row.enabled = False
 
 
-class SOURCEIO_PT_Scene(bpy.types.Panel):
+class SOURCEIO_UL_MountedResource(PropertyGroup):
+    name: StringProperty(
+        name="Name",
+        description="A name for this resource",
+        default="Untitled")
+
+    path: StringProperty(
+        name="Path",
+        description="Path to the resource",
+        default="",
+        subtype='FILE_PATH')
+
+    hash: StringProperty(
+        name="Hash",
+        description="Hash of the resource",
+        default="")
+
+
+class SOURCEIO_OT_NewResource(Operator):
+    bl_idname = "sourceio.new_resource"
+    bl_label = "Add New Resource"
+
+    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
+
+    def execute(self, context):
+        new_resource = context.scene.mounted_resources.add()
+        new_resource.path = self.filepath
+        new_resource.name = bpy.path.basename(self.filepath)
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+
+class SOURCEIO_OT_DeleteResource(Operator):
+    bl_idname = "sourceio.delete_resource"
+    bl_label = "Delete Resource"
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.mounted_resources_index >= 0
+
+    def execute(self, context):
+        resources = context.scene.mounted_resources
+        index = context.scene.mounted_resources_index
+
+        resources.remove(index)
+
+        if index > 0:
+            context.scene.mounted_resources_index = index - 1
+
+        return {'FINISHED'}
+
+
+class SOURCEIO_OT_CleanResources(Operator):
+    bl_idname = "sourceio.clean_resources"
+    bl_label = "Clean All Resources"
+
+    def execute(self, context):
+        resources = context.scene.mounted_resources
+
+        # Remove all resources
+        for i in range(len(resources)):
+            resources.remove(0)
+
+        return {'FINISHED'}
+
+
+class SOURCEIO_UL_ResourcesList(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.prop(item, "name", text="", emboss=False, icon='FILE_TICK')
+            layout.prop(item, "path", text="")
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon_value=icon)
+
+
+class SOURCEIO_PT_ResourcesPanel(Panel):
+    bl_idname = "SOURCEIO_PT_resources"
+    bl_label = "Mounted Resources"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Resources"
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.template_list("SOURCEIO_UL_ResourcesList", "", context.scene, "mounted_resources", context.scene,
+                          "mounted_resources_index")
+
+        col = row.column(align=True)
+        col.operator("sourceio.new_resource", icon='ADD', text="")
+        col.operator("sourceio.delete_resource", icon='REMOVE', text="")
+
+
+class SOURCEIO_OT_ResourceMove(bpy.types.Operator):
+    bl_idname = "sourceio.move_resource"
+    bl_label = "Move Resource"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    direction: bpy.props.EnumProperty(
+        items=(
+            ('UP', "Up", ""),
+            ('DOWN', "Down", ""),
+        )
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.mounted_resources_index >= 0
+
+    def move_index(self):
+        # Move index of an item render queue while clamping it
+        index = bpy.context.scene.mounted_resources_index
+        list_length = len(bpy.context.scene.mounted_resources) - 1  # (index starts at 0)
+        new_index = index + (-1 if self.direction == 'UP' else 1)
+        bpy.context.scene.mounted_resources_index = max(0, min(new_index, list_length))
+
+    def execute(self, context):
+        resources = context.scene.mounted_resources
+        index = context.scene.mounted_resources_index
+        direction = self.direction
+
+        neighbor_index = index - 1 if direction == 'UP' else index + 1
+        resources.move(neighbor_index, index)
+
+        self.move_index()
+
+        return {'FINISHED'}
+
+
+class SOURCEIO_PT_Scene(Panel):
     bl_label = 'SourceIO configuration'
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
@@ -438,7 +579,34 @@ class SOURCEIO_PT_Scene(bpy.types.Panel):
         layout.prop(context.scene, "TextureCachePath")
 
         box = layout.box()
-        box.label(text='Mounted folders')
-        box2 = box.box()
-        for mount_name, mount in bpy.context.scene.get('content_manager_data', {}).items():
-            box2.label(text=f'{mount_name}: {mount}')
+        box.label(text='Mounted Resources')
+
+        row = box.row()
+        row.template_list("SOURCEIO_UL_ResourcesList", "", context.scene, "mounted_resources", context.scene,
+                          "mounted_resources_index")
+
+        col = row.column(align=True)
+        col.operator("sourceio.new_resource", icon='ADD', text="")
+        col.operator("sourceio.delete_resource", icon='REMOVE', text="")
+        col.operator("sourceio.clean_resources", icon='X', text="")
+        col.separator()
+        col.operator("sourceio.move_resource", icon='TRIA_UP', text="").direction = 'UP'
+        col.operator("sourceio.move_resource", icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+
+shared_classes = (
+    SOURCEIO_UL_MountedResource,
+    SOURCEIO_OT_NewResource,
+    SOURCEIO_OT_DeleteResource,
+    SOURCEIO_OT_CleanResources,
+    SOURCEIO_PT_ResourcesPanel,
+    SOURCEIO_UL_ResourcesList,
+    SOURCEIO_OT_ResourceMove,
+    SOURCEIO_PT_Scene,
+    SOURCEIO_PT_Utils,
+    SOURCEIO_PT_EntityLoader,
+    SOURCEIO_PT_EntityInfo,
+    SOURCEIO_PT_SkinChanger,
+    ChangeSkin_OT_LoadEntity,
+    SOURCEIO_OT_ChangeSkin,
+)

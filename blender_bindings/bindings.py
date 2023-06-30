@@ -10,13 +10,7 @@ from .operators.flex_operators import SourceIO_PG_FlexController
 from .operators.flex_operators import classes as flex_classes
 from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
                                           SOURCEIO_OT_GMDLImport)
-from .operators.shared_operators import (ChangeSkin_OT_LoadEntity,
-                                         SOURCEIO_OT_ChangeSkin,
-                                         SOURCEIO_PT_EntityInfo,
-                                         SOURCEIO_PT_EntityLoader,
-                                         SOURCEIO_PT_Scene,
-                                         SOURCEIO_PT_SkinChanger,
-                                         SOURCEIO_PT_Utils)
+from .operators.shared_operators import (SOURCEIO_UL_MountedResource, shared_classes)
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_DMXImporter,
                                           SOURCEIO_OT_MDLImport,
@@ -31,17 +25,16 @@ from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
                                           SOURCEIO_OT_VMTImport,
     # SOURCEIO_OT_VTFExport,
                                           SOURCEIO_OT_VTFImport)
-from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
-                                      SourceIO_OP_VPKBrowserLoader)
-from .operators.vpk_operators import classes as vpk_classes
+# from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
+#                                       SourceIO_OP_VPKBrowserLoader)
+# from .operators.vpk_operators import classes as vpk_classes
 from .ui.export_nodes import register_nodes, unregister_nodes
+from ..library.utils.singleton import SingletonMeta
 
 custom_icons = {}
 
+
 # noinspection PyPep8Naming
-from ..library.utils.singleton import SingletonMeta
-
-
 class SourceIO_MT_Menu(bpy.types.Menu):
     bl_label = "Source Engine Assets"
     bl_idname = "IMPORT_MT_sourceio"
@@ -161,19 +154,13 @@ classes = (
     # SourceIOPreferences,
     SourceIO_MT_Menu,
     SourceIOUtils_MT_Menu,
-    SOURCEIO_PT_Utils,
-    SOURCEIO_PT_EntityLoader,
-    SOURCEIO_PT_EntityInfo,
-    SOURCEIO_PT_SkinChanger,
-    ChangeSkin_OT_LoadEntity,
-    SOURCEIO_OT_ChangeSkin,
-    SOURCEIO_PT_Scene,
 
     SOURCEIO_OT_VTFImport,
     SOURCEIO_OT_VMTImport,
     SOURCEIO_OT_SkyboxImport,
 
     # *vpk_classes,
+    *shared_classes,
     *flex_classes,
 )
 
@@ -194,6 +181,9 @@ def register():
     bpy.types.Mesh.flex_controllers = CollectionProperty(type=SourceIO_PG_FlexController)
     bpy.types.Mesh.flex_selected_index = IntProperty(default=0)
 
+    bpy.types.Scene.mounted_resources = CollectionProperty(type=SOURCEIO_UL_MountedResource)
+    bpy.types.Scene.mounted_resources_index = IntProperty(default=0)
+
     # if is_vtflib_supported():
     #     from ..library.source1.vtf import VTFLib
     #     from .operators.source1_operators import export
@@ -202,7 +192,11 @@ def register():
 
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
+    del bpy.types.Mesh.flex_controllers
+    del bpy.types.Mesh.flex_selected_index
     del bpy.types.Scene.use_bvlg
+    del bpy.types.Scene.mounted_resources
+    del bpy.types.Scene.mounted_resources_index
     # if is_vtflib_supported():
     #     from .operators.source1_operators import export
     #     bpy.types.IMAGE_MT_image.remove(export)

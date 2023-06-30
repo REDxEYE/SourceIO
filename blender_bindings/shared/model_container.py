@@ -7,6 +7,7 @@ from ...library.goldsrc.mdl_v4.mdl_file import Mdl as GMdl
 from ...library.goldsrc.mdl_v10.mdl_file import Mdl as GMdlV4
 from ...library.source1.mdl.v36.mdl_file import MdlV36 as S1MdlV36
 from ...library.source1.mdl.v44.mdl_file import MdlV44 as S1MdlV44
+from ...library.source1.mdl.v49.mdl_file import MdlV49 as S1MdlV49
 from ...library.source1.vtx.v7.vtx import Vtx
 from ...library.source1.vvd import Vvd
 from ...library.source2.resource_types import CompiledModelResource
@@ -63,12 +64,12 @@ class GoldSrcV4ModelContainer(GoldSrcModelContainer):
 
 
 class Source1ModelContainer(ModelContainer):
-    def __init__(self, mdl: Union[S1MdlV36, S1MdlV44], vvd: Optional[Vvd], vtx: Vtx, file_list):
+    def __init__(self, mdl: Union[S1MdlV36, S1MdlV44, S1MdlV49], vvd: Optional[Vvd], vtx: Vtx, file_list):
 
         super().__init__()
         from ..source1.mdl import FileImport
 
-        self.mdl: Union[S1MdlV36, S1MdlV44] = mdl
+        self.mdl: Union[S1MdlV36, S1MdlV44, S1MdlV49] = mdl
         self.vvd: Vvd = vvd
         self.vtx: Vtx = vtx
         self.file_list: FileImport = file_list
