@@ -69,6 +69,7 @@ class BinaryKeyValues:
         self.format = KV3Formats.KV3_FORMAT_GENERIC
         self.root = Object()
         self._linear_flags = False
+        self._unk_bytes_in_header = False
 
     def __str__(self) -> str:
         return f'<KV3 {self.version.name}>({self.root!s})'
@@ -80,26 +81,30 @@ class BinaryKeyValues:
             raise BufferError("Not a KV3 buffer")
         sig = KV3Signatures(sig)
         self = cls(sig)
-        if sig == KV3Signatures.V1:
+        if sig == KV3Signatures.VKV_LEGACY:
             self._read_v1(buffer)
-        elif sig == KV3Signatures.V2:
+        elif sig == KV3Signatures.KV3_V1:
             self._read_v2(buffer)
-        elif sig == KV3Signatures.V3:
+        elif sig == KV3Signatures.KV3_V2:
             self._read_v3(buffer)
-        elif sig == KV3Signatures.V4:
+        elif sig == KV3Signatures.KV3_V3:
             self._linear_flags = True
+            self._read_v3(buffer)
+        elif sig == KV3Signatures.KV3_V4:
+            self._linear_flags = True
+            self._unk_bytes_in_header = True
             self._read_v3(buffer)
 
         return self
 
     def to_file(self, buffer: Buffer, version: Optional[KV3Signatures] = None, **kwargs):
-        version = version or self.version or KV3Signatures.V3
-        if version == KV3Signatures.V1:
+        version = version or self.version or KV3Signatures.KV3_V2
+        if version == KV3Signatures.VKV_LEGACY:
             self._write_v1(buffer, **kwargs)
-        elif version == KV3Signatures.V2:
+        elif version == KV3Signatures.KV3_V1:
             raise NotImplementedError
             # self._write_v2(buffer, **kwargs)
-        elif version == KV3Signatures.V3:
+        elif version == KV3Signatures.KV3_V2:
             self._write_v3(buffer, **kwargs)
         else:
             raise UnsupportedVersion()
@@ -139,7 +144,7 @@ class BinaryKeyValues:
         return String(strings[str_id])
 
     def _read_blob(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
-        if block_sizes:
+        if buffers.blocks_buffer is not None:
             return BinaryBlob(buffers.blocks_buffer.read(block_sizes.pop(0)))
         return BinaryBlob(buffers.byte_buffer.read(buffers.int_buffer.read_int32()))
 
@@ -194,6 +199,31 @@ class BinaryKeyValues:
             reader = self._kv_readers[data_type]
             return TypedArray(data_type, data_flag, [reader(self, buffers, strings, block_sizes) for _ in range(size)])
 
+    def _read_array_typed_byte_length(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
+        size = buffers.byte_buffer.read_uint8()
+        data_type, data_flag = self._read_type(buffers.type_buffer)
+        if data_type == KV3Type.DOUBLE_ZERO:
+            return np.zeros(size, np.float64)
+        elif data_type == KV3Type.DOUBLE_ONE:
+            return np.ones(size, np.float64)
+        elif data_type == KV3Type.INT64_ZERO:
+            return np.zeros(size, np.int64)
+        elif data_type == KV3Type.INT64_ONE:
+            return np.ones(size, np.int64)
+        elif data_type == KV3Type.DOUBLE:
+            return np.frombuffer(buffers.double_buffer.read(8 * size), np.float64)
+        elif data_type == KV3Type.INT64:
+            return np.frombuffer(buffers.double_buffer.read(8 * size), np.int64)
+        elif data_type == KV3Type.UINT64:
+            return np.frombuffer(buffers.double_buffer.read(8 * size), np.uint64)
+        elif data_type == KV3Type.INT32:
+            return np.frombuffer(buffers.int_buffer.read(4 * size), np.int32)
+        elif data_type == KV3Type.UINT32:
+            return np.frombuffer(buffers.int_buffer.read(4 * size), np.uint32)
+        else:
+            reader = self._kv_readers[data_type]
+            return TypedArray(data_type, data_flag, [reader(self, buffers, strings, block_sizes) for _ in range(size)])
+
     def _read_int32(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
         return Int32(buffers.int_buffer.read_int32())
 
@@ -218,6 +248,12 @@ class BinaryKeyValues:
     def _read_double_one(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
         return Double(1)
 
+    def _read_float(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
+        return Double(buffers.int_buffer.read_float())
+
+    def _read_int32_as_byte(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
+        return Int32(buffers.byte_buffer.read_int8())
+
     _kv_readers = (
         None,
         _read_null,
@@ -238,6 +274,12 @@ class BinaryKeyValues:
         _read_int64_one,
         _read_double_zero,
         _read_double_one,
+        _read_float,
+        None,  # _read_unknown_20,
+        None,  # _read_unknown_21,
+        None,  # _read_unknown_22,
+        _read_int32_as_byte,
+        _read_array_typed_byte_length,
     )
 
     def _read_v1(self, buffer: Buffer):
@@ -328,6 +370,9 @@ class BinaryKeyValues:
         block_count = buffer.read_uint32()
         block_total_size = buffer.read_uint32()
 
+        if self._unk_bytes_in_header:
+            buffer.read_uint64()
+
         if compression_method == 0:
             if compression_dict_id != 0:
                 raise NotImplementedError('Unknown compression method in KV3 v2 block')
@@ -382,18 +427,19 @@ class BinaryKeyValues:
             block_sizes = [data_buffer.read_uint32() for _ in range(block_count)]
             assert data_buffer.read_uint32() == 0xFFEEDD00
             block_data = b''
-            if compression_method == 0:
-                for uncompressed_block_size in block_sizes:
-                    block_data += buffer.read(uncompressed_block_size)
-            elif compression_method == 1:
-                cd = LZ4ChainDecoder(block_total_size, 0)
-                for uncompressed_block_size in block_sizes:
-                    compressed_block_size = data_buffer.read_uint16()
-                    block_data += cd.decompress(buffer.read(compressed_block_size), uncompressed_block_size)
-            elif compression_method == 2:
-                block_data += data_buffer.read()
-            else:
-                raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
+            if block_total_size > 0:
+                if compression_method == 0:
+                    for uncompressed_block_size in block_sizes:
+                        block_data += buffer.read(uncompressed_block_size)
+                elif compression_method == 1:
+                    cd = LZ4ChainDecoder(block_total_size, 0)
+                    for uncompressed_block_size in block_sizes:
+                        compressed_block_size = data_buffer.read_uint16()
+                        block_data += cd.decompress(buffer.read(compressed_block_size), uncompressed_block_size)
+                elif compression_method == 2:
+                    block_data += data_buffer.read()
+                else:
+                    raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
             block_reader = MemoryBuffer(block_data)
 
         bg = BufferGroup(byte_buffer, int_buffer, double_buffer, types_buffer, block_reader)
@@ -552,7 +598,7 @@ class BinaryKeyValues:
 
     def _write_v1(self, buffer: Buffer, encoding=KV3Encodings.KV3_ENCODING_BINARY_UNCOMPRESSED):
         assert encoding.value in KV3Encodings
-        buffer.write(KV3Signatures.V1.value)
+        buffer.write(KV3Signatures.VKV_LEGACY.value)
         buffer.write(encoding.value)
         buffer.write(self.format or KV3Formats.KV3_FORMAT_GENERIC.value)
         if encoding == KV3Encodings.KV3_ENCODING_BINARY_UNCOMPRESSED:
@@ -576,7 +622,7 @@ class BinaryKeyValues:
             buffer.write(lz4_compress(tmp_buff.read()))
 
     def _write_v2(self, buffer: Buffer, compression_method: KV3CompressionMethod = KV3CompressionMethod.UNCOMPRESSED):
-        buffer.write(KV3Signatures.V2.value)
+        buffer.write(KV3Signatures.KV3_V1.value)
         buffer.write(KV3Formats.KV3_FORMAT_GENERIC.value)
         if compression_method.value > 1:
             raise NotImplementedError(f'Compression {compression_method!r} not supported by V2 format')
@@ -625,7 +671,7 @@ class BinaryKeyValues:
 
     def _write_v3(self, buffer: Buffer, compression_method: KV3CompressionMethod = KV3CompressionMethod.UNCOMPRESSED):
 
-        buffer.write(KV3Signatures.V3.value)
+        buffer.write(KV3Signatures.KV3_V2.value)
         buffer.write(KV3Formats.KV3_FORMAT_GENERIC.value)
 
         buffer.write_uint32(compression_method.value)
@@ -700,7 +746,7 @@ if __name__ == '__main__':
                    'rb'))
     print(data)
     byte_io = WritableMemoryBuffer()
-    data.to_file(byte_io, KV3Signatures.V3, )  # compression_method=KV3CompressionMethod.ZSTD)
+    data.to_file(byte_io, KV3Signatures.KV3_V2, )  # compression_method=KV3CompressionMethod.ZSTD)
     byte_io.seek(0)
     data2 = read_keyvalues(byte_io)
     print(data2)

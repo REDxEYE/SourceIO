@@ -4,10 +4,11 @@ from ....utils import ExtendedEnum
 
 
 class KV3Signatures(ExtendedEnum):
-    V1 = b'VKV\x03'
-    V2 = b'\x013VK'
-    V3 = b'\x023VK'
-    V4 = b'\x033VK'
+    VKV_LEGACY = b'VKV\x03'
+    KV3_V1 = b'\x013VK'
+    KV3_V2 = b'\x023VK'
+    KV3_V3 = b'\x033VK'
+    KV3_V4 = b'\x043VK'
 
 
 class KV3Encodings(ExtendedEnum):
@@ -55,6 +56,12 @@ class KV3Type(IntEnum):
     INT64_ONE = 16
     DOUBLE_ZERO = 17
     DOUBLE_ONE = 18
+    FLOAT = 19
+    UNKNOWN_20 = 20
+    UNKNOWN_21 = 21
+    UNKNOWN_22 = 22
+    INT32_AS_BYTE = 23
+    ARRAY_TYPED_BYTE_LENGTH = 24
 
 
 __all__ = ['KV3Type', 'KV3TypeFlag', 'KV3Signatures', 'KV3Formats', 'KV3Encodings', 'KV3CompressionMethod']
