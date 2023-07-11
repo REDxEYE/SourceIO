@@ -26,10 +26,6 @@ def import_model_from_full_path(mdl_path: Path,
                                 load_physics: bool = False,
                                 load_refpose: bool = False
                                 ) -> Source1ModelContainer:
-    # if re_use_meshes:
-    #     container = BPSPropCache().get_object(mdl_path)
-    #     if container is not None:
-    #         return container.clone()
     content_manager = ContentManager()
     if mdl_path.is_absolute():
         mdl_file = FileBuffer(mdl_path)
@@ -71,11 +67,6 @@ def import_model_from_files(name: Union[str, Path],
                             load_physics: bool = False,
                             load_refpose: bool = False
                             ) -> Source1ModelContainer:
-    # if re_use_meshes:
-    #     container = BPSPropCache().get_object(name)
-    #     if container is not None:
-    #         return container.clone()
-
     mdl_reader = file_list.mdl_file
     magic, version = mdl_reader.read_fmt('4sI')
     mdl_reader.seek(0)

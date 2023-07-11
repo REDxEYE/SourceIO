@@ -7,6 +7,7 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
 from .import_settings_base import MDLSettings, Source1BSPSettings
 from ..source1.mdl import put_into_collections
 from ..source1.mdl.v49.import_mdl import import_animations
+from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 # from ..source1.vtf.export_vtf import export_texture
@@ -28,6 +29,7 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
     bl_label = "Import Source MDL file"
     bl_options = {'UNDO'}
 
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
@@ -40,9 +42,11 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
         else:
             directory = Path(self.filepath).resolve()
         content_manager = ContentManager()
-        content_manager.scan_for_content(directory)
-
-        bpy.context.scene['content_manager_data'] = content_manager.serialize()
+        if self.discover_resources:
+            content_manager.scan_for_content(directory)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
 
         for file in self.files:
             mdl_path = directory / file.name
@@ -68,7 +72,6 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
                 from ...library.source1.qc.qc import generate_qc
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
-        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -112,15 +115,20 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
     bl_options = {'UNDO'}
 
     # import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
-
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
 
     def execute(self, context):
         content_manager = ContentManager()
-        content_manager.scan_for_content(self.filepath)
+        if self.discover_resources:
+            content_manager.scan_for_content(self.filepath)
+        else:
+            deserialize_mounted_content(content_manager)
 
         bsp_map = BSP(self.filepath, content_manager, self)
-        bpy.context.scene['content_manager_data'] = content_manager.serialize()
+
+        if self.discover_resources:
+            serialize_mounted_content(content_manager)
 
         bsp_map.load_disp()
         bsp_map.load_entities()
@@ -152,12 +160,9 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
     filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
 
     def execute(self, context):
-        content_manager = ContentManager()
         directory = Path(self.filepath).parent.absolute()
         for file in self.files:
             load_session(directory / file.name, 1)
-
-        content_manager.clean()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -199,6 +204,7 @@ class SOURCEIO_OT_SkyboxImport(bpy.types.Operator):
     bl_label = "Import Skybox"
     bl_options = {'UNDO'}
 
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     filepath: StringProperty(subtype='FILE_PATH', )
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
@@ -220,7 +226,12 @@ class SOURCEIO_OT_SkyboxImport(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
-        ContentManager().scan_for_content(directory)
+        content_manager = ContentManager()
+        if self.discover_resources:
+            content_manager.scan_for_content(directory)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
         for file in self.files:
             skybox_name = Path(file.name).stem
             load_skybox_texture(skybox_name[:-2], int(self.resolution))
@@ -239,6 +250,7 @@ class SOURCEIO_OT_VMTImport(bpy.types.Operator):
     bl_label = "Import VMT"
     bl_options = {'UNDO'}
 
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     filepath: StringProperty(
         subtype='FILE_PATH',
     )
@@ -249,7 +261,11 @@ class SOURCEIO_OT_VMTImport(bpy.types.Operator):
 
     def execute(self, context):
         content_manager = ContentManager()
-        content_manager.scan_for_content(self.filepath)
+        if self.discover_resources:
+            content_manager.scan_for_content(self.filepath)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.absolute()
         else:

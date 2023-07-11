@@ -4,6 +4,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        IntProperty, StringProperty)
 
+from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.shared.content_providers.vpk_provider import VPKContentProvider
 from ...library.source2 import (CompiledMaterialResource,
@@ -27,6 +28,7 @@ class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     filepath: StringProperty(subtype="FILE_PATH")
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="Invert UV", default=True)
     import_physics: BoolProperty(name="Import physics", default=False)
     import_attachments: BoolProperty(name="Import attachments", default=False)
@@ -42,7 +44,14 @@ class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
-        ContentManager().scan_for_content(directory)
+
+        content_manager = ContentManager()
+        if self.discover_resources:
+            content_manager.scan_for_content(directory)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
+
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
@@ -70,7 +79,7 @@ class SOURCEIO_OT_VMAPImport(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vmap_c", options={'HIDDEN'})
-
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="invert UV?", default=True)
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
@@ -83,13 +92,18 @@ class SOURCEIO_OT_VMAPImport(bpy.types.Operator):
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
             cm = ContentManager()
-            cm.scan_for_content(directory.parent)
+            content_manager = ContentManager()
+            if self.discover_resources:
+                cm.scan_for_content(directory.parent)
+                serialize_mounted_content(content_manager)
+            else:
+                deserialize_mounted_content(content_manager)
             cm.register_content_provider(Path(file.name).stem + ".vpk",
                                          VPKContentProvider(directory / f"{Path(file.name).stem}.vpk"))
             with FileBuffer(directory / file.name) as buffer:
                 model = CompiledMapResource.from_buffer(buffer, Path(file.name))
                 load_map(model, ContentManager(), self.scale)
-            bpy.context.scene['content_manager_data'] = cm.serialize()
+            serialize_mounted_content(cm)
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -107,7 +121,7 @@ class SOURCEIO_OT_VPK_VMAPImport(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vpk", options={'HIDDEN'})
-
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="invert UV?", default=True)
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
@@ -115,14 +129,19 @@ class SOURCEIO_OT_VPK_VMAPImport(bpy.types.Operator):
         vpk_path = Path(self.filepath)
         assert vpk_path.is_file(), 'Not a file'
         cm = ContentManager()
-        cm.scan_for_content(vpk_path.parent)
+        content_manager = ContentManager()
+        if self.discover_resources:
+            cm.scan_for_content(vpk_path.parent)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
         cm.register_content_provider(vpk_path.name, VPKContentProvider(vpk_path))
         map_buffer = ContentManager().find_file(f'maps/{vpk_path.stem}.vmap_c')
         assert map_buffer is not None, "Failed to find world file in selected VPK"
 
         model = CompiledMapResource.from_buffer(map_buffer, vpk_path)
         load_map(model, ContentManager(), self.scale)
-        bpy.context.scene['content_manager_data'] = cm.serialize()
+        serialize_mounted_content(cm)
 
         return {'FINISHED'}
 
@@ -140,6 +159,7 @@ class SOURCEIO_OT_VMATImport(bpy.types.Operator):
 
     filepath: StringProperty(subtype="FILE_PATH")
     files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
     flip: BoolProperty(name="Flip texture", default=True)
     split_alpha: BoolProperty(name="Extract alpha texture", default=True)
     filter_glob: StringProperty(default="*.vmat_c", options={'HIDDEN'})
@@ -150,7 +170,12 @@ class SOURCEIO_OT_VMATImport(bpy.types.Operator):
             directory = Path(self.filepath).parent.absolute()
         else:
             directory = Path(self.filepath).absolute()
-        ContentManager().scan_for_content(directory)
+        content_manager = ContentManager()
+        if self.discover_resources:
+            content_manager.scan_for_content(directory)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
