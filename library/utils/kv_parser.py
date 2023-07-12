@@ -13,7 +13,10 @@ class _KVDataProxy(Mapping):
                         '$WINDOWS': True,
                         '$OSX': False,
                         '$LINUX': False,
-                        '$POSIX': False}
+                        '$POSIX': False,
+                        '>=dx90_20b': True,
+                        '<dx90_20b': False
+                        }
 
     def __init__(self, data: List[KeyValuePair]):
         self.data = data

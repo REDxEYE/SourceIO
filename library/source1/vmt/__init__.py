@@ -43,6 +43,26 @@ class VMT:
                 patched_vmt.data.merge(patch_data)
             self.shader = patched_vmt.shader
             self.data = patched_vmt.data
+        try:
+            self._resolve_expressions(self.data)
+        except Exception as ex:
+            logger.exception(f"Failed to resolve expression in material", ex)
+
+    def _resolve_expressions(self, node: _KVDataProxy):
+        for key, value in node.items():
+            if key in node.known_conditions and node.known_conditions[key]:
+                if isinstance(value, (_KVDataProxy, dict, list)):
+                    for e_key, e_value in value.items():
+                        node[e_key] = e_value
+                del node[key]
+                self._resolve_expressions(node)
+                return
+            if key in node.known_conditions and not node.known_conditions[key]:
+                del node[key]
+                self._resolve_expressions(node)
+                return
+            if isinstance(value, _KVDataProxy):
+                self._resolve_expressions(value)
 
     def __contains__(self, item):
         return item in self.data
