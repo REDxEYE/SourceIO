@@ -8,21 +8,6 @@ from ...shader_base import Nodes
 class CSGOVertexLitGeneric(Source2ShaderBase):
     SHADER: str = 'csgo_vertexlitgeneric.vfx'
 
-    def _get_texture(self, slot_name: str, default_color: Tuple[float, float, float, float],
-                     is_data=False,
-                     invert_y: bool = False):
-        texture_path = self._material_resource.get_texture_property(slot_name, None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, default_color, invert_y)
-            if is_data:
-                image.colorspace_settings.is_data = True
-                image.colorspace_settings.name = 'Non-Color'
-        else:
-            image = self.get_missing_texture(slot_name, default_color)
-        texture_node = self.create_node(Nodes.ShaderNodeTexImage, slot_name)
-        texture_node.image = image
-        return texture_node
-
     def create_nodes(self, material_name):
         if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
             return

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 import bpy
 import numpy as np
 
@@ -9,7 +9,7 @@ from ....library.source2.resource_types import (CompiledMaterialResource,
                                                 CompiledTextureResource)
 from ....logger import SLoggingManager
 from ...source2.vtex_loader import import_texture
-from ..shader_base import ShaderBase
+from ..shader_base import ShaderBase, Nodes
 
 logger = SLoggingManager().get_logger("Source2::Shader")
 
@@ -18,6 +18,21 @@ class Source2ShaderBase(ShaderBase):
     def __init__(self, source2_material: CompiledMaterialResource):
         super().__init__()
         self._material_resource = source2_material
+
+    def _get_texture(self, slot_name: str, default_color: Tuple[float, float, float, float],
+                     is_data=False,
+                     invert_y: bool = False):
+        texture_path = self._material_resource.get_texture_property(slot_name, None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, default_color, invert_y)
+            if is_data:
+                image.colorspace_settings.is_data = True
+                image.colorspace_settings.name = 'Non-Color'
+        else:
+            image = self.get_missing_texture(slot_name, default_color)
+        texture_node = self.create_node(Nodes.ShaderNodeTexImage, slot_name)
+        texture_node.image = image
+        return texture_node
 
     def load_texture_or_default(self, name_or_id: Union[str, int], default_color: tuple = (1.0, 1.0, 1.0, 1.0),
                                 invert_y: bool = False):
