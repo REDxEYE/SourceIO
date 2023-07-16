@@ -23,7 +23,7 @@ class KV3mdl:
         self.morph_control_list = {'_class': 'MorphControlList', 'children': []}
 
         self.morph_rule_list = {'_class': 'MorphRuleList', 'children': []}
-        self.command_list = {'_class': 'CommandList', 'command_buffer': "\n"}
+        # self.command_list = {'_class': 'CommandList', 'command_buffer': "\n"}
 
         self.storage['rootNode']['children'].append(self.render_mesh_list)
         self.storage['rootNode']['children'].append(self.animation_list)
@@ -32,7 +32,7 @@ class KV3mdl:
         self.storage['rootNode']['children'].append(self.skin_group_list)
         self.storage['rootNode']['children'].append(self.morph_control_list)
         self.storage['rootNode']['children'].append(self.morph_rule_list)
-        self.storage['rootNode']['children'].append(self.command_list)
+        # self.storage['rootNode']['children'].append(self.command_list)
         self._add_bone_markup()
         self._add_empty_anim()
 
