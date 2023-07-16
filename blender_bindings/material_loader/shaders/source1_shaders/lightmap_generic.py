@@ -93,3 +93,7 @@ class LightmapGeneric(Source1ShaderBase):
 
 class ReflectiveLightmapGeneric(LightmapGeneric):
     SHADER = 'lightmappedreflective'
+
+class SDKLightmapGeneric(LightmapGeneric):
+    SHADER = 'sdk_lightmappedgeneric'
+

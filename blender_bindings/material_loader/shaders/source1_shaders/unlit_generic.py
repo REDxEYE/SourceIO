@@ -75,3 +75,7 @@ class UnlitGeneric(Source1ShaderBase):
                 self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Color'])
             else:
                 self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Color'])
+
+
+class SDKUnlitGeneric(Source1ShaderBase):
+    SHADER: str = 'sdk_unlitgeneric'

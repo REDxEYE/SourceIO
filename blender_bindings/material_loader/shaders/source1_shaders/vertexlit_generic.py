@@ -8,7 +8,6 @@ from .detail import DetailSupportMixin
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
 
-
     @property
     def bumpmap(self):
         texture_path = self._vmt.get_string('$bumpmap', None)
@@ -161,17 +160,17 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     def phongboost(self):
         value = self._vmt.get_float('$phongboost', 1)
         return value
-        
+
     @property
     def rimlight(self):
         value = self._vmt.get_int('$rimlight', 0)
         return value
-    
+
     @property
     def rimlightexponent(self):
         value = self._vmt.get_int('$rimlightexponent', 0)
         return value
-        
+
     @property
     def rimlightboost(self):
         value = self._vmt.get_float('$rimlightboost', 0)
@@ -272,14 +271,14 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 elif self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
-            
+
             if self.rimlight:
-                    group_node.inputs['$rimlight [bool]'].default_value = self.rimlight
+                group_node.inputs['$rimlight [bool]'].default_value = self.rimlight
             if self.rimlightexponent:
-                    group_node.inputs['$rimlightexponent [value]'].default_value = self.rimlightexponent
+                group_node.inputs['$rimlightexponent [value]'].default_value = self.rimlightexponent
             if self.rimlightboost:
-                    group_node.inputs['$rimlightboost [value]'].default_value = self.rimlightboost
-            
+                group_node.inputs['$rimlightboost [value]'].default_value = self.rimlightboost
+
             if self.phong:
                 group_node.inputs['$phong [bool]'].default_value = 1
                 if self.phongboost:
@@ -409,3 +408,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                    shader.inputs['Metallic'])
 
                 self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])
+
+
+class SDKVertexLitGeneric(VertexLitGeneric):
+    SHADER: str = 'sdk_vertexlitgeneric'
