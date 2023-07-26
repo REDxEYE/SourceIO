@@ -225,7 +225,8 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     model_data_block, = model_resource.get_data_block(block_name='DATA')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
-    remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:], np.uint32)
+    remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
+                             np.uint32)
     if has_weights and has_indicies:
         weights_array = used_vertices["BLENDWEIGHT"] / 255
         indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
@@ -360,7 +361,8 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             if vertex_buffer.has_attribute('NORMAL'):
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
                 normals = used_vertices['NORMAL']
-                if draw_call.get('m_bUseCompressedNormalTangent', False) or "COMPRESSED_NORMAL_TANGENT" in draw_call["m_nFlags"]:
+                if draw_call.get('m_bUseCompressedNormalTangent', False) or "COMPRESSED_NORMAL_TANGENT" in draw_call[
+                    "m_nFlags"]:
                     normals = convert_normals(normals)
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
@@ -420,6 +422,8 @@ def get_physics_block(model_resource: CompiledModelResource) -> Optional[PhysBlo
     if 'm_refPhysicsData' in data and data['m_refPhysicsData']:
         for phys_file_path in data['m_refPhysicsData']:
             vphys = model_resource.get_child_resource(phys_file_path, ContentManager(), CompiledPhysicsResource)
+            if not vphys:
+                return None
             phys_data, = vphys.get_data_block(block_name="DATA")
             if phys_data is None:
                 raise MissingBlock('Required block "DATA" is missing')
