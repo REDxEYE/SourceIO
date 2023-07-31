@@ -181,12 +181,15 @@ class CompiledTextureResource(CompiledResource):
         normalize = False
         hemi_oct_aniso_roughness = False
         y_co_cg = False
+        hemi_oct_normal = False
         if resource_info_block:
             for spec in resource_info_block.special_deps:
                 if spec.string == "Texture Compiler Version Mip HemiOctIsoRoughness_RG_B":
                     hemi_oct_aniso_roughness = True
                 elif spec.string == "Texture Compiler Version Mip HemiOctAnisoRoughness":
                     hemi_oct_aniso_roughness = True
+                elif spec.string == "Texture Compiler Version Mip HemiOctNormal":
+                    hemi_oct_normal = True
                 elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
                     invert = True
                 # elif spec.string == "Texture Compiler Version Image Inverse":
@@ -212,6 +215,8 @@ class CompiledTextureResource(CompiledResource):
             del data
             if hemi_oct_aniso_roughness:
                 output = self._hemi_oct_aniso_roughness(output)
+            if hemi_oct_normal:
+                output = self._hemi_oct_normal(output)
             if invert:
                 output[:, :, 1] = np.invert(output[:, :, 1])
 
@@ -256,6 +261,20 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.RGBA16161616F:
             data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32).reshape((width, height, 4))
         return data
+
+    @staticmethod
+    def _hemi_oct_normal(output: np.ndarray) -> np.ndarray:
+        output = output.astype(np.float32) / 255
+        nx = output[..., 3] + output[..., 1] - 1.003922
+        ny = output[..., 3] - output[..., 1]
+        nz = 1.0 - np.abs(nx) - np.abs(ny)
+
+        l = np.sqrt((nx * nx) + (ny * ny) + (nz * nz))
+        output[:, :, 3] = 1
+        output[:, :, 0] = ((nx / l * 0.5) + 0.5)
+        output[:, :, 1] = 1 - ((ny / l * 0.5) + 0.5)
+        output[:, :, 2] = ((nz / l * 0.5) + 0.5)
+        return (output * 255).astype(np.uint8)
 
     @staticmethod
     def _hemi_oct_aniso_roughness(output: np.ndarray) -> np.ndarray:
