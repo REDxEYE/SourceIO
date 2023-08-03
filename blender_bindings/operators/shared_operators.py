@@ -1,5 +1,6 @@
 import traceback
 from hashlib import md5
+from itertools import chain
 from pathlib import Path
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        FloatProperty, StringProperty)
@@ -54,7 +55,7 @@ def add_collection(model_path: Path, collection: bpy.types.Collection, *other_ar
 
 
 # noinspection PyPep8Naming
-class ChangeSkin_OT_LoadEntity(Operator):
+class SourceIO_OT_LoadEntity(Operator):
     bl_idname = "sourceio.load_placeholder"
     bl_label = "Load Entity"
     bl_options = {'UNDO'}
@@ -65,10 +66,15 @@ class ChangeSkin_OT_LoadEntity(Operator):
         content_manager = ContentManager()
         deserialize_mounted_content(content_manager)
         unique_material_names = True
+        use_collections = context.scene.use_instances
+        replace_entity = context.scene.replace_entity
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
         master_instance_collection.hide_viewport = True
         master_instance_collection.hide_render = True
+        if not use_collections:
+            master_instance_collection = get_or_create_collection("MODELS",
+                                                                  bpy.context.scene.collection)
         win = bpy.context.window_manager
 
         win.progress_begin(0, len(context.selected_objects))
@@ -78,19 +84,20 @@ class ChangeSkin_OT_LoadEntity(Operator):
             if obj.get("entity_data", None):
                 custom_prop_data = obj['entity_data']
                 prop_path = custom_prop_data.get('prop_path', None)
-                if prop_path is None:
+                if prop_path is None or custom_prop_data.get("imported", False):
                     continue
                 model_type = Path(prop_path).suffix
                 parent = get_parent(obj.users_collection[0])
                 if model_type == '.vmdl_c':
 
                     instance_collection = get_collection(Path(prop_path))
-                    if instance_collection:
+                    if instance_collection and use_collections:
                         collection = bpy.data.collections.get(instance_collection, None)
                         if collection is not None:
                             obj.instance_type = 'COLLECTION'
                             obj.instance_collection = collection
                             obj["entity_data"]["prop_path"] = None
+                            obj["entity_data"]["imported"] = True
                             continue
 
                     vmld_file = content_manager.find_file(prop_path)
@@ -99,19 +106,38 @@ class ChangeSkin_OT_LoadEntity(Operator):
                         model_resource = CompiledModelResource.from_buffer(vmld_file, Path(prop_path))
                         container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1)
                         s2_put_into_collections(container, model_resource.name, master_instance_collection)
-                        add_collection(Path(prop_path), container.collection)
-
-                        obj.instance_type = 'COLLECTION'
-                        obj.instance_collection = container.collection
                         obj["entity_data"]["prop_path"] = None
-                        continue
+                        obj["entity_data"]["imported"] = True
 
-                        # if container.armature:
-                        #     armature = container.armature
-                        #     armature.location = obj.location
-                        #     armature.rotation_mode = "XYZ"
-                        #     armature.rotation_euler = obj.rotation_euler
-                        #     armature.scale = obj.scale
+                        if use_collections:
+                            add_collection(Path(prop_path), container.collection)
+
+                            obj.instance_type = 'COLLECTION'
+                            obj.instance_collection = container.collection
+                            continue
+                        if replace_entity:
+                            if container.armature:
+                                container.armature.location = obj.location
+                                container.armature.rotation_mode = "XYZ"
+                                container.armature.rotation_euler = obj.rotation_euler
+                                container.armature.scale = obj.scale
+                                container.armature.name = obj.name
+                            else:
+                                for ob in chain(container.objects,
+                                                container.physics_objects):  # type:bpy.types.Object
+                                    ob.location = obj.location
+                                    ob.rotation_mode = "XYZ"
+                                    ob.rotation_euler = obj.rotation_euler
+                                    ob.scale = obj.scale
+                            bpy.data.objects.remove(obj)
+                        else:
+                            if container.armature:
+                                container.armature.parent = obj
+                            else:
+                                for o in container.objects:
+                                    o.parent = obj
+                                for o in container.physics_objects:
+                                    o.parent = obj
                         # else:
                         #     for ob in chain(container.objects,
                         #                     container.physics_objects):  # type:bpy.types.Object
@@ -160,12 +186,13 @@ class ChangeSkin_OT_LoadEntity(Operator):
                     prop_path = Path(prop_path)
 
                     instance_collection = get_collection(prop_path, default_anim)
-                    if instance_collection:
+                    if instance_collection and use_collections:
                         collection = bpy.data.collections.get(instance_collection, None)
                         if collection is not None:
                             obj.instance_type = 'COLLECTION'
                             obj.instance_collection = collection
                             obj["entity_data"]["prop_path"] = None
+                            obj["entity_data"]["imported"] = True
                             continue
 
                     mdl_file = content_manager.find_file(prop_path)
@@ -200,12 +227,41 @@ class ChangeSkin_OT_LoadEntity(Operator):
                             self.report({"WARNING"}, "Failed to load animation")
                             traceback.print_exc()
 
-                    add_collection(prop_path, model_container.collection, default_anim)
-
-                    obj.instance_type = 'COLLECTION'
-                    obj.instance_collection = model_container.collection
                     obj["entity_data"]["prop_path"] = None
-                    continue
+                    obj["entity_data"]["imported"] = True
+                    if use_collections:
+                        add_collection(prop_path, model_container.collection, default_anim)
+
+                        obj.instance_type = 'COLLECTION'
+                        obj.instance_collection = model_container.collection
+                        continue
+
+                    if replace_entity:
+                        if model_container.armature:
+                            model_container.armature.location = obj.location
+                            model_container.armature.rotation_mode = "XYZ"
+                            model_container.armature.rotation_euler = obj.rotation_euler
+                            model_container.armature.scale = obj.scale
+                            model_container.armature.name = obj.name
+                            model_container.armature["entity_data"] = obj["entity_data"]
+                            model_container.armature["entity_data"]["prop_path"] = None
+                            model_container.armature["entity_data"]["imported"] = True
+                        else:
+                            for ob in model_container.objects:  # type:bpy.types.Object
+                                ob.location = obj.location
+                                ob.rotation_mode = "XYZ"
+                                ob.rotation_euler = obj.rotation_euler
+                                ob.scale = obj.scale
+                                ob["entity_data"] = obj["entity_data"]
+                                ob["entity_data"]["prop_path"] = None
+                                ob["entity_data"]["imported"] = True
+                        bpy.data.objects.remove(obj)
+                    else:
+                        if model_container.armature:
+                            model_container.armature.parent = obj
+                        else:
+                            for o in model_container.objects:
+                                o.parent = obj
 
                     # entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
                     # entity_data_holder['entity_data'] = {}
@@ -366,6 +422,9 @@ class SOURCEIO_PT_EntityLoader(UITools, Panel):
         self.layout.label(text="Entity loading")
         layout = self.layout.box()
         layout.prop(context.scene, "use_bvlg")
+        layout.prop(context.scene, "use_instances")
+        if not context.scene.use_instances:
+            layout.prop(context.scene, "replace_entity")
         obj: bpy.types.Object = context.active_object
         if obj is None and context.selected_objects:
             obj = context.selected_objects[0]
@@ -607,6 +666,6 @@ shared_classes = (
     SOURCEIO_PT_EntityLoader,
     SOURCEIO_PT_EntityInfo,
     SOURCEIO_PT_SkinChanger,
-    ChangeSkin_OT_LoadEntity,
+    SourceIO_OT_LoadEntity,
     SOURCEIO_OT_ChangeSkin,
 )

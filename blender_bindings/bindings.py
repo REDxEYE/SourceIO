@@ -178,6 +178,14 @@ def register():
         name="Use BVLG",
         default=True
     )
+    bpy.types.Scene.use_instances = bpy.props.BoolProperty(
+        name="Use instances",
+        default=True
+    )
+    bpy.types.Scene.replace_entity = bpy.props.BoolProperty(
+        name="Replace entity",
+        default=True
+    )
     bpy.types.Mesh.flex_controllers = CollectionProperty(type=SourceIO_PG_FlexController)
     bpy.types.Mesh.flex_selected_index = IntProperty(default=0)
 
@@ -195,6 +203,8 @@ def unregister():
     del bpy.types.Mesh.flex_controllers
     del bpy.types.Mesh.flex_selected_index
     del bpy.types.Scene.use_bvlg
+    del bpy.types.Scene.use_instances
+    del bpy.types.Scene.replace_entity
     del bpy.types.Scene.mounted_resources
     del bpy.types.Scene.mounted_resources_index
     # if is_vtflib_supported():
