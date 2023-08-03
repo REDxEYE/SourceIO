@@ -37,6 +37,12 @@ class _KVDataProxy(Mapping):
         else:
             raise KeyError(f'Key {item!r} not found')
 
+    def __delitem__(self, name: str) -> None:
+        for item in self.data:
+            if item[0] == name:
+                self.data.remove(item)
+                return
+
     def items(self):
         for key, value in self.data:
             yield key, self._wrap_value(value)
@@ -118,6 +124,7 @@ class VKVToken(Enum):
     RBRACKET = "]"
     LBRACE = "{"
     RBRACE = "}"
+    EXPRESSION = "Expression"
     NEWLINE = "\n"
     EOF = "End of file"
 
@@ -253,6 +260,14 @@ class ValveKeyValueLexer:
                 string = self.read_simple_string(terminators=' \t\n')
                 if string:
                     yield VKVToken.STRING, "$" + string
+            elif self.symbol in "<>=":
+                expr = ""
+                while True:
+                    if self.symbol not in "<>=":
+                        break
+                    expr += self.symbol
+                if expr:
+                    yield VKVToken.EXPRESSION, expr
             elif self.symbol == '%':
                 self.advance()
                 string = self.read_simple_string(terminators=' \t\n')
@@ -350,7 +365,7 @@ class ValveKeyValueParser:
         node_stack = [self._tree]
         while self._lexer:
             self._skip_newlines()
-            if self.match(VKVToken.STRING):
+            if self.match(VKVToken.STRING) or self.match(VKVToken.EXPRESSION):
                 key = self.advance()[1]
                 self._skip_newlines()
                 if self.match(VKVToken.LBRACE, True):
