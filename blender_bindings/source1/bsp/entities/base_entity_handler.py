@@ -279,7 +279,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
             Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
             bpy.context.scene.world = bpy.data.worlds[entity.skyname]
-        except SkyboxException:
+        except SkyboxException, AssertionError:
             self.logger.error('Failed to load Skybox due to:')
             self.logger.exception(traceback.format_exc())
 
