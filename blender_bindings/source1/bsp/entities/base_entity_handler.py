@@ -64,6 +64,15 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_door', mesh_object, 'brushes')
 
+    def handle_func_breakable_surf(self, entity: func_breakable_surf, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_breakable_surf', mesh_object, 'brushes')
+
     def handle_func_movelinear(self, entity: func_movelinear, entity_raw: dict):
         if 'model' not in entity_raw:
             return
@@ -107,6 +116,14 @@ class BaseEntityHandler(AbstractEntityHandler):
         mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_clip_vphysics', mesh_object, 'brushes')
+
+    def handle_func_smokevolume(self, entity: func_smokevolume, entity_raw: dict):
+        if 'model' not in entity_raw:
+            return
+        model_id = int(entity_raw.get('model')[1:])
+        mesh_object = self._load_brush_model(model_id, self._get_entity_name(entity))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('func_smokevolume', mesh_object, 'brushes')
 
     def handle_func_door_rotating(self, entity: func_door_rotating, entity_raw: dict):
         if 'model' not in entity_raw:

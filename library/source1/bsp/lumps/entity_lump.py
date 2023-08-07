@@ -1,10 +1,14 @@
 from pathlib import Path
+import charset_normalizer
 
+from .....logger import SLoggingManager
 from ....utils import Buffer
 from ....utils.kv_parser import ValveKeyValueParser
 from ....utils.s1_keyvalues import KVParser
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
+
+log_manager = SLoggingManager()
 
 
 @lump_tag(0, 'LUMP_ENTITIES')
@@ -12,9 +16,13 @@ class EntityLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
         self.entities = []
+        self._logger = log_manager.get_logger("Entity Lump")
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
-        buffer = buffer.read(-1).strip(b"\x00").decode('latin')
+        buffer = buffer.read(-1).strip(b"\x00")
+        chaset = charset_normalizer.from_bytes(buffer)
+        self._logger.info(f"Detected {chaset.best().encoding!r} encoding in entity lump")
+        buffer = buffer.decode(chaset.best().encoding, "ignore")
         parser = ValveKeyValueParser(buffer_and_name=(buffer, 'EntityLump'), self_recover=True, array_of_blocks=True)
         parser.parse()
         for ent in parser.tree:
