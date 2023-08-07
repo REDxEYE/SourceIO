@@ -455,6 +455,16 @@ class VTFLibV2:
             buffer = buffer.astype(np.float32) / 65535
         elif tex_format not in (VTFImageFormat.RGB323232F, VTFImageFormat.I32F, VTFImageFormat.RGBA32323232F,):
             buffer = buffer.astype(np.float32) / 255
+        elif tex_format == VTFImageFormat.RGB565:
+            buffer = buffer.view(np.uint16)
+            new_buffer = np.zeros((self.height(), self.width(), 3), np.uint8)
+            r = (buffer & 0xF800) >> 8
+            g = (buffer & 0x07E0) >> 3
+            b = (buffer & 0x001F) << 3
+            new_buffer[:, :, 0] = (r * 255.0 / 248).astype(np.uint8)
+            new_buffer[:, :, 1] = (g * 255.0 / 252).astype(np.uint8)
+            new_buffer[:, :, 2] = (b * 255.0 / 248).astype(np.uint8)
+            buffer = new_buffer
 
         if tex_format == VTFImageFormat.BGRA8888:
             target_buffer[:, :, 0] = buffer[:, :, 2]

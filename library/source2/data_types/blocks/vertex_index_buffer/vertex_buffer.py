@@ -40,6 +40,8 @@ class VertexAttribute:
             return np.float32, (2,)
         elif self.format == DxgiFormat.R32_FLOAT:
             return np.float32, (1,)
+        elif self.format == DxgiFormat.R32_UINT:
+            return np.uint32, (1,)
         elif self.format == DxgiFormat.R32G32B32_UINT:
             return np.uint32, (3,)
         elif self.format == DxgiFormat.R32G32B32_SINT:

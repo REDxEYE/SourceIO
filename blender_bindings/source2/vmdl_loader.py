@@ -12,7 +12,7 @@ from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import (CompiledMaterialResource,
                                 CompiledModelResource, CompiledMorphResource,
                                 CompiledPhysicsResource, CompiledResource)
-from ...library.source2.common import convert_normals
+from ...library.source2.common import convert_normals, convert_normals_2
 from ...library.source2.data_types.blocks.kv3_block import KVBlock
 from ...library.source2.data_types.blocks.morph_block import MorphBlock
 from ...library.source2.data_types.blocks.phys_block import PhysBlock
@@ -361,9 +361,13 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             if vertex_buffer.has_attribute('NORMAL'):
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
                 normals = used_vertices['NORMAL']
-                if draw_call.get('m_bUseCompressedNormalTangent',
-                                 False) or "COMPRESSED_NORMAL_TANGENT" in draw_call.get("m_nFlags", []):
-                    normals = convert_normals(normals)
+                use_compressed_normal_tangent = draw_call.get('m_bUseCompressedNormalTangent', False)
+                use_compressed_normal_tangent |= "COMPRESSED_NORMAL_TANGENT" in draw_call.get("m_nFlags", [])
+                if use_compressed_normal_tangent:
+                    if normals.dtype == np.uint32:
+                        normals = convert_normals_2(normals)
+                    else:
+                        normals = convert_normals(normals)
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
             _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
