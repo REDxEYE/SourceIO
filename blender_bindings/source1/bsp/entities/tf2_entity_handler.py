@@ -42,6 +42,7 @@ class TF2EntityHandler(BaseEntityHandler):
             return
         model_id = int(entity_raw.get('model')[1:])
         mesh_object = self._load_brush_model(model_id, entity.respawnroomname)
+        self._set_location(mesh_object, entity.origin)
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('func_respawnroomvisualizer', mesh_object, 'brushes')
 
