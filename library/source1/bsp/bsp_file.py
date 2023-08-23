@@ -72,21 +72,23 @@ class BSPFile:
                         if dep.lump_version is not None and dep.lump_version != self.lumps_info[dep.lump_id].version:
                             continue
                         matches.append((sub, dep))
-            best_matches = {}
+            best_matches = []
             for match_sub, match_dep in matches:
                 lump = self.lumps_info[match_dep.lump_id]
                 rank = 0
-                if match_dep.bsp_version is not None and match_dep.bsp_version > self.version:
+                if match_dep.bsp_version is not None and match_dep.bsp_version == self.version:
+                    rank += 2
+                elif match_dep.bsp_version is not None and match_dep.bsp_version > self.version:
                     rank += 1
                 if match_dep.steam_id is not None and match_dep.steam_id == self.steam_app_id:
                     rank += 1
                 if match_dep.lump_version is not None and match_dep.lump_version == lump.version:
                     rank += 1
-                best_matches[rank] = (match_sub, match_dep)
+                best_matches.append((rank, match_sub, match_dep))
             if not best_matches:
                 return
-            best_match_id = max(best_matches.keys())
-            sub, dep = best_matches[best_match_id]
+            best_matches = list(sorted(best_matches, key=lambda a: a[0]))
+            _, sub, dep = best_matches[-1]
 
             parsed_lump = self.parse_lump(sub, dep.lump_id, dep.lump_name)
             self.lumps[lump_name] = parsed_lump

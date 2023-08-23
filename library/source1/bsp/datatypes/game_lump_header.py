@@ -24,6 +24,9 @@ class GameLumpHeader(Primitive):
         self.offset, self.size = reader.read_fmt('2i')
         return self
 
+    def __repr__(self):
+        return f"GameLumpHeader({self.id=}, {self.flags=})"
+
 
 class DMGameLumpHeader(GameLumpHeader):
     def parse(self, reader: Buffer, bsp: 'BSPFile'):
