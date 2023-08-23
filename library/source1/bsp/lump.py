@@ -67,7 +67,11 @@ class LumpInfo:
 
 
 class Lump:
-    tags: List[LumpTag] = []
+    tags: List[LumpTag]
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.tags = []
 
     @property
     def version(self):
