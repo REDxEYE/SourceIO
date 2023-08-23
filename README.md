@@ -1,3 +1,4 @@
+
 # SourceIO
 SourceIO is a Blender(3.1+) addon for importing\exporting source engine textures/models/maps
 Our Discord server https://discord.gg/SF82W6aZ67
@@ -5,7 +6,9 @@ Our Discord server https://discord.gg/SF82W6aZ67
 Current TODO list -> [TODO.md](TODO.md)
 
 Small WIKI -> [WIKI](./wiki/init.md)
-
+# Usage
+In order to find the import tools you simply need to go to File>Import>Source Engine Assets
+![](https://cdn.discordapp.com/attachments/786989240529059900/1143975506589515886/image.png)
 # Credits
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
 * [ValveResourceFormat](https://github.com/SteamDatabase/ValveResourceFormat) For initial research on Source2 file formats
