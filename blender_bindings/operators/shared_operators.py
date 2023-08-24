@@ -11,7 +11,7 @@ from bpy.types import (Panel,
 import bpy
 
 from ..source1.mdl.v44.import_mdl import import_static_animations
-from ..utils.resource_utils import deserialize_mounted_content
+from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ...library.utils.path_utilities import find_vtx_cm
@@ -515,9 +515,15 @@ class SOURCEIO_OT_NewResource(Operator):
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
 
     def execute(self, context):
+        cm = ContentManager()
+        serialize_mounted_content(cm)
+        cm.clean()
         new_resource = context.scene.mounted_resources.add()
         new_resource.path = self.filepath
-        new_resource.name = bpy.path.basename(self.filepath)
+        new_resource.name = Path(self.filepath).name
+        cm.scan_for_content(Path(self.filepath))
+        deserialize_mounted_content(cm)
+        serialize_mounted_content(cm)
 
         return {'FINISHED'}
 

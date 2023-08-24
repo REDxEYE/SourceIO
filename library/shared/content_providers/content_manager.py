@@ -89,6 +89,10 @@ class ContentManager(metaclass=SingletonMeta):
     def register_content_provider(self, name: str, content_provider: AnyContentProvider):
         if name in self.content_providers:
             return
+        for tmp in self.content_providers.values():
+            if tmp.filepath == content_provider.filepath:
+                return
+
         self.content_providers[name] = content_provider
         logger.info(f'Registered {content_provider.class_name()}({name!r}) provider for {content_provider.root.stem}')
 
@@ -246,30 +250,30 @@ class ContentManager(metaclass=SingletonMeta):
 
             if path.endswith('.vpk'):
                 sub_manager = VPKContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                self.register_content_provider(name, sub_manager)
             elif path.endswith('.txt'):
                 sub_manager = Source1GameinfoContentProvider(Path(path))
                 if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
-                self.content_providers[name] = sub_manager
+                self.register_content_provider(name, sub_manager)
             elif path.endswith('.gi'):
                 sub_manager = Source2GameinfoContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                self.register_content_provider(name, sub_manager)
             elif path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
                 bsp = open_bsp(path)
                 pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
-                    self.content_providers[name] = pak_lump
+                    self.register_content_provider(name, pak_lump)
             elif path.endswith('.hfs'):
                 sub_manager = HFS1ContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                self.register_content_provider(name, sub_manager)
             elif name == 'hfs':
                 sub_manager = HFS2ContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                self.register_content_provider(name, sub_manager)
             else:
                 sub_manager = NonSourceContentProvider(Path(path))
-                self.content_providers[name] = sub_manager
+                self.register_content_provider(name, sub_manager)
 
     def get_content_provider_from_path(self, filepath):
         filepath = Path(filepath)
