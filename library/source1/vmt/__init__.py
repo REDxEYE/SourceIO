@@ -4,7 +4,7 @@ from typing import IO, Union
 
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager
-from ...utils.kv_parser import ValveKeyValueParser, _KVDataProxy, KVLexerException
+from ...utils.kv_parser import ValveKeyValueParser, KVDataProxy, KVLexerException
 
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::VMT')
@@ -25,7 +25,7 @@ class VMT:
             logger.exception("Failed to parse material due to", ex)
             traceback.print_exc()
             self.shader = "FAILED_TO_LOAD"
-            self.data = _KVDataProxy([])
+            self.data = KVDataProxy([])
 
     def _postprocess(self):
         content_manager = ContentManager()
@@ -48,10 +48,10 @@ class VMT:
         except Exception as ex:
             logger.exception(f"Failed to resolve expression in material", ex)
 
-    def _resolve_expressions(self, node: _KVDataProxy):
+    def _resolve_expressions(self, node: KVDataProxy):
         for key, value in node.items():
             if key in node.known_conditions and node.known_conditions[key]:
-                if isinstance(value, (_KVDataProxy, dict, list)):
+                if isinstance(value, (KVDataProxy, dict, list)):
                     for e_key, e_value in value.items():
                         node[e_key] = e_value
                 del node[key]
@@ -61,19 +61,19 @@ class VMT:
                 del node[key]
                 self._resolve_expressions(node)
                 return
-            if isinstance(value, _KVDataProxy):
+            if isinstance(value, KVDataProxy):
                 self._resolve_expressions(value)
 
     def __contains__(self, item):
         return item in self.data
 
-    def __getitem__(self, item) -> Union[_KVDataProxy, str]:
+    def __getitem__(self, item) -> Union[KVDataProxy, str]:
         return self.data[item]
 
     def __setitem__(self, key, value):
         self.data[key] = value
 
-    def get(self, name, default=None) -> Union[_KVDataProxy, str]:
+    def get(self, name, default=None) -> Union[KVDataProxy, str]:
         value = self.data.get(name, default)
         if value == "":
             return default

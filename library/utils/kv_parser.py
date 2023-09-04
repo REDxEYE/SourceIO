@@ -1,13 +1,14 @@
 import warnings
 from enum import Enum
 from pathlib import Path
-from pprint import pprint
 from typing import Iterator, List, Mapping, Tuple, Union
+
+__all__ = ["KVLexerException", "KVParserException", "ValveKeyValueParser", "KeyValuePair", "KVDataProxy"]
 
 KeyValuePair = Tuple[str, Union[str, 'KeyValuePair', List['KeyValuePair']]]
 
 
-class _KVDataProxy(Mapping):
+class KVDataProxy(Mapping):
     known_conditions = {'$X360': False,
                         '$WIN32': True,
                         '$WINDOWS': True,
@@ -47,7 +48,7 @@ class _KVDataProxy(Mapping):
         for key, value in self.data:
             yield key, self._wrap_value(value)
 
-    def get(self, name, default=None):
+    def get(self, name, default=None) -> "KVDataProxy":
         name = name.lower()
         for key, value in self.data:
             if key == name:
@@ -63,7 +64,24 @@ class _KVDataProxy(Mapping):
                     return self._wrap_value(value)
         return default
 
-    def top(self) -> Tuple[str, Union[str, '_KVDataProxy']]:
+    def get_multiple(self, name) -> List["KVDataProxy"]:
+        data = []
+        name = name.lower()
+        for key, value in self.data:
+            if key == name:
+                if isinstance(value, tuple) and len(value) == 2:
+                    value, cond = value
+                    if cond.startswith('!'):
+                        cond = not self.known_conditions[cond[1:]]
+                    else:
+                        cond = self.known_conditions[cond]
+                    if cond:
+                        data.append(self._wrap_value(value))
+                else:
+                    data.append(self._wrap_value(value))
+        return data
+
+    def top(self) -> Tuple[str, Union[str, 'KVDataProxy']]:
         # assert len(self.data) == 1
         if len(self.data) > 1:
             print("More than one root node:")
@@ -80,9 +98,9 @@ class _KVDataProxy(Mapping):
                 return
         self.data.append((key, self._wrap_value(value)))
 
-    def merge(self, other: '_KVDataProxy'):
+    def merge(self, other: 'KVDataProxy'):
         for o_item, o_value in other.items():
-            if isinstance(o_value, _KVDataProxy):
+            if isinstance(o_value, KVDataProxy):
                 if o_item not in self:
                     self[o_item] = o_value
                 else:
@@ -93,13 +111,13 @@ class _KVDataProxy(Mapping):
     @staticmethod
     def _wrap_value(value):
         if isinstance(value, list):
-            return _KVDataProxy(value)
+            return KVDataProxy(value)
         return value
 
     def to_dict(self):
         items = {}
         for k, v in self.items():
-            if isinstance(v, _KVDataProxy):
+            if isinstance(v, KVDataProxy):
                 v = v.to_dict()
             items[k] = v
         return items
@@ -187,7 +205,7 @@ class ValveKeyValueLexer:
         return (symbol.isprintable() or symbol in '\t\x7f\x1b') and symbol not in '$%{}[]"\'\n\r'
 
     def _is_valid_quoted_symbol(self, symbol):
-        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?\x1b'
+        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?'
 
     def _is_escaped_symbol(self):
         return self.next_symbol in '\'"\\'
@@ -196,6 +214,8 @@ class ValveKeyValueLexer:
         string_buffer = ""
         while True:
             symbol = self.symbol
+            if symbol == "\\" and self.next_symbol == "x":
+                self.advance()
             # if symbol in '"\'':
             #     self.advance()
             #     break
@@ -210,6 +230,10 @@ class ValveKeyValueLexer:
 
         while True:
             symbol = self.symbol
+            if symbol == "\\" and self.next_symbol == "x":
+                self.advance()
+                self.advance()
+                self.advance()
             # if symbol == '\\' and self.next_symbol in '\'"ntr':
             #     self.advance()
             if not self._is_valid_quoted_symbol(symbol) or symbol in terminator + '\n':
@@ -225,29 +249,30 @@ class ValveKeyValueLexer:
 
     def lex(self):
         while self._offset < len(self.buffer):
-            if self.symbol == '\n':
+            symbol = self.symbol
+            if symbol == '\n':
                 if self.next_symbol == '\n':
                     while self.next_symbol == '\n':
                         self.advance()  # skip multiple new lines
                 yield VKVToken.NEWLINE, self.advance()
-            elif self.symbol.isspace():
+            elif symbol.isspace():
                 self.advance()
                 continue
-            elif self.symbol == '/' and self.next_symbol == '/':
+            elif symbol == '/' and self.next_symbol == '/':
                 self.advance(), self.advance()
                 comment = ''
                 while self.symbol != '\n' and self:
                     comment += self.advance()
                 # yield VKVToken.COMMENT, comment
-            elif self.symbol == '{':
+            elif symbol == '{':
                 yield VKVToken.LBRACE, self.advance()
-            elif self.symbol == '}':
+            elif symbol == '}':
                 yield VKVToken.RBRACE, self.advance()
-            elif self._is_valid_symbol(self.symbol):
+            elif self._is_valid_symbol(symbol):
                 string = self.read_simple_string(terminators=' \t\n')
                 if string:
                     yield VKVToken.STRING, string
-            elif self.symbol in '\'"':
+            elif symbol in '\'"':
                 if self.next_symbol in '\'"':
                     self.advance(), self.advance()
                     yield VKVToken.STRING, ""
@@ -255,7 +280,7 @@ class ValveKeyValueLexer:
                 string = self.read_quoted_string()
                 if string:
                     yield VKVToken.STRING, string
-            elif self.symbol == '$':
+            elif symbol == '$':
                 self.advance()
                 string = self.read_simple_string(terminators=' \t\n')
                 if string:
@@ -268,21 +293,21 @@ class ValveKeyValueLexer:
                     expr += self.symbol
                 if expr:
                     yield VKVToken.EXPRESSION, expr
-            elif self.symbol == '%':
+            elif symbol == '%':
                 self.advance()
                 string = self.read_simple_string(terminators=' \t\n')
                 if string:
                     yield VKVToken.STRING, "%" + string
-            elif self.symbol == '[':
+            elif symbol == '[':
                 yield VKVToken.LBRACKET, self.advance()
-            elif self.symbol == ']':
+            elif symbol == ']':
                 yield VKVToken.RBRACKET, self.advance()
-            elif self.symbol.isprintable():
+            elif symbol.isprintable():
                 warnings.warn(f'Unknown symbol {self.advance()!r} at {self._line}:{self._column}')
                 continue
             else:
                 raise KVLexerException(
-                    f'Unknown symbol {self.symbol!r} in {self.buffer_name!r} at {self._line}:{self._column}')
+                    f'Unknown symbol {symbol!r} in {self.buffer_name!r} at {self._line}:{self._column}')
         yield VKVToken.EOF, None
 
     def __bool__(self):
@@ -309,8 +334,8 @@ class ValveKeyValueParser:
     @property
     def tree(self):
         if self._array_of_blocks:
-            return [_KVDataProxy(s) for s in self._tree]
-        return _KVDataProxy(self._tree)
+            return [KVDataProxy(s) for s in self._tree]
+        return KVDataProxy(self._tree)
 
     def peek(self):
         if self._last_peek is None:
@@ -392,69 +417,3 @@ class ValveKeyValueParser:
                 token, value = self.peek()
                 raise KVParserException(
                     f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line}:{self._lexer.column}")
-
-
-if __name__ == '__main__':
-    data = """Shader
-{
-    $key"  "value
-    "$key1"  "value1'
-    "$key2"  "valu\\"e1"
-    "$key3"  "val\\ue2`
-    "$key4"  "value3"  [!PS3]
-    "$key4"  "value5342"  [PS3]
-    "$key5"  "[0.0 1.0 1.0]"
-    "$key5"  "{255 255 255 4100}"
-    "$key6"  models/tests/basic_vertexlitgeneric
-    
-    test "<>!=asd./"
-    
-    $envtint  .3 .3 .3
-    
-    $basetexturetransform  "center .5 .5 scale 1 1 rotate 16 translate 15 8"
-    ">=DX80"{
-        key1 valie1
-    
-    }
-    Proxies{
-        Test
-        {
-           key1 valie1
-        }
-        test   test
-    
-    }
-}
-"""
-    debug_data = r""""// envmaptint_fix
-"vertexlitgeneric"
-{
-
-	"$basetexture" "props/plasticceiling003a"
-	"$bumpmap" "props/plasticceiling003a_normal"
-	"$normalmapalpha" "1"
-	"$surfaceprop" "plastic"
-	"$envmap" "env_cubemap"
-	"$envmaptint" "[ .36 .36 .36 ]"
-	"$envmapcontrast" ".6"
-	"$envmapsaturation" "[.5 .5 .5]"
-	"%keywords" "borealis"
-	"$normalmapalphaenvmapmask" 1
-}
-
-"""
-
-    with open(r"C:\Users\AORUS\Downloads\plasticceiling003a.vmt", 'r') as f:
-        debug_data = f.read()
-    print(debug_data)
-    parser = ValveKeyValueParser(buffer_and_name=(debug_data, 'memory'), self_recover=True)
-    parser.parse()
-    pprint(parser.tree.to_dict())
-    # ContentManager().scan_for_content(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry")
-    # for file_name, file in ContentManager().glob('*.vmt'):
-    #     print(file_name)
-    #     file_data = file.read().decode('latin1')
-    #     print(file_data)
-    #     parser = ValveKeyValueParser(buffer_and_name=(file_data, file_name),self_recover=True)
-    #     parser.parse()
-    #     pprint(parser.tree)
