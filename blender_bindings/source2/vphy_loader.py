@@ -1,86 +1,149 @@
-from math import atan, pi, sqrt
-
 import bpy
-from mathutils import Euler, Matrix, Vector
+import numpy as np
+from mathutils import Matrix, Vector
 
 from ...library.source2.data_types.blocks.phys_block import PhysBlock
+from ...library.source2.data_types.keyvalues3.types import BinaryBlob
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
-CAPSULE_VERTICES = [(0.276388019323349, -0.8506492376327515, 0.9472198486328125),
-                    (-0.7236073017120361, -0.5257253050804138, 0.9472194910049438),
-                    (-0.7236073017120361, 0.5257253050804138, 0.9472194910049438),
-                    (0.276388019323349, 0.8506492376327515, 0.9472198486328125),
-                    (0.8944262266159058, 0.0, 0.9472155570983887),
-                    (0.0, 0.0, 1.5),
-                    (0.9510578513145447, -0.30901262164115906, 0.5),
-                    (0.9510578513145447, 0.30901262164115906, 0.5),
-                    (0.0, -0.9999999403953552, 0.5),
-                    (0.5877856016159058, -0.8090167045593262, 0.5),
-                    (-0.9510578513145447, -0.30901262164115906, 0.5),
-                    (-0.5877856016159058, -0.8090167045593262, 0.5),
-                    (-0.5877856016159058, 0.8090167045593262, 0.5),
-                    (-0.9510578513145447, 0.30901262164115906, 0.5),
-                    (0.5877856016159058, 0.8090167045593262, 0.5),
-                    (0.0, 0.9999999403953552, 0.5),
-                    (0.6881893873214722, -0.49999693036079407, 1.0257362127304077),
-                    (-0.26286882162094116, -0.8090116381645203, 1.0257376432418823),
-                    (-0.8506478667259216, 0.0, 1.025735855102539),
-                    (-0.26286882162094116, 0.8090116381645203, 1.0257376432418823),
-                    (0.6881893873214722, 0.49999693036079407, 1.0257362127304077),
-                    (0.16245555877685547, -0.49999526143074036, 1.3506543636322021),
-                    (0.525729775428772, 0.0, 1.350651741027832),
-                    (-0.42532268166542053, -0.30901139974594116, 1.350654125213623),
-                    (-0.42532268166542053, 0.30901139974594116, 1.350654125213623),
-                    (0.16245555877685547, 0.49999526143074036, 1.3506543636322021),
-                    (0.276388019323349, -0.8506492376327515, -0.9472198486328125),
-                    (-0.7236073017120361, -0.5257253050804138, -0.9472194910049438),
-                    (-0.7236073017120361, 0.5257253050804138, -0.9472194910049438),
-                    (0.276388019323349, 0.8506492376327515, -0.9472198486328125),
-                    (0.8944262266159058, 0.0, -0.9472155570983887),
-                    (0.0, 0.0, -1.5),
-                    (0.9510578513145447, -0.30901262164115906, -0.5),
-                    (0.9510578513145447, 0.30901262164115906, -0.5),
-                    (0.0, -0.9999999403953552, -0.5),
-                    (0.5877856016159058, -0.8090167045593262, -0.5),
-                    (-0.9510578513145447, -0.30901262164115906, -0.5),
-                    (-0.5877856016159058, -0.8090167045593262, -0.5),
-                    (-0.5877856016159058, 0.8090167045593262, -0.5),
-                    (-0.9510578513145447, 0.30901262164115906, -0.5),
-                    (0.5877856016159058, 0.8090167045593262, -0.5),
-                    (0.0, 0.9999999403953552, -0.5),
-                    (0.6881893873214722, -0.49999693036079407, -1.0257362127304077),
-                    (-0.26286882162094116, -0.8090116381645203, -1.0257376432418823),
-                    (-0.8506478667259216, 0.0, -1.025735855102539),
-                    (-0.26286882162094116, 0.8090116381645203, -1.0257376432418823),
-                    (0.6881893873214722, 0.49999693036079407, -1.0257362127304077),
-                    (0.16245555877685547, -0.49999526143074036, -1.3506543636322021),
-                    (0.525729775428772, 0.0, -1.350651741027832),
-                    (-0.42532268166542053, -0.30901139974594116, -1.350654125213623),
-                    (-0.42532268166542053, 0.30901139974594116, -1.350654125213623),
-                    (0.16245555877685547, 0.49999526143074036, -1.3506543636322021)]
-CAPSULE_POLYGONS = [(0, 16, 21), (1, 17, 23), (2, 18, 24), (3, 19, 25), (4, 20, 22), (22, 25, 5), (22, 20, 25),
-                    (20, 3, 25),
-                    (25, 24, 5), (25, 19, 24), (19, 2, 24), (24, 23, 5), (24, 18, 23), (18, 1, 23), (23, 21, 5),
-                    (23, 17, 21),
-                    (17, 0, 21), (21, 22, 5), (21, 16, 22), (16, 4, 22), (7, 20, 4), (7, 14, 20), (14, 3, 20),
-                    (15, 19, 3),
-                    (15, 12, 19), (12, 2, 19), (13, 18, 2), (13, 10, 18), (10, 1, 18), (11, 17, 1), (11, 8, 17),
-                    (8, 0, 17),
-                    (9, 16, 0), (9, 6, 16), (6, 4, 16), (14, 15, 3), (12, 13, 2), (10, 11, 1), (8, 9, 0), (6, 7, 4),
-                    (26, 47, 42),
-                    (27, 49, 43), (28, 50, 44), (29, 51, 45), (30, 48, 46), (48, 31, 51), (48, 51, 46), (46, 51, 29),
-                    (51, 31, 50),
-                    (51, 50, 45), (45, 50, 28), (50, 31, 49), (50, 49, 44), (44, 49, 27), (49, 31, 47), (49, 47, 43),
-                    (43, 47, 26),
-                    (47, 31, 48), (47, 48, 42), (42, 48, 30), (33, 30, 46), (33, 46, 40), (40, 46, 29), (41, 29, 45),
-                    (41, 45, 38),
-                    (38, 45, 28), (39, 28, 44), (39, 44, 36), (36, 44, 27), (37, 27, 43), (37, 43, 34), (34, 43, 26),
-                    (35, 26, 42),
-                    (35, 42, 32), (32, 42, 30), (40, 29, 41), (38, 28, 39), (36, 27, 37), (34, 26, 35), (32, 30, 33),
-                    (9, 8, 34, 35),
-                    (6, 9, 35, 32), (7, 6, 32, 33), (14, 7, 33, 40), (15, 14, 40, 41), (12, 15, 41, 38),
-                    (13, 12, 38, 39),
-                    (10, 13, 39, 36), (11, 10, 36, 37), (8, 11, 37, 34)]
+
+def generate_capsule_mesh(p1, p2, radius, segments=16):
+    direction = np.array(p2, dtype=float) - np.array(p1, dtype=float)
+    length = np.linalg.norm(direction)
+    direction /= length
+    rot = np.eye(3)
+    if abs(direction[1]) < 0.9999:
+        axis = np.cross([0, 1, 0], direction)
+        axis /= np.linalg.norm(axis)
+        angle = np.arccos(np.dot([0, 1, 0], direction))
+        s, c = np.sin(angle), np.cos(angle)
+        rot = np.array([
+            [c + axis[0] ** 2 * (1 - c), axis[0] * axis[1] * (1 - c) - axis[2] * s,
+             axis[0] * axis[2] * (1 - c) + axis[1] * s],
+            [axis[1] * axis[0] * (1 - c) + axis[2] * s, c + axis[1] ** 2 * (1 - c),
+             axis[1] * axis[2] * (1 - c) - axis[0] * s],
+            [axis[2] * axis[0] * (1 - c) - axis[1] * s, axis[2] * axis[1] * (1 - c) + axis[0] * s,
+             c + axis[2] ** 2 * (1 - c)]
+        ])
+
+    total_vertices = segments * 2 + ((segments - 2) * segments + 1) * 2
+    vertices = np.zeros((total_vertices, 3), np.float32)
+    offset = 0
+    for y in [0, length]:
+        for i in range(segments):
+            angle = 2 * np.pi * i / segments
+            x, z = radius * np.cos(angle), radius * np.sin(angle)
+            vertices[offset] = [x, y, z]
+            offset += 1
+
+    for i in range(1, segments - 1):
+        angle_v = 0.5 * np.pi * i / (segments - 1)
+        y_offset = radius * np.cos(angle_v)
+        r = radius * np.sin(angle_v)
+        for j in range(segments):
+            angle_h = 2 * np.pi * j / segments
+            x, z = r * np.cos(angle_h), r * np.sin(angle_h)
+            vertices[offset] = [x, -y_offset, z]
+            offset += 1
+    vertices[offset] = [0, -radius, 0]
+    offset += 1
+
+    for i in range(1, segments - 1):  # Start from 1 to exclude the base ring
+        angle_v = 0.5 * np.pi * i / (segments - 1)
+        y_offset = radius * np.cos(angle_v)
+        r = radius * np.sin(angle_v)
+        for j in range(segments):
+            angle_h = 2 * np.pi * j / segments
+            x, z = r * np.cos(angle_h), r * np.sin(angle_h)
+            vertices[offset] = [x, length + y_offset, z]
+            offset += 1
+
+    vertices[offset] = [0, length + radius, 0]
+    offset += 1
+    # Generate indices for each part
+    indices1 = np.zeros((segments * 2, 3), dtype=int)
+    for i1 in range(segments):
+        j1 = (i1 + 1) % segments
+        indices1[2 * i1] = [i1, j1, i1 + segments]
+        indices1[2 * i1 + 1] = [i1 + segments, j1, j1 + segments]
+
+    indices2 = np.zeros((segments * 2, 3), np.uint32)
+    cylinder_top_indices = np.arange(segments)
+    offset1 = (segments - 1) * segments
+    hemisphere_bottom_indices = np.arange(offset1, offset1 + segments)
+    for j2 in range(segments):
+        k = (j2 + 1) % segments
+        idx1, idx2, idx3 = cylinder_top_indices[j2], cylinder_top_indices[k], hemisphere_bottom_indices[j2]
+        indices2[j2 * 2] = [idx1, idx2, idx3]
+        idx4 = hemisphere_bottom_indices[k]
+        indices2[j2 * 2 + 1] = [idx2, idx4, idx3]
+    top_join_indices = np.array(indices2, dtype=np.uint32)
+
+    indices3 = np.zeros((segments * 2, 3), np.uint32)
+    cylinder_top_indices = np.arange(segments) + segments
+    offset1 = (segments - 1) * segments + ((segments - 2) * segments + 1)
+    hemisphere_bottom_indices = np.arange(offset1, offset1 + segments)
+    for j2 in range(segments):
+        k = (j2 + 1) % segments
+        idx1, idx2, idx3 = cylinder_top_indices[j2], cylinder_top_indices[k], hemisphere_bottom_indices[j2]
+        indices3[j2 * 2] = [idx1, idx2, idx3]
+        idx4 = hemisphere_bottom_indices[k]
+        indices3[j2 * 2 + 1] = [idx2, idx4, idx3]
+    bot_join_indices = np.array(indices3, dtype=np.uint32)
+
+    indices4 = []
+    for i2 in range(0, segments - 3):
+        for j3 in range(segments):
+            k1 = (j3 + 1) % segments
+            base_idx = i2 * segments
+            idx_1, idx_, idx_3, idx_2 = base_idx + j3, base_idx + k1, base_idx + segments + j3, base_idx + segments + k1
+
+            # Triangles
+            indices4.extend([[idx_1, idx_3, idx_], [idx_3, idx_2, idx_]])
+    top_vertex = (segments - 2) * segments
+    for j3 in range(segments):
+        k1 = (j3 + 1) % segments
+        indices4.append([j3, top_vertex, j3 + 1 if k1 != 0 else j3 + 1 - segments])
+    hemisphere_ind = np.array(indices4, dtype=np.uint32)
+
+    max_idx = np.max(indices1)
+    top_hemisphere_ind = hemisphere_ind + max_idx + 1
+    max_idx = np.max(top_hemisphere_ind)
+    bot_hemisphere_ind = hemisphere_ind + max_idx + 1
+
+    indices = np.concatenate([indices1, top_hemisphere_ind, bot_hemisphere_ind, top_join_indices, bot_join_indices])
+    vertices = np.dot(rot, vertices.T).T + p1
+    return vertices, indices
+
+
+def generate_sphere_mesh(radius, segments):
+    vertices = []
+    indices = []
+
+    # Generate vertices
+    for i in range(segments):
+        angle_v = np.pi * i / (segments - 1)
+        y = radius * np.cos(angle_v)
+        r = radius * np.sin(angle_v)
+        for j in range(segments):
+            angle_h = 2 * np.pi * j / segments
+            x, z = r * np.cos(angle_h), r * np.sin(angle_h)
+            vertices.append([x, y, z])
+
+    # Generate indices
+    for i in range(segments - 1):
+        for j in range(segments):
+            k = (j + 1) % segments
+            base_idx = i * segments
+            idx1, idx2, idx3, idx4 = base_idx + j, base_idx + k, base_idx + segments + j, base_idx + segments + k
+
+            # Triangles
+            indices.extend([[idx1, idx3, idx2], [idx3, idx4, idx2]])
+
+    return np.array(vertices), np.array(indices, dtype=np.uint32)
+
+
+segments = 12
 
 
 def load_physics(phys_block: PhysBlock, scale: float = SOURCE2_HAMMER_UNIT_TO_METERS):
@@ -89,56 +152,145 @@ def load_physics(phys_block: PhysBlock, scale: float = SOURCE2_HAMMER_UNIT_TO_ME
     names = phys_block["m_boneNames"]
     matrices = phys_block["m_bindPose"]
     shapes = []
-    for parent, part, matrix in zip(indices, parts, matrices):
-        bone_matrix = Matrix(matrix.reshape((3, 4))).to_4x4()
 
-        shape = part["m_rnShape"]
+    if indices and names and matrices:
+        for parent, part, matrix in zip(indices, parts, matrices):
+            bone_matrix = Matrix(matrix.reshape((3, 4))).to_4x4()
 
-        spheres = shape["m_spheres"]
-        capsules = shape["m_capsules"]
-        hulls = shape["m_hulls"]
-        meshes = shape["m_meshes"]
-        for capsule_info in capsules:
-            capsule = capsule_info["m_Capsule"]
-            capsule_start, capsule_end = capsule["m_vCenter"]
-            radius = capsule["m_flRadius"]
+            shape = part["m_rnShape"]
 
-            mesh_data = bpy.data.meshes.new(name=f'{names[parent]}_mesh')
-            mesh_obj = bpy.data.objects.new(name=names[parent], object_data=mesh_data)
+            spheres = shape["m_spheres"]
+            capsules = shape["m_capsules"]
+            hulls = shape["m_hulls"]
+            meshes = shape["m_meshes"]
 
-            capsule_start = Vector(capsule_start)
-            capsule_end = Vector(capsule_end)
-            capsule_start = (bone_matrix @ capsule_start) * scale
-            capsule_end = (bone_matrix @ capsule_end) * scale
+            shape_name = names[parent]
 
-            x = capsule_end[0] - capsule_start[0]
-            y = capsule_end[1] - capsule_start[1]
-            z = capsule_end[2] - capsule_start[2]
+            shapes.extend(generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes))
+    else:
+        for part in parts:
+            shape = part["m_rnShape"]
 
-            mag = sqrt(x ** 2 + y ** 2)
+            spheres = shape["m_spheres"]
+            capsules = shape["m_capsules"]
+            hulls = shape["m_hulls"]
+            meshes = shape["m_meshes"]
+            shape_name = "physics_mesh"
+            bone_matrix = Matrix.Identity(4)
+            shapes.extend(generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes))
+    return shapes
 
-            if x == 0:
-                beta = 0
-            else:
-                beta = atan(y / x)
-            if (x <= 0 <= y) or (x <= 0 and y <= 0):
-                beta = pi + beta
-            if mag == 0:
-                theta = pi / 2
-            else:
-                theta = atan(z / mag)
 
-            gap = (capsule_end - capsule_start).magnitude
-            location = capsule_start + (capsule_end - capsule_start) / 2
-            final_matrix = Matrix.LocRotScale(location, Euler((0, -theta + pi / 2, beta)),
-                                              Vector((scale * radius, scale * radius, gap / 2)))
-            vertices = []
-            for v in CAPSULE_VERTICES:
-                vertices.append(final_matrix @ Vector(v))
+def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes):
+    shapes = []
+    for capsule_info in capsules:
+        if "m_UserFriendlyName" in capsule_info:
+            shape_name = capsule_info["m_UserFriendlyName"]
+        capsule = capsule_info["m_Capsule"]
+        capsule_start, capsule_end = capsule["m_vCenter"]
+        radius = capsule["m_flRadius"]
 
-            mesh_data.from_pydata(vertices, [], CAPSULE_POLYGONS)
-            mesh_data.update()
-            shapes.append(mesh_obj)
+        capsule_start = Vector(capsule_start)
+        capsule_end = Vector(capsule_end)
+        capsule_start = (bone_matrix @ capsule_start) * scale
+        capsule_end = (bone_matrix @ capsule_end) * scale
 
-            bpy.context.scene.collection.objects.link(mesh_obj)
+        mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
+        mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
+        vertices, indices = generate_capsule_mesh(capsule_start, capsule_end,
+                                                  radius * scale, segments)
+
+        mesh_data.from_pydata(vertices, [], indices)
+        mesh_data.update()
+
+        shapes.append(mesh_obj)
+    for sphere_info in spheres:
+        if "m_UserFriendlyName" in sphere_info:
+            shape_name = sphere_info["m_UserFriendlyName"]
+        sphere = sphere_info["m_Sphere"]
+        radius = sphere["m_flRadius"]
+        center = Vector(sphere["m_vCenter"])
+        center = (bone_matrix @ center) * scale
+
+        mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
+        mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
+        sphere_vertices, sphere_indices = generate_sphere_mesh(radius * scale, segments)
+        sphere_vertices += center
+        mesh_data.from_pydata(sphere_vertices, [], sphere_indices)
+        mesh_data.update()
+
+        shapes.append(mesh_obj)
+    for mesh_info in meshes:
+        if "m_UserFriendlyName" in mesh_info:
+            shape_name = mesh_info["m_UserFriendlyName"]
+        mesh = mesh_info["m_Mesh"]
+        vertex_data = mesh["m_Vertices"]
+        indices_data = mesh["m_Triangles"]
+        if isinstance(vertex_data, BinaryBlob):
+            vertices = np.frombuffer(vertex_data, np.float32) * scale
+        else:
+            vertices = np.asarray(vertex_data, np.float32) * scale
+        if isinstance(indices_data, BinaryBlob):
+            indices = np.frombuffer(indices_data, np.uint32)
+        else:
+            indices = np.asarray(indices_data, np.uint32)
+
+        mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
+        mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
+        mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices.reshape((-1, 3)))
+        mesh_data.update()
+
+        shapes.append(mesh_obj)
+    for hull_info in hulls:
+        if "m_UserFriendlyName" in hull_info:
+            shape_name = hull_info["m_UserFriendlyName"]
+        hull = hull_info["m_Hull"]
+        vertex_data = hull["m_Vertices"]
+        edge_data = hull["m_Edges"]
+        face_data = hull["m_Faces"]
+        if isinstance(vertex_data, BinaryBlob):
+            vertices = np.frombuffer(vertex_data, np.float32) * scale
+        else:
+            vertices = np.asarray(vertex_data, np.float32) * scale
+        edge_dtype = np.dtype([
+            ("next", np.uint8),
+            ("twin", np.uint8),
+            ("origin", np.uint8),
+            ("face", np.uint8),
+        ])
+        if isinstance(edge_data, BinaryBlob):
+            edges = np.frombuffer(edge_data, edge_dtype)
+        else:
+            edges = np.zeros(len(edge_data), edge_dtype)
+            for i, edge in enumerate(edge_data):
+                edges[i] = (edge["m_nNext"]), (edge["m_nTwin"]), (edge["m_nOrigin"]), (edge["m_nFace"])
+
+        if isinstance(face_data, BinaryBlob):
+            faces = np.frombuffer(face_data, np.uint8)
+        else:
+            faces = np.zeros(len(edge_data), np.uint8)
+            for i, face in enumerate(face_data):
+                faces[i] = face["m_nEdge"]
+
+        indices = []
+        for face in faces:
+            start_edge = face
+            edge = edges[start_edge]["next"]
+            while start_edge != edge:
+                next_edge = edges[edge]["next"]
+                if next_edge == start_edge:
+                    break
+                indices.append((
+                    edges[start_edge]["origin"],
+                    edges[edge]["origin"],
+                    edges[next_edge]["origin"],
+                ))
+                edge = next_edge
+
+        mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
+        mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
+        mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices)
+        mesh_data.update()
+
+        shapes.append(mesh_obj)
     return shapes

@@ -37,7 +37,7 @@ class Entry:
         return self
 
     def __repr__(self):
-        return f'Entry("{self.file_name}"")'
+        return f'Entry("{self.file_name}")'
 
     def __str__(self):
         return f'Entry("{self.file_name}")'

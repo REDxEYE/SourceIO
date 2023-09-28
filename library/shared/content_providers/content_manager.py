@@ -55,8 +55,10 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.titanfall1 import TitanfallDetector
         from .content_detectors.vindictus import VindictusDetector
         from .content_detectors.source2 import Source2Detector
+        from .content_detectors.cs2 import CS2Detector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
+        self.detector_addons.append(CS2Detector())
         self.detector_addons.append(HLADetector())
         self.detector_addons.append(RobotRepairDetector())
         self.detector_addons.append(Source2Detector())
