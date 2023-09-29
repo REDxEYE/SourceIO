@@ -153,7 +153,7 @@ def load_physics(phys_block: PhysBlock, scale: float = SOURCE2_HAMMER_UNIT_TO_ME
     matrices = phys_block["m_bindPose"]
     shapes = []
 
-    if indices and names and matrices:
+    if len(indices) != 0 and names and len(matrices) != 0:
         for parent, part, matrix in zip(indices, parts, matrices):
             bone_matrix = Matrix(matrix.reshape((3, 4))).to_4x4()
 

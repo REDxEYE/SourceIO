@@ -119,7 +119,7 @@ _LZ4ChainDecoder_init.restype = c_int
 
 # bool LZ4ChainDecoder_decompress(LZ4ChainDecoder *self, char *src, size_t data_size, char *dst, size_t decompressed_size)
 _LZ4ChainDecoder_decompress = LIB.LZ4ChainDecoder_decompress
-_LZ4ChainDecoder_decompress.argtypes = [c_void_p, c_char_p, c_size_t, c_char_p, c_size_t]
+_LZ4ChainDecoder_decompress.argtypes = [c_void_p, c_char_p, c_size_t, c_char_p, POINTER(c_size_t)]
 _LZ4ChainDecoder_decompress.restype = c_bool
 
 # void LZ4ChainDecoder_dealloc(LZ4ChainDecoder *self)
@@ -293,12 +293,13 @@ class LZ4ChainDecoder:
     def __del__(self):
         _LZ4ChainDecoder_dealloc(self._handle)
 
-    def decompress(self, src: bytes, decompressed_size: int):
-        dst = bytes(decompressed_size)
-        res = _LZ4ChainDecoder_decompress(self._handle, src, len(src), dst, decompressed_size)
+    def decompress(self, src: bytes, block_size: int):
+        dst = bytes(block_size)
+        real_size = pointer(c_size_t(block_size))
+        res = _LZ4ChainDecoder_decompress(self._handle, src, len(src), dst, real_size)
         if not res:
             raise BufferError(f"Failed to decompress LZ4Chain data")
-        return dst
+        return dst[:real_size.contents.value]
 
 
 def decode_index_buffer(src: bytes, index_size: int, index_count: int):

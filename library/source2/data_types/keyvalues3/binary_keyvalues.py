@@ -145,7 +145,10 @@ class BinaryKeyValues:
 
     def _read_blob(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
         if buffers.blocks_buffer is not None:
-            return BinaryBlob(buffers.blocks_buffer.read(block_sizes.pop(0)))
+            expected_size = block_sizes.pop(0)
+            data = buffers.blocks_buffer.read(expected_size)
+            assert len(data) == expected_size, "Binary blob is smaller than expected"
+            return BinaryBlob(data)
         return BinaryBlob(buffers.byte_buffer.read(buffers.int_buffer.read_int32()))
 
     def _read_array(self, buffers: BufferGroup, strings: List[str], block_sizes: List[int]):
@@ -371,7 +374,8 @@ class BinaryKeyValues:
         block_total_size = buffer.read_uint32()
 
         if self._unk_bytes_in_header:
-            buffer.read_uint64()
+            unk = buffer.read_uint64()
+            assert unk == 0
 
         if compression_method == 0:
             if compression_dict_id != 0:
@@ -430,12 +434,12 @@ class BinaryKeyValues:
             if block_total_size > 0:
                 if compression_method == 0:
                     for uncompressed_block_size in block_sizes:
-                        block_data += buffer.read(uncompressed_block_size)
+                        block_data += data_buffer.read(uncompressed_block_size)
                 elif compression_method == 1:
-                    cd = LZ4ChainDecoder(block_total_size, 0)
-                    for uncompressed_block_size in block_sizes:
+                    cd = LZ4ChainDecoder(compression_frame_size, 0)
+                    while data_buffer.tell() < data_buffer.size():
                         compressed_block_size = data_buffer.read_uint16()
-                        block_data += cd.decompress(buffer.read(compressed_block_size), uncompressed_block_size)
+                        block_data += cd.decompress(buffer.read(compressed_block_size), compression_frame_size)
                 elif compression_method == 2:
                     block_data += data_buffer.read()
                 else:
