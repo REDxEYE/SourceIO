@@ -47,7 +47,7 @@ class Eyeball:
         upper_lid_flex_desc = buffer.read_uint32()
         lower_lid_flex_desc = buffer.read_uint32()
         buffer.skip(4 * 4)
-        if version >= 44:
+        if version >= 44 and version != 2531:
             buffer.skip(4 * 4)
             eyeball_is_non_facs = buffer.read_uint8()
             buffer.skip(3)
