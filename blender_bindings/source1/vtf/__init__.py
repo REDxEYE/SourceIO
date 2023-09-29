@@ -1,9 +1,11 @@
+import zlib
 from pathlib import Path
 
 import bpy
 import numpy as np
 
 from ...utils.texture_utils import create_and_cache_texture
+from ....library.utils import Buffer, MemoryBuffer
 from ....logger import SLoggingManager
 
 log_manager = SLoggingManager()
@@ -17,6 +19,27 @@ from ....library.source1.vtf.cubemap_to_envmap import (
 def import_texture(texture_path: Path, file_object, update=False):
     logger.info(f'Loading "{texture_path.name}" texture')
     rgba_data, image_height, image_width = load_texture(file_object)
+
+    return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
+
+    # return texture_from_data(texture_path.name, rgba_data, image_width, image_height, update)
+
+
+def import_texture_tth(texture_path: Path, header_file: Buffer, data_file: Buffer, update=False):
+    logger.info(f'Loading "{texture_path.name}" texture')
+    vtf_data = bytearray()
+    if header_file.read_ascii_string(3) != "TTH":
+        return None
+    header_file.seek(6)
+    entry_count = header_file.read_uint8()
+    header_file.skip(1)
+    header_size = header_file.read_uint32()
+    header_file.seek(16 + entry_count * 8 + 4)
+    vtf_data += header_file.read(header_size)
+    vtf_data += zlib.decompress(data_file.read())
+
+    memory_buffer = MemoryBuffer(vtf_data)
+    rgba_data, image_height, image_width = load_texture(memory_buffer)
 
     return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
 

@@ -200,7 +200,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
                     phy_file = content_manager.find_file(prop_path.with_suffix('.phy'))
                     vtx_file = find_vtx_cm(prop_path, content_manager)
-                    if mdl_file is None or vvd_file is None or vtx_file is None:
+                    if mdl_file is None or vtx_file is None:
                         self.report({"WARNING"}, f"Failed to find mdl/vvd/vtx file for {obj.name}({prop_path}) prop")
                         continue
                     file_list = FileImport(mdl_file, vvd_file, vtx_file,

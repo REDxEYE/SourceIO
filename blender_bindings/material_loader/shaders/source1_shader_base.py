@@ -7,7 +7,7 @@ import numpy as np
 from ...utils.texture_utils import check_texture_cache, create_and_cache_texture
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.vmt import VMT
-from ...source1.vtf import import_texture
+from ...source1.vtf import import_texture, import_texture_tth
 from ..shader_base import ShaderBase
 
 
@@ -26,9 +26,14 @@ class Source1ShaderBase(ShaderBase):
             return bpy.data.images.get(texture_name)
 
         content_manager = ContentManager()
-        texture_file = content_manager.find_texture(texture_path/texture_name)
+        texture_file = content_manager.find_texture(texture_path / texture_name)
         if texture_file is not None:
             return import_texture(texture_path / texture_name, texture_file)
+
+        texture_header_file = content_manager.find_file(texture_path / texture_name, "materials", extension=".tth")
+        texture_data_file = content_manager.find_file(texture_path / texture_name, "materials", extension=".ttz")
+        if texture_header_file is not None and texture_data_file is not None:
+            return import_texture_tth(texture_path / texture_name, texture_header_file, texture_data_file)
         return None
 
     @staticmethod

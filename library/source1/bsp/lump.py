@@ -27,7 +27,7 @@ def lump_tag(lump_id, lump_name,
         if not klass.tags:
             klass.tags = []
         if bsp_version is not None and isinstance(bsp_version, int):
-            bsp_version_ = (bsp_version,)
+            bsp_version_ = (bsp_version,0)
         else:
             bsp_version_ = bsp_version
         klass.tags.append(LumpTag(lump_id, lump_name, lump_version, bsp_version_, steam_id))

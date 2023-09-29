@@ -21,6 +21,32 @@ class Mesh:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):
+        ...
+
+
+@dataclass(slots=True)
+class MeshV2531(Mesh):
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        entry = buffer.tell()
+
+        material_index, model_offset, vertex_count, vertex_index_start = buffer.read_fmt('Ii2I')
+        flex_count, flex_offset = buffer.read_fmt('2I')
+        buffer.skip(4)
+        buffer.skip(4 * 8)
+        flexes = []
+        if flex_count > 0 and flex_offset != 0:
+            with buffer.read_from_offset(entry + flex_offset):
+                for _ in range(flex_count):
+                    flex = Flex.from_buffer(buffer, version)
+                    flexes.append(flex)
+        return cls(material_index, model_offset, vertex_count, vertex_index_start, -1, -1, -1, (0, 0, 0), flexes)
+
+
+@dataclass(slots=True)
+class MeshV36Plus(Mesh):
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
         entry = buffer.tell()
 
         material_index, model_offset, vertex_count, vertex_index_start = buffer.read_fmt('Ii2I')

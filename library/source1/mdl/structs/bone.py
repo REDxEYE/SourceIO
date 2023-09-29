@@ -179,15 +179,23 @@ class Bone:
         bone_controller_ids = buffer.read_fmt('6f')
         position = buffer.read_fmt('3f')
         quat: Vector4 = (0, 0, 0, 1)
-        if version > 36:
+        if version > 36 or version == 2531:
             quat = buffer.read_fmt('4f')
-        rotation = buffer.read_fmt('3f')
+        rotation: Vector3 = (0, 0, 0)
+        if version != 2531:
+            rotation = buffer.read_fmt('3f')
         position_scale = buffer.read_fmt('3f')
-        rotation_scale = buffer.read_fmt('3f')
+        if version == 2531:
+            rotation_scale = buffer.read_fmt('4f')
+        else:
+            rotation_scale = buffer.read_fmt('3f')
 
         pose_to_bone = np.array(buffer.read_fmt('12f'), np.float32).reshape((3, 4)).transpose()
 
-        q_alignment = buffer.read_fmt('4f')
+        q_alignment: Vector4 = (0, 0, 0, 1)
+        if version != 2531:
+            q_alignment = buffer.read_fmt('4f')
+
         flags = BoneFlags(buffer.read_uint32())
         procedural_rule_type = buffer.read_uint32()
         procedural_rule_offset = buffer.read_uint32()
@@ -198,9 +206,9 @@ class Bone:
         contents = Contents(buffer.read_uint32())
         if version == 36:
             buffer.skip(3 * 4)
-        if version >= 44:
+        if version >= 44 and version != 2531:
             _ = [buffer.read_uint32() for _ in range(8)]
-        if version >= 53:
+        if version >= 53 and version != 2531:
             buffer.skip(4 * 7)
         procedural_rule = None
         if procedural_rule_type != 0 and procedural_rule_offset != 0:

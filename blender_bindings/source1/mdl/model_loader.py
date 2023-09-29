@@ -6,6 +6,7 @@ from ....library.utils import FileBuffer
 from ....library.utils.path_utilities import find_vtx, find_vtx_cm
 from ....logger import SLoggingManager
 from ...shared.model_container import Source1ModelContainer
+from ...source1.mdl.v2531.import_mdl import import_model as import_model_v2531
 from ...source1.mdl.v36.import_mdl import import_model as import_model_v36
 from ...source1.mdl.v44.import_mdl import import_model as import_model_v44
 from ...source1.mdl.v49.import_mdl import import_model as import_model_v49
@@ -29,9 +30,12 @@ def import_model_from_full_path(mdl_path: Path,
     content_manager = ContentManager()
     if mdl_path.is_absolute():
         mdl_file = FileBuffer(mdl_path)
-        vtx_file = FileBuffer(find_vtx(mdl_path))
-        vvd_file = FileBuffer(mdl_path.with_suffix('.vvd'))
-        vvc_file = mdl_path.with_suffix('.vvc') if mdl_path.with_suffix('.vvc').exists() else None
+        vtx_path = find_vtx(mdl_path)
+        if vtx_path is None:
+            raise FileNotFoundError(f"Failed to find vtx file for {mdl_path} model")
+        vtx_file = FileBuffer(vtx_path)
+        vvd_file = FileBuffer(mdl_path.with_suffix('.vvd')) if mdl_path.with_suffix('.vvd').exists() else None
+        vvc_file = FileBuffer(mdl_path.with_suffix('.vvc')) if mdl_path.with_suffix('.vvc').exists() else None
         phy_file = (FileBuffer(mdl_path.with_suffix('.phy'))
                     if load_physics and mdl_path.with_suffix('.phy').exists() else None)
         content_root = content_manager.get_content_provider_from_path(mdl_path)
@@ -71,7 +75,15 @@ def import_model_from_files(name: Union[str, Path],
     magic, version = mdl_reader.read_fmt('4sI')
     mdl_reader.seek(0)
     assert magic == b'IDST', f'Unknown Mdl magic "{magic}", expected "IDST"'
-    if 35 <= version <= 37:
+    if version != 2531 and version > 37:
+        assert file_list.vvd_file is not None, f".VVD file is required for this mdl {version} version"
+
+    assert file_list.vtx_file is not None, f".VTX file is required for this mdl {version} version"
+
+    if version == 2531:
+        container = import_model_v2531(file_list, scale, create_drives, re_use_meshes, unique_material_names,
+                                       load_refpose)
+    elif 35 <= version <= 37:
         container = import_model_v36(file_list, scale, create_drives, re_use_meshes, unique_material_names,
                                      load_refpose)
 

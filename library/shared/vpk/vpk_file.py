@@ -15,11 +15,24 @@ def open_vpk(filepath: Union[str, Path]):
     from struct import unpack
     with open(filepath, 'rb') as f:
         magic, version_mj, version_mn = unpack('IHH', f.read(8))
-    if magic != VPK_MAGIC:
+        f.seek(0, 2)
+        file_size = f.tell()
+        f.seek(-1, 2)
+        vtmb_type = f.read(1)[0]
+    if vtmb_type == 0:
+        with open(filepath, 'rb') as f:
+            f.seek(-9, 2)
+            entry_count, dir_offset = unpack('2I', f.read(8))
+            if dir_offset < file_size:
+                return VTMBVPKFile(filepath)
+    elif vtmb_type == 1:
+        return VTMBVPKFile(filepath)
+    elif magic != VPK_MAGIC:
         raise InvalidMagic(f'Not a VPK file, expected magic: {VPK_MAGIC}, got {magic}')
+
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
-    elif version_mj == 2 and version_mn == 3 :
+    elif version_mj == 2 and version_mn == 3:
         return TitanfallVPKFile(filepath)
     else:
         raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}.")
@@ -133,10 +146,11 @@ class TitanfallVPKFile(VPKFile):
     def __init__(self, filepath: Union[str, Path]):
         super().__init__(filepath)
         self.entries: Dict[str, TitanfallEntry] = {}
+        self.header = Header((0, 0), 0)
 
     def read(self):
         buffer = self.buffer
-        self.header.read(buffer)
+        self.header = Header.from_buffer(buffer)
         # entry = buffer.tell()
         self.read_entries()
         # self.buffer.seek(entry + self.header.tree_size)
@@ -181,3 +195,34 @@ class TitanfallVPKFile(VPKFile):
                         buffer += LZHAM.decompress_memory(block_data, block.uncompressed_size, 20, 1 << 0)
                 reader = MemoryBuffer(buffer)
                 return reader
+
+
+class VTMBVPKFile(VPKFile):
+
+    def __init__(self, filepath: Union[str, Path]):
+        super().__init__(filepath)
+        self.entry_count = 0
+        self.dir_offset = 0
+
+    def read(self):
+        buffer = self.buffer
+        buffer.seek(-1, 2)
+        a_type = buffer.read_int8()
+        if a_type == 1:
+            return
+        buffer.seek(-9, 2)
+        self.entry_count, self.dir_offset = buffer.read_fmt("2I")
+        self.read_entries()
+
+    def read_entries(self):
+        buffer = self.buffer
+        buffer.seek(self.dir_offset)
+        for _ in range(self.entry_count):
+            name = buffer.read_ascii_string(buffer.read_uint32())
+            offset = buffer.read_uint32()
+            size = buffer.read_uint32()
+            entry = Entry(name, 0)
+            entry.offset = offset
+            entry.size = size
+            entry.archive_id = 0x7FFF
+            self.entries[name] = entry

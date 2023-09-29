@@ -181,15 +181,19 @@ class Flex:
 
         targets = buffer.read_fmt('4f')
         vert_count, vert_offset = buffer.read_fmt('2I')
-
-        if version > 36:
+        if version == 2531:
+            buffer.skip(4)
+            partner_index = None
+            vertex_anim_type = VertexAminationType.NORMAL
+            vert_anim_class = VertAnimV2531
+        elif version > 36:
             partner_index = buffer.read_int32()
             vertex_anim_type = VertexAminationType(buffer.read_uint8())
             if vertex_anim_type == VertexAminationType.WRINKLE:
                 vert_anim_class = VertAnimWrinkleV49
             else:
                 vert_anim_class = VertAnimV49
-            buffer.skip(3+6*4)
+            buffer.skip(3 + 6 * 4)
         else:
             partner_index = None
             vertex_anim_type = VertexAminationType.NORMAL
@@ -203,6 +207,16 @@ class Flex:
             vertex_animations = None
 
         return cls(flex_desc_index, targets, partner_index, vertex_anim_type, vertex_animations)
+
+
+class VertAnimV2531:
+    is_wrinkle = False
+    dtype = np.dtype(
+        [
+            ('index', np.uint16, (1,)),
+            ('vertex_delta', np.int16, (3,)),
+        ]
+    )
 
 
 class VertAnimV36:

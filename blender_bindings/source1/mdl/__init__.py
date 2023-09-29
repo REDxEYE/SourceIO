@@ -11,7 +11,7 @@ from ...utils.utils import get_new_unique_collection
 @dataclass
 class FileImport:
     mdl_file: Buffer
-    vvd_file: Buffer
+    vvd_file: Optional[Buffer]
     vtx_file: Buffer
     vvc_file: Optional[Buffer]
     phy_file: Optional[Buffer]

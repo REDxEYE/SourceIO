@@ -672,7 +672,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         point_start = (*location_start, 1)
         point_end = (*location_end, 1)
         point_mid = lerp_vec(point_start, point_end, 0.5)
-        point_mid[2] -= sum(slack * 0.0002 for _ in range(slack))
+        point_mid[2] -= sum(slack * 0.0002 for _ in range(int(slack)))
 
         curve_path.points.add(2)
         curve_path.points[0].co = point_start

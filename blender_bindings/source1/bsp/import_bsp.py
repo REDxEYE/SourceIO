@@ -44,6 +44,7 @@ from .entities.base_entity_handler import BaseEntityHandler
 from .entities.bms_entity_handlers import BlackMesaEntityHandler
 from .entities.csgo_entity_handlers import CSGOEntityHandler
 from .entities.halflife2_entity_handler import HalfLifeEntityHandler
+from .entities.vampire_entity_handler import VampireEntityHandler
 from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
 from .entities.portal2_entity_handlers import Portal2EntityHandler
 from .entities.portal_entity_handlers import PortalEntityHandler
@@ -80,7 +81,7 @@ class BSP:
         self.texture_data_lump: Optional[TextureDataLump] = self.map_file.get_lump('LUMP_TEXDATA')
 
         self.logger.debug('Adding map pack file to content manager')
-        self.cm.register_content_provider(Path(self.filepath).name,self.map_file.get_lump('LUMP_PAK'))
+        self.cm.register_content_provider(Path(self.filepath).name, self.map_file.get_lump('LUMP_PAK'))
 
     def get_string(self, string_id):
         strings_lump: Optional[StringsLump] = self.map_file.get_lump('LUMP_TEXDATA_STRING_TABLE')
@@ -99,7 +100,9 @@ class BSP:
             handler_class = CSGOEntityHandler
         elif steam_id == SteamAppId.LEFT_4_DEAD_2:
             handler_class = Left4dead2EntityHandler
-        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == 29:  # Titanfall
+        elif self.map_file.version == (17, 0):
+            handler_class = VampireEntityHandler
+        elif steam_id == SteamAppId.PORTAL_2 and self.map_file.version == (29, 0):  # Titanfall
             handler_class = TitanfallEntityHandler
         elif steam_id == SteamAppId.PORTAL:
             handler_class = PortalEntityHandler
@@ -132,8 +135,7 @@ class BSP:
             obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
             obj.location = cubemap.origin
             obj.location *= self.settings.scale
-            refl_probe.influence_distance = (
-                                                    cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.settings.scale * 1000
+            refl_probe.influence_distance = (cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * self.settings.scale * 1000
             parent_collection.objects.link(obj)
 
     def load_static_props(self):
@@ -265,9 +267,9 @@ class BSP:
                 for j in range(num_edge_vertices):
                     disp_vertices[(i * num_edge_vertices + j)] = left_end + (left_right_step * j)
             disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * self.settings.scale) / (
-                    texture_data.view_width * self.settings.scale)
+                texture_data.view_width * self.settings.scale)
             disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * self.settings.scale) / (
-                    texture_data.view_height * self.settings.scale))
+                texture_data.view_height * self.settings.scale))
 
             disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices]
             final_vertex_colors['vertex_alpha'] = np.concatenate(

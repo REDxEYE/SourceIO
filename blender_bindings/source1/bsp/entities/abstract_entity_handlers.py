@@ -109,6 +109,7 @@ class AbstractEntityHandler:
             try:
                 handler_function(entity_object, entity_data)
             except ValueError as e:
+                raise e
                 import traceback
                 self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
                 self.logger.error(traceback.format_exc())
@@ -349,6 +350,8 @@ class AbstractEntityHandler:
             model_path = entity.model_
         elif hasattr(entity, 'viewport_model') and entity.viewport_model:
             model_path = entity.viewport_model
+        elif "model" in entity_raw:
+            model_path = entity_raw["model"]
         else:
             model_path = 'error.mdl'
         obj = self._create_empty(self._get_entity_name(entity))

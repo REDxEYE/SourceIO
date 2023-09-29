@@ -2,6 +2,8 @@ from io import BufferedIOBase, BytesIO, StringIO, TextIOBase
 from pathlib import Path
 from typing import IO, List, Union
 
+import charset_normalizer
+
 from ...logger import SLoggingManager
 from ..utils.s1_keyvalues import KVParser
 
@@ -69,10 +71,11 @@ class GameInfoParser:
         elif isinstance(file_or_string, (TextIOBase, StringIO)):
             self._buffer = file_or_string.read()
         elif isinstance(file_or_string, (BufferedIOBase, BytesIO)):
-            self._buffer = file_or_string.read().decode('latin')
+            buffer = file_or_string.read()
+            chaset = charset_normalizer.from_bytes(buffer)
+            self._buffer = buffer.decode(chaset.best().encoding, "ignore")
         else:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')
-
         self._parser = KVParser('<input>', self._buffer)
         self.header, self._raw_data = self._parser.parse()
 

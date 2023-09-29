@@ -58,7 +58,7 @@ class Origin(Base):
 
     @property
     def origin(self):
-        return parse_float_vector(self._raw_data.get('origin', None))
+        return parse_float_vector(self._raw_data.get('origin', "0 0 0"))
 
 
 class Reflection(Base):
