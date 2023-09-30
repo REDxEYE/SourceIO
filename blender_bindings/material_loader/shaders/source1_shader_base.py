@@ -14,6 +14,7 @@ from ..shader_base import ShaderBase
 class Source1ShaderBase(ShaderBase):
     def __init__(self, vmt):
         super().__init__()
+        self.load_bvlg_nodes()
         self._vmt: VMT = vmt
         self.textures = {}
 

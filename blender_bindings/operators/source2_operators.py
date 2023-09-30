@@ -19,6 +19,7 @@ from ..source2.vmdl_loader import load_model, put_into_collections
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
 from ..utils.utils import get_new_unique_collection
+from ...library.utils.path_utilities import backwalk_file_resolver
 
 
 class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
@@ -136,7 +137,12 @@ class SOURCEIO_OT_VPK_VMAPImport(bpy.types.Operator):
         else:
             deserialize_mounted_content(content_manager)
         cm.register_content_provider(vpk_path.name, VPKContentProvider(vpk_path))
-        map_buffer = ContentManager().find_file(f'maps/{vpk_path.stem}.vmap_c')
+        maps_folder = backwalk_file_resolver(vpk_path, "maps")
+        if maps_folder is not None:
+            relative_path = vpk_path.relative_to(maps_folder.parent)
+            map_buffer = ContentManager().find_file(relative_path.with_suffix(".vmap_c"))
+        else:
+            map_buffer = ContentManager().find_file(f'maps/{vpk_path.stem}.vmap_c')
         assert map_buffer is not None, "Failed to find world file in selected VPK"
 
         model = CompiledMapResource.from_buffer(map_buffer, vpk_path)

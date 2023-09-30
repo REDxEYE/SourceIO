@@ -17,7 +17,7 @@ class CompiledMaterialResource(CompiledResource):
 
     def get_float_property(self, prop_name, default=None):
         data, = self.get_data_block(block_name='DATA')
-        return self._get_prop(prop_name, data['m_intParams'], 'm_flValue') or default
+        return self._get_prop(prop_name, data['m_floatParams'], 'm_flValue') or default
 
     def get_vector_property(self, prop_name, default=None):
         data, = self.get_data_block(block_name='DATA')

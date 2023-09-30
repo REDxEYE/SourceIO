@@ -92,6 +92,9 @@ def clear_selection():
 
 
 def create_armature(resource: CompiledModelResource, scale: float):
+    s2_bones = resource.get_bones()
+    if not s2_bones:
+        return None
     name = resource.name
     armature_obj = bpy.data.objects.new(name + "_ARM", bpy.data.armatures.new(name + "_ARM_DATA"))
     armature_obj['MODE'] = 'SourceIO'
@@ -103,7 +106,6 @@ def create_armature(resource: CompiledModelResource, scale: float):
     bpy.ops.object.mode_set(mode='EDIT')
     armature = armature_obj.data
 
-    s2_bones = resource.get_bones()
     for s2_bone in s2_bones:
         bl_bone = armature.edit_bones.new(name=s2_bone.name)
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
@@ -269,6 +271,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
 
     for scene_object in data_block['m_sceneObjects']:
         for draw_call in scene_object['m_drawCalls']:
+            print(draw_call)
             assert len(draw_call['m_vertexBuffers']) == 1
             assert draw_call['m_nPrimitiveType'] == 'RENDER_PRIM_TRIANGLES'
 
@@ -283,15 +286,15 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                                                                      CompiledMaterialResource)
             else:
                 material_name = "NullMaterial"
+            tint = draw_call.get("m_vTintColor", None)
             if material_resource:
-                load_material(material_resource, Path(material_name))
+                load_material(material_resource, Path(material_name), tint is not None)
                 morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED')
             else:
                 morph_supported = bool(morph_block)
                 logging.error(f'Failed to load material {material_name} for {mesh_resource.name}!')
             vertices = vertex_buffer.get_vertices()
             indices = index_buffer.get_indices()
-
             base_vertex = draw_call['m_nBaseVertex']
             vertex_count = draw_call['m_nVertexCount']
             start_index = draw_call['m_nStartIndex'] // 3
@@ -329,14 +332,22 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                 mesh_obj['active_skin'] = 'default'
                 mesh_obj['skin_groups'] = []
             mesh_obj['model_type'] = 'S2'
+
+            vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
+            mesh.loops.foreach_get('vertex_index', vertex_indices)
+            if tint is not None:
+                vertex_colors = mesh.vertex_colors.get('TINT', False) or mesh.vertex_colors.new(name='TINT')
+                vertex_colors_data = vertex_colors.data
+                tmp = np.ones((4,), np.float32)
+                tmp[:3] = tint
+                tint_data = np.full((vertex_count, 4), tmp, np.float32)
+                vertex_colors_data.foreach_set('color', tint_data[vertex_indices].flatten())
+
             for attribute in vertex_buffer.attributes:
                 if 'TEXCOORD' in attribute.name.upper():
                     uv_layer = used_vertices[attribute.name].copy()
                     if uv_layer.shape[1] < 2:
                         continue
-                    vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
-                    mesh.loops.foreach_get('vertex_index', vertex_indices)
-
                     if uv_layer.shape[1] == 4:
                         uv_layer_0 = convert_to_float32(uv_layer[:, :2])
                         uv_layer_1 = convert_to_float32(uv_layer[:, 2:])
@@ -348,7 +359,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
 
                         uv_data = mesh.uv_layers.new(name=attribute.name + "_2").data
                         uv_data.foreach_set('uv', uv_layer_1[vertex_indices].flatten())
-                        del vertex_indices, uv_layer_0, uv_layer_1, uv_data
+                        del uv_layer_0, uv_layer_1, uv_data
 
                     else:
                         uv_layer = convert_to_float32(uv_layer)
@@ -356,7 +367,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
 
                         uv_data = mesh.uv_layers.new(name=attribute.name).data
                         uv_data.foreach_set('uv', uv_layer[vertex_indices].flatten())
-                        del vertex_indices, uv_layer, uv_data
+                        del uv_layer, uv_data
 
             if vertex_buffer.has_attribute('NORMAL'):
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
@@ -370,6 +381,13 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                         normals = convert_normals(normals)
                 mesh.normals_split_custom_set_from_vertices(normals)
                 mesh.use_auto_smooth = True
+
+            if vertex_buffer.has_attribute('COLOR'):
+                color = used_vertices['COLOR']
+                vertex_colors = mesh.vertex_colors.get('COLOR', False) or mesh.vertex_colors.new(name='COLOR')
+                vertex_colors_data = vertex_colors.data
+                vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
+
             _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
             objects.append(mesh_obj)
             if morph_block and morph_supported:

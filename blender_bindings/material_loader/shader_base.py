@@ -129,6 +129,13 @@ class ShaderBase:
             append_blend(str(asset_path), "node_groups")
 
     @staticmethod
+    def load_source2_nodes():
+        if "csgo_complex.vfx" not in bpy.data.node_groups:
+            current_path = Path(__file__).parent.parent
+            asset_path = current_path / 'assets' / "source2_materials.blend"
+            append_blend(str(asset_path), "node_groups")
+
+    @staticmethod
     def ensure_length(array: list, length, filler):
         if len(array) < length:
             array.extend([filler] * (length - len(array)))
@@ -144,7 +151,6 @@ class ShaderBase:
     def __init__(self):
         self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.bpy_material: bpy.types.Material = None
-        self.load_bvlg_nodes()
         self.do_arrange = True
         self.uv_map = None
 

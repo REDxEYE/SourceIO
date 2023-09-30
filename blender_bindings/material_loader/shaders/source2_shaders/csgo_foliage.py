@@ -1,5 +1,4 @@
 from pprint import pformat
-from typing import Tuple
 
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
@@ -31,21 +30,12 @@ class CSGOFoliage(Source2ShaderBase):
         self.connect_nodes(normal_conv.outputs[0], shader.inputs["Normal"])
         self.connect_nodes(normal_texture.outputs[1], shader.inputs["Roughness"])
 
-        # metalness_texture = self._get_texture("g_tMetalness", (1, 1, 1, 1), True)
-        # metalness_conv = self.create_node(Nodes.ShaderNodeSeparateRGB)
-        # self.connect_nodes(metalness_texture.outputs[0], metalness_conv.inputs[0])
-        # roughness_override = self._material_resource.get_vector_property("TextureNormal", None)
-        # if roughness_override is not None:
-        #     shader.inputs["Roughness"].default_value = roughness_override[0]
-        # else:
-        #     self.connect_nodes(normal_conv.outputs[1], shader.inputs["Roughness"])
-
-        # metallic_override = self._material_resource.get_vector_property("TextureMetalness", None)
-        # if metallic_override is not None:
-        #     shader.inputs["Metallic"].default_value = metallic_override[0]
-        # else:
-        #     self.connect_nodes(metalness_conv.outputs[1], shader.inputs["Metallic"])
-
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0):
+            self.bpy_material.blend_method = 'CLIP'
+            self.bpy_material.alpha_threshold = self._material_resource.get_float_property("g_flAlphaTestReference",
+                                                                                           0.5)
+            self.connect_nodes(alpha_output, shader.inputs["Alpha"])
+
+        if self._material_resource.get_int_property("S_TRANSLUCENT", 0):
             self.bpy_material.blend_method = 'HASHED'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])

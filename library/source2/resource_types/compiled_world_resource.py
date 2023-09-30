@@ -22,6 +22,8 @@ class CompiledEntityLumpResource(CompiledResource):
                 yield EntityKeyValues.from_buffer(buffer)
             elif "keyValue3Data" in entity_key_values:
                 yield entity_key_values["keyValue3Data"]
+            elif "keyValues3Data" in entity_key_values:
+                yield entity_key_values["keyValues3Data"]
 
 
 class CompiledWorldNodeResource(CompiledResource):

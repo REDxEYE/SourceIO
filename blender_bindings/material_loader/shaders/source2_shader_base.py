@@ -15,9 +15,17 @@ logger = SLoggingManager().get_logger("Source2::Shader")
 
 
 class Source2ShaderBase(ShaderBase):
-    def __init__(self, source2_material: CompiledMaterialResource):
+    def __init__(self, source2_material: CompiledMaterialResource, tinted: bool = False):
         super().__init__()
+        self.load_source2_nodes()
         self._material_resource = source2_material
+        self.tinted = tinted
+
+    def _have_texture(self, slot_name: str) -> Optional[bpy.types.Node]:
+        texture_path = self._material_resource.get_texture_property(slot_name, None)
+        if texture_path is not None:
+            return self._material_resource.get_child_resource(texture_path, ContentManager()) is not None
+        return False
 
     def _get_texture(self, slot_name: str, default_color: Tuple[float, float, float, float],
                      is_data=False,
