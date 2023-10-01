@@ -326,7 +326,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             else:
                 normals = None
             if overlay and normals is not None:
-                positions += normals * 0.002
+                positions += normals * 0.01
 
             mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)).tolist())
             mesh.update()
