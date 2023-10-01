@@ -20,18 +20,20 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
-def parse_int_vector(data: Union[str, Tuple[int, int, int]]):
-    if isinstance(data, str):
-        return [parse_source_value(val) for val in data.replace('  ', ' ').split(' ')]
-    assert isinstance(data, tuple)
-    return data
+def parse_int_vector(string):
+    if isinstance(string, tuple):
+        return list(string)
+    elif isinstance(string, np.ndarray):
+        return string
+    return [parse_source_value(val) for val in string.replace('  ', ' ').split(' ')]
 
 
-def parse_float_vector(data: Union[str, Tuple[float, float, float]]):
-    if isinstance(data, str):
-        return [float(val) for val in data.replace('  ', ' ').split(' ')]
-    assert isinstance(data, tuple)
-    return data
+def parse_float_vector(string):
+    if isinstance(string, tuple):
+        return list(string)
+    elif isinstance(string, np.ndarray):
+        return string
+    return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
 def _srgb2lin(s: float) -> float:
