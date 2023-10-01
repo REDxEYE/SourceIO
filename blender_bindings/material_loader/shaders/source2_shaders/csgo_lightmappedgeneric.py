@@ -22,13 +22,15 @@ class CSGOLightmappedGeneric(Source2ShaderBase):
             color0_texture = self._get_texture("g_tColor", (1, 1, 1, 1))
             self.connect_nodes(color0_texture.outputs[0], shader.inputs["TextureColor0"])
             if (material_data.get_int_property("F_ALPHA_TEST", 0) or
-                material_data.get_int_property("S_TRANSLUCENT", 0)):
+                material_data.get_int_property("S_TRANSLUCENT", 0) or
+                material_data.get_int_property("F_OVERLAY", 0)):
                 self.connect_nodes(color0_texture.outputs[1], shader.inputs["TextureAlpha0"])
 
         if self._have_texture("g_tLayer2Color"):
             color_texture = self._get_texture("g_tLayer2Color", (1, 1, 1, 1))
             if (material_data.get_int_property("F_ALPHA_TEST", 0) or
-                material_data.get_int_property("S_TRANSLUCENT", 0)):
+                material_data.get_int_property("S_TRANSLUCENT", 0) or
+                material_data.get_int_property("F_OVERLAY", 0)):
                 self.connect_nodes(color_texture.outputs[1], shader.inputs["TextureAlpha1"])
 
             self.connect_nodes(color_texture.outputs[0], shader.inputs["TextureColor1"])

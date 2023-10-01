@@ -102,8 +102,7 @@ class SteamPalEntityHandler(HLVREntityHandler):
 
         self._set_entity_data(lamp, {'entity': entity_raw})
         self._put_into_collection('light_omni', lamp, 'lights')
-        return
-    #
+
     # def handle_steampal_kill_volume(self, entity: object, entity_raw: dict):
     #     # TODO:
     #     return

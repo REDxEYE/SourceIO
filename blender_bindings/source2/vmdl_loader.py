@@ -289,8 +289,10 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             tint = draw_call.get("m_vTintColor", None)
             if material_resource:
                 load_material(material_resource, Path(material_name), tint is not None)
-                morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED')
+                morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED', 0) == 1
+                overlay = material_resource.get_int_property('F_OVERLAY', 0) == 1
             else:
+                overlay = False
                 morph_supported = bool(morph_block)
                 logging.error(f'Failed to load material {material_name} for {mesh_resource.name}!')
             vertices = vertex_buffer.get_vertices()
@@ -312,6 +314,19 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             mesh_obj = bpy.data.objects.new(f'{model_name}_{material_stem}', mesh)
 
             positions = used_vertices['POSITION'] * scale
+            if vertex_buffer.has_attribute('NORMAL'):
+                normals = used_vertices['NORMAL']
+                use_compressed_normal_tangent = draw_call.get('m_bUseCompressedNormalTangent', False)
+                use_compressed_normal_tangent |= "COMPRESSED_NORMAL_TANGENT" in draw_call.get("m_nFlags", [])
+                if use_compressed_normal_tangent:
+                    if normals.dtype == np.uint32:
+                        normals = convert_normals_2(normals)
+                    else:
+                        normals = convert_normals(normals)
+            else:
+                normals = None
+            if overlay and normals is not None:
+                positions += normals * 0.002
 
             mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)).tolist())
             mesh.update()
