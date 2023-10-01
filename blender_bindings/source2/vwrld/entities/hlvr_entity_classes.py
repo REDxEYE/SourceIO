@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def parse_source_value(value):
     if type(value) is str:
         value: str
@@ -9,8 +12,10 @@ def parse_source_value(value):
 
 
 def parse_int_vector(string):
-    if type(string) is tuple:
+    if isinstance(string, tuple):
         return list(string)
+    elif isinstance(string, np.ndarray):
+        return string
     return [parse_source_value(val) for val in string.replace('  ', ' ').split(' ')]
 
 

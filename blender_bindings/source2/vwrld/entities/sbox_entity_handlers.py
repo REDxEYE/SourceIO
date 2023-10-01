@@ -1,10 +1,3 @@
-import math
-
-import bpy
-import numpy as np
-
-from .abstract_entity_handlers import get_angles, get_origin, get_scale
-from .base_entity_handlers import BaseEntityHandler
 from .hlvr_entity_handlers import HLVREntityHandler
 from .sbox_entity_classes import *
 

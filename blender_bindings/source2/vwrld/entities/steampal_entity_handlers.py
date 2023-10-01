@@ -3,7 +3,7 @@ import numpy as np
 
 from .abstract_entity_handlers import Base, get_origin, get_angles, get_scale
 from .hlvr_entity_handlers import HLVREntityHandler
-from .sbox_entity_classes import *
+from .hlvr_entity_classes import *
 
 local_entity_lookup_table = HLVREntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)

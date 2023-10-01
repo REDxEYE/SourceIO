@@ -1,8 +1,4 @@
-import bpy
-
-from .abstract_entity_handlers import Base, get_origin, get_angles
-from .steampal_entity_handlers import SteamPalEntityHandler
-from .sbox_entity_classes import *
+from .steampal_entity_handlers import *
 
 local_entity_lookup_table = SteamPalEntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)
@@ -20,6 +16,10 @@ class CS2EntityHandler(SteamPalEntityHandler):
     entity_lookup_table['prop_physics_multiplayer'] = Base
     entity_lookup_table['func_clip_vphysics'] = Base
     entity_lookup_table['skybox_reference'] = Base
+
+    def load_entities(self):
+        for entity in self._entities:
+            self.handle_entity(entity["values"])
 
     def handle_env_cs_place(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)

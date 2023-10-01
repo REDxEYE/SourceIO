@@ -12,7 +12,7 @@ from .....library.source2 import (CompiledMaterialResource,
                                   CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from .....logger import SLoggingManager
-from ....utils.utils import  get_or_create_collection
+from ....utils.utils import get_or_create_collection
 from ...vtex_loader import import_texture
 from .base_entity_classes import *
 
@@ -114,7 +114,10 @@ class AbstractEntityHandler:
         if hasattr(entity, 'targetname') and entity.targetname:
             return str(entity.targetname)
         else:
-            return f'{entity._entity_data["classname"]}_{entity._entity_data["hammeruniqueid"]}'
+            hammerniqueid_ = entity._entity_data.get("hammeruniqueid", None)
+            if hammerniqueid_ is None:
+                hammerniqueid_ = entity._entity_data.get("hammerUniqueId", None)
+            return f'{entity._entity_data["classname"]}_{hammerniqueid_}'
 
     def _put_into_collection(self, name, obj, grouping_collection_name=None):
         if grouping_collection_name is not None:
