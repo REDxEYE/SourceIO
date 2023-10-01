@@ -38,3 +38,19 @@ In order to find the import tools you simply need to go to File>Import>Source En
 | .VMAP     | Map Files (Hammer Format)         | Not Planned         | Not Planned  |
 | .VTEX     | Textures                          | :heavy_check_mark:  | :x:          |
 | .VMAT     | Materials                         | :heavy_check_mark:  | :x:          |
+
+## Supported games
+| Game      | Status                                                                                          |
+|-----------| ------------------------------------------------------------------------------------------------|
+| CSGO              | Partial support: models, maps(not all entities), textures, materials                    | 
+| TF2               | Full support                                                                            |
+| HL2 and episodes  | Full support                                                                            |
+| Portal 1/2        | Full support                                                                            |
+| L4D2              | Full support(expect infected materials)                                                 | 
+| Vindictus         | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  | 
+| BlackMesa         | Full support                                                                            |
+| Titanfall 1       | Partial support: maps(not all entities), models, textures, materials                    |
+| Counter Strike 2  | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  |
+| Half-Life: Alyx   | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  |
+| S&BOX             | Partial support: Waiting for full release                                               |
+| Aperture Desk Job | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  |
