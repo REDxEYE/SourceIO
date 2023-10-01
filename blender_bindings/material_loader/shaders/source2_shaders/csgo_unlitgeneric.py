@@ -45,11 +45,15 @@ class CSGOUnlitGeneric(Source2ShaderBase):
         #     self.connect_nodes(metalness_conv.outputs[1], shader.inputs["Metallic"])
 
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0):
-            self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.shadow_method = 'CLIP'
+            self.bpy_material.alpha_threshold = self._material_resource.get_float_property("g_flAlphaTestReference", 0.5)
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
         if self._material_resource.get_int_property("F_OVERLAY", 0):
             self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
         if self._material_resource.get_int_property("F_BLEND_MODE", 0):
             self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])

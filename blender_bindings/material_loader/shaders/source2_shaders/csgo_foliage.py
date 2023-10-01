@@ -32,10 +32,12 @@ class CSGOFoliage(Source2ShaderBase):
 
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0):
             self.bpy_material.blend_method = 'CLIP'
+            self.bpy_material.shadow_method = 'CLIP'
             self.bpy_material.alpha_threshold = self._material_resource.get_float_property("g_flAlphaTestReference",
                                                                                            0.5)
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
 
         if self._material_resource.get_int_property("S_TRANSLUCENT", 0):
             self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])

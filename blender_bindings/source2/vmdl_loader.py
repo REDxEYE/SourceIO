@@ -291,6 +291,12 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                 load_material(material_resource, Path(material_name), tint is not None)
                 morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED', 0) == 1
                 overlay = material_resource.get_int_property('F_OVERLAY', 0) == 1
+                if not overlay:
+                    data, = material_resource.get_data_block(block_name='DATA')
+                    if data:
+                        shader = data['m_shaderName']
+                        overlay |= shader == "csgo_static_overlay.vfx"
+
             else:
                 overlay = False
                 morph_supported = bool(morph_block)

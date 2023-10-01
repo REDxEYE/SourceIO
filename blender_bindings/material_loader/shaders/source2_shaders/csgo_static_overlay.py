@@ -105,11 +105,14 @@ class CSGOStaticOverlay(Source2ShaderBase):
                 "g_flMetalness", 0)
 
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
         elif self._material_resource.get_int_property("F_OVERLAY", 0) and alpha_output is not None:
             self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
         elif self._material_resource.get_int_property("F_BLEND_MODE", 0) and alpha_output is not None:
             self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])

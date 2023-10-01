@@ -88,8 +88,11 @@ class CSGOEnvironmentBlend(Source2ShaderBase):
 
         if material_data.get_int_property("F_ALPHA_TEST", 0):
             self.bpy_material.blend_method = 'CLIP'
+            self.bpy_material.shadow_method = 'CLIP'
             self.bpy_material.alpha_threshold = material_data.get_float_property("g_flAlphaTestReference", 0.5)
         elif material_data.get_int_property("S_TRANSLUCENT", 0):
             self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.shadow_method = 'CLIP'
         elif material_data.get_int_property("F_OVERLAY", 0):
             self.bpy_material.blend_method = 'HASHED'
+            self.bpy_material.shadow_method = 'CLIP'
