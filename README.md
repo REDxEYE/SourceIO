@@ -1,9 +1,9 @@
-[![Blender](https://img.shields.io/badge/Blender->=_3.1-orange?logo=blender&logoColor=white)](https://www.blender.org/download)
+[![Blender](https://img.shields.io/badge/Blender->=_3.4-orange?logo=blender&logoColor=white)](https://www.blender.org/download)
 [![Download](https://img.shields.io/github/downloads/REDxEYE/SourceIO/total?label=Download&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij4KCTxwYXRoIGZpbGw9IndoaXRlIiBkPSJNMTEuMiAwYS44LjggMCAwIDAtLjguOHYxMS40TDcuMjYgOS40NGEuODAzLjgwMyAwIDAgMC0xLjEzLjA3NGwtMS4wNSAxLjJhLjguOCAwIDAgMCAuMDczIDEuMTNsNi4zMyA1LjU0YS43OTUuNzk1IDAgMCAwIDEuMDUgMGw2LjMyLTUuNTRhLjguOCAwIDAgMCAuMDc0LTEuMTNsLTEuMDUtMS4yYS44MDQuODA0IDAgMCAwLTEuMTMtLjA3NGwtMy4xNCAyLjc2Vi44YS44LjggMCAwIDAtLjgtLjh6bS04IDIwLjhhLjguOCAwIDAgMC0uOC44djEuNmEuOC44IDAgMCAwIC44LjhoMTcuNmEuOC44IDAgMCAwIC44LS44di0xLjZhLjguOCAwIDAgMC0uOC0uOHoiPjwvcGF0aD4KPC9zdmc+Cg==)](https://github.com/REDxEYE/SourceIO/archive/refs/heads/master.zip)
 [![Discord](https://img.shields.io/discord/554001378532655104?label=Chat&logo=discord&logoColor=white)](https://discord.gg/SF82W6aZ67)
 
 # SourceIO
-SourceIO is a Blender(3.1+) addon for importing\exporting source engine textures/models/maps
+SourceIO is a Blender(3.4+) addon for importing\exporting source engine textures/models/maps
 Our Discord server https://discord.gg/SF82W6aZ67
 
 Current TODO list -> [TODO.md](TODO.md)
@@ -50,7 +50,7 @@ In order to find the import tools you simply need to go to File>Import>Source En
 | Vindictus         | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  | 
 | BlackMesa         | Full support                                                                            |
 | Titanfall 1       | Partial support: maps(not all entities), models, textures, materials                    |
-| Counter Strike 2  | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  |
+| Counter Strike 2  | Partial support: (models, maps(not all entities), textures, materials(not all shaders, require blender 3.4 or newer)  |
 | Half-Life: Alyx   | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  |
 | S&BOX             | Partial support: Waiting for full release                                               |
 | Aperture Desk Job | Partial support: (models, maps(not all entities), textures, materials(not all shaders)  |
