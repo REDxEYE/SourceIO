@@ -9,12 +9,12 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 from .....library.shared.content_providers.content_manager import \
     ContentManager
 from .....library.source1.mdl.structs.header import StudioHDRFlags
+from .....library.source1.mdl.v36 import MdlV36
 from .....library.source1.mdl.v44.mdl_file import MdlV44
 from .....library.source1.mdl.v44.vertex_animation_cache import \
     VertexAnimationCache
 from .....library.source1.mdl.v49.flex_expressions import *
 from .....library.source1.vtx import open_vtx
-from .....library.source1.vtx.v7.vtx import Vtx
 from .....library.source1.vvd import Vvd
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
@@ -338,7 +338,15 @@ def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: st
     for include_model in mdl.include_models:
         buffer = cm.find_file(include_model)
         if buffer:
-            i_mdl = MdlV44.from_buffer(buffer)
+            buffer.seek(4)
+            version = buffer.read_uint32()
+            buffer.seek(0)
+            if 35 <= version <= 37:
+                i_mdl = MdlV36.from_buffer(buffer)
+            elif version >= 44:
+                i_mdl = MdlV44.from_buffer(buffer)
+            else:
+                return
             if i_mdl.animations:
                 for n, anim in enumerate(i_mdl.sequences):
                     if anim.name.strip("@") == animation_name:
