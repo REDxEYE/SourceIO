@@ -22,7 +22,7 @@ from ..source1.mdl.v49.import_mdl import import_materials
 from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
-from ..utils.utils import get_or_create_collection
+from ..utils.utils import get_or_create_collection, find_layer_collection
 
 
 def get_parent(collection):
@@ -67,11 +67,13 @@ class SourceIO_OT_LoadEntity(Operator):
         deserialize_mounted_content(content_manager)
         unique_material_names = True
         use_collections = context.scene.use_instances
-        replace_entity = context.scene.replace_entity
+        replace_entity = context.scene.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
-        master_instance_collection.hide_viewport = True
-        master_instance_collection.hide_render = True
+        master_instance_lcollection = find_layer_collection(bpy.context.view_layer.layer_collection, master_instance_collection.name)
+        master_instance_lcollection.exclude = True
+        # master_instance_collection.hide_viewport = True
+        # master_instance_collection.hide_render = True
         if not use_collections:
             master_instance_collection = get_or_create_collection("MODELS",
                                                                   bpy.context.scene.collection)
@@ -105,7 +107,10 @@ class SourceIO_OT_LoadEntity(Operator):
                         # skin = custom_prop_data.get('skin', None)
                         model_resource = CompiledModelResource.from_buffer(vmld_file, Path(prop_path))
                         container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1)
-                        s2_put_into_collections(container, model_resource.name, master_instance_collection)
+                        if replace_entity:
+                            s2_put_into_collections(container, model_resource.name, parent)
+                        else:
+                            s2_put_into_collections(container, model_resource.name, master_instance_collection)
                         obj["entity_data"]["prop_path"] = None
                         obj["entity_data"]["imported"] = True
 
@@ -138,47 +143,6 @@ class SourceIO_OT_LoadEntity(Operator):
                                     o.parent = obj
                                 for o in container.physics_objects:
                                     o.parent = obj
-                        # else:
-                        #     for ob in chain(container.objects,
-                        #                     container.physics_objects):  # type:bpy.types.Object
-                        #         ob.location = obj.location
-                        #         ob.rotation_mode = "XYZ"
-                        #         ob.rotation_euler = obj.rotation_euler
-                        #         ob.scale = obj.scale
-                        # for ob in container.objects:
-                        #     if skin:
-                        #         if str(skin) in ob['skin_groups']:
-                        #             skin = str(skin)
-                        #             skin_materials = ob['skin_groups'][skin]
-                        #             current_materials = ob['skin_groups'][ob['active_skin']]
-                        #             print(skin_materials, current_materials)
-                        #             for skin_material, current_material in zip(skin_materials, current_materials):
-                        #                 swap_materials(ob, skin_material[-63:], current_material[-63:])
-                        #             ob['active_skin'] = skin
-                        #         else:
-                        #             print(f'Skin {skin} not found')
-                        # master_collection = s2_put_into_collections(container, model_resource.name, collection, False)
-                        # entity_data_holder = bpy.data.objects.new(model_resource.name + '_ENT', None)
-                        # entity_data_holder['entity_data'] = {}
-                        # entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
-                        # entity_data_holder.scale = obj.scale
-                        # entity_data_holder.empty_display_size = 8 * custom_prop_data["scale"]
-                        # entity_data_holder.hide_render = True
-                        # entity_data_holder.hide_viewport = True
-                        #
-                        # if container.armature:
-                        #     entity_data_holder.parent = container.armature
-                        # elif container.objects:
-                        #     entity_data_holder.parent = container.objects[0]
-                        # elif container.physics_objects:
-                        #     entity_data_holder.parent = container.physics_objects[0]
-                        # else:
-                        #     entity_data_holder.location = obj.location
-                        #     entity_data_holder.rotation_euler = obj.rotation_euler
-                        #     entity_data_holder.scale = obj.scale
-                        #
-                        # master_collection.objects.link(entity_data_holder)
-                        # bpy.data.objects.remove(obj)
                     else:
                         self.report({'INFO'}, f"Model '{prop_path}' not found!")
                 elif model_type == '.mdl':
