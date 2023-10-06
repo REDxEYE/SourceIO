@@ -363,10 +363,13 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                 tmp[:3] = tint
                 tint_data = np.full((vertex_count, 4), tmp, np.float32)
                 vertex_colors_data.foreach_set('color', tint_data[vertex_indices].flatten())
-
-            for attribute in vertex_buffer.attributes:
-                if 'TEXCOORD' in attribute.name.upper():
-                    uv_layer = used_vertices[attribute.name].copy()
+            for uv_id in range(16):
+                if uv_id == 0:
+                    attrib_name = f"TEXCOORD"
+                else:
+                    attrib_name = f"TEXCOORD_{uv_id}"
+                if vertex_buffer.has_attribute(attrib_name):
+                    uv_layer = used_vertices[attrib_name].copy()
                     if uv_layer.shape[1] < 2:
                         continue
                     if uv_layer.shape[1] == 4:
@@ -375,10 +378,10 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                         uv_layer_0[:, 1] = np.subtract(1, uv_layer_0[:, 1])
                         uv_layer_1[:, 1] = np.subtract(1, uv_layer_1[:, 1])
 
-                        uv_data = mesh.uv_layers.new(name=attribute.name).data
+                        uv_data = mesh.uv_layers.new(name=attrib_name).data
                         uv_data.foreach_set('uv', uv_layer_0[vertex_indices].flatten())
 
-                        uv_data = mesh.uv_layers.new(name=attribute.name + "_2").data
+                        uv_data = mesh.uv_layers.new(name=attrib_name + "_2").data
                         uv_data.foreach_set('uv', uv_layer_1[vertex_indices].flatten())
                         del uv_layer_0, uv_layer_1, uv_data
 
@@ -386,7 +389,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                         uv_layer = convert_to_float32(uv_layer)
                         uv_layer[:, 1] = np.subtract(1, uv_layer[:, 1])
 
-                        uv_data = mesh.uv_layers.new(name=attribute.name).data
+                        uv_data = mesh.uv_layers.new(name=attrib_name).data
                         uv_data.foreach_set('uv', uv_layer[vertex_indices].flatten())
                         del uv_layer, uv_data
 

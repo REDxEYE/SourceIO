@@ -20,7 +20,6 @@ class VertexAttribute:
 
     @property
     def name(self):
-        # return self._name
         if self.index == 0:
             return self._name
         else:
