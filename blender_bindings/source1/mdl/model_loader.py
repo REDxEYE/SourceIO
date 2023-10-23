@@ -10,6 +10,7 @@ from ...source1.mdl.v36.import_mdl import import_model as import_model_v36
 from ...source1.mdl.v44.import_mdl import import_model as import_model_v44
 from ...source1.mdl.v49.import_mdl import import_model as import_model_v49
 from ...source1.mdl.v52.import_mdl import import_model as import_model_v52
+from ...source1.mdl.v2531.import_mdl import import_model as import_model_v2531
 from ..phy import import_physics
 from . import FileImport
 
@@ -94,6 +95,9 @@ def import_model_from_files(name: Union[str, Path],
     elif version == 52:
         container = import_model_v52(file_list, scale, create_drives, re_use_meshes, unique_material_names,
                                      load_refpose)
+    elif version == 2531:
+        container = import_model_v2531(file_list, scale, create_drives, re_use_meshes, unique_material_names,
+                                       load_refpose)
     else:
         raise Exception(f'Unsupported version Mdl v{version}')
     # if re_use_meshes:

@@ -83,8 +83,9 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
 
     def write_misc():
         buffer.write(f"$surfaceprop \"{mdl.header.surface_prop}\"\n")
-        deflection = math.degrees(math.acos(mdl.header.max_eye_deflection))
-        buffer.write(f"$maxeyedeflection {deflection:.1f}\n")
+        if mdl.header.version != 2531:
+            deflection = math.degrees(math.acos(mdl.header.max_eye_deflection))
+            buffer.write(f"$maxeyedeflection {deflection:.1f}\n")
         eye_pos = mdl.header.eye_position
         buffer.write(f"$eyeposition {eye_pos[0]:.3} {eye_pos[1]:.3} {eye_pos[2]:.3}\n")
 

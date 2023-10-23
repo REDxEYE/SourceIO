@@ -38,17 +38,24 @@ class Eyeball:
         up = buffer.read_fmt("3f")
         forward = buffer.read_fmt("3f")
         material_id = buffer.read_int32()
-        buffer.read_uint32()
+        iris_material = buffer.read_uint32()
         iris_scale = buffer.read_float()
-        buffer.read_uint32()
+        glint_material = buffer.read_uint32()
         upper_flex_desc = buffer.read_fmt("3I")
         lower_flex_desc = buffer.read_fmt("3I")
         upper_target = buffer.read_fmt("3f")
         lower_target = buffer.read_fmt("3f")
         upper_lid_flex_desc = buffer.read_uint32()
         lower_lid_flex_desc = buffer.read_uint32()
-        buffer.skip(4 * 4)
-        if version >= 44:
+        # TODO: Expose these?
+        if version == 2531:
+            min_pitch = buffer.read_float()
+            max_pitch = buffer.read_float()
+            min_yaw = buffer.read_float()
+            min_yaw = buffer.read_float()
+        else:
+            buffer.skip(4 * 4)
+        if version >= 44 and version != 2531:
             buffer.skip(4 * 4)
             eyeball_is_non_facs = buffer.read_uint8()
             buffer.skip(3)

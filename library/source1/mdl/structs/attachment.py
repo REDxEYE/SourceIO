@@ -34,6 +34,6 @@ class Attachment:
             local_mat[4 * 2 + 1],
             local_mat[4 * 2 + 2])
         pos = (round(local_mat[4 * 0 + 3], 3), round(local_mat[4 * 1 + 3], 3), round(local_mat[4 * 2 + 3], 3))
-        if version > 36:
+        if version > 36 and version != 2531:
             buffer.skip(4 * 8)
         return cls(name, flags, parent_bone, rot, pos, local_mat)

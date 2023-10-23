@@ -230,6 +230,14 @@ class ContentManager(metaclass=SingletonMeta):
                 return corrected_path(file)
         return None
 
+    def find_tth(self, filepath, *, silent=False):
+        # VtMB uses .ttz/.tth files instead of just .vtf files
+        return self.find_file(filepath, 'materials', extension='.tth', silent=silent)
+
+    def find_ttz(self, filepath, *, silent=False):
+        # VtMB uses .ttz/.tth files instead of just .vtf files
+        return self.find_file(filepath, 'materials', extension='.ttz', silent=silent)
+
     def find_texture(self, filepath, *, silent=False):
         return self.find_file(filepath, 'materials', extension='.vtf', silent=silent)
 

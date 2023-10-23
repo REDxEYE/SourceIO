@@ -35,7 +35,8 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
     filter_glob: StringProperty(default="*.mdl", options={'HIDDEN'})
 
     def execute(self, context):
-        from ..source1.mdl.v49.import_mdl import import_materials
+        from ..source1.mdl.v49.import_mdl import import_materials as import_materials_v49
+        from ..source1.mdl.v2531.import_mdl import import_materials as import_materials_v2531
 
         if Path(self.filepath).is_file():
             directory = Path(self.filepath).parent.resolve()
@@ -59,8 +60,12 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
                                  bodygroup_grouping=self.bodygroup_grouping)
             if self.import_textures:
                 try:
-                    import_materials(model_container.mdl, unique_material_names=self.unique_materials_names,
-                                     use_bvlg=self.use_bvlg)
+                    if model_container.mdl.header.version == 2531:
+                        import_materials_v2531(model_container.mdl, unique_material_names=self.unique_materials_names,
+                                              use_bvlg=self.use_bvlg)
+                    else:
+                        import_materials_v49(model_container.mdl, unique_material_names=self.unique_materials_names,
+                                         use_bvlg=self.use_bvlg)
                 except Exception as t_ex:
                     logger.error(f'Failed to import materials, caused by {t_ex}')
                     import traceback

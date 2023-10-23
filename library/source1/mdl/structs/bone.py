@@ -212,5 +212,78 @@ class Bone:
                 if procedural_rule_type == ProceduralBoneType.JIGGLE:
                     procedural_rule = JiggleRule.from_buffer(buffer)
         return cls(name, parent_bone_id, bone_controller_ids, position, rotation, position_scale, rotation_scale,
+            # TODO: Should procedural_rule here be procedural_rule_type?
                    pose_to_bone, q_alignment, flags, procedural_rule, physics_bone_index, quat, contents, surface_prop,
+                   procedural_rule)
+
+
+@dataclass(slots=True)
+class Bone2531:
+    bone_id: int = field(init=False)
+    name: str
+    parent_bone_id: int
+    bone_controller_ids: Tuple[float, ...]
+
+    position: Vector3[float]
+    rotation: Vector4[float]
+    position_scale: Vector3[float] = field(repr=False)
+    rotation_scale: Vector4[float] = field(repr=False)
+
+    pose_to_bone: npt.NDArray[np.float32] = field(repr=False)
+
+    flags: BoneFlags
+    procedural_rule_type: int
+    physics_bone_index: int
+    contents: Contents
+    surface_prop: str
+
+    procedural_rule: Optional[Union[AxisInterpRule, JiggleRule, QuatInterpRule]]
+
+    # TODO: Figure out what this does and what to use instead of self.quat since that only exists in v36/v37 and possibly others but not in 2531. Might be that quat should be the rotation, i.e. self.rotation
+    # @property
+    # def matrix(self):
+    #     r_matrix = quat_to_matrix(self.quat)
+    #     tmp = np.identity(4)
+    #     tmp[0, :3] = r_matrix[0]
+    #     tmp[1, :3] = r_matrix[1]
+    #     tmp[2, :3] = r_matrix[2]
+    #     t_matrix = np.array([
+    #         [1, 0, 0, self.position[0]],
+    #         [0, 1, 0, self.position[1]],
+    #         [0, 0, 1, self.position[2]],
+    #         [0, 0, 0, 1],
+    #     ], dtype=np.float32)
+
+    #     return np.identity(4) @ t_matrix @ tmp
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        start_offset = buffer.tell()
+        name = buffer.read_source1_string(start_offset)
+        parent_bone_id = buffer.read_int32()
+        bone_controller_ids = buffer.read_fmt('6f')
+        position = buffer.read_fmt('3f')
+        rotation = buffer.read_fmt('4f')
+        position_scale = buffer.read_fmt('3f')
+        rotation_scale = buffer.read_fmt('4f')
+
+        pose_to_bone = np.array(buffer.read_fmt('12f'), np.float32).reshape((3, 4)).transpose()
+
+        flags = BoneFlags(buffer.read_uint32())
+        procedural_rule_type = buffer.read_uint32()
+        procedural_rule_offset = buffer.read_uint32()
+        physics_bone_index = buffer.read_uint32()
+        surface_prop = buffer.read_source1_string(start_offset)
+        contents = Contents(buffer.read_uint32())
+        procedural_rule = None
+        if procedural_rule_type != 0 and procedural_rule_offset != 0:
+            with buffer.read_from_offset(start_offset + procedural_rule_offset):
+                if procedural_rule_type == ProceduralBoneType.AXISINTERP:
+                    procedural_rule = AxisInterpRule.from_buffer(buffer)
+                if procedural_rule_type == ProceduralBoneType.QUATINTERP:
+                    procedural_rule = QuatInterpRule.from_buffer(buffer)
+                if procedural_rule_type == ProceduralBoneType.JIGGLE:
+                    procedural_rule = JiggleRule.from_buffer(buffer)
+        return cls(name, parent_bone_id, bone_controller_ids, position, rotation, position_scale, rotation_scale,
+                   pose_to_bone, flags, procedural_rule_type, physics_bone_index, contents, surface_prop,
                    procedural_rule)

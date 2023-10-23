@@ -4,6 +4,7 @@ from typing import BinaryIO, Union
 from ...utils import Buffer, FileBuffer
 from .v6.vtx import Vtx as Vtx6
 from .v7.vtx import Vtx as Vtx7
+from .v107.vtx import Vtx as Vtx107
 
 
 def open_vtx(filepath_or_object: Union[Path, str, Buffer]):
@@ -20,3 +21,7 @@ def open_vtx(filepath_or_object: Union[Path, str, Buffer]):
         return Vtx6.from_buffer(filepath_or_object)
     elif version == 7:
         return Vtx7.from_buffer(filepath_or_object)
+    elif version == 107:
+        return Vtx107.from_buffer(filepath_or_object)
+    else:
+        raise Exception(f'Unsupported vtx file version {version}')
