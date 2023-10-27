@@ -8,6 +8,7 @@ from bpy.types import (Panel,
                        Operator,
                        AddonPreferences,
                        PropertyGroup)
+from idprop.types import *
 import bpy
 
 from ..source1.mdl.v44.import_mdl import import_static_animations
@@ -70,7 +71,8 @@ class SourceIO_OT_LoadEntity(Operator):
         replace_entity = context.scene.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
-        master_instance_lcollection = find_layer_collection(bpy.context.view_layer.layer_collection, master_instance_collection.name)
+        master_instance_lcollection = find_layer_collection(bpy.context.view_layer.layer_collection,
+                                                            master_instance_collection.name)
         master_instance_lcollection.exclude = True
         # master_instance_collection.hide_viewport = True
         # master_instance_collection.hide_render = True
@@ -416,7 +418,7 @@ class SOURCEIO_PT_EntityInfo(UITools, Panel):
         return obj and obj.get("entity_data", None)
 
     def draw(self, context):
-        self.layout.label(text="Entity loading")
+        self.layout.label(text="Entity info")
         obj: bpy.types.Object = context.active_object
         if obj is None and context.selected_objects:
             obj = context.selected_objects[0]
@@ -427,7 +429,12 @@ class SOURCEIO_PT_EntityInfo(UITools, Panel):
             for k, v in entity_raw_data.items():
                 row = box.row()
                 row.label(text=f'{k}:')
-                row.label(text=str(v))
+                if isinstance(v, IDPropertyArray):
+                    row.label(text=str(v.to_list()))
+                elif isinstance(v, IDPropertyGroup):
+                    row.label(text=str(v.to_dict()))
+                else:
+                    row.label(text=str(v))
 
 
 class SOURCEIO_PT_SkinChanger(UITools, Panel):
