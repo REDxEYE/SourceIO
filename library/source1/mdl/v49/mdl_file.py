@@ -1,4 +1,5 @@
 import math
+import struct
 import traceback
 from dataclasses import dataclass
 
@@ -113,7 +114,7 @@ class MdlV49(MdlV44):
         for anim_desc in local_animations:
             try:
                 animations.append(anim_desc.read_animations(buffer, bones))
-            except (AssertionError, ValueError):
+            except (AssertionError, ValueError, struct.error):
                 traceback.print_exc()
                 animations.extend([None] * (len(animations) - len(local_animations)))
                 break
