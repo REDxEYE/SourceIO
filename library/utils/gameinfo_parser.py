@@ -74,7 +74,13 @@ class GameInfoParser:
             raise ValueError(f'Unknown input value type {type(file_or_string)}')
 
         self._parser = KVParser(str(path), self._buffer)
-        self.header, self._raw_data = self._parser.parse()
+        parse = self._parser.parse()
+        if len(parse) == 2:
+            self.header, self._raw_data = parse
+        else:
+            logger.error(f"Failed to parse {path}, got 1 output instead of 2: {parse}")
+            self.header = "ERROR"
+            self._raw_data = {}
 
     @property
     def all_paths(self) -> List[Path]:
