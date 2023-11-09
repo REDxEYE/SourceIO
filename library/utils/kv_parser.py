@@ -150,7 +150,7 @@ class VKVToken(Enum):
 class ValveKeyValueLexer:
 
     def __init__(self, buffer: str, buffer_name: str = '<memory>'):
-        self.buffer = buffer.replace('\r\n', '\n')
+        self.buffer = buffer.replace('\r\n', '\n').replace("\\", "/")
         self.buffer_name = buffer_name
         self._offset = 0
         self._line = 1
