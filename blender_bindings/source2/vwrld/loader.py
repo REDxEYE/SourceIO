@@ -29,7 +29,7 @@ def get_entity_name(entity_data: Dict[str, Any]):
 
 
 def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float = SOURCE2_HAMMER_UNIT_TO_METERS):
-    world_resource_path = next(filter(lambda a: isinstance(a, str) and a.endswith(".vwrld"), map_resource.get_child_resources()), None)
+    world_resource_path = next(filter(lambda a: a.endswith(".vwrld"), map_resource.get_child_resources()), None)
     if world_resource_path is not None:
         world_resource = map_resource.get_child_resource(world_resource_path, cm)
         return import_world(world_resource, map_resource, cm, scale)
