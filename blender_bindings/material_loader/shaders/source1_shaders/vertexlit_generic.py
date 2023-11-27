@@ -383,7 +383,6 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                         selfillummask_node.image = selfillummask
                         if 'Emission Strength' in shader.inputs:
                             self.connect_nodes(selfillummask_node.outputs['Color'], shader.inputs['Emission Strength'])
-
                     else:
                         if 'Emission Strength' in shader.inputs:
                             self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])

@@ -417,6 +417,8 @@ class BSP:
         light.rotation_euler = angles
 
     def load_light(self, entity_class, entity_data, type_collection_name: str):
+        if "_light" not in entity_data:
+            return
         entity_collection = self.get_collection(entity_class, type_collection_name)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         color = parse_hammer_vector(entity_data['_light'])
@@ -427,6 +429,8 @@ class BSP:
         light.location = origin
 
     def load_light_environment(self, entity_class, entity_data, type_collection_name: str):
+        if "_light" not in entity_data:
+            return
         entity_collection = self.get_collection(entity_class, type_collection_name)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = self._get_light_angles(entity_data)
