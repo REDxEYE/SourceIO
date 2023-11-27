@@ -112,7 +112,8 @@ class SourceIO_OT_LoadEntity(Operator):
                         if replace_entity:
                             s2_put_into_collections(container, model_resource.name, parent)
                         else:
-                            s2_put_into_collections(container, model_resource.name, master_instance_collection)
+                            prop_collection = get_or_create_collection(Path(prop_path).stem,master_instance_collection)
+                            s2_put_into_collections(container, model_resource.name, prop_collection)
                         obj["entity_data"]["prop_path"] = None
                         obj["entity_data"]["imported"] = True
 

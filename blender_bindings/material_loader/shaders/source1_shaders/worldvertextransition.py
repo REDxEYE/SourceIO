@@ -1,3 +1,4 @@
+from ....utils.utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -91,4 +92,7 @@ class WorldVertexTransition(Source1ShaderBase):
             self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
 
         if not self.phong:
-            shader.inputs['Specular'].default_value = 0
+            if is_blender_4():
+                shader.inputs['Specular IOR Level'].default_value = 0
+            else:
+                shader.inputs['Specular'].default_value = 0

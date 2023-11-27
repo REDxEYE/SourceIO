@@ -3,6 +3,14 @@ import random
 import bpy
 
 
+def is_blender_4():
+    return bpy.app.version >= (4, 0, 0)
+
+
+def is_blender_4_1():
+    return bpy.app.version >= (4, 1, 0)
+
+
 def find_layer_collection(layer_collection, name):
     if layer_collection.name == name:
         return layer_collection

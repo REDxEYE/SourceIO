@@ -1,5 +1,4 @@
-import bpy
-
+from ....utils.utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 from .detail import DetailSupportMixin
@@ -358,7 +357,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
 
                     self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
-                    self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
+                    if is_blender_4():
+                        self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission Weight'])
+                    else:
+                        self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
                     self.connect_nodes(basetexture_invert_node.outputs['Color'],
                                        basetexture_additive_mix_node.inputs['Fac'])
 
@@ -385,12 +387,21 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     else:
                         if 'Emission Strength' in shader.inputs:
                             self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Emission Strength'])
-                    self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
+                    if is_blender_4():
+                        self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission Color'])
+                    else:
+                        self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
 
             if not self.phong:
-                shader.inputs['Specular'].default_value = 0
+                if is_blender_4():
+                    shader.inputs['Specular IOR Level'].default_value = 0
+                else:
+                    shader.inputs['Specular'].default_value = 0
             elif self.phongboost is not None:
-                shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
+                if is_blender_4():
+                    shader.inputs['Specular IOR Level'].default_value = self.clamp_value(self.phongboost / 64)
+                else:
+                    shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
             phongexponenttexture = self.phongexponenttexture
             if self.phongexponent is not None and phongexponenttexture is None:
                 shader.inputs['Roughness'].default_value = self.clamp_value(self.phongexponent / 256)

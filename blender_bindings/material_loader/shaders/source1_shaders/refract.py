@@ -1,7 +1,4 @@
-from typing import Iterable
-
-import numpy as np
-
+from ....utils.utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -91,5 +88,8 @@ class Refract(Source1ShaderBase):
             self.create_and_connect_texture_node(bumpmap, normalmap_node.inputs['Color'], name='$bumpmap')
 
             self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
-            shader.inputs['Transmission'].default_value = 1.0
+            if is_blender_4():
+                shader.inputs['Transmission Weight'].default_value = 1.0
+            else:
+                shader.inputs['Transmission'].default_value = 1.0
             shader.inputs['Roughness'].default_value = self.bluramount

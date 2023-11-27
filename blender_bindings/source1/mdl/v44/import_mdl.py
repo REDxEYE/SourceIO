@@ -20,7 +20,7 @@ from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import add_material
+from ....utils.utils import add_material, is_blender_4_1
 from .. import FileImport
 from ..common import get_slice, merge_meshes
 
@@ -160,7 +160,10 @@ def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
             mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
-            mesh_data.use_auto_smooth = True
+            if is_blender_4_1():
+                pass
+            else:
+                mesh_data.use_auto_smooth = True
 
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):

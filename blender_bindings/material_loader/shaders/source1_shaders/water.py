@@ -1,8 +1,6 @@
-from typing import Iterable
-
 import bpy
-import numpy as np
 
+from ....utils.utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -139,5 +137,8 @@ class Water(Source1ShaderBase):
 
                 self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
                 self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
-                shader.inputs['Transmission'].default_value = 1.0
+                if is_blender_4():
+                    shader.inputs['Transmission Weight'].default_value = 1.0
+                else:
+                    shader.inputs['Transmission'].default_value = 1.0
                 shader.inputs['Roughness'].default_value = self.bluramount
