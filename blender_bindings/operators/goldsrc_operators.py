@@ -27,6 +27,7 @@ class SOURCEIO_OT_GBSPImport(bpy.types.Operator):
     scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
     use_hd: BoolProperty(name="Load HD models", default=False, subtype='UNSIGNED')
     single_collection: BoolProperty(name="Load everything into 1 collection", default=False, subtype='UNSIGNED')
+    fix_rotation: BoolProperty(name="Fix rotations. Some games require it", default=True, subtype='UNSIGNED')
 
     def execute(self, context):
 
@@ -38,7 +39,8 @@ class SOURCEIO_OT_GBSPImport(bpy.types.Operator):
             logger.info(f"Loading {n}/{len(self.files)}")
             content_manager = GoldSrcConfig()
             content_manager.use_hd = self.use_hd
-            bsp = BSP(directory / file.name, scale=self.scale, single_collection=self.single_collection)
+            bsp = BSP(directory / file.name, scale=self.scale, single_collection=self.single_collection,
+                      fix_rotation=self.fix_rotation)
             bsp.load_map()
         return {'FINISHED'}
 

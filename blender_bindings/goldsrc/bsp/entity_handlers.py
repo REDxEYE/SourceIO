@@ -12,13 +12,15 @@ from ...utils.utils import get_new_unique_collection, get_or_create_collection
 content_manager = ContentManager()
 
 
-def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotation=True):
+def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotation=True, single_collection=False):
     model_name = Path(entity_data['model'])
-    return handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=fix_rotation)
+    return handle_model_prop(model_name, entity_data, scale, parent_collection,
+                             single_collection=single_collection,
+                             fix_rotation=fix_rotation)
 
 
 def handle_model_prop_with_collection(model_name, group_collection_name, entity_data, scale, parent_collection,
-                                      single_collection, fix_rotation=True):
+                                      fix_rotation=True, single_collection=False):
     if not single_collection:
         group_collection = get_or_create_collection(group_collection_name, parent_collection)
         parent_collection = get_or_create_collection(entity_data["classname"], group_collection)

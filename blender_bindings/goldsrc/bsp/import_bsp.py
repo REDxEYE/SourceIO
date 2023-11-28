@@ -42,8 +42,9 @@ content_manager = ContentManager()
 
 
 class BSP:
-    def __init__(self, map_path: Path, *, scale=1.0, single_collection=False):
+    def __init__(self, map_path: Path, *, scale=1.0, single_collection=False, fix_rotation=True):
         self.map_path = map_path
+        self.fix_rotation = fix_rotation
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
         self.logger.info(f'Loading map "{self.bsp_name}"')
@@ -237,7 +238,8 @@ class BSP:
             entity_class: str = entity['classname']
 
             if entity_class in entity_handlers:
-                entity_handlers[entity_class](entity, self.scale, self.bsp_collection, self._single_collection)
+                entity_handlers[entity_class](entity, self.scale, self.bsp_collection, self.fix_rotation,
+                                              self._single_collection)
             else:
                 if entity_class == 'worldspawn':
                     for game_wad_path in entity.get('wad', '').split(';'):
@@ -252,7 +254,8 @@ class BSP:
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
                     entity_collection = self.get_collection(entity_class)
-                    handle_generic_model_prop(entity, self.scale, entity_collection)
+                    handle_generic_model_prop(entity, self.scale, entity_collection, self.fix_rotation,
+                                              self._single_collection)
                 elif entity_class.startswith('trigger'):
                     self.load_trigger(entity_class, entity)
                 elif entity_class.startswith('func'):
