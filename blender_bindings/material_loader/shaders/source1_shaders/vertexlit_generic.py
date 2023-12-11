@@ -199,12 +199,18 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             for proxy_name, proxy_data in proxies.items():
                 if proxy_name == 'selectfirstifnonzero':
                     result_var = proxy_data.get('resultvar')
+                    if result_var not in self._vmt:
+                        continue
                     src1_var = proxy_data.get('srcvar1')
                     src2_var = proxy_data.get('srcvar2')
                     src1_value, src1_type = self._vmt.get_vector(src1_var, [0])
                     if all([val > 0 for val in src1_value]):
+                        if src1_var not in self._vmt:
+                            continue
                         self._vmt[result_var] = self._vmt[src1_var]
                     else:
+                        if src2_var not in self._vmt:
+                            continue
                         self._vmt[result_var] = self._vmt[src2_var]
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
@@ -358,7 +364,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
                     self.connect_nodes(basetexture_node.outputs['Color'], basetexture_invert_node.inputs['Color'])
                     if is_blender_4():
-                        self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission Weight'])
+                        self.connect_nodes(basetexture_invert_node.outputs['Color'],
+                                           shader.inputs['Transmission Weight'])
                     else:
                         self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
                     self.connect_nodes(basetexture_invert_node.outputs['Color'],
