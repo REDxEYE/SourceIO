@@ -101,6 +101,6 @@ def import_model_from_files(name: Union[str, Path],
 
     # put_into_collections(container, Path(container.mdl.header.name).stem, bodygroup_grouping=bodygroup_grouping)
 
-    if load_physics:
+    if load_physics and file_list.phy_file is not None:
         import_physics(file_list, container, scale)
     return container
