@@ -361,6 +361,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                 vertex_colors_data = vertex_colors.data
                 tmp = np.ones((4,), np.float32)
                 tmp[:3] = tint
+                tmp[:3] = tmp[:3] ** 0.5
                 tint_data = np.full((vertex_count, 4), tmp, np.float32)
                 vertex_colors_data.foreach_set('color', tint_data[vertex_indices].flatten())
             for uv_id in range(16):
