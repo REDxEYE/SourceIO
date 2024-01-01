@@ -6,6 +6,10 @@ from ..content_provider_base import ContentProviderBase
 from ..non_source_sub_manager import NonSourceContentProvider
 from ..source1_content_provider import GameinfoContentProvider
 from .source1_common import Source1Common
+from .....logger import SLoggingManager
+
+log_manager = SLoggingManager()
+logger = log_manager.get_logger('SFMDetector')
 
 
 class SFMDetector(Source1Common):
@@ -23,7 +27,10 @@ class SFMDetector(Source1Common):
             if folder.stem in content_providers or folder.is_file():
                 continue
             elif (folder / 'gameinfo.txt').exists():
-                content_providers[folder.stem] = GameinfoContentProvider(folder / 'gameinfo.txt')
+                try:
+                    content_providers[folder.stem] = GameinfoContentProvider(folder / 'gameinfo.txt')
+                except ValueError as ex:
+                    logger.exception(f"Failed to parse gameinfo for {folder}", ex)
         cls.register_common(sfm_root, content_providers)
         return content_providers
 

@@ -148,7 +148,11 @@ class ContentManager(metaclass=SingletonMeta):
                 # for unknown gameinfo like gameinfo_srgb, they are confusing content manager steam id thingie
                 gameinfos = root_path.glob('gameinfo_*.txt')
             for gameinfo in gameinfos:
-                sub_manager = Source1GameinfoContentProvider(gameinfo)
+                try:
+                    sub_manager = Source1GameinfoContentProvider(gameinfo)
+                except ValueError as ex:
+                    logger.exception(f"Failed to parse gameinfo for {gameinfo}", ex)
+                    continue
                 if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.content_providers[root_path.stem] = sub_manager
@@ -254,7 +258,11 @@ class ContentManager(metaclass=SingletonMeta):
                 sub_manager = VPKContentProvider(Path(path))
                 self.register_content_provider(name, sub_manager)
             elif path.endswith('.txt'):
-                sub_manager = Source1GameinfoContentProvider(Path(path))
+                try:
+                    sub_manager = Source1GameinfoContentProvider(Path(path))
+                except ValueError as ex:
+                    logger.exception(f"Failed to parse gameinfo for {Path(path)}", ex)
+                    continue
                 if sub_manager.gameinfo.game == 'Titanfall':
                     self._titanfall_mode = True
                 self.register_content_provider(name, sub_manager)

@@ -30,21 +30,26 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
     def recursive_traversal(cls, game_root: Path, name: str, content_providers: Dict[str, ContentProviderBase]):
         if name in content_providers or not (game_root / name / 'gameinfo.txt').exists():
             return
-        gh_provider = GameinfoContentProvider(game_root / name / 'gameinfo.txt')
-        cls.add_provider(name, gh_provider, content_providers)
+        try:
+            gh_provider = GameinfoContentProvider(game_root / name / 'gameinfo.txt')
+            cls.add_provider(name, gh_provider, content_providers)
+            for game in gh_provider.gameinfo.all_paths:
+                if game.name.startswith('|'):
+                    logger.warn(f"Encountered game path: with \"|\" in name: {game.as_posix()!r}")
+                    continue
+                elif game.is_absolute() and game.is_dir():
+                    cls.add_provider(game.stem, NonSourceContentProvider(game), content_providers)
+                elif game.name.endswith('.vpk'):
+                    if "_dir" not in game.stem:
+                        game = game.with_name(game.stem + '_dir.vpk')
+                    if game.is_absolute() and game.exists():
+                        content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
+                    elif (game_root / game).exists():
+                        content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
+                else:
+                    cls.recursive_traversal(game_root, game.stem, content_providers)
+        except ValueError as ex:
+            logger.exception(f"Failed to parse gameinfo for {game_root / name}", ex)
+
         cls.scan_for_vpk(game_root / name, content_providers)
-        for game in gh_provider.gameinfo.all_paths:
-            if game.name.startswith('|'):
-                logger.warn(f"Encountered game path: with \"|\" in name: {game.as_posix()!r}")
-                continue
-            elif game.is_absolute() and game.is_dir():
-                cls.add_provider(game.stem, NonSourceContentProvider(game), content_providers)
-            elif game.name.endswith('.vpk'):
-                if "_dir" not in game.stem:
-                    game = game.with_name(game.stem + '_dir.vpk')
-                if game.is_absolute() and game.exists():
-                    content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
-                elif (game_root / game).exists():
-                    content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
-            else:
-                cls.recursive_traversal(game_root, game.stem, content_providers)
+

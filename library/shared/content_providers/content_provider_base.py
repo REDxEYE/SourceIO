@@ -1,6 +1,5 @@
-from collections import deque
 from pathlib import Path
-from typing import Deque, Dict, Iterator, Optional, Tuple, Type, Union
+from typing import Dict, Iterator, Optional, Tuple, Type, Union
 
 from ...utils import Buffer, FileBuffer
 from ...utils.path_utilities import corrected_path
