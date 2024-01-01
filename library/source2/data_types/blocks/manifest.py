@@ -1,6 +1,6 @@
 from .....library.utils import Buffer
 
-from ... import CompiledResource
+from ...resource_types.resource import CompiledResource
 from .kv3_block import KVBlock
 
 

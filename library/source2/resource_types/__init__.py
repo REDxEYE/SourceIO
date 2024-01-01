@@ -5,3 +5,4 @@ from .compiled_physics_resource import CompiledPhysicsResource
 from .compiled_texture_resource import CompiledTextureResource
 from .compiled_vmorf_resource import CompiledMorphResource
 from .compiled_world_resource import CompiledWorldResource
+from .compiled_manifest_resource import CompiledManifestResource
