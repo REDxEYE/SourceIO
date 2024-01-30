@@ -6,7 +6,7 @@ import bpy
 import numpy as np
 
 from ...logger import SLoggingManager
-from ..utils.utils import append_blend
+from ..utils.bpy_utils import append_blend
 from .node_arranger import nodes_iterate
 
 

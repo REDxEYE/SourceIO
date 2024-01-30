@@ -14,7 +14,7 @@ from ....library.source2.resource_types.compiled_world_resource import (
 from ....library.source2.resource_types import CompiledManifestResource
 from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ....logger import SLoggingManager
-from ...utils.utils import get_or_create_collection
+from ...utils.bpy_utils import get_or_create_collection
 from .entities.base_entity_handlers import BaseEntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
 from .entities.sbox_entity_handlers import SBoxEntityHandler

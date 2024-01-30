@@ -13,7 +13,7 @@ from .....library.source1.vvc import Vvc
 from .....library.source1.vvd import Vvd
 from .....logger import SLoggingManager
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import add_material, is_blender_4_1, find_or_create_material
+from ....utils.bpy_utils import add_material, is_blender_4_1, find_or_create_material
 from .. import FileImport
 from ..common import get_slice, merge_meshes
 from ..v49.import_mdl import (collect_full_material_names, create_armature,

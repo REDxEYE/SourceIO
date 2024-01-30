@@ -13,7 +13,7 @@ from .....library.source1.bsp.lumps.material_sort_lump import *
 from .....library.source1.bsp.lumps.mesh_lump import *
 from .....library.source1.bsp.lumps.vertex_lump import *
 from .....library.source1.bsp.lumps.vertex_normal_lump import *
-from ....utils.utils import add_material
+from ....utils.bpy_utils import add_material
 from ..entities.base_entity_handler import BaseEntityHandler
 from ..entities.r1_entity_classes import (Base, entity_class_handle,
                                           func_window_hint,

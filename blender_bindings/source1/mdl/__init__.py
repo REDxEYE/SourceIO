@@ -5,7 +5,7 @@ import bpy
 
 from ....library.utils import Buffer
 from ...shared.model_container import Source1ModelContainer
-from ...utils.utils import get_new_unique_collection
+from ...utils.bpy_utils import get_new_unique_collection
 
 
 @dataclass

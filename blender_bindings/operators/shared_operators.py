@@ -23,7 +23,7 @@ from ..source1.mdl.v49.import_mdl import import_materials
 from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
-from ..utils.utils import get_or_create_collection, find_layer_collection
+from ..utils.bpy_utils import get_or_create_collection, find_layer_collection
 
 
 def get_parent(collection):

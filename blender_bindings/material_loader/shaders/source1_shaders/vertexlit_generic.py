@@ -1,4 +1,4 @@
-from ....utils.utils import is_blender_4
+from ....utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 from .detail import DetailSupportMixin

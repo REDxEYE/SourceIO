@@ -18,7 +18,7 @@ from ..source2.vmat_loader import load_material
 from ..source2.vmdl_loader import load_model, put_into_collections
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
-from ..utils.utils import get_new_unique_collection
+from ..utils.bpy_utils import get_new_unique_collection
 from ...library.utils.path_utilities import backwalk_file_resolver
 
 

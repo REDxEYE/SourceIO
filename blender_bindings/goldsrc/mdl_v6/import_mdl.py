@@ -11,7 +11,7 @@ from ....library.utils import Buffer
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
-from ...utils.utils import add_material, get_new_unique_collection, find_or_create_material
+from ...utils.bpy_utils import add_material, get_new_unique_collection, find_or_create_material
 
 
 def create_armature(mdl: Mdl, collection, scale):

@@ -14,7 +14,7 @@ from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.utils import add_material, find_or_create_material
+from ....utils.bpy_utils import add_material, find_or_create_material
 from ...vtf import SkyboxException, load_skybox_texture
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *

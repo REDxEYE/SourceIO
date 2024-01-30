@@ -7,7 +7,7 @@ import bpy
 
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.utils.math_utilities import parse_hammer_vector
-from ...utils.utils import get_new_unique_collection, get_or_create_collection
+from ...utils.bpy_utils import get_new_unique_collection, get_or_create_collection
 
 content_manager = ContentManager()
 

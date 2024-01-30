@@ -19,7 +19,7 @@ from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import add_material, is_blender_4_1, find_or_create_material
+from ....utils.bpy_utils import add_material, is_blender_4_1, find_or_create_material
 from .. import FileImport
 from ..common import get_slice, merge_meshes
 from ..v44.import_mdl import create_armature

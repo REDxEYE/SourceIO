@@ -25,8 +25,8 @@ from ...library.source2.exceptions import MissingBlock
 from ...library.source2.resource_types import CompiledMeshResource
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ..shared.model_container import Source2ModelContainer
-from ..utils.utils import (add_material, find_layer_collection,
-                           get_new_unique_collection, find_or_create_material)
+from ..utils.bpy_utils import (add_material, find_layer_collection,
+                               get_new_unique_collection, find_or_create_material)
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
 

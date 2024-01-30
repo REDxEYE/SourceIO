@@ -1,6 +1,6 @@
 from typing import Optional
 
-from ....utils.utils import is_blender_4
+from ....utils.bpy_utils import is_blender_4
 from .....library.goldsrc.mdl_v10.structs.texture import MdlTextureFlag
 from ...shader_base import Nodes
 from ..goldsrc_shader_base import GoldSrcShaderBase

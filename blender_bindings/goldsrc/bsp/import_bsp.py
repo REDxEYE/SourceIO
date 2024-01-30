@@ -35,7 +35,7 @@ from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
     GoldSrcShaderMode2
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
     GoldSrcShaderMode5
-from ...utils.utils import add_material, get_or_create_collection, find_or_create_material
+from ...utils.bpy_utils import add_material, get_or_create_collection, find_or_create_material
 
 log_manager = SLoggingManager()
 content_manager = ContentManager()

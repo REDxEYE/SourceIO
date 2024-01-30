@@ -19,7 +19,7 @@ from .....library.source1.bsp.datatypes.texture_info import TextureInfo
 from .....library.source1.vmt import VMT
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....logger import SLoggingManager
-from ....utils.utils import add_material, get_or_create_collection, find_or_create_material
+from ....utils.bpy_utils import add_material, get_or_create_collection, find_or_create_material
 from ...vtf import import_texture
 from .base_entity_classes import *
 

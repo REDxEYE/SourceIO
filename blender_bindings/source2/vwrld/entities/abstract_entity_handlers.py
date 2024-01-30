@@ -12,7 +12,7 @@ from .....library.source2 import (CompiledMaterialResource,
                                   CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from .....logger import SLoggingManager
-from ....utils.utils import get_or_create_collection
+from ....utils.bpy_utils import get_or_create_collection
 from ...vtex_loader import import_texture
 from .base_entity_classes import *
 
