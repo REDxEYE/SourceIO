@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import IntFlag
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from ....shared.types import Vector4
 from ....utils.file_utils import Buffer
@@ -29,8 +29,8 @@ class SurfaceInfo(IntFlag):
 
 @dataclass(slots=True)
 class TextureInfo:
-    texture_vectors: Tuple[Vector4[float], Vector4[float]]
-    lightmap_vectors: Tuple[Vector4[float], Vector4[float]]
+    texture_vectors: tuple[Vector4[float], Vector4[float]]
+    lightmap_vectors: tuple[Vector4[float], Vector4[float]]
     flags: SurfaceInfo
     texture_data_id: int
 

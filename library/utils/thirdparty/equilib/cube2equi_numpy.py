@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 import numpy as np
 
 from . import numpy_grid_sample as numpy_func
 
 
-def cube_list2h(cube_list: List[np.ndarray]) -> np.ndarray:
+def cube_list2h(cube_list: list[np.ndarray]) -> np.ndarray:
     assert len(cube_list) == 6
     assert sum(face.shape == cube_list[0].shape for face in cube_list) == 6
     return np.concatenate(cube_list, axis=-1)
 
 
 def cube_dict2h(
-        cube_dict: Dict[str, np.ndarray],
-        face_k: Union[Tuple[str], List[str]] = ("F", "R", "B", "L", "U", "D"),
+        cube_dict: dict[str, np.ndarray],
+        face_k: Union[tuple[str], list[str]] = ("F", "R", "B", "L", "U", "D"),
 ) -> np.ndarray:
     assert len(face_k) == 6
     return cube_list2h([cube_dict[k] for k in face_k])
@@ -77,7 +77,7 @@ def _equirect_facetype(h: int, w: int) -> np.ndarray:
     return tp.astype(np.int32)
 
 
-def create_equi_grid(h_out: int, w_out: int) -> Tuple[np.ndarray, np.ndarray]:
+def create_equi_grid(h_out: int, w_out: int) -> tuple[np.ndarray, np.ndarray]:
     _dtype = np.float32
     theta = np.linspace(-np.pi, np.pi, num=w_out, dtype=_dtype)
     phi = np.linspace(np.pi, -np.pi, num=h_out, dtype=_dtype) / 2
@@ -138,7 +138,7 @@ def _run_single(
 
 
 def run(
-        cubemap: Union[np.ndarray, Dict[str, np.ndarray], List[np.ndarray]],
+        cubemap: Union[np.ndarray, dict[str, np.ndarray], list[np.ndarray]],
         cube_format: str,
         w_out: int,
         h_out: int,

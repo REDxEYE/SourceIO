@@ -71,7 +71,7 @@ def import_model(name: str, mdl_buffer: Buffer, scale=1.0,
 
     mdl = Mdl.from_buffer(mdl_buffer)
 
-    model_container = GoldSrcV4ModelContainer(mdl)
+    model_container = GoldSrcV4ModelContainer()
     master_collection = get_new_unique_collection(name, parent_collection)
 
     armature, bone_transforms = create_armature(name, mdl, master_collection, scale)

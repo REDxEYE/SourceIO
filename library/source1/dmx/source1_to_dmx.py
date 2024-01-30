@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, Iterable, List, Sized, Optional, Type
+from typing import Iterable, Sized, Optional, Type
 
 import numpy as np
 
@@ -13,8 +13,8 @@ from ..mdl.structs.bone import Bone
 from ..mdl.structs.model import Model as MdlModel
 from ..mdl.v49.mdl_file import MdlV49
 from ..vtx.v7.structs.mesh import Mesh as VtxMesh
-from ..vtx.v7.structs.model import Model as VtxModel
-from ..vtx.v7.structs.model import ModelLod as VtxModelLod
+from SourceIO.library.source1.models.vtx.v7.structs.model import Model as VtxModel
+from SourceIO.library.source1.models.vtx.v7.structs.model import ModelLod as VtxModelLod
 from ..vtx.v7.vtx import Vtx
 from ..vvd import Vvd
 
@@ -247,7 +247,7 @@ class DmxModel2:
         vertex_data[dme_attribute_name + "Indices"] = datamodel.make_array(np.arange(attribute_data.shape[0]), int)
 
     def mesh_add_bone_weights(self, mesh: datamodel.Element,
-                              bone_names: List[str],
+                              bone_names: list[str],
                               weights: np.ndarray,
                               bone_ids: np.ndarray,
                               ):
@@ -687,7 +687,7 @@ class ModelDecompiler:
         with FileBuffer(self.vtx_file) as f:
             self.vtx = Vtx.from_buffer(f)
 
-        self.dmx_models: Dict[str, DmxModel] = {}
+        self.dmx_models: dict[str, DmxModel] = {}
         self._blank_counter = 0
 
     def decompile(self, remove_eyes=False):

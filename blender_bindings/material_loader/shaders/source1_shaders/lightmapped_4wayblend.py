@@ -76,8 +76,8 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             return image
         return None
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

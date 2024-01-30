@@ -1,7 +1,7 @@
 import abc
 from functools import partial
 from types import NoneType
-from typing import Collection, List, Optional, TypeVar
+from typing import Collection, Optional, TypeVar
 
 import numpy as np
 
@@ -94,8 +94,8 @@ class Object(BaseType, dict):
         return {k: v.to_dict() for (k, v) in self.items()}
 
 
-class Array(BaseType, List[T]):
-    def __init__(self, initial: Optional[List[T]] = None):
+class Array(BaseType, list[T]):
+    def __init__(self, initial: Optional[list[T]] = None):
         super(Array, self).__init__(initial)
 
     def append(self, value: T):
@@ -119,8 +119,8 @@ class Array(BaseType, List[T]):
         return [i.to_dict() for i in self]
 
 
-class TypedArray(BaseType, List[T]):
-    def __init__(self, data_type: KV3Type, data_flag: KV3TypeFlag, initial: Optional[List[T]] = None):
+class TypedArray(BaseType, list[T]):
+    def __init__(self, data_type: KV3Type, data_flag: KV3TypeFlag, initial: Optional[list[T]] = None):
         super(TypedArray, self).__init__(initial)
         self.data_type = data_type
         self.data_flag = data_flag

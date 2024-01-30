@@ -1,4 +1,3 @@
-from typing import Dict
 
 from ....utils import Buffer
 from ...resource_types.resource import CompiledResource
@@ -8,7 +7,7 @@ from ..keyvalues3.types import BaseType
 from .base import BaseBlock
 
 
-class KVBlock(Dict[str, BaseType], BaseBlock):
+class KVBlock(dict[str, BaseType], BaseBlock):
     def __init__(self, buffer: Buffer, resource: CompiledResource):
         BaseBlock.__init__(self, buffer, resource)
         dict.__init__(self)

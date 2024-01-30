@@ -1,14 +1,13 @@
 import sys
 from logging import (DEBUG, Filter, Formatter, LogRecord, StreamHandler,
                      getLogger)
-from typing import Dict
 
 from ..utils.singleton import SingletonMeta
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):
     def __init__(self):
-        self.loggers: Dict[str, BPYLogger] = {}
+        self.loggers: dict[str, BPYLogger] = {}
         self.logger = self.get_logger("LOGGING")
         self.logger.debug('Using Stub logger')
 

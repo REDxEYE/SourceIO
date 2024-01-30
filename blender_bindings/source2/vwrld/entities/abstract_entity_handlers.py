@@ -1,7 +1,6 @@
 import math
 import re
 from pathlib import Path
-from typing import Dict, List, Union, Tuple
 
 import bpy
 from mathutils import Euler
@@ -64,7 +63,7 @@ class Base:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, entities: List[Dict], parent_collection, cm: ContentManager,
+    def __init__(self, entities: list[dict], parent_collection, cm: ContentManager,
                  scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self.scale = scale

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Optional
+from typing import Optional
 
 from ....utils import Buffer
 
@@ -8,7 +8,7 @@ VPK_MAGIC = 0x55AA1234
 
 @dataclass
 class Header:
-    version: Tuple[int, int]
+    version: tuple[int, int]
     tree_size: int
     file_data_section_size: Optional[int] = field(default=None)
     archive_md5_section_size: Optional[int] = field(default=None)

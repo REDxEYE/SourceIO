@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from ....utils import Buffer
 
@@ -46,7 +45,7 @@ class Entry:
 class TitanfallEntry(Entry):
     def __init__(self, file_name, offset):
         super().__init__(file_name, offset)
-        self.blocks: List[TitanfallBlock] = []
+        self.blocks: list[TitanfallBlock] = []
 
     def read(self, buffer: Buffer):
         buffer.seek(self._entry_offset)

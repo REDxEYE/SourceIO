@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -15,12 +14,12 @@ from .structs.texture import StudioTexture
 @dataclass(slots=True)
 class Mdl:
     header: StudioHeader
-    bones: List[StudioBone]
-    bodyparts: List[StudioBodypart]
-    sequences: List[StudioSequence]
-    textures: List[StudioTexture]
+    bones: list[StudioBone]
+    bodyparts: list[StudioBodypart]
+    sequences: list[StudioSequence]
+    textures: list[StudioTexture]
 
-    animations: List[List[StudioAnimation]]
+    animations: list[list[StudioAnimation]]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

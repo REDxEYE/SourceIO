@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from .resource import CompiledResource
 
 
@@ -39,7 +37,7 @@ class CompiledMaterialResource(CompiledResource):
         return self._get_prop(prop_name, data['m_dynamicTextureParams'], 'error') or default
 
     @staticmethod
-    def _get_prop(prop_name: str, prop_array: List[Dict], prop_value_name):
+    def _get_prop(prop_name: str, prop_array: list[dict], prop_value_name):
         for prop in prop_array:
             if prop['m_name'] == prop_name:
                 return prop[prop_value_name]

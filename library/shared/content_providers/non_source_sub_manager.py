@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, Optional, Union
 
 from ...utils import Buffer, FileBuffer
 from ...utils.path_utilities import backwalk_file_resolver
@@ -22,7 +22,7 @@ class NonSourceContentProvider(ContentProviderBase):
         if file:
             return file
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)
 
     @property

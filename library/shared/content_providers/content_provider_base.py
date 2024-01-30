@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Tuple, Type, Union
+from typing import Iterator, Optional, Type, Union
 
 from ...utils import Buffer, FileBuffer
 from ...utils.path_utilities import corrected_path
@@ -21,7 +21,7 @@ class ContentProviderBase:
     def find_path(self, filepath: Path) -> Optional[Path]:
         raise NotImplementedError('Implement me!')
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         raise NotImplementedError('Implement me!')
 
     @property
@@ -64,7 +64,7 @@ class ContentProviderBase:
         else:
             return None
 
-    def _glob_generic(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def _glob_generic(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         for filename in self.root.rglob(pattern):
             yield (filename.relative_to(self.root)).as_posix(), FileBuffer(filename)
 
@@ -72,7 +72,7 @@ class ContentProviderBase:
 class ContentDetectorBase:
 
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         raise NotImplementedError("Implement me")
 
     @staticmethod
@@ -83,6 +83,6 @@ class ContentDetectorBase:
     @classmethod
     def add_if_exists(cls, path: Path,
                       content_provider_class: Type[ContentProviderBase],
-                      content_providers: Dict[str, ContentProviderBase]):
+                      content_providers: dict[str, ContentProviderBase]):
         if path.exists():
             cls.add_provider(path.stem, content_provider_class(path), content_providers)

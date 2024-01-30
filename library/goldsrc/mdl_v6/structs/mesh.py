@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from ....shared.types import Vector2
 from ....utils import Buffer
@@ -20,7 +19,7 @@ class StudioTrivert:
 class StudioMesh:
     skin_ref: int
     triangle_count: int
-    triangles: List[StudioTrivert]
+    triangles: list[StudioTrivert]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

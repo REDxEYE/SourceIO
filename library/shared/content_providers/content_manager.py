@@ -1,12 +1,12 @@
 from collections import Counter, OrderedDict
 from hashlib import md5
 from pathlib import Path
-from typing import Dict, List, Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union
 
 from ....library.utils.path_utilities import (backwalk_file_resolver,
                                               corrected_path, get_mod_path)
 from ....logger import SLoggingManager
-from ...utils import Buffer
+from ...utils import Buffer, FileBuffer, MemoryBuffer
 from ...utils.singleton import SingletonMeta
 from .content_provider_base import ContentProviderBase
 from .hfs_provider import HFS1ContentProvider, HFS2ContentProvider
@@ -37,7 +37,7 @@ def is_relative_to(path: Path, *other):
 
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
-        self.detector_addons: List[AnyContentDetector] = []
+        self.detector_addons: list[AnyContentDetector] = []
         self.content_providers: OrderedDict[str, AnyContentProvider] = OrderedDict()
         self._titanfall_mode = False
         self._steam_id = -1
@@ -202,6 +202,11 @@ class ContentManager(metaclass=SingletonMeta):
     def find_file(self, filepath: Union[str, Path], additional_dir: str = None, extension: str = None, *,
                   silent=False) -> Optional[Buffer]:
 
+        filepath = Path(filepath)
+        if filepath.is_absolute() and filepath.exists():
+            with FileBuffer(filepath) as f:
+                return MemoryBuffer(f.read())
+
         new_filepath = Path(str(filepath).replace('\\', '/').replace('//', '/').strip('\\/'))
         if additional_dir is not None:
             new_filepath = Path(additional_dir, new_filepath)
@@ -249,7 +254,7 @@ class ContentManager(metaclass=SingletonMeta):
 
         return serialized
 
-    def deserialize(self, data: Dict[str, Union[str, dict]]):
+    def deserialize(self, data: dict[str, Union[str, dict]]):
         for name, item in data.items():
             name = item["name"]
             path = item["path"]

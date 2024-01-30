@@ -1,7 +1,7 @@
 import os
 from hashlib import md5
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional
 
 import bpy
 import numpy as np
@@ -60,7 +60,7 @@ def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
     return image
 
 
-def create_and_cache_texture(texture_path: Path, dimensions: Tuple[int, int], data: np.ndarray, is_hdr: bool = False,
+def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], data: np.ndarray, is_hdr: bool = False,
                              invert_y: bool = False):
     image = bpy.data.images.new(texture_path.stem, width=dimensions[0], height=dimensions[1], alpha=True)
     image.alpha_mode = "CHANNEL_PACKED"

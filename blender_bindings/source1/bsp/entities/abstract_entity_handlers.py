@@ -2,7 +2,6 @@ import math
 import re
 from pathlib import Path
 from pprint import pformat
-from typing import List
 
 import bpy
 import numpy as np
@@ -16,7 +15,7 @@ from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
 from .....library.source1.bsp.datatypes.texture_data import TextureData
 from .....library.source1.bsp.datatypes.texture_info import TextureInfo
-from .....library.source1.vmt import VMT
+from SourceIO.library.source1.materials.vmt import VMT
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....logger import SLoggingManager
 from ....utils.utils import add_material, get_or_create_collection
@@ -27,7 +26,7 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
-def gather_vertex_ids(model: Model, faces: List[Face], surf_edges: np.ndarray, edges: np.ndarray):
+def gather_vertex_ids(model: Model, faces: list[Face], surf_edges: np.ndarray, edges: np.ndarray):
     vertex_offset = 0
     material_ids = []
     vertex_count = 0
@@ -127,7 +126,7 @@ class AbstractEntityHandler:
         return entity_obj, entity
 
     def _get_string(self, string_id):
-        strings: List[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
+        strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
         return strings[string_id] or "NO_NAME"
 
     def _load_brush_model(self, model_id, model_name):
@@ -140,9 +139,9 @@ class AbstractEntityHandler:
         bsp_surf_edges: np.ndarray = self._bsp.get_lump('LUMP_SURFEDGES').surf_edges
         bsp_vertices: np.ndarray = self._bsp.get_lump('LUMP_VERTICES').vertices
         bsp_edges: np.ndarray = self._bsp.get_lump('LUMP_EDGES').edges
-        bsp_faces: List[Face] = self._bsp.get_lump('LUMP_FACES').faces
-        bsp_textures_info: List[TextureInfo] = self._bsp.get_lump('LUMP_TEXINFO').texture_info
-        bsp_textures_data: List[TextureData] = self._bsp.get_lump('LUMP_TEXDATA').texture_data
+        bsp_faces: list[Face] = self._bsp.get_lump('LUMP_FACES').faces
+        bsp_textures_info: list[TextureInfo] = self._bsp.get_lump('LUMP_TEXINFO').texture_info
+        bsp_textures_data: list[TextureData] = self._bsp.get_lump('LUMP_TEXDATA').texture_data
 
         vertex_ids, material_ids = gather_vertex_ids(model, bsp_faces, bsp_surf_edges, bsp_edges)
         unique_vertex_ids = np.unique(vertex_ids)

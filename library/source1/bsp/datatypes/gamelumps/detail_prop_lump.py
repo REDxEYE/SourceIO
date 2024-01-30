@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 from .....shared.types import Vector2, Vector3
 from .....utils.file_utils import Buffer
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 class DetailPropLump:
     def __init__(self, glump_info: 'GameLumpHeader'):
         self._glump_info = glump_info
-        self.model_names: List[str] = []
-        self.sprites: List[DetailSprite] = []
-        self.detail_props: List[DetailProp] = []
+        self.model_names: list[str] = []
+        self.sprites: list[DetailSprite] = []
+        self.detail_props: list[DetailProp] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         for _ in range(buffer.read_int32()):
@@ -45,7 +45,7 @@ class DetailProp:
     rotation: Vector3[float]
     model_id: int
     leaf_id: int
-    lighting: Tuple[int, int, int, int]
+    lighting: tuple[int, int, int, int]
     light_style: int
     light_style_count: int
     sway_amount: int

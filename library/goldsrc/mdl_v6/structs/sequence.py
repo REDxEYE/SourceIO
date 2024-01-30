@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -22,8 +21,8 @@ class StudioSequence:
     linear_movement: Vector3[float]
     blend_count: int
     anim_offset: int
-    events: List[StudioEvent]
-    pivots: List[StudioPivot]
+    events: list[StudioEvent]
+    pivots: list[StudioPivot]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

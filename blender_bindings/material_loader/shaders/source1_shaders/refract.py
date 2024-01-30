@@ -60,8 +60,8 @@ class Refract(Source1ShaderBase):
             color_value = [color_value[0], color_value[0], color_value[0]]
         return color_value
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         self.bpy_material.blend_method = 'OPAQUE'

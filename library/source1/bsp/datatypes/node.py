@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from ....shared.types import Vector3
 from ....utils.file_utils import Buffer
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 @dataclass(slots=True)
 class Node:
     plane_index: int
-    childes_id: Tuple[int, int]
+    childes_id: tuple[int, int]
     min: Vector3[int]
     max: Vector3[int]
     first_face: int

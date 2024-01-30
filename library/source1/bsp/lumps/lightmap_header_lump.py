@@ -1,4 +1,3 @@
-from typing import List
 
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
@@ -11,7 +10,7 @@ class LightmapHeadersLump(Lump):
 
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.lightmap_headers: List[LightmapHeader] = []
+        self.lightmap_headers: list[LightmapHeader] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:

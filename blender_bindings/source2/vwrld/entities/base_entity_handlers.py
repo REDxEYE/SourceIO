@@ -6,7 +6,6 @@ from .....library.shared.content_providers.content_manager import \
     ContentManager
 from .....library.source2 import CompiledMaterialResource
 from ....material_loader.shaders.source2_shaders.sky import Skybox
-from ...vmat_loader import load_material
 from .abstract_entity_handlers import (AbstractEntityHandler, get_angles,
                                        get_origin)
 from .base_entity_classes import *

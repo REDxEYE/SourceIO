@@ -122,11 +122,10 @@ class Buffer(abc.ABC, io.RawIOBase):
                 chunk_end = 0
             if chunk_end >= 0:
                 buffer += chunk[:chunk_end]
-            else:
-                buffer += chunk
-            if chunk_end >= 0:
                 self.seek(-(len(chunk) - chunk_end - 1), io.SEEK_CUR)
                 return buffer.decode('latin', errors='replace')
+            else:
+                buffer += chunk
 
     def read_fourcc(self):
         return self.read_ascii_string(4)

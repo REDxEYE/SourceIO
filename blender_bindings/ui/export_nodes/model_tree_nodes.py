@@ -1,5 +1,3 @@
-from typing import List
-
 import bpy
 from bpy.types import Node, NodeTree, Operator
 
@@ -17,7 +15,7 @@ class SourceIO_OP_EvaluateNodeTree(Operator):
         else:
             self.tmp_file = bpy.data.texts['qc']
         all_nodes = context.space_data.node_tree.nodes
-        outputs = []  # type:List[Node]
+        outputs = []  # type:list[Node]
         for node in all_nodes:  # type: Node
             if node.bl_idname == "SourceIOModelNode":
                 outputs.append(node)

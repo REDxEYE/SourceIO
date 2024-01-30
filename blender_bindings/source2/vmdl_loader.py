@@ -2,7 +2,7 @@ import logging
 from struct import pack, unpack
 from itertools import chain
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Tuple, cast
+from typing import Any, Mapping, Optional, cast
 
 import bpy
 import numpy as np
@@ -145,7 +145,7 @@ def create_armature(resource: CompiledModelResource, scale: float):
 
 
 def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, container: Source2ModelContainer,
-                  scale: float, lod_mask: int, import_attachments: bool) -> List[bpy.types.Object]:
+                  scale: float, lod_mask: int, import_attachments: bool) -> list[bpy.types.Object]:
     lod_mask = unpack("Q", pack("q", lod_mask))[0]
     data, = model_resource.get_data_block(block_name='DATA')
     ctrl, = model_resource.get_data_block(block_name='CTRL')
@@ -263,8 +263,8 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                 data_block: KVBlock, vbib_block: VertexIndexBuffer, morph_block: MorphBlock,
                 scale: float, mesh_id: int,
                 mesh_resource: CompiledResource, mesh_name: Optional[str] = None,
-                import_attachments: bool = False) -> List[bpy.types.Object]:
-    objects: List[Tuple[str, bpy.types.Object]] = []
+                import_attachments: bool = False) -> list[bpy.types.Object]:
+    objects: list[tuple[str, bpy.types.Object]] = []
     g_vertex_offset = 0
     if import_attachments:
         load_attachments(data_block["m_attachments"], container, scale)
@@ -440,7 +440,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
     return objects
 
 
-def load_attachments(attachments_info: List[Object], container: Source2ModelContainer, scale: float):
+def load_attachments(attachments_info: list[Object], container: Source2ModelContainer, scale: float):
     all_attachment = {}
     for attachment in attachments_info:
         if attachment['key'] not in all_attachment:

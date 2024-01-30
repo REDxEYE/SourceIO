@@ -3,14 +3,12 @@ from pathlib import Path
 import bpy
 import numpy as np
 
-from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.v44.vertex_animation_cache import \
-    VertexAnimationCache
-from .....library.source1.mdl.v52.mdl_file import MdlV52
-from .....library.source1.vtx import open_vtx
-from .....library.source1.vtx.v7.vtx import Vtx
-from .....library.source1.vvc import Vvc
-from .....library.source1.vvd import Vvd
+from .....library.source1.models.mdl.structs.header import StudioHDRFlags
+from .....library.source1.models.mdl.v44 import VertexAnimationCache
+from .....library.source1.models.mdl.v52.mdl_file import MdlV52
+from .....library.source1.models.vtx import open_vtx
+from .....library.source1.models.vvc import Vvc
+from .....library.source1.models.vvd import Vvd
 from .....logger import SLoggingManager
 from ....shared.model_container import Source1ModelContainer
 from ....utils.utils import add_material, is_blender_4_1
@@ -36,7 +34,7 @@ def import_model(file_list: FileImport,
     else:
         vvc = None
 
-    container = Source1ModelContainer(mdl, vvd, vtx, file_list)
+    container = Source1ModelContainer()
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]

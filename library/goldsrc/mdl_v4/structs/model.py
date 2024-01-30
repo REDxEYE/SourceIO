@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 import numpy.typing as npt
@@ -19,7 +18,7 @@ class StudioModel:
     unk_1: int
     unk_2: int
     bounding_radius: float
-    meshes: List[StudioMesh]
+    meshes: list[StudioMesh]
     vertices: npt.NDArray[vertex_dtype]
     normals: npt.NDArray[vertex_dtype]
 

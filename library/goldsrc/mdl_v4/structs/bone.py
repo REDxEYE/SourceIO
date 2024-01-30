@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Tuple
 
 from ....shared.types import Vector3
 from ....utils import Buffer

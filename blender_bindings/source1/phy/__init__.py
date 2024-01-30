@@ -1,17 +1,16 @@
 from pathlib import Path
-from typing import List
 
 import bpy
 import numpy as np
 
-from ....library.source1.phy.phy import ConvexLeaf, Phy, TreeNode
+from ....library.source1.models.phy.phy import ConvexLeaf, Phy, TreeNode
 from ....library.utils.math_utilities import vector_transform_v
 from ...shared.model_container import Source1ModelContainer
 from ...utils.utils import get_new_unique_collection
 from ..mdl import FileImport
 
 
-def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):
+def _collect_meshes(node: TreeNode, meshes: list[ConvexLeaf]):
     unique_vertices = set()
     if node.convex_leaf is not None:
         meshes.append(node.convex_leaf)
@@ -34,7 +33,7 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
     # phy_collection = get_new_unique_collection(mesh_name + '_PHYSICS', container.collection)
 
     for i, solid in enumerate(phy.solids):
-        meshes: List[ConvexLeaf] = []
+        meshes: list[ConvexLeaf] = []
         vertex_count = len(_collect_meshes(solid.collision_model.root_tree, meshes))
 
         vertex_data = solid.collision_model.get_vertex_data(file_list.phy_file,

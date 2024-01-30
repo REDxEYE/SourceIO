@@ -284,18 +284,22 @@ class KVWriter:
 
     def write_pair(self, key: str, value, indentation: int, key_indentation: int, append_newline: bool):
         if isinstance(value, dict):
-            self.print(key, indentation, True)
+            self.print_key(key, indentation, True)
             self.write(value, indentation, append_newline)
         else:
             if isinstance(value, list):
                 for sub_value in value:
-                    self.print(key, indentation, False)
-                    self.write(sub_value, key_indentation, append_newline)
+                    self.print_key(key, indentation, True)
+                    self.write(sub_value, indentation, append_newline)
             else:
-                self.print(key, indentation, False)
+                self.print_key(key, indentation, False)
                 self.write(value, key_indentation, append_newline)
 
     def write_dict(self, items: dict, indentation: int, append_newline: bool):
+        if len(items) == 0:
+            self.print("{", indentation, True)
+            self.print("}", indentation, append_newline)
+            return
         key_max_indentation = max(map(len, items.keys())) // 4 + 1
 
         self.print('{', indentation, True)
@@ -315,13 +319,22 @@ class KVWriter:
                 self.write(item, indentation, append_newline)
 
     def write_string(self, value: str, indentation: int, append_newline: bool):
-        self.print(value if value.isidentifier() else f'"{value}"', indentation, append_newline)
+        self.print(f'"{value}"', indentation, append_newline)
 
     def write_number(self, value: Union[int, float], indentation: int, append_newline: bool):
         self.print(str(value), indentation, append_newline)
 
     def print(self, value, indent: int, append_newline: bool = True):
         self.stream.write('\t' * indent + value)
+
+        if append_newline:
+            self.stream.write('\n')
+
+    def print_key(self, value, indent: int, append_newline: bool = True):
+        self.stream.write('\t' * indent)
+        self.stream.write("\"")
+        self.stream.write(value)
+        self.stream.write("\"")
 
         if append_newline:
             self.stream.write('\n')

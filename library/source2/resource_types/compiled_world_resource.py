@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator, List
+from typing import Iterator
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils import MemoryBuffer
@@ -27,11 +27,11 @@ class CompiledEntityLumpResource(CompiledResource):
 
 
 class CompiledWorldNodeResource(CompiledResource):
-    def get_scene_objects(self) -> List[Object]:
+    def get_scene_objects(self) -> list[Object]:
         data, = self.get_data_block(block_name='DATA')
         return data["m_sceneObjects"]
 
-    def get_aggregate_scene_objects(self) -> List[Object]:
+    def get_aggregate_scene_objects(self) -> list[Object]:
         data, = self.get_data_block(block_name='DATA')
         return data.get("m_aggregateSceneObjects", [])
 

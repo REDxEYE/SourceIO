@@ -42,8 +42,8 @@ class UnlitGeneric(Source1ShaderBase):
     def alphatest(self):
         return self._vmt.get_int('$alphatest', 0) == 1
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

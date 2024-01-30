@@ -5,7 +5,7 @@ import struct
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import BinaryIO, List, Union
+from typing import BinaryIO, Union
 
 from . import Buffer
 
@@ -53,7 +53,7 @@ class ByteIO:
         else:
             self.file = BytesIO()
 
-        self.regions: List[Region] = []
+        self.regions: list[Region] = []
 
         self.used_regions = []
 

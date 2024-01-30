@@ -1,7 +1,6 @@
 import traceback
 from abc import ABCMeta
 from pathlib import Path
-from typing import Dict
 
 from .....logger import SLoggingManager
 from ...vpk.vpk_file import InvalidMagic
@@ -17,7 +16,7 @@ logger = log_manager.get_logger('Source1DetectorBase')
 class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
 
     @classmethod
-    def scan_for_vpk(cls, root_dir: Path, content_providers: Dict[str, ContentProviderBase]):
+    def scan_for_vpk(cls, root_dir: Path, content_providers: dict[str, ContentProviderBase]):
         for vpk in root_dir.glob('*_dir.vpk'):
             try:
                 content_providers[f'{root_dir.stem}_{vpk.stem}'] = VPKContentProvider(vpk)
@@ -27,7 +26,7 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
                 print(f'Skipping {vpk}.')
 
     @classmethod
-    def recursive_traversal(cls, game_root: Path, name: str, content_providers: Dict[str, ContentProviderBase]):
+    def recursive_traversal(cls, game_root: Path, name: str, content_providers: dict[str, ContentProviderBase]):
         if name in content_providers or not (game_root / name / 'gameinfo.txt').exists():
             return
         try:

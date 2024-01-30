@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Any, Dict
+from typing import Any
 
 from ...utils import Buffer
 from .entity_keyvalues_keys import EntityKeyValuesKeys
@@ -133,7 +133,7 @@ VALUE_READERS = {
 KEY_LOOKUP = EntityKeyValuesKeys()
 
 
-class EntityKeyValues(Dict[str, Any]):
+class EntityKeyValues(dict[str, Any]):
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from ....utils import Buffer
 from .model import StudioModel
@@ -9,7 +8,7 @@ from .model import StudioModel
 class StudioBodypart:
     name: str
     base: int
-    models: List[StudioModel]
+    models: list[StudioModel]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

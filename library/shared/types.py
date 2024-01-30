@@ -1,7 +1,7 @@
-from typing import Tuple, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T", float, int)
 
-Vector4 = Tuple[T, T, T, T]
-Vector3 = Tuple[T, T, T]
-Vector2 = Tuple[T, T]
+Vector4 = tuple[T, T, T, T]
+Vector3 = tuple[T, T, T]
+Vector2 = tuple[T, T]

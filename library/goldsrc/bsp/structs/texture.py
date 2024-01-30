@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -14,8 +14,8 @@ logger = SLoggingManager().get_logger("GoldSrc::Texture")
 
 @dataclass(slots=True)
 class TextureInfo:
-    s: Tuple[float, float, float, float]
-    t: Tuple[float, float, float, float]
+    s: tuple[float, float, float, float]
+    t: tuple[float, float, float, float]
     texture: int
     flags: MdlTextureFlag
 

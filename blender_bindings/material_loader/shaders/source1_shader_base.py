@@ -1,15 +1,13 @@
 from pathlib import Path
-from typing import Any, Dict
 
 import bpy
 import numpy as np
 
-from ...utils.texture_utils import check_texture_cache, create_and_cache_texture
+from ...utils.texture_utils import check_texture_cache
 from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source1.vmt import VMT
+from SourceIO.library.source1.materials.vmt import VMT
 from ...source1.vtf import import_texture
 from ..shader_base import ShaderBase
-
 
 class Source1ShaderBase(ShaderBase):
     def __init__(self, vmt):

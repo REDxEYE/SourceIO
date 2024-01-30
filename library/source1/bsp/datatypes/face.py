@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from ....shared.types import Vector2
 from ....utils.file_utils import Buffer
@@ -20,7 +20,7 @@ class Face:
     tex_info_id: int
     disp_info_id: int
     surface_fog_volume_id: int
-    styles: Tuple[int, ...]
+    styles: tuple[int, ...]
     light_offset: int
     area: float
     lightmap_texture_mins_in_luxels: Vector2[int]

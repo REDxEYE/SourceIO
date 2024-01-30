@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Tuple
 
 import numpy.typing as npt
 
@@ -14,11 +13,11 @@ from .structs.studioheader import StudioHeader
 @dataclass(slots=True)
 class Mdl:
     header: StudioHeader
-    bones: List[StudioBone]
-    bodyparts: List[int]
-    sequences: List[StudioSequence]
-    models: List[StudioModel]
-    animations: List[List[Tuple[Vector3[float], npt.NDArray]]]
+    bones: list[StudioBone]
+    bodyparts: list[int]
+    sequences: list[StudioSequence]
+    models: list[StudioModel]
+    animations: list[list[tuple[Vector3[float], npt.NDArray]]]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

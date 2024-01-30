@@ -2,7 +2,7 @@ from pathlib import Path
 
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
-                       FloatProperty, StringProperty)
+                       StringProperty)
 
 from .import_settings_base import MDLSettings, Source1BSPSettings
 from ..source1.mdl import put_into_collections
@@ -55,7 +55,7 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
                                                           bodygroup_grouping=self.bodygroup_grouping,
                                                           load_physics=self.import_physics,
                                                           load_refpose=self.load_refpose)
-            put_into_collections(model_container, Path(model_container.mdl.header.name).stem,
+            put_into_collections(model_container, mdl_path.stem,
                                  bodygroup_grouping=self.bodygroup_grouping)
             if self.import_textures:
                 try:
@@ -69,7 +69,7 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, MDLSettings):
                 import_animations(content_manager, model_container.mdl, model_container.armature, self.scale)
             if self.write_qc:
                 from ... import bl_info
-                from ...library.source1.qc.qc import generate_qc
+                from SourceIO.library.source1.models.qc.qc import generate_qc
                 qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
                 generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}

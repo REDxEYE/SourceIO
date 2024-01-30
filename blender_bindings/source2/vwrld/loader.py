@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Type
+from typing import Any, Type
 
 import bpy
 from mathutils import Matrix
@@ -25,7 +25,7 @@ log_manager = SLoggingManager()
 logger = log_manager.get_logger("VWRLD")
 
 
-def get_entity_name(entity_data: Dict[str, Any]):
+def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammeruniqueid", "missing_hammer_id"))}'
 
 
@@ -64,7 +64,7 @@ def create_static_prop_placeholder(scene_object: Object, node_resource: Compiled
                                    collection: bpy.types.Collection, scale: float):
     renderable_model = scene_object["m_renderableModel"]
     proper_path = node_resource.get_child_resource_path(renderable_model)
-    mat_rows: List = scene_object.get('m_vTransform', None)
+    mat_rows: list = scene_object.get('m_vTransform', None)
 
     custom_data = {'prop_path': str(proper_path),
                    'type': 'static_prop',

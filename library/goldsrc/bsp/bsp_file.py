@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils import Buffer, FileBuffer
@@ -12,7 +12,7 @@ class BspFile:
         self.manager.scan_for_content(filepath)
         self.buffer = buffer
         self.lumps = {}
-        self.lumps_info: List[LumpInfo] = []
+        self.lumps_info: list[LumpInfo] = []
         self.version = 0
 
     @classmethod

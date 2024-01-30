@@ -27,7 +27,7 @@ import io
 import struct
 import uuid
 from struct import calcsize, pack, unpack
-from typing import List, Set, Union
+from typing import Union
 
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")
@@ -696,7 +696,7 @@ class DataModel:
         self.format_ver = format_ver
 
         self.__elements = []
-        self.__used_ids: Set[int] = set()
+        self.__used_ids: set[int] = set()
         self.__prefix_attributes = Element(self, "")
         self.root = None
         self.allow_random_ids = True

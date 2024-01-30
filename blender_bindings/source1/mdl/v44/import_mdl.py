@@ -8,14 +8,13 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from .....library.shared.content_providers.content_manager import \
     ContentManager
-from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.v36 import MdlV36
-from .....library.source1.mdl.v44.mdl_file import MdlV44
-from .....library.source1.mdl.v44.vertex_animation_cache import \
-    VertexAnimationCache
-from .....library.source1.mdl.v49.flex_expressions import *
-from .....library.source1.vtx import open_vtx
-from .....library.source1.vvd import Vvd
+from .....library.source1.models.mdl.structs.header import StudioHDRFlags
+from .....library.source1.models.mdl.v36 import MdlV36
+from .....library.source1.models.mdl.v44 import MdlV44
+from .....library.source1.models.mdl.v44 import VertexAnimationCache
+from .....library.source1.models.mdl.v49.flex_expressions import *
+from .....library.source1.models.vtx import open_vtx
+from .....library.source1.models.vvd import Vvd
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -57,6 +56,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
         pos = Vector(se_bone.position) * scale
         rot = Euler(se_bone.rotation)
         mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+        print(se_bone.name, mat)
         bl_bone.matrix_basis.identity()
 
         bl_bone.matrix = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
@@ -90,7 +90,7 @@ def import_model(file_list: FileImport, scale=1.0, create_drivers=False, re_use_
     vvd = Vvd.from_buffer(file_list.vvd_file)
     vtx = open_vtx(file_list.vtx_file)
 
-    container = Source1ModelContainer(mdl, vvd, vtx, file_list)
+    container = Source1ModelContainer()
 
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]

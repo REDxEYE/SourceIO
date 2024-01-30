@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Tuple
 
 from ....utils import Buffer
 
@@ -17,7 +16,7 @@ from ....utils import Buffer
 class StudioTrivert:
     vertex_index: int
     normal_index: int
-    uv: Tuple[int, int]
+    uv: tuple[int, int]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
@@ -28,7 +27,7 @@ class StudioTrivert:
 class StudioMesh:
     skin_ref: int
     triangle_count: int
-    triangles: List[Tuple[List[StudioTrivert], bool]]
+    triangles: list[tuple[list[StudioTrivert], bool]]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

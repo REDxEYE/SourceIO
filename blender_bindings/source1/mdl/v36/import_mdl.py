@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Iterable, Sized, Union
+from typing import Union
 
 import bpy
 import numpy as np
@@ -8,10 +8,10 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from .....library.shared.content_providers.content_manager import \
     ContentManager
-from .....library.source1.mdl.structs.header import StudioHDRFlags
-from .....library.source1.mdl.v36.mdl_file import MdlV36
-from .....library.source1.mdl.v49.flex_expressions import *
-from .....library.source1.vtx import open_vtx
+from .....library.source1.models.mdl.structs.header import StudioHDRFlags
+from .....library.source1.models.mdl.v36.mdl_file import MdlV36
+from .....library.source1.models.mdl.v49.flex_expressions import *
+from .....library.source1.models.vtx import open_vtx
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -68,7 +68,7 @@ def import_model(file_list: FileImport,
     mdl = MdlV36.from_buffer(file_list.mdl_file)
     vtx = open_vtx(file_list.vtx_file)
 
-    container = Source1ModelContainer(mdl, None, vtx, file_list)
+    container = Source1ModelContainer()
 
     desired_lod = 0
 

@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional, Type
 
 import bpy
 import numpy as np
@@ -55,7 +55,7 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
-def get_entity_name(entity_data: Dict[str, Any]):
+def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
 
 

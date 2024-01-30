@@ -1,5 +1,5 @@
 import math
-from typing import List, Tuple, Union
+from typing import Union
 
 import numpy as np
 
@@ -27,7 +27,7 @@ def clamp_value(value, min_value=0.0, max_value=1.0):
     return min(max_value, max(value, min_value))
 
 
-def vector_transform(vector: Vector3[float], matrix: List[List[float]]):
+def vector_transform(vector: Vector3[float], matrix: list[list[float]]):
     temp = np.zeros(3)
     output = np.zeros(3)
 
@@ -169,13 +169,13 @@ def euler_to_quat(euler: np.ndarray):
     return quat
 
 
-def convert_rotation_source1_to_blender(source2_rotation: Union[List[float], np.ndarray]) -> List[float]:
+def convert_rotation_source1_to_blender(source2_rotation: Union[list[float], np.ndarray]) -> list[float]:
     # XYZ -> ZXY
     return [math.radians(source2_rotation[2]), math.radians(source2_rotation[0]),
             math.radians(source2_rotation[1])]
 
 
-def convert_to_radians(vector: Union[List[float], np.ndarray]):
+def convert_to_radians(vector: Union[list[float], np.ndarray]):
     return np.deg2rad(vector)
 
 
@@ -205,7 +205,7 @@ def lumen_to_candela_by_apex_angle(flux: float, angle: float):
 MAX_LIGHT_EFFICIENCY_EFFICACY = 683
 
 
-def srgb_to_luminance(color: Union[List, Tuple]):
+def srgb_to_luminance(color: Union[list, tuple]):
     return 0.2126729 * color[0] + 0.7151522 * color[1] + 0.072175 * color[2]
 
 

@@ -11,8 +11,8 @@ from ..source2_shader_base import Source2ShaderBase
 class DummyShader(Source2ShaderBase):
     SHADER: str = 'DUMMY'
 
-    def create_nodes(self, material_name: str):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

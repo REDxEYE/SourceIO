@@ -1,6 +1,5 @@
-from functools import lru_cache
-from pathlib import Path, PosixPath, PurePath, WindowsPath
-from typing import Dict, List, Union
+from pathlib import Path
+from typing import Union
 
 from ...utils import Buffer, FileBuffer, MemoryBuffer
 from ...utils.pylib import LZHAM
@@ -32,7 +31,7 @@ class VPKFile:
         self.buffer = FileBuffer(self.filepath)
         self.header = Header((0, 0,), 0)
 
-        self.entries: Dict[str, Union[MiniEntry, Entry]] = {}
+        self.entries: dict[str, Union[MiniEntry, Entry]] = {}
         self.tree_offset = 0
 
         self._folders_in_current_dir = set()
@@ -132,7 +131,7 @@ class TitanfallVPKFile(VPKFile):
 
     def __init__(self, filepath: Union[str, Path]):
         super().__init__(filepath)
-        self.entries: Dict[str, TitanfallEntry] = {}
+        self.entries: dict[str, TitanfallEntry] = {}
 
     def read(self):
         buffer = self.buffer

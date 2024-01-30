@@ -1,5 +1,3 @@
-from typing import List
-
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
@@ -10,7 +8,7 @@ from ..datatypes.model import Model, RespawnModel, DMModel
 class ModelLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.models: List[Model] = []
+        self.models: list[Model] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         model_class = RespawnModel if bsp.version == (29, 0) else Model

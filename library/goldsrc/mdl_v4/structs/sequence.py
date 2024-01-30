@@ -1,6 +1,5 @@
 import math
 from dataclasses import dataclass
-from typing import List, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -34,7 +33,7 @@ def euler_to_quat(euler):
 @dataclass(slots=True)
 class SequenceFrame:
     global_frame_id: float
-    unk: Tuple[int, ...]
+    unk: tuple[int, ...]
     root_motion: Vector3[float]
     animation_per_bone_rot: npt.NDArray[np.float32]
 
@@ -59,7 +58,7 @@ class StudioSequence:
     def from_buffer(cls, buffer: Buffer):
         return cls(buffer.read_ascii_string(32), buffer.read_int32(), buffer.read_int32())
 
-    def read_anim_values(self, buffer: Buffer, bone_count) -> List[Tuple[Vector3[float], npt.NDArray]]:
+    def read_anim_values(self, buffer: Buffer, bone_count) -> list[tuple[Vector3[float], npt.NDArray]]:
         frames = []
         for _ in range(self.frame_count):
             frame = SequenceFrame.from_buffer(buffer, bone_count)

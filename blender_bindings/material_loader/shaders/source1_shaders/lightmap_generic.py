@@ -49,8 +49,8 @@ class LightmapGeneric(Source1ShaderBase):
     def translucent(self):
         return self._vmt.get_int('$translucent', 0) == 1
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         if self.isskybox:

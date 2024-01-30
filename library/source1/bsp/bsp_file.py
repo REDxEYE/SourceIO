@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import Dict, Tuple
 
 from ....logger import SLoggingManager
 from ...shared.content_providers.content_manager import ContentManager
-from ...utils.file_utils import FileBuffer
 from .lump import *
 
 log_manager = SLoggingManager()
@@ -19,6 +17,7 @@ def open_bsp(filepath):
         return BSPFile.from_filename(filepath)
     elif magic == b'rBSP':
         return RespawnBSPFile.from_filename(filepath)
+    raise NotImplementedError(f'Unsupported BSP format: {magic}')
 
 
 CM = ContentManager()
@@ -31,8 +30,8 @@ class BSPFile:
         self.logger = log_manager.get_logger(self.filepath.stem)
         self.version = 0
         self.is_l4d2 = False
-        self.lumps_info: List[LumpInfo] = []
-        self.lumps: Dict[str, Lump] = {}
+        self.lumps_info: list[LumpInfo] = []
+        self.lumps: dict[str, Lump] = {}
         self.revision = 0
         self.content_manager = CM
         self.steam_app_id = CM.get_content_provider_from_path(filepath).steam_id
@@ -60,7 +59,7 @@ class BSPFile:
         if lump_name in self.lumps:
             return self.lumps[lump_name]
         else:
-            matches: List[Tuple[Type[Lump], LumpTag]] = []
+            matches: list[tuple[Type[Lump], LumpTag]] = []
             for sub in Lump.all_subclasses():
                 sub: Type[Lump]
                 for dep in sub.tags:

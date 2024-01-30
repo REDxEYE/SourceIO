@@ -2,7 +2,6 @@ import math
 import re
 import traceback
 from pathlib import Path
-from typing import List, Tuple
 
 import bpy
 import numpy as np
@@ -10,12 +9,13 @@ from mathutils import Vector
 
 from .....library.shared.content_providers.content_manager import \
     ContentManager
+from .....library.source1.materials.vtf.cubemap_to_envmap import SkyboxException
 from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
 from ....utils.utils import add_material
-from ...vtf import SkyboxException, load_skybox_texture
+from ...vtf import load_skybox_texture
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
@@ -24,7 +24,7 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SLoggingManager()
 
 
-def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
+def srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
     final_color = []
     if len(srgb) == 4:
         scale = srgb[3] / 255

@@ -9,9 +9,8 @@ from ....logger import SLoggingManager
 log_manager = SLoggingManager()
 logger = log_manager.get_logger('Source1::VTF')
 
-from ....library.source1.vtf import load_texture
-from ....library.source1.vtf.cubemap_to_envmap import (
-    SkyboxException, convert_skybox_to_equiangular)
+from SourceIO.library.source1.materials.vtf import load_texture
+from SourceIO.library.source1.materials.vtf.cubemap_to_envmap import convert_skybox_to_equiangular
 
 
 def import_texture(texture_path: Path, file_object, update=False):

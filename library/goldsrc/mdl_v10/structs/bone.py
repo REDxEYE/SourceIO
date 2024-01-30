@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Tuple
 
 from ....shared.types import Vector3
 from ....utils import Buffer
@@ -10,7 +9,7 @@ class StudioBone:
     name: str
     parent: int
     flags: int
-    bone_controllers: Tuple[int, ...]
+    bone_controllers: tuple[int, ...]
     pos: Vector3[float]
     rot: Vector3[float]
     pos_scale: Vector3[float]

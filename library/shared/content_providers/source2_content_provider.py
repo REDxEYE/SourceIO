@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 from ...utils import FileBuffer
 from ...utils.kv_parser import ValveKeyValueParser
@@ -9,7 +9,7 @@ from .content_provider_base import ContentProviderBase
 
 
 class Gameinfo2ContentProvider(ContentProviderBase):
-    path_cache: List[Path] = []
+    path_cache: list[Path] = []
 
     @classmethod
     def add_new_path(cls, path):

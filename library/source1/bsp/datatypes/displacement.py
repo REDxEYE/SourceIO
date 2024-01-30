@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from ....shared.types import Vector3
 from ....utils.file_utils import Buffer
@@ -24,7 +24,7 @@ class DispInfo:
     map_face: int
     lightmap_alpha_start: int
     lightmap_sample_position_start: int
-    allowed_verts: List[int]
+    allowed_verts: list[int]
 
     @property
     def has_multiblend(self):

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict
 
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ..content_provider_base import ContentProviderBase
@@ -14,7 +13,7 @@ logger = log_manager.get_logger('SFMDetector')
 
 class SFMDetector(Source1Common):
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         sfm_root = None
         sfm_exe = backwalk_file_resolver(path, 'sfm.exe')
         if sfm_exe is not None:
@@ -35,6 +34,6 @@ class SFMDetector(Source1Common):
         return content_providers
 
     @classmethod
-    def register_common(cls, root_path: Path, content_providers: Dict[str, ContentProviderBase]):
+    def register_common(cls, root_path: Path, content_providers: dict[str, ContentProviderBase]):
         cls.add_if_exists(root_path / 'workshop', NonSourceContentProvider, content_providers)
         super().register_common(root_path, content_providers)

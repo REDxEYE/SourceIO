@@ -2,7 +2,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        IntProperty, PointerProperty, StringProperty)
 
-from ...library.source1.mdl.structs.flex import FlexController
+from ...library.source1.models.mdl.structs.flex import FlexController
 from .shared_operators import UITools
 
 

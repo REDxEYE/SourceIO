@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -78,7 +77,7 @@ class VertexBuffer:
     vertex_count: int
     vertex_size: int
     data: MemoryBuffer
-    attributes: List[VertexAttribute]
+    attributes: list[VertexAttribute]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'VertexBuffer':

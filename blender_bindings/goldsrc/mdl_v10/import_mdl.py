@@ -68,7 +68,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0
         mdl_filet = Mdl.from_buffer(mdl_texture_file)
         mdl_file_textures = mdl_filet.textures
 
-    model_container = GoldSrcModelContainer(mdl)
+    model_container = GoldSrcModelContainer()
 
     model_name = Path(mdl.header.name).stem + '_MODEL'
     master_collection = get_new_unique_collection(model_name, parent_collection)

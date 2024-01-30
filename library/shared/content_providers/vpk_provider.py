@@ -1,6 +1,6 @@
 import fnmatch
 from pathlib import Path
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional
 
 from ...shared.vpk.vpk_file import open_vpk
 from ...utils import Buffer
@@ -15,7 +15,7 @@ class VPKContentProvider(ContentProviderBase):
         self.vpk_archive = open_vpk(filepath)
         self.vpk_archive.read()
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         files = []
         for file_name in self.vpk_archive.entries.values():
             if fnmatch.fnmatch(file_name, pattern):

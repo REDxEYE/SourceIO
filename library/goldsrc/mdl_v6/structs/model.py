@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 
 from .....library.utils import Buffer
@@ -65,8 +63,8 @@ class StudioModel:
 
         self.bone_vertex_info = []
         self.bone_normal_info = []
-        self.meshes: List[StudioMesh] = []
-        self.model_datas: List[StudioModelData] = []
+        self.meshes: list[StudioMesh] = []
+        self.model_datas: list[StudioModelData] = []
 
     @property
     def vertices(self):

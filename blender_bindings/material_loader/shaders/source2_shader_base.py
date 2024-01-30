@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 import bpy
 import numpy as np
 
@@ -27,7 +27,7 @@ class Source2ShaderBase(ShaderBase):
             return self._material_resource.get_child_resource(texture_path, ContentManager()) is not None
         return False
 
-    def _get_texture(self, slot_name: str, default_color: Tuple[float, float, float, float],
+    def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float],
                      is_data=False,
                      invert_y: bool = False):
         texture_path = self._material_resource.get_texture_property(slot_name, None)

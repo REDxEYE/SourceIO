@@ -1,4 +1,3 @@
-from typing import Tuple
 
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
@@ -7,7 +6,7 @@ from ...shader_base import Nodes
 class CSGOWeapon(Source2ShaderBase):
     SHADER: str = 'csgo_weapon.vfx'
 
-    def _get_texture(self, slot_name: str, default_color: Tuple[float, float, float, float], is_data=False):
+    def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float], is_data=False):
         texture_path = self._material_resource.get_texture_property(slot_name, None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, default_color)
@@ -20,8 +19,8 @@ class CSGOWeapon(Source2ShaderBase):
         texture_node.image = image
         return texture_node
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Optional, cast
 
 import bpy
 import numpy as np
@@ -297,7 +297,7 @@ class BSP:
                 else:
                     self.logger.warn(f'Skipping unsupported entity \'{entity_class}\': {entity}')
 
-    def load_trigger(self, entity_class: str, entity_data: Dict[str, Any]):
+    def load_trigger(self, entity_class: str, entity_data: dict[str, Any]):
         if self._single_collection:
             entity_collection = self.get_collection(entity_class)
         else:
@@ -329,7 +329,7 @@ class BSP:
         vertex_colors = np.full((len(vertex_indices), 4), np.array([*color, 1], np.float32))
         vertex_colors_data.foreach_set('color', vertex_colors.flatten())
 
-    def load_brush(self, entity_class: str, entity_data: Dict[str, Any], type_collection_name: str):
+    def load_brush(self, entity_class: str, entity_data: dict[str, Any], type_collection_name: str):
         entity_collection = self.get_collection(entity_class, type_collection_name)
         if 'model' not in entity_data:
             self.logger.warn(f'Brush "{entity_class}" does not reference any models')
@@ -402,7 +402,7 @@ class BSP:
             angles[1] = pitch
         return angles
 
-    def load_light_spot(self, entity_class: str, entity_data: Dict[str, Any], type_collection_name: str):
+    def load_light_spot(self, entity_class: str, entity_data: dict[str, Any], type_collection_name: str):
         entity_collection = self.get_collection(entity_class, type_collection_name)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = self._get_light_angles(entity_data)
@@ -467,7 +467,7 @@ class BSP:
         lamp.scale *= self.scale * 10
         return lamp
 
-    def load_general_entity(self, entity_class: str, entity_data: Dict[str, Any], type_collection_name: str):
+    def load_general_entity(self, entity_class: str, entity_data: dict[str, Any], type_collection_name: str):
         entity_collection = self.get_collection(entity_class, type_collection_name)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
         angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
@@ -485,7 +485,7 @@ class BSP:
         placeholder['entity_data'] = {'entity': entity_data}
         entity_collection.objects.link(placeholder)
 
-    def load_path_track(self, entity_class: str, entity_data: Dict[str, Any], type_collection_name: str):
+    def load_path_track(self, entity_class: str, entity_data: dict[str, Any], type_collection_name: str):
         entity_collection = self.get_collection(entity_class, type_collection_name)
         start_name = entity_data['targetname']
         points = []

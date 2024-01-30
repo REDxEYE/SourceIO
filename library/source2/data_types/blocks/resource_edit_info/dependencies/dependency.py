@@ -1,6 +1,6 @@
 import abc
 from abc import ABC
-from typing import List, TypeVar
+from typing import TypeVar
 
 from ......utils import Buffer
 from ....keyvalues3.types import Object, TypedArray
@@ -21,7 +21,7 @@ class Dependency(ABC):
 T = TypeVar('T', bound=Dependency)
 
 
-class DependencyList(List[T]):
+class DependencyList(list[T]):
     dependency_type: T = Dependency
 
     @classmethod

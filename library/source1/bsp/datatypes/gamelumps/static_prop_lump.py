@@ -1,5 +1,5 @@
 from enum import IntFlag
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 from ......logger import SLoggingManager
 from .....shared.app_id import SteamAppId
@@ -63,7 +63,7 @@ class StaticProp:
         # Vindictus specific
         self.scaling = [1.0, 1.0, 1.0]
 
-    def parse(self, reader: Buffer, version: int, bsp_version: Tuple[int, int], size: int, app_id: int):
+    def parse(self, reader: Buffer, version: int, bsp_version: tuple[int, int], size: int, app_id: int):
         if bsp_version == (20, 4):
             self._parse_v6(reader)
             reader.skip(72)
@@ -240,9 +240,9 @@ class StaticPropLump:
     def __init__(self, glump_info):
         from ..game_lump_header import GameLumpHeader
         self._glump_info: GameLumpHeader = glump_info
-        self.model_names: List[str] = []
-        self.leafs: List[int] = []
-        self.static_props: List[StaticProp] = []
+        self.model_names: list[str] = []
+        self.leafs: list[int] = []
+        self.static_props: list[StaticProp] = []
 
     def parse(self, reader: Buffer, bsp: 'BSPFile'):
         content_manager = ContentManager()

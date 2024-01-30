@@ -1,6 +1,5 @@
 import typing
 from dataclasses import dataclass
-from typing import Dict, List
 
 from ....utils import Buffer
 from .base import BaseBlock
@@ -23,12 +22,12 @@ class ResourceExternalReference:
         return cls(buffer.read_uint32(), buffer.read_uint32(), buffer.read_source2_string(), buffer.read_uint32())
 
 
-class ResourceExternalReferenceList(List[ResourceExternalReference], BaseBlock):
+class ResourceExternalReferenceList(list[ResourceExternalReference], BaseBlock):
 
     def __init__(self, buffer: Buffer, resource: 'CompiledResource'):
         list.__init__(self)
         BaseBlock.__init__(self, buffer, resource)
-        self._mapping: Dict[int, ResourceExternalReference] = {}
+        self._mapping: dict[int, ResourceExternalReference] = {}
 
     def __str__(self) -> str:
         str_data = list.__str__(self)

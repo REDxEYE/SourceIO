@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, Optional, Union
 
 from ...global_config import GoldSrcConfig
 from ...goldsrc.wad import WadFile
@@ -21,7 +21,7 @@ class GoldSrcContentProvider(ContentProviderBase):
     def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None) -> Optional[Path]:
         return self._find_path_generic(filepath, additional_dir, extension)
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)
 
 
@@ -38,5 +38,5 @@ class GoldSrcWADContentProvider(ContentProviderBase):
     def find_path(self, filepath: Union[str, Path]) -> Optional[Path]:
         return None
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         return iter([])

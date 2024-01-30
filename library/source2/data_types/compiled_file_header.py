@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from ...utils import Buffer
 
@@ -29,7 +28,7 @@ class CompiledHeader:
     file_size: int
     header_version: int
     resource_version: int
-    blocks: List[InfoBlock]
+    blocks: list[InfoBlock]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

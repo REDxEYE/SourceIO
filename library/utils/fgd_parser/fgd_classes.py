@@ -1,5 +1,3 @@
-from typing import List
-
 
 class FGDProperty:
     def __init__(self, name, value_type, display_name=None, default_value=None, description=None, meta=None):
@@ -40,7 +38,7 @@ class FGDProperty:
         return self._default_value
 
     def parser_code(self):
-        buffer: List[str] = ['@property', f'def {self.name}(self):', f'\tif \"{self.name}\" in self._entity_data:']
+        buffer: list[str] = ['@property', f'def {self.name}(self):', f'\tif \"{self.name}\" in self._entity_data:']
         value_type = self.value_type.lower()
         if value_type == 'float':
             buffer.append(f"\t\treturn float(self._entity_data.get('{self.name}'))")
@@ -103,7 +101,7 @@ class FGDFlagProperty(FGDProperty):
         self._flags = flags
 
     def parser_code(self):
-        buffer: List[str] = ['@property',
+        buffer: list[str] = ['@property',
                              f'def {self.name}(self):',
                              "\tflags = []",
                              f'\tif \"{self.name}\" in self._entity_data:',
@@ -148,15 +146,15 @@ class FGDEntity:
                  properties=None, io=None):
         self.name: str = name
         self.class_type: str = class_type
-        self._definitions: List = definitions
+        self._definitions: list = definitions
         self._description: str = description
         self._properties = properties
-        self._io: List = io
+        self._io: list = io
 
     def __str__(self):
         return f"{self.class_type}({self.name})"
 
-    def _find_parent_class(self, class_name, list_of_classes: List['FGDEntity']):
+    def _find_parent_class(self, class_name, list_of_classes: list['FGDEntity']):
         for c in list_of_classes:
             if c.name == class_name:
                 return c
@@ -171,7 +169,7 @@ class FGDEntity:
                 bases.append(base)
         return bases
 
-    def parser_code(self, list_of_clases: List['FGDEntity']):
+    def parser_code(self, list_of_clases: list['FGDEntity']):
         buffer = ''
         if self.bases:
             existing_bases = []
