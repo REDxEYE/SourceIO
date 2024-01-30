@@ -8,22 +8,11 @@ import numpy as np
 
 from .entities.abstract_entity_handlers import AbstractEntityHandler
 from ...operators.import_settings_base import Source1BSPSettings
-from ....library.shared.app_id import SteamAppId
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.bsp.bsp_file import open_bsp, BSPFile
 from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
-from ....library.source1.bsp.lumps.cubemap import CubemapLump
-from ....library.source1.bsp.lumps.displacement_lump import (DispInfoLump,
-                                                             DispMultiblend,
-                                                             DispVert)
-from ....library.source1.bsp.lumps.edge_lump import EdgeLump
-from ....library.source1.bsp.lumps.entity_lump import EntityLump
-from ....library.source1.bsp.lumps.game_lump import GameLump
-from ....library.source1.bsp.lumps.pak_lump import PakLump
-from ....library.source1.bsp.lumps.string_lump import StringsLump
-from ....library.source1.bsp.lumps.surf_edge_lump import SurfEdgeLump
-from ....library.source1.bsp.lumps.texture_lump import TextureDataLump
-from ....library.source1.bsp.lumps.vertex_lump import VertexLump
+
+from ....library.source1.bsp.lumps import *
 from ....library.utils.math_utilities import (SOURCE1_HAMMER_UNIT_TO_METERS,
                                               convert_rotation_source1_to_blender)
 from ....logger import SLoggingManager, SLogger
@@ -189,12 +178,12 @@ def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
     if not disp_info_lump or not disp_info_lump.infos:
         return
 
-    disp_multiblend: Optional[DispMultiblend] = bsp.get_lump('LUMP_DISP_MULTIBLEND')
+    disp_multiblend: Optional[DispMultiblendLump] = bsp.get_lump('LUMP_DISP_MULTIBLEND')
     strings_lump: Optional[StringsLump] = bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
     vertex_lump: Optional[VertexLump] = bsp.get_lump('LUMP_VERTICES')
     edge_lump: Optional[EdgeLump] = bsp.get_lump('LUMP_EDGES')
     surf_edge_lump: Optional[SurfEdgeLump] = bsp.get_lump('LUMP_SURFEDGES')
-    disp_verts_lump: Optional[DispVert] = bsp.get_lump('LUMP_DISP_VERTS')
+    disp_verts_lump: Optional[DispVertLump] = bsp.get_lump('LUMP_DISP_VERTS')
     surf_edges = surf_edge_lump.surf_edges
     vertices = vertex_lump.vertices
     edges = edge_lump.edges

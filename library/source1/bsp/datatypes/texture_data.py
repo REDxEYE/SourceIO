@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING
 
 from ....shared.types import Vector3
 from ....utils.file_utils import Buffer
-from ..lumps.string_lump import StringsLump
 
 if TYPE_CHECKING:
     from ..bsp_file import BSPFile
+    from ..lumps.string_lump import StringsLump
+
 
 
 @dataclass(slots=True)

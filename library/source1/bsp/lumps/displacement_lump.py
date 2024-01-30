@@ -34,7 +34,7 @@ class VDispInfoLump(Lump):
 
 
 @lump_tag(33, 'LUMP_DISP_VERTS')
-class DispVert(Lump):
+class DispVertLump(Lump):
     dtype = np.dtype(
         [
             ('position', np.float32, (3,)),
@@ -59,7 +59,7 @@ class DispVert(Lump):
 
 @lump_tag(61, 'LUMP_DISP_MULTIBLEND', bsp_version=20, steam_id=SteamAppId.BLACK_MESA)
 @lump_tag(63, 'LUMP_DISP_MULTIBLEND', bsp_version=21)
-class DispMultiblend(Lump):
+class DispMultiblendLump(Lump):
     dtype = np.dtype(
         [
             ('multiblend', np.float32, (4,)),

@@ -2,7 +2,6 @@ from pathlib import Path
 
 import bpy
 
-from ....blender_bindings.source1.bsp.import_bsp import BSP
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source1.dmx.sfm import open_session
 from ....library.source1.dmx.sfm.animation_set import AnimationSet
