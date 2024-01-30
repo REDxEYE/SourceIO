@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import bpy
 import numpy as np
@@ -260,9 +260,9 @@ class ShaderBase:
         for receiver in receivers:
             self.connect_nodes(middle_output_socket, receiver)
 
-    def create_nodes(self, material_name: str):
-        self.logger.info(f'Creating material {repr(material_name)}')
-        self.bpy_material = bpy.data.materials.get(material_name, False) or bpy.data.materials.new(material_name)
+    def create_nodes(self, material):
+        self.logger.info(f'Creating material {repr(material.name)}')
+        self.bpy_material = material
 
         if self.bpy_material is None:
             self.logger.error('Failed to get or create material')
@@ -285,7 +285,7 @@ class ShaderBase:
         nodes_iterate(self.bpy_material.node_tree)
         self.bpy_material.node_tree.nodes.update()
 
-    def handle_transform(self, transform: Tuple, socket: bpy.types.NodeSocket, loc=None, *, uv_node=None,
+    def handle_transform(self, transform: tuple, socket: bpy.types.NodeSocket, loc=None, *, uv_node=None,
                          uv_layer_name=None):
         sys.stdout.write(repr(transform))
         if loc is None:
@@ -310,7 +310,7 @@ class ShaderBase:
         self.connect_nodes(mapping.outputs[0], socket)
         return mapping, uv_node
 
-    def add_uv_mapping(self, scale: Tuple[float, float, float], loc=None, uv_layer_name=None):
+    def add_uv_mapping(self, scale: tuple[float, float, float], loc=None, uv_layer_name=None):
         if loc is None:
             loc = [0, 0]
         uv_node = self.add_uv_node([-300 + loc[0], -20 + loc[1]], uv_layer_name)

@@ -7,8 +7,8 @@ from ...shader_base import Nodes
 class CSGOEnvironmentBlend(Source2ShaderBase):
     SHADER: str = 'csgo_environment_blend.vfx'
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node_group("csgo_lightmappedgeneric.vfx", name=self.SHADER)

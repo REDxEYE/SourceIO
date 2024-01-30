@@ -71,9 +71,9 @@ class Skybox(Source2ShaderBase):
             return image
         return None
 
-    def create_nodes(self, material_name):
-        self.logger.info(f'Creating material {repr(material_name)}')
-        self.bpy_material = bpy.data.worlds.get(material_name, False) or bpy.data.worlds.new(material_name)
+    def create_nodes(self, material):
+        self.logger.info(f'Creating material {repr(material.name)}')
+        self.bpy_material = material
 
         if self.bpy_material is None:
             self.logger.error('Failed to get or create material')

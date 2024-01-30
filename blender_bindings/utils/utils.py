@@ -20,22 +20,26 @@ def find_layer_collection(layer_collection, name):
             return found
 
 
-def add_material(mat_name, model_ob):
+def add_material(material, model_ob):
     md = model_ob.data
-    mat = bpy.data.materials.get(mat_name, None)
-    if mat:
-        if md.materials.get(mat.name, None):
-            for i, material in enumerate(md.materials):
-                if material == mat:
-                    return i
-        else:
-            md.materials.append(mat)
-            return len(md.materials) - 1
+    for i, ob_material in enumerate(md.materials):
+        if (ob_material.name == material.name and
+                ob_material.get("full_path", "Not match") == material.get("full_path", "Not match too")
+        ):
+            return i
     else:
-        mat = bpy.data.materials.new(mat_name)
-        mat.diffuse_color = [random.uniform(.4, 1) for _ in range(3)] + [1.0]
-        md.materials.append(mat)
+        md.materials.append(material)
         return len(md.materials) - 1
+
+
+def find_or_create_material(name: str, full_path: str):
+    for mat in bpy.data.materials:
+        if name in mat.name and mat.get("full_path") == full_path:
+            return mat
+    mat = bpy.data.materials.new(name)
+    mat["full_path"] = full_path
+    mat.diffuse_color = [random.uniform(.4, 1) for _ in range(3)] + [1.0]
+    return mat
 
 
 def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Collection:

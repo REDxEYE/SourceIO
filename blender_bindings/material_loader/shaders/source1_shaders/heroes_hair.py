@@ -179,8 +179,8 @@ class HeroesArmor(Source1ShaderBase):
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         if self._vmt.get('proxies', None):

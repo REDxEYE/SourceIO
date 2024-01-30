@@ -12,7 +12,7 @@ from ....library.utils import Buffer
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcV4ModelContainer
-from ...utils.utils import add_material, get_new_unique_collection
+from ...utils.utils import add_material, get_new_unique_collection, find_or_create_material
 
 
 def get_name(mdl_file: BinaryIO):
@@ -161,9 +161,10 @@ def import_model(name: str, mdl_buffer: Buffer, scale=1.0,
 
 
 def load_material(model_name, texture_id, model_texture_info: StudioTexture, model_object):
-    mat_id = add_material(f'{model_name}_texture_{texture_id}', model_object)
+    material = find_or_create_material(f'{model_name}_texture_{texture_id}', f'{model_name}_texture_{texture_id}')
+    mat_id = add_material(material, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
-    bpy_material.create_nodes(f'{model_name}_texture_{texture_id}')
+    bpy_material.create_nodes(material)
     bpy_material.align_nodes()
     return mat_id
 

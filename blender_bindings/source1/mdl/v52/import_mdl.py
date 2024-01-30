@@ -13,7 +13,7 @@ from .....library.source1.vvc import Vvc
 from .....library.source1.vvd import Vvd
 from .....logger import SLoggingManager
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import add_material, is_blender_4_1
+from ....utils.utils import add_material, is_blender_4_1, find_or_create_material
 from .. import FileImport
 from ..common import get_slice, merge_meshes
 from ..v49.import_mdl import (collect_full_material_names, create_armature,
@@ -115,11 +115,8 @@ def import_model(file_list: FileImport,
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
-                if unique_material_names:
-                    mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
-                else:
-                    mat_name = mat_name[-63:]
-                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
+                material = find_or_create_material(mat_name, full_material_names[mat_name])
+                material_remapper[mat_id] = add_material(material, mesh_obj)
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]])
 

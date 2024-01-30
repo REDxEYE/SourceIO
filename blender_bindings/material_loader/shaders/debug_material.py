@@ -13,8 +13,8 @@ class DebugMaterial(Source2ShaderBase):
             return image
         return None
 
-    def create_nodes(self, material_name):
-        if super().create_nodes(material_name) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material):
+        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         data_block, = self._material_resource.get_data_block(block_name='DATA')

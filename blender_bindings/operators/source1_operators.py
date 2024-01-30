@@ -10,12 +10,11 @@ from ..source1.mdl.v49.import_mdl import import_animations
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
-# from ..source1.vtf.export_vtf import export_texture
 
 from ...logger import SLoggingManager
 from ..material_loader.material_loader import Source1MaterialLoader
 from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ..source1.bsp.import_bsp import BSP
+from ..source1.bsp.import_bsp import import_bsp
 from ..source1.dmx.load_sfm_session import load_session
 from ..source1.mdl.model_loader import import_model_from_full_path
 
@@ -107,7 +106,7 @@ class SOURCEIO_OT_RigImport(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-# noinspection PyUnresolvedReferences,PyPep8Naming
+# noinspection PyPep8Naming
 class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
     """Load Source Engine BSP models"""
     bl_idname = "sourceio.bsp"
@@ -125,20 +124,11 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
         else:
             deserialize_mounted_content(content_manager)
 
-        bsp_map = BSP(self.filepath, content_manager, self)
+        import_bsp(Path(self.filepath), content_manager, self)
 
         if self.discover_resources:
             serialize_mounted_content(content_manager)
 
-        bsp_map.load_disp()
-        bsp_map.load_entities()
-        bsp_map.load_static_props()
-        if self.import_cubemaps:
-            bsp_map.load_cubemap()
-        # if self.import_decal:
-        #     bsp_map.load_overlays()
-        if self.import_textures:
-            bsp_map.load_materials(self.use_bvlg)
         return {'FINISHED'}
 
     def invoke(self, context, event):

@@ -8,6 +8,7 @@ from .lump import *
 
 log_manager = SLoggingManager()
 
+logger = log_manager.get_logger("BSP")
 
 def open_bsp(filepath):
     from struct import unpack
@@ -19,6 +20,8 @@ def open_bsp(filepath):
         return BSPFile.from_filename(filepath)
     elif magic == b'rBSP':
         return RespawnBSPFile.from_filename(filepath)
+    logger.error("Unrecognized map magic number: {}".format(magic))
+    return None
 
 
 CM = ContentManager()
@@ -28,7 +31,6 @@ class BSPFile:
     def __init__(self, filepath: Path, buffer: Buffer):
         self.filepath = Path(filepath)
         self.buffer = buffer
-        self.logger = log_manager.get_logger(self.filepath.stem)
         self.version = 0
         self.is_l4d2 = False
         self.lumps_info: List[LumpInfo] = []

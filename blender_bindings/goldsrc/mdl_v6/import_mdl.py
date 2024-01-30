@@ -11,7 +11,7 @@ from ....library.utils import Buffer
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from ...shared.model_container import GoldSrcModelContainer
-from ...utils.utils import add_material, get_new_unique_collection
+from ...utils.utils import add_material, get_new_unique_collection, find_or_create_material
 
 
 def create_armature(mdl: Mdl, collection, scale):
@@ -166,9 +166,10 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], scale=1.0
 
 
 def load_material(model_texture_info: StudioTexture, model_object):
-    mat_id = add_material(model_texture_info.name, model_object)
+    material = find_or_create_material(model_texture_info.name, model_texture_info.name)
+    mat_id = add_material(material, model_object)
     bpy_material = GoldSrcShader(model_texture_info)
-    bpy_material.create_nodes(model_texture_info.name)
+    bpy_material.create_nodes(material)
     bpy_material.align_nodes()
     return mat_id
 

@@ -14,7 +14,7 @@ from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.utils import add_material
+from ....utils.utils import add_material, find_or_create_material
 from ...vtf import SkyboxException, load_skybox_texture
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
@@ -294,7 +294,8 @@ class BaseEntityHandler(AbstractEntityHandler):
         self.parent_collection.objects.link(world)
         try:
             skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
-            Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(entity.skyname)
+            world_material = bpy.data.worlds.get(entity.skyname, False) or bpy.data.worlds.new(entity.skyname)
+            Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(world_material)
             bpy.context.scene.world = bpy.data.worlds[entity.skyname]
         except (SkyboxException, AssertionError):
             self.logger.error('Failed to load Skybox due to:')
@@ -682,13 +683,15 @@ class BaseEntityHandler(AbstractEntityHandler):
         curve_path.use_endpoint_u = True
 
         material_name = start_entity.RopeMaterial
-        add_material(material_name, curve_object)
+        stripped_material_name = strip_patch_coordinates.sub("", material_name)
+
+        mat = find_or_create_material(Path(stripped_material_name).name, stripped_material_name)
+        add_material(mat, curve_object)
         content_manager = ContentManager()
         material_file = content_manager.find_material(material_name)
         if material_file:
-            material_name = strip_patch_coordinates.sub("", material_name)
-            mat = Source1MaterialLoader(material_file, material_name)
-            mat.create_material()
+            loader = Source1MaterialLoader(material_file, stripped_material_name)
+            loader.create_material(mat)
         return curve_object
 
     def handle_path_track(self, entity: path_track, entity_raw: dict):
@@ -741,10 +744,11 @@ class BaseEntityHandler(AbstractEntityHandler):
         material_file = ContentManager().find_material(entity.texture)
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
-            mat = Source1MaterialLoader(material_file, material_name)
-            mat.create_material()
+            loader = Source1MaterialLoader(material_file, material_name)
+            mat = find_or_create_material(Path(material_name).stem, material_name)
+            loader.create_material(mat)
 
-            tex_name = mat.vmt.get('$basetexture', None)
+            tex_name = loader.vmt.get('$basetexture', None)
             if not tex_name:
                 return
             tex_name = Path(tex_name).name
@@ -770,7 +774,8 @@ class BaseEntityHandler(AbstractEntityHandler):
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
         uv_data = mesh_data.uv_layers.new().data
-        add_material(material_name, obj)
+        material = find_or_create_material(Path(material_name).stem, material_name)
+        add_material(material, obj)
 
         self._set_location_and_scale(obj, entity.origin)
         self._set_entity_data(obj, {'entity': entity_raw})

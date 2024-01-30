@@ -24,10 +24,9 @@ from ...library.source2.data_types.keyvalues3.types import NullObject, Object
 from ...library.source2.exceptions import MissingBlock
 from ...library.source2.resource_types import CompiledMeshResource
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
-from ..material_loader.material_loader import Source2MaterialLoader
 from ..shared.model_container import Source2ModelContainer
 from ..utils.utils import (add_material, find_layer_collection,
-                           get_new_unique_collection)
+                           get_new_unique_collection, find_or_create_material)
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
 
@@ -336,7 +335,8 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
 
             mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)).tolist())
             mesh.update()
-            add_material(material_stem, mesh_obj)
+            material = find_or_create_material(material_stem, material_name)
+            add_material(material, mesh_obj)
 
             if data_block.get('m_materialGroups', None):
                 default_skin = data_block['m_materialGroups'][0]

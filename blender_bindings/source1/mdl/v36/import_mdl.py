@@ -16,7 +16,7 @@ from .....logger import SLoggingManager
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ....shared.model_container import Source1ModelContainer
-from ....utils.utils import add_material, is_blender_4_1
+from ....utils.utils import add_material, is_blender_4_1, find_or_create_material
 from .. import FileImport
 from ..common import merge_meshes
 
@@ -63,10 +63,23 @@ def create_armature(mdl: MdlV36, scale=1.0):
     return armature_obj
 
 
+def collect_full_material_names(mdl: MdlV36):
+    content_manager = ContentManager()
+    full_mat_names = {}
+    for material_path in mdl.materials_paths:
+        for material in mdl.materials:
+            real_material_path = content_manager.find_material(Path(material_path) / material.name)
+            if real_material_path is not None:
+                full_mat_names[material.name] = (Path(material_path) / material.name).as_posix()
+    return full_mat_names
+
+
 def import_model(file_list: FileImport,
                  scale=1.0, create_drivers=False, re_use_meshes=False, unique_material_names=False, load_refpose=False):
     mdl = MdlV36.from_buffer(file_list.mdl_file)
     vtx = open_vtx(file_list.vtx_file)
+
+    full_material_names = collect_full_material_names(mdl)
 
     container = Source1ModelContainer(mdl, None, vtx, file_list)
 
@@ -141,11 +154,8 @@ def import_model(file_list: FileImport,
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
-                if unique_material_names:
-                    mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
-                else:
-                    mat_name = mat_name[-63:]
-                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
+                material = find_or_create_material(mat_name, full_material_names[mat_name])
+                material_remapper[mat_id] = add_material(material, mesh_obj)
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].ravel())
 
@@ -260,24 +270,26 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 def import_materials(mdl, unique_material_names=False, use_bvlg=False):
     content_manager = ContentManager()
     for material in mdl.materials:
-        if unique_material_names:
-            mat_name = f"{Path(mdl.header.name).stem}_{material.name[-63:]}"[-63:]
-        else:
-            mat_name = material.name[-63:]
-
-        if bpy.data.materials.get(mat_name, False):
-            if bpy.data.materials[mat_name].get('source1_loaded', False):
-                logger.info(f'Skipping loading of {mat_name} as it already loaded')
-                continue
         material_path = None
+        material_file = None
         for mat_path in mdl.materials_paths:
-            material_path = content_manager.find_material(Path(mat_path) / material.name)
-            if material_path:
+            material_file = content_manager.find_material(Path(mat_path) / material.name)
+            if material_file:
+                material_path = Path(mat_path) / material.name
                 break
+        if material_path is None:
+            logger.info(f'Material {material.name} not found')
+            continue
+        mat = find_or_create_material(material.name, material_path.as_posix())
+
+        if mat.get('source1_loaded', False):
+            logger.info(f'Skipping loading of {mat} as it already loaded')
+            continue
+
         if material_path:
             Source1ShaderBase.use_bvlg(use_bvlg)
-            new_material = Source1MaterialLoader(material_path, mat_name)
-            new_material.create_material()
+            loader = Source1MaterialLoader(material_file, material.name)
+            loader.create_material(mat)
 
 
 def __swap_components(vec, mp):
@@ -373,7 +385,7 @@ def import_animations(mdl: MdlV36, armature, scale):
                         fixed_rot.rotate(Euler([math.radians(90), math.radians(0), math.radians(0)]))
                         fixed_rot.rotate(Euler([math.radians(0), math.radians(0), math.radians(90)]))
                         fixed_rot = (
-                            fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
+                                fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
                         for i in range(3):
                             rot_curves[i].keyframe_points.add(1)
                             rot_curves[i].keyframe_points[-1].co = (n, fixed_rot[i])
