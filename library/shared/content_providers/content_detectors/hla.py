@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+
 
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ..content_provider_base import ContentProviderBase
@@ -10,7 +10,7 @@ from .source2_base import Source2DetectorBase
 class HLADetector(Source2DetectorBase):
 
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         hla_root = None
         hlvr_folder = backwalk_file_resolver(path, 'hlvr')
         if hlvr_folder is not None:

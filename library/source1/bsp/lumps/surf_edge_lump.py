@@ -14,3 +14,14 @@ class SurfEdgeLump(Lump):
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         self.surf_edges = np.frombuffer(buffer.read(), np.int32)
         return self
+
+
+@lump_tag(11, 'LUMP_DRAWINDEXES')
+class RavenIndicesLump(Lump):
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
+        self.indices = np.array([])
+
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+        self.indices = np.frombuffer(buffer.read(), np.int32)
+        return self

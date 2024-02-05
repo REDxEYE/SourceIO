@@ -1,10 +1,10 @@
 import fnmatch
 from pathlib import Path
-from typing import Iterator, Optional, Tuple, Union
+from typing import Iterator, Optional, Union
 
 from ...shared.app_id import SteamAppId
-from ...source1.hfsv1 import HFS
-from ...source1.hfsv2 import HFSv2
+from SourceIO.library.archives.hfsv1 import HFS
+from SourceIO.library.archives.hfsv2 import HFSv2
 from ...utils import Buffer
 from .content_provider_base import ContentProviderBase
 
@@ -22,10 +22,11 @@ class HFS2ContentProvider(ContentProviderBase):
             return file
 
     def find_path(self, filepath: Union[str, Path]) -> Optional[Path]:
-        if self.hfs_archive.has_file(filepath):
-            return filepath
+        entry = self.hfs_archive.has_file(filepath)
+        if entry:
+            return Path(self.filepath.as_posix() + ":" + filepath.as_posix())
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         for file_name in self.hfs_archive.files.keys():
             if fnmatch.fnmatch(file_name, pattern):
                 yield file_name, self.hfs_archive.get_file(file_name)

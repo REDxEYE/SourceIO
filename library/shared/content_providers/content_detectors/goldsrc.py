@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+
 
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ....global_config import GoldSrcConfig
@@ -11,7 +11,7 @@ from ..goldsrc_content_provider import (GoldSrcContentProvider,
 class GoldSrcDetector(ContentDetectorBase):
 
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         hl_root = None
         hl_exe = backwalk_file_resolver(path, 'hl.exe')
         if hl_exe is not None:

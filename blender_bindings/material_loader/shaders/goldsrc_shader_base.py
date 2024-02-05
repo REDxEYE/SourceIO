@@ -2,7 +2,7 @@ from typing import Optional
 
 import bpy
 
-from ....library.goldsrc.mdl_v10.structs.texture import StudioTexture
+from ....library.models.mdl.v10.structs.texture import StudioTexture
 from ..shader_base import Nodes, ShaderBase
 
 

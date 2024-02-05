@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, Optional, Union
 
 from ...utils import Buffer, FileBuffer
 from ...utils.gameinfo_parser import GameInfoParser
@@ -9,7 +9,7 @@ from .content_provider_base import ContentProviderBase
 
 
 class GameinfoContentProvider(ContentProviderBase):
-    path_cache: List[Path] = []
+    path_cache: list[Path] = []
 
     @classmethod
     def add_new_path(cls, path):
@@ -89,5 +89,5 @@ class GameinfoContentProvider(ContentProviderBase):
         else:
             return None
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)

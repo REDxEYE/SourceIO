@@ -1,0 +1,54 @@
+from pathlib import Path
+from typing import Optional
+
+from SourceIO.blender_bindings.models.model_tags import model_handler_tag
+from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_materials
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.source1.phy import import_physics
+from SourceIO.library.models.mdl.v49 import MdlV49
+from SourceIO.library.models.phy.phy import Phy
+from SourceIO.library.models.vtx import open_vtx
+from SourceIO.library.models.vvd import Vvd
+from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.utils import Buffer
+from SourceIO.library.utils.path_utilities import find_vtx_cm
+from SourceIO.logger import SourceLogMan
+
+log_manager = SourceLogMan()
+logger = log_manager.get_logger('MDL loader')
+
+
+@model_handler_tag(b"IDST", 45)
+@model_handler_tag(b"IDST", 46)
+@model_handler_tag(b"IDST", 47)
+@model_handler_tag(b"IDST", 48)
+@model_handler_tag(b"IDST", 49)
+def import_mdl49(model_path: Path, buffer: Buffer,
+                 content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
+    mdl = MdlV49.from_buffer(buffer)
+    vtx_buffer = find_vtx_cm(model_path, content_manager)
+    vvd_buffer = content_manager.find_file(model_path.with_suffix(".vvd"))
+    if vtx_buffer is None or vvd_buffer is None:
+        logger.error(f"Could not find VTX and/or VVD file for {model_path}")
+        return None
+    vtx = open_vtx(vtx_buffer)
+    vvd = Vvd.from_buffer(vvd_buffer)
+
+    container = import_model(mdl, vtx, vvd, options.scale, options.create_flex_drivers)
+    if options.import_physics:
+        phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
+        if phy_buffer is None:
+            logger.error(f"Could not find PHY file for {model_path}")
+        else:
+            phy = Phy.from_buffer(phy_buffer)
+            import_physics(phy, phy_buffer, mdl, container, options.scale)
+
+    if options.import_textures:
+        try:
+            import_materials(mdl, use_bvlg=options.use_bvlg)
+        except Exception as t_ex:
+            logger.error(f'Failed to import materials, caused by {t_ex}')
+            import traceback
+            traceback.print_exc()
+    return container

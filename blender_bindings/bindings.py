@@ -8,8 +8,7 @@ from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
 from .attributes import register_props, unregister_props
 from .operators.flex_operators import SourceIO_PG_FlexController
 from .operators.flex_operators import classes as flex_classes
-from .operators.goldsrc_operators import (SOURCEIO_OT_GBSPImport,
-                                          SOURCEIO_OT_GMDLImport)
+from .operators.goldsrc_operators import SOURCEIO_OT_GBSPImport
 from .operators.shared_operators import (SOURCEIO_UL_MountedResource, shared_classes)
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_DMXImporter,
@@ -50,8 +49,6 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         vwrld_icon = custom_icons["main"]["vwrld_icon"]
         layout = self.layout
 
-        layout.operator(SOURCEIO_OT_GMDLImport.bl_idname, text="GoldSrc model (.mdl)",
-                        icon_value=crowbar_icon.icon_id)
         layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
                         icon_value=bsp_icon.icon_id)
         layout.separator()
@@ -134,7 +131,6 @@ def unregister_custom_icon():
 classes = (
     # GoldSrc
     SOURCEIO_OT_GBSPImport,
-    SOURCEIO_OT_GMDLImport,
     # Source1 stuff
 
     SOURCEIO_OT_MDLImport,

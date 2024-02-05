@@ -16,7 +16,7 @@ class Overlay:
     id: int
     tex_info: int
     face_count_and_render_order: int
-    ofaces: Tuple[int, ...]
+    ofaces: tuple[int, ...]
     u: Vector2[float]
     v: Vector2[float]
     uv_points: npt.NDArray[np.float32]

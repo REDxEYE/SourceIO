@@ -21,6 +21,7 @@ class SteamAppId(IntEnum):
     VINDICTUS = 212160
     THINKING_WITH_TIME_MACHINE = 286080
     PORTAL_STORIES_MEL = 317400
+    SOLDIERS_OF_FORTUNE2 = -1
 
     @classmethod
     def _missing_(cls, value):
@@ -44,7 +45,7 @@ class SteamAppId(IntEnum):
 
         # construct a singleton enum pseudo-member
         other_member = int.__new__(cls)
-        other_member._name_ = default_member._name_+f"_{value}"
+        other_member._name_ = default_member._name_ + f"_{value}"
         other_member._value_ = value
 
         # use setdefault in case another thread already created a composite

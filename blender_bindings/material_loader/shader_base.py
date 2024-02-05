@@ -5,7 +5,8 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from ...logger import SLoggingManager
+from ...library.utils.path_utilities import path_stem
+from ...logger import SourceLogMan
 from ..utils.bpy_utils import append_blend
 from .node_arranger import nodes_iterate
 
@@ -109,7 +110,7 @@ class Nodes:
     ShaderNodeWireframe = 'ShaderNodeWireframe'
 
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
 
 
@@ -193,8 +194,9 @@ class ShaderBase:
         return buffer[0::4], buffer[1::4], buffer[2::4], buffer[3::4],
 
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
-        texture = self.load_texture(Path(file).stem, Path(file).parent)
-        return texture or self.get_missing_texture(f'missing_{Path(file).stem}', default_color)
+        file = Path(file)
+        texture = self.load_texture(file.stem, file.parent)
+        return texture or self.get_missing_texture(f'missing_{file.stem}', default_color)
 
     @staticmethod
     def clamp_value(value, min_value=0.0, max_value=1.0):
@@ -261,15 +263,14 @@ class ShaderBase:
             self.connect_nodes(middle_output_socket, receiver)
 
     def create_nodes(self, material):
-        self.logger.info(f'Creating material {repr(material.name)}')
         self.bpy_material = material
-
         if self.bpy_material is None:
             self.logger.error('Failed to get or create material')
             return 'UNKNOWN'
 
         if self.bpy_material.get('source_loaded'):
             return 'LOADED'
+        self.logger.info(f'Creating material {repr(material.name)}')
 
         self.bpy_material.use_nodes = True
         self.clean_nodes()

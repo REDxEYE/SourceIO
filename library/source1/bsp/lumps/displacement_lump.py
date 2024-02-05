@@ -1,4 +1,4 @@
-from typing import List
+
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from . import SteamAppId
 class DispInfoLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.infos: List[DispInfo] = []
+        self.infos: list[DispInfo] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -25,7 +25,7 @@ class DispInfoLump(Lump):
 class VDispInfoLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.infos: List[DispInfo] = []
+        self.infos: list[DispInfo] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:

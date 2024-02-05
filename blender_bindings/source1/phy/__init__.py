@@ -1,17 +1,17 @@
 from pathlib import Path
-from typing import List
 
 import bpy
 import numpy as np
 
-from ....library.source1.phy.phy import ConvexLeaf, Phy, TreeNode
+from ....library.models.mdl.v36 import MdlV36
+from ....library.models.phy.phy import ConvexLeaf, Phy, TreeNode
+from ....library.utils import Buffer
 from ....library.utils.math_utilities import vector_transform_v
-from ...shared.model_container import Source1ModelContainer
-from ...utils.bpy_utils import get_new_unique_collection
-from ..mdl import FileImport
+from ...shared.model_container import ModelContainer
+from ....library.utils.path_utilities import path_stem
 
 
-def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):
+def _collect_meshes(node: TreeNode, meshes: list[ConvexLeaf]):
     unique_vertices = set()
     if node.convex_leaf is not None:
         meshes.append(node.convex_leaf)
@@ -23,21 +23,14 @@ def _collect_meshes(node: TreeNode, meshes: List[ConvexLeaf]):
     return unique_vertices
 
 
-def import_physics(file_list: FileImport, container: Source1ModelContainer, scale: float = 1.0):
-    assert file_list.phy_file, "Missing .phy file"
-
-    phy = Phy.from_buffer(file_list.phy_file)
-    mdl = container.mdl
-
-    mesh_name = Path(mdl.header.name).stem
-
-    # phy_collection = get_new_unique_collection(mesh_name + '_PHYSICS', container.collection)
+def import_physics(phy: Phy, phy_buffer: Buffer, mdl: MdlV36, container: ModelContainer, scale: float = 1.0):
+    mesh_name = path_stem(mdl.header.name)
 
     for i, solid in enumerate(phy.solids):
-        meshes: List[ConvexLeaf] = []
+        meshes: list[ConvexLeaf] = []
         vertex_count = len(_collect_meshes(solid.collision_model.root_tree, meshes))
 
-        vertex_data = solid.collision_model.get_vertex_data(file_list.phy_file,
+        vertex_data = solid.collision_model.get_vertex_data(phy_buffer,
                                                             solid.collision_model.root_tree.convex_leaf,
                                                             vertex_count)
         for j, mesh in enumerate(meshes):
@@ -70,5 +63,4 @@ def import_physics(file_list: FileImport, container: Source1ModelContainer, scal
                     type="ARMATURE", name="Armature")
                 modifier.object = container.armature
                 mesh_obj.parent = container.armature
-            container.physics.append(mesh_obj)
-            # phy_collection.objects.link(mesh_obj)
+            container.physics_objects.append(mesh_obj)

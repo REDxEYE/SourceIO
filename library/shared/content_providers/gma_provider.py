@@ -1,8 +1,8 @@
 import fnmatch
 from pathlib import Path
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, Optional
 
-from ...source1.gma import open_gma
+from SourceIO.library.archives.gma import open_gma
 from ...utils import Buffer
 from ..app_id import SteamAppId
 from .content_provider_base import ContentProviderBase
@@ -14,8 +14,8 @@ class GMAContentProvider(ContentProviderBase):
         self._override_steamid = override_steamid
         self.gma_archive = open_gma(filepath)
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
-        files: List[Tuple[Path, Buffer]] = []
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
+        files: list[tuple[Path, Buffer]] = []
         for file_name, entry in self.gma_archive.file_entries.items():
             if fnmatch.fnmatch(file_name, pattern):
                 files.append((file_name, self.gma_archive.find_file(file_name)))

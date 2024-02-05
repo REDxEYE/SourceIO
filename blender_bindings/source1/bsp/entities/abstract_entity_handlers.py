@@ -2,13 +2,13 @@ import math
 import re
 from pathlib import Path
 from pprint import pformat
-from typing import List
+
 
 import bpy
 import numpy as np
 from mathutils import Euler
 
-from ....operators.import_settings_base import BSPSettings
+from ....operators.import_settings_base import BSPOptions
 from .....library.shared.content_providers.content_manager import \
     ContentManager
 from .....library.source1.bsp.bsp_file import BSPFile
@@ -18,22 +18,23 @@ from .....library.source1.bsp.datatypes.texture_data import TextureData
 from .....library.source1.bsp.datatypes.texture_info import TextureInfo
 from .....library.source1.vmt import VMT
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-from .....logger import SLoggingManager
-from ....utils.bpy_utils import add_material, get_or_create_collection, find_or_create_material
+from .....library.utils.path_utilities import path_stem
+from .....logger import SourceLogMan
+from ....utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
 from ...vtf import import_texture
 from .base_entity_classes import *
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 
-def gather_vertex_ids(model: Model, faces: List[Face], surf_edges: np.ndarray, edges: np.ndarray):
+def gather_vertex_ids(model: Model, faces: list[Face], surf_edges: np.ndarray, edges: np.ndarray):
     vertex_offset = 0
     material_ids = []
     vertex_count = 0
     for map_face in faces[model.first_face:model.first_face + model.face_count]:
         vertex_count += map_face.edge_count
-    vertex_ids = np.zeros(vertex_count, dtype=np.uint16)
+    vertex_ids = np.zeros(vertex_count, dtype=np.uint32)
     for map_face in faces[model.first_face:model.first_face + model.face_count]:
         if map_face.disp_info_id != -1:
             continue
@@ -75,7 +76,7 @@ class AbstractEntityHandler:
         self._handled_paths = []
         self._entity_by_name_cache = {}
 
-    def load_entities(self, settings: BSPSettings):
+    def load_entities(self, settings: BSPOptions):
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
             entity_class: str = entity_data['classname']
@@ -106,13 +107,13 @@ class AbstractEntityHandler:
             entity_class_obj = self._get_class(entity_class)
             entity_object = entity_class_obj(entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
-            try:
-                handler_function(entity_object, entity_data)
-            except ValueError as e:
-                import traceback
-                self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
-                self.logger.error(traceback.format_exc())
-                return False
+            # try:
+            handler_function(entity_object, entity_data)
+            # except ValueError as e:
+            #     import traceback
+            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
+            #     self.logger.error(traceback.format_exc())
+            #     return False
             return True
         return False
 
@@ -127,7 +128,7 @@ class AbstractEntityHandler:
         return entity_obj, entity
 
     def _get_string(self, string_id):
-        strings: List[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
+        strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
         return strings[string_id] or "NO_NAME"
 
     def _load_brush_model(self, model_id, model_name):
@@ -140,9 +141,9 @@ class AbstractEntityHandler:
         bsp_surf_edges: np.ndarray = self._bsp.get_lump('LUMP_SURFEDGES').surf_edges
         bsp_vertices: np.ndarray = self._bsp.get_lump('LUMP_VERTICES').vertices
         bsp_edges: np.ndarray = self._bsp.get_lump('LUMP_EDGES').edges
-        bsp_faces: List[Face] = self._bsp.get_lump('LUMP_FACES').faces
-        bsp_textures_info: List[TextureInfo] = self._bsp.get_lump('LUMP_TEXINFO').texture_info
-        bsp_textures_data: List[TextureData] = self._bsp.get_lump('LUMP_TEXDATA').texture_data
+        bsp_faces: list[Face] = self._bsp.get_lump('LUMP_FACES').faces
+        bsp_textures_info: list[TextureInfo] = self._bsp.get_lump('LUMP_TEXINFO').texture_info
+        bsp_textures_data: list[TextureData] = self._bsp.get_lump('LUMP_TEXDATA').texture_data
 
         vertex_ids, material_ids = gather_vertex_ids(model, bsp_faces, bsp_surf_edges, bsp_edges)
         unique_vertex_ids = np.unique(vertex_ids)
@@ -156,7 +157,7 @@ class AbstractEntityHandler:
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = self._get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)
-            material = find_or_create_material(Path(material_name).stem, material_name)
+            material = get_or_create_material(path_stem(material_name), material_name)
             material_lookup_table[texture_data.name_id] = add_material(material, mesh_obj)
 
         uvs_per_face = []
@@ -290,7 +291,8 @@ class AbstractEntityHandler:
         icon_path = getattr(entity, 'icon_sprite', None)
 
         if icon_path is not None:
-            icon = bpy.data.images.get(Path(icon_path).stem, None)
+            icon_path = Path(icon_path)
+            icon = bpy.data.images.get(icon_path.stem, None)
             if icon is None:
                 icon_material_file = ContentManager().find_material(icon_path, silent=True)
                 if not icon_material_file:
@@ -299,7 +301,7 @@ class AbstractEntityHandler:
                 texture = ContentManager().find_texture(vmt.get_string('$basetexture', None), silent=True)
                 if not texture:
                     return
-                icon = import_texture(Path(Path(icon_path).stem), texture)
+                icon = import_texture(Path(icon_path.stem), texture)
 
             obj.empty_display_type = 'IMAGE'
             obj.empty_display_size = (1 / self.scale)
@@ -350,6 +352,10 @@ class AbstractEntityHandler:
             model_path = entity.model_
         elif hasattr(entity, 'viewport_model') and entity.viewport_model:
             model_path = entity.viewport_model
+        elif "model" in entity_raw:
+            model_path = entity_raw["model"]
+        elif "viewport_model" in entity_raw:
+            model_path = entity_raw["viewport_model"]
         else:
             model_path = 'error.mdl'
         obj = self._create_empty(self._get_entity_name(entity))

@@ -10,9 +10,9 @@ from ....library.source1.dmx.sfm.film_clip import FilmClip
 from ....library.source1.dmx.sfm_utils import *
 from ....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ....library.utils.path_utilities import find_vtx_cm
-from ...shared.model_container import Source1ModelContainer
-from ...source1.mdl.v49.import_mdl import import_model
-from ..mdl import FileImport, put_into_collections
+from ...shared.model_container import ModelContainer
+from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model
+from ...models.common import put_into_collections
 
 
 def _convert_quat(quat):
@@ -46,7 +46,7 @@ def create_camera(dme_camera: Camera, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     camera.lens = dme_camera.milliliters
 
 
-def _apply_transforms(container: Source1ModelContainer, animset: AnimationSet, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
+def _apply_transforms(container: ModelContainer, animset: AnimationSet, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     for control in animset.controls:
         if control.type == 'DmElement':
             for obj in container.objects:

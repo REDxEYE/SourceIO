@@ -3,10 +3,10 @@ from typing import Type
 
 import bpy
 
-from ...library.goldsrc.mdl_v10.structs.texture import StudioTexture
+from ...library.models.mdl.v10.structs.texture import StudioTexture
 from ...library.source1.vmt import VMT
 from ...library.source2 import CompiledMaterialResource
-from ...logger import SLoggingManager
+from ...logger import SourceLogMan
 from .shader_base import ShaderBase
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 from .shaders.source1_shader_base import Source1ShaderBase
@@ -16,7 +16,7 @@ from .shaders.source2_shaders.dummy import DummyShader
 # noinspection PyUnresolvedReferences
 from .shaders import source1_shaders, source2_shaders, goldsrc_shaders
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
 
 
@@ -87,6 +87,10 @@ class Source2MaterialLoader(MaterialLoaderBase):
         self.tinted = tinted
 
     def create_material(self, material: bpy.types.Material):
+        if material.get('source1_loaded', False):
+            logger.info(f'Skipping loading of {material} as it already loaded')
+            return
+
         data, = self.material_resource.get_data_block(block_name='DATA')
         if not data:
             return

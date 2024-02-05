@@ -5,9 +5,9 @@ import bpy
 from ..utils.texture_utils import create_and_cache_texture
 from ...library.source2.data_types.blocks.texture_data import VTexFormat
 from ...library.source2.resource_types import CompiledTextureResource
-from ...logger import SLoggingManager
+from ...logger import SourceLogMan
 
-logger = SLoggingManager().get_logger("Source2::Texture")
+logger = SourceLogMan().get_logger("Source2::Texture")
 
 
 def import_texture(resource: CompiledTextureResource, texture_path: Path, flip: bool, invert_y: bool = False):

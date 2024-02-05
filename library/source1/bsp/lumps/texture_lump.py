@@ -1,4 +1,4 @@
-from typing import List
+
 
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
@@ -12,7 +12,7 @@ class TextureInfoLump(Lump):
 
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.texture_info: List[TextureInfo] = []
+        self.texture_info: list[TextureInfo] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -25,7 +25,7 @@ class TextureDataLump(Lump):
 
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.texture_data: List[TextureData] = []
+        self.texture_data: list[TextureData] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         texture_data_class = RespawnTextureData if bsp.version == (29, 0) else TextureData

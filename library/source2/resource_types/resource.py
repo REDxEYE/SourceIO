@@ -2,7 +2,7 @@ import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Type, TypeVar, Union
+from typing import Optional, Type, TypeVar, Union
 
 from ..data_types.blocks.resource_external_reference_list import ResourceExternalReferenceList
 from ...shared.content_providers.content_manager import ContentManager
@@ -20,7 +20,7 @@ class CompiledResource:
     _buffer: Buffer
     _filepath: Path
     _header: CompiledHeader
-    _blocks: Dict[int, BaseBlock] = field(default_factory=lambda: defaultdict(None))
+    _blocks: dict[int, BaseBlock] = field(default_factory=lambda: defaultdict(None))
 
     @property
     def name(self):
@@ -28,7 +28,7 @@ class CompiledResource:
 
     def get_data_block(self, *,
                        block_id: Optional[int] = None,
-                       block_name: Optional[str] = None) -> Union[Optional[BaseBlock], List[Optional[BaseBlock]]]:
+                       block_name: Optional[str] = None) -> Union[Optional[BaseBlock], list[Optional[BaseBlock]]]:
         if block_id is not None:
             if block_id == -1:
                 return None

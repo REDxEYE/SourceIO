@@ -1,4 +1,4 @@
-from typing import List
+
 
 from ....shared.content_providers.content_manager import ContentManager
 from ....utils import datamodel
@@ -199,13 +199,13 @@ class Session(BaseElement):
         return self._element['settings']
 
     @staticmethod
-    def get_root_transform(controls: List[datamodel.Element]):
+    def get_root_transform(controls: list[datamodel.Element]):
         for control in controls:
             if control.name == 'rootTransform' and control.type == 'DmeTransformControl':
                 return control
 
     @staticmethod
-    def get_element(controls: List[datamodel.Element], name, type):
+    def get_element(controls: list[datamodel.Element], name, type):
         for control in controls:
             if control.name == name and control.type == type:
                 return control

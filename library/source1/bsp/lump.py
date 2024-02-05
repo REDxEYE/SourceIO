@@ -1,6 +1,6 @@
 import lzma
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, Type, Union, Tuple
+from typing import TYPE_CHECKING, Optional, Type, Union
 
 from ...shared.app_id import SteamAppId
 from ...utils.file_utils import Buffer, FileBuffer, MemoryBuffer
@@ -15,13 +15,13 @@ class LumpTag:
     lump_id: int
     lump_name: str
     lump_version: Optional[int] = field(default=None)
-    bsp_version: Optional[Union[int, Tuple[int, int]]] = field(default=None)
+    bsp_version: Optional[Union[int, tuple[int, int]]] = field(default=None)
     steam_id: Optional[SteamAppId] = field(default=None)
 
 
 def lump_tag(lump_id, lump_name,
              lump_version: Optional[int] = None,
-             bsp_version: Optional[Union[int, Tuple[int, int]]] = None,
+             bsp_version: Optional[Union[int, tuple[int, int]]] = None,
              steam_id: Optional[SteamAppId] = None):
     def loader(klass: Type[Lump]) -> Type[Lump]:
         if not klass.tags:
@@ -37,11 +37,30 @@ def lump_tag(lump_id, lump_name,
 
 
 @dataclass(slots=True)
-class LumpInfo:
+class AbstractLump:
     id: int
     offset: int
     size: int
     version: int
+
+    @property
+    def compressed(self):
+        return False
+
+    def __repr__(self):
+        return f"<Lump{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size})>"
+
+
+@dataclass(slots=True)
+class RavenLumpInfo(AbstractLump):
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, lump_type: int, is_l4d2: bool = False):
+        return RavenLumpInfo(lump_type, buffer.read_int32(), buffer.read_int32(), 0)
+
+
+@dataclass(slots=True)
+class LumpInfo(AbstractLump):
     decompressed_size: int
 
     @property
@@ -62,12 +81,9 @@ class LumpInfo:
             decompressed_size = buffer.read_uint32()
         return cls(lump_type, offset, size, version, decompressed_size)
 
-    def __repr__(self):
-        return f"<Lump{self.id}({self.id:04x}) o: {self.offset} s: {sizeof_fmt(self.size)}({self.size})>"
-
 
 class Lump:
-    tags: List[LumpTag]
+    tags: list[LumpTag]
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -98,7 +114,7 @@ class Lump:
         filter_properties = lzma._decode_filter_properties(lzma.FILTER_LZMA1, buffer.read(5))
 
         compressed_buffer = buffer.read(compressed_size)
-        chunks: List[bytes] = []
+        chunks: list[bytes] = []
 
         while True:
             decompressor = lzma.LZMADecompressor(lzma.FORMAT_RAW, filters=(filter_properties,))

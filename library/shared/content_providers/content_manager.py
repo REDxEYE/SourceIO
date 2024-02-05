@@ -1,12 +1,13 @@
 from collections import Counter, OrderedDict
 from hashlib import md5
 from pathlib import Path
-from typing import Dict, List, Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union
 
+from .zip_content_provider import ZIPContentProvider
 from ....library.utils.path_utilities import (backwalk_file_resolver,
                                               corrected_path, get_mod_path)
-from ....logger import SLoggingManager
-from ...utils import Buffer
+from ....logger import SourceLogMan
+from ...utils import Buffer, FileBuffer
 from ...utils.singleton import SingletonMeta
 from .content_provider_base import ContentProviderBase
 from .hfs_provider import HFS1ContentProvider, HFS2ContentProvider
@@ -17,7 +18,7 @@ from .source2_content_provider import \
     Gameinfo2ContentProvider as Source2GameinfoContentProvider
 from .vpk_provider import VPKContentProvider
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('ContentManager')
 
 AnyContentDetector = TypeVar('AnyContentDetector', bound='ContentDetectorBase')
@@ -37,7 +38,7 @@ def is_relative_to(path: Path, *other):
 
 class ContentManager(metaclass=SingletonMeta):
     def __init__(self):
-        self.detector_addons: List[AnyContentDetector] = []
+        self.detector_addons: list[AnyContentDetector] = []
         self.content_providers: OrderedDict[str, AnyContentProvider] = OrderedDict()
         self._titanfall_mode = False
         self._steam_id = -1
@@ -56,6 +57,7 @@ class ContentManager(metaclass=SingletonMeta):
         from .content_detectors.vindictus import VindictusDetector
         from .content_detectors.source2 import Source2Detector
         from .content_detectors.cs2 import CS2Detector
+        from .content_detectors.idtech3 import IDTech3Detector
         self.detector_addons.append(GoldSrcDetector())
         self.detector_addons.append(SBoxDetector())
         self.detector_addons.append(CS2Detector())
@@ -68,6 +70,7 @@ class ContentManager(metaclass=SingletonMeta):
         self.detector_addons.append(TitanfallDetector())
         self.detector_addons.append(SourceMod())
         self.detector_addons.append(GModDetector())
+        self.detector_addons.append(IDTech3Detector())
 
     def _find_steam_appid(self, path: Path):
         if self._steam_id != -1:
@@ -249,13 +252,19 @@ class ContentManager(metaclass=SingletonMeta):
 
         return serialized
 
-    def deserialize(self, data: Dict[str, Union[str, dict]]):
+    def deserialize(self, data: dict[str, Union[str, dict]]):
         for name, item in data.items():
             name = item["name"]
             path = item["path"]
+            if name in self.content_providers:
+                logger.info(f'{name} provider already exists')
+                continue
 
             if path.endswith('.vpk'):
                 sub_manager = VPKContentProvider(Path(path))
+                self.register_content_provider(name, sub_manager)
+            elif path.endswith('.pk3'):
+                sub_manager = ZIPContentProvider(Path(path))
                 self.register_content_provider(name, sub_manager)
             elif path.endswith('.txt'):
                 try:
@@ -271,7 +280,8 @@ class ContentManager(metaclass=SingletonMeta):
                 self.register_content_provider(name, sub_manager)
             elif path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
-                bsp = open_bsp(path)
+                with FileBuffer(path) as f:
+                    bsp = open_bsp(path, f)
                 pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
                     self.register_content_provider(name, pak_lump)
@@ -309,3 +319,9 @@ class ContentManager(metaclass=SingletonMeta):
         if len(used_appid) == 0:
             return 0
         return used_appid.most_common(1)[0][0]
+
+    def get_content_provider_from_asset_path(self, asset_path: Path) -> Optional[ContentProviderBase]:
+        for content_provider in self.content_providers.values():
+            if content_provider.find_path(asset_path):
+                return content_provider
+        return None

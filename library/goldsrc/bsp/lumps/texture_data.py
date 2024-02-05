@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from ....utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
@@ -13,8 +13,8 @@ class TextureDataLump(Lump):
 
     def __init__(self, info: LumpInfo):
         super().__init__(info)
-        self.key_values: Dict[str, TextureData] = {}
-        self.values: List[TextureData] = []
+        self.key_values: dict[str, TextureData] = {}
+        self.values: list[TextureData] = []
 
     def parse(self, buffer: Buffer, bsp: 'BspFile'):
         textures_count = buffer.read_uint32()

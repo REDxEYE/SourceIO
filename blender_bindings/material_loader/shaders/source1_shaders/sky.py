@@ -1,10 +1,10 @@
 import bpy
 
-from .....logger import SLoggingManager
+from .....logger import SourceLogMan
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 class Skybox(Source1ShaderBase):
     SHADER: str = 'sky'

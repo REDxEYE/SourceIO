@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from ..lumps.node_lump import NodeLump
 
 
-
 @dataclass(slots=True)
 class Model:
     mins: Vector3[float]
@@ -28,6 +27,20 @@ class Model:
         if lump:
             return lump.nodes[self.head_node]
         return None
+
+
+@dataclass(slots=True)
+class RavenModel:
+    mins: Vector3[float]
+    maxs: Vector3[float]
+    face_offset: int
+    face_count: int
+    brush_offset: int
+    brush_count: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+        return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("4i"))
 
 
 @dataclass(slots=True)

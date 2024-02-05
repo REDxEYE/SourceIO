@@ -1,4 +1,4 @@
-from typing import List
+
 
 from .....utils import Buffer
 from ....resource_types.resource import CompiledResource
@@ -10,8 +10,8 @@ from .vertex_buffer import VertexBuffer
 class VertexIndexBuffer(BaseBlock):
     def __init__(self, buffer: Buffer, resource: CompiledResource):
         super().__init__(buffer, resource)
-        self.vertex_buffers: List[VertexBuffer] = []
-        self.index_buffers: List[IndexBuffer] = []
+        self.vertex_buffers: list[VertexBuffer] = []
+        self.index_buffers: list[IndexBuffer] = []
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, resource: CompiledResource):

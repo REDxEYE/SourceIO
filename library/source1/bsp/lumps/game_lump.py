@@ -1,4 +1,4 @@
-from typing import List
+
 
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
@@ -15,7 +15,7 @@ class GameLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0
-        self.game_lumps_info: List[GameLumpHeader] = []
+        self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
@@ -64,7 +64,7 @@ class GameLump204(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0
-        self.game_lumps_info: List[GameLumpHeader] = []
+        self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
@@ -108,7 +108,7 @@ class VGameLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0
-        self.game_lumps_info: List[GameLumpHeader] = []
+        self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):

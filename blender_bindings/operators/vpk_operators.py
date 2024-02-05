@@ -5,7 +5,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, IntProperty,
                        PointerProperty, StringProperty)
 
-from ...library.shared.vpk.vpk_file import VPKFile, open_vpk
+from SourceIO.library.archives.vpk import VPKFile, open_vpk
 from ...library.utils.singleton import SingletonMeta
 
 

@@ -3,9 +3,9 @@ from collections import OrderedDict
 from enum import Enum
 from typing import TextIO, Union
 
-from ...logger import SLoggingManager
+from ...logger import SourceLogMan
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('Utilities::KeyValue Parser')
 
 

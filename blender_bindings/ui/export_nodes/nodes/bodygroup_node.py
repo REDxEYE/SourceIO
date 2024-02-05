@@ -1,4 +1,4 @@
-from typing import List, TextIO, Union
+from typing import TextIO, Union
 
 import bpy
 from bpy.types import Node
@@ -10,7 +10,7 @@ from .input_object_node import SourceIOObjectNode
 class SourceIOBodygroupProto:
     def __init__(self):
         self.name: str = ""
-        self.objects: List[Union[bpy.types.Object, List[bpy.types.Object], None]] = []
+        self.objects: list[Union[bpy.types.Object, list[bpy.types.Object], None]] = []
 
     def __str__(self):
         tmp = f'"{self.name}"\n'
@@ -59,7 +59,7 @@ class SourceIOBodygroupNode(Node, SourceIOModelTreeNode):
         for input_socket in self.inputs:
             if input_socket.is_linked:
                 if len(input_socket.links) > 1:
-                    merge: List[bpy.types.Object] = []
+                    merge: list[bpy.types.Object] = []
                     for link in input_socket.links:
                         obj_node: SourceIOObjectNode = link.from_node
                         merge.append(obj_node.get_value())

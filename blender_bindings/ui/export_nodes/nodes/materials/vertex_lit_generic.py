@@ -1,4 +1,3 @@
-from typing import List, Union
 
 import bpy
 from bpy.types import Node

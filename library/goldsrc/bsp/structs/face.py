@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from typing import Tuple
-
 from ....utils import Buffer
 
 
@@ -11,7 +9,7 @@ class Face:
     first_edge: int
     edges: int
     texture_info: int
-    styles: Tuple[int, int, int, int]
+    styles: tuple[int, int, int, int]
     light_map_offset: int
 
     @classmethod

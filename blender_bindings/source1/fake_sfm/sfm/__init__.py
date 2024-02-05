@@ -5,7 +5,7 @@ import bpy
 from mathutils import Matrix, Quaternion, Vector
 
 from .....library.utils.singleton import SingletonMeta
-from .....logger import SLogger, SLoggingManager
+from .....logger import SLogger, SourceLogMan
 from ..vs import Color
 from ..vs import Vector as SVector
 
@@ -221,8 +221,8 @@ class BoneGroup:
 # noinspection PyPep8Naming
 class SFM(metaclass=SingletonMeta):
     def __init__(self):
-        self.sfm_logger: SLogger = SLoggingManager().get_logger('SFM_EMULATOR')
-        self.logger: SLogger = SLoggingManager().get_logger('SFM_EMULATOR[INTERNAL]')
+        self.sfm_logger: SLogger = SourceLogMan().get_logger('SFM_EMULATOR')
+        self.logger: SLogger = SourceLogMan().get_logger('SFM_EMULATOR[INTERNAL]')
         self.obj = None
         self.selection_stack: Deque[list] = deque()
         self.selection_stack.append([])

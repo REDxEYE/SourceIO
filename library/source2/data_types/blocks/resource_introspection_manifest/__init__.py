@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 from .....utils import Buffer
 from ....resource_types.resource import CompiledResource
@@ -17,13 +17,13 @@ class ResourceIntrospectionManifest(BaseBlock):
     def __init__(self, buffer: Buffer, resource: CompiledResource):
         super().__init__(buffer, resource)
         self.version = 0
-        self._structs: List[Struct] = []
-        self._enums: List[Enum] = []
+        self._structs: list[Struct] = []
+        self._enums: list[Enum] = []
 
-        self._s2p_struct: Dict[str, Struct] = {}
-        self._i2p_struct: Dict[int, Struct] = {}
-        self._s2p_enum: Dict[str, Enum] = {}
-        self._i2p_enum: Dict[int, Enum] = {}
+        self._s2p_struct: dict[str, Struct] = {}
+        self._i2p_struct: dict[int, Struct] = {}
+        self._s2p_enum: dict[str, Enum] = {}
+        self._i2p_enum: dict[int, Enum] = {}
 
     def struct_by_pos(self, pos: int) -> Struct:
         return self._structs[pos]
@@ -69,7 +69,7 @@ class ResourceIntrospectionManifest(BaseBlock):
 
     def read_struct(self, buffer: Buffer, top_struct: Struct) -> Union[NullObject, Object]:
         data = Object()
-        members: List[Tuple[str, StructMember]] = []
+        members: list[tuple[str, StructMember]] = []
 
         def collect_members(struct: Struct):
             if struct.parent_struct_id:

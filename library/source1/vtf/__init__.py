@@ -1,7 +1,7 @@
 from ...utils.pylib import VTFLibV2
-from ....logger import SLoggingManager
+from ....logger import SourceLogMan
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::VTF')
 
 

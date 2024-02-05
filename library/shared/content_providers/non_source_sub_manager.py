@@ -22,7 +22,7 @@ class NonSourceContentProvider(ContentProviderBase):
         if file:
             return file
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)
 
     @property

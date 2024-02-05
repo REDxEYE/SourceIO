@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+
 
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ..content_provider_base import ContentProviderBase
@@ -10,7 +10,7 @@ from .source2_base import Source2DetectorBase
 class Source2Detector(Source2DetectorBase):
 
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         s2_root = None
         s2_gameinfo = backwalk_file_resolver(path, 'gameinfo.gi')
         if s2_gameinfo is not None:

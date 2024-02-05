@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from ....utils import Buffer
 from ..lump import Lump, LumpInfo, LumpType
@@ -12,7 +12,7 @@ class EntityLump(Lump):
 
     def __init__(self, info: LumpInfo):
         super().__init__(info)
-        self.values: List[Dict[str, str]] = []
+        self.values: list[dict[str, str]] = []
 
     def parse(self, buffer: Buffer, bsp: 'BspFile'):
         entities = buffer.read_ascii_string(self.info.length)

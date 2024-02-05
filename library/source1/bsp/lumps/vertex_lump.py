@@ -18,6 +18,25 @@ class VertexLump(Lump):
         return self
 
 
+@lump_tag(10, 'LUMP_DRAWVERTS')
+class RavenVertexLump(Lump):
+    dtype = np.dtype([
+        ("pos", np.float32, 3),
+        ("st", np.float32, 2),
+        ("lightmap", np.float32, 8),
+        ("normal", np.float32, 3),
+        ("color", np.uint8, (4, 4)),
+    ])
+
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
+        self.vertices = np.array([])
+
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+        self.vertices = np.frombuffer(buffer.read(), self.dtype)
+        return self
+
+
 @lump_tag(0x47, 'LUMP_UNLITVERTEX', bsp_version=29)
 class UnLitVertexLump(Lump):
     _dtype = np.dtype(

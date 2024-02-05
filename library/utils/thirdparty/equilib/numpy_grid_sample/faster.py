@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-from typing import List
-
 import numpy as np
 
 from .interp import linear_interp
 
 
 def interp2d(
-    Q: List[np.ndarray],
+    Q: list[np.ndarray],
     dy: np.ndarray,
     dx: np.ndarray,
     mode: str = "bilinear",

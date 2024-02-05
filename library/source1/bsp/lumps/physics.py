@@ -1,7 +1,5 @@
-from typing import Dict, List
-
 from ....utils import Buffer
-from ...phy.phy import SolidHeader
+from ....models.phy.phy import SolidHeader
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -24,7 +22,7 @@ class SolidBlock:
 class PhysicsLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.solid_blocks: Dict[int, SolidBlock] = {}
+        self.solid_blocks: dict[int, SolidBlock] = {}
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:

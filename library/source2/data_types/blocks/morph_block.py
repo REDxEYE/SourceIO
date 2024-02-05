@@ -1,6 +1,5 @@
 import logging
 from collections import defaultdict
-from typing import Dict, List
 
 import numpy as np
 import numpy.typing as npt
@@ -17,7 +16,7 @@ class MorphBlock(KVBlock):
 
     def __init__(self, buffer: Buffer, resource: CompiledResource):
         super().__init__(buffer, resource)
-        self._morph_datas: Dict[int, Dict[str, npt.NDArray[np.float32]]] = defaultdict(dict)
+        self._morph_datas: dict[int, dict[str, npt.NDArray[np.float32]]] = defaultdict(dict)
         self._vmorf_texture = None
 
     @staticmethod
@@ -36,7 +35,7 @@ class MorphBlock(KVBlock):
         return self.get("m_nEncodingType", "ENCODING_TYPE_OBJECT_SPACE")
 
     @property
-    def bundles(self) -> List[str]:
+    def bundles(self) -> list[str]:
         return self['m_bundleTypes']
 
     def get_bundle_id(self, bundle_name):

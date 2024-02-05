@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Type
+from typing import Any, Type
 
 import bpy
 from mathutils import Matrix
@@ -13,19 +13,19 @@ from ....library.source2.resource_types.compiled_world_resource import (
     CompiledEntityLumpResource, CompiledMapResource, CompiledWorldNodeResource)
 from ....library.source2.resource_types import CompiledManifestResource
 from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
-from ....logger import SLoggingManager
+from ....logger import SourceLogMan
 from ...utils.bpy_utils import get_or_create_collection
 from .entities.base_entity_handlers import BaseEntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
 from .entities.sbox_entity_handlers import SBoxEntityHandler
 from .entities.steampal_entity_handlers import SteamPalEntityHandler
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 logger = log_manager.get_logger("VWRLD")
 
 
-def get_entity_name(entity_data: Dict[str, Any]):
+def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammeruniqueid", "missing_hammer_id"))}'
 
 

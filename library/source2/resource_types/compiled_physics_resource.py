@@ -1,8 +1,5 @@
-from typing import Collection, List
-
 import numpy as np
 
-from ...shared.intermidiate_data.bone import Bone
 from ..exceptions import MissingBlock
 from .resource import CompiledResource
 

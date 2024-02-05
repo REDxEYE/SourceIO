@@ -32,7 +32,7 @@ def add_material(material, model_ob):
         return len(md.materials) - 1
 
 
-def find_or_create_material(name: str, full_path: str):
+def get_or_create_material(name: str, full_path: str):
     for mat in bpy.data.materials:
         if name in mat.name and mat.get("full_path") == full_path:
             return mat

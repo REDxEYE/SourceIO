@@ -1,25 +1,23 @@
 from pathlib import Path
-from typing import Dict, Tuple
 
-from ....logger import SLoggingManager
+from ....logger import SourceLogMan
 from ...shared.content_providers.content_manager import ContentManager
-from ...utils.file_utils import FileBuffer
 from .lump import *
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 logger = log_manager.get_logger("BSP")
 
-def open_bsp(filepath):
-    from struct import unpack
-    assert Path(filepath).exists()
-    with open(filepath, 'rb') as f:
-        magic, version = unpack('4sI', f.read(8))
 
+def open_bsp(filepath: Path, buffer: Buffer):
+    magic, version = buffer.read_fmt('4sI')
+    buffer.seek(0)
     if magic == b'VBSP':
-        return BSPFile.from_filename(filepath)
+        return BSPFile.from_buffer(filepath, buffer)
     elif magic == b'rBSP':
-        return RespawnBSPFile.from_filename(filepath)
+        return RespawnBSPFile.from_buffer(filepath, buffer)
+    elif magic == b'RBSP':
+        return RavenBSPFile.from_buffer(filepath, buffer)
     logger.error("Unrecognized map magic number: {}".format(magic))
     return None
 
@@ -33,15 +31,14 @@ class BSPFile:
         self.buffer = buffer
         self.version = 0
         self.is_l4d2 = False
-        self.lumps_info: List[LumpInfo] = []
-        self.lumps: Dict[str, Lump] = {}
+        self.lumps_info: list[LumpInfo] = []
+        self.lumps: dict[str, Lump] = {}
         self.revision = 0
         self.content_manager = CM
         self.steam_app_id = CM.get_content_provider_from_path(filepath).steam_id
 
     @classmethod
-    def from_filename(cls, filepath: Path):
-        buffer = FileBuffer(filepath)
+    def from_buffer(cls, filepath: Path, buffer: Buffer):
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "VBSP", "Invalid BSP header"
@@ -62,7 +59,7 @@ class BSPFile:
         if lump_name in self.lumps:
             return self.lumps[lump_name]
         else:
-            matches: List[Tuple[Type[Lump], LumpTag]] = []
+            matches: list[tuple[Type[Lump], LumpTag]] = []
             for sub in Lump.all_subclasses():
                 sub: Type[Lump]
                 for dep in sub.tags:
@@ -76,6 +73,8 @@ class BSPFile:
                         matches.append((sub, dep))
             best_matches = []
             for match_sub, match_dep in matches:
+                if match_dep.lump_id >= len(self.lumps_info):
+                    continue
                 lump = self.lumps_info[match_dep.lump_id]
                 rank = 0
                 if match_dep.bsp_version is not None and match_dep.bsp_version == self.version:
@@ -138,8 +137,7 @@ class RespawnBSPFile(BSPFile):
         super().__init__(filepath, buffer)
 
     @classmethod
-    def from_filename(cls, filepath: Path):
-        buffer = FileBuffer(filepath)
+    def from_buffer(cls, filepath: Path, buffer: Buffer):
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "rBSP", "Invalid BSP header"
@@ -151,4 +149,22 @@ class RespawnBSPFile(BSPFile):
             lump = LumpInfo.from_buffer(buffer, lump_id)
             lump.id = lump_id
             self.lumps_info[lump_id] = lump
+        return self
+
+
+class RavenBSPFile(BSPFile):
+    def __init__(self, filepath: Path, buffer: Buffer):
+        super().__init__(filepath, buffer)
+
+    @classmethod
+    def from_buffer(cls, filepath: Path, buffer: Buffer):
+        self = cls(filepath, buffer)
+        magic = buffer.read_fourcc()
+        assert magic == "RBSP", "Invalid BSP header"
+        self.version = (buffer.read_int32(), 0)
+        self.lumps_info = []
+        for lump_id in range(18):
+            lump = RavenLumpInfo.from_buffer(buffer, lump_id, False)
+            self.lumps_info.append(lump)
+        self.steam_app_id = SteamAppId.SOLDIERS_OF_FORTUNE2
         return self

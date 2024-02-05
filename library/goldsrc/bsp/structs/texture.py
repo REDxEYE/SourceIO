@@ -1,21 +1,21 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
-from .....logger import SLoggingManager
+from ....models.mdl.v10.structs.texture import MdlTextureFlag
+from .....logger import SourceLogMan
 from ....utils import Buffer
-from ...mdl_v10.structs.texture import MdlTextureFlag
 from ...wad import MipTex, WadLump, flip_texture, make_texture
 from ..bsp_file import BspFile
 
-logger = SLoggingManager().get_logger("GoldSrc::Texture")
+logger = SourceLogMan().get_logger("GoldSrc::Texture")
 
 
 @dataclass(slots=True)
 class TextureInfo:
-    s: Tuple[float, float, float, float]
-    t: Tuple[float, float, float, float]
+    s: tuple[float, float, float, float]
+    t: tuple[float, float, float, float]
     texture: int
     flags: MdlTextureFlag
 

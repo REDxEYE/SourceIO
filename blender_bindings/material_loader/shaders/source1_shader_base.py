@@ -26,7 +26,7 @@ class Source1ShaderBase(ShaderBase):
             return bpy.data.images.get(texture_name)
 
         content_manager = ContentManager()
-        texture_file = content_manager.find_texture(texture_path/texture_name)
+        texture_file = content_manager.find_texture(texture_path / texture_name)
         if texture_file is not None:
             return import_texture(texture_path / texture_name, texture_file)
         return None
@@ -54,10 +54,10 @@ class Source1ShaderBase(ShaderBase):
         if image.get('normalmap_converted', None):
             return image
 
-        buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
-        image.pixels.foreach_get(buffer)
+        buffer = np.zeros((image.size[0], image.size[1], 4), np.float32)
+        image.pixels.foreach_get(buffer.ravel())
 
-        buffer[1::4] = np.subtract(1, buffer[1::4])
+        buffer[:, :, 1] = np.subtract(1, buffer[:, :, 1])
         image.pixels.foreach_set(buffer.ravel())
         image.pack()
         del buffer

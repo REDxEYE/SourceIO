@@ -1,5 +1,8 @@
+from dataclasses import dataclass
+
 import numpy as np
 
+from ....shared.app_id import SteamAppId
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
@@ -27,4 +30,24 @@ class StringsLump(Lump):
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         data = buffer.read(-1)
         self.strings = list(map(lambda a: a.decode("latin1"), data.split(b'\x00')))
+        return self
+
+
+@dataclass(slots=True)
+class Shader:
+    name: str
+    surface_flags: int
+    content_flags: int
+
+
+@lump_tag(1, 'LUMP_SHADERS', steam_id=SteamAppId.SOLDIERS_OF_FORTUNE2, bsp_version=(1, 0))
+class ShadersLump(Lump):
+
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
+        self.shaders: list[Shader] = []
+
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+        while buffer:
+            self.shaders.append(Shader(buffer.read_ascii_string(64), buffer.read_uint32(), buffer.read_uint32()))
         return self

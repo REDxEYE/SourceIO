@@ -18,7 +18,7 @@ class SBoxAddonProvider(ContentProviderBase):
     def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None) -> Optional[Path]:
         return self._find_path_generic(filepath, additional_dir, extension)
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)
 
 
@@ -34,5 +34,5 @@ class SBoxDownloadsProvider(ContentProviderBase):
     def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None) -> Optional[Path]:
         return self._find_path_generic(filepath, additional_dir, extension)
 
-    def glob(self, pattern: str) -> Iterator[Tuple[Path, Buffer]]:
+    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         yield from self._glob_generic(pattern)

@@ -1,11 +1,11 @@
 from io import BufferedIOBase, BytesIO, StringIO, TextIOBase
 from pathlib import Path
-from typing import IO, List, Union
+from typing import IO, Union
 
-from ...logger import SLoggingManager
+from ...logger import SourceLogMan
 from ..utils.s1_keyvalues import KVParser
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('GameInfoParser')
 
 
@@ -35,7 +35,7 @@ class GameInfoParser:
                 return value
 
             @property
-            def all_paths(self) -> List[str]:
+            def all_paths(self) -> list[str]:
                 paths = []
                 for value in self._raw_data.values():
                     if isinstance(value, str):
@@ -83,7 +83,7 @@ class GameInfoParser:
             self._raw_data = {}
 
     @property
-    def all_paths(self) -> List[Path]:
+    def all_paths(self) -> list[Path]:
         paths = []
         for path in self.file_system.search_paths.all_paths:
             try:

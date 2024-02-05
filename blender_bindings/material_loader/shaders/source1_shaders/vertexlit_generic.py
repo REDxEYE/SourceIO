@@ -191,6 +191,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return self.ensure_length(color_value, 4, 1.0)
 
     def create_nodes(self, material):
+        print(f"BVLG: {self.use_bvlg_status}")
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 

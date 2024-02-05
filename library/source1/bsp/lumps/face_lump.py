@@ -1,9 +1,9 @@
-from typing import List
+
 
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
-from ..datatypes.face import Face, VFace1, VFace2
+from ..datatypes.face import Face, VFace1, VFace2, RavenFace
 from . import SteamAppId
 
 
@@ -11,7 +11,7 @@ from . import SteamAppId
 class FaceLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -23,7 +23,7 @@ class FaceLump(Lump):
 class OriginalFaceLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -35,7 +35,7 @@ class OriginalFaceLump(Lump):
 class VFaceLump1(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -47,7 +47,7 @@ class VFaceLump1(Lump):
 class VFaceLump2(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -59,7 +59,7 @@ class VFaceLump2(Lump):
 class VOriginalFaceLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -71,9 +71,21 @@ class VOriginalFaceLump(Lump):
 class VOriginalFaceLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
             self.faces.append(VFace2.from_buffer(buffer, self.version, bsp))
+        return self
+
+
+@lump_tag(13, 'LUMP_FACES', steam_id=SteamAppId.SOLDIERS_OF_FORTUNE2, bsp_version=(1, 0))
+class RavenFaceLump(Lump):
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
+        self.faces: list[RavenFace] = []
+
+    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+        while buffer:
+            self.faces.append(RavenFace.from_buffer(buffer, self.version, bsp))
         return self

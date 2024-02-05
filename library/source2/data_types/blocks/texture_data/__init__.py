@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from .....utils import Buffer, MemoryBuffer
 from ....resource_types.resource import CompiledResource
@@ -11,7 +11,7 @@ from ...blocks.texture_data.enums import VTexExtraData, VTexFlags, VTexFormat
 class TextureInfo:
     version: int
     flags: VTexFlags
-    reflectivity: Tuple[float, float, float, float]
+    reflectivity: tuple[float, float, float, float]
     width: int
     height: int
     depth: int
@@ -37,7 +37,7 @@ class CompressedMip:
     compressed: bool
     unk: int
     mip_count: int
-    mip_sizes: List[int]
+    mip_sizes: list[int]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'CompressedMip':
@@ -49,7 +49,7 @@ class TextureData(BaseBlock):
     def __init__(self, buffer: Buffer, resource: 'CompiledResource'):
         super().__init__(buffer, resource)
         self.texture_info = TextureInfo(0, VTexFlags(0), (1, 1, 1, 1), 0, 0, 0, VTexFormat.RGBA8888, 0, 0)
-        self.extra_data: Dict[VTexExtraData:Any] = {}
+        self.extra_data: dict[VTexExtraData:Any] = {}
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, resource: 'CompiledResource') -> 'BaseBlock':

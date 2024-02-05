@@ -27,7 +27,7 @@ import io
 import struct
 import uuid
 from struct import calcsize, pack, unpack
-from typing import List, Set, Union
+from typing import Set, Union
 
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")

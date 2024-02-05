@@ -1,4 +1,4 @@
-from typing import List
+
 
 from ....utils import Buffer
 from .. import Lump, LumpInfo, lump_tag
@@ -12,7 +12,7 @@ class NodeLump(Lump):
 
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.nodes: List[Node] = []
+        self.nodes: list[Node] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -26,7 +26,7 @@ class VNodeLump(Lump):
 
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.nodes: List[VNode] = []
+        self.nodes: list[VNode] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:

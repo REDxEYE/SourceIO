@@ -4,9 +4,9 @@ import bpy
 import numpy as np
 
 from ...utils.texture_utils import create_and_cache_texture
-from ....logger import SLoggingManager
+from ....logger import SourceLogMan
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::VTF')
 
 from ....library.source1.vtf import load_texture
@@ -19,8 +19,6 @@ def import_texture(texture_path: Path, file_object, update=False):
     rgba_data, image_height, image_width = load_texture(file_object)
 
     return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
-
-    # return texture_from_data(texture_path.name, rgba_data, image_width, image_height, update)
 
 
 def load_skybox_texture(skyname, width=1024):

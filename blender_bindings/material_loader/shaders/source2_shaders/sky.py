@@ -7,13 +7,14 @@ from .....library.shared.content_providers.content_manager import \
     ContentManager
 from .....library.source2 import CompiledTextureResource
 from .....library.source2.data_types.blocks.texture_data import VTexFormat
+from .....library.utils.path_utilities import path_stem
 from .....library.utils.thirdparty.equilib.cube2equi_numpy import \
     run as convert_to_eq
-from .....logger import SLoggingManager
+from .....logger import SourceLogMan
 from ...shader_base import Nodes
 from ..source2_shader_base import Source2ShaderBase
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 
 class Skybox(Source2ShaderBase):
@@ -47,7 +48,7 @@ class Skybox(Source2ShaderBase):
             pixel_data = convert_to_eq(faces, "dict", 2048, 1024, 'default', 'bilinear').T
             pixel_data = np.rot90(pixel_data, 1)
             # pixel_data = np.flipud(pixel_data)
-            name = Path(texture_path).stem
+            name = path_stem(texture_path)
             image = bpy.data.images.new(
                 name + '.tga',
                 width=2048,

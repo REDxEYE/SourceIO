@@ -1,9 +1,9 @@
 import bpy
 
-from .....logger import SLoggingManager
+from .....logger import SourceLogMan
 from ..source1_shader_base import Source1ShaderBase
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
 
 

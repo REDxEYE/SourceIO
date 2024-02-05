@@ -29,7 +29,7 @@ class TitanfallEntityHandler(BaseEntityHandler):
     def _load_brush_model(self, model_id, model_name):
         objs = []
         model: RespawnModel = self._bsp.get_lump("LUMP_MODELS").models[model_id]
-        tex_data: List[TextureData] = self._bsp.get_lump("LUMP_TEXDATA").texture_data
+        tex_data: list[TextureData] = self._bsp.get_lump("LUMP_TEXDATA").texture_data
         indices: np.ndarray = self._bsp.get_lump("LUMP_INDICES").indices
         bsp_vertices: np.ndarray = self._bsp.get_lump('LUMP_VERTICES').vertices
 

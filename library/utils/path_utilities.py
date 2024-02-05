@@ -73,26 +73,6 @@ def corrected_path(path: Path):
     return path
 
 
-def resolve_root_directory_from_file(path):
-    if type(path) is not Path:
-        path = Path(path)
-    if len(path.parts) < 2 or path == path.parent:
-        return None
-    if path.parts[-1] == 'models':
-        return path.parent
-    else:
-        try:
-            return resolve_root_directory_from_file(path.parent)
-        except RecursionError:
-            return None
-
-
-def get_materials_path(path):
-    path = Path(path)
-    root_path = resolve_root_directory_from_file(path)
-    return root_path / 'materials'
-
-
 def get_mod_path(path: Path) -> Path:
     _path = path
     while len(path.parts) > 1:
@@ -109,3 +89,7 @@ def get_mod_path(path: Path) -> Path:
             return _path
         path = path.parent
     return _path
+
+
+def path_stem(path: str):
+    return os.path.basename(path).rsplit(".", 1)[0]

@@ -2,28 +2,24 @@ import traceback
 from hashlib import md5
 from itertools import chain
 from pathlib import Path
-from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
-                       FloatProperty, StringProperty)
+from bpy.props import (BoolProperty, StringProperty)
 from bpy.types import (Panel,
                        Operator,
-                       AddonPreferences,
                        PropertyGroup)
 from idprop.types import *
 import bpy
 
-from ..source1.mdl.v44.import_mdl import import_static_animations
+from .import_settings_base import ModelOptions
+from ..models import import_model
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
-from ...library.utils.path_utilities import find_vtx_cm
-from ..source1.mdl import FileImport
-from ..source1.mdl import put_into_collections as s1_put_into_collections
-from ..source1.mdl.model_loader import import_model_from_files
-from ..source1.mdl.v49.import_mdl import import_materials
+from ..models.common import put_into_collections as s1_put_into_collections
 from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection
+from ...library.utils.path_utilities import path_stem
 
 
 def get_parent(collection):
@@ -61,12 +57,11 @@ class SourceIO_OT_LoadEntity(Operator):
     bl_label = "Load Entity"
     bl_options = {'UNDO'}
 
-    use_bvlg: BoolProperty(default=True)
+    # use_bvlg: BoolProperty(default=True)
 
     def execute(self, context):
         content_manager = ContentManager()
         deserialize_mounted_content(content_manager)
-        unique_material_names = True
         use_collections = context.scene.use_instances
         replace_entity = context.scene.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
@@ -90,11 +85,12 @@ class SourceIO_OT_LoadEntity(Operator):
                 prop_path = custom_prop_data.get('prop_path', None)
                 if prop_path is None or custom_prop_data.get("imported", False):
                     continue
-                model_type = Path(prop_path).suffix
+                prop_path = Path(prop_path)
+                model_type = prop_path.suffix
                 parent = get_parent(obj.users_collection[0])
                 if model_type == '.vmdl_c':
 
-                    instance_collection = get_collection(Path(prop_path))
+                    instance_collection = get_collection(prop_path)
                     if instance_collection and use_collections:
                         collection = bpy.data.collections.get(instance_collection, None)
                         if collection is not None:
@@ -107,21 +103,21 @@ class SourceIO_OT_LoadEntity(Operator):
                     vmld_file = content_manager.find_file(prop_path)
                     if vmld_file:
                         # skin = custom_prop_data.get('skin', None)
-                        model_resource = CompiledModelResource.from_buffer(vmld_file, Path(prop_path))
+                        model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
                         container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1)
                         if replace_entity:
                             s2_put_into_collections(container, model_resource.name, parent)
                         else:
-                            prop_collection = get_or_create_collection(Path(prop_path).stem,master_instance_collection)
+                            prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
                             s2_put_into_collections(container, model_resource.name, prop_collection)
                         obj["entity_data"]["prop_path"] = None
                         obj["entity_data"]["imported"] = True
 
                         if use_collections:
-                            add_collection(Path(prop_path), container.collection)
+                            add_collection(prop_path, container.master_collection)
 
                             obj.instance_type = 'COLLECTION'
-                            obj.instance_collection = container.collection
+                            obj.instance_collection = container.master_collection
                             continue
                         if replace_entity:
                             if container.armature:
@@ -144,13 +140,13 @@ class SourceIO_OT_LoadEntity(Operator):
                             else:
                                 for o in container.objects:
                                     o.parent = obj
-                                for o in container.physics_objects:
+                                for o in container.physics:
                                     o.parent = obj
                     else:
                         self.report({'INFO'}, f"Model '{prop_path}' not found!")
-                elif model_type == '.mdl':
+                elif model_type in ('.mdl', ".md3"):
                     default_anim = custom_prop_data["entity"].get("defaultanim", None)
-                    prop_path = Path(prop_path)
+                    prop_path = prop_path
 
                     instance_collection = get_collection(prop_path, default_anim)
                     if instance_collection and use_collections:
@@ -163,44 +159,42 @@ class SourceIO_OT_LoadEntity(Operator):
                             continue
 
                     mdl_file = content_manager.find_file(prop_path)
-                    vvd_file = content_manager.find_file(prop_path.with_suffix('.vvd'))
-                    vvc_file = content_manager.find_file(prop_path.with_suffix('.vvc'))
-                    phy_file = content_manager.find_file(prop_path.with_suffix('.phy'))
-                    vtx_file = find_vtx_cm(prop_path, content_manager)
-                    if mdl_file is None or vvd_file is None or vtx_file is None:
-                        self.report({"WARNING"}, f"Failed to find mdl/vvd/vtx file for {obj.name}({prop_path}) prop")
-                        continue
-                    file_list = FileImport(mdl_file, vvd_file, vtx_file,
-                                           vvc_file if vvc_file else None,
-                                           phy_file if phy_file else None)
-                    if not file_list.is_valid():
+                    if not mdl_file:
                         self.report({"WARNING"},
-                                    f"Mdl file for {obj.name}({prop_path}) prop is invalid. Too small file or missing file")
+                                    f"Failed to find MDL file for prop {prop_path}")
                         continue
-                    model_container = import_model_from_files(prop_path, file_list, 1.0, False, True,
-                                                              unique_material_names=unique_material_names)
+                    cp = content_manager.get_content_provider_from_asset_path(prop_path)
+                    options = ModelOptions()
+                    options.import_textures = True
+                    options.import_physics = False
+                    options.create_flex_drivers = False
+                    options.scale = 1.0
+                    print(f"BVLG op: {context.scene.use_bvlg}")
+                    options.use_bvlg = context.scene.use_bvlg
+                    options.bodygroup_grouping = False
+                    model_container = import_model(prop_path, mdl_file,
+                                                   content_manager, options, ((cp.steam_id or None) if cp else None))
                     if model_container is None:
+                        self.report({"WARNING"},
+                                    f"Failed to load MDL file for prop {prop_path}")
                         continue
-                    import_materials(model_container.mdl, unique_material_names=unique_material_names,
-                                     use_bvlg=context.scene.use_bvlg)
-
                     s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
 
-                    if default_anim is not None and model_container.armature is not None:
-                        try:
-                            import_static_animations(content_manager, model_container.mdl, default_anim,
-                                                     model_container.armature, 1.0)
-                        except RuntimeError:
-                            self.report({"WARNING"}, "Failed to load animation")
-                            traceback.print_exc()
+                    # if default_anim is not None and model_container.armature is not None:
+                    #     try:
+                    #         import_static_animations(content_manager, model_container.mdl, default_anim,
+                    #                                  model_container.armature, 1.0)
+                    #     except RuntimeError:
+                    #         self.report({"WARNING"}, "Failed to load animation")
+                    #         traceback.print_exc()
 
                     obj["entity_data"]["prop_path"] = None
                     obj["entity_data"]["imported"] = True
                     if use_collections:
-                        add_collection(prop_path, model_container.collection, default_anim)
+                        add_collection(prop_path, model_container.master_collection, default_anim)
 
                         obj.instance_type = 'COLLECTION'
-                        obj.instance_collection = model_container.collection
+                        obj.instance_collection = model_container.master_collection
                         continue
 
                     if replace_entity:
@@ -335,8 +329,8 @@ class SOURCEIO_OT_ChangeSkin(Operator):
         skin_material = obj['skin_groups'][self.skin_name]
         current_material = obj['skin_groups'][obj['active_skin']]
 
-        mat_name = Path(skin_material).stem
-        current_mat_name = Path(current_material).stem
+        mat_name = path_stem(skin_material)
+        current_mat_name = path_stem(current_material)
         swap_materials(obj, mat_name, current_mat_name)
 
 

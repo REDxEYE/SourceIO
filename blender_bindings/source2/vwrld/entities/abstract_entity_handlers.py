@@ -1,7 +1,6 @@
 import math
 import re
 from pathlib import Path
-from typing import Dict, List, Union, Tuple
 
 import bpy
 from mathutils import Euler
@@ -11,13 +10,13 @@ from .....library.shared.content_providers.content_manager import \
 from .....library.source2 import (CompiledMaterialResource,
                                   CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
-from .....logger import SLoggingManager
+from .....logger import SourceLogMan
 from ....utils.bpy_utils import get_or_create_collection
 from ...vtex_loader import import_texture
 from .base_entity_classes import *
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 
 def parse_int_vector(string):
@@ -64,7 +63,7 @@ class Base:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, entities: List[Dict], parent_collection, cm: ContentManager,
+    def __init__(self, entities: list[dict], parent_collection, cm: ContentManager,
                  scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self.scale = scale

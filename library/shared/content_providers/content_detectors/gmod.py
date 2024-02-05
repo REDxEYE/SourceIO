@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+
 
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ..content_provider_base import ContentProviderBase
@@ -11,7 +11,7 @@ from .source1_common import Source1Common
 
 class GModDetector(Source1Common):
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         gmod_root = None
         gmod_dir = backwalk_file_resolver(path, 'garrysmod')
         if gmod_dir is not None:
@@ -34,5 +34,5 @@ class GModDetector(Source1Common):
         return content_providers
 
     @classmethod
-    def register_common(cls, root_path: Path, content_providers: Dict[str, ContentProviderBase]):
+    def register_common(cls, root_path: Path, content_providers: dict[str, ContentProviderBase]):
         super().register_common(root_path, content_providers)

@@ -1,5 +1,5 @@
 import math
-from typing import List
+
 
 import numpy as np
 
@@ -82,7 +82,7 @@ class _Decoder:
 def parse_anim_data(anim_block: dict, agroup_block: dict):
     print("Parsing animation data")
     anim_array = anim_block['m_animArray']
-    animations: List[Animation] = []
+    animations: list[Animation] = []
     if len(anim_array) == 0:
         return []
 
@@ -171,7 +171,7 @@ class Animation:
     def __init__(self, name, fps):
         self.name = name
         self.fps = fps
-        self.frames = []  # type:List[Frame]
+        self.frames = []  # type:list[Frame]
 
     def add_frame(self, frame: Frame):
         self.frames.append(frame)

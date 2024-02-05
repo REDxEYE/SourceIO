@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Union
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.fgd_parser.fgd_classes import FGDEntity
@@ -169,7 +169,7 @@ class FGDLexer:
 
 
 class FGDParser:
-    def __init__(self, path: Union[Path, str] = None, buffer_and_name: Tuple[str, str] = None):
+    def __init__(self, path: Union[Path, str] = None, buffer_and_name: tuple[str, str] = None):
         if path is not None:
             self._path = Path(path)
             with self._path.open() as f:
@@ -180,7 +180,7 @@ class FGDParser:
         self._tokens = self._lexer.lex()
         self._last_peek = None
 
-        self.classes: List[FGDEntity] = []
+        self.classes: list[FGDEntity] = []
         self.excludes = []
         self.pragmas = {}
         self.includes = []

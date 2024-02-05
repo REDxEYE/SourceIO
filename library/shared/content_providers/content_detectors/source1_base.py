@@ -1,23 +1,23 @@
 import traceback
 from abc import ABCMeta
 from pathlib import Path
-from typing import Dict
 
-from .....logger import SLoggingManager
-from ...vpk.vpk_file import InvalidMagic
+
+from .....logger import SourceLogMan
+from SourceIO.library.archives.vpk import InvalidMagic
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 from ..non_source_sub_manager import NonSourceContentProvider
 from ..source1_content_provider import GameinfoContentProvider
 from ..vpk_provider import VPKContentProvider
 
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1DetectorBase')
 
 
 class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
 
     @classmethod
-    def scan_for_vpk(cls, root_dir: Path, content_providers: Dict[str, ContentProviderBase]):
+    def scan_for_vpk(cls, root_dir: Path, content_providers: dict[str, ContentProviderBase]):
         for vpk in root_dir.glob('*_dir.vpk'):
             try:
                 content_providers[f'{root_dir.stem}_{vpk.stem}'] = VPKContentProvider(vpk)
@@ -27,7 +27,7 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
                 print(f'Skipping {vpk}.')
 
     @classmethod
-    def recursive_traversal(cls, game_root: Path, name: str, content_providers: Dict[str, ContentProviderBase]):
+    def recursive_traversal(cls, game_root: Path, name: str, content_providers: dict[str, ContentProviderBase]):
         if name in content_providers or not (game_root / name / 'gameinfo.txt').exists():
             return
         try:
@@ -43,9 +43,9 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
                     if "_dir" not in game.stem:
                         game = game.with_name(game.stem + '_dir.vpk')
                     if game.is_absolute() and game.exists():
-                        content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
+                        content_providers[game.stem] = VPKContentProvider(game_root / game)
                     elif (game_root / game).exists():
-                        content_providers[Path(game).stem] = VPKContentProvider(game_root / Path(game))
+                        content_providers[game.stem] = VPKContentProvider(game_root / game)
                 else:
                     cls.recursive_traversal(game_root, game.stem, content_providers)
         except ValueError as ex:

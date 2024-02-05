@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from typing import Tuple
-
 from ....shared.types import Vector3
 from ....utils import Buffer
 
@@ -10,7 +8,7 @@ class Model:
     mins: Vector3[float]
     maxs: Vector3[float]
     origin: Vector3[float]
-    head_nodes: Tuple[int, int, int, int]
+    head_nodes: tuple[int, int, int, int]
     vis_leafs: int
     first_face: int
     faces: int

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+
 
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ...app_id import SteamAppId
@@ -11,7 +11,7 @@ from .source1_common import Source1Common
 
 class TitanfallDetector(Source1Common):
     @classmethod
-    def scan(cls, path: Path) -> Dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
         game_root = None
         game_exe = backwalk_file_resolver(path, 'Titanfall.exe')
         if game_exe is not None:

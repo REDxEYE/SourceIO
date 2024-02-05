@@ -2,7 +2,6 @@ import math
 import re
 import traceback
 from pathlib import Path
-from typing import List, Tuple
 
 import bpy
 import numpy as np
@@ -11,20 +10,21 @@ from mathutils import Vector
 from .....library.shared.content_providers.content_manager import \
     ContentManager
 from .....library.utils.math_utilities import ensure_length, lerp_vec
-from .....logger import SLoggingManager
+from .....library.utils.path_utilities import path_stem
+from .....logger import SourceLogMan
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.bpy_utils import add_material, find_or_create_material
+from ....utils.bpy_utils import add_material, get_or_create_material
 from ...vtf import SkyboxException, load_skybox_texture
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
-log_manager = SLoggingManager()
+log_manager = SourceLogMan()
 
 
-def srgb_to_linear(srgb: Tuple[float]) -> Tuple[List[float], float]:
+def srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
     final_color = []
     if len(srgb) == 4:
         scale = srgb[3] / 255
@@ -685,7 +685,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         material_name = start_entity.RopeMaterial
         stripped_material_name = strip_patch_coordinates.sub("", material_name)
 
-        mat = find_or_create_material(Path(stripped_material_name).name, stripped_material_name)
+        mat = get_or_create_material(Path(stripped_material_name).name, stripped_material_name)
         add_material(mat, curve_object)
         content_manager = ContentManager()
         material_file = content_manager.find_material(material_name)
@@ -745,7 +745,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
             loader = Source1MaterialLoader(material_file, material_name)
-            mat = find_or_create_material(Path(material_name).stem, material_name)
+            mat = get_or_create_material(path_stem(material_name), material_name)
             loader.create_material(mat)
 
             tex_name = loader.vmt.get('$basetexture', None)
@@ -774,7 +774,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
         uv_data = mesh_data.uv_layers.new().data
-        material = find_or_create_material(Path(material_name).stem, material_name)
+        material = get_or_create_material(path_stem(material_name), material_name)
         add_material(material, obj)
 
         self._set_location_and_scale(obj, entity.origin)

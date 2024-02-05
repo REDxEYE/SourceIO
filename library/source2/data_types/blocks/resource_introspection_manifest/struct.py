@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Dict
+
 
 from .....utils import Buffer
 
@@ -69,7 +69,7 @@ class Struct:
     alignment: int
     parent_struct_id: int
     flags: int
-    members: Dict[str, StructMember] = field(default_factory=dict)
+    members: dict[str, StructMember] = field(default_factory=dict)
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

@@ -7,11 +7,11 @@ from ...utils.texture_utils import check_texture_cache
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2.resource_types import (CompiledMaterialResource,
                                                 CompiledTextureResource)
-from ....logger import SLoggingManager
+from ....logger import SourceLogMan
 from ...source2.vtex_loader import import_texture
 from ..shader_base import ShaderBase, Nodes
 
-logger = SLoggingManager().get_logger("Source2::Shader")
+logger = SourceLogMan().get_logger("Source2::Shader")
 
 
 class Source2ShaderBase(ShaderBase):

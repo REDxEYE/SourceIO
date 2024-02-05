@@ -29,9 +29,8 @@ import struct
 import uuid
 from bisect import bisect_left
 from functools import lru_cache
-from pprint import pprint
 from struct import calcsize, unpack
-from typing import List, Union
+from typing import Union
 
 
 # noinspection PyProtectedMember
@@ -747,7 +746,7 @@ class DataModel:
 
         self._string_dict = None
 
-        self.__elements = []  # type: List[Element]
+        self.__elements = []  # type: list[Element]
         self.__prefix_attributes = Element(self, "")
         self.root = None
         self.allow_random_ids = True
@@ -776,7 +775,7 @@ class DataModel:
             self.root = elem
         return elem
 
-    def find_elements(self, name=None, uid=None, elemtype=None) -> List[Element]:
+    def find_elements(self, name=None, uid=None, elemtype=None) -> list[Element]:
         out = []
         if isinstance(uid, str):
             uid = uuid.UUID(uid)
