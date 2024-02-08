@@ -1,3 +1,4 @@
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -91,6 +92,10 @@ class UnlitGeneric(Source1ShaderBase):
                     basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
 
                     self.connect_nodes(texture_output, basetexture_invert_node.inputs['Color'])
-                    self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
+                    if is_blender_4():
+                        self.connect_nodes(basetexture_invert_node.outputs['Color'],
+                                           shader.inputs['Transmission Weight'])
+                    else:
+                        self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
                     self.connect_nodes(basetexture_invert_node.outputs['Color'],
                                        basetexture_additive_mix_node.inputs['Fac'])

@@ -17,9 +17,9 @@ class VPKContentProvider(ContentProviderBase):
 
     def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         files = []
-        for file_name in self.vpk_archive.entries.values():
-            if fnmatch.fnmatch(file_name, pattern):
-                files.append((file_name, self.vpk_archive.get_file_str(file_name)))
+        for entry in self.vpk_archive.entries.values():
+            if fnmatch.fnmatch(entry.file_name, pattern):
+                files.append((Path(entry.file_name), self.vpk_archive.get_file_str(entry.file_name)))
         return files
 
     def find_file(self, filepath: Path) -> Optional[Buffer]:

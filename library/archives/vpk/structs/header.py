@@ -29,7 +29,7 @@ class Header:
         signature_section_size = None
 
         if version[0] == 1:
-            ...
+            pass
         elif version[0] == 2 and version[1] == 0:
             file_data_section_size = reader.read_uint32()
             archive_md5_section_size = reader.read_uint32()

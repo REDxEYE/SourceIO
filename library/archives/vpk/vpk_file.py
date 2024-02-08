@@ -18,7 +18,7 @@ def open_vpk(filepath: Union[str, Path]):
         raise InvalidMagic(f'Not a VPK file, expected magic: {VPK_MAGIC}, got {magic}')
     if version_mj in [1, 2] and version_mn == 0:
         return VPKFile(filepath)
-    elif version_mj == 2 and version_mn == 3 :
+    elif version_mj == 2 and version_mn == 3:
         return TitanfallVPKFile(filepath)
     else:
         raise NotImplementedError(f"Failed to find VPK handler for VPK:{version_mj}.{version_mn}.")
@@ -135,10 +135,8 @@ class TitanfallVPKFile(VPKFile):
 
     def read(self):
         buffer = self.buffer
-        self.header.read(buffer)
-        # entry = buffer.tell()
+        self.header = Header.from_buffer(buffer)
         self.read_entries()
-        # self.buffer.seek(entry + self.header.tree_size)
 
     def read_entries(self):
         buffer = self.buffer

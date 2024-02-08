@@ -49,12 +49,12 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         vwrld_icon = custom_icons["main"]["vwrld_icon"]
         layout = self.layout
 
-        layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
-                        icon_value=bsp_icon.icon_id)
+        layout.operator(SOURCEIO_OT_MDLImport.bl_idname, text="GoldSrc/Source model (.mdl)",
+                        icon_value=crowbar_icon.icon_id)
         layout.separator()
 
-        layout.operator(SOURCEIO_OT_MDLImport.bl_idname, text="Source model (.mdl)",
-                        icon_value=crowbar_icon.icon_id)
+        layout.operator(SOURCEIO_OT_GBSPImport.bl_idname, text="GoldSrc map (.bsp)",
+                        icon_value=bsp_icon.icon_id)
         layout.operator(SOURCEIO_OT_BSPImport.bl_idname, text="Source map (.bsp)",
                         icon_value=bsp_icon.icon_id)
         layout.operator(SOURCEIO_OT_VTFImport.bl_idname, text="Source texture (.vtf)",
