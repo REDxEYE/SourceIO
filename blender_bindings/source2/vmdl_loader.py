@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from struct import pack, unpack
 from itertools import chain
 from pathlib import Path
@@ -73,7 +74,7 @@ def load_model(resource: CompiledModelResource, scale: float = SOURCE2_HAMMER_UN
         if physics_block is not None:
             objects = load_physics(physics_block, scale)
             physics_objects = objects
-    container = ModelContainer([], {}, physics_objects, [], armature, None)
+    container = ModelContainer([], defaultdict(list), physics_objects, [], armature, None)
     objects = create_meshes(resource, ContentManager(), container, scale, lod_mask, import_attachments)
     container.objects = objects
     if armature:
