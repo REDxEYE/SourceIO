@@ -191,7 +191,8 @@ class BaseEntityHandler(AbstractEntityHandler):
         if sky_mat is not None:
             vmat = CompiledMaterialResource.from_buffer(sky_mat, Path(entity.skyname))
             # load_material(vmat, Path(entity.skyname))
-            Skybox(vmat).create_nodes(entity.skyname)
+            world_material = bpy.data.worlds.get(entity.skyname, False) or bpy.data.worlds.new(entity.skyname)
+            Skybox(vmat).create_nodes(world_material)
 
     def handle_point_clientui_world_panel(self, entity: point_clientui_world_panel, entity_raw: dict):
         pass
