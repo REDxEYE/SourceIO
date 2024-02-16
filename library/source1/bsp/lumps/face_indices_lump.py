@@ -12,5 +12,5 @@ class IndicesLump(Lump):
         self.indices = np.array([], np.uint16)
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
-        self.indices = np.frombuffer(buffer.read(), np.uint16)
+        self.indices = np.frombuffer(buffer.read(), np.uint16 if self.version==0 else np.uint32)
         return self

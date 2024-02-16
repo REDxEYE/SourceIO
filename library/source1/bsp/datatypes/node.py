@@ -24,9 +24,14 @@ class Node:
     def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
         plane_index = buffer.read_int32()
         childes_id = buffer.read_fmt('2i')
-        b_min = buffer.read_fmt('3h')
-        b_max = buffer.read_fmt('3h')
-        first_face, face_count, area = buffer.read_fmt('3hxx')
+        if version == 1:
+            b_min = buffer.read_fmt('3f')
+            b_max = buffer.read_fmt('3f')
+            first_face, face_count, area = buffer.read_fmt('2Ih')
+        else:
+            b_min = buffer.read_fmt('3h')
+            b_max = buffer.read_fmt('3h')
+            first_face, face_count, area = buffer.read_fmt('3hxx')
 
         return cls(plane_index, childes_id, b_min, b_max, first_face, face_count, area)
 

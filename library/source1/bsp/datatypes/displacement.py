@@ -33,15 +33,26 @@ class DispInfo:
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
         start_position = buffer.read_fmt('3f')
-        (disp_vert_start,
-         disp_tri_start,
-         power,
-         min_tess,
-         smoothing_angle,
-         contents,
-         map_face,
-         lightmap_alpha_start,
-         lightmap_sample_position_start,) = buffer.read_fmt('4IfIH2I')
+        if version == 1:
+            (disp_vert_start,
+             disp_tri_start,
+             power,
+             min_tess,
+             smoothing_angle,
+             contents,
+             map_face,
+             lightmap_alpha_start,
+             lightmap_sample_position_start,) = buffer.read_fmt('4IfiI2I')
+        else:
+            (disp_vert_start,
+             disp_tri_start,
+             power,
+             min_tess,
+             smoothing_angle,
+             contents,
+             map_face,
+             lightmap_alpha_start,
+             lightmap_sample_position_start,) = buffer.read_fmt('4IfIH2I')
         buffer.skip(90)
         allowed_verts = [buffer.read_int32() for _ in range(10)]
         return cls(start_position, disp_vert_start, disp_tri_start, power, min_tess, smoothing_angle, contents,

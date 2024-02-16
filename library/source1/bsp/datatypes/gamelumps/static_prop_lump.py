@@ -57,6 +57,7 @@ class StaticProp:
         self.disable_x360 = 0
         self.flags_ex = 0
         self.uniform_scale = 0.0
+        self.uniform_scale_yz = 0.0, 0.0
 
         self.unk_vector = []
 
@@ -166,6 +167,9 @@ class StaticProp:
         if version == 12:
             self._parse_v12(reader)
             return
+        if version == 13:
+            self._parse_v13_strata(reader)
+            return
 
         logger.error(f'Cannot find handler for static prop of version {version} (size: {size}, app_id: {app_id})')
         reader.skip(size)
@@ -235,6 +239,10 @@ class StaticProp:
         self.skin = reader.read_int32()
         reader.skip(12 * 4)
 
+    def _parse_v13_strata(self, reader: Buffer):
+        self._parse_v11_csgo(reader)
+        self.uniform_scale_yz = reader.read_fmt("2f")
+
 
 class StaticPropLump:
     def __init__(self, glump_info):
@@ -248,8 +256,12 @@ class StaticPropLump:
         content_manager = ContentManager()
         for _ in range(reader.read_int32()):
             self.model_names.append(reader.read_ascii_string(128))
-        for _ in range(reader.read_int32()):
-            self.leafs.append(reader.read_uint16())
+        if self._glump_info.version<13:
+            for _ in range(reader.read_int32()):
+                self.leafs.append(reader.read_uint16())
+        else:
+            for _ in range(reader.read_int32()):
+                self.leafs.append(reader.read_uint32())
         if self._glump_info.version == 12:
             unk1 = reader.read_int32()
             unk2 = reader.read_int32()

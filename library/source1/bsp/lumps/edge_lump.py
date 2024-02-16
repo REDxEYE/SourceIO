@@ -14,7 +14,7 @@ class EdgeLump(Lump):
         self.edges = np.array([])
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
-        self.edges = np.frombuffer(buffer.read(), np.uint16)
+        self.edges = np.frombuffer(buffer.read(), np.uint16 if self.version == 0 else np.uint32)
         self.edges = self.edges.reshape((-1, 2))
         return self
 
