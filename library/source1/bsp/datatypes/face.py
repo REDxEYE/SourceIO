@@ -33,14 +33,7 @@ class Face:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
-        if version == 0:
-            (plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id, surface_fog_volume_id,
-             *styles,
-             light_offset, area) = buffer.read_fmt("H2BI4h4bif")
-            lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
-            lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
-            orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("i2Hi")
-        else:
+        if version == 2:
             plane_index = buffer.read_uint32()
             side, on_node = buffer.read_fmt("2H")
             first_edge = buffer.read_uint32()
@@ -55,6 +48,13 @@ class Face:
             lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
             orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("i3I")
             prim_count = (prim_count >> 1) & 0x7FFFFFFF
+        else:
+            (plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id, surface_fog_volume_id,
+             *styles,
+             light_offset, area) = buffer.read_fmt("H2BI4h4bif")
+            lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
+            lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
+            orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("i2Hi")
         return cls(plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id,
                    surface_fog_volume_id, styles, light_offset, area,
                    lightmap_texture_mins_in_luxels, lightmap_texture_size_in_luxels,

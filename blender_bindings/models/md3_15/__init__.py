@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -86,4 +87,4 @@ def import_md3_15(model_path: Path, buffer: Buffer,
         empty.matrix_local = mat
         attachments.append(empty)
 
-    return ModelContainer(objects, {}, [], attachments)
+    return ModelContainer(objects, defaultdict(list), [], attachments)

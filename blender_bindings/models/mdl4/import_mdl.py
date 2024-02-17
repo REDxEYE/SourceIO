@@ -1,4 +1,4 @@
-from pathlib import Path
+from collections import defaultdict
 from typing import BinaryIO
 
 import bpy
@@ -143,7 +143,7 @@ def import_model(name: str, mdl_buffer: Buffer, options: ModelOptions):
             for vertex in vertex_bone_vertices:
                 model_mesh.vertices[vertex].co = vertex_group_transform @ model_mesh.vertices[vertex].co
 
-    return ModelContainer(objects, {}, [], [], armature, None)
+    return ModelContainer(objects, defaultdict(list), [], [], armature, None)
 
 
 def load_material(model_name, texture_id, model_texture_info: StudioTexture, model_object):
