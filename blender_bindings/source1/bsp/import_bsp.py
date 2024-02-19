@@ -177,8 +177,11 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
 
             if material_file:
                 material_name = strip_patch_coordinates.sub("", material_name)
-                loader = Source1MaterialLoader(material_file, material_name)
-                loader.create_material(mat)
+                try:
+                    loader = Source1MaterialLoader(material_file, material_name)
+                    loader.create_material(mat)
+                except Exception as e:
+                    logger.exception("Failed to load material due to exception:", e)
             else:
                 logger.error(f'Failed to find {material_name} material')
 
