@@ -161,7 +161,7 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
     def import_source1_materials():
         pak_lump: Optional[PakLump] = bsp.get_lump('LUMP_PAK')
         if pak_lump:
-            content_manager.content_providers[bsp.filepath.stem] = pak_lump
+            content_manager.content_providers[bsp.filepath.as_posix()] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = strings_lump.strings[texture_data.name_id] or "NO_NAME"
             tmp = strip_patch_coordinates.sub("", material_name)[-63:]
