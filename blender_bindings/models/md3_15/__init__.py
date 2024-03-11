@@ -7,7 +7,7 @@ import numpy as np
 from mathutils import Vector, Matrix
 
 from SourceIO.blender_bindings.material_loader.shaders.idtech3.idtech3 import IdTech3Shader
-from SourceIO.blender_bindings.models.model_tags import model_handler_tag
+from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, add_material
@@ -21,7 +21,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('IDTech3::ModelLoader')
 
 
-@model_handler_tag(b"IDP3", 15)
+@register_model_importer(b"IDP3", 15)
 def import_md3_15(model_path: Path, buffer: Buffer,
                   content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     model = read_md3_model(buffer)

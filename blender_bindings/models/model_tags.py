@@ -10,26 +10,26 @@ from SourceIO.library.utils import Buffer
 
 
 @dataclass(slots=True)
-class ModelTag:
+class ModelImporterTag:
     ident: bytes
     version: int
     steam_id: Optional[SteamAppId] = field(default=None)
 
 
-ModelHandler = Callable[[Path, Buffer, ContentManager, ModelOptions], ModelContainer]
-HANDLERS: list[tuple[ModelTag, ModelHandler]] = []
+ModelImportFunction = Callable[[Path, Buffer, ContentManager, ModelOptions], ModelContainer]
+HANDLERS: list[tuple[ModelImporterTag, ModelImportFunction]] = []
 
 
-def model_handler_tag(ident: bytes, version: int,
-                      steam_id: Optional[SteamAppId] = None):
-    def loader(func: Callable[[Path, Buffer, ContentManager, ModelOptions], ModelContainer]) -> ModelHandler:
-        HANDLERS.append((ModelTag(ident, version, steam_id), func))
+def register_model_importer(ident: bytes, version: int,
+                            steam_id: Optional[SteamAppId] = None):
+    def inner(func: Callable[[Path, Buffer, ContentManager, ModelOptions], ModelContainer]) -> ModelImportFunction:
+        HANDLERS.append((ModelImporterTag(ident, version, steam_id), func))
         return func
 
-    return loader
+    return inner
 
 
-def choose_model_handler(ident: bytes, version: int, steam_id: Optional[int] = None) -> Optional[ModelHandler]:
+def choose_model_importer(ident: bytes, version: int, steam_id: Optional[int] = None) -> Optional[ModelImportFunction]:
     best_match = None
     best_score = 0  # Start with a score lower than any possible match score
 

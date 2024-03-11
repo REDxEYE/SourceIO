@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from SourceIO.blender_bindings.models.model_tags import model_handler_tag
+from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.models.mdl44.import_mdl import import_model, import_materials
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
@@ -19,14 +19,14 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('MDL loader')
 
 
-@model_handler_tag(b"IDST", 37)
-@model_handler_tag(b"IDST", 38)
-@model_handler_tag(b"IDST", 39)
-@model_handler_tag(b"IDST", 40)
-@model_handler_tag(b"IDST", 41)
-@model_handler_tag(b"IDST", 42)
-@model_handler_tag(b"IDST", 43)
-@model_handler_tag(b"IDST", 44)
+@register_model_importer(b"IDST", 37)
+@register_model_importer(b"IDST", 38)
+@register_model_importer(b"IDST", 39)
+@register_model_importer(b"IDST", 40)
+@register_model_importer(b"IDST", 41)
+@register_model_importer(b"IDST", 42)
+@register_model_importer(b"IDST", 43)
+@register_model_importer(b"IDST", 44)
 def import_mdl44(model_path: Path, buffer: Buffer,
                  content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV44.from_buffer(buffer)

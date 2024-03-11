@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from SourceIO.blender_bindings.models.model_tags import model_handler_tag
+from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.models.mdl49 import import_materials
 from SourceIO.blender_bindings.models.mdl52.import_mdl import import_model
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
@@ -21,7 +21,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('MDL loader')
 
 
-@model_handler_tag(b"IDST", 52)
+@register_model_importer(b"IDST", 52)
 def import_mdl52(model_path: Path, buffer: Buffer,
                  content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV52.from_buffer(buffer)
