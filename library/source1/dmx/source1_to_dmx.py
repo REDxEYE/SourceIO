@@ -9,14 +9,14 @@ from ...shared.types import Vector3, Vector4
 from ...utils import datamodel, FileBuffer
 from ...utils.math_utilities import matrix_to_quat
 from ...utils.path_utilities import find_vtx
-from ..mdl.structs.bone import Bone
+from ...models.mdl.structs.bone import Bone
 from SourceIO.library.models.mdl.structs.model import Model as MdlModel
-from ..mdl.v49.mdl_file import MdlV49
+from ...models.mdl.v49.mdl_file import MdlV49
 from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
-from ..vtx.v7.structs.model import Model as VtxModel
-from ..vtx.v7.structs.model import ModelLod as VtxModelLod
-from ..vtx.v7.vtx import Vtx
-from ..vvd import Vvd
+from ...models.vtx.v7.structs.model import Model as VtxModel
+from ...models.vtx.v7.structs.model import ModelLod as VtxModelLod
+from ...models.vtx.v7.vtx import Vtx
+from ...models.vvd import Vvd
 
 
 def sanitize_name(name):
