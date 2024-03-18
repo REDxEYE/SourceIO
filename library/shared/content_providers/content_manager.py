@@ -282,7 +282,7 @@ class ContentManager(metaclass=SingletonMeta):
                 from ...source1.bsp.bsp_file import open_bsp
                 with FileBuffer(path) as f:
                     bsp = open_bsp(path, f)
-                pak_lump = bsp.get_lump('LUMP_PAK')
+                    pak_lump = bsp.get_lump('LUMP_PAK')
                 if pak_lump:
                     self.register_content_provider(name, pak_lump)
             elif path.endswith('.hfs'):
