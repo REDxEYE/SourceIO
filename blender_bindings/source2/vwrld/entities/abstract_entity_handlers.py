@@ -1,6 +1,7 @@
 import math
 import re
 from pathlib import Path
+from pprint import pformat
 
 import bpy
 from mathutils import Euler
@@ -95,7 +96,7 @@ class AbstractEntityHandler:
             return True
         else:
             self.logger.warn(f"Entity of type {entity_class} is not handled")
-            self.logger.warn(entity_data)
+            self.logger.warn(pformat(entity_data))
         return False
 
     def _get_entity_by_name(self, name):
