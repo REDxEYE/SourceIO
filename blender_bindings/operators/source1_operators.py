@@ -9,6 +9,7 @@ from ..models import import_model
 from ..models.common import put_into_collections
 from ..utils.bpy_utils import get_or_create_material
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
+from ...library.shared.app_id import SteamAppId
 from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 from ...library.utils import FileBuffer
@@ -94,6 +95,9 @@ class SOURCEIO_OT_RigImport(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+def get_items():
+    return ([(str(-999), "Auto", "")] + [(str(e.value), e.name, "") for e in SteamAppId])
+
 # noinspection PyPep8Naming
 class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
     """Load Source Engine BSP models"""
@@ -104,6 +108,11 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
     # import_decal: BoolProperty(name="Import decals", default=False, subtype='UNSIGNED')
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'})
+    steam_app_id: bpy.props.EnumProperty(
+        name="Override steamapp id",
+        description="Override steamapp id",
+        items=get_items()
+    )
 
     def execute(self, context):
         content_manager = ContentManager()
@@ -112,7 +121,8 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
         else:
             deserialize_mounted_content(content_manager)
         with FileBuffer(Path(self.filepath)) as f:
-            import_bsp(Path(self.filepath), f, content_manager, self)
+            import_bsp(Path(self.filepath), f, content_manager, self,
+                       SteamAppId(int(self.steam_app_id)) if self.steam_app_id != "-999" else None)
 
         if self.discover_resources:
             serialize_mounted_content(content_manager)

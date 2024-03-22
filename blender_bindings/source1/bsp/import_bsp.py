@@ -43,10 +43,11 @@ def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
 
 
-def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentManager, settings: Source1BSPSettings):
+def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentManager, settings: Source1BSPSettings,
+               override_steamappid: Optional[SteamAppId] = None):
     logger = log_manager.get_logger(map_path.name)
     logger.info(f'Loading map "{map_path}"')
-    bsp = open_bsp(map_path, buffer)
+    bsp = open_bsp(map_path, buffer, override_steamappid)
     if bsp is None:
         raise Exception("Could not open map file")
     master_collection = bpy.data.collections.new(map_path.name)

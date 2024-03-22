@@ -266,7 +266,7 @@ class StaticPropLump:
             unk1 = reader.read_int32()
             unk2 = reader.read_int32()
         prop_scaling = {}
-        if content_manager.steam_id == SteamAppId.VINDICTUS:
+        if bsp.steam_app_id == SteamAppId.VINDICTUS:
             for _ in range(reader.read_uint32()):
                 prop_id = reader.read_int32()
                 prop_scaling[prop_id] = reader.read_fmt('3f')
@@ -277,7 +277,7 @@ class StaticPropLump:
         prop_size = reader.remaining() // prop_count
         for i in range(prop_count):
             prop = StaticProp()
-            prop.parse(reader, self._glump_info.version, bsp.version, prop_size, content_manager.steam_id)
+            prop.parse(reader, self._glump_info.version, bsp.version, prop_size, bsp.steam_app_id)
             self.static_props.append(prop)
         if prop_scaling:
             for prop_id, scale in prop_scaling.items():

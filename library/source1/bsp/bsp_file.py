@@ -9,15 +9,15 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger("BSP")
 
 
-def open_bsp(filepath: Path, buffer: Buffer):
+def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None) -> Optional[BspFile]:
     magic, version = buffer.read_fmt('4sI')
     buffer.seek(0)
     if magic == b'VBSP':
-        return BSPFile.from_buffer(filepath, buffer)
+        return BSPFile.from_buffer(filepath, buffer, override_steamappid)
     elif magic == b'rBSP':
-        return RespawnBSPFile.from_buffer(filepath, buffer)
+        return RespawnBSPFile.from_buffer(filepath, buffer, override_steamappid)
     elif magic == b'RBSP':
-        return RavenBSPFile.from_buffer(filepath, buffer)
+        return RavenBSPFile.from_buffer(filepath, buffer, override_steamappid)
     logger.error("Unrecognized map magic number: {}".format(magic))
     return None
 
@@ -38,7 +38,7 @@ class BSPFile:
         self.steam_app_id = CM.get_content_provider_from_path(filepath).steam_id
 
     @classmethod
-    def from_buffer(cls, filepath: Path, buffer: Buffer):
+    def from_buffer(cls, filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None):
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "VBSP", "Invalid BSP header"
@@ -53,6 +53,7 @@ class BSPFile:
             lump = LumpInfo.from_buffer(buffer, lump_id, is_l4d2)
             self.lumps_info[lump_id] = lump
         self.revision = buffer.read_int32()
+        self.steam_app_id = override_steamappid or self.steam_app_id
         return self
 
     def get_lump(self, lump_name):
@@ -137,7 +138,7 @@ class RespawnBSPFile(BSPFile):
         super().__init__(filepath, buffer)
 
     @classmethod
-    def from_buffer(cls, filepath: Path, buffer: Buffer):
+    def from_buffer(cls, filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None):
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "rBSP", "Invalid BSP header"
@@ -149,6 +150,7 @@ class RespawnBSPFile(BSPFile):
             lump = LumpInfo.from_buffer(buffer, lump_id)
             lump.id = lump_id
             self.lumps_info[lump_id] = lump
+        self.steam_app_id = override_steamappid or self.steam_app_id
         return self
 
 
@@ -157,7 +159,7 @@ class RavenBSPFile(BSPFile):
         super().__init__(filepath, buffer)
 
     @classmethod
-    def from_buffer(cls, filepath: Path, buffer: Buffer):
+    def from_buffer(cls, filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None):
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "RBSP", "Invalid BSP header"
@@ -166,5 +168,5 @@ class RavenBSPFile(BSPFile):
         for lump_id in range(18):
             lump = RavenLumpInfo.from_buffer(buffer, lump_id, False)
             self.lumps_info.append(lump)
-        self.steam_app_id = SteamAppId.SOLDIERS_OF_FORTUNE2
+        self.steam_app_id = override_steamappid or SteamAppId.SOLDIERS_OF_FORTUNE2
         return self
