@@ -174,7 +174,7 @@ class Bone:
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):
         start_offset = buffer.tell()
-        name = buffer.read_source1_string(start_offset)
+        name = buffer.read_source1_string(start_offset) or "NO_NAME"
         parent_bone_id = buffer.read_int32()
         bone_controller_ids = buffer.read_fmt('6f')
         position = buffer.read_fmt('3f')

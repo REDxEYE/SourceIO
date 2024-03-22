@@ -42,9 +42,11 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
     bpy.ops.object.mode_set(mode='EDIT')
     bl_bones = []
+    bone_names = []
     for bone in mdl.bones:
         bl_bone = armature.edit_bones.new(bone.name[-63:])
         bl_bones.append(bl_bone)
+        bone_names.append(bl_bone.name)
 
     for bl_bone, s_bone in zip(bl_bones, mdl.bones):
         if s_bone.parent_bone_id != -1:
@@ -54,7 +56,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
     bpy.ops.object.mode_set(mode='POSE')
     for n, se_bone in enumerate(mdl.bones):
-        bl_bone = armature_obj.pose.bones.get(se_bone.name[-63:])
+        bl_bone = armature_obj.pose.bones.get(bone_names[n])
         pos = Vector(se_bone.position) * scale
         rot = Euler(se_bone.rotation)
         mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
