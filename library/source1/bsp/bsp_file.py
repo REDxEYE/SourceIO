@@ -9,7 +9,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger("BSP")
 
 
-def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None) -> Optional[BspFile]:
+def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None) -> Optional['BSPFile']:
     magic, version = buffer.read_fmt('4sI')
     buffer.seek(0)
     if magic == b'VBSP':
