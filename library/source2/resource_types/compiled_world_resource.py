@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Optional
 
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils import MemoryBuffer
@@ -37,8 +37,16 @@ class CompiledWorldNodeResource(CompiledResource):
 
 
 class CompiledMapResource(CompiledResource):
-    def get_worldnode(self, node_group_prefix: str, cm: ContentManager) -> CompiledWorldNodeResource:
-        return self.get_child_resource(Path(node_group_prefix + ".vwnod").as_posix(), cm, CompiledWorldNodeResource)
+    def get_worldnode(self, node_group_prefix: str, cm: ContentManager) -> Optional[CompiledWorldNodeResource]:
+        world_node = self.get_child_resource(Path(node_group_prefix + ".vwnod").as_posix(), cm,
+                                             CompiledWorldNodeResource)
+        if world_node is not None:
+            return world_node
+
+        buffer = cm.find_file(node_group_prefix + ".vwnod_c")
+        if not buffer:
+            return None
+        return CompiledWorldNodeResource.from_buffer(buffer, Path(node_group_prefix + ".vwnod_c"))
 
 
 class CompiledWorldResource(CompiledResource):
