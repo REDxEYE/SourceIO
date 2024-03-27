@@ -27,7 +27,7 @@ from ...library.source2.resource_types import CompiledMeshResource
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ..shared.model_container import ModelContainer
 from ..utils.bpy_utils import (add_material, find_layer_collection,
-                               get_new_unique_collection, get_or_create_material)
+                               get_new_unique_collection, get_or_create_material, is_blender_4_1)
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
 from ...library.utils.path_utilities import path_stem
@@ -405,7 +405,10 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                     else:
                         normals = convert_normals(normals)
                 mesh.normals_split_custom_set_from_vertices(normals)
-                mesh.use_auto_smooth = True
+                if is_blender_4_1():
+                    pass
+                else:
+                    mesh.use_auto_smooth = True
 
             if vertex_buffer.has_attribute('COLOR'):
                 color = used_vertices['COLOR']
