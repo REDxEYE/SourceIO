@@ -19,7 +19,7 @@ In order to find the import tools you simply need to go to File>Import>Source En
 * [equilib](https://github.com/haruishi43/equilib) Cubemap to equirectangular converter by [haruishi43](https://github.com/haruishi43/equilib)
 * [HFSExtract](https://github.com/yretenai/HFSExtract) HFS extractor that was used to write native decryptor by [yretenai](https://github.com/yretenai)
 * Idea for better HWM expression handling by [hisanimations](youtube.com/c/hisanimations)
-# Supported formats (v4.0.4):
+# Supported formats (v5.3.0):
 
 ## Source 1
 | File Type | Contents                          | Import             | Export            |
