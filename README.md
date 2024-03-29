@@ -8,7 +8,7 @@ Our Discord server https://discord.gg/SF82W6aZ67
 
 Current TODO list -> [TODO.md](TODO.md)
 
-Small WIKI -> [WIKI](./wiki/init.md)
+Small WIKI -> [WIKI](https://github.com/REDxEYE/SourceIO/wiki)
 # Usage
 In order to find the import tools you simply need to go to File>Import>Source Engine Assets
 ![](https://cdn.discordapp.com/attachments/786989240529059900/1143975506589515886/image.png)
