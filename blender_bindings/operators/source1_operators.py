@@ -68,35 +68,9 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, ModelOptions):
         return {'RUNNING_MODAL'}
 
 
-class SOURCEIO_OT_RigImport(bpy.types.Operator):
-    """Load SFM ik-rig script"""
-    bl_idname = "sourceio.rig"
-    bl_label = "Import SFM ik-rig script"
-    bl_options = {'UNDO'}
-
-    filepath: StringProperty(subtype="FILE_PATH")
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
-    filter_glob: StringProperty(default="*.py", options={'HIDDEN'})
-
-    def execute(self, context):
-
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).absolute()
-        else:
-            raise Exception("Expected file")
-        from ..source1.fake_sfm import load_script
-        load_script(directory)
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-
 def get_items():
     return ([(str(-999), "Auto", "")] + [(str(e.value), e.name, "") for e in SteamAppId])
+
 
 # noinspection PyPep8Naming
 class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
