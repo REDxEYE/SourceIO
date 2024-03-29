@@ -3,7 +3,7 @@
 [![Discord](https://img.shields.io/discord/554001378532655104?label=Chat&logo=discord&logoColor=white)](https://discord.gg/SF82W6aZ67)
 
 # SourceIO
-SourceIO is a Blender(3.4+) addon for importing\exporting source engine textures/models/maps
+SourceIO is a Blender(3.4+) addon for importing source engine textures/models/maps
 Our Discord server https://discord.gg/SF82W6aZ67
 
 Current TODO list -> [TODO.md](TODO.md)
