@@ -12,8 +12,7 @@ from .operators.goldsrc_operators import SOURCEIO_OT_GBSPImport
 from .operators.shared_operators import (SOURCEIO_UL_MountedResource, shared_classes)
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_DMXImporter,
-                                          SOURCEIO_OT_MDLImport,
-                                          SOURCEIO_OT_RigImport)
+                                          SOURCEIO_OT_MDLImport)
 from .operators.source2_operators import (SOURCEIO_OT_DMXCameraImport,
                                           SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMATImport,
@@ -64,7 +63,6 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         layout.operator(SOURCEIO_OT_VMTImport.bl_idname, text="Source material (.vmt)",
                         icon_value=vmt_icon.icon_id)
         # layout.operator(SOURCEIO_OT_DMXImporter.bl_idname, text="[!!!WIP!!!] SFM session (.dmx) [!!!WIP!!!]")
-        layout.operator(SOURCEIO_OT_RigImport.bl_idname, text="SFM ik-rig script (.py)")
         layout.separator()
 
         layout.operator(SOURCEIO_OT_VMDLImport.bl_idname, text="Source2 model (.vmdl_c)",
@@ -136,7 +134,6 @@ classes = (
     SOURCEIO_OT_MDLImport,
     SOURCEIO_OT_BSPImport,
     SOURCEIO_OT_DMXImporter,
-    SOURCEIO_OT_RigImport,
 
     # Source2 stuff
     SOURCEIO_OT_DMXCameraImport,
