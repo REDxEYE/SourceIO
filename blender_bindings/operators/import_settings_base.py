@@ -5,7 +5,6 @@ from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 
 
 class SharedOptions:
-    filepath: StringProperty(subtype="FILE_PATH")
     scale: FloatProperty(name="World scale", default=SOURCE1_HAMMER_UNIT_TO_METERS, precision=6)
 
 

@@ -4,6 +4,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        IntProperty, StringProperty)
 
+from .operator_helper import ImportOperatorHelper
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.shared.content_providers.vpk_provider import VPKContentProvider
@@ -18,24 +19,22 @@ from ..source2.vmat_loader import load_material
 from ..source2.vmdl_loader import load_model, put_into_collections
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
-from ..utils.bpy_utils import get_new_unique_collection
+from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
 from ...library.utils.path_utilities import backwalk_file_resolver
 
 
-class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
+class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
     """Load Source2 VMDL"""
     bl_idname = "sourceio.vmdl"
     bl_label = "Import Source2 VMDL file"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype="FILE_PATH")
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="Invert UV", default=True)
     import_physics: BoolProperty(name="Import physics", default=False)
     import_attachments: BoolProperty(name="Import attachments", default=False)
     lod_mask: IntProperty(name="Lod mask", default=0xFFFF, subtype="UNSIGNED")
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
 
     filter_glob: StringProperty(default="*.vmdl_c", options={'HIDDEN'})
 
@@ -65,20 +64,13 @@ class SOURCEIO_OT_VMDLImport(bpy.types.Operator):
 
         return {'FINISHED'}
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
-
-class SOURCEIO_OT_VMAPImport(bpy.types.Operator):
+class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
     """Load Source2 VWRLD"""
     bl_idname = "sourceio.vmap"
     bl_label = "Import Source2 VMAP file"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype="FILE_PATH")
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vmap_c", options={'HIDDEN'})
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="invert UV?", default=True)
@@ -107,20 +99,13 @@ class SOURCEIO_OT_VMAPImport(bpy.types.Operator):
             serialize_mounted_content(cm)
         return {'FINISHED'}
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
-
-class SOURCEIO_OT_VPK_VMAPImport(bpy.types.Operator):
+class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
     """Load Source2 VWRLD"""
     bl_idname = "sourceio.vmap_vpk"
     bl_label = "Import Source2 VMAP file from VPK"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype="FILE_PATH")
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vpk", options={'HIDDEN'})
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="invert UV?", default=True)
@@ -147,20 +132,13 @@ class SOURCEIO_OT_VPK_VMAPImport(bpy.types.Operator):
 
         return {'FINISHED'}
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
-
-class SOURCEIO_OT_VMATImport(bpy.types.Operator):
+class SOURCEIO_OT_VMATImport(ImportOperatorHelper):
     """Load Source2 material"""
     bl_idname = "sourceio.vmat"
     bl_label = "Import Source2 VMDL file"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype="FILE_PATH")
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     flip: BoolProperty(name="Flip texture", default=True)
     split_alpha: BoolProperty(name="Extract alpha texture", default=True)
@@ -185,38 +163,46 @@ class SOURCEIO_OT_VMATImport(bpy.types.Operator):
                 load_material(material_resource, Path(file.name))
         return {'FINISHED'}
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
-
-class SOURCEIO_OT_VTEXImport(bpy.types.Operator):
+class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
     """Load Source Engine VTF texture"""
     bl_idname = "sourceio.vtex"
     bl_label = "Import VTEX"
     bl_options = {'UNDO'}
+    need_popup = False
 
-    filepath: StringProperty(subtype='FILE_PATH', )
     flip: BoolProperty(name="Flip texture", default=True)
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
     def execute(self, context):
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
+        if is_blender_4_1():
+            directory = Path(self.directory)
         else:
-            directory = Path(self.filepath).absolute()
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
         for file in self.files:
             with FileBuffer(directory / file.name) as f:
                 texture_resource = CompiledTextureResource.from_buffer(f, directory / file.name)
-                import_texture(texture_resource, Path(file.name), self.flip)
-        return {'FINISHED'}
+                image = import_texture(texture_resource, Path(file.name), self.flip)
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+                if is_blender_4_1():
+                    if (context.region and context.region.type == 'WINDOW'
+                            and context.area and context.area.ui_type == 'ShaderNodeTree'
+                            and context.object and context.object.type == 'MESH'
+                            and context.material):
+                        node_tree = context.material.node_tree
+                        image_node = node_tree.nodes.new(type="ShaderNodeTexImage")
+                        image_node.image = image
+                        image_node.location = context.space_data.cursor_location
+                        for node in context.material.node_tree.nodes:
+                            node.select = False
+                        image_node.select = True
+                    if (context.region and context.region.type == 'WINDOW'
+                            and context.area and context.area.ui_type in ["IMAGE_EDITOR", "UV"]):
+                        context.space_data.image = image
+        return {'FINISHED'}
 
 
 class SOURCEIO_OT_DMXCameraImport(bpy.types.Operator):

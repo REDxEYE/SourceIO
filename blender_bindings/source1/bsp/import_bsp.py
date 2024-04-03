@@ -49,7 +49,7 @@ def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentManager, 
     logger.info(f'Loading map "{map_path}"')
     bsp = open_bsp(map_path, buffer, override_steamappid)
     if bsp is None:
-        raise Exception("Could not open map file")
+        raise Exception("Could not open map file. This function can only load Source1 BSP files.")
     master_collection = bpy.data.collections.new(map_path.name)
     bpy.context.scene.collection.children.link(master_collection)
     import_entities(bsp, content_manager, settings, master_collection, logger)

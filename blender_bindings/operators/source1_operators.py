@@ -5,9 +5,10 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        StringProperty)
 
 from .import_settings_base import ModelOptions, Source1BSPSettings
+from .operator_helper import ImportOperatorHelper
 from ..models import import_model
 from ..models.common import put_into_collections
-from ..utils.bpy_utils import get_or_create_material
+from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.app_id import SteamAppId
 from ...library.shared.content_providers.content_manager import ContentManager
@@ -24,22 +25,25 @@ logger = SourceLogMan().get_logger("SourceIO::Operators")
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_OT_MDLImport(bpy.types.Operator, ModelOptions):
+class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     """Load Source Engine MDL models"""
     bl_idname = "sourceio.mdl"
     bl_label = "Import Source MDL file"
     bl_options = {'UNDO'}
 
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
-    filepath: StringProperty(subtype="FILE_PATH")
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
+
     filter_glob: StringProperty(default="*.mdl;*.md3", options={'HIDDEN'})
 
     def execute(self, context):
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.resolve()
+        if is_blender_4_1():
+            directory = Path(self.directory)
         else:
-            directory = Path(self.filepath).resolve()
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
+
         content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
@@ -62,18 +66,13 @@ class SOURCEIO_OT_MDLImport(bpy.types.Operator, ModelOptions):
             #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 
 def get_items():
     return ([(str(-999), "Auto", "")] + [(str(e.value), e.name, "") for e in SteamAppId])
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
+class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
     """Load Source Engine BSP models"""
     bl_idname = "sourceio.bsp"
     bl_label = "Import Source BSP file"
@@ -103,11 +102,6 @@ class SOURCEIO_OT_BSPImport(bpy.types.Operator, Source1BSPSettings):
 
         return {'FINISHED'}
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
 class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
@@ -134,29 +128,43 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
-class SOURCEIO_OT_VTFImport(bpy.types.Operator):
+class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
     """Load Source Engine VTF texture"""
     bl_idname = "sourceio.vtf"
     bl_label = "Import VTF"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype='FILE_PATH', )
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
+    need_popup = False
 
     def execute(self, context):
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
+        if is_blender_4_1():
+            directory = Path(self.directory)
         else:
-            directory = Path(self.filepath).absolute()
-        for file in self.files:
-            import_texture(Path(file.name), (directory / file.name).open('rb'), True)
-        return {'FINISHED'}
+            if Path(self.filepath).is_file():
+                directory = Path(self.filepath).parent.absolute()
+            else:
+                directory = Path(self.filepath).absolute()
 
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
+        for file in self.files:
+            image = import_texture(Path(file.name), (directory / file.name).open('rb'), True)
+            if is_blender_4_1():
+                if (context.region and context.region.type == 'WINDOW'
+                        and context.area and context.area.ui_type == 'ShaderNodeTree'
+                        and context.object and context.object.type == 'MESH'
+                        and context.material):
+                    node_tree = context.material.node_tree
+                    image_node = node_tree.nodes.new(type="ShaderNodeTexImage")
+                    image_node.image = image
+                    image_node.location = context.space_data.cursor_location
+                    for node in context.material.node_tree.nodes:
+                        node.select = False
+                    image_node.select = True
+                if (context.region and context.region.type == 'WINDOW'
+                        and context.area and context.area.ui_type in ["IMAGE_EDITOR", "UV"]):
+                    context.space_data.image = image
+
+        return {'FINISHED'}
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
@@ -206,17 +214,13 @@ class SOURCEIO_OT_SkyboxImport(bpy.types.Operator):
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
-class SOURCEIO_OT_VMTImport(bpy.types.Operator):
+class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
     """Load Source Engine VMT material"""
     bl_idname = "sourceio.vmt"
     bl_label = "Import VMT"
     bl_options = {'UNDO'}
 
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
-    filepath: StringProperty(
-        subtype='FILE_PATH',
-    )
-    files: CollectionProperty(type=bpy.types.PropertyGroup)
     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
     override: BoolProperty(default=False, name='Override existing?')
     use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
@@ -246,11 +250,6 @@ class SOURCEIO_OT_VMTImport(bpy.types.Operator):
             loader.create_material(mat)
         content_manager.clean()
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}
 
     # # noinspection PyUnresolvedReferences,PyPep8Naming
     # class SOURCEIO_OT_VTFExport(bpy.types.Operator):

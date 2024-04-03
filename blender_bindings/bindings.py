@@ -27,6 +27,7 @@ from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
 #                                       SourceIO_OP_VPKBrowserLoader)
 # from .operators.vpk_operators import classes as vpk_classes
 from .ui.export_nodes import register_nodes, unregister_nodes
+from .utils.bpy_utils import is_blender_4_1
 from ..library.utils.singleton import SingletonMeta
 
 custom_icons = {}
@@ -126,7 +127,7 @@ def unregister_custom_icon():
     custom_icons.clear()
 
 
-classes = (
+classes = [
     # GoldSrc
     SOURCEIO_OT_GBSPImport,
     # Source1 stuff
@@ -155,7 +156,27 @@ classes = (
     # *vpk_classes,
     *shared_classes,
     *flex_classes,
-)
+]
+if is_blender_4_1():
+    from .operators.dragndrop import (
+        IMAGE_FH_vtf_import,
+        IMAGE_FH_vtex_import,
+        OBJECT_FH_mdl_import,
+        MATERIAL_FH_vmt_import,
+        OBJECT_FH_bsp_import,
+        OBJECT_FH_vmap_import,
+        OBJECT_FH_vmap_vpk_import,
+        MATERIAL_FH_vmat_import,
+    )
+
+    classes.append(IMAGE_FH_vtf_import)
+    classes.append(IMAGE_FH_vtex_import)
+    classes.append(OBJECT_FH_mdl_import)
+    classes.append(MATERIAL_FH_vmt_import)
+    classes.append(OBJECT_FH_bsp_import)
+    classes.append(OBJECT_FH_vmap_import)
+    classes.append(OBJECT_FH_vmap_vpk_import)
+    classes.append(MATERIAL_FH_vmat_import)
 
 register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
