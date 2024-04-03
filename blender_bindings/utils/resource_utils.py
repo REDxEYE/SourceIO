@@ -7,6 +7,8 @@ def serialize_mounted_content(cm: ContentManager):
     data = cm.serialize()
     resources = bpy.context.scene.mounted_resources
     for item_hash, item in data.items():
+        if (resource := resources.get(item['name'])) != None:
+            if resource.path == item['path']: continue
         new_resource = resources.add()
         new_resource.path = item["path"]
         new_resource.name = item["name"]
