@@ -23,6 +23,7 @@ from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
 from ...library.utils.path_utilities import backwalk_file_resolver
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
     """Load Source2 VMDL"""
     bl_idname = "sourceio.vmdl"
@@ -39,12 +40,7 @@ class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
     filter_glob: StringProperty(default="*.vmdl_c", options={'HIDDEN'})
 
     def execute(self, context):
-
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
-
+        directory = self.get_directory()
         content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
@@ -65,6 +61,7 @@ class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
         return {'FINISHED'}
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
     """Load Source2 VWRLD"""
     bl_idname = "sourceio.vmap"
@@ -77,11 +74,7 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
-
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
             cm = ContentManager()
@@ -100,6 +93,7 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
         return {'FINISHED'}
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
     """Load Source2 VWRLD"""
     bl_idname = "sourceio.vmap_vpk"
@@ -133,6 +127,7 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
         return {'FINISHED'}
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_OT_VMATImport(ImportOperatorHelper):
     """Load Source2 material"""
     bl_idname = "sourceio.vmat"
@@ -145,11 +140,7 @@ class SOURCEIO_OT_VMATImport(ImportOperatorHelper):
     filter_glob: StringProperty(default="*.vmat_c", options={'HIDDEN'})
 
     def execute(self, context):
-
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
         content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
@@ -164,6 +155,7 @@ class SOURCEIO_OT_VMATImport(ImportOperatorHelper):
         return {'FINISHED'}
 
 
+# noinspection PyPep8Naming
 class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
     """Load Source Engine VTF texture"""
     bl_idname = "sourceio.vtex"
@@ -175,13 +167,7 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
     filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
     def execute(self, context):
-        if is_blender_4_1():
-            directory = Path(self.directory)
-        else:
-            if Path(self.filepath).is_file():
-                directory = Path(self.filepath).parent.absolute()
-            else:
-                directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
         for file in self.files:
             with FileBuffer(directory / file.name) as f:
                 texture_resource = CompiledTextureResource.from_buffer(f, directory / file.name)
@@ -205,26 +191,17 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
         return {'FINISHED'}
 
 
-class SOURCEIO_OT_DMXCameraImport(bpy.types.Operator):
+# noinspection PyPep8Naming
+class SOURCEIO_OT_DMXCameraImport(ImportOperatorHelper):
     """Load Valve DMX camera data"""
     bl_idname = "sourceio.dmx_camera"
     bl_label = "Import DMX camera"
     bl_options = {'UNDO'}
 
-    filepath: StringProperty(subtype='FILE_PATH', )
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
 
     def execute(self, context):
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
         for file in self.files:
             load_camera(directory / file.name)
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        return {'RUNNING_MODAL'}

@@ -3,6 +3,7 @@ import bpy
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_1
 
 if is_blender_4_1():
+    # noinspection PyPep8Naming
     class IMAGE_FH_vtf_import(bpy.types.FileHandler):
         bl_idname = "IMAGE_FH_vtf_import"
         bl_label = "File handler for vtf texture import"
@@ -13,7 +14,7 @@ if is_blender_4_1():
         def poll_drop(cls, context):
             return context.region and context.region.type == 'WINDOW'
 
-
+    # noinspection PyPep8Naming
     class IMAGE_FH_vtex_import(bpy.types.FileHandler):
         bl_idname = "IMAGE_FH_vtex_import"
         bl_label = "File handler for vtf texture import"
@@ -24,7 +25,7 @@ if is_blender_4_1():
         def poll_drop(cls, context):
             return context.region and context.region.type == 'WINDOW'
 
-
+    # noinspection PyPep8Naming
     class OBJECT_FH_mdl_import(bpy.types.FileHandler):
         bl_idname = "OBJECT_FH_mdl_import"
         bl_label = "File handler for vtf texture import"
@@ -36,7 +37,7 @@ if is_blender_4_1():
             return (context.region and context.region.type == 'WINDOW'
                     and context.area and context.area.ui_type == 'VIEW_3D')
 
-
+    # noinspection PyPep8Naming
     class MATERIAL_FH_vmt_import(bpy.types.FileHandler):
         bl_idname = "MATERIAL_FH_vmt_import"
         bl_label = "File handler for vmt material import"
@@ -47,7 +48,7 @@ if is_blender_4_1():
         def poll_drop(cls, context):
             return (context.region and context.region.type == 'WINDOW')
 
-
+    # noinspection PyPep8Naming
     class OBJECT_FH_bsp_import(bpy.types.FileHandler):
         bl_idname = "OBJECT_FH_bsp_import"
         bl_label = "File handler for BPS map import"
@@ -58,7 +59,7 @@ if is_blender_4_1():
         def poll_drop(cls, context):
             return (context.region and context.region.type == 'WINDOW')
 
-
+    # noinspection PyPep8Naming
     class OBJECT_FH_vmap_import(bpy.types.FileHandler):
         bl_idname = "OBJECT_FH_vmap_import"
         bl_label = "File handler for VMAP map import"
@@ -69,7 +70,7 @@ if is_blender_4_1():
         def poll_drop(cls, context):
             return (context.region and context.region.type == 'WINDOW')
 
-
+    # noinspection PyPep8Naming
     class OBJECT_FH_vmap_vpk_import(bpy.types.FileHandler):
         bl_idname = "OBJECT_FH_vmap_vpk_import"
         bl_label = "File handler for VMAP vpk map import"
@@ -80,7 +81,7 @@ if is_blender_4_1():
         def poll_drop(cls, context):
             return (context.region and context.region.type == 'WINDOW')
 
-
+    # noinspection PyPep8Naming
     class MATERIAL_FH_vmat_import(bpy.types.FileHandler):
         bl_idname = "MATERIAL_FH_vmat_import"
         bl_label = "File handler for VMAP map import"

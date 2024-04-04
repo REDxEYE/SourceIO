@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import bpy
 from bpy.props import StringProperty, CollectionProperty
 
@@ -34,3 +36,13 @@ class ImportOperatorHelper(bpy.types.Operator):
         wm = context.window_manager
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
+    def get_directory(self):
+        if is_blender_4_1():
+            return Path(self.directory)
+        else:
+            filepath = Path(self.filepath)
+            if filepath.is_file():
+                return filepath.parent.absolute()
+            else:
+                return filepath.absolute()

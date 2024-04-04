@@ -36,13 +36,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     filter_glob: StringProperty(default="*.mdl;*.md3", options={'HIDDEN'})
 
     def execute(self, context):
-        if is_blender_4_1():
-            directory = Path(self.directory)
-        else:
-            if Path(self.filepath).is_file():
-                directory = Path(self.filepath).parent.absolute()
-            else:
-                directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
 
         content_manager = ContentManager()
         if self.discover_resources:
@@ -116,7 +110,7 @@ class SOURCEIO_OT_DMXImporter(bpy.types.Operator):
     filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
 
     def execute(self, context):
-        directory = Path(self.filepath).parent.absolute()
+        directory = self.get_directory()
         for file in self.files:
             load_session(directory / file.name, 1)
         return {'FINISHED'}
@@ -138,13 +132,7 @@ class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
     need_popup = False
 
     def execute(self, context):
-        if is_blender_4_1():
-            directory = Path(self.directory)
-        else:
-            if Path(self.filepath).is_file():
-                directory = Path(self.filepath).parent.absolute()
-            else:
-                directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
 
         for file in self.files:
             image = import_texture(Path(file.name), (directory / file.name).open('rb'), True)
@@ -192,10 +180,7 @@ class SOURCEIO_OT_SkyboxImport(bpy.types.Operator):
     )
 
     def execute(self, context):
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
+        directory = self.get_directory()
         content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
@@ -226,16 +211,14 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
     use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
 
     def execute(self, context):
+        directory = self.get_directory()
         content_manager = ContentManager()
         if self.discover_resources:
-            content_manager.scan_for_content(self.filepath)
+            content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
         else:
             deserialize_mounted_content(content_manager)
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
-        else:
-            directory = Path(self.filepath).absolute()
+
         for file in self.files:
             Source1ShaderBase.use_bvlg(self.use_bvlg)
             file_path = Path(file.name)
