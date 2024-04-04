@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Type, Optional
+from typing import Any, Type
 
 import bpy
 from mathutils import Matrix
@@ -33,7 +33,8 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
     manifest_resource_path = next(filter(lambda a: a.endswith(".vrman"), map_resource.get_child_resources()), None)
     if manifest_resource_path is not None:
         manifest_resource = map_resource.get_child_resource(manifest_resource_path, cm, CompiledManifestResource)
-        world_resource_path = next(filter(lambda a: a.endswith(".vwrld"), manifest_resource.get_child_resources()), None)
+        world_resource_path = next(filter(lambda a: a.endswith(".vwrld"), manifest_resource.get_child_resources()),
+                                   None)
         if world_resource_path is not None:
             world_resource = manifest_resource.get_child_resource(world_resource_path, cm)
             return import_world(world_resource, map_resource, cm, scale)
@@ -54,17 +55,25 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
             raise FileNotFoundError("Failed to find WorldNode resource")
         collection = get_or_create_collection(f"static_props_{Path(node_prefix).name}", master_collection)
         for scene_object in node_resource.get_scene_objects():
-            create_static_prop_placeholder(scene_object, node_resource, collection, scale)
+            renderable_model = scene_object["m_renderableModel"]
+            proper_path = node_resource.get_child_resource_path(renderable_model)
+            create_static_prop_placeholder(scene_object, proper_path, Matrix(scene_object.get('m_vTransform', None)),
+                                           collection, scale)
         for scene_object in node_resource.get_aggregate_scene_objects():
-            create_static_prop_placeholder(scene_object, node_resource, collection, scale)
+            renderable_model = scene_object["m_renderableModel"]
+            proper_path = node_resource.get_child_resource_path(renderable_model)
+            if scene_object["m_fragmentTransforms"]:
+                for fragment in scene_object["m_fragmentTransforms"]:
+                    create_static_prop_placeholder(scene_object, proper_path, Matrix(fragment.reshape(3,4)), collection, scale)
+            else:
+                create_static_prop_placeholder(scene_object, proper_path, None, collection, scale)
     load_entities(world_resource, master_collection, scale, cm)
 
 
-def create_static_prop_placeholder(scene_object: Object, node_resource: CompiledWorldNodeResource,
+def create_static_prop_placeholder(scene_object: Object, proper_path: Path | None, matrix: Matrix | None,
                                    collection: bpy.types.Collection, scale: float):
-    renderable_model = scene_object["m_renderableModel"]
-    proper_path = node_resource.get_child_resource_path(renderable_model)
-    mat_rows: Optional[list] = scene_object.get('m_vTransform', None)
+    if not proper_path:
+        return
 
     custom_data = {'prop_path': str(proper_path),
                    'type': 'static_prop',
@@ -72,8 +81,8 @@ def create_static_prop_placeholder(scene_object: Object, node_resource: Compiled
                    'entity': {k: str(v) for (k, v) in scene_object.to_dict().items()},
                    'skin': scene_object.get('skin', 'default') or 'default'}
     empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
-    if mat_rows:
-        transform_mat = Matrix(mat_rows).to_4x4()
+    if matrix is not None:
+        transform_mat = matrix.to_4x4()
         loc, rot, scl = transform_mat.decompose()
         loc *= scale
         empty.matrix_world = Matrix.LocRotScale(loc, rot, scl)
