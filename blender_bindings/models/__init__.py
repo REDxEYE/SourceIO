@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from SourceIO.blender_bindings.models.model_tags import HANDLERS, choose_model_importer
+from SourceIO.blender_bindings.models.model_tags import MODEL_HANDLERS, choose_model_importer
 from SourceIO.library.shared.content_providers.content_manager import ContentManager
 from SourceIO.library.utils import Buffer
 from . import mdl4, mdl6, mdl10, mdl36, mdl44, mdl49,md3_15

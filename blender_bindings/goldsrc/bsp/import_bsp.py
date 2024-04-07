@@ -21,7 +21,7 @@ from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 from SourceIO.library.goldsrc.rad import convert_light_value, parse_rad
 from SourceIO.library.shared.content_providers.content_manager import ContentManager
 from SourceIO.library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
-from SourceIO.library.utils.math_utilities import convert_to_radians, parse_hammer_vector
+from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.logger import SourceLogMan
 from ...goldsrc.bsp.entity_handlers import entity_handlers
@@ -308,7 +308,7 @@ class BSP:
             return
 
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = deg2rad(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
@@ -336,7 +336,7 @@ class BSP:
             return
 
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = deg2rad(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
 
         model_index = int(entity_data['model'][1:])
         model_object = self.load_bmodel(model_index,
@@ -394,7 +394,7 @@ class BSP:
                 model_object.data.materials[model_material_index] = mode_mat
 
     def _get_light_angles(self, entity_data):
-        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = deg2rad(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
         if 'pitch' in entity_data:
             pitch = math.radians(float(entity_data.get('pitch', '-90')))
             angles[0] = pitch + (math.pi / 2)
@@ -471,7 +471,7 @@ class BSP:
     def load_general_entity(self, entity_class: str, entity_data: dict[str, Any], type_collection_name: str):
         entity_collection = self.get_collection(entity_class, type_collection_name)
         origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * self.scale
-        angles = convert_to_radians(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
+        angles = deg2rad(parse_hammer_vector(entity_data.get('angles', '0 0 0')))
         if 'targetname' not in entity_data:
             copy_count = len([obj for obj in bpy.data.objects if obj.name.startswith(entity_class)])
             entity_name = f'{entity_class}_{copy_count}'

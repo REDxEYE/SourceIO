@@ -17,13 +17,13 @@ class ModelImporterTag:
 
 
 ModelImportFunction = Callable[[Path, Buffer, ContentManager, ModelOptions], ModelContainer]
-HANDLERS: list[tuple[ModelImporterTag, ModelImportFunction]] = []
+MODEL_HANDLERS: list[tuple[ModelImporterTag, ModelImportFunction]] = []
 
 
 def register_model_importer(ident: bytes, version: int,
                             steam_id: Optional[SteamAppId] = None):
     def inner(func: Callable[[Path, Buffer, ContentManager, ModelOptions], ModelContainer]) -> ModelImportFunction:
-        HANDLERS.append((ModelImporterTag(ident, version, steam_id), func))
+        MODEL_HANDLERS.append((ModelImporterTag(ident, version, steam_id), func))
         return func
 
     return inner
@@ -33,7 +33,7 @@ def choose_model_importer(ident: bytes, version: int, steam_id: Optional[int] = 
     best_match = None
     best_score = 0  # Start with a score lower than any possible match score
 
-    for handler_tag, handler_func in HANDLERS:
+    for handler_tag, handler_func in MODEL_HANDLERS:
         score = 0
         # Check ident and version match
         if handler_tag.ident == ident and handler_tag.version == version:

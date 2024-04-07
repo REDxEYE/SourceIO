@@ -93,3 +93,19 @@ def get_mod_path(path: Path) -> Path:
 
 def path_stem(path: str):
     return os.path.basename(path).rsplit(".", 1)[0]
+
+
+def collect_full_material_names(material_names: list[str], material_search_paths: list[str],
+                                content_manager) -> dict[str, str]:
+    full_mat_names = {}
+    for material_path in material_search_paths:
+        for material_name in material_names:
+            if material_name in full_mat_names:
+                continue
+            real_material_path = content_manager.find_material(Path(material_path) / material_name)
+            if real_material_path is not None:
+                full_mat_names[material_name] = (Path(material_path) / material_name).as_posix()
+    for material_name in material_names:
+        if material_name not in full_mat_names:
+            full_mat_names[material_name] = material_name
+    return full_mat_names

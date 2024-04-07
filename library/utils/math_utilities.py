@@ -175,7 +175,7 @@ def convert_rotation_source1_to_blender(source2_rotation: Union[list[float], np.
             math.radians(source2_rotation[1])]
 
 
-def convert_to_radians(vector: Union[list[float], np.ndarray]):
+def deg2rad(vector: Union[list[float], np.ndarray]):
     return np.deg2rad(vector)
 
 
@@ -246,20 +246,3 @@ def vector_normalize(v):
     if norm == 0:
         norm = np.finfo(v.dtype).eps
     return v / norm
-
-
-class UnitPlane:
-    def __init__(self):
-        self.normal = np.zeros((3,))
-        self.d = 0.0
-
-    def normal_from_tri(self, p0: np.ndarray, p1: np.ndarray, p2: np.ndarray):
-        scratch = np.zeros((2, 3))
-        scratch[0] = p1 - p0
-        scratch[1] = p2 - p0
-        normal = np.cross(scratch[0], scratch[1])
-        self.normal[:] = vector_normalize(normal)
-        self.d = -np.dot(self.normal, p0)
-
-    def distance_vec3(self, p):
-        return np.dot(p, self.normal) + self.d
