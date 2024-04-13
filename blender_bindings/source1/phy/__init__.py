@@ -47,6 +47,8 @@ def import_physics(phy: Phy, phy_buffer: Buffer, mdl: MdlV36, container: ModelCo
                 vertices = (vertices * 1 / 0.0254) * scale
 
                 vertices = vector_transform_v(vertices, matrix)
+            else:
+                vertices = (vertices * 1 / 0.0254) * scale
 
             mesh_data = bpy.data.meshes.new(f'{mesh_name}_solid_{i}{j}_MESH')
             mesh_obj = bpy.data.objects.new(f'{mesh_name}_solid_{i}{j}', mesh_data)
