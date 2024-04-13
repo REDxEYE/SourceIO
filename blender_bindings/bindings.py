@@ -196,6 +196,10 @@ def register():
         name="Use instances",
         default=True
     )
+    bpy.types.Scene.import_physics = bpy.props.BoolProperty(
+        name="Import physics",
+        default=False
+    )
     bpy.types.Scene.replace_entity = bpy.props.BoolProperty(
         name="Replace entity",
         default=True
