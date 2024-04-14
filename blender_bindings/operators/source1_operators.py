@@ -8,6 +8,7 @@ from .import_settings_base import ModelOptions, Source1BSPSettings
 from .operator_helper import ImportOperatorHelper
 from ..models import import_model
 from ..models.common import put_into_collections
+from ..shared.exceptions import RequiredFileNotFound
 from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.app_id import SteamAppId
@@ -48,7 +49,11 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
         for file in self.files:
             mdl_path = directory / file.name
             with FileBuffer(mdl_path) as f:
-                model_container = import_model(mdl_path, f, content_manager, self, None)
+                try:
+                    model_container = import_model(mdl_path, f, content_manager, self, None)
+                except RequiredFileNotFound as e:
+                    self.report({"ERROR"}, e.message)
+                    return {'CANCELLED'}
 
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
             # if self.import_animations and model_container.armature:

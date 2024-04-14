@@ -5,6 +5,7 @@ import bpy
 from mathutils import Matrix
 
 from .entities.cs2_entity_handlers import CS2EntityHandler
+from ...shared.exceptions import RequiredFileNotFound
 from ....library.shared.app_id import SteamAppId
 from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2 import CompiledWorldResource
@@ -52,7 +53,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
     for node_prefix in world_resource.get_worldnode_prefixes():
         node_resource = map_resource.get_worldnode(node_prefix, cm)
         if node_resource is None:
-            raise FileNotFoundError("Failed to find WorldNode resource")
+            raise RequiredFileNotFound("Failed to find WorldNode resource")
         collection = get_or_create_collection(f"static_props_{Path(node_prefix).name}", master_collection)
         for scene_object in node_resource.get_scene_objects():
             renderable_model = scene_object["m_renderableModel"]

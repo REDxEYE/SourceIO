@@ -11,6 +11,7 @@ import bpy
 
 from .import_settings_base import ModelOptions
 from ..models import import_model
+from ..shared.exceptions import RequiredFileNotFound
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
@@ -174,8 +175,12 @@ class SourceIO_OT_LoadEntity(Operator):
                     options.use_bvlg = context.scene.use_bvlg
                     options.bodygroup_grouping = False
                     options.import_physics = context.scene.import_physics
-                    model_container = import_model(prop_path, mdl_file,
-                                                   content_manager, options, ((cp.steam_id or None) if cp else None))
+                    try:
+                        model_container = import_model(prop_path, mdl_file,
+                                                       content_manager, options, ((cp.steam_id or None) if cp else None))
+                    except RequiredFileNotFound as e:
+                        self.report({"ERROR"}, e.message)
+                        return {'CANCELLED'}
                     if model_container is None:
                         self.report({"WARNING"},
                                     f"Failed to load MDL file for prop {prop_path}")
