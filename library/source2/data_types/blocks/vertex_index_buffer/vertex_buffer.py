@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 import numpy as np
 
 from .....utils import Buffer, MemoryBuffer
@@ -100,6 +99,15 @@ class VertexBuffer:
             else:
                 _vertex_buffer = MemoryBuffer(decode_vertex_buffer(data, vertex_size, vertex_count))
         return cls(vertex_count, vertex_size, _vertex_buffer, attributes)
+
+    @classmethod
+    def from_kv(cls, data: dict) -> 'VertexBuffer':
+        elements = []
+        for element in data["m_inputLayoutFields"]:
+            elements.append(VertexAttribute(element["m_pSemanticName"], element["m_nSemanticIndex"],
+                                            DxgiFormat(element["m_Format"]), element["m_nOffset"], element["m_nSlot"],
+                                            SlotType.from_kv(element["m_nSlotType"]), element["m_nInstanceStepRate"]))
+        return VertexBuffer(data["m_nElementCount"], data["m_nElementSizeInBytes"], MemoryBuffer(data["m_pData"].tobytes()), elements)
 
     def has_attribute(self, attribute_name: str):
         for attribute in self.attributes:

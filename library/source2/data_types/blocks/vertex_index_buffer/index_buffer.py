@@ -28,6 +28,10 @@ class IndexBuffer:
                 _index_buffer = MemoryBuffer(decode_index_buffer(data, index_size, index_count))
         return cls(index_count, index_size, _index_buffer)
 
+    @classmethod
+    def from_kv(cls, data: dict) -> 'IndexBuffer':
+        return IndexBuffer(data["m_nElementCount"], data["m_nElementSizeInBytes"], MemoryBuffer(data["m_pData"].tobytes()))
+
     def get_indices(self):
         index_dtype = np.uint32 if self.index_size == 4 else np.uint16
         indices = np.frombuffer(self.data.data, index_dtype)

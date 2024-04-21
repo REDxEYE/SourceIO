@@ -78,8 +78,22 @@ class Object(BaseType, dict):
         if not isinstance(value, (BaseType, str, NoneType, np.ndarray)):
             raise TypeError(f'Only KV3 types are allowed, got {type(value)}')
         if isinstance(value, np.ndarray):
-            assert value.dtype in (np.float64, np.uint32, np.int32, np.uint64, np.int64)
+            assert value.dtype in (np.float32, np.float64,
+                                   np.int8, np.uint8,
+                                   np.int16, np.uint16,
+                                   np.int32, np.uint32,
+                                   np.int64, np.uint64)
         super(Object, self).__setitem__(key, value)
+
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            for key in item:
+                value = self.get(key, None)
+                if value is not None:
+                    return value
+            raise KeyError(item)
+        else:
+            return dict.__getitem__(self, item)
 
     def to_dict(self):
         if any(isinstance(i, np.ndarray) for i in self.values()):

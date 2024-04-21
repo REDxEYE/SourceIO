@@ -127,3 +127,9 @@ class SlotType(IntEnum):
     INVALID = -1
     PER_VERTEX = 0
     PER_INSTANCE = 1
+
+    @classmethod
+    def from_kv(cls, value):
+        if value == "RENDER_SLOT_PER_VERTEX":
+            return cls.PER_VERTEX
+        return cls.INVALID

@@ -1,5 +1,7 @@
 from typing import Union
 
+import numpy as np
+
 from .....utils import Buffer
 from ....resource_types.resource import CompiledResource
 from ...keyvalues3.binary_keyvalues import (Bool, Double, Int32, Int64,
@@ -100,17 +102,49 @@ class ResourceIntrospectionManifest(BaseBlock):
                             value = reader(self, buffer, member)
                 elif indir_value == 4:
                     count = buffer.read_uint32()
-                    value = TypedArray(self._ntro_type_to_kv3(member.type), KV3TypeFlag.NONE, [])
                     if count:
                         with buffer.read_from_offset(offset):
-                            for _ in range(count):
-                                value.append(reader(self, buffer, member))
+                            if member.type == KeyValueDataType.QUATERNION or member.type == KeyValueDataType.VECTOR4:
+                                value = np.frombuffer(buffer.read(16 * count), dtype=np.float32).reshape(count, 4)
+                            elif member.type == KeyValueDataType.VECTOR3:
+                                value = np.frombuffer(buffer.read(12 * count), dtype=np.float32).reshape(count, 3)
+                            elif member.type == KeyValueDataType.VECTOR2:
+                                value = np.frombuffer(buffer.read(8 * count), dtype=np.float32).reshape(count, 2)
+                            elif member.type == KeyValueDataType.Matrix3x4 or member.type == KeyValueDataType.Matrix3x4a:
+                                value = np.frombuffer(buffer.read(48 * count), dtype=np.float32).reshape(count, 3, 4)
+                            elif member.type == KeyValueDataType.BYTE:
+                                value = np.frombuffer(buffer.read(count), dtype=np.int8)
+                            elif member.type == KeyValueDataType.UBYTE:
+                                value = np.frombuffer(buffer.read(count), dtype=np.uint8)
+                            elif member.type == KeyValueDataType.SHORT:
+                                value = np.frombuffer(buffer.read(2 * count), dtype=np.int16)
+                            elif member.type == KeyValueDataType.USHORT:
+                                value = np.frombuffer(buffer.read(2 * count), dtype=np.uint16)
+                            elif member.type == KeyValueDataType.INTEGER:
+                                value = np.frombuffer(buffer.read(4 * count), dtype=np.int32)
+                            elif member.type == KeyValueDataType.UINTEGER:
+                                value = np.frombuffer(buffer.read(4 * count), dtype=np.uint32)
+                            elif member.type == KeyValueDataType.INT64:
+                                value = np.frombuffer(buffer.read(8 * count), dtype=np.int64)
+                            elif member.type == KeyValueDataType.UINT64:
+                                value = np.frombuffer(buffer.read(8 * count), dtype=np.uint64)
+                            elif member.type == KeyValueDataType.FLOAT:
+                                value = np.frombuffer(buffer.read(4 * count), dtype=np.float32)
+                            else:
+                                value = TypedArray(self._ntro_type_to_kv3(member.type), KV3TypeFlag.NONE, [])
+                                for _ in range(count):
+                                    value.append(reader(self, buffer, member))
+                    else:
+                        value = TypedArray(self._ntro_type_to_kv3(member.type), KV3TypeFlag.NONE, [])
                 else:
                     raise NotImplementedError('Implement')
             else:
                 if member.count > 0:
-                    value = TypedArray(self._ntro_type_to_kv3(member.type), KV3TypeFlag.NONE,
-                                       [reader(self, buffer, member) for _ in range(member.count)])
+                    if member.type == KeyValueDataType.BYTE:
+                        value = buffer.read_ascii_string(member.count)
+                    else:
+                        value = TypedArray(self._ntro_type_to_kv3(member.type), KV3TypeFlag.NONE,
+                                           [reader(self, buffer, member) for _ in range(member.count)])
                 else:
                     value = reader(self, buffer, member)
             data[name] = value
@@ -218,8 +252,7 @@ class ResourceIntrospectionManifest(BaseBlock):
         return Bool(buffer.read_uint8() == 1)
 
     def _read_mat34(self, buffer: Buffer, member: StructMember):
-        return TypedArray(KV3Type.DOUBLE, KV3TypeFlag.NONE,
-                          [Double(buffer.read_float()) for _ in range(12)])
+        return np.frombuffer(buffer.read(4 * 12), dtype=np.float32).reshape(3, 4)
 
     def _read_ctrans(self, buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, KV3TypeFlag.NONE,

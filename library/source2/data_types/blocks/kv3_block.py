@@ -1,5 +1,3 @@
-
-
 from ....utils import Buffer
 from ...resource_types.resource import CompiledResource
 from ..keyvalues3.binary_keyvalues import BinaryKeyValues
@@ -12,6 +10,16 @@ class KVBlock(dict[str, BaseType], BaseBlock):
     def __init__(self, buffer: Buffer, resource: CompiledResource):
         BaseBlock.__init__(self, buffer, resource)
         dict.__init__(self)
+
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            for key in item:
+                value = self.get(key, None)
+                if value is not None:
+                    return value
+            raise KeyError(item)
+        else:
+            return dict.__getitem__(self, item)
 
     @property
     def has_ntro(self):
