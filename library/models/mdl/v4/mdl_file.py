@@ -37,8 +37,8 @@ class Mdl:
             model_count = buffer.read_uint32()
             total_model_count += model_count
             bodyparts.append(model_count)
-        assert total_model_count == header.unk_count, \
-            f'Total count of models should match unk_count, {total_model_count}!={header.unk_count}'
+        assert total_model_count == header.total_model_count, \
+            f'Total count of models should match total_model_count, {total_model_count}!={header.total_model_count}'
 
         animations = []
         for sequence in sequences:
