@@ -12,6 +12,7 @@ logger = log_manager.get_logger('Source1::VMT')
 
 class VMT:
     def __init__(self, buffer: IO, filename: str):
+        self._usage_report = set()
         data = buffer.read()
         if isinstance(data, bytes):
             data = data.decode('latin1')
@@ -73,10 +74,18 @@ class VMT:
     def __setitem__(self, key, value):
         self.data[key] = value
 
+    def get_unvisited_params(self):
+        unvisited_params = {}
+        for k, v in self.data.items():
+            if k not in self._usage_report:
+                unvisited_params[k] = v
+        return unvisited_params
+
     def get(self, name, default=None) -> Union[KVDataProxy, str]:
         value = self.data.get(name, default)
         if value == "":
             return default
+        self._usage_report.add(name)
         return value
 
     def get_vector(self, name, default=(0, 0, 0)):

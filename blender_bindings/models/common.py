@@ -1,4 +1,3 @@
-from typing import Iterable, Sized
 
 import bpy
 import numpy as np
@@ -43,12 +42,6 @@ def merge_meshes(model: Model, vtx_model: VtxModel):
         acc += offset
 
     return vtx_vertices, np.hstack(indices_array), np.hstack(mat_arrays)
-
-
-def get_slice(data: [Iterable, Sized], start, count=None):
-    if count is None:
-        count = len(data) - start
-    return data[start:start + count]
 
 
 def put_into_collections(model_container: ModelContainer, model_name,

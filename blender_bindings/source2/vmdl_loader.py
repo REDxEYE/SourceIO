@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from enum import IntEnum
 from struct import pack, unpack
 from itertools import chain
 from pathlib import Path
@@ -18,7 +19,7 @@ from ...library.source2.data_types.blocks.kv3_block import KVBlock
 from ...library.source2.data_types.blocks.morph_block import MorphBlock
 from ...library.source2.data_types.blocks.phys_block import PhysBlock
 from ...library.source2.data_types.blocks.vertex_index_buffer import \
-    VertexIndexBuffer
+    VertexIndexBuffer, IndexBuffer
 from ...library.source2.data_types.blocks.vertex_index_buffer.vertex_buffer import \
     VertexBuffer
 from ...library.source2.data_types.keyvalues3.types import NullObject, Object
@@ -190,7 +191,8 @@ def load_internal_mesh(model_resource: CompiledModelResource, cm: ContentManager
     vbib_block: Optional[VertexIndexBuffer] = model_resource.get_data_block(block_id=mesh_info['vbib_block'])
     morph_block: Optional[MorphBlock] = model_resource.get_data_block(block_id=mesh_info['morph_block'])
     if data_block and vbib_block:
-        return create_mesh(model_resource, cm, container, data_block, vbib_block, morph_block, scale, mesh_index,
+        return create_mesh(model_resource, cm, container, data_block, vbib_block.index_buffers,
+                           vbib_block.vertex_buffers, morph_block, scale, mesh_index,
                            model_resource,
                            mesh_info['name'],
                            import_attachments)
@@ -202,13 +204,20 @@ def load_external_mesh(model_resource: CompiledModelResource, cm: ContentManager
                        mesh_resource: CompiledMeshResource, import_attachments: bool):
     data_block, = mesh_resource.get_data_block(block_name='DATA')
     vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
-    if morph_set_path := data_block['m_morphSet']:
+    if morph_set_path := data_block['m_morphSet', "m_pMorphSet"]:
         morph_resource = mesh_resource.get_child_resource(morph_set_path, cm, CompiledMorphResource)
         morph_block, = morph_resource.get_data_block(block_name='DATA')
     else:
         morph_block, = mesh_resource.get_data_block(block_name='MRPH')
     if data_block and vbib_block:
-        return create_mesh(model_resource, cm, container, data_block, vbib_block, morph_block, scale, mesh_id,
+        return create_mesh(model_resource, cm, container, data_block, vbib_block.index_buffers,
+                           vbib_block.vertex_buffers, morph_block, scale, mesh_id,
+                           mesh_resource, import_attachments=import_attachments)
+    elif data_block and 'm_vertexBuffers' in data_block and 'm_indexBuffers' in data_block:
+        vertex_buffers = [VertexBuffer.from_kv(buf) for buf in data_block['m_vertexBuffers']]
+        index_buffers = [IndexBuffer.from_kv(buf) for buf in data_block['m_indexBuffers']]
+        return create_mesh(model_resource, cm, container, data_block, index_buffers,
+                           vertex_buffers, morph_block, scale, mesh_id,
                            mesh_resource, import_attachments=import_attachments)
     return None
 
@@ -258,8 +267,33 @@ def convert_to_float32(uv_array: np.ndarray):
         return (uv_array.astype(np.float32) - dtype_min) / (dtype_max - dtype_min) * 2 - 1
 
 
+class RenderMeshDrawPrimitiveFlags(IntEnum):
+    NONE = 0x0,
+    UseShadowFastPath = 0x1,
+    UseCompressedNormalTangent = 0x2,
+    IsOccluder = 0x4,
+    InputLayoutIsNotMatchedToMaterial = 0x8,
+    HasBakedLightingFromVertexStream = 0x10,
+    HasBakedLightingFromLightmap = 0x20,
+    CanBatchWithDynamicShaderConstants = 0x40,
+    DrawLast = 0x80,
+    HasPerInstanceBakedLightingData = 0x100,
+
+
+def use_compressed_normals(draw_call: dict):
+    if draw_call.get('m_bUseCompressedNormalTangent', False):
+        return True
+    if "m_nFlags" not in draw_call:
+        return False
+    flags = draw_call["m_nFlags"]
+    if isinstance(flags, int):
+        return flags & RenderMeshDrawPrimitiveFlags.UseCompressedNormalTangent
+    else:
+        return "MESH_DRAW_FLAGS_USE_COMPRESSED_NORMAL_TANGENT" in flags or "USE_COMPRESSED_NORMAL_TANGENT" in flags
+
+
 def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, container: ModelContainer,
-                data_block: KVBlock, vbib_block: VertexIndexBuffer, morph_block: MorphBlock,
+                data_block: KVBlock, index_buffers: list, vertex_buffers: list, morph_block: MorphBlock,
                 scale: float, mesh_id: int,
                 mesh_resource: CompiledResource, mesh_name: Optional[str] = None,
                 import_attachments: bool = False) -> list[bpy.types.Object]:
@@ -270,15 +304,15 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
 
     for scene_object in data_block['m_sceneObjects']:
         for draw_call in scene_object['m_drawCalls']:
-            print(draw_call)
+            # print(draw_call)
             assert len(draw_call['m_vertexBuffers']) == 1
-            assert draw_call['m_nPrimitiveType'] == 'RENDER_PRIM_TRIANGLES'
+            assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
 
             vertex_buffer_info = draw_call['m_vertexBuffers'][0]
             index_buffer_info = draw_call['m_indexBuffer']
-            vertex_buffer = vbib_block.vertex_buffers[vertex_buffer_info['m_hBuffer']]
-            index_buffer = vbib_block.index_buffers[index_buffer_info['m_hBuffer']]
-            material_name = draw_call['m_material']
+            vertex_buffer = vertex_buffers[vertex_buffer_info['m_hBuffer']]
+            index_buffer = index_buffers[index_buffer_info['m_hBuffer']]
+            material_name = draw_call['m_material', 'm_pMaterial']
             material_resource: Optional[CompiledMaterialResource] = None
             if not isinstance(material_name, NullObject):
                 material_resource = mesh_resource.get_child_resource(material_name, ContentManager(),
@@ -321,9 +355,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             positions = used_vertices['POSITION'] * scale
             if vertex_buffer.has_attribute('NORMAL'):
                 normals = used_vertices['NORMAL']
-                use_compressed_normal_tangent = draw_call.get('m_bUseCompressedNormalTangent', False)
-                use_compressed_normal_tangent |= "COMPRESSED_NORMAL_TANGENT" in draw_call.get("m_nFlags", [])
-                if use_compressed_normal_tangent:
+                if use_compressed_normals(draw_call):
                     if normals.dtype == np.uint32:
                         normals = convert_normals_2(normals)
                     else:
@@ -397,9 +429,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             if vertex_buffer.has_attribute('NORMAL'):
                 mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
                 normals = used_vertices['NORMAL']
-                use_compressed_normal_tangent = draw_call.get('m_bUseCompressedNormalTangent', False)
-                use_compressed_normal_tangent |= "COMPRESSED_NORMAL_TANGENT" in draw_call.get("m_nFlags", [])
-                if use_compressed_normal_tangent:
+                if use_compressed_normals(draw_call):
                     if normals.dtype == np.uint32:
                         normals = convert_normals_2(normals)
                     else:

@@ -6,7 +6,7 @@ from .v6.vtx import Vtx as Vtx6
 from .v7.vtx import Vtx as Vtx7
 
 
-def open_vtx(filepath_or_object: Union[Path, str, Buffer]):
+def open_vtx(filepath_or_object: Union[Path, str, Buffer]) -> Vtx6:
     buffer: Buffer
     if isinstance(filepath_or_object, (Path, str)):
         buffer = FileBuffer(filepath_or_object)

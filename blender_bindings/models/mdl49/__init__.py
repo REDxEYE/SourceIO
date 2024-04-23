@@ -4,6 +4,7 @@ from typing import Optional
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_materials
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.source1.phy import import_physics
 from SourceIO.library.models.mdl.v49 import MdlV49
@@ -31,7 +32,7 @@ def import_mdl49(model_path: Path, buffer: Buffer,
     vvd_buffer = content_manager.find_file(model_path.with_suffix(".vvd"))
     if vtx_buffer is None or vvd_buffer is None:
         logger.error(f"Could not find VTX and/or VVD file for {model_path}")
-        return None
+        raise RequiredFileNotFound(f"Could not find VTX and/or VVD file for {model_path}")
     vtx = open_vtx(vtx_buffer)
     vvd = Vvd.from_buffer(vvd_buffer)
 

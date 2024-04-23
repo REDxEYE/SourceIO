@@ -13,7 +13,7 @@ from SourceIO.library.shared.content_providers.content_manager import \
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
-from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.logger import SourceLogMan
 from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -63,26 +63,10 @@ def create_armature(mdl: MdlV36, scale=1.0):
     bpy.context.scene.collection.objects.unlink(armature_obj)
     return armature_obj
 
-
-def collect_full_material_names(mdl: MdlV36):
-    content_manager = ContentManager()
-    full_mat_names = {}
-    for material_path in mdl.materials_paths:
-        for material in mdl.materials:
-            if material.name in full_mat_names:
-                continue
-            real_material_path = content_manager.find_material(Path(material_path) / material.name)
-            if real_material_path is not None:
-                full_mat_names[material.name] = (Path(material_path) / material.name).as_posix()
-    for material in mdl.materials:
-        if material.name not in full_mat_names:
-            full_mat_names[material.name] = material.name
-    return full_mat_names
-
-
 def import_model(mdl: MdlV36, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names(mdl)
+    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
+                                                      ContentManager())
 
     desired_lod = 0
     objects = []

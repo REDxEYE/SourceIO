@@ -55,6 +55,6 @@ class StudioHeader:
         assert version in [6, 10], f'MDL version {version} are not supported by GoldSrc importer'
         name = buffer.read_ascii_string(64)
         file_size = buffer.read_int32()
-        hdr_data = buffer.read_fmt('14I')
-        buffer.skip(14 * 4)
+        hdr_data = buffer.read_fmt('16I')
+        buffer.skip(12 * 4)
         return cls(version, name, file_size, *hdr_data)

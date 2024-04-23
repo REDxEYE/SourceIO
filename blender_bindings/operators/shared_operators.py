@@ -11,6 +11,7 @@ import bpy
 
 from .import_settings_base import ModelOptions
 from ..models import import_model
+from ..shared.exceptions import RequiredFileNotFound
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
@@ -104,7 +105,8 @@ class SourceIO_OT_LoadEntity(Operator):
                     if vmld_file:
                         # skin = custom_prop_data.get('skin', None)
                         model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                        container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1)
+                        container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
+                                               import_physics=context.scene.import_physics)
                         if replace_entity:
                             s2_put_into_collections(container, model_resource.name, parent)
                         else:
@@ -172,8 +174,13 @@ class SourceIO_OT_LoadEntity(Operator):
                     print(f"BVLG op: {context.scene.use_bvlg}")
                     options.use_bvlg = context.scene.use_bvlg
                     options.bodygroup_grouping = False
-                    model_container = import_model(prop_path, mdl_file,
-                                                   content_manager, options, ((cp.steam_id or None) if cp else None))
+                    options.import_physics = context.scene.import_physics
+                    try:
+                        model_container = import_model(prop_path, mdl_file,
+                                                       content_manager, options, ((cp.steam_id or None) if cp else None))
+                    except RequiredFileNotFound as e:
+                        self.report({"ERROR"}, e.message)
+                        return {'CANCELLED'}
                     if model_container is None:
                         self.report({"WARNING"},
                                     f"Failed to load MDL file for prop {prop_path}")
@@ -383,6 +390,7 @@ class SOURCEIO_PT_EntityLoader(UITools, Panel):
         self.layout.label(text="Entity loading")
         layout = self.layout.box()
         layout.prop(context.scene, "use_bvlg")
+        layout.prop(context.scene, "import_physics")
         layout.prop(context.scene, "use_instances")
         if not context.scene.use_instances:
             layout.prop(context.scene, "replace_entity")

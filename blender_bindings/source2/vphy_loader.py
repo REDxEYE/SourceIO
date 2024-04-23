@@ -3,7 +3,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from ...library.source2.data_types.blocks.phys_block import PhysBlock
-from ...library.source2.data_types.keyvalues3.types import BinaryBlob
+from ...library.source2.data_types.keyvalues3.types import BinaryBlob, TypedArray
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 
@@ -232,6 +232,8 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
             vertices = np.asarray(vertex_data, np.float32) * scale
         if isinstance(indices_data, BinaryBlob):
             indices = np.frombuffer(indices_data, np.uint32)
+        elif isinstance(indices_data, TypedArray):
+            indices = np.asarray([a["m_nIndex"] for a in indices_data], np.uint32)
         else:
             indices = np.asarray(indices_data, np.uint32)
 

@@ -4,6 +4,7 @@ from typing import Optional
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.models.mdl36.import_mdl import import_model, import_materials
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.source1.phy import import_physics
 from SourceIO.library.models.mdl.v36 import MdlV36
@@ -25,7 +26,7 @@ def import_mdl36(model_path: Path, buffer: Buffer,
     vtx_buffer = find_vtx_cm(model_path, content_manager)
     if vtx_buffer is None:
         logger.error(f"Could not find VTX file for {model_path}")
-        return None
+        raise RequiredFileNotFound(f"Could not find VVD file for {model_path}")
     vtx = open_vtx(vtx_buffer)
 
     container = import_model(mdl, vtx, options.scale, options.create_flex_drivers)

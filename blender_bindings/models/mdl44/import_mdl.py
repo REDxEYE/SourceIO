@@ -7,9 +7,10 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
+from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.library.models.vtx.v7.vtx import Vtx
-from SourceIO.library.utils.path_utilities import path_stem
-from ..mdl36.import_mdl import collect_full_material_names
+from SourceIO.library.utils.common import get_slice
+from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.library.shared.content_providers.content_manager import \
     ContentManager
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
@@ -23,7 +24,6 @@ from SourceIO.blender_bindings.material_loader.material_loader import Source1Mat
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
-from ..common import merge_meshes, get_slice
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -89,7 +89,8 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 def import_model(mdl: MdlV44, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names(mdl)
+    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
+                                                      ContentManager())
 
     objects = []
     bodygroups = defaultdict(list)
