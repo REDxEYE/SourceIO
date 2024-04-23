@@ -328,7 +328,7 @@ bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_nam
             else:
                 template_function = f"""
 def {normalized_flex_name}_driver(obj_data):
-    {st.join(inputs)}
+    {st.join([i[0] for i in inputs])}
     return {expr}
 bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_name}_driver
 
