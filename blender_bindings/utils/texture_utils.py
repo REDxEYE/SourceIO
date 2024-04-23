@@ -70,6 +70,7 @@ def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], da
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
 
+    image['full_path'] = Path(texture_path).as_posix()
     image.pixels.foreach_set(data.ravel())
     if bpy.context.scene.TextureCachePath != "":
         save_path = Path(bpy.context.scene.TextureCachePath) / texture_path
