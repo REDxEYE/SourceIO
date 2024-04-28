@@ -36,10 +36,16 @@ class Lightmapped4WayBlend(Source1ShaderBase):
         return None
 
     @property
+    def ssbump(self):
+        return self._vmt.get_int('$ssbump', 0) == 1
+
+    @property
     def bumpmap(self):
         texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            if self.ssbump:
+                image = self.convert_ssbump(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -51,6 +57,8 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             '$basenormalmap2', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            if self.ssbump:
+                image = self.convert_ssbump(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -61,6 +69,8 @@ class Lightmapped4WayBlend(Source1ShaderBase):
         texture_path = self._vmt.get_string('$basenormalmap3', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            if self.ssbump:
+                image = self.convert_ssbump(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -71,6 +81,8 @@ class Lightmapped4WayBlend(Source1ShaderBase):
         texture_path = self._vmt.get_string('$basenormalmap4', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            if self.ssbump:
+                image = self.convert_ssbump(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
