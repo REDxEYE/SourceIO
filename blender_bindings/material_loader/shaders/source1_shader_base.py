@@ -35,14 +35,24 @@ class Source1ShaderBase(ShaderBase):
     def convert_ssbump(image: bpy.types.Image):
         if image.get('ssbump_converted', None):
             return image
-        buffer = np.zeros(image.size[0] * image.size[1] * 4, np.float32)
-        image.pixels.foreach_get(buffer)
-        buffer[0::4] *= 0.5
-        buffer[0::4] += 0.33
-        buffer[1::4] *= 0.5
-        buffer[1::4] += 0.33
-        buffer[2::4] *= 0.2
-        buffer[2::4] += 0.8
+        
+        # from https://github.com/rob5300/ssbumpToNormal-Win/blob/main/SSBumpToNormal.cs
+        bumpBasisTranspose = np.array([
+            [0.81649661064147949, -0.40824833512306213, -0.40824833512306213],
+            [0.0, 0.70710676908493042, -0.7071068286895752],
+            [0.57735025882720947, 0.57735025882720947, 0.57735025882720947]
+        ])
+
+        buffer = np.zeros((image.size[0] * image.size[1], 4), np.float32)
+        image.pixels.foreach_get(buffer.ravel())
+
+        dots = np.dot(buffer[:, :3], bumpBasisTranspose.T)
+        dots *= 0.5
+        dots += 0.5
+
+        buffer[:, :3] = np.clip(dots, 0, 1)
+        buffer[:, 1] = np.subtract(1, buffer[:, 1])
+
         image.pixels.foreach_set(buffer.ravel())
         image.pack()
         del buffer
