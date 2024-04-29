@@ -40,6 +40,7 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -52,16 +53,9 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.6, 0.6, 0.0, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
-    
-    @property
-    def detail(self):
-        texture_path = self._vmt.get_string('$detail', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.6, 0.0, 1.0))
             return image
         return None
 
@@ -142,6 +136,25 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
                 albedo, detail = self.handle_detail(shader.inputs['Base Color'], albedo, uv_node=None)
             else:
                 self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
+        bumpmap = self.bumpmap
+        bumpmap2 = self.bumpmap2
+
+        if bumpmap and bumpmap2:
+            color_mix_norm = self.create_node(Nodes.ShaderNodeMixRGB)
+            color_mix_norm.blend_type = 'MIX'
+
+            self.create_and_connect_texture_node(bumpmap, color_mix_norm.inputs['Color1'], name='$bumpmap')
+            self.create_and_connect_texture_node(bumpmap2, color_mix_norm.inputs['Color2'], name='$bumpmap2')
+
+            if self.blendmodulatetexture != None:
+                self.connect_nodes(maprange.outputs[0], color_mix_norm.inputs['Fac'])
+            else:
+                self.connect_nodes(vertex_color.outputs[0], color_mix_norm.inputs['Fac'])
+            
+            norm_map = self.create_node(Nodes.ShaderNodeNormalMap)
+
+            self.connect_nodes(color_mix_norm.outputs[0], norm_map.inputs['Color'])
+            self.connect_nodes(norm_map.outputs[0], shader.inputs['Normal'])
 
         if not self.phong:
             if is_blender_4():
