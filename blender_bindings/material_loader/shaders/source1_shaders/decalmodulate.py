@@ -14,7 +14,7 @@ class DecalModulate(Source1ShaderBase):
         texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
-            image.is_data = True
+            image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
 
         return None
@@ -41,6 +41,8 @@ class DecalModulate(Source1ShaderBase):
 
         self.bpy_material.blend_method = 'BLEND'
         self.bpy_material.shadow_method = 'NONE'
+
+        self.bpy_material['DECAL'] = True
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfTransparent, self.SHADER)
