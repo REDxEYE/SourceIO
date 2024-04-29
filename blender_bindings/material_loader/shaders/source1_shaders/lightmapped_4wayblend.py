@@ -46,6 +46,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -59,6 +60,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -71,6 +73,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -83,6 +86,7 @@ class Lightmapped4WayBlend(Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
