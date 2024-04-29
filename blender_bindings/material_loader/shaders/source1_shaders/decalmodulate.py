@@ -16,7 +16,7 @@ class DecalModulate(Source1ShaderBase):
             image = self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
-
+            return image
         return None
 
     @property
@@ -49,6 +49,7 @@ class DecalModulate(Source1ShaderBase):
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
+        print(basetexture)
         if basetexture:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
             basetexture_node.image = basetexture
