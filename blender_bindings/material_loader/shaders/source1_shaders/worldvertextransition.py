@@ -38,11 +38,11 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
         texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
             if self.ssbump:
                 image = self.convert_ssbump(image)
             image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
             return image
         return None
 
@@ -51,11 +51,11 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
         texture_path = self._vmt.get_string('$bumpmap2', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.6, 0.6, 0.0, 1.0))
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
             if self.ssbump:
                 image = self.convert_ssbump(image)
             image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
             return image
         return None
 
@@ -65,7 +65,7 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def ssbump(self):
-        return self._vmt.get_int('ssbump', 0) == 1
+        return self._vmt.get_int('$ssbump', 0) == 1
 
     @property
     def translucent(self):
@@ -98,6 +98,13 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
             vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
             
             color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+
+            bs_node = self.create_texture_node(basetexture, name='$basetexture')
+            bs_socket = bs_node.outputs[0]
+
+            bs_node2 = self.create_texture_node(basetexture2, name='$basetexture2')
+            bs_socket2 = bs_node2.outputs[0]
+
             if self.blendmodulatetexture != None:
                 SEPrgb = self.create_node(Nodes.ShaderNodeSeparateRGB)
                 sub = self.create_node(Nodes.ShaderNodeMath)
@@ -115,26 +122,28 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
                 self.connect_nodes(add.outputs[0], maprange.inputs[2])
                 self.connect_nodes(vertex_color.outputs[0], maprange.inputs[0])
                 self.connect_nodes(maprange.outputs[0], color_mix.inputs['Fac'])
-
                 self.create_and_connect_texture_node(self.blendmodulatetexture, SEPrgb.inputs[0], name='$blendmodulatedecal')
 
-                #self.create_texture_node(self.blendmodulatetexture, '$blendmodulatedecal')
             else:
                 self.connect_nodes(vertex_color.outputs['Color'], color_mix.inputs['Fac'])
             color_mix.blend_type = 'MIX'
 
             albedo = color_mix.outputs[0]
 
-            self.create_and_connect_texture_node(basetexture,
-                                                 color_mix.inputs['Color1'],
-                                                 name='$basetexture')
-            self.create_and_connect_texture_node(basetexture2,
-                                                 color_mix.inputs['Color2'],
-                                                 name='$basetexture2')
+
             
             if self.detail:
-                albedo, detail = self.handle_detail(shader.inputs['Base Color'], albedo, uv_node=None)
+                if self.detail2:
+                    albedo, detail = self.handle_detail(color_mix.inputs[1], bs_socket, uv_node=None)
+                    albedo, detail2 = self.handle_detail2(color_mix.inputs[2], bs_socket2, uv_node=None)
+                    self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
+                else:
+                    albedo, detail = self.handle_detail(shader.inputs['Base Color'], albedo, uv_node=None)
+                    self.connect_nodes(bs_socket, color_mix.inputs[1])
+                    self.connect_nodes(bs_socket2, color_mix.inputs[2])
             else:
+                self.connect_nodes(bs_socket, color_mix.inputs[1])
+                self.connect_nodes(bs_socket2, color_mix.inputs[2])
                 self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
         bumpmap = self.bumpmap
         bumpmap2 = self.bumpmap2
