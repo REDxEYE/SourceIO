@@ -19,24 +19,24 @@ class StudioModel:
     unk_2: int
     bounding_radius: float
     meshes: list[StudioMesh]
-    vertices: npt.NDArray[vertex_dtype]
-    normals: npt.NDArray[vertex_dtype]
+    vertex_data: npt.NDArray[vertex_dtype]
+    normal_data: npt.NDArray[vertex_dtype]
 
     @property
     def bone_vertex_info(self):
-        return self.vertices['id'].flatten()
+        return self.vertex_data['id'].flatten()
 
     @property
     def bone_normal_info(self):
-        return self.normals['id'].flatten()
+        return self.normal_data['id'].flatten()
 
     @property
     def vertices(self):
-        return self.vertices['pos']
+        return self.vertex_data['pos']
 
     @property
     def normals(self):
-        return self.normals['pos']
+        return self.normal_data['pos']
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
