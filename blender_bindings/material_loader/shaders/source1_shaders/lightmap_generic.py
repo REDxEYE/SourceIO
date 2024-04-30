@@ -22,7 +22,7 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
     def bumpmap(self):
         texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            image = self.load_texture_or_default(texture_path, (0.217637, 0.217637, 1, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
             image = self.convert_normalmap(image)
