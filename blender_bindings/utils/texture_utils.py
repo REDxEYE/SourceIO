@@ -34,6 +34,11 @@ def _add_texture(texture_path: Path, real_name: str, *other_args):
 
 
 def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
+    for image_existing in bpy.data.images:
+        if (fp := image_existing.get('full_path')) == None: continue
+        if fp == texture_path.as_posix().lower():
+            return image_existing
+
     short_name = _get_texture(texture_path)
     if short_name is not None:
         if short_name + '.png' in bpy.data.images:
@@ -70,8 +75,8 @@ def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], da
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
 
-    image['full_path'] = Path(texture_path).as_posix()
     image.pixels.foreach_set(data.ravel())
+    image['full_path'] = Path(texture_path).as_posix().lower()
     if bpy.context.scene.TextureCachePath != "":
         save_path = Path(bpy.context.scene.TextureCachePath) / texture_path
         save_path = save_path.with_suffix(".hdr" if is_hdr else ".png")
