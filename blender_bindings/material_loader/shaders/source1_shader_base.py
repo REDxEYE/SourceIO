@@ -22,12 +22,6 @@ class Source1ShaderBase(ShaderBase):
         if image is not None:
             return image
 
-        for image in bpy.data.images:
-            if (fp := image.get('full_path')) == None: continue
-            if fp == (texture_path / texture_name).as_posix().lower():
-                self.logger.debug(f'Using existing texture {texture_name}')
-                return image
-
         content_manager = ContentManager()
         texture_file = content_manager.find_texture(texture_path / texture_name)
         if texture_file is not None:
@@ -53,7 +47,7 @@ class Source1ShaderBase(ShaderBase):
         dots *= 0.5
         dots += 0.5
 
-        buffer[:, :3] = np.clip(dots, 0, 1)
+        buffer[:, :3] = dots
 
         image.pixels.foreach_set(buffer.ravel())
         image.pack()
