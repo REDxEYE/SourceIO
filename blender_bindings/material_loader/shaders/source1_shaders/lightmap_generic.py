@@ -2,8 +2,9 @@ from ....utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
+from .detail import DetailSupportMixin
 
-class LightmapGeneric(Source1ShaderBase):
+class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER = 'lightmappedgeneric'
 
     @property
@@ -21,9 +22,10 @@ class LightmapGeneric(Source1ShaderBase):
     def bumpmap(self):
         texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
+            image = self.load_texture_or_default(texture_path, (0.217637, 0.217637, 1, 1.0))
             if self.ssbump:
                 image = self.convert_ssbump(image)
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
@@ -66,6 +68,11 @@ class LightmapGeneric(Source1ShaderBase):
             basetexture_node = self.create_and_connect_texture_node(basetexture,
                                                                     shader.inputs['Base Color'],
                                                                     name='$basetexture')
+            
+            albedo = basetexture_node.outputs[0]
+
+            if self.detail:
+                albedo, detail = self.handle_detail(shader.inputs['Base Color'], albedo, uv_node=None)
 
             if self.alphatest:
                 self.bpy_material.blend_method = 'HASHED'
@@ -79,7 +86,7 @@ class LightmapGeneric(Source1ShaderBase):
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
 
         bumpmap = self.bumpmap
-        if bumpmap and not self.ssbump:
+        if bumpmap:
             bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
             bumpmap_node.image = bumpmap
 

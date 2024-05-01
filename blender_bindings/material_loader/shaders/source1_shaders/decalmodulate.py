@@ -13,7 +13,10 @@ class DecalModulate(Source1ShaderBase):
     def basetexture(self):
         texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+            image = self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
         return None
 
     @property
@@ -36,14 +39,25 @@ class DecalModulate(Source1ShaderBase):
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
+        self.bpy_material.blend_method = 'BLEND'
+        self.bpy_material.shadow_method = 'NONE'
+
+        self.bpy_material['DECAL'] = True
+
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+        shader = self.create_node(Nodes.ShaderNodeBsdfTransparent, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
+        print(basetexture)
         if basetexture:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
             basetexture_node.image = basetexture
             basetexture_node.id_data.nodes.active = basetexture_node
 
-            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+            scale = self.create_node(Nodes.ShaderNodeVectorMath)
+            scale.operation = 'SCALE'
+            scale.inputs[3].default_value = 2.0
+
+            self.connect_nodes(basetexture_node.outputs[0], scale.inputs[0])
+            self.connect_nodes(scale.outputs[0], shader.inputs['Color'])
