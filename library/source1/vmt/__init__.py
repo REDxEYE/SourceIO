@@ -1,7 +1,8 @@
 import traceback
 from math import radians
-from typing import IO, Union
+from typing import Union
 
+from ...utils import Buffer
 from ....logger import SourceLogMan
 from ...shared.content_providers.content_manager import ContentManager
 from ...utils.kv_parser import ValveKeyValueParser, KVDataProxy, KVLexerException
@@ -11,7 +12,7 @@ logger = log_manager.get_logger('Source1::VMT')
 
 
 class VMT:
-    def __init__(self, buffer: IO, filename: str):
+    def __init__(self, buffer: Buffer, filename: str):
         self._usage_report = set()
         data = buffer.read()
         if isinstance(data, bytes):

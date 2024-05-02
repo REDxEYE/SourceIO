@@ -1,20 +1,23 @@
-from ...utils.pylib import VTFLibV2
+import numpy as np
+
+from ...utils.rustlib import load_vtf_texture
 from ....logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::VTF')
 
 
-def load_texture(file_object, hdr=False):
+def load_texture(file_object):
     data = file_object.read()
-    lib = VTFLibV2(data)
     try:
-        rgba_data = lib.convert(True)
-        return rgba_data, *rgba_data.shape[:2]
+        pixel_data, width, height, bpp = load_vtf_texture(data)
+        if bpp == 32:
+            rgba_data = np.frombuffer(pixel_data, dtype=np.float32).reshape(height, width, 4)
+        else:
+            rgba_data = np.frombuffer(pixel_data, dtype=np.uint8).reshape(height, width, 4).astype(np.float32) / 255
+        rgba_data = np.fliplr(rgba_data)
+        return rgba_data, height, width
     except Exception as ex:
         logger.error('Caught exception "{}" '.format(ex))
-    finally:
-        lib.destroy()
-        del lib
 
     return None, 0, 0

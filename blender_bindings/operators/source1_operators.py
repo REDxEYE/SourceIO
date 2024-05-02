@@ -15,6 +15,7 @@ from ...library.shared.app_id import SteamAppId
 from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 from ...library.utils import FileBuffer
+from ...library.utils.path_utilities import path_stem
 
 from ...logger import SourceLogMan
 from ..material_loader.material_loader import Source1MaterialLoader
@@ -23,7 +24,6 @@ from ..source1.bsp.import_bsp import import_bsp
 from ..source1.dmx.load_sfm_session import load_session
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
-
 
 # noinspection PyPep8Naming
 class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
@@ -161,15 +161,13 @@ class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming
-class SOURCEIO_OT_SkyboxImport(bpy.types.Operator):
+class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
     """Load Source Engine Skybox texture"""
     bl_idname = "sourceio.vtf_skybox"
     bl_label = "Import Skybox"
     bl_options = {'UNDO'}
 
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
-    filepath: StringProperty(subtype='FILE_PATH', )
-    files: CollectionProperty(name='File paths', type=bpy.types.OperatorFileListElement)
     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
 
     resolution: EnumProperty(

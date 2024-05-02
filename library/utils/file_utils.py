@@ -105,7 +105,7 @@ class Buffer(abc.ABC, io.RawIOBase):
     def read_double(self):
         return self._read('d')
 
-    def read_ascii_string(self, length=None):
+    def read_ascii_string(self, length: Optional[int] = None):
         if length is not None:
             buffer = self.read(length).strip(b'\x00').rstrip(b'\x00')
             if b'\x00' in buffer:
@@ -278,13 +278,13 @@ class MemoryBuffer(Buffer):
     def close(self) -> None:
         self._buffer = None
 
-    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'MemorySlice':
         if offset is None:
             offset = self._offset
-
+        slice_offset = self.tell()
         if size == -1:
-            return MemoryBuffer(self._buffer[offset:])
-        return MemoryBuffer(self._buffer[offset:offset + size])
+            return MemorySlice(self._buffer[offset:], slice_offset)
+        return MemorySlice(self._buffer[offset:offset + size], slice_offset)
 
 
 class WritableMemoryBuffer(io.BytesIO, Buffer):
@@ -299,7 +299,7 @@ class WritableMemoryBuffer(io.BytesIO, Buffer):
     def size(self):
         return len(self.getbuffer())
 
-    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'MemorySlice':
         if offset is None:
             offset = self.tell()
 
@@ -340,14 +340,23 @@ class FileBuffer(io.FileIO, Buffer):
     def __str__(self) -> str:
         return f'<FileBuffer: {self.name!r} {self.tell()}/{self.size()}>'
 
-    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'MemorySlice':
         with self.save_current_offset():
             if offset is not None:
                 self.seek(offset)
-
+            slice_offset = self.tell()
             if size == -1:
-                return MemoryBuffer(self.read())
-            return MemoryBuffer(self.read(size))
+                return MemorySlice(self.read(), slice_offset)
+            return MemorySlice(self.read(size), slice_offset)
+
+
+class MemorySlice(MemoryBuffer):
+    def __init__(self, buffer: Union[bytes, bytearray, memoryview], offset: int):
+        super().__init__(buffer)
+        self._slice_offset = offset
+
+    def abs_tell(self):
+        return self.tell() + self._slice_offset
 
 
 T = TypeVar("T")

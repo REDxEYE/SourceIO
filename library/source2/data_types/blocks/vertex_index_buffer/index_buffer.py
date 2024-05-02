@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .....utils import Buffer, MemoryBuffer
-from .....utils.pylib import decode_index_buffer
+from .....utils.rustlib import decode_index_buffer
 
 
 @dataclass(slots=True)

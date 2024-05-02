@@ -6,6 +6,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
+from ...library.utils.rustlib.windows_x64.rustlib import save_hdr, save_png
 from ...logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("TextureUtils")
@@ -35,7 +36,8 @@ def _add_texture(texture_path: Path, real_name: str, *other_args):
 
 def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
     for image_existing in bpy.data.images:
-        if (fp := image_existing.get('full_path')) == None: continue
+        if (fp := image_existing.get('full_path')) is None:
+            continue
         if fp == texture_path.as_posix().lower():
             return image_existing
 
@@ -67,24 +69,31 @@ def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
 
 def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], data: np.ndarray, is_hdr: bool = False,
                              invert_y: bool = False):
-    image = bpy.data.images.new(texture_path.stem, width=dimensions[0], height=dimensions[1], alpha=True)
-    image.alpha_mode = "CHANNEL_PACKED"
-    image.file_format = "HDR" if is_hdr else "PNG"
-    _add_texture(texture_path, image.name)
+    _add_texture(texture_path, texture_path.stem)
 
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
 
-    image.pixels.foreach_set(data.ravel())
-    image['full_path'] = Path(texture_path).as_posix().lower()
     if bpy.context.scene.TextureCachePath != "":
         save_path = Path(bpy.context.scene.TextureCachePath) / texture_path
-        save_path = save_path.with_suffix(".hdr" if is_hdr else ".png")
         os.makedirs(save_path.parent, exist_ok=True)
-        image.save(filepath=save_path.as_posix())
-        image.filepath = save_path.as_posix()
+        save_path = save_path.with_suffix(".hdr" if is_hdr else ".png")
+
+        if is_hdr:
+            save_hdr(data.ravel(), dimensions[0], dimensions[1], save_path)
+        else:
+            save_png((data.ravel() * 255).astype(np.uint8), dimensions[0], dimensions[1], save_path)
+        posix_path = save_path.as_posix()
+        image = bpy.data.images.load(posix_path)
         logger.info(f"Save {texture_path.as_posix()!r} texture to disc: {save_path}")
     else:
+        image = bpy.data.images.new(texture_path.stem, width=dimensions[0], height=dimensions[1], alpha=True)
+        image.alpha_mode = "CHANNEL_PACKED"
+        image.file_format = "HDR" if is_hdr else "PNG"
+
+        image.pixels.foreach_set(data.ravel())
         image.pack()
         logger.info(f"Save {texture_path.as_posix()!r} texture to memory")
+    image['full_path'] = texture_path.as_posix().lower()
+
     return image

@@ -2,14 +2,17 @@
 
 import numpy as np
 
-from .interp import linear_interp
+
+def linear_interp(v0, v1, d):
+    """Basic Linear Interpolation"""
+    return v0 * (1 - d) + v1 * d
 
 
 def interp2d(
-    Q: list[np.ndarray],
-    dy: np.ndarray,
-    dx: np.ndarray,
-    mode: str = "bilinear",
+        Q: list[np.ndarray],
+        dy: np.ndarray,
+        dx: np.ndarray,
+        mode: str = "bilinear",
 ) -> np.ndarray:
     """Naive Interpolation
     (y,x): target pixel
@@ -17,92 +20,47 @@ def interp2d(
     """
     q00, q10, q01, q11 = Q
     if mode == "bilinear":
-        f0 = linear_interp(q00, q01, dx, 1)
-        f1 = linear_interp(q10, q11, dx, 1)
-        return linear_interp(f0, f1, dy, 1)
+        f0 = linear_interp(q00, q01, dx)
+        f1 = linear_interp(q10, q11, dx)
+        return linear_interp(f0, f1, dy)
     else:
         raise NotImplementedError
 
 
 def grid_sample(
-    img: np.ndarray,
-    grid: np.ndarray,
-    mode: str = "bilinear",
+        img: np.ndarray,
+        grid: np.ndarray,
+        mode: str = "bilinear",
 ) -> np.ndarray:
-    """Numpy Grid Sample"""
+    """Optimized Numpy Grid Sample using advanced indexing and avoiding unnecessary type conversions."""
     channels, h_in, w_in = img.shape
     _, h_out, w_out = grid.shape
 
-    # Image conversion values (Lookup Image dtype)
-    if img.dtype == np.uint8:
-        # uint8 is faster
-        # _min = 0
-        # _max = 255
-        _dtype = np.uint8
-    elif img.dtype == np.float64:
-        # _min = 0.0
-        # _max = 100.0
-        _dtype = np.float64
-    elif img.dtype == np.float32:
-        # _min = 0.0
-        # _max = 100.0
-        _dtype = np.float32
-    elif img.dtype == np.float16:
-        # _min = 0.0
-        # _max = 100.0
-        _dtype = np.float16
-    else:
-        raise ValueError("{} is not supported".format(img.dtype))
+    if img.dtype not in (np.uint8, np.float32):
+        raise ValueError(f"{img.dtype} is not supported")
 
     # Initialize output image
-    out = np.zeros((channels, h_out, w_out), dtype=_dtype)
-
     if mode == "bilinear":
-        # NOTE: uint8 convertion causes truncation, so use uint64
-        min_grid = np.floor(grid).astype(np.uint64)
-        max_grid = min_grid + 1
-        d_grid = grid - min_grid
+        y_min = np.floor(grid[0]).astype(int) % h_in
+        x_min = np.floor(grid[1]).astype(int) % w_in
+        y_max = (y_min + 1) % h_in
+        x_max = (x_min + 1) % w_in
+        y_d = grid[0] - np.floor(grid[0])
+        x_d = grid[1] - np.floor(grid[1])
 
-        y_d = d_grid[0, :, :]
-        x_d = d_grid[1, :, :]
-        y_d = y_d.flatten()
-        x_d = x_d.flatten()
+        Q00 = img[:, y_min, x_min]
+        Q10 = img[:, y_max, x_min]
+        Q01 = img[:, y_min, x_max]
+        Q11 = img[:, y_max, x_max]
 
-        max_grid[0, :, :] = np.where(
-            max_grid[0, :, :] >= h_in,
-            max_grid[0, :, :] - h_in,
-            max_grid[0, :, :],
-        )
-        max_grid[1, :, :] = np.where(
-            max_grid[1, :, :] >= w_in,
-            max_grid[1, :, :] - w_in,
-            max_grid[1, :, :],
-        )
-
-        y_mins = min_grid[0, :, :]
-        x_mins = min_grid[1, :, :]
-        y_mins = y_mins.flatten()
-        x_mins = x_mins.flatten()
-
-        y_maxs = max_grid[0, :, :]
-        x_maxs = max_grid[1, :, :]
-        y_maxs = y_maxs.flatten()
-        x_maxs = x_maxs.flatten()
-
-        Q00 = img[:, y_mins, x_mins]
-        Q10 = img[:, y_maxs, x_mins]
-        Q01 = img[:, y_mins, x_maxs]
-        Q11 = img[:, y_maxs, x_maxs]
-        out = interp2d([Q00, Q10, Q01, Q11], y_d, x_d, mode=mode)
+        f0 = (1 - y_d) * Q00 + y_d * Q10
+        f1 = (1 - y_d) * Q01 + y_d * Q11
+        out = (1 - x_d) * f0 + x_d * f1
 
     elif mode == "nearest":
-        round_grid = np.rint(grid).astype(np.uint64)
-        y = round_grid[0, :, :]
-        x = round_grid[1, :, :]
-        y = y.flatten()
-        x = x.flatten()
-
-        out = img[:, y, x]
+        y_nearest = np.rint(grid[0]).astype(int) % h_in
+        x_nearest = np.rint(grid[1]).astype(int) % w_in
+        out = img[:, y_nearest, x_nearest]
 
     else:
         raise ValueError("{} is not available".format(mode))
@@ -110,4 +68,4 @@ def grid_sample(
     # out = np.where(out >= _max, _max, out)
     # out = np.where(out < _min, _min, out)
     out = out.reshape(channels, h_out, w_out)
-    return out.astype(_dtype)
+    return out.astype(img.dtype)

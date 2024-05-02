@@ -37,7 +37,7 @@ class CompiledHeader:
         header_version = buffer.read_uint16()
         resource_version = buffer.read_uint16()
         assert header_version == 0x0000000c
-        block_info_offset = buffer.read_uint32()
+        buffer.skip(4)
         block_count = buffer.read_uint32()
         info_blocks = []
         if block_count:

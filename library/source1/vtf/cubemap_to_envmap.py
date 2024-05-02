@@ -19,7 +19,7 @@ class SkyboxException(Exception):
 
 def convert_skybox_to_equiangular(skyname, width=1024):
     content_manager = ContentManager()
-    sides_names = {'F': 'ft', 'R': 'rt', 'B': 'bk', 'L': 'lf', 'U': 'dn', 'D': 'up'}
+    sides_names = {'B': 'ft', 'R': 'rt', 'F': 'bk', 'L': 'lf', 'U': 'dn', 'D': 'up'}
     sides = {}
     max_s = 0
     use_hdr = False
@@ -36,20 +36,19 @@ def convert_skybox_to_equiangular(skyname, width=1024):
         if texture_file is None:
             raise SkyboxException(f'Failed to find skybox texture {texture_path}')
         side, h, w = load_texture(texture_file)
-        side = side.reshape((w, h, 4))
+        side = side.reshape((h, w, 4))
+        side = np.flipud(side)
         max_s = max(max(side.shape), max_s)
         if side.shape[0] < max_s or side.shape[1] < max_s:
             side = pad_to(side, max_s)
         side = np.rot90(side, 1)
         if k == 'D':
             side = np.rot90(side, 1)
-        if k == 'U':
+        elif k == 'U':
             side = np.flipud(side)
         sides[k] = side.T
     eq_map = convert_to_eq(sides, 'dict', width, width // 2, 'default', 'bilinear').T
-    rgba_data = np.rot90(eq_map)
-    main_texture = np.flipud(rgba_data)
-    del rgba_data
+    main_texture = np.rot90(eq_map)
     hdr_main_texture = None
     hdr_alpha_texture = None
     if use_hdr:
@@ -71,20 +70,20 @@ def convert_skybox_to_equiangular(skyname, width=1024):
             if texture_file is None:
                 raise SkyboxException(f'Failed to find skybox texture {texture_path}')
             side, h, w = load_texture(texture_file)
-            side = side.reshape((w, h, 4))
+            side = side.reshape((h, w, 4))
+            side = np.flipud(side)
             max_s = max(max(side.shape), max_s)
             if side.shape[0] < max_s or side.shape[1] < max_s:
                 side = pad_to(side, max_s)
             side = np.rot90(side, 1)
             if k == 'D':
                 side = np.rot90(side, 1)
-            if k == 'U':
+            elif k == 'U':
                 side = np.flipud(side)
             sides[k] = side.T
         eq_map = convert_to_eq(sides, 'dict', width // 2, width // 4, 'default', 'bilinear').T
-        rgba_data = np.rot90(eq_map)
-        a_data = rgba_data[:, :, 3].copy()
-        rgba_data[:, :, 3] = np.ones_like(rgba_data[:, :, 3])
-        hdr_main_texture = np.flipud(rgba_data)
+        hdr_main_texture = np.rot90(eq_map)
+        a_data = hdr_main_texture[:, :, 3].copy()
+        hdr_main_texture[:, :, 3] = np.ones_like(hdr_main_texture[:, :, 3])
         hdr_alpha_texture = np.dstack([a_data, a_data, a_data, np.full_like(a_data, 255)])
     return main_texture, hdr_main_texture, hdr_alpha_texture

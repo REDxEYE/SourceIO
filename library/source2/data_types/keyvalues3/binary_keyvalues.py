@@ -5,7 +5,7 @@ from typing import Any, Optional, Union
 import numpy as np
 
 from ....utils import Buffer, FileBuffer, MemoryBuffer, WritableMemoryBuffer
-from ....utils.pylib import LZ4ChainDecoder, lz4_compress, lz4_decompress, zstd_compress, zstd_decompress, \
+from ....utils.rustlib import LZ4ChainDecoder, lz4_compress, lz4_decompress, \
     zstd_compress_stream, zstd_decompress_stream
 from .enums import *
 from .types import *
@@ -391,13 +391,13 @@ class BinaryKeyValues:
                 raise NotImplementedError('Unknown compression method in KV3 v2 block')
 
             data = buffer.read(compressed_size)
-            u_data = lz4_decompress(data, compressed_size, uncompressed_size)
+            u_data = lz4_decompress(data, uncompressed_size)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
             data_buffer = MemoryBuffer(u_data)
             del u_data, data
         elif compression_method == 2:
             data = buffer.read(compressed_size)
-            u_data = zstd_decompress_stream(data, compressed_size, uncompressed_size + block_total_size)
+            u_data = zstd_decompress_stream(data,)
             assert len(
                 u_data) == uncompressed_size + block_total_size, "Decompressed data size does not match expected size"
             data_buffer = MemoryBuffer(u_data)

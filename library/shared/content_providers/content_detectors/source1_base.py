@@ -2,9 +2,7 @@ import traceback
 from abc import ABCMeta
 from pathlib import Path
 
-
 from .....logger import SourceLogMan
-from SourceIO.library.archives.vpk import InvalidMagic
 from ..content_provider_base import ContentDetectorBase, ContentProviderBase
 from ..non_source_sub_manager import NonSourceContentProvider
 from ..source1_content_provider import GameinfoContentProvider
@@ -21,7 +19,7 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
         for vpk in root_dir.glob('*_dir.vpk'):
             try:
                 content_providers[f'{root_dir.stem}_{vpk.stem}'] = VPKContentProvider(vpk)
-            except InvalidMagic as ex:
+            except IOError as ex:
                 print(f'Failed to load "{vpk}" VPK due to {ex}.')
                 traceback.print_exc()
                 print(f'Skipping {vpk}.')
@@ -52,4 +50,3 @@ class Source1DetectorBase(ContentDetectorBase, metaclass=ABCMeta):
             logger.exception(f"Failed to parse gameinfo for {game_root / name}", ex)
 
         cls.scan_for_vpk(game_root / name, content_providers)
-

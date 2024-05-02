@@ -9,13 +9,14 @@ from mathutils import Vector
 
 from .....library.shared.content_providers.content_manager import \
     ContentManager
+from .....library.source1.vtf.cubemap_to_envmap import SkyboxException
 from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....library.utils.path_utilities import path_stem
 from .....logger import SourceLogMan
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
 from ....utils.bpy_utils import add_material, get_or_create_material
-from ...vtf import SkyboxException, load_skybox_texture
+from ...vtf import load_skybox_texture
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes

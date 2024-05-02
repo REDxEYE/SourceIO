@@ -164,7 +164,7 @@ class ShaderBase:
             image = bpy.data.images.new(texture_name, width=512, height=512, alpha=False)
             image_data = np.full((512 * 512, 4), fill_color, np.float32).flatten()
             if bpy.app.version > (2, 83, 0):
-                image.pixels.foreach_set(image_data)
+                image.pixels.foreach_set(image_data.ravel())
             else:
                 image.pixels[:] = image_data
             return image
