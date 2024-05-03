@@ -6,7 +6,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from ...library.utils.rustlib.windows_x64.rustlib import save_hdr, save_png
+from ...library.utils.rustlib.windows_x64.rustlib import save_exr, save_png, encode_exr, encode_png
 from ...logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("TextureUtils")
@@ -77,22 +77,25 @@ def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], da
     if bpy.context.scene.TextureCachePath != "":
         save_path = Path(bpy.context.scene.TextureCachePath) / texture_path
         os.makedirs(save_path.parent, exist_ok=True)
-        save_path = save_path.with_suffix(".hdr" if is_hdr else ".png")
+        save_path = save_path.with_suffix(".exr" if is_hdr else ".png")
 
         if is_hdr:
-            save_hdr(data.ravel(), dimensions[0], dimensions[1], save_path)
+            save_exr(data.ravel(), dimensions[0], dimensions[1], save_path)
         else:
             save_png((data.ravel() * 255).astype(np.uint8), dimensions[0], dimensions[1], save_path)
         posix_path = save_path.as_posix()
         image = bpy.data.images.load(posix_path)
         logger.info(f"Save {texture_path.as_posix()!r} texture to disc: {save_path}")
     else:
-        image = bpy.data.images.new(texture_path.stem, width=dimensions[0], height=dimensions[1], alpha=True)
-        image.alpha_mode = "CHANNEL_PACKED"
-        image.file_format = "HDR" if is_hdr else "PNG"
-
-        image.pixels.foreach_set(data.ravel())
-        image.pack()
+        data = np.flipud(data).ravel()
+        if is_hdr:
+            image_data = encode_exr(data, dimensions[0], dimensions[1])
+        else:
+            image_data = encode_png((data * 255).astype(np.uint8), dimensions[0], dimensions[1])
+        image = bpy.data.images.new(texture_path.stem, width=1, height=1)
+        image.pack(data=image_data, data_len=len(image_data))
+        image.source = 'FILE'
+        image.alpha_mode = 'CHANNEL_PACKED'
         logger.info(f"Save {texture_path.as_posix()!r} texture to memory")
     image['full_path'] = texture_path.as_posix().lower()
 
