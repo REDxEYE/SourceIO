@@ -36,6 +36,8 @@ def convert_skybox_to_equiangular(skyname, width=1024):
         if texture_file is None:
             raise SkyboxException(f'Failed to find skybox texture {texture_path}')
         side, h, w = load_texture(texture_file)
+        if side is None:
+            raise SkyboxException(f'Failed to load texture {texture_path}')
         side = side.reshape((h, w, 4))
         side = np.flipud(side)
         max_s = max(max(side.shape), max_s)
@@ -70,6 +72,8 @@ def convert_skybox_to_equiangular(skyname, width=1024):
             if texture_file is None:
                 raise SkyboxException(f'Failed to find skybox texture {texture_path}')
             side, h, w = load_texture(texture_file)
+            if side is None:
+                raise SkyboxException(f'Failed to load texture {texture_path}')
             side = side.reshape((h, w, 4))
             side = np.flipud(side)
             max_s = max(max(side.shape), max_s)

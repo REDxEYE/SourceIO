@@ -6,7 +6,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from ...library.utils.rustlib.windows_x64.rustlib import save_exr, save_png, encode_exr, encode_png
+from ...library.utils.rustlib import save_exr, save_png, encode_exr, encode_png
 from ...logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("TextureUtils")
