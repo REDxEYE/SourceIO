@@ -21,9 +21,24 @@ class BspFile:
         self = cls(filepath, buffer)
         self.version = buffer.read_uint32()
         self.lumps_info = []
-        for lump_id in LumpType:
-            lump_info = LumpInfo.from_buffer(buffer, lump_id)
-            self.lumps_info.append(lump_info)
+
+        lump0 = LumpInfo.from_buffer(buffer, LumpType.LUMP_ENTITIES)
+        lump1 = LumpInfo.from_buffer(buffer, LumpType.LUMP_PLANES)
+
+        if lump0.offset <= lump1.offset:
+            lump0.id = LumpType.LUMP_PLANES
+            lump1.id = LumpType.LUMP_ENTITIES
+            self.lumps_info.append(lump1)
+            self.lumps_info.append(lump0)
+            for lump_id in range(2, 15):
+                lump_info = LumpInfo.from_buffer(buffer, LumpType(lump_id))
+                self.lumps_info.append(lump_info)
+        else:
+            self.lumps_info.append(lump0)
+            self.lumps_info.append(lump1)
+            for lump_id in range(2, 15):
+                lump_info = LumpInfo.from_buffer(buffer, LumpType(lump_id))
+                self.lumps_info.append(lump_info)
         assert self.version in (29, 30), 'Not a GoldSRC map file (BSP29, BSP30)'
         return self
 
