@@ -55,6 +55,17 @@ class StudioHeader:
         assert version in [6, 10], f'MDL version {version} are not supported by GoldSrc importer'
         name = buffer.read_ascii_string(64)
         file_size = buffer.read_int32()
-        hdr_data = buffer.read_fmt('16I')
-        buffer.skip(12 * 4)
-        return cls(version, name, file_size, *hdr_data)
+
+        (
+            bone_count, bone_offset,
+            bone_controllers_count, bone_controllers_offset,
+            sequence_count, sequence_offset,
+            texture_count, texture_offset, texture_data_offset,
+            skin_ref_count, skin_families_count, skin_offset,
+            body_part_count, body_part_offset,
+        ) = buffer.read_fmt('14I')
+
+        buffer.skip(14 * 4)
+        return cls(version, name, file_size, bone_count, bone_offset, bone_controllers_count, bone_controllers_offset,
+                   sequence_count, sequence_offset, 0, 0, texture_count, texture_offset, texture_data_offset,
+                   skin_ref_count, skin_families_count, skin_offset, body_part_count, body_part_offset)

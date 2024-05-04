@@ -35,8 +35,9 @@ class Mdl:
         for sequence in sequences:
             sequence_animations = []
             sequence: StudioSequence
-            for _ in range(header.bone_count):
-                sequence_animations.append(StudioAnimation.from_buffer(buffer, sequence.frame_count))
+            with buffer.read_from_offset(sequence.anim_offset):
+                for _ in range(header.bone_count):
+                    sequence_animations.append(StudioAnimation.from_buffer(buffer, sequence.frame_count))
             animations.append(sequence_animations)
         # sequence = self.sequences[0]
         # for n, bone in enumerate(self.bones):

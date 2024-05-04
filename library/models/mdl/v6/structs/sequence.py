@@ -34,7 +34,7 @@ class StudioSequence:
          pivot_count, pivot_offset,
          motion_type, motion_bone,
          unused_2,
-         ) = buffer.read_fmt('<fI9I')
+         ) = buffer.read_fmt('fI9I')
         linear_movement = buffer.read_fmt('3f')
         blend_count = buffer.read_uint32()
         anim_offset = buffer.read_uint32()

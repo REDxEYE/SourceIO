@@ -23,12 +23,13 @@ class StudioAnimation:
     @classmethod
     def from_buffer(cls, buffer: Buffer, frame_count: int):
         pos_count, pos_offset, rot_count, rot_offset = buffer.read_fmt('4I')
-        buffer.seek(pos_offset)
-        raw_pos_data = np.frombuffer(buffer.read(pos_count * raw_pos_dtype.itemsize), raw_pos_dtype)
+        with buffer.save_current_offset():
+            buffer.seek(pos_offset)
+            raw_pos_data = np.frombuffer(buffer.read(pos_count * raw_pos_dtype.itemsize), raw_pos_dtype)
 
-        buffer.seek(rot_offset)
-        raw_rot_data = np.frombuffer(buffer.read(rot_count * raw_rot_dtype.itemsize), raw_rot_dtype)
-
+            buffer.seek(rot_offset)
+            raw_rot_data = np.frombuffer(buffer.read(rot_count * raw_rot_dtype.itemsize), raw_rot_dtype)
+        # buffer.skip(2)
         frames = np.zeros((frame_count, 2, 3,), np.float32)
 
         total_count = frames.shape[0]
