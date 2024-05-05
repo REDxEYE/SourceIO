@@ -46,11 +46,41 @@ class StudioTexture:
 
         with buffer.save_current_offset():
             buffer.seek(offset)
-            if name.endswith(".pvr"):
+            psi_name = buffer.peek(16).strip(b"\x00").rstrip(b"\x00")
+            if name.encode("latin1").startswith(psi_name):
+                data = cls.read_psi(buffer, height, width)
+            elif name.endswith(".pvr"):
                 data = cls.read_pvr(buffer, height, width)
             else:
                 data = cls.read_bmp(buffer, height, name, width)
         return cls(name, flags, width, height, data.astype(np.float32) / 255)
+
+    @classmethod
+    def read_psi(cls, buffer, height, width):
+        def reformat_palette(palette):
+            for i in range(palette.shape[0]):
+                remainder = i % (0x20 * 4)
+                if ((0x10 * 4) <= remainder) and (remainder < (0x18 * 4)):
+                    temp = palette[i]
+                    palette[i] = palette[i - (0x08 * 4)]
+                    palette[i - (0x08 * 4)] = temp
+            return palette
+
+        lod_count, image_type, p_width, p_height, up_width, up_height = buffer.read_fmt("2I4H")
+        unk = buffer.read_fmt("4I")
+        # How many LODs. Used in decals only
+        # 2 - 8 bit palettized image, 5 - 32 bit RGBA image
+        # Texture width (in pixels)
+        # Texture height (in pixels)
+        # Upscale: target width (in pixels)
+        # Upscale: target height (in pixels)
+        palette = np.frombuffer(buffer.read(256 * 4), np.uint8).reshape(-1, 4)
+        palette = reformat_palette(palette.copy().ravel()).reshape(-1, 4)
+        palette[:, 3] = 255
+        indices = np.frombuffer(buffer.read(width * height), np.uint8)
+        colors = palette[indices]
+        data = np.flip(colors.reshape((height, width, 4)), 0)
+        return data
 
     @classmethod
     def read_pvr(cls, buffer, height, width):
@@ -95,8 +125,8 @@ class StudioTexture:
             return rgba8888_array
 
         if image_format == PVRImageFormat.RECT:
-            buffer = rgb565_to_rgba8888(np.frombuffer(buffer.read(width * height * 2), dtype=np.uint16)).reshape(height, width, 4)
-            return buffer
+            buffer = (np.frombuffer(buffer.read(width * height * 2), dtype=np.uint16))
+            return rgb565_to_rgba8888(buffer).reshape(height, width, 4)
         elif image_format == PVRImageFormat.TWIDDLE:
             raise NotImplementedError()
         elif image_format == PVRImageFormat.VQ:
