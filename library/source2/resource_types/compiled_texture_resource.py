@@ -203,19 +203,12 @@ class CompiledTextureResource(CompiledResource):
             if flip:
                 data = np.flipud(data)
         elif pixel_format == VTexFormat.BC6H:
-            data = decode_texture(data, width, height, "BC6")
-            data = np.frombuffer(data, np.uint8, width * height * 4).astype(np.float32) / 255
-            data = data.reshape(width, height, 4)
+            t_data = decode_texture(data, width, height, "BC6")
+            tmp = np.frombuffer(t_data, np.float32, width * height * 3).reshape((width, height, 3))
             if flip:
-                data = np.flipud(data)
-            # data[3::4] = 1
-
-            # t_data = decode_texture(data, width, height, "BC6")
-            # tmp = np.frombuffer(t_data, np.float32, width * height * 3).reshape((width, height, 3))
-            # if flip:
-            #     tmp = np.flipud(tmp)
-            # data = np.ones((width, height, 4), dtype=np.float32)
-            # data[:, :, :3] = tmp
+                tmp = np.flipud(tmp)
+            data = np.ones((width, height, 4), dtype=np.float32)
+            data[:, :, :3] = tmp
         elif pixel_format == VTexFormat.BC7:
             data = decode_texture(data, width, height, "BC7")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))

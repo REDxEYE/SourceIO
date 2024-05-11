@@ -73,22 +73,21 @@ def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], da
 
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
-    data = np.fliplr(data)
     if bpy.context.scene.TextureCachePath != "":
         save_path = Path(bpy.context.scene.TextureCachePath) / texture_path
         os.makedirs(save_path.parent, exist_ok=True)
         save_path = save_path.with_suffix(".exr" if is_hdr else ".png")
-
         if is_hdr:
             save_exr(data.ravel(), dimensions[0], dimensions[1], save_path)
         else:
-            save_png((data.ravel() * 255).astype(np.uint8), dimensions[0], dimensions[1], save_path)
+            data = np.flipud(data.reshape(dimensions[1], dimensions[0], -1)).ravel()
+            save_png((data * 255).astype(np.uint8), dimensions[0], dimensions[1], save_path)
         posix_path = save_path.as_posix()
         image = bpy.data.images.load(posix_path)
         image.alpha_mode = 'CHANNEL_PACKED'
         logger.info(f"Save {texture_path.as_posix()!r} texture to disc: {save_path}")
     else:
-        data = data.ravel()
+        data = np.flipud(data.reshape(dimensions[1], dimensions[0], -1)).ravel()
         if is_hdr:
             image_data = encode_exr(data, dimensions[0], dimensions[1])
         else:
