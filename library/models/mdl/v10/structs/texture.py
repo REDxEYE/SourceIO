@@ -47,7 +47,7 @@ class StudioTexture:
         with buffer.save_current_offset():
             buffer.seek(offset)
             psi_name = buffer.peek(16).strip(b"\x00").rstrip(b"\x00")
-            if name.encode("latin1").startswith(psi_name):
+            if psi_name and name.encode("latin1").startswith(psi_name):
                 data = cls.read_psi(buffer, height, width)
             elif name.endswith(".pvr"):
                 data = cls.read_pvr(buffer, height, width)

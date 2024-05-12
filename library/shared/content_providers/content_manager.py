@@ -183,6 +183,9 @@ class ContentManager(metaclass=SingletonMeta):
                 root_path = root_path.parent
                 self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
 
+    def add_content_provider(self, name: str, content_provider: ContentProviderBase):
+        self.content_providers[name] = content_provider
+
     @staticmethod
     def is_source_mod(path: Path, second=False):
         if path.name == 'gameinfo.txt':
