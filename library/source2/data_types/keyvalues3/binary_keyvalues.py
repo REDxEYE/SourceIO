@@ -327,7 +327,7 @@ class BinaryKeyValues:
         elif compression_method == 1:
             compressed_size = buffer.size() - buffer.tell()
             data = buffer.read(compressed_size)
-            u_data = lz4_decompress(data, compressed_size, uncompressed_size)
+            u_data = lz4_decompress(data, uncompressed_size)
             assert len(u_data) == uncompressed_size, "Decompressed data size does not match expected size"
             data_buffer = MemoryBuffer(u_data)
             del u_data, data
