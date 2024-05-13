@@ -44,7 +44,7 @@ class KVBlock(dict[str, BaseType], BaseBlock):
                 self.update(kv3.root)
             elif self.has_ntro:
                 ntro, = self._resource.get_data_block(block_name='NTRO')
-                self.update(ntro.read_struct(buffer.slice, self._get_struct(ntro)))
+                self.update(ntro.read_struct(buffer.slice(), self._get_struct(ntro)))
             else:
                 raise NotImplementedError('Unknown data block format')
         return self

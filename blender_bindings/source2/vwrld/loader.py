@@ -34,7 +34,7 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
     manifest_resource_path = next(filter(lambda a: a.endswith(".vrman"), map_resource.get_child_resources()), None)
     if manifest_resource_path is not None:
         manifest_resource = map_resource.get_child_resource(manifest_resource_path, cm, CompiledManifestResource)
-        world_resource_path = next(filter(lambda a: a.endswith(".vwrld"), manifest_resource.get_child_resources()),
+        world_resource_path = next(filter(lambda a: isinstance(a, str) and a.endswith(".vwrld"), manifest_resource.get_child_resources()),
                                    None)
         if world_resource_path is not None:
             world_resource = manifest_resource.get_child_resource(world_resource_path, cm)
