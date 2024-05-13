@@ -66,14 +66,7 @@ class StudioTexture:
                     palette[i - (0x08 * 4)] = temp
             return palette
 
-        lod_count, image_type, p_width, p_height, up_width, up_height = buffer.read_fmt("2I4H")
-        unk = buffer.read_fmt("4I")
-        # How many LODs. Used in decals only
-        # 2 - 8 bit palettized image, 5 - 32 bit RGBA image
-        # Texture width (in pixels)
-        # Texture height (in pixels)
-        # Upscale: target width (in pixels)
-        # Upscale: target height (in pixels)
+        buffer.read_fmt("2I4H4I")
         palette = np.frombuffer(buffer.read(256 * 4), np.uint8).reshape(-1, 4)
         palette = reformat_palette(palette.copy().ravel()).reshape(-1, 4)
         palette[:, 3] = 255
