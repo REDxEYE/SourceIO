@@ -59,7 +59,7 @@ def _block_decompress(in_buffer: Buffer) -> Buffer:
 def _decompress_lz4(in_buffer: Buffer) -> Buffer:
     decompressed_size = in_buffer.read_uint32()
     compressed_size = in_buffer.size() - in_buffer.tell()
-    return MemoryBuffer(lz4_decompress(in_buffer.read(-1), compressed_size, decompressed_size))
+    return MemoryBuffer(lz4_decompress(in_buffer.read(compressed_size), decompressed_size))
 
 
 class BinaryKeyValues:

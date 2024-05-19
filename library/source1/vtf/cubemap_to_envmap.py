@@ -19,7 +19,7 @@ class SkyboxException(Exception):
 
 def convert_skybox_to_equiangular(skyname, width=1024):
     content_manager = ContentManager()
-    sides_names = {'B': 'ft', 'R': 'rt', 'F': 'bk', 'L': 'lf', 'U': 'dn', 'D': 'up'}
+    sides_names = {'B': 'bk', 'R': 'rt', 'F': 'ft', 'L': 'lf', 'U': 'dn', 'D': 'up'}
     sides = {}
     max_s = 0
     use_hdr = False

@@ -53,7 +53,7 @@ class MorphBlock(KVBlock):
             if not vmorf:
                 logging.error(f'Failed to find {self["m_pTextureAtlas"]!r} morf texture')
                 return None
-            self._vmorf_texture = texture, (t_width, t_height) = vmorf.get_texture_data(0, False)
+            self._vmorf_texture = texture, (t_width, t_height) = vmorf.get_texture_data(0)
         else:
             texture, (t_width, t_height) = self._vmorf_texture
 

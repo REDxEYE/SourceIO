@@ -83,6 +83,6 @@ class Source2ShaderBase(ShaderBase):
             texture = check_texture_cache(texture_path)
             if texture is not None:
                 return texture
-            texture = import_texture(texture_resource, texture_path, True, invert_y)
+            texture = import_texture(texture_resource, texture_path, invert_y)
             return texture
         return None

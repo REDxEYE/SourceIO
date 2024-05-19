@@ -15,7 +15,6 @@ def load_texture(file_object):
             rgba_data = np.frombuffer(pixel_data, dtype=np.float32).reshape(height, width, 4)
         else:
             rgba_data = np.frombuffer(pixel_data, dtype=np.uint8).reshape(height, width, 4).astype(np.float32) / 255
-        rgba_data = np.fliplr(rgba_data)
         return rgba_data, height, width
     except Exception as ex:
         logger.error('Caught exception "{}" '.format(ex))

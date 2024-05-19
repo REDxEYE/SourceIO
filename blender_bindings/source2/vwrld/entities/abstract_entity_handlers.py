@@ -179,7 +179,7 @@ class AbstractEntityHandler:
                         return
                     obj.empty_display_type = 'IMAGE'
                     obj.empty_display_size = 16 * self.scale  # (1 / self.scale)
-                    obj.data = import_texture(image_resource, Path(path_texture), True)
+                    obj.data = import_texture(image_resource, Path(path_texture))
 
     @staticmethod
     def _create_lines(name, points, closed=False):

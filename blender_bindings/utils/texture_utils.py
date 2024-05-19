@@ -70,6 +70,8 @@ def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
 def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], data: np.ndarray, is_hdr: bool = False,
                              invert_y: bool = False):
     _add_texture(texture_path, texture_path.stem)
+    # data = np.flipud(data.reshape(dimensions[1], dimensions[0], -1)).ravel()
+    data = data.ravel()
 
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
@@ -80,14 +82,12 @@ def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], da
         if is_hdr:
             save_exr(data.ravel(), dimensions[0], dimensions[1], save_path)
         else:
-            data = np.flipud(data.reshape(dimensions[1], dimensions[0], -1)).ravel()
             save_png((data * 255).astype(np.uint8), dimensions[0], dimensions[1], save_path)
         posix_path = save_path.as_posix()
         image = bpy.data.images.load(posix_path)
         image.alpha_mode = 'CHANNEL_PACKED'
         logger.info(f"Save {texture_path.as_posix()!r} texture to disc: {save_path}")
     else:
-        data = np.flipud(data.reshape(dimensions[1], dimensions[0], -1)).ravel()
         if is_hdr:
             image_data = encode_exr(data, dimensions[0], dimensions[1])
         else:

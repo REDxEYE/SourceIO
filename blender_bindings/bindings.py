@@ -13,8 +13,7 @@ from .operators.shared_operators import (SOURCEIO_UL_MountedResource, shared_cla
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_DMXImporter,
                                           SOURCEIO_OT_MDLImport)
-from .operators.source2_operators import (SOURCEIO_OT_DMXCameraImport,
-                                          SOURCEIO_OT_VMAPImport,
+from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMATImport,
                                           SOURCEIO_OT_VMDLImport,
                                           SOURCEIO_OT_VPK_VMAPImport,
@@ -82,16 +81,16 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         # layout.operator(SourceIO_OP_VPKBrowser.bl_idname, text="[!!!WIP!!!]Browse already open VPK (.vpk)",
         #                 icon_value=bsp_icon.icon_id)
         # layout.separator()
-        layout.menu(SourceIOUtils_MT_Menu.bl_idname)
+        # layout.menu(SourceIOUtils_MT_Menu.bl_idname)
 
 
-class SourceIOUtils_MT_Menu(bpy.types.Menu):
-    bl_label = "Source Engine Utils"
-    bl_idname = "IMPORT_MT_sourceio_utils"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.operator(SOURCEIO_OT_DMXCameraImport.bl_idname, text="Valve camera(.dmx)")
+# class SourceIOUtils_MT_Menu(bpy.types.Menu):
+#     bl_label = "Source Engine Utils"
+#     bl_idname = "IMPORT_MT_sourceio_utils"
+#
+#     def draw(self, context):
+#         layout = self.layout
+#         layout.operator(SOURCEIO_OT_DMXCameraImport.bl_idname, text="Valve camera(.dmx)")
 
 
 def menu_import(self, context):
@@ -137,7 +136,7 @@ classes = [
     SOURCEIO_OT_DMXImporter,
 
     # Source2 stuff
-    SOURCEIO_OT_DMXCameraImport,
+    # SOURCEIO_OT_DMXCameraImport,
     SOURCEIO_OT_VMDLImport,
     SOURCEIO_OT_VTEXImport,
     SOURCEIO_OT_VMATImport,
@@ -147,7 +146,7 @@ classes = [
     # Addon tools
     # SourceIOPreferences,
     SourceIO_MT_Menu,
-    SourceIOUtils_MT_Menu,
+    # SourceIOUtils_MT_Menu,
 
     SOURCEIO_OT_VTFImport,
     SOURCEIO_OT_VMTImport,

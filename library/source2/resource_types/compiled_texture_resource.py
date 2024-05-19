@@ -123,10 +123,10 @@ class CompiledTextureResource(CompiledResource):
         width = data_block.texture_info.width >> mip_level
         height = data_block.texture_info.height >> mip_level
 
-        data = self._decompress_texture(face_data, False, height, pixel_format, width)
+        data = self._decompress_texture(face_data, height, pixel_format, width)
         return data, (width, height)
 
-    def get_texture_data(self, mip_level: int = 0, flip=True):
+    def get_texture_data(self, mip_level: int = 0):
         logger.info(f'Loading texture {self._filepath.as_posix()!r}')
         info_block = None
         for block in self._header.blocks:
@@ -167,10 +167,10 @@ class CompiledTextureResource(CompiledResource):
         height = data_block.texture_info.height
         if self.is_cubemap():
             height *= 6
-        data = self._decompress_texture(data, flip, height, pixel_format, width)
+        data = self._decompress_texture(data, height, pixel_format, width)
         return data, (width, height)
 
-    def _decompress_texture(self, data: bytes, flip, height, pixel_format, width):
+    def _decompress_texture(self, data: bytes, height, pixel_format, width):
         resource_info_block: ResourceEditInfo
         resource_info_block, = self.get_data_block(block_name="REDI")
         if resource_info_block is None:
@@ -200,20 +200,14 @@ class CompiledTextureResource(CompiledResource):
 
         if pixel_format == VTexFormat.RGBA8888:
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-            if flip:
-                data = np.flipud(data)
         elif pixel_format == VTexFormat.BC6H:
             t_data = decode_texture(data, width, height, "BC6")
             tmp = np.frombuffer(t_data, np.float32, width * height * 3).reshape((width, height, 3))
-            if flip:
-                tmp = np.flipud(tmp)
             data = np.ones((width, height, 4), dtype=np.float32)
             data[:, :, :3] = tmp
         elif pixel_format == VTexFormat.BC7:
             data = decode_texture(data, width, height, "BC7")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            if flip:
-                data = np.flipud(data)
             output = data.copy()
             del data
             if hemi_oct_aniso_roughness:
@@ -227,13 +221,9 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.ATI1N:
             data = decode_texture(data, width, height, "ATI1N")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-            if flip:
-                data = np.flipud(data)
         elif pixel_format == VTexFormat.ATI2N:
             data = decode_texture(data, width, height, "ATI2N")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            if flip:
-                data = np.flipud(data)
             output = data.copy()
             del data
             if normalize:
@@ -248,13 +238,9 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.DXT1:
             data = decode_texture(data, width, height, "DXT1")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
-            if flip:
-                data = np.flipud(data)
         elif pixel_format == VTexFormat.DXT5:
             data = decode_texture(data, width, height, "DXT5")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            if flip:
-                data = np.flipud(data)
             output = data.copy()
             if y_co_cg:
                 output = self._y_co_cg(output)

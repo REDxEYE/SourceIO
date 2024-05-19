@@ -10,12 +10,12 @@ from ...logger import SourceLogMan
 logger = SourceLogMan().get_logger("Source2::Texture")
 
 
-def import_texture(resource: CompiledTextureResource, texture_path: Path, flip: bool, invert_y: bool = False):
+def import_texture(resource: CompiledTextureResource, texture_path: Path, invert_y: bool = False):
     logger.info(f'Loading {texture_path} texture')
     if texture_path.stem + '.tga' in bpy.data.images:
         logger.info('Using already loaded texture')
         return bpy.data.images[f'{texture_path.stem}.tga']
-    pixel_data, (width, height) = resource.get_texture_data(0, flip)
+    pixel_data, (width, height) = resource.get_texture_data(0)
 
     if pixel_data.shape[0] == 0:
         return None

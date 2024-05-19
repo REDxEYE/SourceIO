@@ -314,7 +314,6 @@ class SOURCEIO_OT_ChangeSkin(Operator):
                 self.handle_s2(obj)
 
         obj['active_skin'] = self.skin_name
-
         return {'FINISHED'}
 
     def handle_s1(self, obj):

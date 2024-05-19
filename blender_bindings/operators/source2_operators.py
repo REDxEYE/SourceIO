@@ -163,7 +163,6 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
     bl_options = {'UNDO'}
     need_popup = False
 
-    flip: BoolProperty(name="Flip texture", default=True)
     filter_glob: StringProperty(default="*.vtex_c", options={'HIDDEN'})
 
     def execute(self, context):
@@ -171,7 +170,7 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
         for file in self.files:
             with FileBuffer(directory / file.name) as f:
                 texture_resource = CompiledTextureResource.from_buffer(f, directory / file.name)
-                image = import_texture(texture_resource, Path(file.name), self.flip)
+                image = import_texture(texture_resource, Path(file.name))
 
                 if is_blender_4_1():
                     if (context.region and context.region.type == 'WINDOW'
