@@ -13,7 +13,8 @@ from SourceIO.library.utils import Buffer
 from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_new_unique_collection, get_or_create_material
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_new_unique_collection, get_or_create_material, \
+    is_blender_4_1
 from SourceIO.library.utils.path_utilities import path_stem
 
 
@@ -76,7 +77,6 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
         for body_part_model in body_part.models:
             model_name = body_part_model.name
 
-
             model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
             model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
@@ -96,42 +96,45 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
             model_materials = []
 
             uv_per_mesh = []
+            transformed_normals = []
 
             for model_index, body_part_model_mesh in enumerate(body_part_model.meshes):
                 mesh_texture = mdl_file_textures[body_part_model_mesh.skin_ref]
                 model_materials.extend(np.full(body_part_model_mesh.triangle_count, body_part_model_mesh.skin_ref))
 
                 for mesh_triverts, mesh_triverts_fan in body_part_model_mesh.triangles:
+                    def process(v0, v1, v2):
+                        model_indices.append([v0.vertex_index, v1.vertex_index, v2.vertex_index])
+                        model_normals.extend((body_part_model.normals[v0.normal_index],
+                                              body_part_model.normals[v1.normal_index],
+                                              body_part_model.normals[v2.normal_index]))
+                        uv_per_mesh.append({
+                            v0.vertex_index: (v0.uv[0] / mesh_texture.width, 1 - v0.uv[1] / mesh_texture.height),
+                            v1.vertex_index: (v1.uv[0] / mesh_texture.width, 1 - v1.uv[1] / mesh_texture.height),
+                            v2.vertex_index: (v2.uv[0] / mesh_texture.width, 1 - v2.uv[1] / mesh_texture.height)
+                        })
+                        transform = bone_transforms[body_part_model.bone_normal_info[v0.vertex_index]].to_3x3()
+                        n0 = Vector(body_part_model.normals[v0.normal_index])
+                        n1 = Vector(body_part_model.normals[v1.normal_index])
+                        n2 = Vector(body_part_model.normals[v2.normal_index])
+                        n0 = n0 @ transform
+                        n1 = n1 @ transform
+                        n2 = n2 @ transform
+                        transformed_normals.append(n0.normalized())
+                        transformed_normals.append(n1.normalized())
+                        transformed_normals.append(n2.normalized())
+
                     if mesh_triverts_fan:
                         for index in range(1, len(mesh_triverts) - 1):
-                            v0 = mesh_triverts[0]
-                            v1 = mesh_triverts[index + 1]
-                            v2 = mesh_triverts[index]
+                            process(mesh_triverts[0],
+                                    mesh_triverts[index + 1],
+                                    mesh_triverts[index])
 
-                            model_indices.append([v0.vertex_index, v1.vertex_index, v2.vertex_index])
-                            model_normals.extend((body_part_model.normals[v0.normal_index],
-                                                  body_part_model.normals[v1.normal_index],
-                                                  body_part_model.normals[v2.normal_index]))
-                            uv_per_mesh.append({
-                                v0.vertex_index: (v0.uv[0] / mesh_texture.width, 1 - v0.uv[1] / mesh_texture.height),
-                                v1.vertex_index: (v1.uv[0] / mesh_texture.width, 1 - v1.uv[1] / mesh_texture.height),
-                                v2.vertex_index: (v2.uv[0] / mesh_texture.width, 1 - v2.uv[1] / mesh_texture.height)
-                            })
                     else:
                         for index in range(len(mesh_triverts) - 2):
-                            v0 = mesh_triverts[index]
-                            v1 = mesh_triverts[index + 2 - (index & 1)]
-                            v2 = mesh_triverts[index + 1 + (index & 1)]
-
-                            model_indices.append([v0.vertex_index, v1.vertex_index, v2.vertex_index])
-                            model_normals.extend((body_part_model.normals[v0.normal_index],
-                                                  body_part_model.normals[v1.normal_index],
-                                                  body_part_model.normals[v2.normal_index]))
-                            uv_per_mesh.append({
-                                v0.vertex_index: (v0.uv[0] / mesh_texture.width, 1 - v0.uv[1] / mesh_texture.height),
-                                v1.vertex_index: (v1.uv[0] / mesh_texture.width, 1 - v1.uv[1] / mesh_texture.height),
-                                v2.vertex_index: (v2.uv[0] / mesh_texture.width, 1 - v2.uv[1] / mesh_texture.height)
-                            })
+                            process(mesh_triverts[index],
+                                    mesh_triverts[index + 2 - (index & 1)],
+                                    mesh_triverts[index + 1 + (index & 1)])
             remap = {}
             for model_material_index in np.unique(model_materials):
                 model_texture_info = mdl_file_textures[model_material_index]
@@ -141,8 +144,14 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
             model_mesh.from_pydata(model_vertices, [], model_indices)
             model_mesh.update()
             model_mesh.polygons.foreach_set("use_smooth", np.ones(len(model_mesh.polygons), np.uint32))
-            model_mesh.normals_split_custom_set(model_normals)
             model_mesh.polygons.foreach_set('material_index', [remap[a] for a in model_materials])
+
+            # if not is_blender_4_1():
+            #     model_mesh.use_auto_smooth = True
+            vertex_indices = np.zeros((len(model_mesh.loops, )), dtype=np.uint32)
+            model_mesh.loops.foreach_get('vertex_index', vertex_indices)
+            # model_mesh.normals_split_custom_set(np.asarray(transformed_normals)[vertex_indices])
+            # model_mesh.normals_split_custom_set(np.asarray(transformed_normals))
 
             model_mesh.uv_layers.new()
             model_mesh_uv = model_mesh.uv_layers[0].data
@@ -162,6 +171,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
                 vertex_group_transform = bone_transforms[vertex_bone_index]
                 for vertex in vertex_bone_vertices:
                     model_mesh.vertices[vertex].co = vertex_group_transform @ model_mesh.vertices[vertex].co
+                    # model_mesh.vertices[vertex].normal = vertex_group_transform @ model_mesh.vertices[vertex].normal
 
     return ModelContainer(objects, bodygroups, [], [], armature)
 
