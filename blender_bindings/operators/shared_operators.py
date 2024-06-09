@@ -1,7 +1,8 @@
-import traceback
 from hashlib import md5
 from itertools import chain
 from pathlib import Path
+from typing import Any, MutableMapping
+
 from bpy.props import (BoolProperty, StringProperty)
 from bpy.types import (Panel,
                        Operator,
@@ -177,7 +178,8 @@ class SourceIO_OT_LoadEntity(Operator):
                     options.import_physics = context.scene.import_physics
                     try:
                         model_container = import_model(prop_path, mdl_file,
-                                                       content_manager, options, ((cp.steam_id or None) if cp else None))
+                                                       content_manager, options,
+                                                       ((cp.steam_id or None) if cp else None))
                     except RequiredFileNotFound as e:
                         self.report({"ERROR"}, e.message)
                         return {'CANCELLED'}
@@ -427,16 +429,79 @@ class SOURCEIO_PT_EntityInfo(UITools, Panel):
         if obj.get("entity_data", None):
             entity_data = obj['entity_data']
             entity_raw_data = entity_data.get('entity', {})
+
             box = self.layout.box()
-            for k, v in entity_raw_data.items():
-                row = box.row()
-                row.label(text=f'{k}:')
-                if isinstance(v, IDPropertyArray):
-                    row.label(text=str(v.to_list()))
-                elif isinstance(v, IDPropertyGroup):
-                    row.label(text=str(v.to_dict()))
+            for k1, v1 in entity_raw_data.items():
+                self.draw_recursive(context, box, k1, v1, "")
+
+    def draw_recursive(self, context, layout: bpy.types.UILayout, key: str, value: Any, parent_key: str,
+                       indent: int = 0):
+        row = layout.row()
+        block_key = f"{parent_key}.{key}"
+        tree_ = context.scene.get("SIO_expand_tree", {}).get(context.active_object.name, {})
+        if indent > 0:
+            spacer = row.split(factor=0.1)
+            spacer.label(text=" " * indent)
+            row = spacer.row()
+        if isinstance(value, (IDPropertyArray, list)):
+            if 0 < len(value) <= 4 and isinstance(value[0], (int, float)):
+                row.label(text=f'{key}:')
+                row = row.row()
+                row.label(text=", ".join(map(str, value)))
+            else:
+                expanded = tree_.get(block_key, False)
+                op = row.operator('sourceio.expand_block', text="", icon="TRIA_UP" if expanded else "TRIA_DOWN")
+                op.id = block_key
+                row.label(text=f'{key}:')
+                if expanded:
+                    row.label(text="")
+                    for i, item in enumerate(value):
+                        self.draw_recursive(context, layout, f"[{i}]", item, block_key, indent + 1)
                 else:
-                    row.label(text=str(v))
+                    row.label(text=f'...')
+
+        elif isinstance(value, (IDPropertyGroup, dict)):
+            expanded = tree_.get(block_key, False)
+            op = row.operator('sourceio.expand_block', text="", icon="TRIA_UP" if expanded else "TRIA_DOWN",
+                              emboss=True,
+                              depress=expanded)
+            op.id = block_key
+            row.label(text=f'{key}:')
+            if expanded:
+                row.label(text="")
+                for k1, v1 in value.items():
+                    self.draw_recursive(context, layout, k1, v1, block_key, indent + 1)
+            else:
+                row.label(text=f'...')
+        else:
+            row.label(text=f'{key}:')
+            row.label(text=str(value))
+
+
+class SOURCEIO_OP_ExpandBlock(Operator):
+    bl_label = 'Expand Block'
+    bl_idname = "sourceio.expand_block"
+
+    id: StringProperty(default="")
+
+    def execute(self, context):
+        scn = context.scene
+        key = "SIO_expand_tree"
+        if scn.get(key, None) is None:
+            scn[key] = {}
+        expand_tree: MutableMapping = scn[key]
+        if len(expand_tree) > 10:
+            expand_tree.pop(list(expand_tree.keys())[0])
+
+        if context.active_object.name not in expand_tree:
+            expand_tree[context.active_object.name] = {}
+
+        if self.id in expand_tree[context.active_object.name]:
+            del expand_tree[context.active_object.name][self.id]
+        else:
+            expand_tree[context.active_object.name][self.id] = True
+
+        return {'FINISHED'}
 
 
 class SOURCEIO_PT_SkinChanger(UITools, Panel):
@@ -645,6 +710,7 @@ shared_classes = (
     SOURCEIO_PT_EntityLoader,
     SOURCEIO_PT_EntityInfo,
     SOURCEIO_PT_SkinChanger,
+    SOURCEIO_OP_ExpandBlock,
     SourceIO_OT_LoadEntity,
     SOURCEIO_OT_ChangeSkin,
 )
