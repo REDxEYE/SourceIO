@@ -44,6 +44,7 @@ In order to find the import tools you simply need to go to File>Import>Source En
 |-----------| ------------------------------------------------------------------------------------------------|
 | CSGO              | Partial support: models, maps(not all entities), textures, materials                    | 
 | TF2               | Full support                                                                            |
+| Garry's Mod       | Full support                                                                            |
 | HL2 and episodes  | Full support                                                                            |
 | Portal 1/2        | Full support                                                                            |
 | L4D2              | Full support(expect infected materials)                                                 | 
