@@ -96,7 +96,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
             model_materials = []
 
             uv_per_mesh = []
-            transformed_normals = []
+            # transformed_normals = []
 
             for model_index, body_part_model_mesh in enumerate(body_part_model.meshes):
                 mesh_texture = mdl_file_textures[body_part_model_mesh.skin_ref]
@@ -113,16 +113,16 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
                             v1.vertex_index: (v1.uv[0] / mesh_texture.width, 1 - v1.uv[1] / mesh_texture.height),
                             v2.vertex_index: (v2.uv[0] / mesh_texture.width, 1 - v2.uv[1] / mesh_texture.height)
                         })
-                        transform = bone_transforms[body_part_model.bone_normal_info[v0.vertex_index]].to_3x3()
-                        n0 = Vector(body_part_model.normals[v0.normal_index])
-                        n1 = Vector(body_part_model.normals[v1.normal_index])
-                        n2 = Vector(body_part_model.normals[v2.normal_index])
-                        n0 = n0 @ transform
-                        n1 = n1 @ transform
-                        n2 = n2 @ transform
-                        transformed_normals.append(n0.normalized())
-                        transformed_normals.append(n1.normalized())
-                        transformed_normals.append(n2.normalized())
+                        # transform = bone_transforms[body_part_model.bone_normal_info[v0.vertex_index]].to_3x3()
+                        # n0 = Vector(body_part_model.normals[v0.normal_index])
+                        # n1 = Vector(body_part_model.normals[v1.normal_index])
+                        # n2 = Vector(body_part_model.normals[v2.normal_index])
+                        # n0 = n0 @ transform
+                        # n1 = n1 @ transform
+                        # n2 = n2 @ transform
+                        # transformed_normals.append(n0.normalized())
+                        # transformed_normals.append(n1.normalized())
+                        # transformed_normals.append(n2.normalized())
 
                     if mesh_triverts_fan:
                         for index in range(1, len(mesh_triverts) - 1):
