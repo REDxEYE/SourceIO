@@ -70,10 +70,10 @@ def check_texture_cache(texture_path: Path) -> Optional[bpy.types.Image]:
 def create_and_cache_texture(texture_path: Path, dimensions: tuple[int, int], data: np.ndarray, is_hdr: bool = False,
                              invert_y: bool = False):
     _add_texture(texture_path, texture_path.stem)
-    data = data.ravel()
-
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
+    data = data.ravel()
+
     if bpy.context.scene.TextureCachePath != "":
         save_path = Path(bpy.context.scene.TextureCachePath) / texture_path
         os.makedirs(save_path.parent, exist_ok=True)
