@@ -65,6 +65,7 @@ class SourceIO_OT_LoadEntity(Operator):
         content_manager = ContentManager()
         deserialize_mounted_content(content_manager)
         use_collections = context.scene.use_instances
+        import_materials = context.scene.import_materials
         replace_entity = context.scene.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
@@ -107,7 +108,7 @@ class SourceIO_OT_LoadEntity(Operator):
                         # skin = custom_prop_data.get('skin', None)
                         model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
                         container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
-                                               import_physics=context.scene.import_physics)
+                                               import_physics=context.scene.import_physics,import_materials=import_materials)
                         if replace_entity:
                             s2_put_into_collections(container, model_resource.name, parent)
                         else:
@@ -168,7 +169,7 @@ class SourceIO_OT_LoadEntity(Operator):
                         continue
                     cp = content_manager.get_content_provider_from_asset_path(prop_path)
                     options = ModelOptions()
-                    options.import_textures = True
+                    options.import_textures = import_materials
                     options.import_physics = False
                     options.create_flex_drivers = False
                     options.scale = 1.0
@@ -392,6 +393,7 @@ class SOURCEIO_PT_EntityLoader(UITools, Panel):
         layout = self.layout.box()
         layout.prop(context.scene, "use_bvlg")
         layout.prop(context.scene, "import_physics")
+        layout.prop(context.scene, "import_materials")
         layout.prop(context.scene, "use_instances")
         if not context.scene.use_instances:
             layout.prop(context.scene, "replace_entity")

@@ -195,6 +195,10 @@ def register():
         name="Use instances",
         default=True
     )
+    bpy.types.Scene.import_materials = bpy.props.BoolProperty(
+        name="Import materials",
+        default=True
+    )
     bpy.types.Scene.import_physics = bpy.props.BoolProperty(
         name="Import physics",
         default=False
@@ -224,6 +228,7 @@ def unregister():
     del bpy.types.Scene.replace_entity
     del bpy.types.Scene.mounted_resources
     del bpy.types.Scene.mounted_resources_index
+    del bpy.types.Scene.import_materials
     # if is_vtflib_supported():
     #     from .operators.source1_operators import export
     #     bpy.types.IMAGE_MT_image.remove(export)

@@ -20,7 +20,6 @@ from ..source2.vmdl_loader import load_model, put_into_collections
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
 from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
-from ...library.utils.path_utilities import backwalk_file_resolver
 
 
 # noinspection PyPep8Naming
@@ -33,6 +32,7 @@ class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="Invert UV", default=True)
     import_physics: BoolProperty(name="Import physics", default=False)
+    import_materials: BoolProperty(name="Import materials", default=True)
     import_attachments: BoolProperty(name="Import attachments", default=False)
     lod_mask: IntProperty(name="Lod mask", default=0xFFFF, subtype="UNSIGNED")
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
@@ -53,7 +53,8 @@ class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
             with FileBuffer(directory / file.name) as f:
                 model_resource = CompiledModelResource.from_buffer(f, directory / file.name)
                 container = load_model(model_resource, self.scale, self.lod_mask,
-                                       self.import_physics, self.import_attachments)
+                                       self.import_physics, self.import_attachments,
+                                       self.import_materials)
 
             master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
             put_into_collections(container, Path(model_resource.name).stem, master_collection, False)
