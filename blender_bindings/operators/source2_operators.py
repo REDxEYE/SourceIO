@@ -17,7 +17,7 @@ from ...library.utils import FileBuffer
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ..source2.dmx.camera_loader import load_camera
 from ..source2.vmat_loader import load_material
-from ..source2.vmdl_loader import load_model, put_into_collections
+from ..source2.vmdl_loader import load_model, put_into_collections, get_physics_block
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
 from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
@@ -96,14 +96,26 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
 
             if self.import_physics:
                 map_collection = bpy.data.collections[file_stem]
+                phys_filename = f"maps/{file_stem}/world_physics.vphys_c"
+                vmdl_phys_filename = f"maps/{file_stem}/world_physics.vmdl_c"
+                if vmdl_phys_file := ContentManager().find_file(vmdl_phys_filename):
+                    physics_block = get_physics_block(vmdl_phys_file)
+                    phys_collection = bpy.data.collections.new("physics")
+                    map_collection.children.link(phys_collection)
+                    if physics_block is not None:
+                        objects = load_physics(physics_block, self.scale)
 
-                phys_file = ContentManager().find_file(f"maps/{file_stem}/world_physics.vphys_c")
-                phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(f"maps/{file_stem}/world_physics.vphys_c"))
-                phys_collection = bpy.data.collections.new("physics")
-                map_collection.children.link(phys_collection)
-                objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
-                for obj in objects:
-                    phys_collection.objects.link(obj)
+                        for obj in objects:
+                            phys_collection.objects.link(obj)
+
+                elif phys_file := ContentManager().find_file(phys_filename):
+                    phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(phys_filename))
+                    phys_collection = bpy.data.collections.new("physics")
+                    map_collection.children.link(phys_collection)
+                    objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
+
+                    for obj in objects:
+                        phys_collection.objects.link(obj)
 
             serialize_mounted_content(cm)
         return {'FINISHED'}
@@ -143,7 +155,8 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
             map_collection = bpy.data.collections[vpk_path.stem]
 
             phys_file = ContentManager().find_file(f"maps/{vpk_path.stem}/world_physics.vphys_c")
-            phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(f"maps/{vpk_path.stem}/world_physics.vphys_c"))
+            phys_res = CompiledPhysicsResource.from_buffer(phys_file,
+                                                           Path(f"maps/{vpk_path.stem}/world_physics.vphys_c"))
             phys_collection = bpy.data.collections.new("physics")
             map_collection.children.link(phys_collection)
             objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
@@ -217,6 +230,7 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
                         context.space_data.image = image
         return {'FINISHED'}
 
+
 class SOURCEIO_OT_VPHYSImport(ImportOperatorHelper):
     bl_idname = "sourceio.vphys"
     bl_label = "Import VPHYS"
@@ -246,6 +260,7 @@ class SOURCEIO_OT_VPHYSImport(ImportOperatorHelper):
             put_into_collections(container, Path(model_resource.name).stem, master_collection, False)
 
         return {'FINISHED'}
+
 
 # noinspection PyPep8Naming
 class SOURCEIO_OT_DMXCameraImport(ImportOperatorHelper):
