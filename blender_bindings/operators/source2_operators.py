@@ -153,15 +153,26 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
         load_map(model, ContentManager(), self.scale)
         if self.import_physics:
             map_collection = bpy.data.collections[vpk_path.stem]
+            phys_filename = f"maps/{vpk_path.stem}/world_physics.vphys_c"
+            vmdl_phys_filename = f"maps/{vpk_path.stem}/world_physics.vmdl_c"
+            if vmdl_phys_file := ContentManager().find_file(vmdl_phys_filename):
+                physics_block = get_physics_block(vmdl_phys_file)
+                phys_collection = bpy.data.collections.new("physics")
+                map_collection.children.link(phys_collection)
+                if physics_block is not None:
+                    objects = load_physics(physics_block, self.scale)
 
-            phys_file = ContentManager().find_file(f"maps/{vpk_path.stem}/world_physics.vphys_c")
-            phys_res = CompiledPhysicsResource.from_buffer(phys_file,
-                                                           Path(f"maps/{vpk_path.stem}/world_physics.vphys_c"))
-            phys_collection = bpy.data.collections.new("physics")
-            map_collection.children.link(phys_collection)
-            objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
-            for obj in objects:
-                phys_collection.objects.link(obj)
+                    for obj in objects:
+                        phys_collection.objects.link(obj)
+
+            elif phys_file := ContentManager().find_file(phys_filename):
+                phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(phys_filename))
+                phys_collection = bpy.data.collections.new("physics")
+                map_collection.children.link(phys_collection)
+                objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
+
+                for obj in objects:
+                    phys_collection.objects.link(obj)
 
         serialize_mounted_content(cm)
 
