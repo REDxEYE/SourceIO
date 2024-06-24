@@ -30,7 +30,7 @@ from struct import calcsize, pack, unpack
 from typing import Set, Union
 
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
-header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")
+header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", r"(\S+)")
 
 header_proto2 = "<!-- DMXVersion binary_v{:d} -->"
 header_proto2_regex = header_proto2.replace("{:d}", "([0-9]+)")
