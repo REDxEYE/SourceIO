@@ -54,6 +54,7 @@ class Nodes:
     ShaderNodeMapRange = 'ShaderNodeMapRange'
     ShaderNodeMapping = 'ShaderNodeMapping'
     ShaderNodeMath = 'ShaderNodeMath'
+    ShaderNodeMix = 'ShaderNodeMix'
     ShaderNodeMixRGB = 'ShaderNodeMixRGB'
     ShaderNodeMixShader = 'ShaderNodeMixShader'
     ShaderNodeNewGeometry = 'ShaderNodeNewGeometry'
