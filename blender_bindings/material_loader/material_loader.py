@@ -82,7 +82,7 @@ class Source2MaterialLoader(MaterialLoaderBase):
 
     def __init__(self, material_resource: CompiledMaterialResource, material_name, tinted: bool = False):
         super().__init__(material_name)
-        self.material_name: str = material_name[-63:]
+        self.material_name: str = material_name[:63]
         self.material_resource = material_resource
         self.tinted = tinted
 

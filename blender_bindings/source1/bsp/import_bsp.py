@@ -168,7 +168,7 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
             content_manager.content_providers[bsp.filepath.as_posix()] = pak_lump
         for texture_data in texture_data_lump.texture_data:
             material_name = strings_lump.strings[texture_data.name_id] or "NO_NAME"
-            tmp = strip_patch_coordinates.sub("", material_name)[-63:]
+            tmp = strip_patch_coordinates.sub("", material_name)[:63]
 
             mat = get_or_create_material(path_stem(tmp), tmp)
 

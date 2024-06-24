@@ -277,13 +277,13 @@ class SourceIO_OT_LoadEntity(Operator):
                     #             print(skin_materials, current_materials)
                     #             for skin_material, current_material in zip(skin_materials, current_materials):
                     #                 if unique_material_names:
-                    #                     skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[-63:]}"[
+                    #                     skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
                     #                                     -63:]
-                    #                     current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[-63:]}"[
+                    #                     current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[:63]}"[
                     #                                        -63:]
                     #                 else:
-                    #                     skin_material = skin_material[-63:]
-                    #                     current_material = current_material[-63:]
+                    #                     skin_material = skin_material[:63]
+                    #                     current_material = current_material[:63]
                     #
                     #                 swap_materials(model, skin_material, current_material)
                     #             model['active_skin'] = skin
@@ -326,11 +326,11 @@ class SOURCEIO_OT_ChangeSkin(Operator):
         unique_material_names = obj['unique_material_names']
         for skin_material, current_material in zip(skin_materials, current_materials):
             if unique_material_names:
-                skin_material = f"{prop_path.stem}_{skin_material[-63:]}"[-63:]
-                current_material = f"{prop_path.stem}_{current_material[-63:]}"[-63:]
+                skin_material = f"{prop_path.stem}_{skin_material[:63]}"[:63]
+                current_material = f"{prop_path.stem}_{current_material[:63]}"[:63]
             else:
-                skin_material = skin_material[-63:]
-                current_material = current_material[-63:]
+                skin_material = skin_material[:63]
+                current_material = current_material[:63]
 
             swap_materials(obj, skin_material, current_material)
 

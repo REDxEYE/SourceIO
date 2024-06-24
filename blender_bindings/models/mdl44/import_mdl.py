@@ -44,7 +44,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
     bl_bones = []
     bone_names = []
     for bone in mdl.bones:
-        bl_bone = armature.edit_bones.new(bone.name[-63:])
+        bl_bone = armature.edit_bones.new(bone.name[:63])
         bl_bones.append(bl_bone)
         bone_names.append(bl_bone.name)
 
@@ -72,7 +72,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
             frame_zero = ref_animation[0]
             for bone, anim_data in enumerate(frame_zero):
                 mdl_bone = mdl.bones[bone]
-                bl_bone = armature_obj.pose.bones.get(mdl_bone.name[-63:])
+                bl_bone = armature_obj.pose.bones.get(mdl_bone.name[:63])
 
                 pos = Vector(anim_data["pos"]) * scale
                 x, y, z, w = anim_data["rot"]
@@ -302,7 +302,7 @@ def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: st
                 frame_zero = ref_animation[0]
                 for bone, anim_data in enumerate(frame_zero):
                     mdl_bone = mdl.bones[bone]
-                    bl_bone = armature.pose.bones.get(mdl_bone.name[-63:])
+                    bl_bone = armature.pose.bones.get(mdl_bone.name[:63])
 
                     pos = Vector(anim_data["pos"]) * scale
                     x, y, z, w = anim_data["rot"]
@@ -342,7 +342,7 @@ def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: st
 
                         for bone, anim_data in enumerate(frame_zero):
                             mdl_bone = i_mdl.bones[bone]
-                            bl_bone = armature.pose.bones.get(mdl_bone.name[-63:])
+                            bl_bone = armature.pose.bones.get(mdl_bone.name[:63])
                             pos = Vector(anim_data["pos"]) * scale
                             x, y, z, w = anim_data["rot"]
                             rot = Quaternion((w, x, y, z))

@@ -38,8 +38,8 @@ def get_or_create_material(name: str, full_path: str):
             continue
         if fp.lower() == full_path.lower():
             return mat
-    mat = bpy.data.materials.new(name[-63:])
-    mat.name = name[-63:]
+    mat = bpy.data.materials.new(name[:63])
+    mat.name = name[:63]
     mat["full_path"] = full_path
     mat.diffuse_color = [random.uniform(.4, 1) for _ in range(3)] + [1.0]
     return mat
