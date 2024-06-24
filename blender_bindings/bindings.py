@@ -16,6 +16,7 @@ from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
 from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMATImport,
                                           SOURCEIO_OT_VMDLImport,
+                                          SOURCEIO_OT_VPHYSImport,
                                           SOURCEIO_OT_VPK_VMAPImport,
                                           SOURCEIO_OT_VTEXImport)
 from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
@@ -66,6 +67,8 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         layout.separator()
 
         layout.operator(SOURCEIO_OT_VMDLImport.bl_idname, text="Source2 model (.vmdl_c)",
+                        icon_value=model_doc_icon.icon_id)
+        layout.operator(SOURCEIO_OT_VPHYSImport.bl_idname, text="Source2 physics (.vphys_c)",
                         icon_value=model_doc_icon.icon_id)
         layout.operator(SOURCEIO_OT_VMAPImport.bl_idname, text="Source2 map (.vmap_c)",
                         icon_value=vwrld_icon.icon_id)
@@ -139,6 +142,7 @@ classes = [
     # SOURCEIO_OT_DMXCameraImport,
     SOURCEIO_OT_VMDLImport,
     SOURCEIO_OT_VTEXImport,
+    SOURCEIO_OT_VPHYSImport,
     SOURCEIO_OT_VMATImport,
     SOURCEIO_OT_VPK_VMAPImport,
     SOURCEIO_OT_VMAPImport,

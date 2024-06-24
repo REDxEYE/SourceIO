@@ -5,11 +5,12 @@ from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        IntProperty, StringProperty)
 
 from .operator_helper import ImportOperatorHelper
+from ..source2.vphy_loader import load_physics
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.shared.content_providers.vpk_provider import VPKContentProvider
 from ...library.source2 import (CompiledMaterialResource,
-                                CompiledModelResource, CompiledTextureResource)
+                                CompiledModelResource, CompiledTextureResource, CompiledPhysicsResource)
 from ...library.source2.resource_types.compiled_world_resource import \
     CompiledMapResource
 from ...library.utils import FileBuffer
@@ -72,6 +73,7 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
     filter_glob: StringProperty(default="*.vmap_c", options={'HIDDEN'})
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="invert UV?", default=True)
+    import_physics: BoolProperty(name="Import physics", default=False)
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
@@ -85,11 +87,24 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
                 serialize_mounted_content(content_manager)
             else:
                 deserialize_mounted_content(content_manager)
-            cm.register_content_provider(Path(file.name).stem + ".vpk",
-                                         VPKContentProvider(directory / f"{Path(file.name).stem}.vpk"))
+            file_stem = Path(file.name).stem
+            cm.register_content_provider(file_stem + ".vpk",
+                                         VPKContentProvider(directory / f"{file_stem}.vpk"))
             with FileBuffer(directory / file.name) as buffer:
                 model = CompiledMapResource.from_buffer(buffer, Path(file.name))
                 load_map(model, ContentManager(), self.scale)
+
+            if self.import_physics:
+                map_collection = bpy.data.collections[file_stem]
+
+                phys_file = ContentManager().find_file(f"maps/{file_stem}/world_physics.vphys_c")
+                phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(f"maps/{file_stem}/world_physics.vphys_c"))
+                phys_collection = bpy.data.collections.new("physics")
+                map_collection.children.link(phys_collection)
+                objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
+                for obj in objects:
+                    phys_collection.objects.link(obj)
+
             serialize_mounted_content(cm)
         return {'FINISHED'}
 
@@ -104,6 +119,7 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
     filter_glob: StringProperty(default="*.vpk", options={'HIDDEN'})
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     # invert_uv: BoolProperty(name="invert UV?", default=True)
+    import_physics: BoolProperty(name="Import physics", default=False)
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
@@ -123,6 +139,17 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
 
         model = CompiledMapResource.from_buffer(map_buffer, vpk_path)
         load_map(model, ContentManager(), self.scale)
+        if self.import_physics:
+            map_collection = bpy.data.collections[vpk_path.stem]
+
+            phys_file = ContentManager().find_file(f"maps/{vpk_path.stem}/world_physics.vphys_c")
+            phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(f"maps/{vpk_path.stem}/world_physics.vphys_c"))
+            phys_collection = bpy.data.collections.new("physics")
+            map_collection.children.link(phys_collection)
+            objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
+            for obj in objects:
+                phys_collection.objects.link(obj)
+
         serialize_mounted_content(cm)
 
         return {'FINISHED'}
@@ -190,6 +217,35 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
                         context.space_data.image = image
         return {'FINISHED'}
 
+class SOURCEIO_OT_VPHYSImport(ImportOperatorHelper):
+    bl_idname = "sourceio.vphys"
+    bl_label = "Import VPHYS"
+    bl_options = {'UNDO'}
+    need_popup = True
+
+    filter_glob: StringProperty(default="*.vphys_c", options={'HIDDEN'})
+    discover_resources: BoolProperty(name="Mount discovered content", default=True)
+    scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
+
+    def execute(self, context):
+        directory = self.get_directory()
+        content_manager = ContentManager()
+        if self.discover_resources:
+            content_manager.scan_for_content(directory)
+            serialize_mounted_content(content_manager)
+        else:
+            deserialize_mounted_content(content_manager)
+
+        for n, file in enumerate(self.files):
+            print(f"Loading {n + 1}/{len(self.files)}")
+            with FileBuffer(directory / file.name) as f:
+                model_resource = CompiledPhysicsResource.from_buffer(f, directory / file.name)
+                container = load_physics(model_resource, self.scale)
+
+            master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
+            put_into_collections(container, Path(model_resource.name).stem, master_collection, False)
+
+        return {'FINISHED'}
 
 # noinspection PyPep8Naming
 class SOURCEIO_OT_DMXCameraImport(ImportOperatorHelper):

@@ -81,6 +81,8 @@ class AbstractEntityHandler:
             self.handle_entity(entity)
 
     def handle_entity(self, entity_data: dict):
+        if "version" in entity_data:
+            entity_data = entity_data["values"]
         entity_class = entity_data['classname']
         if hasattr(self, f'handle_{entity_class}') and entity_class in self.entity_lookup_table:
             entity_class_obj = self._get_class(entity_class)
