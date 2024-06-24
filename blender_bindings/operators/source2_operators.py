@@ -99,7 +99,8 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
                 phys_filename = f"maps/{file_stem}/world_physics.vphys_c"
                 vmdl_phys_filename = f"maps/{file_stem}/world_physics.vmdl_c"
                 if vmdl_phys_file := ContentManager().find_file(vmdl_phys_filename):
-                    physics_block = get_physics_block(vmdl_phys_file)
+                    phys_res = CompiledModelResource.from_buffer(vmdl_phys_file, Path(phys_filename))
+                    physics_block = get_physics_block(phys_res)
                     phys_collection = bpy.data.collections.new("physics")
                     map_collection.children.link(phys_collection)
                     if physics_block is not None:
@@ -156,7 +157,8 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
             phys_filename = f"maps/{vpk_path.stem}/world_physics.vphys_c"
             vmdl_phys_filename = f"maps/{vpk_path.stem}/world_physics.vmdl_c"
             if vmdl_phys_file := ContentManager().find_file(vmdl_phys_filename):
-                physics_block = get_physics_block(vmdl_phys_file)
+                vmdl_res = CompiledModelResource.from_buffer(vmdl_phys_file, Path(vmdl_phys_filename))
+                physics_block = get_physics_block(vmdl_res)
                 phys_collection = bpy.data.collections.new("physics")
                 map_collection.children.link(phys_collection)
                 if physics_block is not None:
