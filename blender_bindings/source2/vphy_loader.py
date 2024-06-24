@@ -4,6 +4,7 @@ from mathutils import Matrix, Vector
 
 from ...library.source2.data_types.blocks.phys_block import PhysBlock
 from ...library.source2.data_types.keyvalues3.types import BinaryBlob, TypedArray
+from ...library.source2.utils.entity_keyvalues_keys import EntityKeyValuesKeys
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 
@@ -177,13 +178,20 @@ def load_physics(phys_block: PhysBlock, scale: float = SOURCE2_HAMMER_UNIT_TO_ME
             meshes = shape["m_meshes"]
             shape_name = "physics_mesh"
             bone_matrix = Matrix.Identity(4)
-            shapes.extend(generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes))
+            collision_attributes = phys_block["m_collisionAttributes"]
+            keys = EntityKeyValuesKeys()
+            surface_properties = [keys.get(hsh) for hsh in phys_block["m_surfacePropertyHashes"]]
+            shapes.extend(generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes,
+                                                  collision_attributes, surface_properties))
     return shapes
 
 
-def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes):
+def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, hulls, meshes,
+                            collision_attributes: list[dict], surface_properties: list[str]):
     shapes = []
     for capsule_info in capsules:
+        collision_attribute_index = capsule_info["m_nCollisionAttributeIndex"]
+        surface_property_index = capsule_info["m_nSurfacePropertyIndex"]
         if "m_UserFriendlyName" in capsule_info:
             shape_name = capsule_info["m_UserFriendlyName"]
         capsule = capsule_info["m_Capsule"]
@@ -201,10 +209,13 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
                                                   radius * scale, segments)
 
         mesh_data.from_pydata(vertices, [], indices)
+        mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index], "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
     for sphere_info in spheres:
+        collision_attribute_index = sphere_info["m_nCollisionAttributeIndex"]
+        surface_property_index = sphere_info["m_nSurfacePropertyIndex"]
         if "m_UserFriendlyName" in sphere_info:
             shape_name = sphere_info["m_UserFriendlyName"]
         sphere = sphere_info["m_Sphere"]
@@ -217,10 +228,13 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         sphere_vertices, sphere_indices = generate_sphere_mesh(radius * scale, segments)
         sphere_vertices += center
         mesh_data.from_pydata(sphere_vertices, [], sphere_indices)
+        mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index], "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
     for mesh_info in meshes:
+        collision_attribute_index = mesh_info["m_nCollisionAttributeIndex"]
+        surface_property_index = mesh_info["m_nSurfacePropertyIndex"]
         if "m_UserFriendlyName" in mesh_info:
             shape_name = mesh_info["m_UserFriendlyName"]
         mesh = mesh_info["m_Mesh"]
@@ -240,6 +254,7 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
         mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
         mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices.reshape((-1, 3)))
+        mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index], "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
@@ -247,13 +262,21 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         if "m_UserFriendlyName" in hull_info:
             shape_name = hull_info["m_UserFriendlyName"]
         hull = hull_info["m_Hull"]
-        vertex_data = hull["m_Vertices"]
+        if "m_VertexPositions" in hull:
+            vertex_data = hull["m_VertexPositions"]
+            if isinstance(vertex_data, BinaryBlob):
+                vertices = np.frombuffer(vertex_data, np.float32) * scale
+            else:
+                vertices = np.asarray(vertex_data, np.float32) * scale
+        else:
+            vertex_data = hull["m_Vertices"]
+            if isinstance(vertex_data, BinaryBlob):
+                vertices = np.frombuffer(vertex_data, np.float32) * scale
+            else:
+                vertices = np.asarray(vertex_data, np.float32) * scale
         edge_data = hull["m_Edges"]
         face_data = hull["m_Faces"]
-        if isinstance(vertex_data, BinaryBlob):
-            vertices = np.frombuffer(vertex_data, np.float32) * scale
-        else:
-            vertices = np.asarray(vertex_data, np.float32) * scale
+
         edge_dtype = np.dtype([
             ("next", np.uint8),
             ("twin", np.uint8),
@@ -292,6 +315,11 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
         mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
         mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices)
+        collision_attribute_index = hull_info["m_nCollisionAttributeIndex"]
+        surface_property_index = hull_info["m_nSurfacePropertyIndex"]
+        mesh_obj["entity_data"] = {"entity": {"flag": hull["m_nFlags"],
+                                              "collision_group": collision_attributes[collision_attribute_index],
+                                              "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
