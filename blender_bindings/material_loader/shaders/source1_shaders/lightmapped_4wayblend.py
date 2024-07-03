@@ -34,6 +34,56 @@ class Lightmapped4WayBlend(Source1ShaderBase):
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
         return None
+    
+    @property
+    def detail(self):
+        texture_path = self._vmt.get_string('$detail', None)
+        if texture_path is not None:
+            return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
+        return None
+    
+    @property
+    def texture1_uvscale(self):
+        vector, _ = self._vmt.get_vector('$texture1_uvscale', None)
+        if vector:
+            vector = list(vector)
+            return self.ensure_length(vector, 3, vector[0])
+        return vector
+
+    @property
+    def texture2_uvscale(self):
+        vector, _ = self._vmt.get_vector('$texture2_uvscale', None)
+        if vector:
+            vector = list(vector)
+            return self.ensure_length(vector, 3, vector[0])
+        return vector
+    
+    @property
+    def texture3_uvscale(self):
+        vector, _ = self._vmt.get_vector('$texture3_uvscale', None)
+        if vector:
+            vector = list(vector)
+            return self.ensure_length(vector, 3, vector[0])
+        return vector
+    
+    @property
+    def texture4_uvscale(self):
+        vector, _ = self._vmt.get_vector('$texture4_uvscale', None)
+        if vector:
+            vector = list(vector)
+            return self.ensure_length(vector, 3, vector[0])
+        return vector
+    
+    @property
+    def detailscale(self):
+        vector, _ = self._vmt.get_vector('$detailscale', None)
+        #print(vector)
+        if vector:
+            vector = list(vector)
+            vector = self.ensure_length(vector, 3, vector[0])
+            print(vector)
+            return vector
+        return vector
 
     @property
     def ssbump(self):
@@ -95,10 +145,50 @@ class Lightmapped4WayBlend(Source1ShaderBase):
     def create_nodes(self, material):
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
+        
+        self.do_arrange = True
+        
+        vars = [
+            '$texture1_lumstart',
+            '$texture1_lumend',
+            '$texture2_lumstart',
+            '$texture2_lumend',
+            '$texture2_blendstart',
+            '$texture2_blendend',
+            '$lumblendfactor2',
+            '$texture3_lumstart',
+            '$texture3_lumend',
+            '$texture3_blendstart',
+            '$texture3_blendend',
+            '$texture3_bumpblendfactor',
+            #'$texture4_blendmode',
+            '$texture4_lumstart',
+            '$texture4_lumend',
+            '$texture4_blendstart',
+            '$texture4_blendend',
+            '$texture4_bumpblendfactor',
+            '$lumblendfactor3',
+            '$lumblendfactor4',
+            '$detailblendfactor',
+            '$detailblendfactor2',
+            '$detailblendfactor3',
+            '$detailblendfactor4'
+        ]
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+        if bpy.app.version >= (4, 0, 0):
+            shader.inputs['Specular IOR Level'].default_value = 0.0
+        else:
+            shader.inputs['Specular'].default_value = 0.0
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
+        Fway: bpy.types.ShaderNodeGroup
+        Fway = self.create_node_group('4wayBlend')
+        self.connect_nodes(Fway.outputs[0], shader.inputs['Base Color'])
+        normalMap = self.create_node(Nodes.ShaderNodeNormalMap)
+        self.connect_nodes(Fway.outputs[1], normalMap.inputs['Color'])
+        self.connect_nodes(Fway.outputs[2], normalMap.inputs['Strength'])
+        self.connect_nodes(normalMap.outputs[0], shader.inputs['Normal'])
 
         basetexture1 = self.basetexture
         basetexture2 = self.basetexture2
@@ -106,123 +196,97 @@ class Lightmapped4WayBlend(Source1ShaderBase):
         basetexture4 = self.basetexture4
         normal_texture1 = self.bumpmap
         normal_texture2 = self.bumpmap2
-        normal_texture3 = self.bumpmap3
-        normal_texture4 = self.bumpmap4
         bases = [None, None, None, None]
-        normals = [None, None, None, None]
+        normals = [None, None]
         if basetexture1:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture1')
             basetexture_node.image = basetexture1
             bases[0] = basetexture_node
+            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture'])
+            scale = self.texture1_uvscale
+            #print('scale1', scale)
+            if scale:
+                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
+                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture1_uvscale', location=[-580, -700])
+                scaler.inputs[1].default_value = scale
+                scaler.operation = 'MULTIPLY'
+
+                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
+                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
+
         if basetexture2:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture2')
             basetexture_node.image = basetexture2
             bases[1] = basetexture_node
+            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture2'])
+            scale = self.texture2_uvscale
+            #print('scale2', scale)
+            if scale:
+                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
+                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture2_uvscale', location=[-580, -700])
+                scaler.inputs[1].default_value = scale
+                scaler.operation = 'MULTIPLY'
+
+                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
+                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
+
         if basetexture3:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture3')
             basetexture_node.image = basetexture3
             bases[2] = basetexture_node
+            scale = self.texture3_uvscale
+            #print('scale3', scale)
+            if scale:
+                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
+                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture3_uvscale', location=[-580, -700])
+                scaler.inputs[1].default_value = scale
+                scaler.operation = 'MULTIPLY'
+
+                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
+                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
+
+            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture3'])
         if basetexture4:
             basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture4')
             basetexture_node.image = basetexture4
             bases[3] = basetexture_node
+            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture4'])
+            scale = self.texture4_uvscale
+            #print('scale4', scale)
+            if scale:
+                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
+                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture4_uvscale', location=[-580, -700])
+                scaler.inputs[1].default_value = scale
+                scaler.operation = 'MULTIPLY'
+
+                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
+                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
+
+        if self.detail:
+            detailtexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$detail')
+            detailtexture_node.image = self.detail
+            self.connect_nodes(detailtexture_node.outputs[0], Fway.inputs['$detail'])
+
+            if self.detailscale:
+                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
+                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$detailscale', location=[-580, -700])
+                scaler.inputs[1].default_value = self.detailscale
+                scaler.operation = 'MULTIPLY'
+
+                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
+                self.connect_nodes(scaler.outputs[0], detailtexture_node.inputs[0])
 
         if normal_texture1:
             bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap1')
             bumpmap_node.image = normal_texture1
             normals[0] = bumpmap_node
+            self.connect_nodes(bumpmap_node.outputs[0], Fway.inputs['$bumpmap'])
         if normal_texture2:
             bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap2')
             bumpmap_node.image = normal_texture2
             normals[1] = bumpmap_node
-        if normal_texture3:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap3')
-            bumpmap_node.image = normal_texture3
-            normals[2] = bumpmap_node
-        if normal_texture4:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap4')
-            bumpmap_node.image = normal_texture4
-            normals[3] = bumpmap_node
+            self.connect_nodes(bumpmap_node.outputs[0], Fway.inputs['$bumpmap2'])
 
-        vertex_color = self.create_node(Nodes.ShaderNodeVertexColor)
-        vertex_color.layer_name = 'multiblend'
-
-        color_mixer = self.create_node(Nodes.ShaderNodeGroup)
-        color_mixer.node_tree = self.get_or_create_4way_mix_group()
-        normal_mixer = self.create_node(Nodes.ShaderNodeGroup)
-        normal_mixer.node_tree = self.get_or_create_4way_mix_group()
-
-        self.connect_nodes(vertex_color.outputs['Color'], color_mixer.inputs['MultiBlend Mask'])
-        self.connect_nodes(vertex_color.outputs['Alpha'], color_mixer.inputs['MultiBlend Alpha'])
-        if bases[0]:
-            self.connect_nodes(bases[0].outputs['Color'], color_mixer.inputs['Color1'])
-        if bases[1]:
-            self.connect_nodes(bases[1].outputs['Color'], color_mixer.inputs['Color2'])
-        if bases[2]:
-            self.connect_nodes(bases[2].outputs['Color'], color_mixer.inputs['Color3'])
-        if bases[3]:
-            self.connect_nodes(bases[3].outputs['Color'], color_mixer.inputs['Color4'])
-
-        self.connect_nodes(vertex_color.outputs['Color'], normal_mixer.inputs['MultiBlend Mask'])
-        self.connect_nodes(vertex_color.outputs['Alpha'], normal_mixer.inputs['MultiBlend Alpha'])
-        if normals[0]:
-            self.connect_nodes(normals[0].outputs['Color'], normal_mixer.inputs['Color1'])
-        if normals[1]:
-            self.connect_nodes(normals[1].outputs['Color'], normal_mixer.inputs['Color2'])
-        if normals[2]:
-            self.connect_nodes(normals[2].outputs['Color'], normal_mixer.inputs['Color3'])
-        if normals[3]:
-            self.connect_nodes(normals[3].outputs['Color'], normal_mixer.inputs['Color4'])
-
-        normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
-
-        self.connect_nodes(normal_mixer.outputs['Color'], normalmap_node.inputs['Color'])
-
-        self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
-        self.connect_nodes(color_mixer.outputs['Color'], shader.inputs['Base Color'])
-
-
-    def get_or_create_4way_mix_group(self):
-        mixer_group = bpy.data.node_groups.get("4way_mixer", None)
-        if mixer_group is None:
-            mixer_group = bpy.data.node_groups.new("4way_mixer", "ShaderNodeTree")
-            nodes = mixer_group.nodes
-            links = mixer_group.links
-            link_nodes = links.new
-
-            group_inputs = mixer_group.nodes.new('NodeGroupInput')
-            group_inputs.location = (-350, 0)
-            mixer_group.inputs.new('NodeSocketColor', 'MultiBlend Mask')
-            mixer_group.inputs.new('NodeSocketColor', 'MultiBlend Alpha')
-            mixer_group.inputs.new('NodeSocketColor', 'Color1')
-            mixer_group.inputs.new('NodeSocketColor', 'Color2')
-            mixer_group.inputs.new('NodeSocketColor', 'Color3')
-            mixer_group.inputs.new('NodeSocketColor', 'Color4')
-
-            # create group outputs
-            group_outputs = mixer_group.nodes.new('NodeGroupOutput')
-            group_outputs.location = (300, 0)
-            mixer_group.outputs.new('NodeSocketColor', 'Color')
-
-            split = nodes.new(Nodes.ShaderNodeSeparateRGB)
-            link_nodes(group_inputs.outputs['MultiBlend Mask'], split.inputs['Image'])
-
-            color_mix_0 = nodes.new(Nodes.ShaderNodeMixRGB)
-            color_mix_0.blend_type = 'MIX'
-
-            link_nodes(group_inputs.outputs['Color1'], color_mix_0.inputs['Color1'])
-            link_nodes(group_inputs.outputs['Color2'], color_mix_0.inputs['Color2'])
-            link_nodes(split.outputs['R'], color_mix_0.inputs['Fac'])
-            color_mix_1 = nodes.new(Nodes.ShaderNodeMixRGB)
-            color_mix_1.blend_type = 'MIX'
-            link_nodes(color_mix_0.outputs['Color'], color_mix_1.inputs['Color1'])
-            link_nodes(group_inputs.outputs['Color3'], color_mix_1.inputs['Color2'])
-            link_nodes(split.outputs['G'], color_mix_1.inputs['Fac'])
-            color_mix_2 = nodes.new(Nodes.ShaderNodeMixRGB)
-            color_mix_2.blend_type = 'MIX'
-            link_nodes(color_mix_1.outputs['Color'], color_mix_2.inputs['Color1'])
-            link_nodes(group_inputs.outputs['Color4'], color_mix_2.inputs['Color2'])
-            link_nodes(split.outputs['B'], color_mix_2.inputs['Fac'])
-
-            link_nodes(color_mix_2.outputs['Color'], group_outputs.inputs['Color'])
-        return mixer_group
+        for var in vars:
+            value = self._vmt.get_float(var, 0)
+            Fway.inputs[var].default_value = value
