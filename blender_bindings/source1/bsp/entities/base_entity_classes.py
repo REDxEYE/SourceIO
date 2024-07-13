@@ -2,6 +2,7 @@
 def parse_source_value(value):
     if type(value) is str:
         value: str
+        value = value.replace(',','.')
         if value.replace('.', '', 1).replace('-', '', 1).isdecimal():
             return float(value) if '.' in value else int(value)
         return 0
