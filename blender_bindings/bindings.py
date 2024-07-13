@@ -191,32 +191,6 @@ def register():
     register_props()
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
 
-    bpy.types.Scene.use_bvlg = bpy.props.BoolProperty(
-        name="Use BVLG",
-        default=True
-    )
-    bpy.types.Scene.use_instances = bpy.props.BoolProperty(
-        name="Use instances",
-        default=True
-    )
-    bpy.types.Scene.import_materials = bpy.props.BoolProperty(
-        name="Import materials",
-        default=True
-    )
-    bpy.types.Scene.import_physics = bpy.props.BoolProperty(
-        name="Import physics",
-        default=False
-    )
-    bpy.types.Scene.replace_entity = bpy.props.BoolProperty(
-        name="Replace entity",
-        default=True
-    )
-    bpy.types.Mesh.flex_controllers = CollectionProperty(type=SourceIO_PG_FlexController)
-    bpy.types.Mesh.flex_selected_index = IntProperty(default=0)
-
-    bpy.types.Scene.mounted_resources = CollectionProperty(type=SOURCEIO_UL_MountedResource)
-    bpy.types.Scene.mounted_resources_index = IntProperty(default=0)
-
     # if is_vtflib_supported():
     #     from ..library.source1.vtf import VTFLib
     #     from .operators.source1_operators import export
@@ -225,17 +199,11 @@ def register():
 
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
-    del bpy.types.Mesh.flex_controllers
-    del bpy.types.Mesh.flex_selected_index
-    del bpy.types.Scene.use_bvlg
-    del bpy.types.Scene.use_instances
-    del bpy.types.Scene.replace_entity
-    del bpy.types.Scene.mounted_resources
-    del bpy.types.Scene.mounted_resources_index
-    del bpy.types.Scene.import_materials
+
     # if is_vtflib_supported():
     #     from .operators.source1_operators import export
     #     bpy.types.IMAGE_MT_image.remove(export)
+
     unregister_nodes()
     unregister_props()
     SingletonMeta.cleanup()
