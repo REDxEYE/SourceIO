@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 from pprint import pformat
 
-
 import bpy
 import numpy as np
 from mathutils import Euler
@@ -366,6 +365,7 @@ class AbstractEntityHandler:
 
         self._set_location_and_scale(obj, parse_float_vector(entity_raw.get('origin', '0 0 0')))
         self._set_rotation(obj, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        obj.scale *= float(entity_raw.get("modelscale", 1))
         self._set_entity_data(obj, properties)
 
         return obj
