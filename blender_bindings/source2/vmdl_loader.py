@@ -444,9 +444,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                     else:
                         normals = convert_normals(normals)
                 mesh.normals_split_custom_set_from_vertices(normals)
-                if is_blender_4_1():
-                    pass
-                else:
+                if not is_blender_4_1():
                     mesh.use_auto_smooth = True
 
             if vertex_buffer.has_attribute('COLOR'):
