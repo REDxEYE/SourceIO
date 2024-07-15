@@ -476,7 +476,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                         precomputed_data = np.add(flex_verts * scale, positions)
                         shape.data.foreach_set("co", precomputed_data.reshape(-1))
             g_vertex_offset += vertex_count
-
+            mesh.validate()
     return objects
 
 

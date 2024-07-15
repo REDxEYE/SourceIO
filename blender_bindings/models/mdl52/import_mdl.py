@@ -71,9 +71,7 @@ def import_model(mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
             mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
-            if is_blender_4_1():
-                pass
-            else:
+            if not is_blender_4_1():
                 mesh_data.use_auto_smooth = True
 
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
@@ -156,6 +154,7 @@ def import_model(mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
                         shape_key.data.foreach_set("co", (flex_delta + model_vertices).reshape(-1))
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
+            mesh_data.validate()
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
 

@@ -218,7 +218,7 @@ class AbstractEntityHandler:
         for poly in mesh_data.polygons:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
-
+        mesh_data.validate()
         return mesh_obj
 
     def _handle_brush_model(self, class_name, group, entity, entity_raw):

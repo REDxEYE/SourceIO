@@ -172,7 +172,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
                 for vertex in vertex_bone_vertices:
                     model_mesh.vertices[vertex].co = vertex_group_transform @ model_mesh.vertices[vertex].co
                     # model_mesh.vertices[vertex].normal = vertex_group_transform @ model_mesh.vertices[vertex].normal
-
+            model_mesh.validate()
     return ModelContainer(objects, bodygroups, [], [], armature)
 
 

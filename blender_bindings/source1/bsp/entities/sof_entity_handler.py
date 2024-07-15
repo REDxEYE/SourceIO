@@ -289,6 +289,7 @@ class SOFEntityHandler(BaseEntityHandler):
             uvs = vertices['st']
             uvs[:, 1] = 1 - uvs[:, 1]
             uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
+            mesh_data.validate()
         elif model.brush_count:
             def join_bmesh(target_bm, source_bm):
                 source_bm.verts.layers.int.new('index')

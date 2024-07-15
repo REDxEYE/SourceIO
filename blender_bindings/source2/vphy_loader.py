@@ -216,6 +216,7 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
             mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
                                                   "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
+        mesh_data.validate()
 
         shapes.append(mesh_obj)
     for sphere_info in spheres:
@@ -233,6 +234,7 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         sphere_vertices, sphere_indices = generate_sphere_mesh(radius * scale, segments)
         sphere_vertices += center
         mesh_data.from_pydata(sphere_vertices, [], sphere_indices)
+        mesh_data.validate()
         if collision_attributes and surface_properties:
             mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
                                                   "surface_prop": surface_properties[surface_property_index]}}
@@ -261,6 +263,7 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
         mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
         mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices.reshape((-1, 3)))
+        mesh_data.validate()
         if collision_attributes and surface_properties:
             mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
                                                   "surface_prop": surface_properties[surface_property_index]}}
@@ -324,6 +327,7 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         mesh_data = bpy.data.meshes.new(name=f'{shape_name}_mesh')
         mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
         mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices)
+        mesh_data.validate()
         collision_attribute_index = hull_info["m_nCollisionAttributeIndex"]
         surface_property_index = hull_info["m_nSurfacePropertyIndex"]
         if collision_attributes and surface_properties:

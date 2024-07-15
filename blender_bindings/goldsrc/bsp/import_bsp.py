@@ -219,7 +219,7 @@ class BSP:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 model_mesh_uv[loop_index].uv = uvs_per_face[poly.index][
                     model_mesh.loops[loop_index].vertex_index]
-
+        model_mesh.validate()
         return model_object
 
     def get_entity_by_target_name(self, target_name):

@@ -60,7 +60,7 @@ def import_md3_15(model_path: Path, buffer: Buffer,
             shape_key = model_object.shape_key_add(name=f"frame_{i}")
 
             shape_key.data.foreach_set("co", surface.positions(i + 1).ravel() * options.scale)
-
+        model_mesh.validate()
         material_name = surface.shaders[0].name
         mat = get_or_create_material(Path(material_name).stem, material_name)
         add_material(mat, model_object)

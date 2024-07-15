@@ -65,4 +65,5 @@ def import_physics(phy: Phy, phy_buffer: Buffer, mdl: MdlV36, container: ModelCo
                     type="ARMATURE", name="Armature")
                 modifier.object = container.armature
                 mesh_obj.parent = container.armature
+            mesh_data.validate()
             container.physics_objects.append(mesh_obj)

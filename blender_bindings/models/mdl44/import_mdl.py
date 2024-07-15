@@ -186,6 +186,8 @@ def import_model(mdl: MdlV44, vtx: Vtx, vvd: Vvd,
 
                     if create_drivers:
                         create_flex_drivers(mesh_obj, mdl)
+
+                mesh_data.validate()
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
 

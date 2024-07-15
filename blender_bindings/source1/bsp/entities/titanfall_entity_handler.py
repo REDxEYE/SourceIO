@@ -164,7 +164,7 @@ class TitanfallEntityHandler(BaseEntityHandler):
                 for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                     uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index][0]
                     uv_lm_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index][1]
-
+            mesh_data.validate()
         return objs
 
     def _set_location_and_scale(self, obj, location, additional_scale=1.0):

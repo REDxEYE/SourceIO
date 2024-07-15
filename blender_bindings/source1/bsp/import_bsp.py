@@ -109,10 +109,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         return
     parent_collection = get_or_create_collection('cubemaps', master_collection)
     for n, cubemap in enumerate(cubemap_lump.cubemaps):
-        if is_blender_4_1():
-            refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
-        else:
-            refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'SPHERE')
+        refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
         obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
         obj.location = cubemap.origin
         obj.location *= settings.scale
@@ -369,7 +366,7 @@ def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
         material_name = strings_lump.strings[texture_data.name_id] or "NO_NAME"
         material_name = strip_patch_coordinates.sub("", material_name)
         add_material(get_or_create_material(path_stem(material_name), material_name), mesh_obj)
-
+        mesh_data.validate()
     # def load_physics(self):
     #     physics_lump: PhysicsLump = self.map_file.get_lump('LUMP_PHYSICS')
     #     if not physics_lump or not physics_lump.solid_blocks:
