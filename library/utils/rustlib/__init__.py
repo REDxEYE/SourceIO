@@ -20,7 +20,7 @@ elif platform_info.system == 'Linux':
                                     zstd_compress, zstd_compress_stream,
                                     zstd_decompress, zstd_decompress_stream,
                                     LZ4ChainDecoder, lz4_compress, lz4_decompress,
-                                    load_vtf_texturem, save_vtf_texture, save_exr, encode_exr, save_png, encode_png,
+                                    load_vtf_texture, save_vtf_texture, save_exr, encode_exr, save_png, encode_png,
                                     decode_texture)
 elif platform_info.system == 'Darwin':
     if platform.machine().lower() == 'arm64':
