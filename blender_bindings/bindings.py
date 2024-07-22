@@ -18,7 +18,9 @@ from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMDLImport,
                                           SOURCEIO_OT_VPHYSImport,
                                           SOURCEIO_OT_VPK_VMAPImport,
-                                          SOURCEIO_OT_VTEXImport)
+                                          SOURCEIO_OT_VTEXImport,
+                                          SOURCEIO_OT_DMXCameraImport)
+
 from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
                                           SOURCEIO_OT_VMTImport,
     # SOURCEIO_OT_VTFExport,
@@ -87,13 +89,13 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         # layout.menu(SourceIOUtils_MT_Menu.bl_idname)
 
 
-# class SourceIOUtils_MT_Menu(bpy.types.Menu):
-#     bl_label = "Source Engine Utils"
-#     bl_idname = "IMPORT_MT_sourceio_utils"
-#
-#     def draw(self, context):
-#         layout = self.layout
-#         layout.operator(SOURCEIO_OT_DMXCameraImport.bl_idname, text="Valve camera(.dmx)")
+class SourceIOUtils_MT_Menu(bpy.types.Menu):
+    bl_label = "Source Engine Utils"
+    bl_idname = "IMPORT_MT_sourceio_utils"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator(SOURCEIO_OT_DMXCameraImport.bl_idname, text="Valve camera(.dmx)")
 
 
 def menu_import(self, context):
@@ -139,7 +141,7 @@ classes = [
     SOURCEIO_OT_DMXImporter,
 
     # Source2 stuff
-    # SOURCEIO_OT_DMXCameraImport,
+    SOURCEIO_OT_DMXCameraImport,
     SOURCEIO_OT_VMDLImport,
     SOURCEIO_OT_VTEXImport,
     SOURCEIO_OT_VPHYSImport,
@@ -150,7 +152,7 @@ classes = [
     # Addon tools
     # SourceIOPreferences,
     SourceIO_MT_Menu,
-    # SourceIOUtils_MT_Menu,
+    SourceIOUtils_MT_Menu,
 
     SOURCEIO_OT_VTFImport,
     SOURCEIO_OT_VMTImport,
