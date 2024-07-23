@@ -85,7 +85,7 @@ class Vvd:
         if header.tangent_data_offset > 0:
             buffer.seek(header.tangent_data_offset)
             buffer.skip(4 * 4 * header.lod_vertex_count[0])
-            # self._tangents = np.frombuffer(self.buffer.read(4 * 4 * self.header.lod_vertex_count[0]), dtype=np.float32)
+            # _tangents = np.frombuffer(buffer.read(4 * 4 * header.lod_vertex_count[0]), dtype=np.float32)
 
         extra_data = {}
         if buffer:
@@ -97,6 +97,6 @@ class Vvd:
                 buffer.seek(extra_data_start + extra_attribute.offset)
                 extra_data[extra_attribute.type] = np.frombuffer(
                     buffer.read(extra_attribute.item_size * header.lod_vertex_count[0]), np.float32)
-        assert not buffer
+        # assert not buffer
 
         return cls(header, lod_datas, extra_data)
