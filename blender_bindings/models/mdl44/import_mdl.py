@@ -41,30 +41,20 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
     bpy.context.view_layer.objects.active = armature_obj
 
     bpy.ops.object.mode_set(mode='EDIT')
-    bl_bones = []
-    bone_names = []
-    for bone in mdl.bones:
+
+    for i, bone in enumerate(mdl.bones):
         bl_bone = armature.edit_bones.new(bone.name[:63])
-        bl_bones.append(bl_bone)
-        bone_names.append(bl_bone.name)
-
-    for bl_bone, s_bone in zip(bl_bones, mdl.bones):
-        if s_bone.parent_bone_id != -1:
-            bl_parent = bl_bones[s_bone.parent_bone_id]
-            bl_bone.parent = bl_parent
-        bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
-
-    bpy.ops.object.mode_set(mode='POSE')
-    for n, se_bone in enumerate(mdl.bones):
-        bl_bone = armature_obj.pose.bones.get(bone_names[n])
-        pos = Vector(se_bone.position) * scale
-        rot = Euler(se_bone.rotation)
-        mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-        bl_bone.matrix_basis.identity()
-
-        bl_bone.matrix = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
-
-    bpy.ops.pose.armature_apply()
+        bl_bone.head = bone.position
+        bl_bone.tail = bl_bone.head + Vector((0, 0, 1)) * scale
+        if bone.parent_id != -1:
+            bl_bone.parent = armature.edit_bones[bone.parent_id]
+        x, y, z, w = bone.quat
+        rotation = w, x, y, z
+        mat = Matrix.LocRotScale(Vector(bone.position) * scale, Quaternion(rotation), (1, 1, 1))
+        if bone.parent_id == -1:
+            bl_bone.matrix = mat
+        else:
+            bl_bone.matrix = (armature.edit_bones[bone.parent_id].matrix @ mat)
 
     if mdl.animations and load_refpose:
         ref_animation = mdl.animations[0]

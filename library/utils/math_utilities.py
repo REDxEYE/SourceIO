@@ -154,18 +154,18 @@ def quat_to_matrix(quat):
 
 def euler_to_quat(euler: np.ndarray):
     euler *= 0.5
-    roll, pitch, yaw = euler
-    sin_r = math.sin(roll)
-    cos_r = math.cos(roll)
-    sin_p = math.sin(pitch)
-    cos_p = math.cos(pitch)
-    sin_y = math.sin(yaw)
-    cos_y = math.cos(yaw)
-    quat = np.zeros((4,), np.float32)
-    quat[0] = sin_r * cos_p * cos_y - cos_r * sin_p * sin_y
-    quat[1] = cos_r * sin_p * cos_y + sin_r * cos_p * sin_y
-    quat[2] = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
-    quat[3] = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
+    roll, pitch, yaw = euler[:, 0], euler[:, 1], euler[:, 2]
+    sin_r = np.sin(roll)
+    cos_r = np.cos(roll)
+    sin_p = np.sin(pitch)
+    cos_p = np.cos(pitch)
+    sin_y = np.sin(yaw)
+    cos_y = np.cos(yaw)
+    quat = np.zeros((euler.shape[0], 4), np.float32)
+    quat[:, 0] = sin_r * cos_p * cos_y - cos_r * sin_p * sin_y
+    quat[:, 1] = cos_r * sin_p * cos_y + sin_r * cos_p * sin_y
+    quat[:, 2] = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
+    quat[:, 3] = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
     return quat
 
 

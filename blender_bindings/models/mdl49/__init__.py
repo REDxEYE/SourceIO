@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
-from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_materials
+from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_materials, import_animations
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
@@ -52,4 +52,6 @@ def import_mdl49(model_path: Path, buffer: Buffer,
             logger.error(f'Failed to import materials, caused by {t_ex}')
             import traceback
             traceback.print_exc()
+    if options.import_animations and container.armature:
+        import_animations(content_manager, mdl, container.armature, options.scale)
     return container

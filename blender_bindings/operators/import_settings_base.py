@@ -37,7 +37,7 @@ class ModelOptions(SharedOptions, Source1SharedSettings):
     write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
     import_physics: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     load_refpose: BoolProperty(name="Load Ref pose", default=False, subtype='UNSIGNED')
-    # import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
+    import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')

@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from enum import IntFlag
 
-
 import numpy as np
 
+from SourceIO.library.shared.types import Vector4, Vector3
+from SourceIO.library.utils.math_utilities import euler_to_quat
 from .bone import Bone
 from .compressed_vectors import Quat64, Quat48, Quat48S
 from .frame_anim import StudioFrameAnim
@@ -53,6 +54,29 @@ class AniBoneFlags(IntFlag):
     CONST_POS2 = 0x20
     CONST_ROT2 = 0x40
     ANIM_ROT2 = 0x80
+
+
+@dataclass
+class StudioAnimationSection:
+    anim_block: int
+    anim_offset: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        return cls(*buffer.read_fmt("2I"))
+
+
+def quat_mult(q1, q2):
+    """Multiply two quaternions."""
+    w1, x1, y1, z1 = q1.T
+    w2, x2, y2, z2 = q2
+
+    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+    y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+    z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+
+    return np.vstack((w, x, y, z)).T
 
 
 @dataclass(slots=True)
@@ -105,31 +129,30 @@ class StudioAnimDesc:
                    local_hierarchy_offset, section_offset, section_frame_count, zero_frame_span, zero_frame_count,
                    zero_frame_offset, stall_time)
 
-    def get_sections(self, buffer: Buffer):
+    def get_sections(self, buffer: Buffer) -> list[StudioAnimationSection]:
         section = []
         if self.section_offset != 0 and self.section_frame_count > 0:
             section_count = (self.frame_count // self.section_frame_count) + 2
             buffer.seek(self._entry_offset + self.section_offset)
             for section_id in range(section_count):
-                anim_block, anim_offset = buffer.read_fmt("2i")
-                section.append((anim_block, anim_offset))
+                section.append(StudioAnimationSection.from_buffer(buffer))
         return section
 
     def read_animations(self, buffer: Buffer, bones: list[Bone]):
-        frames_per_sec = self.section_frame_count
+        frames_per_section = self.section_frame_count
         sections = self.get_sections(buffer)
 
         frame_buffer = np.zeros((self.frame_count, len(bones)), ANIM_DTYPE)
         if sections:
             frame_offset = 0
             for section_id, section in enumerate(sections):
-                if section[0] == 0:
-                    adjusted_anim_offset = section[1] + (self.animblock_offset - sections[0][1])
+                if section.anim_block == 0:
+                    adjusted_anim_offset = section.anim_offset + (self.animblock_offset - sections[0].anim_offset)
 
                     if section_id < len(sections) - 2:
-                        section_frame_count = frames_per_sec
+                        section_frame_count = frames_per_section
                     else:
-                        section_frame_count = self.frame_count - (len(sections) - 2) * frames_per_sec
+                        section_frame_count = self.frame_count - (len(sections) - 2) * frames_per_section
 
                     buffer.seek(self._entry_offset + adjusted_anim_offset)
                     if frame_offset == self.frame_count:
@@ -137,9 +160,11 @@ class StudioAnimDesc:
                     animation_section = self._read_animation_frames(buffer, bones, section_frame_count)
                     frame_buffer[frame_offset:frame_offset + section_frame_count, :] = animation_section
                     frame_offset += section_frame_count
-        else:
+        elif self.animblock_id == 0:
             buffer.seek(self._entry_offset + self.animblock_offset)
             frame_buffer[:, :] = self._read_animation_frames(buffer, bones, self.frame_count)
+        else:
+            pass
         return frame_buffer
 
     def _read_animation_frames(self, buffer: Buffer, bones: list[Bone], section_frame_count: int):
@@ -187,6 +212,70 @@ class StudioAnimDesc:
                         section_frame_buffer[frame_id, bone.bone_id]["pos"] = buffer.read_fmt("3f")
             return section_frame_buffer
 
+    def _read_anim_rot_value(self, buffer: Buffer, flags: AnimBoneFlags, frame_count: int, base_quat: Vector4,
+                             base_rot: Vector3, rot_scale: Vector3) -> list[Vector4]:
+        if flags & AnimBoneFlags.RAW_ROT:
+            return [Quat48.read(buffer)] * frame_count
+        if flags & AnimBoneFlags.ANIM_RAW_ROT2:
+            return [Quat64.read(buffer)] * frame_count
+        if not flags & AnimBoneFlags.ANIM_ROT:
+            if flags & AnimBoneFlags.ANIM_DELTA:
+                return [(0, 0, 0, 1)] * frame_count
+            return [base_quat] * frame_count
+
+        if flags & AnimBoneFlags.ANIM_ROT:
+            entry = buffer.tell()
+            x_offset = buffer.read_int16()
+            y_offset = buffer.read_int16()
+            z_offset = buffer.read_int16()
+            anim_rot = np.zeros((frame_count, 3), dtype=np.float32)
+            if x_offset > 0:
+                with buffer.read_from_offset(entry + x_offset):
+                    anim_rot[:, 0] = self._read_mdl_anim_values(buffer, frame_count, rot_scale[0])
+
+            if y_offset > 0:
+                with buffer.read_from_offset(entry + y_offset):
+                    anim_rot[:, 1] = self._read_mdl_anim_values(buffer, frame_count, rot_scale[1])
+
+            if z_offset > 0:
+                with buffer.read_from_offset(entry + z_offset):
+                    anim_rot[:, 2] = self._read_mdl_anim_values(buffer, frame_count, rot_scale[2])
+
+            # if not flags & AnimBoneFlags.ANIM_DELTA:
+            anim_rot = anim_rot + base_rot
+
+            return euler_to_quat(anim_rot)
+
+    def _read_anim_pos_value(self, buffer: Buffer, flags: AnimBoneFlags, frame_count: int, base_pos: Vector3,
+                             pos_scale: Vector3) -> list[Vector3]:
+        if flags & AnimBoneFlags.RAW_POS:
+            return [buffer.read_fmt("3e")] * frame_count
+        elif not flags & AnimBoneFlags.ANIM_POS:
+            if flags & AnimBoneFlags.ANIM_DELTA:
+                return [(0.0, 0.0, 0.0)] * frame_count
+            return [base_pos] * frame_count
+
+        if flags & AnimBoneFlags.ANIM_POS:
+            entry = buffer.tell()
+            x_offset = buffer.read_int16()
+            y_offset = buffer.read_int16()
+            z_offset = buffer.read_int16()
+            anim_pos = np.zeros((frame_count, 3), dtype=np.float32)
+            if x_offset > 0:
+                with buffer.read_from_offset(entry + x_offset):
+                    anim_pos[:, 0] = self._read_mdl_anim_values(buffer, frame_count, pos_scale[0])
+
+            if y_offset > 0:
+                with buffer.read_from_offset(entry + y_offset):
+                    anim_pos[:, 1] = self._read_mdl_anim_values(buffer, frame_count, pos_scale[1])
+
+            if z_offset > 0:
+                with buffer.read_from_offset(entry + z_offset):
+                    anim_pos[:, 2] = self._read_mdl_anim_values(buffer, frame_count, pos_scale[2])
+            # if not flags & AnimBoneFlags.ANIM_DELTA:
+            anim_pos = anim_pos + base_pos
+            return anim_pos
+
     def _read_mdl_animations(self, buffer: Buffer, bones: list[Bone], section_frame_count: int):
         animation_sections = []
 
@@ -208,125 +297,42 @@ class StudioAnimDesc:
             used_bone = bones[bone_index]
 
             flags = AnimBoneFlags(buffer.read_uint8())
+
             next_offset = buffer.read_int16()
             animation_sections.append((bone_index, flags, next_offset))
             assert flags & 0x40 == 0
             assert flags & 0x80 == 0
 
-            # assert flags & AnimBoneFlags.ANIM_DELTA == 0
+            value = self._read_anim_rot_value(buffer, flags, section_frame_count, used_bone.quat, used_bone.rotation,
+                                              used_bone.rotation_scale)
+            section_frame_buffer[:, bone_index]["rot"] = value
 
-            if flags & AnimBoneFlags.ANIM_RAW_ROT2:
-                section_frame_buffer[:, bone_index]["rot"] = Quat64.read(buffer)
-                # animation_bones.append((None, Quat64.read(buffer)))
-
-            if flags & AnimBoneFlags.RAW_ROT:
-                section_frame_buffer[:, bone_index]["rot"] = Quat48.read(buffer)
-                # animation_bones.append((None, Quat48.read(buffer)))
-
-            if flags & AnimBoneFlags.RAW_POS:
-                section_frame_buffer[:, bone_index]["pos"] = buffer.read_fmt("3e")
-                # animation_bones.append((None, buffer.read_fmt("3e")))
-
-            if flags & AnimBoneFlags.ANIM_ROT:
-                entry = buffer.tell()
-                x_offset = buffer.read_int16()
-                if x_offset > 0:
-                    with buffer.read_from_offset(entry + x_offset):
-                        section_frame_buffer["rot"][:, bone_index, 0] = self._read_mdl_anim_values(buffer,
-                                                                                                   section_frame_count,
-                                                                                                   used_bone.rotation_scale[
-                                                                                                       0])
-
-                y_offset = buffer.read_int16()
-                if y_offset > 0:
-                    with buffer.read_from_offset(entry + y_offset):
-                        section_frame_buffer["rot"][:, bone_index, 1] = self._read_mdl_anim_values(buffer,
-                                                                                                   section_frame_count,
-                                                                                                   used_bone.rotation_scale[
-                                                                                                       1])
-
-                z_offset = buffer.read_int16()
-                if z_offset > 0:
-                    with buffer.read_from_offset(entry + z_offset):
-                        section_frame_buffer["rot"][:, bone_index, 2] = self._read_mdl_anim_values(buffer,
-                                                                                                   section_frame_count,
-                                                                                                   used_bone.rotation_scale[
-                                                                                                       2])
-
-            if flags & AnimBoneFlags.ANIM_POS:
-                entry = buffer.tell()
-                x_offset = buffer.read_int16()
-                if x_offset > 0:
-                    with buffer.read_from_offset(entry + x_offset):
-                        section_frame_buffer["pos"][:, bone_index, 0] = self._read_mdl_anim_values(buffer,
-                                                                                                   section_frame_count,
-                                                                                                   used_bone.position_scale[
-                                                                                                       0])
-
-                y_offset = buffer.read_int16()
-                if y_offset > 0:
-                    with buffer.read_from_offset(entry + y_offset):
-                        section_frame_buffer["pos"][:, bone_index, 1] = self._read_mdl_anim_values(buffer,
-                                                                                                   section_frame_count,
-                                                                                                   used_bone.position_scale[
-                                                                                                       1])
-
-                z_offset = buffer.read_int16()
-                if z_offset > 0:
-                    with buffer.read_from_offset(entry + z_offset):
-                        section_frame_buffer["pos"][:, bone_index, 2] = self._read_mdl_anim_values(buffer,
-                                                                                                   section_frame_count,
-                                                                                                   used_bone.position_scale[
-                                                                                                       2])
-
-            if not (
-                    flags & AnimBoneFlags.ANIM_ROT or flags & AnimBoneFlags.RAW_ROT or flags & AnimBoneFlags.ANIM_RAW_ROT2):
-                section_frame_buffer[:, bone_index]["rot"] = used_bone.quat
-
-            if not (flags & AnimBoneFlags.ANIM_POS or flags & AnimBoneFlags.RAW_POS):
-                section_frame_buffer[:, bone_index]["pos"] = used_bone.position
+            value = self._read_anim_pos_value(buffer, flags, section_frame_count, used_bone.position,
+                                              used_bone.position_scale)
+            section_frame_buffer[:, bone_index]["pos"] = value
 
             if next_offset > 0:
                 buffer.seek(bone_entry + next_offset)
-            else:
-                break
+                continue
+            break
 
         return section_frame_buffer
 
+    def _read_rle_compressed_data(self, buffer: Buffer, frame_count: int):
+        valid, total = buffer.read_fmt("2B")
+        frame_offset = 0
+        all_shorts = np.zeros(frame_count + 1, np.int16)
+        while frame_offset < frame_count:
+            if valid > 0:
+                all_shorts[frame_offset:frame_offset + valid] = buffer.read_fmt(f"{valid}h")
+                frame_offset += valid
+            if total - valid > 0:
+                repeat_frames = total - valid
+                all_shorts[frame_offset:frame_offset + repeat_frames] = all_shorts[frame_offset - 1]
+                frame_offset += repeat_frames
+            valid, total = buffer.read_fmt("2B")
+        return all_shorts[:-1]
+
     def _read_mdl_anim_values(self, buffer: Buffer, frame_count: int, scale: float):
-        frame_count_remaining_to_be_checked = frame_count
-        accumulated_total = 0
-
-        anim_values = []
-        while frame_count_remaining_to_be_checked > 0:
-            value = buffer.read_int16()
-            buffer.seek(-2, 1)
-            valid, total = buffer.read_fmt("2b")
-            current_total = total
-            accumulated_total += current_total
-            assert current_total != 0
-            frame_count_remaining_to_be_checked -= current_total
-            anim_values.append((value, valid, total))
-
-            valid_count = valid
-            for _ in range(valid_count):
-                value = buffer.read_int16()
-                buffer.seek(-2, 1)
-                valid, total = buffer.read_fmt("2b")
-                anim_values.append((value, valid, total))
-
-        frames = [0 for _ in range(frame_count)]
-        for frame_id in range(frame_count):
-            k = frame_id
-            anim_value_id = 0
-            while anim_values[anim_value_id][2] <= k:
-                k -= anim_values[anim_value_id][2]
-                anim_value_id += anim_values[anim_value_id][1] + 1
-                assert anim_value_id < len(anim_values) and anim_values[anim_value_id][2] != 0
-
-                if anim_values[anim_value_id][1] > k:
-                    frames[frame_id] = anim_values[anim_value_id + k + 1][0] * scale
-                else:
-                    frames[frame_id] = anim_values[anim_value_id + anim_values[anim_value_id][1]][0] * scale
-
-        return frames
+        values = self._read_rle_compressed_data(buffer, frame_count)
+        return values.astype(np.float32) * scale

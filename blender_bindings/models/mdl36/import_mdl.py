@@ -43,8 +43,8 @@ def create_armature(mdl: MdlV36, scale=1.0):
         bl_bones.append(bl_bone)
 
     for bl_bone, s_bone in zip(bl_bones, mdl.bones):
-        if s_bone.parent_bone_id != -1:
-            bl_parent = bl_bones[s_bone.parent_bone_id]
+        if s_bone.parent_id != -1:
+            bl_parent = bl_bones[s_bone.parent_id]
             bl_bone.parent = bl_parent
         bl_bone.tail = (Vector([0, 0, 1]) * scale) + bl_bone.head
 

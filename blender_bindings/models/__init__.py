@@ -17,7 +17,8 @@ logger = log_manager.get_logger('MDL loader')
 def import_model(model_path: Path, buffer: Buffer,
                  content_manager: ContentManager,
                  options: ModelOptions,
-                 override_steam_id: Optional[SteamAppId] = None) -> Optional[ModelContainer]:
+                 override_steam_id: Optional[SteamAppId] = None,
+                 ) -> Optional[ModelContainer]:
     ident, version = buffer.read_fmt("4sI")
     logger.info(f"Detected magic: {ident!r}, version:{version}")
     cp = content_manager.get_content_provider_from_asset_path(model_path)

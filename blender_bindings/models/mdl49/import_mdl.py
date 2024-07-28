@@ -403,6 +403,7 @@ def import_materials(mdl, use_bvlg=False):
 def import_animations(cm: ContentManager, mdl: MdlV49, armature: bpy.types.Object,
                       scale: float):
     bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.scene.collection.objects.link(armature)
     armature.select_set(True)
     bpy.context.view_layer.objects.active = armature
     bpy.ops.object.mode_set(mode='POSE')
@@ -412,6 +413,7 @@ def import_animations(cm: ContentManager, mdl: MdlV49, armature: bpy.types.Objec
     for n, anim in enumerate(mdl.anim_descs):
         animation_data = mdl.animations[n]
         action = bpy.data.actions.new(anim.name)
+        action.use_fake_user = True
         armature.animation_data.action = action
         curve_per_bone = {}
 
@@ -446,15 +448,28 @@ def import_animations(cm: ContentManager, mdl: MdlV49, armature: bpy.types.Objec
                 x, y, z, w = anim_data["rot"]
                 rot = Quaternion((w, x, y, z))
                 mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-                mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
-                bl_bone.matrix = mat
 
-                for i in range(3):
-                    pos_curves[i].keyframe_points[frame_id].co = (frame_id, (bl_bone.location[i]))
+                if bl_bone.parent:
 
-                for i in range(4):
-                    rot_curves[i].keyframe_points[frame_id].co = (frame_id, (bl_bone.rotation_quaternion[i]))
+                    mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+                    bl_bone.matrix = mat
+                    pos, rot = bl_bone.location, bl_bone.rotation_quaternion
+                    for i in range(3):
+                        pos_curves[i].keyframe_points[frame_id].co = (frame_id, (pos[i]))
+
+                    for i in range(4):
+                        rot_curves[i].keyframe_points[frame_id].co = (frame_id, (rot[i]))
+                else:
+                    mat = bl_bone.matrix.inverted() @ mat
+                    pos,rot,scl = mat.decompose()
+                    for i in range(3):
+                        pos_curves[i].keyframe_points[frame_id].co = (frame_id, (pos[i]))
+
+                    for i in range(4):
+                        rot_curves[i].keyframe_points[frame_id].co = (frame_id, (rot[i]))
+                bl_bone.matrix = Matrix.Identity(4)
         for pos_curves, rot_curves in curve_per_bone.values():
             for curve in rot_curves + pos_curves:
                 curve.update()
         bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.context.scene.collection.objects.unlink(armature)

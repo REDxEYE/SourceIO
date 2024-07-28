@@ -56,8 +56,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
                     return {'CANCELLED'}
 
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
-            # if self.import_animations and model_container.armature:
-            #     import_animations(content_manager, model_container.mdl, model_container.armature, self.scale)
+
             # if self.write_qc:
             #     from ... import bl_info
             #     from ...library.source1.qc.qc import generate_qc

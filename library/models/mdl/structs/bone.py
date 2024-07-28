@@ -135,7 +135,7 @@ class ProceduralBoneType(IntEnum):
 class Bone:
     bone_id: int = field(init=False)
     name: str
-    parent_bone_id: int
+    parent_id: int
     bone_controller_ids: tuple[float, ...]
 
     position: Vector3[float]
