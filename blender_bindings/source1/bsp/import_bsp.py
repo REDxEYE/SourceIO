@@ -109,7 +109,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         return
     parent_collection = get_or_create_collection('cubemaps', master_collection)
     for n, cubemap in enumerate(cubemap_lump.cubemaps):
-        refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
+        refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'SPHERE')
         obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
         obj.location = cubemap.origin
         obj.location *= settings.scale
