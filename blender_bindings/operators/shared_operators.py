@@ -176,6 +176,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     print(f"BVLG op: {context.scene.use_bvlg}")
                     options.use_bvlg = context.scene.use_bvlg
                     options.bodygroup_grouping = False
+                    options.import_animations = True
                     options.import_physics = context.scene.import_physics
                     try:
                         model_container = import_model(prop_path, mdl_file,
