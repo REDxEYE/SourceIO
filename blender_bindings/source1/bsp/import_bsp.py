@@ -20,6 +20,7 @@ from ....library.utils.idtech3_shader_parser import parse_shader_materials
 from ....library.utils.math_utilities import (SOURCE1_HAMMER_UNIT_TO_METERS,
                                               convert_rotation_source1_to_blender)
 from ....library.utils.path_utilities import path_stem
+from ....library.utils.reporter import SourceIOException, Reporter
 from ....logger import SourceLogMan, SLogger
 from ...material_loader.material_loader import Source1MaterialLoader
 from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -48,8 +49,6 @@ def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentManager, 
     logger = log_manager.get_logger(map_path.name)
     logger.info(f'Loading map "{map_path}"')
     bsp = open_bsp(map_path, buffer, override_steamappid)
-    if bsp is None:
-        raise Exception("Could not open map file. This function can only load Source1 BSP files.")
     master_collection = bpy.data.collections.new(map_path.name)
     bpy.context.scene.collection.children.link(master_collection)
     import_entities(bsp, content_manager, settings, master_collection, logger)

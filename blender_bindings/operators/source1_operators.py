@@ -8,7 +8,8 @@ from .import_settings_base import ModelOptions, Source1BSPSettings
 from .operator_helper import ImportOperatorHelper
 from ..models import import_model
 from ..models.common import put_into_collections
-from ..shared.exceptions import RequiredFileNotFound
+from ..shared.exceptions import SourceIOMissingFileException, RAISE_EXCEPTIONS_ANYWAYS, \
+    SourceIOUnsupportedFormatException
 from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.app_id import SteamAppId
@@ -16,6 +17,7 @@ from ...library.shared.content_providers.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 from ...library.utils import FileBuffer
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.reporter import Reporter, SourceIOException
 
 from ...logger import SourceLogMan
 from ..material_loader.material_loader import Source1MaterialLoader
@@ -24,6 +26,7 @@ from ..source1.bsp.import_bsp import import_bsp
 from ..source1.dmx.load_sfm_session import load_session
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
+
 
 # noinspection PyPep8Naming
 class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
@@ -37,31 +40,32 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     filter_glob: StringProperty(default="*.mdl;*.md3", options={'HIDDEN'})
 
     def execute(self, context):
-        directory = self.get_directory()
+        reporter = Reporter.new()
+        reporter.clear()
+        try:
+            directory = self.get_directory()
 
-        content_manager = ContentManager()
-        if self.discover_resources:
-            content_manager.scan_for_content(directory)
-            serialize_mounted_content(content_manager)
-        else:
-            deserialize_mounted_content(content_manager)
+            content_manager = ContentManager()
+            if self.discover_resources:
+                content_manager.scan_for_content(directory)
+                serialize_mounted_content(content_manager)
+            else:
+                deserialize_mounted_content(content_manager)
 
-        for file in self.files:
-            mdl_path = directory / file.name
-            with FileBuffer(mdl_path) as f:
-                try:
-                    model_container = import_model(mdl_path, f, content_manager, self, None)
-                except RequiredFileNotFound as e:
-                    self.report({"ERROR"}, e.message)
-                    return {'CANCELLED'}
+            for file in self.files:
+                mdl_path = directory / file.name
+                with FileBuffer(mdl_path) as f:
+                    try:
+                        model_container = import_model(mdl_path, f, content_manager, self, None)
+                    except SourceIOMissingFileException as e:
+                        reporter.error(e)
+                        if RAISE_EXCEPTIONS_ANYWAYS:
+                            raise e
+                        continue
+                put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
+        finally:
+            self.report_errors(reporter)
 
-            put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
-
-            # if self.write_qc:
-            #     from ... import bl_info
-            #     from ...library.source1.qc.qc import generate_qc
-            #     qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
-            #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
 
 
@@ -86,14 +90,20 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
     )
 
     def execute(self, context):
+        reporter = Reporter.new()
         content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(self.filepath)
         else:
             deserialize_mounted_content(content_manager)
-        with FileBuffer(Path(self.filepath)) as f:
-            import_bsp(Path(self.filepath), f, content_manager, self,
-                       SteamAppId(int(self.steam_app_id)) if self.steam_app_id != "-999" else None)
+        try:
+            with FileBuffer(Path(self.filepath)) as f:
+                import_bsp(Path(self.filepath), f, content_manager, self,
+                           SteamAppId(int(self.steam_app_id)) if self.steam_app_id != "-999" else None)
+        except SourceIOException as e:
+            reporter.error(e)
+
+        self.report_errors(reporter)
 
         if self.discover_resources:
             serialize_mounted_content(content_manager)
@@ -136,26 +146,30 @@ class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
     need_popup = False
 
     def execute(self, context):
+        reporter = Reporter.new()
         directory = self.get_directory()
 
         for file in self.files:
-            image = import_texture(Path(file.name), (directory / file.name).open('rb'), True)
-            if is_blender_4_1():
-                if (context.region and context.region.type == 'WINDOW'
-                        and context.area and context.area.ui_type == 'ShaderNodeTree'
-                        and context.object and context.object.type == 'MESH'
-                        and context.material):
-                    node_tree = context.material.node_tree
-                    image_node = node_tree.nodes.new(type="ShaderNodeTexImage")
-                    image_node.image = image
-                    image_node.location = context.space_data.cursor_location
-                    for node in context.material.node_tree.nodes:
-                        node.select = False
-                    image_node.select = True
-                if (context.region and context.region.type == 'WINDOW'
-                        and context.area and context.area.ui_type in ["IMAGE_EDITOR", "UV"]):
-                    context.space_data.image = image
-
+            try:
+                image = import_texture(Path(file.name), (directory / file.name).open('rb'), True)
+                if is_blender_4_1():
+                    if (context.region and context.region.type == 'WINDOW'
+                            and context.area and context.area.ui_type == 'ShaderNodeTree'
+                            and context.object and context.object.type == 'MESH'
+                            and context.material):
+                        node_tree = context.material.node_tree
+                        image_node = node_tree.nodes.new(type="ShaderNodeTexImage")
+                        image_node.image = image
+                        image_node.location = context.space_data.cursor_location
+                        for node in context.material.node_tree.nodes:
+                            node.select = False
+                        image_node.select = True
+                    if (context.region and context.region.type == 'WINDOW'
+                            and context.area and context.area.ui_type in ["IMAGE_EDITOR", "UV"]):
+                        context.space_data.image = image
+            except SourceIOException as e:
+                reporter.error(e)
+        self.report_errors(reporter)
         return {'FINISHED'}
 
 

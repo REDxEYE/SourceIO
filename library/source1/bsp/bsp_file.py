@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from ....blender_bindings.shared.exceptions import SourceIOWrongMagic
 from ....logger import SourceLogMan
 from ...shared.content_providers.content_manager import ContentManager
 from .lump import *
@@ -9,7 +10,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger("BSP")
 
 
-def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None) -> Optional['BSPFile']:
+def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None) -> 'BSPFile':
     magic, version = buffer.read_fmt('4sI')
     buffer.seek(0)
     if magic == b'VBSP':
@@ -18,8 +19,8 @@ def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[Steam
         return RespawnBSPFile.from_buffer(filepath, buffer, override_steamappid)
     elif magic == b'RBSP':
         return RavenBSPFile.from_buffer(filepath, buffer, override_steamappid)
-    logger.error("Unrecognized map magic number: {}".format(magic))
-    return None
+
+    raise SourceIOWrongMagic(f"Unrecognized magic({magic!r}). Supported: b'VBSP', b'RBSP', b'rBSP'")
 
 
 CM = ContentManager()

@@ -4,9 +4,18 @@ import bpy
 from bpy.props import StringProperty, CollectionProperty
 
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_1
+from SourceIO.library.utils.reporter import Reporter
 
 
-class ImportOperatorHelper(bpy.types.Operator):
+class OperatorHelper(bpy.types.Operator):
+    def report_errors(self, reporter: Reporter):
+        for warning in reporter.warnings():
+            self.report({"WARNING"}, str(warning))
+        for error in reporter.errors():
+            self.report({"ERROR"}, str(error))
+
+
+class ImportOperatorHelper(OperatorHelper):
     need_popup = True
     if is_blender_4_1():
         directory: bpy.props.StringProperty(subtype='FILE_PATH', options={'SKIP_SAVE', 'HIDDEN'})

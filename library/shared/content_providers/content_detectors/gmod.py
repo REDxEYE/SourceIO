@@ -1,12 +1,16 @@
 from pathlib import Path
 
-
+from ....utils.reporter import SourceIOException, Reporter
+from .....blender_bindings.shared.exceptions import RAISE_EXCEPTIONS_ANYWAYS
 from .....library.utils.path_utilities import backwalk_file_resolver
 from ..content_provider_base import ContentProviderBase
 from ..gma_provider import GMAContentProvider
 from ..non_source_sub_manager import NonSourceContentProvider
-from ..source1_content_provider import GameinfoContentProvider
 from .source1_common import Source1Common
+from .....logger import SourceLogMan
+
+log_manager = SourceLogMan()
+logger = log_manager.get_logger('GModDetector')
 
 
 class GModDetector(Source1Common):
@@ -24,8 +28,13 @@ class GModDetector(Source1Common):
         if (gmod_dir / 'addons').exists():
             for addon in (gmod_dir / 'addons').iterdir():
                 if addon.suffix == '.gma':
-                    provider = GMAContentProvider(addon, 4000)
-                    if provider.gma_archive is None:
+                    try:
+                        provider = GMAContentProvider(addon, 4000)
+                    except SourceIOException as e:
+                        logger.exception("Failed to open gma due to exception", e)
+                        Reporter().error(e)
+                        if RAISE_EXCEPTIONS_ANYWAYS:
+                            raise e
                         continue
                     content_providers[addon.name] = provider
                 elif addon.is_dir():

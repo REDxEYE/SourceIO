@@ -3,16 +3,17 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, MutableMapping
 
-from bpy.props import (BoolProperty, StringProperty)
+from bpy.props import StringProperty
 from bpy.types import (Panel,
-                       Operator,
                        PropertyGroup)
 from idprop.types import *
 import bpy
 
 from .import_settings_base import ModelOptions
+from .operator_helper import OperatorHelper
 from ..models import import_model
-from ..shared.exceptions import RequiredFileNotFound
+from ..shared.exceptions import SourceIOMissingFileException, SourceIOFileNotFoundWarning, SourceIOModelDidNotLoadWarning, \
+    RAISE_EXCEPTIONS_ANYWAYS
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from ...library.shared.content_providers.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
@@ -22,6 +23,7 @@ from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.reporter import Reporter, SourceIOException
 
 
 def get_parent(collection):
@@ -54,7 +56,7 @@ def add_collection(model_path: Path, collection: bpy.types.Collection, *other_ar
 
 
 # noinspection PyPep8Naming
-class SourceIO_OT_LoadEntity(Operator):
+class SourceIO_OT_LoadEntity(OperatorHelper):
     bl_idname = "sourceio.load_placeholder"
     bl_label = "Load Entity"
     bl_options = {'UNDO'}
@@ -62,6 +64,8 @@ class SourceIO_OT_LoadEntity(Operator):
     # use_bvlg: BoolProperty(default=True)
 
     def execute(self, context):
+        reporter = Reporter.new()
+        reporter.clear()
         content_manager = ContentManager()
         deserialize_mounted_content(content_manager)
         use_collections = context.scene.use_instances
@@ -72,8 +76,6 @@ class SourceIO_OT_LoadEntity(Operator):
         master_instance_lcollection = find_layer_collection(bpy.context.view_layer.layer_collection,
                                                             master_instance_collection.name)
         master_instance_lcollection.exclude = True
-        # master_instance_collection.hide_viewport = True
-        # master_instance_collection.hide_render = True
         if not use_collections:
             master_instance_collection = get_or_create_collection("MODELS",
                                                                   bpy.context.scene.collection)
@@ -83,223 +85,232 @@ class SourceIO_OT_LoadEntity(Operator):
         for n, obj in enumerate(context.selected_objects):
             print(f'Loading {obj.name}')
             win.progress_update(n)
-            if obj.get("entity_data", None):
-                custom_prop_data = obj['entity_data']
-                prop_path = custom_prop_data.get('prop_path', None)
-                if prop_path is None or custom_prop_data.get("imported", False):
-                    continue
-                prop_path = Path(prop_path)
-                model_type = prop_path.suffix
-                parent = get_parent(obj.users_collection[0])
-                if model_type == '.vmdl_c':
+            try:
+                if obj.get("entity_data", None):
+                    custom_prop_data = obj['entity_data']
+                    prop_path = custom_prop_data.get('prop_path', None)
+                    if prop_path is None or custom_prop_data.get("imported", False):
+                        continue
+                    prop_path = Path(prop_path)
+                    model_type = prop_path.suffix
+                    parent = get_parent(obj.users_collection[0])
+                    if model_type == '.vmdl_c':
 
-                    instance_collection = get_collection(prop_path)
-                    if instance_collection and use_collections:
-                        collection = bpy.data.collections.get(instance_collection, None)
-                        if collection is not None:
-                            obj.instance_type = 'COLLECTION'
-                            obj.instance_collection = collection
+                        instance_collection = get_collection(prop_path)
+                        if instance_collection and use_collections:
+                            collection = bpy.data.collections.get(instance_collection, None)
+                            if collection is not None:
+                                obj.instance_type = 'COLLECTION'
+                                obj.instance_collection = collection
+                                obj["entity_data"]["prop_path"] = None
+                                obj["entity_data"]["imported"] = True
+                                continue
+
+                        vmld_file = content_manager.find_file(prop_path)
+                        if vmld_file:
+                            # skin = custom_prop_data.get('skin', None)
+                            model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
+                            container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
+                                                   import_physics=context.scene.import_physics,
+                                                   import_materials=import_materials)
+                            if replace_entity:
+                                s2_put_into_collections(container, model_resource.name, parent)
+                            else:
+                                prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
+                                s2_put_into_collections(container, model_resource.name, prop_collection)
                             obj["entity_data"]["prop_path"] = None
                             obj["entity_data"]["imported"] = True
+
+                            if use_collections:
+                                add_collection(prop_path, container.master_collection)
+
+                                obj.instance_type = 'COLLECTION'
+                                obj.instance_collection = container.master_collection
+                                continue
+                            if replace_entity:
+                                if container.armature:
+                                    container.armature.location = obj.location
+                                    container.armature.rotation_mode = "XYZ"
+                                    container.armature.rotation_euler = obj.rotation_euler
+                                    container.armature.scale = obj.scale
+                                    container.armature.name = obj.name
+                                else:
+                                    for ob in chain(container.objects,
+                                                    container.physics_objects):  # type:bpy.types.Object
+                                        ob.location = obj.location
+                                        ob.rotation_mode = "XYZ"
+                                        ob.rotation_euler = obj.rotation_euler
+                                        ob.scale = obj.scale
+                                bpy.data.objects.remove(obj)
+                            else:
+                                if container.armature:
+                                    container.armature.parent = obj
+                                else:
+                                    for o in container.objects:
+                                        o.parent = obj
+                                    for o in container.physics:
+                                        o.parent = obj
+                        else:
+                            self.report({'INFO'}, f"Model '{prop_path}' not found!")
+                    elif model_type in ('.mdl', ".md3"):
+                        default_anim = custom_prop_data["entity"].get("defaultanim", None)
+                        prop_path = prop_path
+
+                        instance_collection = get_collection(prop_path, default_anim)
+                        if instance_collection and use_collections:
+                            collection = bpy.data.collections.get(instance_collection, None)
+                            if collection is not None:
+                                obj.instance_type = 'COLLECTION'
+                                obj.instance_collection = collection
+                                obj["entity_data"]["prop_path"] = None
+                                obj["entity_data"]["imported"] = True
+                                continue
+
+                        mdl_file = content_manager.find_file(prop_path)
+                        if not mdl_file:
+                            reporter.warning(
+                                SourceIOFileNotFoundWarning(f"Failed to find .mdl({prop_path}) for prop {obj.name}"))
+                            continue
+                        cp = content_manager.get_content_provider_from_asset_path(prop_path)
+                        options = ModelOptions()
+                        options.import_textures = import_materials
+                        options.import_physics = False
+                        options.create_flex_drivers = False
+                        options.scale = 1.0
+                        print(f"BVLG op: {context.scene.use_bvlg}")
+                        options.use_bvlg = context.scene.use_bvlg
+                        options.bodygroup_grouping = False
+                        options.import_animations = True
+                        options.import_physics = context.scene.import_physics
+                        try:
+                            model_container = import_model(prop_path, mdl_file,
+                                                           content_manager, options,
+                                                           ((cp.steam_id or None) if cp else None))
+                        except SourceIOMissingFileException as e:
+                            reporter.error(e)
                             continue
 
-                    vmld_file = content_manager.find_file(prop_path)
-                    if vmld_file:
-                        # skin = custom_prop_data.get('skin', None)
-                        model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                        container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
-                                               import_physics=context.scene.import_physics,import_materials=import_materials)
-                        if replace_entity:
-                            s2_put_into_collections(container, model_resource.name, parent)
-                        else:
-                            prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
-                            s2_put_into_collections(container, model_resource.name, prop_collection)
+                        if model_container is None:
+                            reporter.warning(
+                                SourceIOModelDidNotLoadWarning(
+                                    f"Import function returned empty container for {prop_path} model.\n"
+                                    "This may suggest that model format is not supported"))
+                            continue
+                        s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
+
+                        # if default_anim is not None and model_container.armature is not None:
+                        #     try:
+                        #         import_static_animations(content_manager, model_container.mdl, default_anim,
+                        #                                  model_container.armature, 1.0)
+                        #     except RuntimeError:
+                        #         self.report({"WARNING"}, "Failed to load animation")
+                        #         traceback.print_exc()
+
                         obj["entity_data"]["prop_path"] = None
                         obj["entity_data"]["imported"] = True
-
                         if use_collections:
-                            add_collection(prop_path, container.master_collection)
+                            add_collection(prop_path, model_container.master_collection, default_anim)
 
                             obj.instance_type = 'COLLECTION'
-                            obj.instance_collection = container.master_collection
+                            obj.instance_collection = model_container.master_collection
                             continue
+
                         if replace_entity:
-                            if container.armature:
-                                container.armature.location = obj.location
-                                container.armature.rotation_mode = "XYZ"
-                                container.armature.rotation_euler = obj.rotation_euler
-                                container.armature.scale = obj.scale
-                                container.armature.name = obj.name
+                            if model_container.armature:
+                                model_container.armature.location = obj.location
+                                model_container.armature.rotation_mode = "XYZ"
+                                model_container.armature.rotation_euler = obj.rotation_euler
+                                model_container.armature.scale = obj.scale
+                                model_container.armature.name = obj.name
+                                model_container.armature["entity_data"] = obj["entity_data"]
+                                model_container.armature["entity_data"]["prop_path"] = None
+                                model_container.armature["entity_data"]["imported"] = True
                             else:
-                                for ob in chain(container.objects,
-                                                container.physics_objects):  # type:bpy.types.Object
+                                for ob in model_container.objects:  # type:bpy.types.Object
                                     ob.location = obj.location
                                     ob.rotation_mode = "XYZ"
                                     ob.rotation_euler = obj.rotation_euler
                                     ob.scale = obj.scale
+                                    ob["entity_data"] = obj["entity_data"]
+                                    ob["entity_data"]["prop_path"] = None
+                                    ob["entity_data"]["imported"] = True
                             bpy.data.objects.remove(obj)
                         else:
-                            if container.armature:
-                                container.armature.parent = obj
+                            if model_container.armature:
+                                model_container.armature.parent = obj
                             else:
-                                for o in container.objects:
+                                for o in model_container.objects:
                                     o.parent = obj
-                                for o in container.physics:
-                                    o.parent = obj
-                    else:
-                        self.report({'INFO'}, f"Model '{prop_path}' not found!")
-                elif model_type in ('.mdl', ".md3"):
-                    default_anim = custom_prop_data["entity"].get("defaultanim", None)
-                    prop_path = prop_path
 
-                    instance_collection = get_collection(prop_path, default_anim)
-                    if instance_collection and use_collections:
-                        collection = bpy.data.collections.get(instance_collection, None)
-                        if collection is not None:
-                            obj.instance_type = 'COLLECTION'
-                            obj.instance_collection = collection
-                            obj["entity_data"]["prop_path"] = None
-                            obj["entity_data"]["imported"] = True
-                            continue
-
-                    mdl_file = content_manager.find_file(prop_path)
-                    if not mdl_file:
-                        self.report({"WARNING"},
-                                    f"Failed to find MDL file for prop {prop_path}")
-                        continue
-                    cp = content_manager.get_content_provider_from_asset_path(prop_path)
-                    options = ModelOptions()
-                    options.import_textures = import_materials
-                    options.import_physics = False
-                    options.create_flex_drivers = False
-                    options.scale = 1.0
-                    print(f"BVLG op: {context.scene.use_bvlg}")
-                    options.use_bvlg = context.scene.use_bvlg
-                    options.bodygroup_grouping = False
-                    options.import_animations = True
-                    options.import_physics = context.scene.import_physics
-                    try:
-                        model_container = import_model(prop_path, mdl_file,
-                                                       content_manager, options,
-                                                       ((cp.steam_id or None) if cp else None))
-                    except RequiredFileNotFound as e:
-                        self.report({"ERROR"}, e.message)
-                        return {'CANCELLED'}
-                    if model_container is None:
-                        self.report({"WARNING"},
-                                    f"Failed to load MDL file for prop {prop_path}")
-                        continue
-                    s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
-
-                    # if default_anim is not None and model_container.armature is not None:
-                    #     try:
-                    #         import_static_animations(content_manager, model_container.mdl, default_anim,
-                    #                                  model_container.armature, 1.0)
-                    #     except RuntimeError:
-                    #         self.report({"WARNING"}, "Failed to load animation")
-                    #         traceback.print_exc()
-
-                    obj["entity_data"]["prop_path"] = None
-                    obj["entity_data"]["imported"] = True
-                    if use_collections:
-                        add_collection(prop_path, model_container.master_collection, default_anim)
-
-                        obj.instance_type = 'COLLECTION'
-                        obj.instance_collection = model_container.master_collection
-                        continue
-
-                    if replace_entity:
-                        if model_container.armature:
-                            model_container.armature.location = obj.location
-                            model_container.armature.rotation_mode = "XYZ"
-                            model_container.armature.rotation_euler = obj.rotation_euler
-                            model_container.armature.scale = obj.scale
-                            model_container.armature.name = obj.name
-                            model_container.armature["entity_data"] = obj["entity_data"]
-                            model_container.armature["entity_data"]["prop_path"] = None
-                            model_container.armature["entity_data"]["imported"] = True
-                        else:
-                            for ob in model_container.objects:  # type:bpy.types.Object
-                                ob.location = obj.location
-                                ob.rotation_mode = "XYZ"
-                                ob.rotation_euler = obj.rotation_euler
-                                ob.scale = obj.scale
-                                ob["entity_data"] = obj["entity_data"]
-                                ob["entity_data"]["prop_path"] = None
-                                ob["entity_data"]["imported"] = True
-                        bpy.data.objects.remove(obj)
-                    else:
-                        if model_container.armature:
-                            model_container.armature.parent = obj
-                        else:
-                            for o in model_container.objects:
-                                o.parent = obj
-
-                    # entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
-                    # entity_data_holder['entity_data'] = {}
-                    # entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
-                    #
-                    # master_collection = s1_put_into_collections(model_container, prop_path.stem, collection, False)
-                    # master_collection.objects.link(entity_data_holder)
-                    #
-                    # if model_container.armature is not None:
-                    #     armature = model_container.armature
-                    #     armature.rotation_mode = "XYZ"
-                    #     entity_data_holder.parent = armature
-                    #
-                    #     bpy.context.view_layer.update()
-                    #     armature.parent = obj.parent
-                    #     armature.matrix_world = obj.matrix_world.copy()
-                    #     armature.rotation_euler[2] += math.radians(90)
-                    # else:
-                    #     if model_container.objects:
-                    #         entity_data_holder.parent = model_container.objects[0]
-                    #     else:
-                    #         entity_data_holder.location = obj.location
-                    #         entity_data_holder.rotation_euler = obj.rotation_euler
-                    #         entity_data_holder.scale = obj.scale
-                    #     for mesh_obj in model_container.objects:
-                    #         mesh_obj.rotation_mode = "XYZ"
-                    #         bpy.context.view_layer.update()
-                    #         mesh_obj.parent = obj.parent
-                    #         mesh_obj.matrix_world = obj.matrix_world.copy()
-                    #
-                    # for mesh_obj in model_container.objects:
-                    #     mesh_obj['prop_path'] = prop_path
-                    # if container is None:
-                    #     import_materials(model_container.mdl, unique_material_names=unique_material_names)
-                    # skin = custom_prop_data.get('skin', None)
-                    # if skin:
-                    #     for model in model_container.objects:
-                    #         if str(skin) in model['skin_groups']:
-                    #             skin = str(skin)
-                    #             skin_materials = model['skin_groups'][skin]
-                    #             current_materials = model['skin_groups'][model['active_skin']]
-                    #             print(skin_materials, current_materials)
-                    #             for skin_material, current_material in zip(skin_materials, current_materials):
-                    #                 if unique_material_names:
-                    #                     skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
-                    #                                     -63:]
-                    #                     current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[:63]}"[
-                    #                                        -63:]
-                    #                 else:
-                    #                     skin_material = skin_material[:63]
-                    #                     current_material = current_material[:63]
-                    #
-                    #                 swap_materials(model, skin_material, current_material)
-                    #             model['active_skin'] = skin
-                    #         else:
-                    #             print(f'Skin {skin} not found')
-                    #
-                    # bpy.data.objects.remove(obj)
+                        # entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
+                        # entity_data_holder['entity_data'] = {}
+                        # entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
+                        #
+                        # master_collection = s1_put_into_collections(model_container, prop_path.stem, collection, False)
+                        # master_collection.objects.link(entity_data_holder)
+                        #
+                        # if model_container.armature is not None:
+                        #     armature = model_container.armature
+                        #     armature.rotation_mode = "XYZ"
+                        #     entity_data_holder.parent = armature
+                        #
+                        #     bpy.context.view_layer.update()
+                        #     armature.parent = obj.parent
+                        #     armature.matrix_world = obj.matrix_world.copy()
+                        #     armature.rotation_euler[2] += math.radians(90)
+                        # else:
+                        #     if model_container.objects:
+                        #         entity_data_holder.parent = model_container.objects[0]
+                        #     else:
+                        #         entity_data_holder.location = obj.location
+                        #         entity_data_holder.rotation_euler = obj.rotation_euler
+                        #         entity_data_holder.scale = obj.scale
+                        #     for mesh_obj in model_container.objects:
+                        #         mesh_obj.rotation_mode = "XYZ"
+                        #         bpy.context.view_layer.update()
+                        #         mesh_obj.parent = obj.parent
+                        #         mesh_obj.matrix_world = obj.matrix_world.copy()
+                        #
+                        # for mesh_obj in model_container.objects:
+                        #     mesh_obj['prop_path'] = prop_path
+                        # if container is None:
+                        #     import_materials(model_container.mdl, unique_material_names=unique_material_names)
+                        # skin = custom_prop_data.get('skin', None)
+                        # if skin:
+                        #     for model in model_container.objects:
+                        #         if str(skin) in model['skin_groups']:
+                        #             skin = str(skin)
+                        #             skin_materials = model['skin_groups'][skin]
+                        #             current_materials = model['skin_groups'][model['active_skin']]
+                        #             print(skin_materials, current_materials)
+                        #             for skin_material, current_material in zip(skin_materials, current_materials):
+                        #                 if unique_material_names:
+                        #                     skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
+                        #                                     -63:]
+                        #                     current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[:63]}"[
+                        #                                        -63:]
+                        #                 else:
+                        #                     skin_material = skin_material[:63]
+                        #                     current_material = current_material[:63]
+                        #
+                        #                 swap_materials(model, skin_material, current_material)
+                        #             model['active_skin'] = skin
+                        #         else:
+                        #             print(f'Skin {skin} not found')
+                        #
+                        # bpy.data.objects.remove(obj)
+            except SourceIOException as e:
+                reporter.error(e)
+                if RAISE_EXCEPTIONS_ANYWAYS:
+                    raise e
 
         win.progress_end()
-
+        self.report_errors(reporter)
         return {'FINISHED'}
 
 
 # noinspection PyPep8Naming
-class SOURCEIO_OT_ChangeSkin(Operator):
+class SOURCEIO_OT_ChangeSkin(OperatorHelper):
     bl_idname = "sourceio.select_skin"
     bl_label = "Change skin"
     bl_options = {'UNDO'}
@@ -481,7 +492,7 @@ class SOURCEIO_PT_EntityInfo(UITools, Panel):
             row.label(text=str(value))
 
 
-class SOURCEIO_OP_ExpandBlock(Operator):
+class SOURCEIO_OP_ExpandBlock(OperatorHelper):
     bl_label = 'Expand Block'
     bl_idname = "sourceio.expand_block"
 
@@ -549,7 +560,7 @@ class SOURCEIO_UL_MountedResource(PropertyGroup):
         default="")
 
 
-class SOURCEIO_OT_NewResource(Operator):
+class SOURCEIO_OT_NewResource(OperatorHelper):
     bl_idname = "sourceio.new_resource"
     bl_label = "Add New Resource"
 
@@ -573,7 +584,7 @@ class SOURCEIO_OT_NewResource(Operator):
         return {'RUNNING_MODAL'}
 
 
-class SOURCEIO_OT_DeleteResource(Operator):
+class SOURCEIO_OT_DeleteResource(OperatorHelper):
     bl_idname = "sourceio.delete_resource"
     bl_label = "Delete Resource"
 
@@ -593,7 +604,7 @@ class SOURCEIO_OT_DeleteResource(Operator):
         return {'FINISHED'}
 
 
-class SOURCEIO_OT_CleanResources(Operator):
+class SOURCEIO_OT_CleanResources(OperatorHelper):
     bl_idname = "sourceio.clean_resources"
     bl_label = "Clean All Resources"
 

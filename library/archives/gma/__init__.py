@@ -2,14 +2,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
 
+from SourceIO.blender_bindings.shared.exceptions import SourceIOWrongMagic
 from SourceIO.library.utils import Buffer, FileBuffer
 from .file_entry import FileEntry
 
 
 def open_gma(filepath: Union[str, Path]):
     tmp = FileBuffer(filepath)
-    if tmp.read(4) != b'GMAD':
-        return None
+    ident = tmp.read(4)
+    if ident != b'GMAD':
+        raise SourceIOWrongMagic(f"Expected GMAD, but got {ident!r}")
     tmp.close()
     del tmp
 

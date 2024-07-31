@@ -9,4 +9,12 @@ def running_in_blender():
 
 
 def loaded_as_addon():
-    return int(os.environ.get('NO_BPY', '0')) == 0
+    force_no_bpy = int(os.environ.get('NO_BPY', '0')) == 1
+    if force_no_bpy:
+        return False
+    try:
+        import bpy
+        # Used to check if we are running from python with blender as module
+        return bpy.app.sdl.supported
+    except ImportError:
+        return False
