@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        StringProperty)
@@ -12,10 +10,11 @@ from ..shared.exceptions import RequiredFileNotFound
 from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.app_id import SteamAppId
-from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.shared.content_manager.manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 from ...library.utils import FileBuffer
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.tiny_path import TinyPath
 
 from ...logger import SourceLogMan
 from ..material_loader.material_loader import Source1MaterialLoader
@@ -60,7 +59,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
             # if self.write_qc:
             #     from ... import bl_info
             #     from ...library.source1.qc.qc import generate_qc
-            #     qc_file = bpy.data.texts.new('{}.qc'.format(Path(file.name).stem))
+            #     qc_file = bpy.data.texts.new('{}.qc'.format(TinyPath(file.name).stem))
             #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
 
@@ -91,8 +90,8 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
             content_manager.scan_for_content(self.filepath)
         else:
             deserialize_mounted_content(content_manager)
-        with FileBuffer(Path(self.filepath)) as f:
-            import_bsp(Path(self.filepath), f, content_manager, self,
+        with FileBuffer(TinyPath(self.filepath)) as f:
+            import_bsp(TinyPath(self.filepath), f, content_manager, self,
                        SteamAppId(int(self.steam_app_id)) if self.steam_app_id != "-999" else None)
 
         if self.discover_resources:
@@ -139,7 +138,7 @@ class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
         directory = self.get_directory()
 
         for file in self.files:
-            image = import_texture(Path(file.name), (directory / file.name).open('rb'), True)
+            image = import_texture(TinyPath(file.name), (directory / file.name).open('rb'), True)
             if is_blender_4_1():
                 if (context.region and context.region.type == 'WINDOW'
                         and context.area and context.area.ui_type == 'ShaderNodeTree'
@@ -183,7 +182,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
 
     def execute(self, context):
         directory = self.get_directory()
-        content_manager = ContentManager()
+        content_manager = StandaloneContentProvider()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
@@ -214,7 +213,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
 
     def execute(self, context):
         directory = self.get_directory()
-        content_manager = ContentManager()
+        content_manager = StandaloneContentProvider()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
@@ -223,7 +222,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
 
         for file in self.files:
             Source1ShaderBase.use_bvlg(self.use_bvlg)
-            file_path = Path(file.name)
+            file_path = TinyPath(file.name)
             mat = get_or_create_material(file_path.stem, file_path.as_posix())
             loader = Source1MaterialLoader((directory / file.name).open('rb'), file_path.stem)
             bpy_material = bpy.data.materials.get(loader.material_name, dict())

@@ -4,7 +4,7 @@ from pathlib import Path
 from valvefgd import Fgd, FgdEntity, FgdParse
 
 os.environ['NO_BPY'] = '1'
-from ...shared.content_providers.content_manager import ContentManager
+from ...shared.content_manager.manager import ContentManager
 
 
 def parse_int_vector(string):
@@ -166,7 +166,7 @@ class Base:
     for entity_class in processed_classes:
         buffer += f'\n    \'{entity_class}\': {entity_class},'
     buffer += '\n}'
-    # print(ContentManager().get_content_provider_from_path(fgd_path))
+    # print(StandaloneContentManager().get_content_provider_from_path(fgd_path))
     output_name = Path(fgd_path).stem
     with open(f'../../../blender_bindings/source1/bsp/entities/{output_name}_entity_classes.py', 'w') as f:
         f.write(buffer)

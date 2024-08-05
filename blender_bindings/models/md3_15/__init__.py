@@ -11,7 +11,7 @@ from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, add_material
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils import Buffer
 from SourceIO.library.models.md3 import read_md3_model
 from SourceIO.library.utils.idtech3_shader_parser import parse_shader_materials

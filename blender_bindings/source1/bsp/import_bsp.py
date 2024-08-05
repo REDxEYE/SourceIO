@@ -10,7 +10,7 @@ from .entities.abstract_entity_handlers import AbstractEntityHandler
 from .entities.sof_entity_handler import SOFEntityHandler
 from ...material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from ...operators.import_settings_base import Source1BSPSettings
-from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_manager.provider import ContentProvider
 from ....library.source1.bsp.bsp_file import open_bsp, BSPFile
 from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
 
@@ -43,7 +43,7 @@ def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
 
 
-def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentManager, settings: Source1BSPSettings,
+def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentProvider, settings: Source1BSPSettings,
                override_steamappid: Optional[SteamAppId] = None):
     logger = log_manager.get_logger(map_path.name)
     logger.info(f'Loading map "{map_path}"')
@@ -59,7 +59,7 @@ def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentManager, 
     import_disp(bsp, settings, master_collection, logger)
 
 
-def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
+def import_entities(bsp: BSPFile, content_manager: ContentProvider, settings: Source1BSPSettings,
                     master_collection: bpy.types.Collection, logger: SLogger):
     steam_id = bsp.steam_app_id
 
@@ -150,7 +150,7 @@ def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_colle
                 parent_collection.objects.link(placeholder)
 
 
-def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
+def import_materials(bsp: BSPFile, content_provider: ContentProvider, settings: Source1BSPSettings, logger: SLogger):
     if not settings.import_textures:
         return
     Source1ShaderBase.use_bvlg(settings.use_bvlg)
@@ -162,7 +162,7 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
     def import_source1_materials():
         pak_lump: Optional[PakLump] = bsp.get_lump('LUMP_PAK')
         if pak_lump:
-            content_manager.content_providers[bsp.filepath.as_posix()] = pak_lump
+            content_provider.add_child(pak_lump)
         for texture_data in texture_data_lump.texture_data:
             material_name = strings_lump.strings[texture_data.name_id] or "NO_NAME"
             tmp = strip_patch_coordinates.sub("", material_name)[:63]
@@ -174,7 +174,7 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
                     f'Skipping loading of {tmp} as it already loaded')
                 continue
             logger.info(f"Loading {material_name} material")
-            material_file = content_manager.find_material(material_name)
+            material_file = content_provider.find_material(material_name)
 
             if material_file:
                 material_name = strip_patch_coordinates.sub("", material_name)
@@ -188,7 +188,7 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
 
     def import_idtech3_materials():
         material_definitions = {}
-        for _, buffer in content_manager.glob("*.shader"):
+        for _, buffer in content_provider.glob("*.shader"):
             materials = parse_shader_materials(buffer.read(-1).decode("utf-8"))
             material_definitions.update(materials)
 

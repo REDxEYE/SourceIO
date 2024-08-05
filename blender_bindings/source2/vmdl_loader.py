@@ -10,7 +10,7 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
-from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.shared.content_manager.manager import ContentManager
 from ...library.source2 import (CompiledMaterialResource,
                                 CompiledModelResource, CompiledMorphResource,
                                 CompiledPhysicsResource, CompiledResource)
@@ -66,19 +66,19 @@ def put_into_collections(model_container, model_name, parent_collection=None, bo
     return master_collection
 
 
-def load_model(resource: CompiledModelResource, scale: float = SOURCE2_HAMMER_UNIT_TO_METERS,
+def load_model(content_manager: ContentManager, resource: CompiledModelResource,
+               scale: float = SOURCE2_HAMMER_UNIT_TO_METERS,
                lod_mask: int = 255, import_physics: bool = False, import_attachments: bool = False,
                import_materials: bool = True):
     armature = create_armature(resource, scale)
     physics_objects = []
     if import_physics:
-        physics_block = get_physics_block(resource)
+        physics_block = get_physics_block(content_manager, resource)
         if physics_block is not None:
             objects = load_physics(physics_block, scale)
             physics_objects = objects
     container = ModelContainer([], defaultdict(list), physics_objects, [], armature, None)
-    objects = create_meshes(resource, ContentManager(), container, scale, lod_mask, import_attachments,
-                            import_materials)
+    objects = create_meshes(content_manager, resource, container, scale, lod_mask, import_attachments, import_materials)
     container.objects = objects
     if armature:
         for obj in objects:
@@ -146,7 +146,7 @@ def create_armature(resource: CompiledModelResource, scale: float):
     return armature_obj
 
 
-def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, container: ModelContainer,
+def create_meshes(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
                   scale: float, lod_mask: int, import_attachments: bool, import_materials: bool = True) -> list[
     bpy.types.Object]:
     lod_mask = unpack("Q", pack("q", lod_mask))[0]
@@ -169,13 +169,13 @@ def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, con
         if isinstance(mesh, NullObject) or not mesh:
             # Embedded mesh
             mesh_info = ctrl['embedded_meshes'][i]
-            sub_meshes = load_internal_mesh(model_resource, cm, container, scale, mesh_info, import_attachments,
-                                            import_materials)
+            sub_meshes = load_internal_mesh(content_manager, model_resource, container, scale, mesh_info,
+                                            import_attachments, import_materials)
         else:
             # External mesh
-            mesh_resource = model_resource.get_child_resource(mesh, cm, CompiledMeshResource)
-            sub_meshes = load_external_mesh(model_resource, cm, container, scale, i, mesh_resource, import_attachments,
-                                            import_materials)
+            mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
+            sub_meshes = load_external_mesh(content_manager, model_resource, container, scale, i, mesh_resource,
+                                            import_attachments, import_materials)
         object_groups.extend(sub_meshes)
         for sub_mesh in sub_meshes:
             for lod in range(lod_count):
@@ -188,43 +188,40 @@ def create_meshes(model_resource: CompiledModelResource, cm: ContentManager, con
     return object_groups
 
 
-def load_internal_mesh(model_resource: CompiledModelResource, cm: ContentManager, container: ModelContainer,
-                       scale: float,
-                       mesh_info: Mapping[str, Any], import_attachments: bool, import_materials: bool = True):
+def load_internal_mesh(content_manager: ContentManager, model_resource: CompiledModelResource,
+                       container: ModelContainer, scale: float, mesh_info: Mapping[str, Any], import_attachments: bool,
+                       import_materials: bool = True):
     mesh_index = mesh_info['mesh_index']
     data_block: Optional[KVBlock] = model_resource.get_data_block(block_id=mesh_info['data_block'])
     vbib_block: Optional[VertexIndexBuffer] = model_resource.get_data_block(block_id=mesh_info['vbib_block'])
     morph_block: Optional[MorphBlock] = model_resource.get_data_block(block_id=mesh_info['morph_block'])
     if data_block and vbib_block:
-        return create_mesh(model_resource, cm, container, data_block, vbib_block.index_buffers,
-                           vbib_block.vertex_buffers, morph_block, scale, mesh_index,
-                           model_resource,
-                           mesh_info['name'],
-                           import_attachments,
-                           import_materials)
+        return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
+                           vbib_block.vertex_buffers, morph_block, scale, mesh_index, model_resource, mesh_info['name'],
+                           import_attachments, import_materials)
     return None
 
 
-def load_external_mesh(model_resource: CompiledModelResource, cm: ContentManager, container: ModelContainer,
-                       scale: float, mesh_id: int,
-                       mesh_resource: CompiledMeshResource, import_attachments: bool, import_materials: bool = True):
+def load_external_mesh(content_manager: ContentManager, model_resource: CompiledModelResource,
+                       container: ModelContainer, scale: float, mesh_id: int, mesh_resource: CompiledMeshResource,
+                       import_attachments: bool, import_materials: bool = True):
     data_block, = mesh_resource.get_data_block(block_name='DATA')
     vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
     if morph_set_path := data_block['m_morphSet', "m_pMorphSet"]:
-        morph_resource = mesh_resource.get_child_resource(morph_set_path, cm, CompiledMorphResource)
+        morph_resource = mesh_resource.get_child_resource(morph_set_path, content_manager, CompiledMorphResource)
         morph_block, = morph_resource.get_data_block(block_name='DATA')
     else:
         morph_block, = mesh_resource.get_data_block(block_name='MRPH')
     if data_block and vbib_block:
-        return create_mesh(model_resource, cm, container, data_block, vbib_block.index_buffers,
-                           vbib_block.vertex_buffers, morph_block, scale, mesh_id,
-                           mesh_resource, import_attachments=import_attachments, import_materials=import_materials)
+        return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
+                           vbib_block.vertex_buffers, morph_block, scale, mesh_id, mesh_resource,
+                           import_attachments=import_attachments, import_materials=import_materials)
     elif data_block and 'm_vertexBuffers' in data_block and 'm_indexBuffers' in data_block:
         vertex_buffers = [VertexBuffer.from_kv(buf) for buf in data_block['m_vertexBuffers']]
         index_buffers = [IndexBuffer.from_kv(buf) for buf in data_block['m_indexBuffers']]
-        return create_mesh(model_resource, cm, container, data_block, index_buffers,
-                           vertex_buffers, morph_block, scale, mesh_id,
-                           mesh_resource, import_attachments=import_attachments, import_materials=import_materials)
+        return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers,
+                           morph_block, scale, mesh_id, mesh_resource, import_attachments=import_attachments,
+                           import_materials=import_materials)
     return None
 
 
@@ -298,12 +295,11 @@ def use_compressed_normals(draw_call: dict):
         return "MESH_DRAW_FLAGS_USE_COMPRESSED_NORMAL_TANGENT" in flags or "USE_COMPRESSED_NORMAL_TANGENT" in flags
 
 
-def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, container: ModelContainer,
-                data_block: KVBlock, index_buffers: list, vertex_buffers: list, morph_block: MorphBlock,
-                scale: float, mesh_id: int,
-                mesh_resource: CompiledResource, mesh_name: Optional[str] = None,
+def create_mesh(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
+                data_block: KVBlock, index_buffers: list, vertex_buffers: list, morph_block: MorphBlock, scale: float,
+                mesh_id: int, mesh_resource: CompiledResource, mesh_name: Optional[str] = None,
                 import_attachments: bool = False, import_materials: bool = True) -> list[bpy.types.Object]:
-    objects: list[tuple[str, bpy.types.Object]] = []
+    objects: list[bpy.types.Object] = []
     g_vertex_offset = 0
     if import_attachments:
         load_attachments(data_block["m_attachments"], container, scale)
@@ -321,7 +317,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
             material_name = draw_call['m_material', 'm_pMaterial']
             material_resource: Optional[CompiledMaterialResource] = None
             if not isinstance(material_name, NullObject):
-                material_resource = mesh_resource.get_child_resource(material_name, ContentManager(),
+                material_resource = mesh_resource.get_child_resource(material_name, content_manager,
                                                                      CompiledMaterialResource)
             else:
                 material_name = "NullMaterial"
@@ -463,7 +459,7 @@ def create_mesh(model_resource: CompiledModelResource, cm: ContentManager, conta
                     mesh_obj.shape_key_add(name='base')
                     for flex_name_ in morph_block['m_FlexDesc']:
                         flex_name = flex_name_['m_szFacs']
-                        morph_data = morph_block.get_morph_data(flex_name, pos_bundle_id, cm)
+                        morph_data = morph_block.get_morph_data(flex_name, pos_bundle_id, content_manager)
                         if morph_data is None:
                             continue
                         flex_data = morph_data[:, :, :3].reshape((-1, 3))
@@ -501,14 +497,15 @@ def load_attachments(attachments_info: list[Object], container: ModelContainer, 
         container.attachments.append(empty)
 
 
-def get_physics_block(model_resource: CompiledModelResource) -> Optional[PhysBlock]:
+def get_physics_block(content_manager: ContentManager, model_resource: CompiledModelResource) -> Optional[PhysBlock]:
     data: KVBlock = cast(KVBlock, model_resource.get_data_block(block_name='DATA')[0])
 
     cdata, = cast(Optional[KVBlock], model_resource.get_data_block(block_name='CTRL'))
 
     if 'm_refPhysicsData' in data and data['m_refPhysicsData']:
         for phys_file_path in data['m_refPhysicsData']:
-            vphys = model_resource.get_child_resource(phys_file_path, ContentManager(), CompiledPhysicsResource)
+            vphys = model_resource.get_child_resource(phys_file_path, content_manager,
+                                                      CompiledPhysicsResource)
             if not vphys:
                 return None
             phys_data, = vphys.get_data_block(block_name="DATA")
@@ -548,7 +545,7 @@ def get_physics_block(model_resource: CompiledModelResource) -> Optional[PhysBlo
 #         self.load_physics()
 #
 #     def build_meshes(self, armature, invert_uv: bool = True):
-#         content_manager = ContentManager()
+#         content_manager = StandaloneContentManager()
 #
 #         data_block = self.get_data_block(block_name='DATA')[0]
 #         use_external_meshes = len(self.get_data_block(block_name='CTRL')) == 0
@@ -971,7 +968,7 @@ def get_physics_block(model_resource: CompiledModelResource) -> Optional[PhysBlo
 #                                 rot_curves[i].keyframe_points[-1].co = (n, bone.rotation_quaternion[i])
 #
 #     def load_materials(self):
-#         content_manager = ContentManager()
+#         content_manager = StandaloneContentManager()
 #         for material in self.materials:
 #             print(f'Loading {material}')
 #             file = self.available_resources.get(material, None)
@@ -992,7 +989,7 @@ def get_physics_block(model_resource: CompiledModelResource) -> Optional[PhysBlo
 #                 if phys_file_path not in self.available_resources:
 #                     continue
 #                 phys_file_path = self.available_resources[phys_file_path]
-#                 phys_file = ContentManager().find_file(phys_file_path)
+#                 phys_file = StandaloneContentManager().find_file(phys_file_path)
 #                 if not phys_file:
 #                     continue
 #                 vphys = ValveCompiledPhysicsLoader(phys_file, self.scale)

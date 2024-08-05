@@ -3,15 +3,14 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional, Union
 
-from ....shared.content_providers.content_provider_base import \
-    ContentProviderBase
+from SourceIO.library.shared.content_manager.provider import ContentProvider
 from ....utils import Buffer, MemoryBuffer
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
 
 @lump_tag(40, 'LUMP_PAK')
-class PakLump(Lump, ContentProviderBase):
+class PakLump(Lump, ContentProvider):
 
     def glob(self, pattern: str):
         raise NotImplementedError

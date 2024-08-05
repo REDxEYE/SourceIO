@@ -1,7 +1,6 @@
-from pathlib import Path
-
+from ...utils.tiny_path import TinyPath
 from ....logger import SourceLogMan
-from ...shared.content_providers.content_manager import ContentManager
+from ...shared.content_manager.manager import ContentManager
 from .lump import *
 
 log_manager = SourceLogMan()
@@ -9,36 +8,35 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger("BSP")
 
 
-def open_bsp(filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None) -> Optional['BSPFile']:
+def open_bsp(filepath: TinyPath, buffer: Buffer, content_manager: ContentManager,
+             override_steamappid: Optional[SteamAppId] = None) -> Optional['BSPFile']:
     magic, version = buffer.read_fmt('4sI')
     buffer.seek(0)
     if magic == b'VBSP':
-        return BSPFile.from_buffer(filepath, buffer, override_steamappid)
+        return BSPFile.from_buffer(filepath, buffer, content_manager, override_steamappid)
     elif magic == b'rBSP':
-        return RespawnBSPFile.from_buffer(filepath, buffer, override_steamappid)
+        return RespawnBSPFile.from_buffer(filepath, buffer, content_manager, override_steamappid)
     elif magic == b'RBSP':
-        return RavenBSPFile.from_buffer(filepath, buffer, override_steamappid)
+        return RavenBSPFile.from_buffer(filepath, buffer, content_manager, override_steamappid)
     logger.error("Unrecognized map magic number: {}".format(magic))
     return None
 
 
-CM = ContentManager()
-
-
 class BSPFile:
-    def __init__(self, filepath: Path, buffer: Buffer):
-        self.filepath = Path(filepath)
+    def __init__(self, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager):
+        self.filepath = TinyPath(filepath)
         self.buffer = buffer
         self.version = 0
         self.is_l4d2 = False
         self.lumps_info: list[LumpInfo] = []
         self.lumps: dict[str, Lump] = {}
         self.revision = 0
-        self.content_manager = CM
-        self.steam_app_id = CM.get_content_provider_from_path(filepath).steam_id
+        self.content_manager = content_manager
+        self.steam_app_id = content_manager.get_steamid_from_asset(filepath) or SteamAppId.UNKNOWN
 
     @classmethod
-    def from_buffer(cls, filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None):
+    def from_buffer(cls, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager,
+                    override_steamappid: Optional[SteamAppId] = None):
         self = cls(filepath, buffer)
         magic = buffer.read_fourcc()
         assert magic == "VBSP", "Invalid BSP header"
@@ -134,12 +132,13 @@ class BSPFile:
 
 class RespawnBSPFile(BSPFile):
 
-    def __init__(self, filepath: Path, buffer: Buffer):
-        super().__init__(filepath, buffer)
+    def __init__(self, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager):
+        super().__init__(filepath, buffer, content_manager)
 
     @classmethod
-    def from_buffer(cls, filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None):
-        self = cls(filepath, buffer)
+    def from_buffer(cls, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager,
+                    override_steamappid: Optional[SteamAppId] = None):
+        self = cls(filepath, buffer, content_manager)
         magic = buffer.read_fourcc()
         assert magic == "rBSP", "Invalid BSP header"
         self.version = buffer.read_uint32()
@@ -155,12 +154,13 @@ class RespawnBSPFile(BSPFile):
 
 
 class RavenBSPFile(BSPFile):
-    def __init__(self, filepath: Path, buffer: Buffer):
-        super().__init__(filepath, buffer)
+    def __init__(self, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager):
+        super().__init__(filepath, buffer, content_manager)
 
     @classmethod
-    def from_buffer(cls, filepath: Path, buffer: Buffer, override_steamappid: Optional[SteamAppId] = None):
-        self = cls(filepath, buffer)
+    def from_buffer(cls, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager,
+                    override_steamappid: Optional[SteamAppId] = None):
+        self = cls(filepath, buffer, content_manager)
         magic = buffer.read_fourcc()
         assert magic == "RBSP", "Invalid BSP header"
         self.version = (buffer.read_int32(), 0)

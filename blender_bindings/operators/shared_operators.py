@@ -14,7 +14,7 @@ from .import_settings_base import ModelOptions
 from ..models import import_model
 from ..shared.exceptions import RequiredFileNotFound
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
-from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.shared.content_manager.manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ..models.common import put_into_collections as s1_put_into_collections
 from ..source2.vmdl_loader import load_model
@@ -22,6 +22,7 @@ from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.tiny_path import TinyPath
 
 
 def get_parent(collection):
@@ -108,7 +109,8 @@ class SourceIO_OT_LoadEntity(Operator):
                         # skin = custom_prop_data.get('skin', None)
                         model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
                         container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
-                                               import_physics=context.scene.import_physics,import_materials=import_materials)
+                                               import_physics=context.scene.import_physics,
+                                               import_materials=import_materials)
                         if replace_entity:
                             s2_put_into_collections(container, model_resource.name, parent)
                         else:
@@ -167,7 +169,7 @@ class SourceIO_OT_LoadEntity(Operator):
                         self.report({"WARNING"},
                                     f"Failed to find MDL file for prop {prop_path}")
                         continue
-                    cp = content_manager.get_content_provider_from_asset_path(prop_path)
+                    steamapp_id = content_manager.get_steamid_from_asset(prop_path)
                     options = ModelOptions()
                     options.import_textures = import_materials
                     options.import_physics = False
@@ -180,8 +182,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     options.import_physics = context.scene.import_physics
                     try:
                         model_container = import_model(prop_path, mdl_file,
-                                                       content_manager, options,
-                                                       ((cp.steam_id or None) if cp else None))
+                                                       content_manager, options, steamapp_id)
                     except RequiredFileNotFound as e:
                         self.report({"ERROR"}, e.message)
                         return {'CANCELLED'}
@@ -561,8 +562,8 @@ class SOURCEIO_OT_NewResource(Operator):
         cm.clean()
         new_resource = context.scene.mounted_resources.add()
         new_resource.path = self.filepath
-        new_resource.name = Path(self.filepath).name
-        cm.scan_for_content(Path(self.filepath))
+        new_resource.name = TinyPath(self.filepath).name
+        cm.scan_for_content(TinyPath(self.filepath))
         deserialize_mounted_content(cm)
         serialize_mounted_content(cm)
 

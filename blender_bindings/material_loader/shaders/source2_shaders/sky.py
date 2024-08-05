@@ -3,8 +3,8 @@ from pathlib import Path
 import bpy
 import numpy as np
 
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
+from .....library.shared.content_manager.provider import \
+    ContentProvider
 from .....library.source2 import CompiledTextureResource
 from .....library.source2.data_types.blocks.texture_data import VTexFormat
 from .....library.utils.path_utilities import path_stem
@@ -30,7 +30,7 @@ class Skybox(Source2ShaderBase):
 
         texture_path = self._material_resource.get_texture_property('g_tSkyTexture', None)
         if texture_path:
-            texture_resource = self._material_resource.get_child_resource(texture_path, ContentManager(),
+            texture_resource = self._material_resource.get_child_resource(texture_path, StandaloneContentManager(),
                                                                           CompiledTextureResource)
             (width, height) = texture_resource.get_resolution(0)
             faces = {}

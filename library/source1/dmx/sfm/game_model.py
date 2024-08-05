@@ -1,4 +1,4 @@
-from ....shared.content_providers.content_manager import ContentManager
+from ....shared.content_manager.manager import ContentManager
 from .base_element import BaseElement
 from .dag import Dag
 from .transform import Transform

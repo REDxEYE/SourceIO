@@ -2,7 +2,7 @@ from pathlib import Path
 
 import bpy
 
-from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_manager.manager import ContentManager
 from ....library.source1.dmx.sfm import open_session
 from ....library.source1.dmx.sfm.animation_set import AnimationSet
 from ....library.source1.dmx.sfm.camera import Camera

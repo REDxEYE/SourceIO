@@ -2,8 +2,8 @@ from pathlib import Path
 
 import bpy
 
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
+from .....library.shared.content_manager.provider import \
+    ContentProvider
 from .....library.source2 import CompiledMaterialResource
 from ....material_loader.shaders.source2_shaders.sky import Skybox
 from ...vmat_loader import load_material
@@ -187,7 +187,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('path_corner', obj, 'path')
 
     def handle_env_sky(self, entity: env_sky, entity_raw: dict):
-        sky_mat = ContentManager().find_file(entity.skyname + '_c')
+        sky_mat = StandaloneContentManager().find_file(entity.skyname + '_c')
         if sky_mat is not None:
             vmat = CompiledMaterialResource.from_buffer(sky_mat, Path(entity.skyname))
             # load_material(vmat, Path(entity.skyname))

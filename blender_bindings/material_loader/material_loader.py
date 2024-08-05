@@ -4,6 +4,7 @@ from typing import Type
 import bpy
 
 from ...library.models.mdl.v10.structs.texture import StudioTexture
+from ...library.shared.content_manager.manager import ContentManager
 from ...library.source1.vmt import VMT
 from ...library.source2 import CompiledMaterialResource
 from ...logger import SourceLogMan
@@ -35,12 +36,14 @@ class Source1MaterialLoader(MaterialLoaderBase):
         logger.info(f'Registered Source1 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
-    def __init__(self, file_object, material_name):
+    def __init__(self, content_manager: ContentManager, file_object, material_name):
         super().__init__(material_name)
-        self.vmt: VMT = VMT(file_object, self.material_name)
+        self.vmt: VMT = VMT(file_object, self.material_name, content_manager)
+        self.content_manager = content_manager
 
     def create_material(self, material: bpy.types.Material):
-        handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.vmt)
+        handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.content_manager,
+                                                                                            self.vmt)
 
         handler.create_nodes(material)
 

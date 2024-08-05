@@ -6,8 +6,8 @@ from pprint import pformat
 import bpy
 from mathutils import Euler
 
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
+from .....library.shared.content_manager.provider import \
+    ContentProvider
 from .....library.source2 import (CompiledMaterialResource,
                                   CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
@@ -64,7 +64,7 @@ class Base:
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, entities: list[dict], parent_collection, cm: ContentManager,
+    def __init__(self, entities: list[dict], parent_collection, cm: ContentProvider,
                  scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self.scale = scale
@@ -167,8 +167,7 @@ class AbstractEntityHandler:
     def _set_icon_if_present(self, obj, entity):
         if hasattr(entity, 'icon_sprite'):
             icon_path = Path(entity.icon_sprite)
-            icon_material_file = ContentManager().find_file(icon_path, additional_dir='materials', extension='.vmat_c',
-                                                            silent=True)
+            icon_material_file = StandaloneContentManager().find_file("materials" / icon_path, extension='.vmat_c')
             if not icon_material_file:
                 return
             vmt = CompiledMaterialResource.from_buffer(icon_material_file, icon_path)

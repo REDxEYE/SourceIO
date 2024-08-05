@@ -11,8 +11,8 @@ from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.library.models.vtx.v7.vtx import Vtx
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
-from SourceIO.library.shared.content_providers.content_manager import \
-    ContentManager
+from SourceIO.library.shared.content_manager.provider import \
+    ContentProvider
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36 import MdlV36
 from SourceIO.library.models.mdl.v44.mdl_file import MdlV44
@@ -80,7 +80,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 def import_model(mdl: MdlV44, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      ContentManager())
+                                                      StandaloneContentManager())
 
     objects = []
     bodygroups = defaultdict(list)
@@ -246,7 +246,7 @@ def create_attachments(mdl: MdlV44, armature: bpy.types.Object, scale):
 
 
 def import_materials(mdl, use_bvlg=False):
-    content_manager = ContentManager()
+    content_manager = StandaloneContentManager()
     for material in mdl.materials:
         material_path = None
         material_file = None
@@ -275,7 +275,7 @@ def __swap_components(vec, mp):
     return [vec[__pat.index(k)] for k in mp]
 
 
-def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: str, armature: bpy.types.Object,
+def import_static_animations(cm: ContentProvider, mdl: MdlV44, animation_name: str, armature: bpy.types.Object,
                              scale: float):
     bpy.context.view_layer.update()
     bpy.context.view_layer.objects.active = armature
@@ -284,7 +284,6 @@ def import_static_animations(cm: ContentManager, mdl: MdlV44, animation_name: st
         bpy.ops.object.select_all(action="DESELECT")
         armature.select_set(True)
         bpy.context.view_layer.objects.active = armature
-        print(bpy.context.view_layer.objects.active)
         bpy.ops.object.mode_set(mode='POSE')
         for n, anim in enumerate(mdl.sequences):
             if anim.name.strip("@") == animation_name:

@@ -3,7 +3,6 @@ from typing import Optional
 
 import bpy
 
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
 from ....utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes, ShaderBase
 from ....utils.texture_utils import check_texture_cache
@@ -87,11 +86,11 @@ class IdTech3Shader(ShaderBase):
             return image
         model_texture = bpy.data.images.get(texture_name, None)
         if model_texture is None:
-            texture_buffer = ContentManager().find_file(texture_name + ".png")
+            texture_buffer = self.content_manager.find_file(texture_name + ".png")
             if texture_buffer is None:
-                texture_buffer = ContentManager().find_file(texture_name + ".jpg")
+                texture_buffer = self.content_manager.find_file(texture_name + ".jpg")
                 if texture_buffer is None:
-                    texture_buffer = ContentManager().find_file(texture_name + ".jpeg")
+                    texture_buffer = self.content_manager.find_file(texture_name + ".jpeg")
 
             if texture_buffer:
                 model_texture = bpy.data.images.new(

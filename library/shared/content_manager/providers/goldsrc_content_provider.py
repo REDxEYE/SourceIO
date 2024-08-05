@@ -1,31 +1,32 @@
 from pathlib import Path
 from typing import Iterator, Optional, Tuple, Union
 
-from ...global_config import GoldSrcConfig
-from ...goldsrc.wad import WadFile
-from ...utils import Buffer
-from .content_provider_base import ContentProviderBase
+from SourceIO.library.global_config import GoldSrcConfig
+from SourceIO.library.goldsrc.wad import WadFile
+from SourceIO.library.shared.content_manager.provider import ContentProvider, glob_generic, find_path_generic, \
+    find_file_generic
+from SourceIO.library.utils import Buffer
 
 
-class GoldSrcContentProvider(ContentProviderBase):
+class GoldSrcContentProvider(ContentProvider):
 
     def __init__(self, filepath: Path):
         assert filepath.is_dir()
         super().__init__(filepath)
 
-    def find_file(self, filepath: Union[str, Path], additional_dir=None, extension=None) -> Optional[Buffer]:
+    def find_file(self, filepath: Path) -> Optional[Buffer]:
         if not GoldSrcConfig().use_hd and self.filepath.stem.endswith('_hd'):
             return None
-        return self._find_file_generic(filepath, additional_dir, extension)
+        return find_file_generic(self.root, filepath)
 
-    def find_path(self, filepath: Union[str, Path], additional_dir=None, extension=None) -> Optional[Path]:
-        return self._find_path_generic(filepath, additional_dir, extension)
+    def find_path(self, filepath: Path) -> Optional[Path]:
+        return find_path_generic(self.root, filepath)
 
     def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
-        yield from self._glob_generic(pattern)
+        yield from glob_generic(self.root, pattern)
 
 
-class GoldSrcWADContentProvider(ContentProviderBase):
+class GoldSrcWADContentProvider(ContentProvider):
 
     def __init__(self, filepath: Path):
         assert filepath.suffix == '.wad'

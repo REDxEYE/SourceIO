@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Optional, cast
 
 import bpy
 import numpy as np
@@ -19,10 +19,12 @@ from SourceIO.library.goldsrc.bsp.lumps.vertex_lump import VertexLump
 from SourceIO.library.goldsrc.bsp.structs.texture import TextureInfo
 from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 from SourceIO.library.goldsrc.rad import convert_light_value, parse_rad
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
-from SourceIO.library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import GoldSrcWADContentProvider
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from ...goldsrc.bsp.entity_handlers import entity_handlers
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
@@ -36,19 +38,19 @@ from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
 from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
 
 log_manager = SourceLogMan()
-content_manager = ContentManager()
 
 
 class BSP:
-    def __init__(self, map_path: Path, *, scale=1.0, single_collection=False, fix_rotation=True):
+    def __init__(self, content_manager: ContentManager, map_path: TinyPath, *, scale=1.0, single_collection=False,
+                 fix_rotation=True):
         self.map_path = map_path
         self.fix_rotation = fix_rotation
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
-        self.logger.info(f'Loading map "{self.bsp_name}"')
-        self.bsp_file = BspFile.from_filename(map_path)
-        rad_file = content_manager.find_file(map_path.with_suffix('.rad').name, 'maps')
-        shared_rad_file = content_manager.find_file('lights.rad', 'maps')
+        self.logger.info(f"Loading map \"{self.bsp_name}\"")
+        self.bsp_file = BspFile.from_filename(map_path, content_manager)
+        rad_file = content_manager.find_file(TinyPath("maps") / map_path.with_suffix(".rad").name, )
+        shared_rad_file = content_manager.find_file(TinyPath("maps/lights.rad"))
         rad_data = {}
         if shared_rad_file:
             rad_data.update(parse_rad(shared_rad_file))

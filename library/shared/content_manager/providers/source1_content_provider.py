@@ -1,14 +1,18 @@
 from pathlib import Path
 from typing import Iterator, Optional, Union
 
-from ...utils import Buffer, FileBuffer
-from ...utils.gameinfo_parser import GameInfoParser
-from ...utils.path_utilities import corrected_path
-from ..app_id import SteamAppId
-from .content_provider_base import ContentProviderBase
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils import Buffer, FileBuffer
+from SourceIO.library.utils.gameinfo_parser import GameInfoParser
+from SourceIO.library.utils.path_utilities import corrected_path
+from SourceIO.library.shared.app_id import SteamAppId
 
 
-class GameinfoContentProvider(ContentProviderBase):
+class GameinfoContentProvider(ContentProvider):
+    @property
+    def root(self) -> Path:
+        return self.filepath.parent
+
     path_cache: list[Path] = []
 
     @classmethod

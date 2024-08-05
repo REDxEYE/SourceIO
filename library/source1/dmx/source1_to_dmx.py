@@ -1,22 +1,11 @@
 import os
 from pathlib import Path
-from typing import Iterable, Sized, Optional, Type
+from typing import Optional, Type
 
 import numpy as np
 
-from ...shared.content_providers.content_manager import ContentManager
 from ...shared.types import Vector3, Vector4
-from ...utils import datamodel, FileBuffer
-from ...utils.math_utilities import matrix_to_quat
-from ...utils.path_utilities import find_vtx
-from ...models.mdl.structs.bone import Bone
-from SourceIO.library.models.mdl.structs.model import Model as MdlModel
-from ...models.mdl.v49.mdl_file import MdlV49
-from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
-from ...models.vtx.v7.structs.model import Model as VtxModel
-from ...models.vtx.v7.structs.model import ModelLod as VtxModelLod
-from ...models.vtx.v7.vtx import Vtx
-from ...models.vvd import Vvd
+from ...utils import datamodel
 
 
 def sanitize_name(name):

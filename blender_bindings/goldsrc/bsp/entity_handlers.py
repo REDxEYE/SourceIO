@@ -6,11 +6,10 @@ import bpy
 from ...models import import_model
 from ...models.common import put_into_collections
 from ...operators.import_settings_base import ModelOptions
-from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_manager.provider import ContentProvider
 from ....library.utils.math_utilities import parse_hammer_vector
 from ...utils.bpy_utils import get_new_unique_collection, get_or_create_collection
-
-content_manager = ContentManager()
+from ....library.utils.tiny_path import TinyPath
 
 
 def handle_generic_model_prop(entity_data, scale, parent_collection, fix_rotation=True, single_collection=False):
@@ -29,7 +28,8 @@ def handle_model_prop_with_collection(model_name, group_collection_name, entity_
     return handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation, single_collection)
 
 
-def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rotation=True, single_collection=False):
+def handle_model_prop(content_provider: ContentProvider, model_name, entity_data, scale, parent_collection,
+                      fix_rotation=True, single_collection=False):
     origin = parse_hammer_vector(entity_data.get('origin', '0 0 0')) * scale
     angles = [math.radians(a) for a in parse_hammer_vector(entity_data.get('angles', '0 0 0'))]
 
@@ -40,7 +40,7 @@ def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rot
     if not angles:
         angles = 0.0, math.radians(entity_data.get('angle', '0')), 0.0
     target_name = entity_data.get('targetname', entity_data['classname'])
-    mdl_buffer = content_manager.find_file(str(model_name))
+    mdl_buffer = content_provider.find_file(TinyPath(model_name))
     if mdl_buffer:
         if single_collection:
             master_collection = parent_collection
@@ -53,7 +53,7 @@ def handle_model_prop(model_name, entity_data, scale, parent_collection, fix_rot
         opts.import_physics = True
         opts.import_textures = True
         opts.use_bvlg = False
-        model_container = import_model(model_name, mdl_buffer, content_manager, opts, None)
+        model_container = import_model(model_name, mdl_buffer, content_provider, opts, None)
         put_into_collections(model_container, target_name, master_collection, opts.bodygroup_grouping)
         # master_collection, disable_collection_sort=True, re_use_meshes=True)
         if model_container.armature:

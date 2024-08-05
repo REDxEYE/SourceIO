@@ -1,30 +1,31 @@
-from pathlib import Path
 from typing import Union
 
-from ...utils import FileBuffer
-from ...utils.kv_parser import ValveKeyValueParser
-from ...utils.path_utilities import corrected_path
-from ..app_id import SteamAppId
-from .content_provider_base import ContentProviderBase
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils import FileBuffer
+from SourceIO.library.utils.kv_parser import ValveKeyValueParser
+from SourceIO.library.utils.path_utilities import corrected_path
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.utils.s1_keyvalues import KVParser
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
-class Gameinfo2ContentProvider(ContentProviderBase):
-    path_cache: list[Path] = []
+class Gameinfo2ContentProvider(ContentProvider):
+    path_cache: list[TinyPath] = []
 
     @classmethod
     def add_new_path(cls, path):
         cls.path_cache.append(path)
 
-    def __init__(self, filepath: Path):
+    def __init__(self, filepath: TinyPath):
         super().__init__(filepath)
-        with filepath.open('r') as f:
-            parser = ValveKeyValueParser(buffer_and_name=(f.read(), 'GAMEINFO'), self_recover=True)
-            parser.parse()
-            root_key, self.data = parser.tree.top()
-            self.data = self.data.to_dict()
-            assert root_key == 'gameinfo', 'Not a gameinfo file'
-        self.modname_dir: Path = filepath.parent
-        self.project_dir: Path = filepath.parent.parent
+        with filepath.open('r', encoding="utf8") as f:
+            header, gameinfo_data = KVParser(filepath, f.read()).parse()
+            assert header == "gameinfo"
+            self.data = gameinfo_data
+
+        print(self.data["gameinfo"])
+        self.modname_dir: TinyPath = filepath.parent
+        self.project_dir: TinyPath = filepath.parent.parent
         self.modname: str = self.modname_dir.stem
 
     @property
@@ -90,16 +91,16 @@ class Gameinfo2ContentProvider(ContentProviderBase):
     def glob(self, pattern: str):
         yield from self._glob_generic(pattern)
 
-    def find_file(self, filepath: Union[str, Path]):
-        filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
+    def find_file(self, filepath: Union[str, TinyPath]):
+        filepath = TinyPath(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = corrected_path(self.modname_dir / filepath)
         if new_filepath.exists():
             return FileBuffer(new_filepath)
         else:
             return None
 
-    def find_path(self, filepath: Union[str, Path]):
-        filepath = Path(str(filepath).strip("\\/").replace('\\', '/'))
+    def find_path(self, filepath: Union[str, TinyPath]):
+        filepath = TinyPath(str(filepath).strip("\\/").replace('\\', '/'))
         new_filepath = self.modname_dir / filepath.as_posix()
         if new_filepath.exists():
             return new_filepath

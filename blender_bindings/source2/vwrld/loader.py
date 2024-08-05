@@ -1,3 +1,4 @@
+from email.contentmanager import ContentManager
 from pathlib import Path
 from typing import Any, Type
 
@@ -7,11 +8,9 @@ from mathutils import Matrix
 from .entities.cs2_entity_handlers import CS2EntityHandler
 from ...shared.exceptions import RequiredFileNotFound
 from ....library.shared.app_id import SteamAppId
-from ....library.shared.content_providers.content_manager import ContentManager
 from ....library.source2 import CompiledWorldResource
 from ....library.source2.data_types.keyvalues3.types import Object
-from ....library.source2.resource_types.compiled_world_resource import (
-    CompiledEntityLumpResource, CompiledMapResource, CompiledWorldNodeResource)
+from ....library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, CompiledMapResource
 from ....library.source2.resource_types import CompiledManifestResource
 from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from ....logger import SourceLogMan
@@ -34,8 +33,9 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
     manifest_resource_path = next(filter(lambda a: a.endswith(".vrman"), map_resource.get_child_resources()), None)
     if manifest_resource_path is not None:
         manifest_resource = map_resource.get_child_resource(manifest_resource_path, cm, CompiledManifestResource)
-        world_resource_path = next(filter(lambda a: isinstance(a, str) and a.endswith(".vwrld"), manifest_resource.get_child_resources()),
-                                   None)
+        world_resource_path = next(
+            filter(lambda a: isinstance(a, str) and a.endswith(".vwrld"), manifest_resource.get_child_resources()),
+            None)
         if world_resource_path is not None:
             world_resource = manifest_resource.get_child_resource(world_resource_path, cm)
             return import_world(world_resource, map_resource, cm, scale)
@@ -46,12 +46,12 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
         return import_world(world_resource, map_resource, cm, scale)
 
 
-def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMapResource, cm: ContentManager,
-                 scale=SOURCE2_HAMMER_UNIT_TO_METERS):
+def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMapResource,
+                 content_manager: ContentManager, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
     map_name = map_resource.name
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
     for node_prefix in world_resource.get_worldnode_prefixes():
-        node_resource = map_resource.get_worldnode(node_prefix, cm)
+        node_resource = map_resource.get_worldnode(node_prefix, content_manager)
         if node_resource is None:
             raise RequiredFileNotFound("Failed to find WorldNode resource")
         collection = get_or_create_collection(f"static_props_{Path(node_prefix).name}", master_collection)
@@ -65,10 +65,11 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
             proper_path = node_resource.get_child_resource_path(renderable_model)
             if scene_object["m_fragmentTransforms"]:
                 for fragment in scene_object["m_fragmentTransforms"]:
-                    create_static_prop_placeholder(scene_object, proper_path, Matrix(fragment.reshape(3,4)), collection, scale)
+                    create_static_prop_placeholder(scene_object, proper_path, Matrix(fragment.reshape(3, 4)),
+                                                   collection, scale)
             else:
                 create_static_prop_placeholder(scene_object, proper_path, None, collection, scale)
-    load_entities(world_resource, master_collection, scale, cm)
+    load_entities(world_resource, master_collection, scale, content_manager)
 
 
 def create_static_prop_placeholder(scene_object: Object, proper_path: Path | None, matrix: Matrix | None,

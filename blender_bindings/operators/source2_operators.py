@@ -1,14 +1,14 @@
 from pathlib import Path
 
 import bpy
-from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
+from bpy.props import (BoolProperty, FloatProperty,
                        IntProperty, StringProperty)
 
 from .operator_helper import ImportOperatorHelper
 from ..source2.vphy_loader import load_physics
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
-from ...library.shared.content_providers.content_manager import ContentManager
-from ...library.shared.content_providers.vpk_provider import VPKContentProvider
+from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from ...library.source2 import (CompiledMaterialResource,
                                 CompiledModelResource, CompiledTextureResource, CompiledPhysicsResource)
 from ...library.source2.resource_types.compiled_world_resource import \
@@ -21,6 +21,7 @@ from ..source2.vmdl_loader import load_model, put_into_collections, get_physics_
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
 from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
+from ...library.utils.tiny_path import TinyPath
 
 
 # noinspection PyPep8Naming
@@ -80,27 +81,25 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
         directory = self.get_directory()
         for n, file in enumerate(self.files):
             print(f"Loading {n}/{len(self.files)}")
-            cm = ContentManager()
             content_manager = ContentManager()
             if self.discover_resources:
-                cm.scan_for_content(directory.parent)
+                content_manager.scan_for_content(directory.parent)
                 serialize_mounted_content(content_manager)
             else:
                 deserialize_mounted_content(content_manager)
             file_stem = Path(file.name).stem
-            cm.register_content_provider(file_stem + ".vpk",
-                                         VPKContentProvider(directory / f"{file_stem}.vpk"))
+            content_manager.add_child(VPKContentProvider(directory / f"{file_stem}.vpk"))
             with FileBuffer(directory / file.name) as buffer:
-                model = CompiledMapResource.from_buffer(buffer, Path(file.name))
-                load_map(model, ContentManager(), self.scale)
+                model = CompiledMapResource.from_buffer(buffer, TinyPath(file.name))
+                load_map(model, content_manager, self.scale)
 
             if self.import_physics:
                 map_collection = bpy.data.collections[file_stem]
-                phys_filename = f"maps/{file_stem}/world_physics.vphys_c"
-                vmdl_phys_filename = f"maps/{file_stem}/world_physics.vmdl_c"
-                if vmdl_phys_file := ContentManager().find_file(vmdl_phys_filename):
-                    phys_res = CompiledModelResource.from_buffer(vmdl_phys_file, Path(phys_filename))
-                    physics_block = get_physics_block(phys_res)
+                phys_filename = TinyPath(f"maps/{file_stem}/world_physics.vphys_c")
+                vmdl_phys_filename = TinyPath(f"maps/{file_stem}/world_physics.vmdl_c")
+                if vmdl_phys_file := content_manager.find_file(vmdl_phys_filename):
+                    phys_res = CompiledModelResource.from_buffer(vmdl_phys_file, phys_filename)
+                    physics_block = get_physics_block(content_manager, phys_res)
                     phys_collection = bpy.data.collections.new("physics")
                     map_collection.children.link(phys_collection)
                     if physics_block is not None:
@@ -109,8 +108,8 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
                         for obj in objects:
                             phys_collection.objects.link(obj)
 
-                elif phys_file := ContentManager().find_file(phys_filename):
-                    phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(phys_filename))
+                elif phys_file := content_manager.find_file(phys_filename):
+                    phys_res = CompiledPhysicsResource.from_buffer(phys_file, phys_filename)
                     phys_collection = bpy.data.collections.new("physics")
                     map_collection.children.link(phys_collection)
                     objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
@@ -118,7 +117,7 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
                     for obj in objects:
                         phys_collection.objects.link(obj)
 
-            serialize_mounted_content(cm)
+            serialize_mounted_content(content_manager)
         return {'FINISHED'}
 
 
@@ -136,29 +135,28 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
     scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
-        vpk_path = Path(self.filepath)
+        vpk_path = TinyPath(self.filepath)
         assert vpk_path.is_file(), 'Not a file'
-        cm = ContentManager()
         content_manager = ContentManager()
         if self.discover_resources:
-            cm.scan_for_content(vpk_path.parent)
+            content_manager.scan_for_content(vpk_path.parent)
             serialize_mounted_content(content_manager)
         else:
             deserialize_mounted_content(content_manager)
-        cm.register_content_provider(vpk_path.name, VPKContentProvider(vpk_path))
+        content_manager.add_child(VPKContentProvider(vpk_path))
 
-        map_buffer = ContentManager().find_file(f'maps/{vpk_path.stem}.vmap_c')
+        map_buffer = content_manager.find_file(TinyPath('maps/{vpk_path.stem}.vmap_c'))
         assert map_buffer is not None, "Failed to find world file in selected VPK"
 
         model = CompiledMapResource.from_buffer(map_buffer, vpk_path)
-        load_map(model, ContentManager(), self.scale)
+        load_map(model, content_manager, self.scale)
         if self.import_physics:
             map_collection = bpy.data.collections[vpk_path.stem]
-            phys_filename = f"maps/{vpk_path.stem}/world_physics.vphys_c"
-            vmdl_phys_filename = f"maps/{vpk_path.stem}/world_physics.vmdl_c"
-            if vmdl_phys_file := ContentManager().find_file(vmdl_phys_filename):
-                vmdl_res = CompiledModelResource.from_buffer(vmdl_phys_file, Path(vmdl_phys_filename))
-                physics_block = get_physics_block(vmdl_res)
+            phys_filename = TinyPath(f"maps/{vpk_path.stem}/world_physics.vphys_c")
+            vmdl_phys_filename = TinyPath(f"maps/{vpk_path.stem}/world_physics.vmdl_c")
+            if vmdl_phys_file := content_manager.find_file(vmdl_phys_filename):
+                vmdl_res = CompiledModelResource.from_buffer(vmdl_phys_file, vmdl_phys_filename)
+                physics_block = get_physics_block(content_manager, vmdl_res)
                 phys_collection = bpy.data.collections.new("physics")
                 map_collection.children.link(phys_collection)
                 if physics_block is not None:
@@ -167,8 +165,8 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
                     for obj in objects:
                         phys_collection.objects.link(obj)
 
-            elif phys_file := ContentManager().find_file(phys_filename):
-                phys_res = CompiledPhysicsResource.from_buffer(phys_file, Path(phys_filename))
+            elif phys_file := content_manager.find_file(phys_filename):
+                phys_res = CompiledPhysicsResource.from_buffer(phys_file, phys_filename)
                 phys_collection = bpy.data.collections.new("physics")
                 map_collection.children.link(phys_collection)
                 objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
@@ -176,7 +174,7 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
                 for obj in objects:
                     phys_collection.objects.link(obj)
 
-        serialize_mounted_content(cm)
+        serialize_mounted_content(content_manager)
 
         return {'FINISHED'}
 

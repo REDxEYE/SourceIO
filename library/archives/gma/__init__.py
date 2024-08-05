@@ -63,3 +63,7 @@ class GMA:
             data = self.buffer.slice(self._content_offset + entry.offset, entry.size)
             return data
         return None
+
+    def has_file(self, filename: Path) -> bool:
+        filename = filename.as_posix().lower()
+        return filename in self.file_entries

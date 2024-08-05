@@ -8,8 +8,8 @@ import numpy as np
 from mathutils import Euler
 
 from ....operators.import_settings_base import BSPOptions
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
+from .....library.shared.content_manager.provider import \
+    ContentProvider
 from .....library.source1.bsp.bsp_file import BSPFile
 from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
@@ -293,11 +293,11 @@ class AbstractEntityHandler:
             icon_path = Path(icon_path)
             icon = bpy.data.images.get(icon_path.stem, None)
             if icon is None:
-                icon_material_file = ContentManager().find_material(icon_path, silent=True)
+                icon_material_file = StandaloneContentManager().find_material(icon_path, silent=True)
                 if not icon_material_file:
                     return
                 vmt = VMT(icon_material_file, icon_path)
-                texture = ContentManager().find_texture(vmt.get_string('$basetexture', None), silent=True)
+                texture = StandaloneContentManager().find_texture(vmt.get_string('$basetexture', None), silent=True)
                 if not texture:
                     return
                 icon = import_texture(Path(icon_path.stem), texture)

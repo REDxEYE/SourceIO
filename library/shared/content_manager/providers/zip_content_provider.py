@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Iterator, Optional
 from zipfile import ZipFile
 
-from ...utils import Buffer, MemoryBuffer
-from .content_provider_base import ContentProviderBase
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils import Buffer, MemoryBuffer
 
 
-class ZIPContentProvider(ContentProviderBase):
+class ZIPContentProvider(ContentProvider):
     def __init__(self, filepath: Path):
         super().__init__(filepath)
         self._zip_file = ZipFile(filepath)
@@ -19,7 +19,7 @@ class ZIPContentProvider(ContentProviderBase):
 
     def find_path(self, filepath: Path) -> Optional[Path]:
         if filepath.as_posix().lower() in self._cache:
-            return Path(self.filepath.as_posix() + ":" + filepath.as_posix())
+            return Path(self.root.as_posix() + ":" + filepath.as_posix())
 
     def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
         matches = fnmatch.filter(self._cache.keys(), pattern)

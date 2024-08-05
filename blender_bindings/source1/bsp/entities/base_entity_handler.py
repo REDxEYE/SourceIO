@@ -7,8 +7,8 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
+from .....library.shared.content_manager.provider import \
+    ContentProvider
 from .....library.source1.vtf.cubemap_to_envmap import SkyboxException
 from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....library.utils.path_utilities import path_stem
@@ -586,7 +586,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('color_correction', obj, 'logic')
         # if entity.filename:
-        #     lut_table_file = ContentManager().find_file(entity.filename)
+        #     lut_table_file = StandaloneContentManager().find_file(entity.filename)
         #     if lut_table_file is not None:
         #         lut_table = np.frombuffer(lut_table_file.read(), np.uint8).reshape((-1, 3))
         #         lut_table = lut_table.astype(np.float32) / 255
@@ -688,7 +688,7 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         mat = get_or_create_material(Path(stripped_material_name).name, stripped_material_name)
         add_material(mat, curve_object)
-        content_manager = ContentManager()
+        content_manager = StandaloneContentManager()
         material_file = content_manager.find_material(material_name)
         if material_file:
             loader = Source1MaterialLoader(material_file, stripped_material_name)
@@ -742,7 +742,7 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
         material_name = Path(entity.texture).name
-        material_file = ContentManager().find_material(entity.texture)
+        material_file = StandaloneContentManager().find_material(entity.texture)
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
             loader = Source1MaterialLoader(material_file, material_name)

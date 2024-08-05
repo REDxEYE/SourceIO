@@ -2,15 +2,15 @@ from pathlib import Path
 
 
 from .....library.utils.path_utilities import backwalk_file_resolver
-from ..content_provider_base import ContentProviderBase
-from ..hla_content_provider import HLAAddonProvider
-from .source2_base import Source2DetectorBase
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.shared.content_manager.providers.hla_content_provider import HLAAddonProvider
+from .source2 import Source2Detector
 
 
-class HLADetector(Source2DetectorBase):
+class HLADetector(Source2Detector):
 
     @classmethod
-    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
+    def scan(cls, path: Path) -> dict[str, ContentProvider]:
         hla_root = None
         hlvr_folder = backwalk_file_resolver(path, 'hlvr')
         if hlvr_folder is not None:

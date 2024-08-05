@@ -1,16 +1,16 @@
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Optional, Type, TypeVar, Union
 
 from ..data_types.blocks.resource_external_reference_list import ResourceExternalReferenceList
-from ...shared.content_providers.content_manager import ContentManager
+from ...shared.content_manager.manager import ContentManager
 from ...utils import Buffer, MemoryBuffer
 from .. import load_compiled_resource
 from ..data_types.blocks.all_blocks import get_block_class
 from ..data_types.blocks.base import BaseBlock
 from ..data_types.compiled_file_header import CompiledHeader
+from ...utils.tiny_path import TinyPath
 
 T = TypeVar("T", bound="CompiledResource")
 
@@ -18,7 +18,7 @@ T = TypeVar("T", bound="CompiledResource")
 @dataclass(slots=True)
 class CompiledResource:
     _buffer: Buffer
-    _filepath: Path
+    _filepath: TinyPath
     _header: CompiledHeader
     _blocks: dict[int, BaseBlock] = field(default_factory=lambda: defaultdict(None))
 
@@ -56,7 +56,7 @@ class CompiledResource:
             return blocks or (None,)
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, filename: Path):
+    def from_buffer(cls, buffer: Buffer, filename: TinyPath):
         inmemory_buffer = MemoryBuffer(buffer.read())
         header = CompiledHeader.from_buffer(inmemory_buffer)
         return cls(inmemory_buffer, filename, header)
@@ -64,11 +64,11 @@ class CompiledResource:
     def _get_block_class(self, name) -> Type[BaseBlock]:
         return get_block_class(name)
 
-    def get_child_resource_path(self, name_or_id: Union[str, int]) -> Optional[Path]:
+    def get_child_resource_path(self, name_or_id: Union[str, int]) -> Optional[TinyPath]:
         external_resource_list, = self.get_data_block(block_name='RERL')
         for child_resource in external_resource_list:
             if child_resource.hash == name_or_id or child_resource.name == name_or_id:
-                return Path(child_resource.name + '_c')
+                return TinyPath(child_resource.name + '_c')
 
     def get_child_resource(self, name_or_id: Union[str, int], cm: ContentManager,
                            resource_class: Optional[Type[T]] = None) -> Optional[T | 'CompiledResource']:
@@ -93,6 +93,6 @@ class CompiledResource:
             return []
         deps = []
         for dep in external_resource_list:
-            path = Path(dep.name)
+            path = TinyPath(dep.name)
             deps.append(path.with_suffix(path.suffix + "_c"))
         return deps

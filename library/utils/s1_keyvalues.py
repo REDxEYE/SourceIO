@@ -1,6 +1,7 @@
 import sys
 from collections import OrderedDict
 from enum import Enum
+from pathlib import Path
 from typing import TextIO, Union
 
 from ...logger import SourceLogMan
@@ -39,7 +40,7 @@ class KVToken(Enum):
 
 
 class KVReader:
-    def __init__(self, name: str, data: str, single_value: bool = False):
+    def __init__(self, name: str | Path, data: str, single_value: bool = False):
         self.name = name
         self.data = data
         self._length = len(self.data)
@@ -88,6 +89,15 @@ class KVReader:
                 if self._next_char() != '"':
                     self._report('String literal is not closed', lc)
                 return KVToken.STR, buf, lc
+
+            if ch == '[':
+                buf = ''
+                while not _is_end(self._peek_char()) and self._peek_char() != ']':
+                    buf += self._next_char()
+                if self._next_char() != ']':
+                    self._report('String literal is not closed', lc)
+                continue
+                # return KVToken.STR, buf, lc
             if ch == '\'':
                 buf = ''
                 while not _is_end(self._peek_char()) and self._peek_char() != '\'':

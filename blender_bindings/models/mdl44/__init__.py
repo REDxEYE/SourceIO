@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
@@ -11,9 +10,10 @@ from SourceIO.library.models.mdl.v44 import MdlV44
 from SourceIO.library.models.phy.phy import Phy
 from SourceIO.library.models.vtx import open_vtx
 from SourceIO.library.models.vvd import Vvd
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import find_vtx_cm
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -28,8 +28,8 @@ logger = log_manager.get_logger('MDL loader')
 @register_model_importer(b"IDST", 42)
 @register_model_importer(b"IDST", 43)
 @register_model_importer(b"IDST", 44)
-def import_mdl44(model_path: Path, buffer: Buffer,
-                 content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
+def import_mdl44(model_path: TinyPath, buffer: Buffer,
+                 content_manager: ContentProvider, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV44.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
     vvd_buffer = content_manager.find_file(model_path.with_suffix(".vvd"))

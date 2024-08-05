@@ -4,7 +4,7 @@ import bpy
 import numpy as np
 
 from ...utils.texture_utils import check_texture_cache
-from ....library.shared.content_providers.content_manager import ContentManager
+from ....library.shared.content_manager.provider import ContentProvider
 from ....library.source2.resource_types import (CompiledMaterialResource,
                                                 CompiledTextureResource)
 from ....logger import SourceLogMan
@@ -15,8 +15,9 @@ logger = SourceLogMan().get_logger("Source2::Shader")
 
 
 class Source2ShaderBase(ShaderBase):
-    def __init__(self, source2_material: CompiledMaterialResource, tinted: bool = False):
-        super().__init__()
+    def __init__(self, content_provider: ContentProvider, source2_material: CompiledMaterialResource,
+                 tinted: bool = False):
+        super().__init__(content_provider)
         self.load_source2_nodes()
         self._material_resource = source2_material
         self.tinted = tinted
@@ -24,7 +25,7 @@ class Source2ShaderBase(ShaderBase):
     def _have_texture(self, slot_name: str) -> Optional[bpy.types.Node]:
         texture_path = self._material_resource.get_texture_property(slot_name, None)
         if texture_path is not None:
-            return self._material_resource.get_child_resource(texture_path, ContentManager()) is not None
+            return self._material_resource.get_child_resource(texture_path, self.content_manager) is not None
         return False
 
     def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float],
@@ -45,7 +46,8 @@ class Source2ShaderBase(ShaderBase):
     def load_texture_or_default(self, name_or_id: Union[str, int], default_color: tuple = (1.0, 1.0, 1.0, 1.0),
                                 invert_y: bool = False):
         print(f'Loading texture {name_or_id}')
-        resource = self._material_resource.get_child_resource(name_or_id, ContentManager(), CompiledTextureResource)
+        resource = self._material_resource.get_child_resource(name_or_id, self.content_manager,
+                                                              CompiledTextureResource)
         texture_name: str
         if isinstance(name_or_id, int):
             texture_name = f"0x{name_or_id:08}"

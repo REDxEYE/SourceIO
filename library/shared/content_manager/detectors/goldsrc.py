@@ -1,17 +1,16 @@
-from pathlib import Path
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.global_config import GoldSrcConfig
+from SourceIO.library.shared.content_manager.detectors.content_detector import ContentDetector
+from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import (GoldSrcContentProvider,
+                                                                                        GoldSrcWADContentProvider)
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
-from .....library.utils.path_utilities import backwalk_file_resolver
-from ....global_config import GoldSrcConfig
-from ..content_provider_base import ContentDetectorBase, ContentProviderBase
-from ..goldsrc_content_provider import (GoldSrcContentProvider,
-                                        GoldSrcWADContentProvider)
-
-
-class GoldSrcDetector(ContentDetectorBase):
+class GoldSrcDetector(ContentDetector):
 
     @classmethod
-    def scan(cls, path: Path) -> dict[str, ContentProviderBase]:
+    def scan(cls, path: TinyPath) -> dict[str, ContentProvider]:
         hl_root = None
         hl_exe = backwalk_file_resolver(path, 'hl.exe')
         if hl_exe is not None:

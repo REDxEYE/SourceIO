@@ -8,8 +8,8 @@ import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.library.models.vtx.v6.vtx import Vtx
-from SourceIO.library.shared.content_providers.content_manager import \
-    ContentManager
+from SourceIO.library.shared.content_manager.provider import \
+    ContentProvider
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
@@ -66,7 +66,7 @@ def create_armature(mdl: MdlV36, scale=1.0):
 def import_model(mdl: MdlV36, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      ContentManager())
+                                                      StandaloneContentManager())
 
     desired_lod = 0
     objects = []
@@ -229,7 +229,7 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
 
 def import_materials(mdl, use_bvlg=False):
-    content_manager = ContentManager()
+    content_manager = StandaloneContentManager()
     for material in mdl.materials:
         material_path = None
         material_file = None

@@ -2,7 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Union
 
-from ...shared.content_providers.content_manager import ContentManager
+from ...shared.content_manager.manager import ContentManager
 from ...utils.fgd_parser.fgd_classes import FGDEntity
 
 
@@ -513,7 +513,7 @@ if __name__ == '__main__':
     test_file = Path(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
     # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\swarm.fgd")
     # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\base.fgd")
-    ContentManager().scan_for_content(test_file)
+    StandaloneContentProvider().scan_for_content(test_file)
     parser = FGDParser(test_file)
     parser.parse()
     for cls in parser.classes:

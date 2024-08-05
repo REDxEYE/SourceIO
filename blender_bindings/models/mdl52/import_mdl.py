@@ -10,7 +10,7 @@ from SourceIO.library.models.mdl.v52.mdl_file import MdlV52
 from SourceIO.library.models.vtx.v7.vtx import Vtx
 from SourceIO.library.models.vvc import Vvc
 from SourceIO.library.models.vvd import Vvd
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.logger import SourceLogMan
@@ -24,10 +24,10 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def import_model(mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
+def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      ContentManager())
+                                                      content_provider)
 
     objects = []
     bodygroups = defaultdict(list)
