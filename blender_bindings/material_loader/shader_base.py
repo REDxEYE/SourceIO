@@ -7,6 +7,7 @@ import numpy as np
 
 from ...library.shared.content_manager.manager import ContentManager
 from ...library.shared.content_manager.provider import ContentProvider
+from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 from ..utils.bpy_utils import append_blend
 from .node_arranger import nodes_iterate
@@ -197,7 +198,7 @@ class ShaderBase:
         return buffer[0::4], buffer[1::4], buffer[2::4], buffer[3::4],
 
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
-        file = Path(file)
+        file = TinyPath(file)
         texture = self.load_texture(file.stem, file.parent)
         return texture or self.get_missing_texture(f'missing_{file.stem}', default_color)
 

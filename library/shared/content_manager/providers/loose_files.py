@@ -31,7 +31,7 @@ class LooseFilesContentProvider(ContentProvider):
     def root(self) -> TinyPath:
         return self.filepath
 
-    def __init__(self, filepath: TinyPath, override_steamid=0):
+    def __init__(self, filepath: TinyPath, override_steamid=SteamAppId.UNKNOWN):
         self._override_steamid = override_steamid
         super().__init__(filepath)
 
@@ -40,14 +40,9 @@ class LooseFilesContentProvider(ContentProvider):
         if file and file.is_file():
             return FileBuffer(file)
 
-    def find_path(self, filepath: Union[str, TinyPath]) -> Optional[TinyPath]:
-        file = backwalk_file_resolver(self.filepath, filepath)
-        if file:
-            return file
-
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
         yield from glob_generic(self.root, pattern)
 
     @property
     def steam_id(self) -> SteamAppId:
-        return self._override_steamid or SteamAppId.UNKNOWN
+        return self._override_steamid

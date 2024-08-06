@@ -1,16 +1,13 @@
-from pathlib import Path
-
-
-from SourceIO.library.utils import Buffer, FileBuffer
-# from .directory import Directory
+from SourceIO.library.utils import FileBuffer
 from .file import File
 from .index import Index
+from ...utils.tiny_path import TinyPath
 
 
 # noinspection PyShadowingNames
 class HFS:
 
-    def __init__(self, hfs_path: Path):
+    def __init__(self, hfs_path: TinyPath):
         self.buffer = buffer = FileBuffer(hfs_path)
         self.entries: dict[str, File] = {}
         buffer.seek(-0x16, 2)
@@ -31,11 +28,11 @@ class HFS:
                 self.entries[file.filename.lower()] = file
 
     def get_file(self, path):
-        path = Path(path).as_posix().lower()
+        path = TinyPath(path).as_posix().lower()
         if path in self.entries:
             return self.entries[path].read_file(self.buffer)
         return None
 
     def has_file(self, path):
-        path = Path(path).as_posix()
+        path = TinyPath(path).as_posix()
         return path in self.entries

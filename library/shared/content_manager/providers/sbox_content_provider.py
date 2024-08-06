@@ -1,39 +1,30 @@
-from pathlib import Path
-from typing import Iterator, Optional, Union
+from typing import Iterator, Optional
 
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.provider import ContentProvider, find_file_generic, \
-    find_path_generic, glob_generic
+    glob_generic, is_relative_to
+from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
 from SourceIO.library.utils import Buffer
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
-class SBoxAddonProvider(ContentProvider):
+class SBoxAddonProvider(LooseFilesContentProvider):
+
+    @property
+    def name(self) -> str:
+        return f"S&Box {self.filepath.stem}"
 
     @property
     def steam_id(self):
         return SteamAppId.SBOX_STEAM_ID
 
-    def find_file(self, filepath: Path) -> Optional[Buffer]:
-        return find_file_generic(self.root, filepath)
 
-    def find_path(self, filepath: Path) -> Optional[Path]:
-        return find_path_generic(self.root, filepath)
+class SBoxDownloadsProvider(LooseFilesContentProvider):
 
-    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
-        yield from glob_generic(self.root, pattern)
-
-
-class SBoxDownloadsProvider(ContentProvider):
+    @property
+    def name(self) -> str:
+        return f"S&Box {self.filepath.stem[:8]}"
 
     @property
     def steam_id(self):
         return SteamAppId.SBOX_STEAM_ID
-
-    def find_file(self, filepath: Path) -> Optional[Buffer]:
-        return find_file_generic(self.root, filepath)
-
-    def find_path(self, filepath: Path) -> Optional[Path]:
-        return find_path_generic(self.root, filepath)
-
-    def glob(self, pattern: str) -> Iterator[tuple[Path, Buffer]]:
-        yield from glob_generic(self.root, pattern)

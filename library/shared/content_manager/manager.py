@@ -4,6 +4,12 @@ from typing import Optional, TypeVar, Union
 
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.detectors import detect_game
+from .providers import register_provider
+from .providers.hfs_provider import HFS1ContentProvider, HFS2ContentProvider
+from .providers.loose_files import LooseFilesContentProvider
+from .providers.source1_gameinfo_provider import Source1GameInfoProvider
+from .providers.source2_gameinfo_provider import Source2GameInfoProvider
+from .providers.zip_content_provider import ZIPContentProvider
 from ...utils.tiny_path import TinyPath
 from ....library.utils.path_utilities import (backwalk_file_resolver,
                                               corrected_path, get_mod_path)
@@ -33,17 +39,23 @@ def get_loose_file_fs_root(path: TinyPath):
 class ContentManager(metaclass=SingletonMeta):
 
     def check(self, filepath: TinyPath) -> bool:
+        if filepath.is_absolute():
+            return filepath.exists()
         for child in self.children:
             if child.check(filepath):
                 return True
         return False
 
     def get_provider_from_path(self, filepath):
+        if filepath.is_absolute():
+            filepath = self.get_relative_path(filepath)
         for child in self.children:
             if provider := child.get_provider_from_path(filepath):
                 return provider
 
     def get_steamid_from_asset(self, asset_path: TinyPath) -> ContentProvider | None:
+        if asset_path.is_absolute():
+            asset_path = self.get_relative_path(asset_path)
         for child in self.children:
             if provider := child.get_steamid_from_asset(asset_path):
                 return provider
@@ -84,14 +96,14 @@ class ContentManager(metaclass=SingletonMeta):
             return
         self._find_steam_appid(scan_path)
         if scan_path.suffix == '.vpk':
-            vpk_provider_name = f'{scan_path.parent.stem}_{scan_path.stem}'
-            if vpk_provider_name in self.children:
-                return
             if scan_path.exists():
-                self.add_child(vpk_provider_name, VPKContentProvider(scan_path))
+                self.add_child(VPKContentProvider(scan_path))
                 return
-        raise NotImplementedError("TODO: Update other logic")
+
         root_path = get_loose_file_fs_root(scan_path)
+        if root_path:
+            self.add_child(LooseFilesContentProvider(root_path))
+        raise NotImplementedError("TODO: Update other logic")
         if root_path:
             if root_path.stem in self.children:
                 return
@@ -142,6 +154,8 @@ class ContentManager(metaclass=SingletonMeta):
             yield from child.glob(pattern)
 
     def find_file(self, filepath: TinyPath) -> Buffer | None:
+        if filepath.is_absolute():
+            return FileBuffer(filepath)
         logger.debug(f'Requesting {filepath} file')
         for child in self.children:
             if (file := child.find_file(filepath)) is not None:
@@ -152,9 +166,9 @@ class ContentManager(metaclass=SingletonMeta):
     # TODO: MAYBE DEPRECATED
     def serialize(self):
         serialized = {}
-        for name, sub_manager in self.children:
-            name = name.replace('\'', '').replace('\"', '').replace(' ', '_')
-            info = {"name": name, "path": str(sub_manager.filepath)}
+        for provider in self.children:
+            name = provider.unique_name.replace('\'', '').replace('\"', '').replace(' ', '_')
+            info = {"name": name, "path": str(provider.filepath)}
             serialized[md5(name.encode("utf8")).hexdigest()] = info
 
         return serialized
@@ -164,44 +178,46 @@ class ContentManager(metaclass=SingletonMeta):
         for name, item in data.items():
             name = item["name"]
             path = item["path"]
-            if name in self.content_providers:
-                logger.info(f'{name} provider already exists')
-                continue
-
+            t_path = TinyPath(path)
             if path.endswith('.vpk'):
-                sub_manager = VPKContentProvider(TinyPath(path))
-                self.register_content_provider(name, sub_manager)
+                provider = VPKContentProvider(t_path)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
             elif path.endswith('.pk3'):
-                sub_manager = ZIPContentProvider(TinyPath(path))
-                self.register_content_provider(name, sub_manager)
+                provider = ZIPContentProvider(t_path)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
             elif path.endswith('.txt'):
                 try:
-                    sub_manager = Source1GameinfoContentProvider(TinyPath(path))
+                    provider = Source1GameInfoProvider(t_path)
                 except ValueError as ex:
-                    logger.exception(f"Failed to parse gameinfo for {TinyPath(path)}", ex)
+                    logger.exception(f"Failed to parse gameinfo for {t_path}", ex)
                     continue
-                if sub_manager.gameinfo.game == 'Titanfall':
-                    self._titanfall_mode = True
-                self.register_content_provider(name, sub_manager)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
             elif path.endswith('.gi'):
-                sub_manager = Source2GameinfoContentProvider(TinyPath(path))
-                self.register_content_provider(name, sub_manager)
+                provider = Source2GameInfoProvider(t_path)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
             elif path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
                 with FileBuffer(path) as f:
-                    bsp = open_bsp(path, f)
-                    pak_lump = bsp.get_lump('LUMP_PAK')
-                if pak_lump:
-                    self.register_content_provider(name, pak_lump)
+                    bsp = open_bsp(path, f, self)
+                    provider = bsp.get_lump('LUMP_PAK')
+                if provider and provider not in self.children:
+                    self.children.append(register_provider(provider))
             elif path.endswith('.hfs'):
-                sub_manager = HFS1ContentProvider(TinyPath(path))
-                self.register_content_provider(name, sub_manager)
+                provider = HFS1ContentProvider(t_path)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
             elif name == 'hfs':
-                sub_manager = HFS2ContentProvider(TinyPath(path))
-                self.register_content_provider(name, sub_manager)
+                provider = HFS2ContentProvider(t_path)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
             else:
-                sub_manager = NonSourceContentProvider(TinyPath(path))
-                self.register_content_provider(name, sub_manager)
+                provider = LooseFilesContentProvider(t_path)
+                if provider not in self.children:
+                    self.children.append(register_provider(provider))
 
     def clean(self):
         self.children.clear()

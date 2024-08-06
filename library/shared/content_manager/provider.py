@@ -1,5 +1,4 @@
 from abc import abstractmethod
-# from pathlib import Path
 from typing import Iterator, Optional
 
 from SourceIO.library.shared.app_id import SteamAppId
@@ -8,12 +7,11 @@ from SourceIO.library.utils.path_utilities import corrected_path
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
-Path = TinyPath
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('ContentManager')
 
 
-def find_file_generic(root: Path, filepath: Path) -> Buffer | None:
+def find_file_generic(root: TinyPath, filepath: TinyPath) -> Buffer | None:
     filepath = corrected_path(root / filepath)
     if filepath.exists():
         return FileBuffer(filepath)
@@ -21,7 +19,7 @@ def find_file_generic(root: Path, filepath: Path) -> Buffer | None:
         return None
 
 
-def find_path_generic(root: Path, filepath: Path) -> Path | None:
+def find_path_generic(root: TinyPath, filepath: TinyPath) -> TinyPath | None:
     filepath = corrected_path(root / filepath)
     if filepath.exists():
         return filepath
@@ -29,13 +27,13 @@ def find_path_generic(root: Path, filepath: Path) -> Path | None:
         return None
 
 
-def glob_generic(root: Path, pattern: str) -> Iterator[tuple[Path, Buffer]]:
+def glob_generic(root: TinyPath, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
     for filename in root.rglob(pattern):
         yield (filename.relative_to(root)).as_posix(), FileBuffer(filename)
 
 
 # backport
-def is_relative_to(path: Path, *other):
+def is_relative_to(path: TinyPath, *other):
     """Return True if the path is relative to another path or False.
     """
     try:
@@ -50,7 +48,7 @@ class ContentProvider:
     def class_name(cls):
         return cls.__name__
 
-    def __init__(self, filepath: Path):
+    def __init__(self, filepath: TinyPath):
         self.filepath = filepath
 
     def __hash__(self):
@@ -65,11 +63,11 @@ class ContentProvider:
         ...
 
     @abstractmethod
-    def check(self, filepath: Path) -> bool:
+    def check(self, filepath: TinyPath) -> bool:
         ...
 
     @abstractmethod
-    def get_relative_path(self, filepath: Path) -> Path | None:
+    def get_relative_path(self, filepath: TinyPath) -> TinyPath | None:
         ...
 
     @abstractmethod
@@ -77,12 +75,12 @@ class ContentProvider:
         ...
 
     @abstractmethod
-    def get_steamid_from_asset(self, asset_path: Path) -> SteamAppId | None:
+    def get_steamid_from_asset(self, asset_path: TinyPath) -> SteamAppId | None:
         ...
 
     @property
     @abstractmethod
-    def root(self) -> Path:
+    def root(self) -> TinyPath:
         ...
 
     @property
@@ -107,4 +105,4 @@ class ContentProvider:
         return self.filepath == other.filepath and self.name == other.name and self.steam_id == other.steam_id
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.filepath!r})"
+        return f"{self.__class__.__name__}(\"{self.filepath!s}\")"

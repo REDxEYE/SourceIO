@@ -1,16 +1,15 @@
 import traceback
 from abc import ABCMeta
-from pathlib import Path
 from typing import Type
 
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers import register_provider
-from SourceIO.library.shared.content_manager.providers.gameinfo_provider import GameInfoProvider
+from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from SourceIO.library.shared.content_manager.detectors.content_detector import ContentDetector
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
-from SourceIO.library.shared.content_manager.providers.source1_content_provider import GameinfoContentProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 
 log_manager = SourceLogMan()
@@ -20,23 +19,23 @@ logger = log_manager.get_logger('Source1DetectorBase')
 class Source1Detector(ContentDetector, metaclass=ABCMeta):
 
     @classmethod
-    def scan_for_vpk(cls, root_dir: Path, content_providers: dict[str, ContentProvider]):
+    def scan_for_vpk(cls, root_dir: TinyPath, content_providers: dict[str, ContentProvider]):
         for vpk in root_dir.glob('*_dir.vpk'):
             try:
-                content_providers[f'{root_dir.stem}_{vpk.stem}'] = VPKContentProvider(vpk)
+                cls.add_provider(VPKContentProvider(vpk), content_providers)
             except IOError as ex:
                 print(f'Failed to load "{vpk}" VPK due to {ex}.')
                 traceback.print_exc()
                 print(f'Skipping {vpk}.')
 
     @classmethod
-    def add_if_exists(cls, path: Path, content_provider_class: Type[ContentProvider],
+    def add_if_exists(cls, path: TinyPath, content_provider_class: Type[ContentProvider],
                       content_providers: dict[str, ContentProvider]):
         super().add_if_exists(path, content_provider_class, content_providers)
         cls.scan_for_vpk(path, content_providers)
 
     @classmethod
-    def scan(cls, path: Path) -> list[ContentProvider]:
+    def scan(cls, path: TinyPath) -> list[ContentProvider]:
         game_root = None
         is_source = backwalk_file_resolver(path, 'platform') and backwalk_file_resolver(path, 'bin')
         if is_source:
@@ -46,11 +45,10 @@ class Source1Detector(ContentDetector, metaclass=ABCMeta):
         providers = {}
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
-            initial_mod = register_provider(GameInfoProvider(initial_mod_gi_path))
-            providers[initial_mod.unique_name] = initial_mod
+            cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
         cls.register_common(game_root, providers)
         return list(providers.values())
 
     @classmethod
-    def register_common(cls, root_path: Path, content_providers: dict[str, ContentProvider]):
+    def register_common(cls, root_path: TinyPath, content_providers: dict[str, ContentProvider]):
         cls.add_if_exists(root_path / 'synergy', LooseFilesContentProvider, content_providers)

@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ..provider import ContentProvider
 from ..providers import register_provider
-from ..providers.gameinfo_provider import GameInfoProvider
+from ..providers.source1_gameinfo_provider import Source1GameInfoProvider
 from ..providers.loose_files import LooseFilesContentProvider
 from ...app_id import SteamAppId
 from .....library.utils.path_utilities import backwalk_file_resolver
@@ -26,19 +26,17 @@ class GModDetector(Source1Detector):
         providers = {}
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
-            initial_mod = register_provider(GameInfoProvider(initial_mod_gi_path))
-            providers[initial_mod.unique_name] = initial_mod
+            cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
 
         garrysmod_mod_gi_path = gmod_root / "garrysmod/gameinfo.txt"
         if initial_mod_gi_path != garrysmod_mod_gi_path:
-            user_mod = register_provider(GameInfoProvider(garrysmod_mod_gi_path))
-            providers[user_mod.unique_name] = user_mod
+            cls.add_provider(Source1GameInfoProvider(garrysmod_mod_gi_path), providers)
+
         cls.register_common(gmod_root, providers)
         for addon in (gmod_dir / "addons").iterdir():
             if addon.suffix == ".gma":
                 provider = GMAContentProvider(addon)
             else:
                 provider = LooseFilesContentProvider(addon, SteamAppId.GARRYS_MOD)
-            provider = register_provider(provider)
-            providers[provider.unique_name] = provider
+            cls.add_provider(provider, providers)
         return list(providers.values())

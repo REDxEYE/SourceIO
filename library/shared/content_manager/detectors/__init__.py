@@ -18,7 +18,7 @@ from ..provider import ContentProvider
 def detect_game(path: TinyPath) -> list[ContentProvider]:
     detector_addons = [GoldSrcDetector(), IDTech3Detector(),
                        SFMDetector(), GModDetector(), SourceMod(),
-                       VindictusDetector(), TitanfallDetector(),
+                       # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
                        Source1Detector(), Source2Detector()]
 

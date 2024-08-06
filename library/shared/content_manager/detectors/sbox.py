@@ -1,6 +1,6 @@
 from pathlib import Path
 
-
+from ..providers import register_provider
 from .....library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.sbox_content_provider import SBoxAddonProvider, SBoxDownloadsProvider
@@ -10,28 +10,27 @@ from .source2 import Source2Detector
 class SBoxDetector(Source2Detector):
 
     @classmethod
-    def scan(cls, path: Path) -> dict[str, ContentProvider]:
+    def scan(cls, path: Path) -> list[ContentProvider]:
         sbox_root = None
         sbox_exe = backwalk_file_resolver(path, 'sbox.exe')
         if sbox_exe is not None:
             sbox_root = sbox_exe.parent
         if sbox_root is None:
-            return {}
-        content_providers = {}
+            return []
+        providers = {}
         for folder in (sbox_root / 'addons').iterdir():
             if folder.stem.startswith('.'):
                 continue
-            content_providers[f'sbox_addon_{folder.stem}'] = SBoxAddonProvider(folder)
+            cls.add_provider(SBoxAddonProvider(folder), providers)
         for folder in (sbox_root / 'download').iterdir():
             if folder.stem.startswith('.'):
                 continue
             if folder.stem == 'http':
                 for http_downloaded in folder.iterdir():
                     for addon in http_downloaded.iterdir():
-                        content_providers[f'sbox_http_{addon.stem}'] = SBoxDownloadsProvider(addon)
+                        cls.add_provider(SBoxDownloadsProvider(addon), providers)
             elif folder.stem == 'github':
                 for addon in folder.iterdir():
                     for version in addon.iterdir():
-                        content_providers[f'sbox_gh_{addon.stem}_{version.stem[:8]}'] = SBoxDownloadsProvider(version)
-        cls.recursive_traversal(sbox_root, 'core',content_providers)
-        return content_providers
+                        cls.add_provider(SBoxDownloadsProvider(version), providers)
+        return list(providers.values())

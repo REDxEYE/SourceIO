@@ -1,13 +1,13 @@
 import struct
 from dataclasses import dataclass
 from enum import IntEnum
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
 
 from ..utils import Buffer, FileBuffer
+from ..utils.tiny_path import TinyPath
 
 
 def make_texture(indices, palette, use_alpha: bool = False) -> npt.NDArray[np.float32]:
@@ -145,7 +145,7 @@ class WadEntry:
 
 
 class WadFile:
-    def __init__(self, file: Path):
+    def __init__(self, file: TinyPath):
         self.buffer = FileBuffer(file)
         self.version = self.buffer.read(4)
         self.count, self.offset = struct.unpack('II', self.buffer.read(8))
@@ -156,6 +156,10 @@ class WadFile:
             entry = WadEntry.from_buffer(self.buffer)
             self.entries[entry.name] = entry
         self._entry_cache = {}
+
+    def contains(self, name: TinyPath) -> bool:
+        name = name.upper()
+        return name in self._entry_cache or name in self.entries
 
     def get_file(self, name: str) -> Optional[WadLump]:
         name = name.upper()

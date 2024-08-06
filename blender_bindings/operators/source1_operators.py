@@ -86,12 +86,13 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
 
     def execute(self, context):
         content_manager = ContentManager()
+        filepath = TinyPath(self.filepath)
         if self.discover_resources:
-            content_manager.scan_for_content(self.filepath)
+            content_manager.scan_for_content(filepath)
         else:
             deserialize_mounted_content(content_manager)
-        with FileBuffer(TinyPath(self.filepath)) as f:
-            import_bsp(TinyPath(self.filepath), f, content_manager, self,
+        with FileBuffer(filepath) as f:
+            import_bsp(filepath, f, content_manager, self,
                        SteamAppId(int(self.steam_app_id)) if self.steam_app_id != "-999" else None)
 
         if self.discover_resources:

@@ -103,7 +103,7 @@ def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.C
     data_block, = world_resource.get_data_block(block_name='DATA')
     entity_lumps = data_block["m_entityLumps"]
 
-    if cm.steam_id == SteamAppId.HLA_STEAM_ID:
+    if cm.steam_id == SteamAppId.HALF_LIFE_ALYX:
         handler = HLVREntityHandler
     elif cm.steam_id == SteamAppId.SBOX_STEAM_ID:
         handler = SBoxEntityHandler

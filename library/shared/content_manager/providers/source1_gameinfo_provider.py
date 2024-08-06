@@ -14,7 +14,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('GameInfoProvider')
 
 
-class GameInfoProvider(ContentProvider):
+class Source1GameInfoProvider(ContentProvider):
     def check(self, filepath: TinyPath) -> bool:
         for mount in self.mount:
             if mount.check(filepath):
@@ -22,8 +22,10 @@ class GameInfoProvider(ContentProvider):
         return False
 
     def get_relative_path(self, filepath: TinyPath):
-        if self.check(filepath) and is_relative_to(filepath, self.root):
-            return filepath.relative_to(self.root)
+        if is_relative_to(filepath, self.root):
+            rel_path = filepath.relative_to(self.root)
+            if self.check(rel_path):
+                return rel_path
 
     def get_provider_from_path(self, filepath):
         if self.check(filepath):
@@ -31,7 +33,7 @@ class GameInfoProvider(ContentProvider):
 
     def get_steamid_from_asset(self, asset_path: TinyPath) -> SteamAppId | None:
         if self.check(asset_path):
-            return self._steamapp_id
+            return self.steam_id
 
     @property
     def name(self) -> str:
@@ -45,7 +47,7 @@ class GameInfoProvider(ContentProvider):
             raise ValueError("Invalid gameinfo header")
         self.filesystem: dict[str, Any] = gameinfo_data["filesystem"]
         self._steamapp_id = SteamAppId(int(self.filesystem["steamappid"]))
-        self.mount:list[ContentProvider] = []
+        self.mount: list[ContentProvider] = []
 
         mods_folder = self.root.parent
         for search_path_type, search_paths in self.filesystem.get("searchpaths", {}).items():

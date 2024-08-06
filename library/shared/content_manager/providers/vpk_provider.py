@@ -5,9 +5,19 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.library.utils.rustlib import Vpk
 from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
+
+log_manager = SourceLogMan()
+logger = log_manager.get_logger('VpkProvider')
 
 
 class VPKContentProvider(ContentProvider):
+    def __init__(self, filepath: TinyPath, override_steamid=SteamAppId.UNKNOWN):
+        super().__init__(filepath)
+        self._override_steamid = override_steamid
+        self._initialized = False
+        self.vpk_archive: Vpk | None = None
+
     def check(self, filepath: TinyPath) -> bool:
         self._init()
         return self.vpk_archive.find_file(filepath) is not None
@@ -24,20 +34,6 @@ class VPKContentProvider(ContentProvider):
         if self.check(asset_path):
             return self.steam_id
 
-    @property
-    def root(self) -> TinyPath:
-        return self.filepath.parent
-
-    @property
-    def name(self) -> str:
-        return self.filepath.stem
-
-    def __init__(self, filepath: TinyPath, override_steamid=SteamAppId.UNKNOWN):
-        super().__init__(filepath)
-        self._override_steamid = override_steamid
-        self._initialized = False
-        self.vpk_archive: Vpk | None = None
-
     def _init(self):
         if self._initialized:
             return
@@ -53,6 +49,14 @@ class VPKContentProvider(ContentProvider):
         file = self.vpk_archive.find_file(filepath)
         if file:
             return MemoryBuffer(file)
+
+    @property
+    def root(self) -> TinyPath:
+        return self.filepath.parent
+
+    @property
+    def name(self) -> str:
+        return self.filepath.stem
 
     @property
     def steam_id(self) -> SteamAppId:

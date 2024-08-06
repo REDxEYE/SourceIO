@@ -19,21 +19,28 @@ class TinyPath(str, PathLike):
 
     @property
     def stem(self):
-        sep_index = self.rindex("/") + 1
-        name = self[sep_index:]
+        if "/" in self:
+            sep_index = self.rindex("/") + 1
+            name = self[sep_index:]
+        else:
+            name = self
         if "." in name:
             return name[:name.rindex(".")]
         return name
 
     @property
     def name(self):
-        sep_index = self.rindex("/") + 1
-        return self[sep_index:]
+        if "/" in self:
+            sep_index = self.rindex("/") + 1
+            return self[sep_index:]
+        return self
 
     @property
     def parent(self):
-        sep_index = self.rindex("/")
-        return TinyPath(self[:sep_index])
+        if "/" in self:
+            sep_index = self.rindex("/")
+            return TinyPath(self[:sep_index])
+        return self
 
     @property
     def parts(self):
@@ -41,7 +48,9 @@ class TinyPath(str, PathLike):
 
     @property
     def suffix(self):
-        return self[self.rindex("."):]
+        if "." in self:
+            return self[self.rindex("."):]
+        return ""
 
     @property
     def root(self):
@@ -57,7 +66,7 @@ class TinyPath(str, PathLike):
 
     def relative_to(self, other: PathTypes) -> 'TinyPath':
         if self.is_relative_to(other):
-            return TinyPath(self[:len(other)])
+            return TinyPath(self[len(other) + 1:])
         raise ValueError(f"{self!r} is not in the subpath of {other!r}"
                          " OR one path is relative and the other is absolute.")
 
@@ -92,8 +101,13 @@ class TinyPath(str, PathLike):
     def is_file(self):
         return Path(self).is_file()
 
+    def is_dir(self):
+        return Path(self).is_dir()
+
     def with_suffix(self, suffix: str):
-        return TinyPath(self[:-len(self.suffix)] + suffix)
+        if self.suffix:
+            return TinyPath(self[:-len(self.suffix)] + suffix)
+        return TinyPath(self + suffix)
 
     def iterdir(self):
         for item in Path(self).iterdir():
@@ -107,7 +121,7 @@ class TinyPath(str, PathLike):
 
     def __truediv__(self, other: PathTypes):
         if self.is_absolute() and TinyPath(other).is_absolute():
-            raise ValueError("Cannot join absolute paths.")
+            raise ValueError(f"Cannot join absolute paths: {self!r}|{other!r}.")
         return TinyPath(self + "/" + str(other))
 
     def __rtruediv__(self, other: PathTypes):
