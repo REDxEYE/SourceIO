@@ -24,6 +24,7 @@ from ..source1.dmx.load_sfm_session import load_session
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
 
+
 # noinspection PyPep8Naming
 class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     """Load Source Engine MDL models"""
@@ -191,7 +192,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
             deserialize_mounted_content(content_manager)
         for file in self.files:
             skybox_name = path_stem(file.name)
-            load_skybox_texture(skybox_name[:-2], int(self.resolution))
+            load_skybox_texture(skybox_name[:-2], content_manager, int(self.resolution))
         return {'FINISHED'}
 
     def invoke(self, context, event):

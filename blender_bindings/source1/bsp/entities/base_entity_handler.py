@@ -12,6 +12,7 @@ from .....library.shared.content_manager.provider import \
 from .....library.source1.vtf.cubemap_to_envmap import SkyboxException
 from .....library.utils.math_utilities import ensure_length, lerp_vec
 from .....library.utils.path_utilities import path_stem
+from .....library.utils.tiny_path import TinyPath
 from .....logger import SourceLogMan
 from ....material_loader.material_loader import Source1MaterialLoader
 from ....material_loader.shaders.source1_shaders.sky import Skybox
@@ -294,7 +295,9 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
         try:
-            skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
+            skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname,
+                                                                                               self.content_manager,
+                                                                                               4096)
             world_material = bpy.data.worlds.get(entity.skyname, False) or bpy.data.worlds.new(entity.skyname)
             Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(world_material)
             bpy.context.scene.world = bpy.data.worlds[entity.skyname]
@@ -688,10 +691,9 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         mat = get_or_create_material(Path(stripped_material_name).name, stripped_material_name)
         add_material(mat, curve_object)
-        content_manager = StandaloneContentManager()
-        material_file = content_manager.find_material(material_name)
+        material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
         if material_file:
-            loader = Source1MaterialLoader(material_file, stripped_material_name)
+            loader = Source1MaterialLoader(self.content_manager, material_file, stripped_material_name)
             loader.create_material(mat)
         return curve_object
 

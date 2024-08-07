@@ -31,7 +31,7 @@ class ZIPContentProvider(ContentProvider):
 
     def find_file(self, filepath: TinyPath) -> Optional[Buffer]:
         if filepath.as_posix().lower() in self._cache:
-            return MemoryBuffer(self._zip_file.read(self._cache[filepath.as_posix()]))
+            return MemoryBuffer(self._zip_file.read(self._cache[filepath.as_posix().lower()]))
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
         matches = fnmatch.filter(self._cache.keys(), pattern)

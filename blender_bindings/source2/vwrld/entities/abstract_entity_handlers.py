@@ -11,6 +11,7 @@ from .....library.shared.content_manager.provider import \
 from .....library.source2 import (CompiledMaterialResource,
                                   CompiledTextureResource)
 from .....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from .....library.utils.tiny_path import TinyPath
 from .....logger import SourceLogMan
 from ....utils.bpy_utils import get_or_create_collection
 from ...vtex_loader import import_texture
@@ -68,7 +69,7 @@ class AbstractEntityHandler:
                  scale=SOURCE2_HAMMER_UNIT_TO_METERS):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self.scale = scale
-        self.cm = cm
+        self.content_manager = cm
         self.parent_collection = parent_collection
 
         self._entities = entities
@@ -166,8 +167,8 @@ class AbstractEntityHandler:
 
     def _set_icon_if_present(self, obj, entity):
         if hasattr(entity, 'icon_sprite'):
-            icon_path = Path(entity.icon_sprite)
-            icon_material_file = StandaloneContentManager().find_file("materials" / icon_path, extension='.vmat_c')
+            icon_path = TinyPath(entity.icon_sprite)
+            icon_material_file = self.content_manager.find_file(TinyPath("materials") / (icon_path.with_suffix(".vmat_c")))
             if not icon_material_file:
                 return
             vmt = CompiledMaterialResource.from_buffer(icon_material_file, icon_path)
@@ -175,12 +176,12 @@ class AbstractEntityHandler:
             if data_block['m_shaderName'] == 'tools_sprite.vfx':
                 path_texture = next((a for a in vmt.get_child_resources() if isinstance(a, str) and ".vtex" in a), None)
                 if path_texture is not None:
-                    image_resource = vmt.get_child_resource(path_texture, self.cm, CompiledTextureResource)
+                    image_resource = vmt.get_child_resource(path_texture, self.content_manager, CompiledTextureResource)
                     if not image_resource:
                         return
                     obj.empty_display_type = 'IMAGE'
                     obj.empty_display_size = 16 * self.scale  # (1 / self.scale)
-                    obj.data = import_texture(image_resource, Path(path_texture))
+                    obj.data = import_texture(image_resource, TinyPath(path_texture))
 
     @staticmethod
     def _create_lines(name, points, closed=False):

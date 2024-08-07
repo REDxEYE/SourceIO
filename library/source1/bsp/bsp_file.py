@@ -37,7 +37,7 @@ class BSPFile:
     @classmethod
     def from_buffer(cls, filepath: TinyPath, buffer: Buffer, content_manager: ContentManager,
                     override_steamappid: Optional[SteamAppId] = None):
-        self = cls(filepath, buffer)
+        self = cls(filepath, buffer, content_manager)
         magic = buffer.read_fourcc()
         assert magic == "VBSP", "Invalid BSP header"
         version = buffer.read_int32()

@@ -19,6 +19,7 @@ from SourceIO.library.models.mdl.v44.mdl_file import MdlV44
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
 from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.models.vvd import Vvd
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -306,7 +307,7 @@ def import_static_animations(cm: ContentProvider, mdl: MdlV44, animation_name: s
                 return
 
     for include_model in mdl.include_models:
-        buffer = cm.find_file(include_model)
+        buffer = cm.find_file(TinyPath(include_model))
         if buffer:
             buffer.seek(4)
             version = buffer.read_uint32()

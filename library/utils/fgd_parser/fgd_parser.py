@@ -2,6 +2,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Union
 
+from SourceIO.library.utils.tiny_path import TinyPath
 from ...shared.content_manager.manager import ContentManager
 from ...utils.fgd_parser.fgd_classes import FGDEntity
 
@@ -243,7 +244,7 @@ class FGDParser:
 
     def _parse_include(self):
         include = self.expect(FGDToken.STRING)
-        file = ContentManager().find_file(include)
+        file = ContentManager().find_file(TinyPath(include))
         if file is not None:
             parsed_include = FGDParser(buffer_and_name=(file.read().decode("ascii"), include))
             parsed_include.parse()

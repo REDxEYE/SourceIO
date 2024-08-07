@@ -10,6 +10,7 @@ from ...vmat_loader import load_material
 from .abstract_entity_handlers import (AbstractEntityHandler, get_angles,
                                        get_origin)
 from .base_entity_classes import *
+from .....library.utils.tiny_path import TinyPath
 
 
 class BaseEntityHandler(AbstractEntityHandler):
@@ -187,9 +188,9 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('path_corner', obj, 'path')
 
     def handle_env_sky(self, entity: env_sky, entity_raw: dict):
-        sky_mat = StandaloneContentManager().find_file(entity.skyname + '_c')
+        sky_mat = self.content_manager.find_file(entity.skyname + '_c')
         if sky_mat is not None:
-            vmat = CompiledMaterialResource.from_buffer(sky_mat, Path(entity.skyname))
+            vmat = CompiledMaterialResource.from_buffer(sky_mat, TinyPath(entity.skyname))
             # load_material(vmat, Path(entity.skyname))
             world_material = bpy.data.worlds.get(entity.skyname, False) or bpy.data.worlds.new(entity.skyname)
             Skybox(vmat).create_nodes(world_material)

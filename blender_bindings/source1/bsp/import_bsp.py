@@ -1,7 +1,6 @@
 import json
 import re
-from pathlib import Path
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional, Type
 
 import bpy
 import numpy as np
@@ -10,6 +9,7 @@ from .entities.abstract_entity_handlers import AbstractEntityHandler
 from .entities.sof_entity_handler import SOFEntityHandler
 from ...material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from ...operators.import_settings_base import Source1BSPSettings
+from ....library.shared.content_manager.manager import ContentManager
 from ....library.shared.content_manager.provider import ContentProvider
 from ....library.source1.bsp.bsp_file import open_bsp, BSPFile
 from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
@@ -20,6 +20,7 @@ from ....library.utils.idtech3_shader_parser import parse_shader_materials
 from ....library.utils.math_utilities import (SOURCE1_HAMMER_UNIT_TO_METERS,
                                               convert_rotation_source1_to_blender)
 from ....library.utils.path_utilities import path_stem
+from ....library.utils.tiny_path import TinyPath
 from ....logger import SourceLogMan, SLogger
 from ...material_loader.material_loader import Source1MaterialLoader
 from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -43,11 +44,11 @@ def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammerid", "missing_hammer_id"))}'
 
 
-def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentProvider, settings: Source1BSPSettings,
+def import_bsp(map_path: TinyPath, buffer: Buffer, content_manager: ContentManager, settings: Source1BSPSettings,
                override_steamappid: Optional[SteamAppId] = None):
     logger = log_manager.get_logger(map_path.name)
     logger.info(f'Loading map "{map_path}"')
-    bsp = open_bsp(map_path, buffer, override_steamappid)
+    bsp = open_bsp(map_path, buffer, content_manager, override_steamappid)
     if bsp is None:
         raise Exception("Could not open map file. This function can only load Source1 BSP files.")
     master_collection = bpy.data.collections.new(map_path.name)
@@ -59,7 +60,7 @@ def import_bsp(map_path: Path, buffer: Buffer, content_manager: ContentProvider,
     import_disp(bsp, settings, master_collection, logger)
 
 
-def import_entities(bsp: BSPFile, content_manager: ContentProvider, settings: Source1BSPSettings,
+def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
                     master_collection: bpy.types.Collection, logger: SLogger):
     steam_id = bsp.steam_app_id
 
@@ -109,7 +110,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         return
     parent_collection = get_or_create_collection('cubemaps', master_collection)
     for n, cubemap in enumerate(cubemap_lump.cubemaps):
-        refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'SPHERE')
+        refl_probe = bpy.data.lightprobes.new(f"CUBEMAP_{n}_PROBE", 'CUBE')
         obj = bpy.data.objects.new(f"CUBEMAP_{n}", refl_probe)
         obj.location = cubemap.origin
         obj.location *= settings.scale
@@ -150,7 +151,7 @@ def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_colle
                 parent_collection.objects.link(placeholder)
 
 
-def import_materials(bsp: BSPFile, content_provider: ContentProvider, settings: Source1BSPSettings, logger: SLogger):
+def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
     if not settings.import_textures:
         return
     Source1ShaderBase.use_bvlg(settings.use_bvlg)
@@ -161,8 +162,9 @@ def import_materials(bsp: BSPFile, content_provider: ContentProvider, settings: 
 
     def import_source1_materials():
         pak_lump: Optional[PakLump] = bsp.get_lump('LUMP_PAK')
+        provider = content_manager.get_provider_from_path(bsp.filepath)
         if pak_lump:
-            content_provider.add_child(pak_lump)
+            content_manager.add_child(pak_lump)
         for texture_data in texture_data_lump.texture_data:
             material_name = strings_lump.strings[texture_data.name_id] or "NO_NAME"
             tmp = strip_patch_coordinates.sub("", material_name)[:63]
@@ -174,12 +176,12 @@ def import_materials(bsp: BSPFile, content_provider: ContentProvider, settings: 
                     f'Skipping loading of {tmp} as it already loaded')
                 continue
             logger.info(f"Loading {material_name} material")
-            material_file = content_provider.find_material(material_name)
+            material_file = content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
 
             if material_file:
                 material_name = strip_patch_coordinates.sub("", material_name)
                 try:
-                    loader = Source1MaterialLoader(material_file, material_name)
+                    loader = Source1MaterialLoader(content_manager, material_file, material_name)
                     loader.create_material(mat)
                 except Exception as e:
                     logger.exception("Failed to load material due to exception:", e)
@@ -188,7 +190,7 @@ def import_materials(bsp: BSPFile, content_provider: ContentProvider, settings: 
 
     def import_idtech3_materials():
         material_definitions = {}
-        for _, buffer in content_provider.glob("*.shader"):
+        for _, buffer in content_manager.glob("*.shader"):
             materials = parse_shader_materials(buffer.read(-1).decode("utf-8"))
             material_definitions.update(materials)
 
@@ -203,7 +205,7 @@ def import_materials(bsp: BSPFile, content_provider: ContentProvider, settings: 
             logger.info(f"Loading {material_name} material")
 
             if material_name in material_definitions:
-                loader = IdTech3Shader()
+                loader = IdTech3Shader(content_manager)
                 loader.create_nodes(mat, material_definitions[material_name])
             else:
                 logger.error(f'Failed to find {material_name} texture')

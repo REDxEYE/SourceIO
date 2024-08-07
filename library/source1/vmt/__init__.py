@@ -4,6 +4,7 @@ from typing import Union
 
 from ...shared.content_manager.manager import ContentManager
 from ...utils import Buffer
+from ...utils.tiny_path import TinyPath
 from ....logger import SourceLogMan
 from ...utils.kv_parser import ValveKeyValueParser, KVDataProxy, KVLexerException
 
@@ -31,7 +32,7 @@ class VMT:
 
     def _postprocess(self, content_manager: ContentManager):
         if self.shader == 'patch':
-            original_material = content_manager.find_file(self.get_string('include'))
+            original_material = content_manager.find_file(TinyPath(self.get_string('include')))
             if not original_material:
                 logger.error(f'Failed to find original material {self.get_string("include")!r}')
                 return

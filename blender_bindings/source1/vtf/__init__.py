@@ -1,6 +1,7 @@
 import numpy as np
 
 from ...utils.texture_utils import create_and_cache_texture
+from ....library.shared.content_manager.manager import ContentManager
 from ....library.utils.tiny_path import TinyPath
 from ....logger import SourceLogMan
 from ....library.source1.vtf import load_texture
@@ -17,8 +18,8 @@ def import_texture(texture_path: TinyPath, file_object, update=False):
     return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
 
 
-def load_skybox_texture(skyname, width=1024):
-    main_data, hdr_main_data, hdr_alpha_data = convert_skybox_to_equiangular(skyname, width)
+def load_skybox_texture(skyname, content_manager:ContentManager, width=1024):
+    main_data, hdr_main_data, hdr_alpha_data = convert_skybox_to_equiangular(skyname,content_manager, width)
     main_texture = texture_from_data("skybox/" + skyname, main_data, width, width // 2)
     if hdr_main_data is not None and hdr_alpha_data is not None:
         hdr_alpha_texture = texture_from_data("skybox/" + skyname + '_HDR_A', hdr_alpha_data, width // 2, width // 4, )

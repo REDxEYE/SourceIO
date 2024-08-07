@@ -2,6 +2,7 @@ from ....shared.content_manager.manager import ContentManager
 from .base_element import BaseElement
 from .dag import Dag
 from .transform import Transform
+from ....utils.tiny_path import TinyPath
 
 
 class GameModel(BaseElement):
@@ -20,7 +21,7 @@ class GameModel(BaseElement):
 
     @property
     def model_file(self):
-        return ContentManager().find_file(self.model_name)
+        return ContentManager().find_file(TinyPath(self.model_name))
 
     @property
     def bones(self):
