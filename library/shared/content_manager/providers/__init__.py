@@ -1,11 +1,10 @@
-from pathlib import Path
-
 from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils.tiny_path import TinyPath
 
 ALL_PROVIDERS = {}
 
 
-def check_provider_exists(provider_filepath: Path) -> ContentProvider | None:
+def check_provider_exists(provider_filepath: TinyPath) -> ContentProvider | None:
     return ALL_PROVIDERS.get(provider_filepath, None)
 
 

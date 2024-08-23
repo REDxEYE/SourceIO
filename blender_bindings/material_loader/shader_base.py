@@ -1,12 +1,10 @@
 import sys
-from pathlib import Path
 from typing import Optional
 
 import bpy
 import numpy as np
 
 from ...library.shared.content_manager.manager import ContentManager
-from ...library.shared.content_manager.provider import ContentProvider
 from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 from ..utils.bpy_utils import append_blend
@@ -128,14 +126,14 @@ class ShaderBase:
     @staticmethod
     def load_bvlg_nodes():
         if "VertexLitGeneric" not in bpy.data.node_groups:
-            current_path = Path(__file__).parent.parent
+            current_path = TinyPath(__file__).parent.parent
             asset_path = current_path / 'assets' / "sycreation-s-default.blend"
             append_blend(str(asset_path), "node_groups")
 
     @staticmethod
     def load_source2_nodes():
         if "csgo_complex.vfx" not in bpy.data.node_groups:
-            current_path = Path(__file__).parent.parent
+            current_path = TinyPath(__file__).parent.parent
             asset_path = current_path / 'assets' / "source2_materials.blend"
             append_blend(str(asset_path), "node_groups")
 
@@ -208,7 +206,7 @@ class ShaderBase:
 
     @staticmethod
     def new_texture_name_with_suffix(old_name, suffix, ext):
-        old_name = Path(old_name)
+        old_name = TinyPath(old_name)
         return f'{old_name.with_name(old_name.stem)}_{suffix}.{ext}'
 
     def clean_nodes(self):

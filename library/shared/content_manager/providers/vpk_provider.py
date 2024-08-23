@@ -38,6 +38,7 @@ class VPKContentProvider(ContentProvider):
         if self._initialized:
             return
         self.vpk_archive = Vpk.from_path(self.filepath)
+        self._initialized = True
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
         self._init()

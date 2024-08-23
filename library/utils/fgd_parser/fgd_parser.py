@@ -1,5 +1,4 @@
 from enum import Enum
-from pathlib import Path
 from typing import Union
 
 from SourceIO.library.utils.tiny_path import TinyPath
@@ -170,9 +169,9 @@ class FGDLexer:
 
 
 class FGDParser:
-    def __init__(self, path: Union[Path, str] = None, buffer_and_name: tuple[str, str] = None):
+    def __init__(self, path: TinyPath = None, buffer_and_name: tuple[str, str] = None):
         if path is not None:
-            self._path = Path(path)
+            self._path = TinyPath(path)
             with self._path.open() as f:
                 self._lexer = FGDLexer(f.read(), str(self._path))
         elif buffer_and_name is not None:
@@ -511,10 +510,10 @@ class FGDParser:
 
 
 if __name__ == '__main__':
-    test_file = Path(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
+    test_file = TinyPath(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
     # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\swarm.fgd")
     # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\base.fgd")
-    StandaloneContentProvider().scan_for_content(test_file)
+    ContentManager().scan_for_content(test_file)
     parser = FGDParser(test_file)
     parser.parse()
     for cls in parser.classes:

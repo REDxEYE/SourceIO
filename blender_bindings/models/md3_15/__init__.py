@@ -1,19 +1,19 @@
 from collections import defaultdict
-from pathlib import Path
 from typing import Optional
 
 import bpy
 import numpy as np
-from mathutils import Vector, Matrix
+from mathutils import Matrix
 
 from SourceIO.blender_bindings.material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, add_material
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.models.md3 import read_md3_model
 from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils import Buffer
-from SourceIO.library.models.md3 import read_md3_model
 from SourceIO.library.utils.idtech3_shader_parser import parse_shader_materials
 from SourceIO.logger import SourceLogMan
 
@@ -22,7 +22,7 @@ logger = log_manager.get_logger('IDTech3::ModelLoader')
 
 
 @register_model_importer(b"IDP3", 15)
-def import_md3_15(model_path: Path, buffer: Buffer,
+def import_md3_15(model_path: TinyPath, buffer: Buffer,
                   content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     model = read_md3_model(buffer)
     model_name = model_path.stem
@@ -62,7 +62,7 @@ def import_md3_15(model_path: Path, buffer: Buffer,
             shape_key.data.foreach_set("co", surface.positions(i + 1).ravel() * options.scale)
         model_mesh.validate()
         material_name = surface.shaders[0].name
-        mat = get_or_create_material(Path(material_name).stem, material_name)
+        mat = get_or_create_material(TinyPath(material_name).stem, material_name)
         add_material(mat, model_object)
 
         if mat.get('source1_loaded'):
@@ -72,7 +72,7 @@ def import_md3_15(model_path: Path, buffer: Buffer,
         logger.info(f"Loading {material_name} material")
 
         if material_name in material_definitions:
-            loader = IdTech3Shader()
+            loader = IdTech3Shader(content_manager)
             loader.create_nodes(mat, material_definitions[material_name])
         else:
             logger.error(f'Failed to find {material_name} texture')

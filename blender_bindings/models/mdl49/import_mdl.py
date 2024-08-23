@@ -1,3 +1,4 @@
+import itertools
 import warnings
 from collections import defaultdict
 
@@ -374,30 +375,6 @@ def create_attachments(mdl: MdlV49, armature: bpy.types.Object, scale):
         attachments.append(empty)
 
     return attachments
-
-
-def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
-    for material in mdl.materials:
-        material_path = None
-        material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_file("materials" / TinyPath(mat_path) / (material.name + ".vmt"))
-            if material_file:
-                material_path = TinyPath(mat_path) / material.name
-                break
-        if material_path is None:
-            logger.info(f'Material {material.name} not found')
-            continue
-        mat = get_or_create_material(material.name, material_path.as_posix())
-
-        if mat.get('source1_loaded', False):
-            logger.info(f'Skipping loading of {mat} as it already loaded')
-            continue
-
-        if material_path:
-            Source1ShaderBase.use_bvlg(use_bvlg)
-            loader = Source1MaterialLoader(content_manager, material_file, material.name)
-            loader.create_material(mat)
 
 
 def import_animations(cm: ContentProvider, mdl: MdlV49, armature: bpy.types.Object,

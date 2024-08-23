@@ -1,37 +1,34 @@
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from struct import pack, unpack
 from itertools import chain
-from pathlib import Path
+from struct import pack, unpack
 from typing import Any, Mapping, Optional, cast
 
 import bpy
 import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
-from ...library.shared.content_manager.manager import ContentManager
-from ...library.source2 import (CompiledMaterialResource,
-                                CompiledModelResource, CompiledMorphResource,
-                                CompiledPhysicsResource, CompiledResource)
-from ...library.source2.common import convert_normals, convert_normals_2
-from ...library.source2.data_types.blocks.kv3_block import KVBlock
-from ...library.source2.data_types.blocks.morph_block import MorphBlock
-from ...library.source2.data_types.blocks.phys_block import PhysBlock
-from ...library.source2.data_types.blocks.vertex_index_buffer import \
-    VertexIndexBuffer, IndexBuffer
-from ...library.source2.data_types.blocks.vertex_index_buffer.vertex_buffer import \
-    VertexBuffer
-from ...library.source2.data_types.keyvalues3.types import NullObject, Object
-from ...library.source2.exceptions import MissingBlock
-from ...library.source2.resource_types import CompiledMeshResource
-from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
-from ..shared.model_container import ModelContainer
-from ..utils.bpy_utils import (add_material, find_layer_collection,
-                               get_new_unique_collection, get_or_create_material, is_blender_4_1)
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, find_layer_collection, get_new_unique_collection, \
+    get_or_create_material, is_blender_4_1
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledMorphResource, \
+    CompiledPhysicsResource, CompiledResource
+from SourceIO.library.source2.common import convert_normals, convert_normals_2
+from SourceIO.library.source2.data_types.blocks.kv3_block import KVBlock
+from SourceIO.library.source2.data_types.blocks.morph_block import MorphBlock
+from SourceIO.library.source2.data_types.blocks.phys_block import PhysBlock
+from SourceIO.library.source2.data_types.blocks.vertex_index_buffer import VertexIndexBuffer, IndexBuffer
+from SourceIO.library.source2.data_types.blocks.vertex_index_buffer.vertex_buffer import VertexBuffer
+from SourceIO.library.source2.data_types.keyvalues3.types import NullObject, Object
+from SourceIO.library.source2.exceptions import MissingBlock
+from SourceIO.library.source2.resource_types import CompiledMeshResource
+from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.path_utilities import path_stem
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
-from ...library.utils.path_utilities import path_stem
+from ...library.utils.tiny_path import TinyPath
 
 
 def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):
@@ -70,7 +67,7 @@ def load_model(content_manager: ContentManager, resource: CompiledModelResource,
                scale: float = SOURCE2_HAMMER_UNIT_TO_METERS,
                lod_mask: int = 255, import_physics: bool = False, import_attachments: bool = False,
                import_materials: bool = True):
-    armature = create_armature(resource, scale)
+    armature = create_armature(content_manager, resource, scale)
     physics_objects = []
     if import_physics:
         physics_block = get_physics_block(content_manager, resource)
@@ -93,7 +90,7 @@ def clear_selection():
         obj.select_set(False)
 
 
-def create_armature(resource: CompiledModelResource, scale: float):
+def create_armature(content_manager: ContentManager, resource: CompiledModelResource, scale: float):
     s2_bones = resource.get_bones()
     if not s2_bones:
         return None
@@ -127,7 +124,7 @@ def create_armature(resource: CompiledModelResource, scale: float):
         else:
             bl_bone.matrix = mat
 
-    physics_block = get_physics_block(resource)
+    physics_block = get_physics_block(content_manager, resource)
     if physics_block and physics_block["m_pFeModel"] and physics_block["m_pFeModel"]["m_TreeChildren"]:
         p_model_data = physics_block["m_pFeModel"]
         names = p_model_data["m_CtrlName"]
@@ -324,7 +321,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
             tint = draw_call.get("m_vTintColor", None)
             if material_resource:
                 if import_materials:
-                    load_material(material_resource, Path(material_name), tint is not None)
+                    load_material(content_manager, material_resource, TinyPath(material_name), tint is not None)
                     morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED', 0) == 1
                     overlay = material_resource.get_int_property('F_OVERLAY', 0) == 1
                     if not overlay:
@@ -372,7 +369,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
 
             mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)).tolist())
             mesh.update()
-            material = get_or_create_material(material_stem, Path(material_name).as_posix())
+            material = get_or_create_material(material_stem, TinyPath(material_name).as_posix())
             add_material(material, mesh_obj)
 
             if data_block.get('m_materialGroups', None):
@@ -553,7 +550,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
 #             for mesh_index, mesh_ref in enumerate(data_block.data['m_refMeshes']):
 #                 if data_block.data['m_refLODGroupMasks'][mesh_index] & 1 == 0:
 #                     continue
-#                 mesh_ref_path = self.available_resources.get(mesh_ref, None)  # type:Path
+#                 mesh_ref_path = self.available_resources.get(mesh_ref, None)  # type:TinyPath
 #                 if mesh_ref_path:
 #                     mesh_ref_file = content_manager.find_file(mesh_ref_path)
 #                     if mesh_ref_file:
@@ -629,7 +626,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
 #                     material_ = self.available_resources.get(material_, str(material_))
 #                 self.materials.append(material_)
 #
-#                 material_name = Path(material_).stem
+#                 material_name = TinyPath(material_).stem
 #                 model_name = f"{name}_{material_name}_{draw_call['m_nStartIndex']}"
 #                 used_copy = False
 #                 mesh_obj = None
@@ -664,7 +661,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
 #                     mesh_obj['active_skin'] = 'default'
 #                     mesh_obj['skin_groups'] = []
 #
-#                 material_name = Path(material_).stem
+#                 material_name = TinyPath(material_).stem
 #                 mesh = mesh_obj.data
 #
 #                 self.container.objects.append(mesh_obj)

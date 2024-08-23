@@ -107,7 +107,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     if vmld_file:
                         # skin = custom_prop_data.get('skin', None)
                         model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                        container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
+                        container = load_model(content_manager, model_resource, custom_prop_data["scale"], lod_mask=1,
                                                import_physics=context.scene.import_physics,
                                                import_materials=import_materials)
                         if replace_entity:

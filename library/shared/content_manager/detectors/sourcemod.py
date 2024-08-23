@@ -1,14 +1,12 @@
-from pathlib import Path
-
-
-from .....library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
 from .source1 import Source1Detector
 
 
 class SourceMod(Source1Detector):
     @classmethod
-    def scan(cls, path: Path) -> list[ContentProvider]:
+    def scan(cls, path: TinyPath) -> list[ContentProvider]:
         smods_dir = backwalk_file_resolver(path, 'sourcemods')
         mod_root = None
         mod_name = None

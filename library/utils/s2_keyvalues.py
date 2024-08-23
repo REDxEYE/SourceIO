@@ -3,6 +3,8 @@ import typing
 import uuid
 from pathlib import Path
 
+from SourceIO.library.utils.tiny_path import TinyPath
+
 
 class Lexer:
     def __init__(self, stream: typing.TextIO, filename: str):
@@ -295,8 +297,8 @@ class Writer:
             self.write_dict(value, indentation, append_newline)
         elif isinstance(value, list):
             self.write_list(value, indentation, append_newline)
-        elif isinstance(value, Path):
-            self.write_string(str(value).replace('\\', '/'), indentation, append_newline)
+        elif isinstance(value, (TinyPath, Path)):
+            self.write_string(value.as_posix().replace('\\', '/'), indentation, append_newline)
         elif isinstance(value, str):
             self.write_string(value, indentation, append_newline)
         elif isinstance(value, bool):

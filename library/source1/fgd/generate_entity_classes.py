@@ -1,7 +1,7 @@
 import os
-from pathlib import Path
-
 from valvefgd import Fgd, FgdEntity, FgdParse
+
+from SourceIO.library.utils.tiny_path import TinyPath
 
 os.environ['NO_BPY'] = '1'
 from ...shared.content_manager.manager import ContentManager
@@ -167,7 +167,7 @@ class Base:
         buffer += f'\n    \'{entity_class}\': {entity_class},'
     buffer += '\n}'
     # print(StandaloneContentManager().get_content_provider_from_path(fgd_path))
-    output_name = Path(fgd_path).stem
+    output_name = TinyPath(fgd_path).stem
     with open(f'../../../blender_bindings/source1/bsp/entities/{output_name}_entity_classes.py', 'w') as f:
         f.write(buffer)
 

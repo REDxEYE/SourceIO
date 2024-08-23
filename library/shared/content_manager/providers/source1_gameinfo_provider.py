@@ -60,7 +60,12 @@ class Source1GameInfoProvider(ContentProvider):
                     search_path = search_path.lower().replace("|all_source_engine_paths|", "")
                 elif "gameinfo_path" in search_path.lower():
                     search_path = TinyPath(search_path.replace("|gameinfo_path|", self.root.stem + "/"))
-
+                elif search_path.endswith("*"):
+                    logger.warn(f"Wildcard search path is not supported: {search_path}")
+                    continue
+                if search_path.endswith(".vpk"):
+                    tmp = TinyPath(search_path)
+                    search_path = tmp.with_name(tmp.stem + "_dir")
                 mod_folder = (mods_folder / search_path).resolve()
                 if mod_folder.exists():
                     if mod_folder.is_file():

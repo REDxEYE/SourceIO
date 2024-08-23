@@ -1,6 +1,5 @@
 import math
 from collections import defaultdict
-from pathlib import Path
 from typing import Union
 
 import bpy
@@ -8,12 +7,12 @@ import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.library.models.vtx.v6.vtx import Vtx
-from SourceIO.library.shared.content_manager.provider import \
-    ContentProvider
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -63,10 +62,11 @@ def create_armature(mdl: MdlV36, scale=1.0):
     bpy.context.scene.collection.objects.unlink(armature_obj)
     return armature_obj
 
-def import_model(mdl: MdlV36, vtx: Vtx,
+
+def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      StandaloneContentManager())
+                                                      content_manager)
 
     desired_lod = 0
     objects = []
@@ -228,15 +228,14 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
     return attachments
 
 
-def import_materials(mdl, use_bvlg=False):
-    content_manager = StandaloneContentManager()
+def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
     for material in mdl.materials:
         material_path = None
         material_file = None
         for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_material(Path(mat_path) / material.name)
+            material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
             if material_file:
-                material_path = Path(mat_path) / material.name
+                material_path = TinyPath(mat_path) / material.name
                 break
         if material_path is None:
             logger.info(f'Material {material.name} not found')
@@ -249,7 +248,7 @@ def import_materials(mdl, use_bvlg=False):
 
         if material_path:
             Source1ShaderBase.use_bvlg(use_bvlg)
-            loader = Source1MaterialLoader(material_file, material.name)
+            loader = Source1MaterialLoader(content_manager, material_file, material.name)
             loader.create_material(mat)
 
 

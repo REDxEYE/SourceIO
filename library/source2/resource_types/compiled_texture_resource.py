@@ -224,15 +224,13 @@ class CompiledTextureResource(CompiledResource):
         elif pixel_format == VTexFormat.ATI2N:
             data = decode_texture(data, width, height, "ATI2N")
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            output = data.copy()
-            del data
+            data = data.copy()
             if normalize:
-                output = self._normalize(output)
+                data = self._normalize(data)
             if hemi_oct_aniso_roughness:
-                output = self._hemi_oct_aniso_roughness(output)
+                data = self._hemi_oct_aniso_roughness(data)
             if invert:
-                output[:, :, 1] = np.invert(output[:, :, 1])
-            data = output
+                data[:, :, 1] = np.invert(data[:, :, 1])
 
             data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.DXT1:
@@ -256,6 +254,14 @@ class CompiledTextureResource(CompiledResource):
             data = data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.RGBA16161616F:
             data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32).reshape((width, height, 4))
+        elif pixel_format == VTexFormat.I8:
+            r = np.frombuffer(data, np.uint8)[:, None]
+            data = np.repeat(r, 4, axis=1).astype(np.float32) / 255
+            data[:, 3] = 1
+            data.reshape((width, height, 4))
+        else:
+            logger.warning(f"Unsupported texture format: {pixel_format!r}")
+            data = np.frombuffer(data, np.float32).reshape((width, height, 4)).astype(np.float32) / 255
         return data
 
     @staticmethod

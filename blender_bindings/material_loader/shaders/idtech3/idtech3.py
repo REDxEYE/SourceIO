@@ -1,12 +1,11 @@
-from pathlib import Path
 from typing import Optional
 
 import bpy
 
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ShaderBase
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
+from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.utils.tiny_path import TinyPath
-from ....utils.bpy_utils import is_blender_4
-from ...shader_base import Nodes, ShaderBase
-from ....utils.texture_utils import check_texture_cache
 
 
 class IdTech3Shader(ShaderBase):

@@ -1,24 +1,25 @@
-from email.contentmanager import ContentManager
-from pathlib import Path
 from typing import Any, Type
 
 import bpy
 from mathutils import Matrix
 
-from .entities.cs2_entity_handlers import CS2EntityHandler
-from ...shared.exceptions import RequiredFileNotFound
-from ....library.shared.app_id import SteamAppId
-from ....library.source2 import CompiledWorldResource
-from ....library.source2.data_types.keyvalues3.types import Object
-from ....library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, CompiledMapResource
-from ....library.source2.resource_types import CompiledManifestResource
-from ....library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
-from ....logger import SourceLogMan
-from ...utils.bpy_utils import get_or_create_collection
+from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.utils.tiny_path import TinyPath
 from .entities.base_entity_handlers import BaseEntityHandler
+from .entities.cs2_entity_handlers import CS2EntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
 from .entities.sbox_entity_handlers import SBoxEntityHandler
 from .entities.steampal_entity_handlers import SteamPalEntityHandler
+from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source2 import CompiledWorldResource
+from SourceIO.library.source2.data_types.keyvalues3.types import Object
+from SourceIO.library.source2.resource_types import CompiledManifestResource
+from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, \
+    CompiledMapResource
+from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 
@@ -54,7 +55,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
         node_resource = map_resource.get_worldnode(node_prefix, content_manager)
         if node_resource is None:
             raise RequiredFileNotFound("Failed to find WorldNode resource")
-        collection = get_or_create_collection(f"static_props_{Path(node_prefix).name}", master_collection)
+        collection = get_or_create_collection(f"static_props_{TinyPath(node_prefix).name}", master_collection)
         for scene_object in node_resource.get_scene_objects():
             renderable_model = scene_object["m_renderableModel"]
             proper_path = node_resource.get_child_resource_path(renderable_model)
@@ -72,7 +73,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
     load_entities(world_resource, master_collection, scale, content_manager)
 
 
-def create_static_prop_placeholder(scene_object: Object, proper_path: Path | None, matrix: Matrix | None,
+def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath | None, matrix: Matrix | None,
                                    collection: bpy.types.Collection, scale: float):
     if not proper_path:
         return
@@ -107,9 +108,9 @@ def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.C
         handler = HLVREntityHandler
     elif cm.steam_id == SteamAppId.SBOX_STEAM_ID:
         handler = SBoxEntityHandler
-    elif cm.steam_id == 890 and 'steampal' in cm.content_providers:
-        handler = SteamPalEntityHandler
-    elif 'csgo' in cm.content_providers and "csgo_core" in cm.content_providers:
+    # elif cm.steam_id == 890 and 'steampal' in cm.content_providers:
+    #     handler = SteamPalEntityHandler
+    elif cm.steam_id == SteamAppId.COUNTER_STRIKE_GO:
         handler = CS2EntityHandler
     else:
         handler = BaseEntityHandler

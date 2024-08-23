@@ -1,25 +1,25 @@
 from datetime import datetime
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from SourceIO.library.utils import Buffer, FileBuffer
 from .file_entry import FileEntry
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
-def open_gma(filepath: Union[str, Path]):
+def open_gma(filepath: TinyPath):
     tmp = FileBuffer(filepath)
     if tmp.read(4) != b'GMAD':
         return None
     tmp.close()
     del tmp
 
-    gma = GMA(Path(filepath))
+    gma = GMA(TinyPath(filepath))
     gma.read()
     return gma
 
 
 class GMA:
-    def __init__(self, filepath: Path):
+    def __init__(self, filepath: TinyPath):
         self.filepath = filepath
         self.buffer = FileBuffer(filepath)
         self.version = 0
@@ -31,7 +31,7 @@ class GMA:
         self.addon_author = ''
         self.addon_version = 0
         self._content_offset = 0
-        self.file_entries: dict[Path, FileEntry] = {}
+        self.file_entries: dict[TinyPath, FileEntry] = {}
 
     def read(self):
         buffer = self.buffer
@@ -53,7 +53,7 @@ class GMA:
                 break
             entry.offset = offset
             offset += entry.size
-            self.file_entries[Path(entry.name.lower())] = entry
+            self.file_entries[TinyPath(entry.name.lower())] = entry
         self._content_offset = buffer.tell()
 
     def find_file(self, filename) -> Optional[Buffer]:
@@ -64,6 +64,6 @@ class GMA:
             return data
         return None
 
-    def has_file(self, filename: Path) -> bool:
+    def has_file(self, filename: TinyPath) -> bool:
         filename = filename.as_posix().lower()
         return filename in self.file_entries

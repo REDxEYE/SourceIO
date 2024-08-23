@@ -1,9 +1,9 @@
 import sys
 from collections import OrderedDict
 from enum import Enum
-from pathlib import Path
 from typing import TextIO, Union
 
+from SourceIO.library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -40,7 +40,7 @@ class KVToken(Enum):
 
 
 class KVReader:
-    def __init__(self, name: str | Path, data: str, single_value: bool = False):
+    def __init__(self, name: TinyPath, data: str, single_value: bool = False):
         self.name = name
         self.data = data
         self._length = len(self.data)
@@ -338,7 +338,8 @@ class KVWriter:
 
 
 if __name__ == '__main__':
-    data = KVParser('<input>', open(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\gameinfo.txt").read())
+    data = KVParser(TinyPath('input'),
+                    open(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\gameinfo.txt").read())
     data = data.parse()
 
     KVWriter(sys.stdout).write(data, 0, True)

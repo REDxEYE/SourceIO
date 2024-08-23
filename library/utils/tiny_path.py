@@ -114,7 +114,8 @@ class TinyPath(str, PathLike):
             yield TinyPath(item.as_posix())
 
     def with_name(self, name: str):
-        return self.parent / name
+        suffix = self.suffix
+        return (self.parent / name).with_suffix(suffix)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(\"{self!s}\")"
@@ -132,8 +133,8 @@ class TinyPath(str, PathLike):
     def __eq__(self, other: PathTypes):
         other = TinyPath(other)
         if os.name == "nt":
-            return other.lower() == self.lower()
-        return str(other) == str(self)
+            return other.as_posix().lower() == self.as_posix().lower()
+        return other.as_posix() == self.as_posix()
 
     def __hash__(self):
         return hash(str(self))

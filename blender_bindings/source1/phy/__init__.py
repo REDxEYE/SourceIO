@@ -1,14 +1,12 @@
-from pathlib import Path
-
 import bpy
 import numpy as np
 
-from ....library.models.mdl.v36 import MdlV36
-from ....library.models.phy.phy import ConvexLeaf, Phy, TreeNode
-from ....library.utils import Buffer
-from ....library.utils.math_utilities import vector_transform_v
-from ...shared.model_container import ModelContainer
-from ....library.utils.path_utilities import path_stem
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.library.models.mdl.v36 import MdlV36
+from SourceIO.library.models.phy.phy import ConvexLeaf, Phy, TreeNode
+from SourceIO.library.utils import Buffer
+from SourceIO.library.utils.math_utilities import vector_transform_v
+from SourceIO.library.utils.path_utilities import path_stem
 
 
 def _collect_meshes(node: TreeNode, meshes: list[ConvexLeaf]):

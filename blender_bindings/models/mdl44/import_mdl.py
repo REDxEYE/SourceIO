@@ -1,6 +1,5 @@
 import math
 from collections import defaultdict
-from pathlib import Path
 from typing import Union
 
 import bpy
@@ -9,6 +8,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.library.models.vtx.v7.vtx import Vtx
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.library.shared.content_manager.provider import \
@@ -78,10 +78,10 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
     return armature_obj
 
 
-def import_model(mdl: MdlV44, vtx: Vtx, vvd: Vvd,
+def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      StandaloneContentManager())
+                                                      content_manager)
 
     objects = []
     bodygroups = defaultdict(list)
@@ -244,31 +244,6 @@ def create_attachments(mdl: MdlV44, armature: bpy.types.Object, scale):
         attachments.append(empty)
 
     return attachments
-
-
-def import_materials(mdl, use_bvlg=False):
-    content_manager = StandaloneContentManager()
-    for material in mdl.materials:
-        material_path = None
-        material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_material(Path(mat_path) / material.name)
-            if material_file:
-                material_path = Path(mat_path) / material.name
-                break
-        if material_path is None:
-            logger.info(f'Material {material.name} not found')
-            continue
-        mat = get_or_create_material(material.name, material_path.as_posix())
-
-        if mat.get('source1_loaded', False):
-            logger.info(f'Skipping loading of {mat} as it already loaded')
-            continue
-
-        if material_path:
-            Source1ShaderBase.use_bvlg(use_bvlg)
-            loader = Source1MaterialLoader(material_file, material.name)
-            loader.create_material(mat)
 
 
 def __swap_components(vec, mp):

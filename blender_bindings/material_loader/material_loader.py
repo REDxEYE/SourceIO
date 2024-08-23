@@ -83,8 +83,10 @@ class Source2MaterialLoader(MaterialLoaderBase):
         logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
-    def __init__(self, material_resource: CompiledMaterialResource, material_name, tinted: bool = False):
+    def __init__(self, content_manager: ContentManager, material_resource: CompiledMaterialResource, material_name,
+                 tinted: bool = False):
         super().__init__(material_name)
+        self.content_manager = content_manager
         self.material_name: str = material_name[:63]
         self.material_resource = material_resource
         self.tinted = tinted
@@ -98,7 +100,8 @@ class Source2MaterialLoader(MaterialLoaderBase):
         if not data:
             return
         shader = data['m_shaderName']
-        handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.material_resource, self.tinted)
+        handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.content_manager,
+                                                                             self.material_resource, self.tinted)
 
         if shader not in self._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')

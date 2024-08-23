@@ -12,7 +12,7 @@ from SourceIO.library.models.phy.phy import Phy
 from SourceIO.library.models.vtx import open_vtx
 from SourceIO.library.models.vvc import Vvc
 from SourceIO.library.models.vvd import Vvd
-from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import find_vtx_cm
 from SourceIO.library.utils.tiny_path import TinyPath
@@ -24,7 +24,7 @@ logger = log_manager.get_logger('MDL loader')
 
 @register_model_importer(b"IDST", 52)
 def import_mdl52(model_path: TinyPath, buffer: Buffer,
-                 content_manager: ContentProvider, options: ModelOptions) -> Optional[ModelContainer]:
+                 content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV52.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
     vvd_buffer = content_manager.find_file(model_path.with_suffix(".vvd"))
@@ -39,7 +39,7 @@ def import_mdl52(model_path: TinyPath, buffer: Buffer,
     else:
         vvc = None
 
-    container = import_model(mdl, vtx, vvd, vvc, options.scale)
+    container = import_model(content_manager, mdl, vtx, vvd, vvc, options.scale)
     if options.import_physics:
         phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
         if phy_buffer is None:
@@ -50,7 +50,7 @@ def import_mdl52(model_path: TinyPath, buffer: Buffer,
 
     if options.import_textures:
         try:
-            import_materials(mdl, use_bvlg=options.use_bvlg)
+            import_materials(content_manager, mdl, use_bvlg=options.use_bvlg)
         except Exception as t_ex:
             logger.error(f'Failed to import materials, caused by {t_ex}')
             import traceback

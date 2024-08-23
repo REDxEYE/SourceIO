@@ -1,16 +1,15 @@
-from pathlib import Path
-
-from ..providers import register_provider
-from .....library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.shared.content_manager.provider import ContentProvider
-from SourceIO.library.shared.content_manager.providers.sbox_content_provider import SBoxAddonProvider, SBoxDownloadsProvider
+from SourceIO.library.shared.content_manager.providers.sbox_content_provider import SBoxAddonProvider, \
+    SBoxDownloadsProvider
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
 from .source2 import Source2Detector
 
 
 class SBoxDetector(Source2Detector):
 
     @classmethod
-    def scan(cls, path: Path) -> list[ContentProvider]:
+    def scan(cls, path: TinyPath) -> list[ContentProvider]:
         sbox_root = None
         sbox_exe = backwalk_file_resolver(path, 'sbox.exe')
         if sbox_exe is not None:

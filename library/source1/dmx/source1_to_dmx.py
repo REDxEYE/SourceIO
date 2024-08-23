@@ -1,19 +1,19 @@
 import os
-from pathlib import Path
 from typing import Optional, Type
 
 import numpy as np
 
-from ...shared.types import Vector3, Vector4
-from ...utils import datamodel
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.types import Vector3, Vector4
+from SourceIO.library.utils import datamodel
 
 
 def sanitize_name(name):
-    return Path(name).stem.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+    return TinyPath(name).stem.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
 
 
 def normalize_path(path):
-    return Path(str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\'))
+    return TinyPath(str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\'))
 
 
 class DmxModel2:
@@ -241,7 +241,7 @@ class DmxModel2:
         new_transform["orientation"] = rotation
         return new_transform
 
-    def save(self, path: Path, encoding_format: str, encoding_version: int):
+    def save(self, path: TinyPath, encoding_format: str, encoding_version: int):
         os.makedirs(path.parent, exist_ok=True)
         self.dmx.write(path, encoding_format, encoding_version)
 

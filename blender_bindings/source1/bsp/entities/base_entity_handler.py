@@ -1,23 +1,20 @@
 import math
 import re
 import traceback
-from pathlib import Path
 
 import bpy
 import numpy as np
 from mathutils import Vector
 
-from .....library.shared.content_manager.provider import \
-    ContentProvider
-from .....library.source1.vtf.cubemap_to_envmap import SkyboxException
-from .....library.utils.math_utilities import ensure_length, lerp_vec
-from .....library.utils.path_utilities import path_stem
-from .....library.utils.tiny_path import TinyPath
-from .....logger import SourceLogMan
-from ....material_loader.material_loader import Source1MaterialLoader
-from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.bpy_utils import add_material, get_or_create_material
-from ...vtf import load_skybox_texture
+from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.shaders.source1_shaders.sky import Skybox
+from SourceIO.blender_bindings.source1.vtf import load_skybox_texture
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
+from SourceIO.library.source1.vtf.cubemap_to_envmap import SkyboxException
+from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec
+from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
@@ -689,7 +686,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         material_name = start_entity.RopeMaterial
         stripped_material_name = strip_patch_coordinates.sub("", material_name)
 
-        mat = get_or_create_material(Path(stripped_material_name).name, stripped_material_name)
+        mat = get_or_create_material(TinyPath(stripped_material_name).name, stripped_material_name)
         add_material(mat, curve_object)
         material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
         if material_file:
@@ -743,18 +740,18 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('path_track', obj)
 
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
-        material_name = Path(entity.texture).name
-        material_file = StandaloneContentManager().find_material(entity.texture)
+        material_name = TinyPath(entity.texture).name
+        material_file = self.content_manager.find_file(TinyPath("materials") / (entity.texture + ".vmt"))
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
-            loader = Source1MaterialLoader(material_file, material_name)
+            loader = Source1MaterialLoader(self.content_manager, material_file, material_name)
             mat = get_or_create_material(path_stem(material_name), material_name)
             loader.create_material(mat)
 
             tex_name = loader.vmt.get('$basetexture', None)
             if not tex_name:
                 return
-            tex_name = Path(tex_name).name
+            tex_name = TinyPath(tex_name).name
             if tex_name in bpy.data.images:
                 size = bpy.data.images[tex_name].size
             else:

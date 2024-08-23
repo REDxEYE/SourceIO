@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        StringProperty)

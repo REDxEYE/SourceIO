@@ -1,8 +1,8 @@
-from pathlib import Path
 from typing import Optional
 
+from SourceIO.blender_bindings.models.mdl36 import import_materials
+from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_animations
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
-from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_materials, import_animations
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
@@ -12,7 +12,6 @@ from SourceIO.library.models.phy.phy import Phy
 from SourceIO.library.models.vtx import open_vtx
 from SourceIO.library.models.vvd import Vvd
 from SourceIO.library.shared.content_manager.manager import ContentManager
-from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import find_vtx_cm
 from SourceIO.library.utils.tiny_path import TinyPath

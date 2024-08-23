@@ -1,27 +1,24 @@
-from pathlib import Path
-
 import bpy
 from bpy.props import (BoolProperty, FloatProperty,
                        IntProperty, StringProperty)
 
-from .operator_helper import ImportOperatorHelper
-from ..source2.vphy_loader import load_physics
-from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
-from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
-from ...library.source2 import (CompiledMaterialResource,
-                                CompiledModelResource, CompiledTextureResource, CompiledPhysicsResource)
-from ...library.source2.resource_types.compiled_world_resource import \
-    CompiledMapResource
-from ...library.utils import FileBuffer
-from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledTextureResource, \
+    CompiledPhysicsResource
+from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledMapResource
+from SourceIO.library.utils import FileBuffer
+from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.tiny_path import TinyPath
+from .operator_helper import ImportOperatorHelper
 from ..source2.dmx.camera_loader import load_camera
 from ..source2.vmat_loader import load_material
 from ..source2.vmdl_loader import load_model, put_into_collections, get_physics_block
+from ..source2.vphy_loader import load_physics
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
 from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
-from ...library.utils.tiny_path import TinyPath
+from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 
 
 # noinspection PyPep8Naming
@@ -54,12 +51,12 @@ class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
                 model_resource = CompiledModelResource.from_buffer(f, directory / file.name)
-                container = load_model(model_resource, self.scale, self.lod_mask,
+                container = load_model(content_manager, model_resource, self.scale, self.lod_mask,
                                        self.import_physics, self.import_attachments,
                                        self.import_materials)
 
             master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
-            put_into_collections(container, Path(model_resource.name).stem, master_collection, False)
+            put_into_collections(container, TinyPath(model_resource.name).stem, master_collection, False)
 
         return {'FINISHED'}
 
@@ -87,7 +84,7 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
                 serialize_mounted_content(content_manager)
             else:
                 deserialize_mounted_content(content_manager)
-            file_stem = Path(file.name).stem
+            file_stem = TinyPath(file.name).stem
             content_manager.add_child(VPKContentProvider(directory / f"{file_stem}.vpk"))
             with FileBuffer(directory / file.name) as buffer:
                 model = CompiledMapResource.from_buffer(buffer, TinyPath(file.name))
@@ -145,7 +142,7 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
             deserialize_mounted_content(content_manager)
         content_manager.add_child(VPKContentProvider(vpk_path))
 
-        map_buffer = content_manager.find_file(TinyPath('maps/{vpk_path.stem}.vmap_c'))
+        map_buffer = content_manager.find_file(TinyPath(f'maps/{vpk_path.stem}.vmap_c'))
         assert map_buffer is not None, "Failed to find world file in selected VPK"
 
         model = CompiledMapResource.from_buffer(map_buffer, vpk_path)
@@ -203,7 +200,7 @@ class SOURCEIO_OT_VMATImport(ImportOperatorHelper):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
                 material_resource = CompiledMaterialResource.from_buffer(f, directory / file.name)
-                load_material(material_resource, Path(file.name))
+                load_material(content_manager, material_resource, TinyPath(file.name))
         return {'FINISHED'}
 
 
@@ -222,7 +219,7 @@ class SOURCEIO_OT_VTEXImport(ImportOperatorHelper):
         for file in self.files:
             with FileBuffer(directory / file.name) as f:
                 texture_resource = CompiledTextureResource.from_buffer(f, directory / file.name)
-                image = import_texture(texture_resource, Path(file.name))
+                image = import_texture(texture_resource, TinyPath(file.name))
 
                 if is_blender_4_1():
                     if (context.region and context.region.type == 'WINDOW'
@@ -268,7 +265,7 @@ class SOURCEIO_OT_VPHYSImport(ImportOperatorHelper):
                 container = load_physics(model_resource, self.scale)
 
             master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
-            put_into_collections(container, Path(model_resource.name).stem, master_collection, False)
+            put_into_collections(container, TinyPath(model_resource.name).stem, master_collection, False)
 
         return {'FINISHED'}
 

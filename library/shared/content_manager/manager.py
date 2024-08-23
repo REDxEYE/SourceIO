@@ -36,7 +36,15 @@ def get_loose_file_fs_root(path: TinyPath):
     return get_mod_path(path)
 
 
-class ContentManager(metaclass=SingletonMeta):
+class ContentManager(ContentProvider, metaclass=SingletonMeta):
+
+    @property
+    def root(self) -> TinyPath:
+        return self.filepath
+
+    @property
+    def name(self) -> str:
+        return "ContentManager"
 
     def check(self, filepath: TinyPath) -> bool:
         if filepath.is_absolute():
@@ -61,6 +69,7 @@ class ContentManager(metaclass=SingletonMeta):
                 return provider
 
     def __init__(self):
+        super().__init__(TinyPath("."))
         self.children: list[ContentProvider] = []
         self._steam_id = -1
 
@@ -201,8 +210,13 @@ class ContentManager(metaclass=SingletonMeta):
                     self.children.append(register_provider(provider))
             elif path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
-                with FileBuffer(path) as f:
-                    bsp = open_bsp(path, f, self)
+                if t_path.is_absolute():
+                    full_path = t_path
+                else:
+                    prov = self.get_content_provider_from_asset_path(t_path)
+                    full_path = prov.root / t_path
+                with FileBuffer(full_path) as f:
+                    bsp = open_bsp(t_path, f, self)
                     provider = bsp.get_lump('LUMP_PAK')
                 if provider and provider not in self.children:
                     self.children.append(register_provider(provider))

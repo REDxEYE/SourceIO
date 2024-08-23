@@ -1,14 +1,13 @@
-from pathlib import Path
-
-from .....library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.hfs_provider import HFS1ContentProvider, HFS2ContentProvider
+from SourceIO.library.utils.tiny_path import TinyPath
 from .source1 import Source1Detector
 
 
 class VindictusDetector(Source1Detector):
     @classmethod
-    def scan(cls, path: Path) -> list[ContentProvider]:
+    def scan(cls, path: TinyPath) -> list[ContentProvider]:
         game_root = None
         game_exe = backwalk_file_resolver(path, 'Vindictus.exe')
         if game_exe is not None:
