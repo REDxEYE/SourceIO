@@ -212,9 +212,9 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
                                                   radius * scale, segments)
 
         mesh_data.from_pydata(vertices, [], indices)
-        if collision_attributes and surface_properties:
-            mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
-                                                  "surface_prop": surface_properties[surface_property_index]}}
+        # if collision_attributes and surface_properties:
+        #     mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
+        #                                           "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
         mesh_data.validate()
 
@@ -235,9 +235,9 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         sphere_vertices += center
         mesh_data.from_pydata(sphere_vertices, [], sphere_indices)
         mesh_data.validate()
-        if collision_attributes and surface_properties:
-            mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
-                                                  "surface_prop": surface_properties[surface_property_index]}}
+        # if collision_attributes and surface_properties:
+        #     mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
+        #                                           "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
@@ -264,9 +264,9 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         mesh_obj = bpy.data.objects.new(name=shape_name, object_data=mesh_data)
         mesh_data.from_pydata(vertices.reshape((-1, 3)), [], indices.reshape((-1, 3)))
         mesh_data.validate()
-        if collision_attributes and surface_properties:
-            mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
-                                                  "surface_prop": surface_properties[surface_property_index]}}
+        # if collision_attributes and surface_properties:
+        #     mesh_obj["entity_data"] = {"entity": {"collision_group": collision_attributes[collision_attribute_index],
+        #                                           "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
@@ -330,11 +330,11 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
         mesh_data.validate()
         collision_attribute_index = hull_info["m_nCollisionAttributeIndex"]
         surface_property_index = hull_info["m_nSurfacePropertyIndex"]
-        if collision_attributes and surface_properties:
-            mesh_obj["entity_data"] = {"entity": {"flag": hull["m_nFlags"] & 0xFFFFFFFF,
-                                                  "flag_hi": (hull["m_nFlags"] >> 32) & 0xFFFFFFFF,
-                                                  "collision_group": collision_attributes[collision_attribute_index],
-                                                  "surface_prop": surface_properties[surface_property_index]}}
+        # if collision_attributes and surface_properties:
+        #     mesh_obj["entity_data"] = {"entity": {"flag": hull["m_nFlags"] & 0xFFFFFFFF,
+        #                                           "flag_hi": (hull["m_nFlags"] >> 32) & 0xFFFFFFFF,
+        #                                           "collision_group": collision_attributes[collision_attribute_index],
+        #                                           "surface_prop": surface_properties[surface_property_index]}}
         mesh_data.update()
 
         shapes.append(mesh_obj)
