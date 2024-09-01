@@ -261,11 +261,12 @@ class SOURCEIO_OT_VPHYSImport(ImportOperatorHelper):
         for n, file in enumerate(self.files):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
-                model_resource = CompiledPhysicsResource.from_buffer(f, directory / file.name)
-                container = load_physics(model_resource, self.scale)
+                phys_res = CompiledPhysicsResource.from_buffer(f, directory / file.name)
+                objects = load_physics(phys_res.get_data_block(block_name="DATA")[0], self.scale)
 
-            master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
-            put_into_collections(container, TinyPath(model_resource.name).stem, master_collection, False)
+            master_collection = get_new_unique_collection(phys_res.name, bpy.context.scene.collection)
+            for obj in objects:
+                master_collection.objects.link(obj)
 
         return {'FINISHED'}
 

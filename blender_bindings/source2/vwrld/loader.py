@@ -64,10 +64,15 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
         for scene_object in node_resource.get_aggregate_scene_objects():
             renderable_model = scene_object["m_renderableModel"]
             proper_path = node_resource.get_child_resource_path(renderable_model)
-            if scene_object["m_fragmentTransforms"]:
-                for fragment in scene_object["m_fragmentTransforms"]:
-                    create_static_prop_placeholder(scene_object, proper_path, Matrix(fragment.reshape(3, 4)),
-                                                   collection, scale)
+            if scene_object["m_fragmentTransforms"] or scene_object["m_aggregateMeshes"]:
+                fragments = scene_object["m_fragmentTransforms"]
+                for i, draw_info in enumerate(scene_object["m_aggregateMeshes"]):
+                    if draw_info.get("m_bHasTransform", fragments):
+                        matrix = Matrix(fragments[i].reshape(3, 4))
+                    else:
+                        matrix = Matrix.Identity(4)
+                    create_aggregate_prop_placeholder(scene_object, proper_path, matrix,
+                                                      collection, scale, draw_info)
             else:
                 create_static_prop_placeholder(scene_object, proper_path, None, collection, scale)
     load_entities(world_resource, master_collection, scale, content_manager)
@@ -82,6 +87,27 @@ def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath |
                    'type': 'static_prop',
                    'scale': scale,
                    'entity': {k: str(v) for (k, v) in scene_object.to_dict().items()},
+                   'skin': scene_object.get('skin', 'default') or 'default'}
+    empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
+    if matrix is not None:
+        transform_mat = matrix.to_4x4()
+        loc, rot, scl = transform_mat.decompose()
+        loc *= scale
+        empty.matrix_world = Matrix.LocRotScale(loc, rot, scl)
+    collection.objects.link(empty)
+
+
+def create_aggregate_prop_placeholder(scene_object: Object, proper_path: Path | None, matrix: Matrix | None,
+                                      collection: bpy.types.Collection, scale: float, draw_info: dict):
+    if not proper_path:
+        return
+
+    custom_data = {'prop_path': str(proper_path),
+                   'type': 'static_prop',
+                   'scale': scale,
+                   'entity': {k: str(v) for (k, v) in scene_object.items() if
+                              k not in ["m_fragmentTransforms", "m_aggregateMeshes"]},
+                   'draw_info': draw_info,
                    'skin': scene_object.get('skin', 'default') or 'default'}
     empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
     if matrix is not None:

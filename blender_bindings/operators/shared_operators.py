@@ -93,7 +93,12 @@ class SourceIO_OT_LoadEntity(Operator):
                 parent = get_parent(obj.users_collection[0])
                 if model_type == '.vmdl_c':
 
-                    instance_collection = get_collection(prop_path)
+                    draw_info = custom_prop_data.get("draw_info", {})
+                    if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                        instance_collection = get_collection(prop_path, str(draw_info["m_nDrawCallIndex"]))
+                    else:
+                        instance_collection = get_collection(prop_path)
+
                     if instance_collection and use_collections:
                         collection = bpy.data.collections.get(instance_collection, None)
                         if collection is not None:
@@ -109,17 +114,28 @@ class SourceIO_OT_LoadEntity(Operator):
                         model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
                         container = load_model(content_manager, model_resource, custom_prop_data["scale"], lod_mask=1,
                                                import_physics=context.scene.import_physics,
-                                               import_materials=import_materials)
+                                               import_materials=import_materials,
+                                               draw_call_index=draw_info.get("m_nDrawCallIndex", None))
                         if replace_entity:
                             s2_put_into_collections(container, model_resource.name, parent)
                         else:
-                            prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
+                            if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                                prop_collection = get_or_create_collection(
+                                    prop_path.stem + f"_{draw_info['m_nDrawCallIndex']}",
+                                    master_instance_collection
+                                )
+                            else:
+                                prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
                             s2_put_into_collections(container, model_resource.name, prop_collection)
                         obj["entity_data"]["prop_path"] = None
                         obj["entity_data"]["imported"] = True
 
                         if use_collections:
-                            add_collection(prop_path, container.master_collection)
+                            if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                                add_collection(prop_path, container.master_collection,
+                                               str(draw_info["m_nDrawCallIndex"]))
+                            else:
+                                add_collection(prop_path, container.master_collection)
 
                             obj.instance_type = 'COLLECTION'
                             obj.instance_collection = container.master_collection
@@ -176,7 +192,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     print(f"BVLG op: {context.scene.use_bvlg}")
                     options.use_bvlg = context.scene.use_bvlg
                     options.bodygroup_grouping = False
-                    options.import_animations = True
+                    options.import_animations = False
                     options.import_physics = context.scene.import_physics
                     try:
                         model_container = import_model(prop_path, mdl_file,

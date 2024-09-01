@@ -66,7 +66,7 @@ def put_into_collections(model_container, model_name, parent_collection=None, bo
 def load_model(content_manager: ContentManager, resource: CompiledModelResource,
                scale: float = SOURCE2_HAMMER_UNIT_TO_METERS,
                lod_mask: int = 255, import_physics: bool = False, import_attachments: bool = False,
-               import_materials: bool = True):
+               import_materials: bool = True, draw_call_index: int | None = None):
     armature = create_armature(content_manager, resource, scale)
     physics_objects = []
     if import_physics:
@@ -75,7 +75,7 @@ def load_model(content_manager: ContentManager, resource: CompiledModelResource,
             objects = load_physics(physics_block, scale)
             physics_objects = objects
     container = ModelContainer([], defaultdict(list), physics_objects, [], armature, None)
-    objects = create_meshes(content_manager, resource, container, scale, lod_mask, import_attachments, import_materials)
+    objects = create_meshes(content_manager, resource, container, scale, lod_mask, import_attachments, import_materials, draw_call_index)
     container.objects = objects
     if armature:
         for obj in objects:
@@ -144,7 +144,8 @@ def create_armature(content_manager: ContentManager, resource: CompiledModelReso
 
 
 def create_meshes(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
-                  scale: float, lod_mask: int, import_attachments: bool, import_materials: bool = True) -> list[
+                  scale: float, lod_mask: int, import_attachments: bool, import_materials: bool = True,
+                  draw_call_index: int | None = None) -> list[
     bpy.types.Object]:
     lod_mask = unpack("Q", pack("q", lod_mask))[0]
     data, = model_resource.get_data_block(block_name='DATA')
@@ -167,12 +168,12 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
             # Embedded mesh
             mesh_info = ctrl['embedded_meshes'][i]
             sub_meshes = load_internal_mesh(content_manager, model_resource, container, scale, mesh_info,
-                                            import_attachments, import_materials)
+                                            import_attachments, import_materials, draw_call_index)
         else:
             # External mesh
             mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
             sub_meshes = load_external_mesh(content_manager, model_resource, container, scale, i, mesh_resource,
-                                            import_attachments, import_materials)
+                                            import_attachments, import_materials, draw_call_index)
         object_groups.extend(sub_meshes)
         for sub_mesh in sub_meshes:
             for lod in range(lod_count):
@@ -187,7 +188,8 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
 
 def load_internal_mesh(content_manager: ContentManager, model_resource: CompiledModelResource,
                        container: ModelContainer, scale: float, mesh_info: Mapping[str, Any], import_attachments: bool,
-                       import_materials: bool = True):
+                       import_materials: bool = True,
+                       draw_call_index: int | None = None):
     mesh_index = mesh_info['mesh_index']
     data_block: Optional[KVBlock] = model_resource.get_data_block(block_id=mesh_info['data_block'])
     vbib_block: Optional[VertexIndexBuffer] = model_resource.get_data_block(block_id=mesh_info['vbib_block'])
@@ -195,13 +197,16 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
     if data_block and vbib_block:
         return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
                            vbib_block.vertex_buffers, morph_block, scale, mesh_index, model_resource, mesh_info['name'],
-                           import_attachments, import_materials)
+                           import_attachments, import_materials,
+                           draw_call_index)
     return None
 
 
 def load_external_mesh(content_manager: ContentManager, model_resource: CompiledModelResource,
                        container: ModelContainer, scale: float, mesh_id: int, mesh_resource: CompiledMeshResource,
-                       import_attachments: bool, import_materials: bool = True):
+                       import_attachments: bool, import_materials: bool = True,
+                       draw_call_index: int | None = None
+                       ):
     data_block, = mesh_resource.get_data_block(block_name='DATA')
     vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
     if morph_set_path := data_block['m_morphSet', "m_pMorphSet"]:
@@ -212,13 +217,15 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
     if data_block and vbib_block:
         return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
                            vbib_block.vertex_buffers, morph_block, scale, mesh_id, mesh_resource,
-                           import_attachments=import_attachments, import_materials=import_materials)
+                           import_attachments=import_attachments, import_materials=import_materials,
+                           draw_call_index=draw_call_index)
     elif data_block and 'm_vertexBuffers' in data_block and 'm_indexBuffers' in data_block:
         vertex_buffers = [VertexBuffer.from_kv(buf) for buf in data_block['m_vertexBuffers']]
         index_buffers = [IndexBuffer.from_kv(buf) for buf in data_block['m_indexBuffers']]
         return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers,
                            morph_block, scale, mesh_id, mesh_resource, import_attachments=import_attachments,
-                           import_materials=import_materials)
+                           import_materials=import_materials,
+                           draw_call_index=draw_call_index)
     return None
 
 
@@ -295,14 +302,20 @@ def use_compressed_normals(draw_call: dict):
 def create_mesh(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
                 data_block: KVBlock, index_buffers: list, vertex_buffers: list, morph_block: MorphBlock, scale: float,
                 mesh_id: int, mesh_resource: CompiledResource, mesh_name: Optional[str] = None,
-                import_attachments: bool = False, import_materials: bool = True) -> list[bpy.types.Object]:
+                import_attachments: bool = False, import_materials: bool = True,
+                draw_call_index: int | None = None) -> list[bpy.types.Object]:
     objects: list[bpy.types.Object] = []
     g_vertex_offset = 0
     if import_attachments:
         load_attachments(data_block["m_attachments"], container, scale)
 
     for scene_object in data_block['m_sceneObjects']:
-        for draw_call in scene_object['m_drawCalls']:
+        if draw_call_index is not None:
+            draw_calls = [scene_object["m_drawCalls"][draw_call_index]]
+        else:
+            draw_calls = scene_object["m_drawCalls"]
+
+        for draw_call in draw_calls:
             # print(draw_call)
             assert len(draw_call['m_vertexBuffers']) == 1
             assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
