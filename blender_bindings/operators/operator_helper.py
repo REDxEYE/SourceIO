@@ -1,9 +1,8 @@
-from pathlib import Path
-
 import bpy
 from bpy.props import StringProperty, CollectionProperty
 
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_1
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class ImportOperatorHelper(bpy.types.Operator):
@@ -37,11 +36,11 @@ class ImportOperatorHelper(bpy.types.Operator):
         wm.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
-    def get_directory(self):
+    def get_directory(self) -> TinyPath:
         if is_blender_4_1():
-            return Path(self.directory)
+            return TinyPath(self.directory)
         else:
-            filepath = Path(self.filepath)
+            filepath = TinyPath(self.filepath)
             if filepath.is_file():
                 return filepath.parent.absolute()
             else:

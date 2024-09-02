@@ -1,4 +1,4 @@
-from ....shared.content_providers.content_manager import ContentManager
+from ....shared.content_manager.manager import ContentManager
 from ....utils.datamodel import Element
 from .animation_set import AnimationSet
 from .base_element import BaseElement

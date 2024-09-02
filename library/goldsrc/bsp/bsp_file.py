@@ -1,24 +1,23 @@
-from pathlib import Path
 from typing import Optional
 
-from ...shared.content_providers.content_manager import ContentManager
-from ...utils import Buffer, FileBuffer
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.utils import Buffer, FileBuffer
 from .lump import Lump, LumpInfo, LumpType
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class BspFile:
-    def __init__(self, filepath: Path, buffer: Buffer):
-        self.manager: ContentManager = ContentManager()
-        self.manager.scan_for_content(filepath)
+    def __init__(self, buffer: Buffer, content_manager: ContentManager):
+        self.manager = content_manager
         self.buffer = buffer
         self.lumps = {}
         self.lumps_info: list[LumpInfo] = []
         self.version = 0
 
     @classmethod
-    def from_filename(cls, filepath: Path):
+    def from_filename(cls, filepath: TinyPath, content_manager: ContentManager):
         buffer = FileBuffer(filepath)
-        self = cls(filepath, buffer)
+        self = cls(buffer, content_manager)
         self.version = buffer.read_uint32()
         self.lumps_info = []
 

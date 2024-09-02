@@ -1,13 +1,12 @@
-from pathlib import Path
+from SourceIO.library.utils import Buffer, FileBuffer
+from SourceIO.library.utils.tiny_path import TinyPath
 
-from ..utils import Buffer, FileBuffer
 
-
-def load_compiled_resource_from_path(path: Path):
+def load_compiled_resource_from_path(path: TinyPath):
     return load_compiled_resource(FileBuffer(path), path)
 
 
-def load_compiled_resource(buffer: Buffer, path: Path):
+def load_compiled_resource(buffer: Buffer, path: TinyPath):
     if not buffer:
         return None
     file_type = path.suffix

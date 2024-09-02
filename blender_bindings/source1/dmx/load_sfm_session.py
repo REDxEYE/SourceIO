@@ -1,18 +1,18 @@
-from pathlib import Path
-
 import bpy
+from mathutils import Quaternion, Vector, Matrix
 
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source1.dmx.sfm import open_session
-from ....library.source1.dmx.sfm.animation_set import AnimationSet
-from ....library.source1.dmx.sfm.camera import Camera
-from ....library.source1.dmx.sfm.film_clip import FilmClip
-from ....library.source1.dmx.sfm_utils import *
-from ....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-from ....library.utils.path_utilities import find_vtx_cm
-from ...shared.model_container import ModelContainer
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.source1.dmx.sfm import open_session
+from SourceIO.library.source1.dmx.sfm.animation_set import AnimationSet
+from SourceIO.library.source1.dmx.sfm.camera import Camera
+from SourceIO.library.source1.dmx.sfm.film_clip import FilmClip
+from SourceIO.library.source1.dmx.sfm_utils import convert_source_rotation, convert_source_position
+from SourceIO.library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.path_utilities import find_vtx_cm
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model
-from ...models.common import put_into_collections
+from SourceIO.blender_bindings.models.common import put_into_collections
 
 
 def _convert_quat(quat):
@@ -21,7 +21,7 @@ def _convert_quat(quat):
 
 
 def import_gamemodel(mdl_path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
-    mdl_path = Path(mdl_path)
+    mdl_path = TinyPath(mdl_path)
     mld_file = ContentManager().find_file(mdl_path)
     if mld_file:
         vvd_file = ContentManager().find_file(mdl_path.with_suffix('.vvd'))
@@ -94,7 +94,7 @@ def load_animset(animset: AnimationSet, shot: FilmClip, scale=SOURCE1_HAMMER_UNI
         _apply_transforms(container, animset, scale)
 
 
-def load_session(session_path: Path, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
+def load_session(session_path: TinyPath, scale=SOURCE1_HAMMER_UNIT_TO_METERS):
     session = open_session(session_path)
     active_clip = session.active_clip
     # map_file = active_clip.map_file

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import numpy as np
 
 # from ....library.source1.vtf.VTFWrapper.vtf_lib import VTFLib
@@ -8,7 +6,7 @@ import numpy as np
 #
 # def export_texture(blender_texture, path, image_format=None, filter_mode=None):
 #     vtf_lib = VTFLib()
-#     path = Path(path)
+#     path = TinyPath(path)
 #     if path.suffix == '':
 #         path = path.with_suffix('.vtf')
 #     w, h = blender_texture.size

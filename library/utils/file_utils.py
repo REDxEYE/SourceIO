@@ -8,6 +8,11 @@ from pathlib import Path
 from struct import calcsize, pack, unpack
 from typing import Optional, Protocol, Union, TypeVar, Type
 
+try:
+    from SourceIO.library.utils.tiny_path import TinyPath
+except ImportError:
+    TinyPath = Path
+
 
 class Buffer(abc.ABC, io.RawIOBase):
     def __init__(self):
@@ -209,6 +214,9 @@ class Buffer(abc.ABC, io.RawIOBase):
             object_list.append(obj)
         return object_list
 
+    def read_half(self):
+        return self.read_fmt("h")[0]
+
 
 class MemoryBuffer(Buffer):
 
@@ -310,7 +318,8 @@ class WritableMemoryBuffer(io.BytesIO, Buffer):
 
 class FileBuffer(io.FileIO, Buffer):
 
-    def __init__(self, file: Union[str, Path, int], mode: str = 'r', closefd: bool = True, opener=None) -> None:
+    def __init__(self, file: Union[str, TinyPath, Path, int], mode: str = 'r', closefd: bool = True,
+                 opener=None) -> None:
         io.FileIO.__init__(self, file, mode, closefd, opener)
         Buffer.__init__(self)
         self._cached_size = None

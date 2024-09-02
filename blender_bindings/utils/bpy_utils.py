@@ -2,6 +2,8 @@ import random
 
 import bpy
 
+from SourceIO.library.utils.tiny_path import TinyPath
+
 
 def is_blender_4():
     return bpy.app.version >= (4, 0, 0)
@@ -34,12 +36,11 @@ def add_material(material, model_ob):
 
 def get_or_create_material(name: str, full_path: str):
     for mat in bpy.data.materials:
-        if (fp := mat.get('full_path')) == None:
+        if (fp := mat.get('full_path', None)) is None:
             continue
-        if fp.lower() == full_path.lower():
+        if TinyPath(fp.lower()) == TinyPath(full_path.lower()):
             return mat
-    mat = bpy.data.materials.new(name[:63])
-    mat.name = name[:63]
+    mat = bpy.data.materials.new(name)
     mat["full_path"] = full_path
     mat.diffuse_color = [random.uniform(.4, 1) for _ in range(3)] + [1.0]
     return mat

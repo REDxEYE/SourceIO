@@ -1,11 +1,11 @@
 import sys
-from pathlib import Path
 from typing import Optional
 
 import bpy
 import numpy as np
 
-from ...library.utils.path_utilities import path_stem
+from ...library.shared.content_manager.manager import ContentManager
+from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 from ..utils.bpy_utils import append_blend
 from .node_arranger import nodes_iterate
@@ -126,14 +126,14 @@ class ShaderBase:
     @staticmethod
     def load_bvlg_nodes():
         if "VertexLitGeneric" not in bpy.data.node_groups:
-            current_path = Path(__file__).parent.parent
+            current_path = TinyPath(__file__).parent.parent
             asset_path = current_path / 'assets' / "sycreation-s-default.blend"
             append_blend(str(asset_path), "node_groups")
 
     @staticmethod
     def load_source2_nodes():
         if "csgo_complex.vfx" not in bpy.data.node_groups:
-            current_path = Path(__file__).parent.parent
+            current_path = TinyPath(__file__).parent.parent
             asset_path = current_path / 'assets' / "source2_materials.blend"
             append_blend(str(asset_path), "node_groups")
 
@@ -150,11 +150,12 @@ class ShaderBase:
     def all_subclasses(cls):
         return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
 
-    def __init__(self):
+    def __init__(self, content_manager: ContentManager):
         self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.bpy_material: bpy.types.Material = None
         self.do_arrange = True
         self.uv_map = None
+        self.content_manager = content_manager
 
     @staticmethod
     def get_missing_texture(texture_name: str, fill_color: tuple = (1.0, 1.0, 1.0, 1.0)):
@@ -195,7 +196,7 @@ class ShaderBase:
         return buffer[0::4], buffer[1::4], buffer[2::4], buffer[3::4],
 
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
-        file = Path(file)
+        file = TinyPath(file)
         texture = self.load_texture(file.stem, file.parent)
         return texture or self.get_missing_texture(f'missing_{file.stem}', default_color)
 
@@ -205,7 +206,7 @@ class ShaderBase:
 
     @staticmethod
     def new_texture_name_with_suffix(old_name, suffix, ext):
-        old_name = Path(old_name)
+        old_name = TinyPath(old_name)
         return f'{old_name.with_name(old_name.stem)}_{suffix}.{ext}'
 
     def clean_nodes(self):

@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
@@ -10,9 +9,11 @@ from SourceIO.blender_bindings.source1.phy import import_physics
 from SourceIO.library.models.mdl.v36 import MdlV36
 from SourceIO.library.models.phy.phy import Phy
 from SourceIO.library.models.vtx import open_vtx
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import find_vtx_cm
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -20,7 +21,7 @@ logger = log_manager.get_logger('MDL loader')
 
 
 @register_model_importer(b"IDST", 36)
-def import_mdl36(model_path: Path, buffer: Buffer,
+def import_mdl36(model_path: TinyPath, buffer: Buffer,
                  content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV36.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
@@ -29,7 +30,7 @@ def import_mdl36(model_path: Path, buffer: Buffer,
         raise RequiredFileNotFound(f"Could not find VVD file for {model_path}")
     vtx = open_vtx(vtx_buffer)
 
-    container = import_model(mdl, vtx, options.scale, options.create_flex_drivers)
+    container = import_model(content_manager, mdl, vtx, options.scale, options.create_flex_drivers)
     if options.import_physics:
         phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
         if phy_buffer is None:
@@ -39,7 +40,7 @@ def import_mdl36(model_path: Path, buffer: Buffer,
             import_physics(phy, phy_buffer, mdl, container, options.scale)
     if options.import_textures:
         try:
-            import_materials(mdl, use_bvlg=options.use_bvlg)
+            import_materials(content_manager, mdl, use_bvlg=options.use_bvlg)
         except Exception as t_ex:
             logger.error(f'Failed to import materials, caused by {t_ex}')
             import traceback

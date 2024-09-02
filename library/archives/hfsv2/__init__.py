@@ -1,16 +1,15 @@
-from pathlib import Path
-
-
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.library.utils import FileBuffer
 from SourceIO.library.utils.singleton import SingletonMeta
 from .archive import Archive
 from .file import File
 
+
 # Based on yretenai code from https://github.com/yretenai/HFSExtract
 
 class HFSv2(metaclass=SingletonMeta):
 
-    def __init__(self, hfs_root: Path):
+    def __init__(self, hfs_root: TinyPath):
         self.files: dict[str, Archive] = {}
         self._archives: dict[str, Archive] = {}
         for hfs_file in hfs_root.iterdir():
@@ -23,11 +22,11 @@ class HFSv2(metaclass=SingletonMeta):
             self.files.update({k: archive for k in archive.files.keys()})
 
     def get_file(self, path):
-        path = Path(path).as_posix().lower()
+        path = TinyPath(path).as_posix().lower()
         if path in self.files:
             return self.files[path].get_file(path)
         return None
 
     def has_file(self, path):
-        path = Path(path).as_posix()
+        path = TinyPath(path).as_posix()
         return path in self.files

@@ -1,7 +1,7 @@
-from pathlib import Path
 
 import numpy as np
 
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.library.utils import MemoryBuffer
 from SourceIO.library.utils.singleton import SingletonMeta
 from . import tables
@@ -16,7 +16,7 @@ HASH_SIZE = 16
 try:
     import ctypes
 
-    rel_path = Path(__file__).absolute().parent
+    rel_path = TinyPath(__file__).absolute().parent
 
 
     class Serpent(metaclass=SingletonMeta):

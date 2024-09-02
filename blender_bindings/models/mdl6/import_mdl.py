@@ -1,19 +1,18 @@
 from collections import defaultdict
-from pathlib import Path
 from typing import Optional
 
 import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Vector
 
+from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
+    GoldSrcShader
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
 from SourceIO.library.models.mdl.v6.mdl_file import Mdl
 from SourceIO.library.models.mdl.v6.structs.texture import StudioTexture
 from SourceIO.library.utils import Buffer
-from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
-    GoldSrcShader
-from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_new_unique_collection, get_or_create_material
 from SourceIO.library.utils.path_utilities import path_stem
 
 

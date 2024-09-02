@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Optional, Union
 
 import numpy as np
 
-from ....utils import Buffer, FileBuffer, MemoryBuffer, WritableMemoryBuffer
-from ....utils.rustlib import LZ4ChainDecoder, lz4_compress, lz4_decompress, \
-    zstd_compress_stream, zstd_decompress_stream
+from SourceIO.library.utils import Buffer, FileBuffer, MemoryBuffer, WritableMemoryBuffer
+from SourceIO.library.utils.rustlib import LZ4ChainDecoder, lz4_compress, lz4_decompress, zstd_compress_stream, \
+    zstd_decompress_stream
 from .enums import *
 from .types import *
 
@@ -739,13 +738,15 @@ def read_keyvalues(buffer: Buffer) -> BinaryKeyValues:
 
 
 if __name__ == '__main__':
+    from SourceIO.library.utils.tiny_path import TinyPath
+
     data = read_keyvalues(
         FileBuffer(
-            Path(r"C:\PYTHON_PROJECTS\SourceIOPlugin\test_data\vkv3\dplus_teardrop_of_winterwood_misc.vmdl_c.kv3"),
+            TinyPath(r"C:\PYTHON_PROJECTS\SourceIOPlugin\test_data\vkv3\dplus_teardrop_of_winterwood_misc.vmdl_c.kv3"),
             'rb'))
     print(data)
     data = read_keyvalues(
-        FileBuffer(Path(r"C:\PYTHON_PROJECTS\SourceIOPlugin\test_data\vkv3\earthshaker_arcana_loadout.vpcf_c.kv3"),
+        FileBuffer(TinyPath(r"C:\PYTHON_PROJECTS\SourceIOPlugin\test_data\vkv3\earthshaker_arcana_loadout.vpcf_c.kv3"),
                    'rb'))
     print(data)
     byte_io = WritableMemoryBuffer()

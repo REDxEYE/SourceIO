@@ -1,18 +1,14 @@
-from pathlib import Path
-
 import bpy
 import numpy as np
 
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
-from .....library.source2 import CompiledTextureResource
-from .....library.source2.data_types.blocks.texture_data import VTexFormat
-from .....library.utils.path_utilities import path_stem
-from .....library.utils.thirdparty.equilib.cube2equi_numpy import \
-    run as convert_to_eq
-from .....logger import SourceLogMan
-from ...shader_base import Nodes
 from ..source2_shader_base import Source2ShaderBase
+from ...shader_base import Nodes
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.source2 import CompiledTextureResource
+from SourceIO.library.source2.data_types.blocks.texture_data import VTexFormat
+from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 
@@ -20,8 +16,8 @@ log_manager = SourceLogMan()
 class Skybox(Source2ShaderBase):
     SHADER: str = 'sky.vfx'
 
-    def __init__(self, source2_material):
-        super().__init__(source2_material)
+    def __init__(self, content_manager: ContentManager, source2_material):
+        super().__init__(content_manager, source2_material)
         self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.do_arrange = True
 
@@ -30,7 +26,7 @@ class Skybox(Source2ShaderBase):
 
         texture_path = self._material_resource.get_texture_property('g_tSkyTexture', None)
         if texture_path:
-            texture_resource = self._material_resource.get_child_resource(texture_path, ContentManager(),
+            texture_resource = self._material_resource.get_child_resource(texture_path, self.content_manager,
                                                                           CompiledTextureResource)
             (width, height) = texture_resource.get_resolution(0)
             faces = {}

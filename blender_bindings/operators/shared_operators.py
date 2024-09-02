@@ -1,6 +1,5 @@
 from hashlib import md5
 from itertools import chain
-from pathlib import Path
 from typing import Any, MutableMapping
 
 from bpy.props import (BoolProperty, StringProperty)
@@ -14,7 +13,7 @@ from .import_settings_base import ModelOptions
 from ..models import import_model
 from ..shared.exceptions import RequiredFileNotFound
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
-from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.shared.content_manager.manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ..models.common import put_into_collections as s1_put_into_collections
 from ..source2.vmdl_loader import load_model
@@ -22,6 +21,7 @@ from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.tiny_path import TinyPath
 
 
 def get_parent(collection):
@@ -31,7 +31,7 @@ def get_parent(collection):
     return bpy.context.scene.collection
 
 
-def get_collection(model_path: Path, *other_args):
+def get_collection(model_path: TinyPath, *other_args):
     md_ = md5(model_path.as_posix().encode("ascii"))
     for key in other_args:
         if key:
@@ -42,7 +42,7 @@ def get_collection(model_path: Path, *other_args):
         return cache[key]
 
 
-def add_collection(model_path: Path, collection: bpy.types.Collection, *other_args):
+def add_collection(model_path: TinyPath, collection: bpy.types.Collection, *other_args):
     md_ = md5(model_path.as_posix().encode("ascii"))
     for key in other_args:
         if key:
@@ -88,7 +88,7 @@ class SourceIO_OT_LoadEntity(Operator):
                 prop_path = custom_prop_data.get('prop_path', None)
                 if prop_path is None or custom_prop_data.get("imported", False):
                     continue
-                prop_path = Path(prop_path)
+                prop_path = TinyPath(prop_path)
                 model_type = prop_path.suffix
                 parent = get_parent(obj.users_collection[0])
                 if model_type == '.vmdl_c':
@@ -112,7 +112,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     if vmld_file:
                         # skin = custom_prop_data.get('skin', None)
                         model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                        container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
+                        container = load_model(content_manager, model_resource, custom_prop_data["scale"], lod_mask=1,
                                                import_physics=context.scene.import_physics,
                                                import_materials=import_materials,
                                                draw_call_index=draw_info.get("m_nDrawCallIndex", None))
@@ -167,7 +167,6 @@ class SourceIO_OT_LoadEntity(Operator):
                         self.report({'INFO'}, f"Model '{prop_path}' not found!")
                 elif model_type in ('.mdl', ".md3"):
                     default_anim = custom_prop_data["entity"].get("defaultanim", None)
-                    prop_path = prop_path
 
                     instance_collection = get_collection(prop_path, default_anim)
                     if instance_collection and use_collections:
@@ -179,12 +178,12 @@ class SourceIO_OT_LoadEntity(Operator):
                             obj["entity_data"]["imported"] = True
                             continue
 
-                    mdl_file = content_manager.find_file(prop_path)
+                    mdl_file = content_manager.find_file(TinyPath(prop_path))
                     if not mdl_file:
                         self.report({"WARNING"},
                                     f"Failed to find MDL file for prop {prop_path}")
                         continue
-                    cp = content_manager.get_content_provider_from_asset_path(prop_path)
+                    steamapp_id = content_manager.get_steamid_from_asset(prop_path)
                     options = ModelOptions()
                     options.import_textures = import_materials
                     options.import_physics = False
@@ -197,8 +196,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     options.import_physics = context.scene.import_physics
                     try:
                         model_container = import_model(prop_path, mdl_file,
-                                                       content_manager, options,
-                                                       ((cp.steam_id or None) if cp else None))
+                                                       content_manager, options, steamapp_id)
                     except RequiredFileNotFound as e:
                         self.report({"ERROR"}, e.message)
                         return {'CANCELLED'}
@@ -295,9 +293,9 @@ class SourceIO_OT_LoadEntity(Operator):
                     #             print(skin_materials, current_materials)
                     #             for skin_material, current_material in zip(skin_materials, current_materials):
                     #                 if unique_material_names:
-                    #                     skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
+                    #                     skin_material = f"{TinyPath(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
                     #                                     -63:]
-                    #                     current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[:63]}"[
+                    #                     current_material = f"{TinyPath(model_container.mdl.header.name).stem}_{current_material[:63]}"[
                     #                                        -63:]
                     #                 else:
                     #                     skin_material = skin_material[:63]
@@ -338,7 +336,7 @@ class SOURCEIO_OT_ChangeSkin(Operator):
         return {'FINISHED'}
 
     def handle_s1(self, obj):
-        prop_path = Path(obj['prop_path'])
+        prop_path = TinyPath(obj['prop_path'])
         skin_materials = obj['skin_groups'][self.skin_name]
         current_materials = obj['skin_groups'][obj['active_skin']]
         unique_material_names = obj['unique_material_names']
@@ -555,8 +553,8 @@ class SOURCEIO_UL_MountedResource(PropertyGroup):
         default="Untitled")
 
     path: StringProperty(
-        name="Path",
-        description="Path to the resource",
+        name="TinyPath",
+        description="TinyPath to the resource",
         default="",
         subtype='FILE_PATH')
 
@@ -578,8 +576,8 @@ class SOURCEIO_OT_NewResource(Operator):
         cm.clean()
         new_resource = context.scene.mounted_resources.add()
         new_resource.path = self.filepath
-        new_resource.name = Path(self.filepath).name
-        cm.scan_for_content(Path(self.filepath))
+        new_resource.name = TinyPath(self.filepath).name
+        cm.scan_for_content(TinyPath(self.filepath))
         deserialize_mounted_content(cm)
         serialize_mounted_content(cm)
 

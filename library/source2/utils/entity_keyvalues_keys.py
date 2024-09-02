@@ -1,16 +1,16 @@
 import json
-from pathlib import Path
 
-from ....logger import SourceLogMan
-from ...utils.singleton import SingletonMeta
 from .murmurhash2 import murmur_hash2
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils.singleton import SingletonMeta
+from SourceIO.logger import SourceLogMan
 
 MURMUR2SEED = 0x31415926
 
 
 class EntityKeyValuesKeys(metaclass=SingletonMeta):
-    _json_path = (Path(__file__).parent / 'entitykeyvalues_strings.json')
-    _raw_strings_path = (Path(__file__).parent / 'entitykeyvalues_strings.txt')
+    _json_path = (TinyPath(__file__).parent / 'entitykeyvalues_strings.json')
+    _raw_strings_path = (TinyPath(__file__).parent / 'entitykeyvalues_strings.txt')
     lookup_table = {}
     _all_keys = []
 
