@@ -4,8 +4,8 @@ from pathlib import Path
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE, ShadelessFox, Syborg64",
-    "version": (5, 4, 4),
-    "blender": (3, 4, 0),
+    "version": (5, 4, 5),
+    "blender": (3, 6, 0),
     "location": "File > Import > SourceEngine assets",
     "description": "GoldSrc/Source1/Source2 Engine assets(.mdl, .bsp, .vmt, .vtf, .vmdl_c, .vwrld_c, .vtex_c)"
                    "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
