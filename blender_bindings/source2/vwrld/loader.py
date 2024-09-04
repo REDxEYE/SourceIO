@@ -97,7 +97,7 @@ def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath |
     collection.objects.link(empty)
 
 
-def create_aggregate_prop_placeholder(scene_object: Object, proper_path: Path | None, matrix: Matrix | None,
+def create_aggregate_prop_placeholder(scene_object: Object, proper_path: TinyPath | None, matrix: Matrix | None,
                                       collection: bpy.types.Collection, scale: float, draw_info: dict):
     if not proper_path:
         return
