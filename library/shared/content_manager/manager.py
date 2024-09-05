@@ -112,47 +112,30 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         root_path = get_loose_file_fs_root(scan_path)
         if root_path:
             self.add_child(LooseFilesContentProvider(root_path))
-        raise NotImplementedError("TODO: Update other logic")
         if root_path:
-            if root_path.stem in self.children:
-                return
-            else:
-                gameinfos = list(root_path.glob('*gameinfo.txt'))
-                if not gameinfos:
-                    # for unknown gameinfo like gameinfo_srgb, they are confusing content manager steam id thingie
-                    gameinfos = root_path.glob('gameinfo_*.txt')
-                for gameinfo in gameinfos:
-                    try:
-                        sub_manager = Source1GameinfoContentProvider(gameinfo)
-                    except ValueError as ex:
-                        logger.exception(f"Failed to parse gameinfo for {gameinfo}", ex)
-                        continue
-                    if sub_manager.gameinfo.game == 'Titanfall':
-                        self._titanfall_mode = True
-                    self.content_providers[root_path.stem] = sub_manager
-                    logger.info(f'Registered provider for {root_path.stem}')
-                    for mod in sub_manager.get_search_paths():
-                        if mod.parts[-1] == '*':
-                            continue
-                        self.scan_for_content(mod)
+            gameinfos = list(root_path.glob('*gameinfo.txt'))
+            if not gameinfos:
+                # for unknown gameinfo like gameinfo_srgb, they are confusing content manager steam id thingie
+                gameinfos = root_path.glob('gameinfo_*.txt')
+            for gameinfo in gameinfos:
+                try:
+                    sub_manager = Source1GameInfoProvider(gameinfo)
+                except ValueError as ex:
+                    logger.exception(f"Failed to parse gameinfo for {gameinfo}", ex)
+                    continue
+                self.add_child(sub_manager)
+                logger.info(f'Registered provider for {root_path.stem}')
 
-                gameinfos = root_path.glob('*gameinfo*.gi')
-                for gameinfo in gameinfos:
-                    sub_manager = Source2GameinfoContentProvider(gameinfo)
-                    self.register_content_provider(root_path.stem, sub_manager)
-                    for mod in sub_manager.get_search_paths():
-                        self.scan_for_content(mod)
-        elif 'download' in root_path.name:
-            sub_manager = NonSourceContentProvider(root_path)
-            self.content_providers[root_path.stem] = sub_manager
-            logger.info(f'Registered provider for {root_path.stem}')
-            self.scan_for_content(root_path.parent)
+            gameinfos = root_path.glob('*gameinfo*.gi')
+            for gameinfo in gameinfos:
+                sub_manager = Source2GameInfoProvider(gameinfo)
+                self.add_child(sub_manager)
         else:
             if root_path.is_dir():
-                self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
+                self.add_child(LooseFilesContentProvider(root_path))
             else:
                 root_path = root_path.parent
-                self.register_content_provider(root_path.stem, NonSourceContentProvider(root_path))
+                self.add_child(LooseFilesContentProvider(root_path))
 
     def add_child(self, child: ContentProvider):
         if child not in self.children:
