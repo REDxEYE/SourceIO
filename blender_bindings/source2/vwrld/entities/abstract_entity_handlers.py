@@ -137,9 +137,9 @@ class AbstractEntityHandler:
             math.radians(entity.angles[1])
         )))
 
-    def _set_location_and_scale(self, obj, location, additional_scale=1.0):
+    def _set_location_and_scale(self, obj, location, additional_scale: float | np.ndarray = 1.0):
         obj.location = location
-        obj.location *= self.scale * additional_scale
+        obj.location *= additional_scale * self.scale
         obj.scale *= additional_scale
 
     def _set_location(self, obj, location):

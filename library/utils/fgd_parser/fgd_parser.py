@@ -1,9 +1,8 @@
 from enum import Enum
-from typing import Union
 
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.utils.fgd_parser.fgd_classes import FGDEntity
 from SourceIO.library.utils.tiny_path import TinyPath
-from ...shared.content_manager.manager import ContentManager
-from ...utils.fgd_parser.fgd_classes import FGDEntity
 
 
 class FGDLexerException(Exception):
@@ -95,7 +94,11 @@ class FGDLexer:
                 self.advance()
                 string_buffer = ""
                 while True:
-                    if self.symbol == '"':
+                    if self.symbol == '\\' and self.next_symbol == '"':
+                        self.advance()
+                        string_buffer += "\\" + self.advance()
+                        continue
+                    elif self.symbol == '"':
                         self.advance()
                         break
                     string_buffer += self.advance()
@@ -232,6 +235,8 @@ class FGDParser:
                     self._parse_material_exclusion()
                 elif value.lower() == '@autovisgroup':
                     self._parse_autovis_group()
+                elif value.lower() == '@visgroupfilter':
+                    self._parse_visgroup_filter()
                 elif value.startswith('@') and value.lower().endswith("class"):
                     self._parse_baseclass(value[1:])
             elif self.match(FGDToken.EOF):
@@ -296,14 +301,7 @@ class FGDParser:
                     self.expect(FGDToken.RPAREN)
                     definitions.append((meta_prop_type, (r, g, b)))
                 elif meta_prop_type == 'metadata':
-                    meta = {}
-                    self.expect(FGDToken.LBRACE)
-                    while not self.match(FGDToken.RBRACE):
-                        key = self.expect(FGDToken.IDENTIFIER)
-                        self.expect(FGDToken.EQUALS)
-                        value = self.expect(FGDToken.STRING)
-                        meta[key] = value
-                    self.expect(FGDToken.RBRACE)
+                    meta = self._parse_kv()
                     definitions.append((meta_prop_type, meta))
                 else:
                     if self.match(FGDToken.LPAREN):
@@ -314,6 +312,9 @@ class FGDParser:
                             if self.match(FGDToken.COMMA):
                                 self.advance()
                         self.expect(FGDToken.RPAREN)
+                        definitions.append((meta_prop_type, meta))
+                    elif self.match(FGDToken.LBRACE):
+                        meta = self._parse_kv()
                         definitions.append((meta_prop_type, meta))
                     else:
                         definitions.append((meta_prop_type, True))
@@ -357,7 +358,44 @@ class FGDParser:
         p1 = self.expect(FGDToken.IDENTIFIER)
         while self.match(FGDToken.COLON, True):
             p1 += ':' + self.expect(FGDToken.IDENTIFIER)
+            if self.match(FGDToken.FSLASH, True):
+                p1 += '/' + self.expect(FGDToken.IDENTIFIER)
+            if self.match(FGDToken.DOT, True):
+                p1 += '.' + self.expect(FGDToken.IDENTIFIER)
         return p1
+
+    def _parse_kv(self):
+        data = {}
+
+        def parse_array():
+            ar = []
+            self.expect(FGDToken.LBRACKET)
+            while not self.match(FGDToken.RBRACKET, True):
+                ar.append(parse_value())
+                self.match(FGDToken.COMMA, True)
+            return ar
+
+        def parse_value():
+            if self.match(FGDToken.LBRACE):
+                return self._parse_kv()
+            elif self.match(FGDToken.LBRACKET):
+                return parse_array()
+            elif self.match(FGDToken.NUMERIC):
+                _, p1 = self.advance()
+                if self.match(FGDToken.DOT, True) and self.match(FGDToken.NUMERIC):
+                    p1 = f'{p1}.{self.expect(FGDToken.NUMERIC)}'
+                    return float(p1)
+                return int(p1)
+            _, v = self.advance()
+            return v
+
+        if self.match(FGDToken.LBRACE, True):
+            while not self.match(FGDToken.RBRACE, True):
+                key = self.expect(FGDToken.IDENTIFIER)
+                self.expect(FGDToken.EQUALS)
+                value = parse_value()
+                data[key] = value
+        return data
 
     def _parse_joined_string(self):
         p1 = self.expect(FGDToken.STRING)
@@ -386,12 +424,14 @@ class FGDParser:
         while not self.match(FGDToken.RPAREN):
             args.append(self.expect(FGDToken.IDENTIFIER))
         self.expect(FGDToken.RPAREN)
+        meta = self._parse_kv()
+
         if self.match(FGDToken.COLON):
             self.advance()
             doc_str = self._parse_joined_string() if self.match(FGDToken.STRING) else None
         else:
             doc_str = None
-        storage.append({'name': name, 'type': io_type, 'args': args, 'doc': doc_str})
+        storage.append({'name': name, 'type': io_type, 'args': args, 'doc': doc_str, 'meta': meta})
 
     def _parse_class_param_meta(self):
         meta = {}
@@ -413,6 +453,8 @@ class FGDParser:
         self.expect(FGDToken.LPAREN)
         param_type = self._parse_complex_type()
         self.expect(FGDToken.RPAREN)
+        meta = self._parse_kv()
+        prop['meta'].update(meta)
         if self.match(FGDToken.IDENTIFIER) and self.peek()[1] in ['report', 'readonly']:
             prop['meta'][self.expect(FGDToken.IDENTIFIER)] = True
         if self.match(FGDToken.LBRACKET, True):
@@ -508,14 +550,49 @@ class FGDParser:
                 ent_name = self.expect(FGDToken.STRING)
                 vis_list.append(ent_name)
 
+    def _parse_visgroup_filter(self):
+        self.expect(FGDToken.LBRACE)
+        items: dict[str, object] = {}
+        while not self.match(FGDToken.RBRACE, True):
+            key = self.expect(FGDToken.IDENTIFIER)
+            self.expect(FGDToken.EQUALS)
+            value = self.expect(FGDToken.STRING)
+            items[key] = value
+        print(items)
+
 
 if __name__ == '__main__':
-    test_file = TinyPath(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
+    test_file = TinyPath(r"D:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\csgo.fgd")
+    # test_file = TinyPath(r"F:\SteamLibrary\steamapps\common\Half-Life Alyx\game\hlvr\hlvr.fgd")
     # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\swarm.fgd")
     # test_file = Path(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\bin\base.fgd")
     ContentManager().scan_for_content(test_file)
     parser = FGDParser(test_file)
     parser.parse()
-    for cls in parser.classes:
-        print(cls.parser_code())
+
+    with open("tmp.py", "w") as f:
+        f.write("""def parse_source_value(value):
+    if type(value) is str:
+        value: str
+        if value.replace('.', '', 1).replace('-', '', 1).isdecimal():
+            return float(value) if '.' in value else int(value)
+        return 0
+    else:
+        return value
+
+
+def parse_int_vector(string):
+    return [parse_source_value(val) for val in string.replace('  ', ' ').split(' ')]
+
+
+def parse_float_vector(string):
+    return [float(val) for val in string.replace('  ', ' ').split(' ')]
+    
+""")
+        for cls in parser.classes:
+            print(cls.parser_code(parser.classes), file=f)
+        print("entity_class_handle = [", file=f)
+        for cls in parser.classes:
+            print(f"\t\"{cls.name}\":{cls.name}, ", file=f)
+        print("]", file=f)
     pass
