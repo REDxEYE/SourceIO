@@ -30,11 +30,12 @@ class VMT:
     def _postprocess(self):
         content_manager = ContentManager()
         if self.shader == 'patch':
-            original_material = content_manager.find_file(self.get_string('include'))
+            look_for = self.get_string('include')
+            original_material = content_manager.find_material(look_for)
             if not original_material:
-                logger.error(f'Failed to find original material {self.get_string("include")!r}')
+                logger.error(f'Failed to find original material: {look_for!r}')
                 return
-            patched_vmt = VMT(original_material, self.get_string('include'))
+            patched_vmt = VMT(original_material, look_for)
             if 'insert' in self:
                 patch_data = self.get('insert', {})
                 patched_vmt.data.merge(patch_data)
