@@ -150,7 +150,9 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: 
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
             mesh_data.normals_split_custom_set_from_vertices(normals)
-            mesh_data.use_auto_smooth = True
+            # TODO: Not a property in Blender 4.2, there seems to be a shade_auto_smooth that can be used:
+            # https://docs.blender.org/api/4.4/bpy.ops.object.html#bpy.ops.object.shade_auto_smooth
+            # mesh_data.use_auto_smooth = True
 
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):
