@@ -130,8 +130,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: 
 
             if model.vtype == 1:
                 normals = vertices['normal']
-                # TODO: Verify the division by uint16 max by finding a model that uses it in a map
-                vertex_data = (vertex_data.astype(np.float32) / 65535.0) * np.asarray(model.vscale, np.float32) + np.asarray(
+                vertex_data = vertex_data.astype(np.float32) * np.asarray(model.vscale, np.float32) + np.asarray(
                     model.voffset, np.float32)
                 normals = normals.astype(np.float32) / 255
                 uvs = np.hstack([vertices["u"], vertices["v"]])
