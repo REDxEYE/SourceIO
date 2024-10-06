@@ -4,6 +4,7 @@ from .gmod import GModDetector
 from .goldsrc import GoldSrcDetector
 from .hla import HLADetector
 from .idtech3 import IDTech3Detector
+from .portal2 import Portal2Detector
 from .robot_repair import RobotRepairDetector
 from .sbox import SBoxDetector
 from .sfm import SFMDetector
@@ -17,7 +18,7 @@ from ..provider import ContentProvider
 
 def detect_game(path: TinyPath) -> list[ContentProvider]:
     detector_addons = [GoldSrcDetector(), IDTech3Detector(),
-                       SFMDetector(), GModDetector(), SourceMod(),
+                       SFMDetector(), GModDetector(),Portal2Detector(), SourceMod(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
                        Source1Detector(), Source2Detector()]

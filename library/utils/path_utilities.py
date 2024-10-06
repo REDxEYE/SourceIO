@@ -1,5 +1,6 @@
 import os
 import platform
+from typing import Optional
 
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -40,7 +41,7 @@ def find_vtx_cm(mdl_path: TinyPath, content_manager):
             return path
 
 
-def backwalk_file_resolver(current_path, file_to_find):
+def backwalk_file_resolver(current_path, file_to_find) -> Optional[TinyPath]:
     current_path = TinyPath(current_path).absolute()
     file_to_find = TinyPath(file_to_find)
 
