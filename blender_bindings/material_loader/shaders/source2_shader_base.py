@@ -16,7 +16,8 @@ logger = SourceLogMan().get_logger("Source2::Shader")
 class Source2ShaderBase(ShaderBase):
     def __init__(self, content_manager: ContentManager, source2_material: CompiledMaterialResource,
                  tinted: bool = False):
-        super().__init__(content_manager)
+        super().__init__()
+        self.content_manager = content_manager
         self.load_source2_nodes()
         self._material_resource = source2_material
         self.tinted = tinted

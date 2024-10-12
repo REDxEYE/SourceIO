@@ -11,7 +11,8 @@ from ....library.utils.tiny_path import TinyPath
 
 class Source1ShaderBase(ShaderBase):
     def __init__(self, content_manager: ContentManager, vmt):
-        super().__init__(content_manager)
+        super().__init__()
+        self.content_manager = content_manager
         self.load_bvlg_nodes()
         self._vmt: VMT = vmt
         self.textures = {}

@@ -18,6 +18,7 @@ class Skybox(Source2ShaderBase):
 
     def __init__(self, content_manager: ContentManager, source2_material):
         super().__init__(content_manager, source2_material)
+        self.content_manager = content_manager
         self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.do_arrange = True
 

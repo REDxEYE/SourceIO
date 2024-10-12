@@ -150,12 +150,11 @@ class ShaderBase:
     def all_subclasses(cls):
         return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
 
-    def __init__(self, content_manager: ContentManager):
+    def __init__(self):
         self.logger = log_manager.get_logger(f'Shaders::{self.SHADER}')
         self.bpy_material: bpy.types.Material = None
         self.do_arrange = True
         self.uv_map = None
-        self.content_manager = content_manager
 
     @staticmethod
     def get_missing_texture(texture_name: str, fill_color: tuple = (1.0, 1.0, 1.0, 1.0)):
