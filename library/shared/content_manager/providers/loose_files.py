@@ -12,7 +12,9 @@ class LooseFilesContentProvider(ContentProvider):
         return (self.root / filepath).exists()
 
     def get_relative_path(self, filepath: TinyPath):
-        return filepath.relative_to(self.root)
+        if filepath.is_relative_to(self.root):
+            return filepath.relative_to(self.root)
+        return None
 
     def get_provider_from_path(self, filepath: TinyPath) -> ContentProvider | None:
         full_path = self.root / filepath
@@ -21,7 +23,9 @@ class LooseFilesContentProvider(ContentProvider):
         return None
 
     def get_steamid_from_asset(self, asset_path: TinyPath) -> SteamAppId | None:
-        return self.steam_id
+        if self.check(asset_path):
+            return self.steam_id
+        return None
 
     @property
     def name(self) -> str:
