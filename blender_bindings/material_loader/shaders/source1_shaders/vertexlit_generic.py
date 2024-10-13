@@ -2,7 +2,6 @@ from ....utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 from .detail import DetailSupportMixin
-import bpy
 
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
@@ -268,21 +267,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                         self._vmt[result_var] = self._vmt[src2_var]
 
 
-
-        if (items := self._vmt.get('>=dx90')) or (items := self._vmt.get('>=DX90')):
-            #print('true!')
-            #print(items, dir(items), list(items.items()))
-            for item_name, item_value in items.items():
-                #print(item_name, item_value)
-                self._vmt[item_name] = item_value
-                if item_name == '$selfillum' and item_value == '1':
-                    selfillum = True
-
-        selfillum = self.selfillum or selfillum
-
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
-        parentnode = material_output
 
         if self.alphatest or self.translucent:
             if self.translucent:
@@ -414,7 +400,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 cycles_output = self.create_node(Nodes.ShaderNodeOutputMaterial, name='Cycles Output')
                 cycles_output.target = 'CYCLES'
 
-                lightwarp: bpy.types.ShaderNodeTexImage = self.create_texture_node(self.lightwarptexture, 'lightwarptexture')
+                lightwarp = self.create_texture_node(self.lightwarptexture, 'lightwarptexture')
                 lightwarp.extension = 'EXTEND'
                 self.connect_nodes(group_node.outputs['lightwarpvector'], lightwarp.inputs[0])
                 sio_diffuse = self.create_node_group('SIO-Diffuse', name='Diffuse')

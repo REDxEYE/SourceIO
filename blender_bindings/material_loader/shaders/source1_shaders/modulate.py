@@ -1,4 +1,3 @@
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -64,7 +63,10 @@ class Modulate(Source1ShaderBase):
     def create_nodes(self, material):
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
+        self.bpy_material.blend_method = 'BLEND'
+        self.bpy_material.surface_render_method = 'BLENDED'
         mult = self.create_node(Nodes.ShaderNodeVectorMath)
+        mult.operation = 'MULTIPLY'
         mult.inputs[0].default_value = (1, 1, 1)
         mult.inputs[1].default_value = (1, 1, 1)
         if self.basetexture:
@@ -73,7 +75,7 @@ class Modulate(Source1ShaderBase):
         if self.mod2x:
             mult.inputs[1].default_value = (2, 2, 2)
         self.bpy_material.use_backface_culling = self.nocull
-        transparent = self.create_nodes(Nodes.ShaderNodeBsdfTransparent)
+        transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
         self.connect_nodes(mult.outputs[0], transparent.inputs[0])
         out = self.create_node(Nodes.ShaderNodeOutputMaterial)
         self.connect_nodes(transparent.outputs[0], out.inputs[0])

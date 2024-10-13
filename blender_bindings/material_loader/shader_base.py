@@ -224,7 +224,7 @@ class ShaderBase:
     def create_node_group(self, group_name, location=None, *, name=None):
         group_node = self.create_node(Nodes.ShaderNodeGroup, name or group_name)
         group_node.node_tree = bpy.data.node_groups.get(group_name)
-        group_node.width = group_node.bl_width_max
+        group_node.width = 240
         if location is not None:
             group_node.location = location
         return group_node
