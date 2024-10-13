@@ -2,7 +2,7 @@ from ....utils.bpy_utils import is_blender_4
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 from .detail import DetailSupportMixin
-
+import bpy
 
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
@@ -12,6 +12,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         texture_path = self._vmt.get_string('$bumpmap', None)
         if texture_path is not None:
             image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
             image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
@@ -23,6 +25,16 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+        return None
+    
+    @property
+    def lightwarptexture(self):
+        texture_path = self._vmt.get_string('$lightwarptexture', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
         return None
 
     @property
@@ -72,6 +84,17 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
+    
+    @property
+    def colortint_base(self):
+        color_value, value_type = self._vmt.get_vector('$colortint_base', None)
+        if color_value is None:
+            return None
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+        return self.ensure_length(color_value, 4, 1.0)
 
     @property
     def translucent(self):
@@ -84,6 +107,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def alphatestreference(self):
         return self._vmt.get_float('$alphatestreference', 0.5)
+    
+    @property
+    def selfillummaskscale(self):
+        return self._vmt.get_float('$selfillummaskscale', 1.0)
 
     @property
     def allowalphatocoverage(self):
@@ -100,6 +127,17 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def selfillum(self):
         return self._vmt.get_int('$selfillum', 0) == 1
+    
+    @property
+    def selfillumtint(self):
+        color_value, value_type = self._vmt.get_vector('$selfillumtint', None)
+        if color_value is None:
+            return None
+        divider = 255 if value_type is int else 1
+        color_value = list(map(lambda a: a / divider, color_value))
+        if len(color_value) == 1:
+            color_value = [color_value[0], color_value[0], color_value[0]]
+        return self.ensure_length(color_value, 4, 1.0)
 
     @property
     def basealphaenvmapmask(self):
@@ -178,7 +216,19 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def phongalbedotint(self):
         return self._vmt.get_int('$phongalbedotint', 1) == 1
-
+    
+    @property
+    def blendtintbybasealpha(self):
+        return self._vmt.get_float('$blendtintbybasealpha', 0)
+    
+    @property
+    def blendtintcoloroverbase(self):
+        return self._vmt.get_float('$blendtintcoloroverbase', 0)
+    
+    @property
+    def nocull(self):
+        return self._vmt.get_int('$nocull', 0) == 1
+    
     @property
     def phongtint(self):
         color_value, value_type = self._vmt.get_vector('$phongtint', None)
@@ -191,10 +241,13 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return self.ensure_length(color_value, 4, 1.0)
 
     def create_nodes(self, material):
+        sio_diffuse = None
+        selfillum = False
+
         print(f"BVLG: {self.use_bvlg_status}")
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
-
+        
         if 'proxies' in self._vmt:
             proxies = self._vmt.get('proxies')
             for proxy_name, proxy_data in proxies.items():
@@ -214,6 +267,19 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                             continue
                         self._vmt[result_var] = self._vmt[src2_var]
 
+
+
+        if (items := self._vmt.get('>=dx90')) or (items := self._vmt.get('>=DX90')):
+            #print('true!')
+            #print(items, dir(items), list(items.items()))
+            for item_name, item_value in items.items():
+                #print(item_name, item_value)
+                self._vmt[item_name] = item_value
+                if item_name == '$selfillum' and item_value == '1':
+                    selfillum = True
+
+        selfillum = self.selfillum or selfillum
+
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
         parentnode = material_output
@@ -221,22 +287,18 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         if self.alphatest or self.translucent:
             if self.translucent:
                 self.bpy_material.blend_method = 'BLEND'
+                if hasattr(self.bpy_material, 'surface_render_method'):
+                    self.bpy_material.surface_render_method = 'BLENDED'
             else:
                 self.bpy_material.blend_method = 'HASHED'
             self.bpy_material.shadow_method = 'HASHED'
         uv = None
         if self.use_bvlg_status:
-            self.do_arrange = False
-            if self.alphatest or self.translucent:
-                alphatest_node = self.create_node_group("$alphatest", [250, 0])
-                parentnode = alphatest_node
-                material_output.location = [450, 0]
-                alphatest_node.inputs['$alphatestreference [value]'].default_value = self.alphatestreference
-                alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
-                self.connect_nodes(alphatest_node.outputs['BSDF'], material_output.inputs['Surface'])
+            self.do_arrange = True
 
             group_node = self.create_node_group("VertexLitGeneric", [-200, 0])
-            self.connect_nodes(group_node.outputs['BSDF'], parentnode.inputs[0])
+            final = group_node.outputs[0]
+            
             if self.basetexture:
                 basetexture_node = self.create_and_connect_texture_node(self.basetexture,
                                                                         group_node.inputs['$basetexture [texture]'],
@@ -251,15 +313,17 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 if self.basemapalphaphongmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
-                if self.alphatest:
-                    self.connect_nodes(basetexture_node.outputs['Alpha'],
-                                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                #if self.alphatest or self.translucent:
+                #    self.connect_nodes(basetexture_node.outputs['Alpha'],
+                #                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
                 if self.detail:
                     albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, uv_node=uv)
+            elif self.color:
+                group_node.inputs['$basetexture [texture]'].default_value = self.color
 
-            if self.color or self.color2:
-                group_node.inputs['$color2 [RGB field]'].default_value = self.color or self.color2
+            if self.color2 or self.colortint_base:
+                group_node.inputs['$color2 [RGB field]'].default_value = self.color2 or self.colortint_base
 
             if self.envmap:
                 group_node.inputs['$envmap [boolean]'].default_value = 1
@@ -284,6 +348,12 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 group_node.inputs['$rimlightexponent [value]'].default_value = self.rimlightexponent
             if self.rimlightboost:
                 group_node.inputs['$rimlightboost [value]'].default_value = self.rimlightboost
+
+            if self.blendtintbybasealpha:
+                group_node.inputs['$blendtintbybasealpha'].default_value = self.blendtintbybasealpha
+
+            if self.blendtintcoloroverbase:
+                group_node.inputs['$blendtintcoloroverbase'].default_value = self.blendtintcoloroverbase
 
             if self.phong:
                 group_node.inputs['$phong [bool]'].default_value = 1
@@ -334,6 +404,71 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 elif self.basetexture is not None:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['$selfillummask [texture alpha]'])
+                if self.selfillummaskscale:
+                    group_node.inputs['$selfillummaskscale'].default_value = self.selfillummaskscale
+                if self.selfillumtint:
+                    group_node.inputs['$selfillumtint'].default_value = self.selfillumtint
+
+            if self.lightwarptexture:
+                material_output.target = 'EEVEE'
+                cycles_output = self.create_node(Nodes.ShaderNodeOutputMaterial, name='Cycles Output')
+                cycles_output.target = 'CYCLES'
+
+                lightwarp: bpy.types.ShaderNodeTexImage = self.create_texture_node(self.lightwarptexture, 'lightwarptexture')
+                lightwarp.extension = 'EXTEND'
+                self.connect_nodes(group_node.outputs['lightwarpvector'], lightwarp.inputs[0])
+                sio_diffuse = self.create_node_group('SIO-Diffuse', name='Diffuse')
+                self.connect_nodes(lightwarp.outputs[0], sio_diffuse.inputs['Lightwarp'])
+                self.connect_nodes(group_node.outputs['$bumpmap'], sio_diffuse.inputs['$bumpmap'])
+                self.connect_nodes(group_node.outputs['Final Albedo'], sio_diffuse.inputs['Albedo'])
+                self.connect_nodes(group_node.outputs['Lighting'], sio_diffuse.inputs['Light Pass'])
+
+                final = sio_diffuse.outputs['EEVEE Pass']
+                final_cycles = sio_diffuse.outputs['Cycles Pass']
+
+            if self.additive:
+                if sio_diffuse:
+                    add_eevee = self.create_node(Nodes.ShaderNodeAddShader)
+                    add_cycles = self.create_node(Nodes.ShaderNodeAddShader)
+                    transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
+                    self.connect_nodes(sio_diffuse.outputs['EEVEE Pass'], add_eevee.inputs[1])
+                    self.connect_nodes(sio_diffuse.outputs['Cycles Pass'], add_cycles.inputs[1])
+                    self.connect_nodes(transparent.outputs[0], add_eevee.inputs[0])
+                    self.connect_nodes(transparent.outputs[0], add_cycles.inputs[0])
+                    final = add_eevee.outputs[0]
+                    final_cycles = add_cycles.outputs[0]
+                    
+            if self.alphatest or self.translucent:
+                alphatest_node = self.create_node_group("$alphatest", [250, 0])
+                material_output.location = [450, 0]
+                alphatest_node.inputs['$alphatestreference [value]'].default_value = self.alphatestreference
+                alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
+                alphatest_node.inputs['$translucent'].default_value = self.translucent
+                if self.basetexture:
+                    self.connect_nodes(basetexture_node.outputs[1], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                self.connect_nodes(final, alphatest_node.inputs[0])
+                final = alphatest_node.outputs[0]
+                if sio_diffuse:
+                    alphatest_node = self.create_node_group("$alphatest", [250, 0])
+                    material_output.location = [450, 0]
+                    alphatest_node.inputs['$alphatestreference [value]'].default_value = self.alphatestreference
+                    alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
+                    alphatest_node.inputs['$translucent'].default_value = self.translucent
+                    if self.basetexture:
+                        self.connect_nodes(basetexture_node.outputs[1], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                    self.connect_nodes(final_cycles, alphatest_node.inputs[0])
+                    final_cycles = alphatest_node.outputs[0]
+            
+            # Finalize outputs
+            self.connect_nodes(final, material_output.inputs[0])
+            if sio_diffuse:
+                self.connect_nodes(final_cycles, cycles_output.inputs[0])
+
+
+            '''
+            END OF BVLG
+            '''
+
         else:
             shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
             self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])

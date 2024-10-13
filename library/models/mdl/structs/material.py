@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from uuid import uuid4
 
 
 from SourceIO.library.utils import Buffer

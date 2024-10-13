@@ -48,23 +48,40 @@ class UnlitGeneric(Source1ShaderBase):
     @property
     def additive(self):
         return self._vmt.get_int('$additive', 0) == 1
+    
+    @property
+    def translucent(self):
+        return self._vmt.get_int('$translucent', 0) == 1
+    
+    @property
+    def nocull(self):
+        return self._vmt.get_int('$nocull', 0) == 1
 
     def create_nodes(self, material):
+        vertical = 0
+        self.do_arrange = True
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
-        self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
+        #shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
+        #self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
         basetexture = self.basetexture
         texture2 = self.texture2
+        if self.nocull:
+            self.bpy_material.use_backface_culling = False
+        else:
+            self.bpy_material.use_backface_culling = True
         if basetexture:
             basetexture_node = self.create_and_connect_texture_node(basetexture, name='$basetexture')
+            basetexture_node.location = [0, 0]
             if texture2:
                 texture2_node = self.create_and_connect_texture_node(texture2, name='$basetexture')
-
+                texture2_node.location = [0, -300]
+                vertical += 300
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                color_mix.location = [vertical, 0]
                 color_mix.blend_type = 'MULTIPLY'
                 color_mix.inputs['Fac'].default_value = 1.0
                 self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
@@ -74,28 +91,40 @@ class UnlitGeneric(Source1ShaderBase):
                 texture_output = basetexture_node.outputs['Color']
 
             if self.color or self.color2:
+                #vertical += 300
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                color_mix.location
                 color_mix.blend_type = 'MULTIPLY'
                 self.connect_nodes(texture_output, color_mix.inputs['Color1'])
                 color_mix.inputs['Color2'].default_value = (*(self.color or self.color2), 1.0)
                 color_mix.inputs['Fac'].default_value = 1.0
-                self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
+                texture_output = color_mix.outputs[0]
+                #self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
             else:
-                self.connect_nodes(texture_output, shader.inputs['Base Color'])
-            if self.additive:
-                if self.additive:
-                    basetexture_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-                    basetexture_additive_mix_node = self.create_node(Nodes.ShaderNodeMixRGB)
+                pass
+                #self.connect_nodes(texture_output, shader.inputs['Base Color'])
+        if self.additive:
+            self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.surface_render_method = 'BLENDED'
 
-                    self.insert_node(texture_output, basetexture_additive_mix_node.inputs['Color1'],
-                                     basetexture_additive_mix_node.outputs['Color'])
-                    basetexture_additive_mix_node.inputs['Color2'].default_value = (1.0, 1.0, 1.0, 1.0)
+            transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
+            add_shader = self.create_node(Nodes.ShaderNodeAddShader)
 
-                    self.connect_nodes(texture_output, basetexture_invert_node.inputs['Color'])
-                    if is_blender_4():
-                        self.connect_nodes(basetexture_invert_node.outputs['Color'],
-                                           shader.inputs['Transmission Weight'])
-                    else:
-                        self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
-                    self.connect_nodes(basetexture_invert_node.outputs['Color'],
-                                       basetexture_additive_mix_node.inputs['Fac'])
+            self.connect_nodes(transparent.outputs[0], add_shader.inputs[0])
+            self.connect_nodes(texture_output, add_shader.inputs[1])
+
+            texture_output = add_shader.outputs[0]
+        
+        if self.translucent:
+            self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.surface_render_method = 'BLENDED'
+
+            mix = self.create_node(Nodes.ShaderNodeMixShader)
+            transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
+
+            self.connect_nodes(texture_output, mix.inputs[2])
+            self.connect_nodes(transparent.outputs[0], mix.inputs[1])
+            self.connect_nodes(basetexture_node.outputs[1], mix.inputs[0])
+            texture_output = mix.outputs[0]
+
+        self.connect_nodes(texture_output, material_output.inputs[0])

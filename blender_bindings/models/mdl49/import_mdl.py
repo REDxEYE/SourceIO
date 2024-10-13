@@ -58,7 +58,18 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
 
             mesh_data = bpy.data.meshes.new(mesh_name)
             mesh_obj = bpy.data.objects.new(object_name, mesh_data)
-            mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
+            if getattr(mdl, 'material_mapper', None):
+                material_mapper = mdl.material_mapper
+                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for (n, group) in enumerate(mdl.skin_groups)}
+                for key, value in true_skin_groups.items():
+                    while None in value:
+                        value.remove(None)
+                try:
+                    mesh_obj['skin_groups'] = true_skin_groups
+                except:
+                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            else:
+                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
 
