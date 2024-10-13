@@ -74,7 +74,7 @@ class Modulate(Source1ShaderBase):
             self.connect_nodes(basetexture_node.outputs[0], mult.inputs[0])
         if self.mod2x:
             mult.inputs[1].default_value = (2, 2, 2)
-        self.bpy_material.use_backface_culling = self.nocull
+        self.bpy_material.use_backface_culling = not bool(self.nocull)
         transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
         self.connect_nodes(mult.outputs[0], transparent.inputs[0])
         out = self.create_node(Nodes.ShaderNodeOutputMaterial)
