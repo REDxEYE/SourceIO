@@ -39,7 +39,13 @@ def import_mdl44(model_path: TinyPath, buffer: Buffer,
         raise RequiredFileNotFound(f"Could not find VTX and/or VVD file for {model_path}")
     vtx = open_vtx(vtx_buffer)
     vvd = Vvd.from_buffer(vvd_buffer)
-
+    if options.import_textures:
+        try:
+            import_materials(content_manager, mdl, use_bvlg=options.use_bvlg)
+        except Exception as t_ex:
+            logger.error(f'Failed to import materials, caused by {t_ex}')
+            import traceback
+            traceback.print_exc()
     container = import_model(content_manager, mdl, vtx, vvd, options.scale, options.create_flex_drivers)
     if options.import_physics:
         phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
@@ -48,12 +54,6 @@ def import_mdl44(model_path: TinyPath, buffer: Buffer,
         else:
             phy = Phy.from_buffer(phy_buffer)
             import_physics(phy, phy_buffer, mdl, container, options.scale)
-    if options.import_textures:
-        try:
-            import_materials(content_manager, mdl, use_bvlg=options.use_bvlg)
-        except Exception as t_ex:
-            logger.error(f'Failed to import materials, caused by {t_ex}')
-            import traceback
-            traceback.print_exc()
+    
 
     return container

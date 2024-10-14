@@ -64,6 +64,7 @@ def check_texture_cache(texture_path: TinyPath) -> Optional[bpy.types.Image]:
     logger.info(f"Loaded {texture_path!r} texture from disc")
     image.alpha_mode = "CHANNEL_PACKED"
     image.name = texture_path.stem
+    image['full_path'] = texture_path.lower()
     return image
 
 

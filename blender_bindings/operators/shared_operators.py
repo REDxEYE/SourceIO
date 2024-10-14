@@ -338,17 +338,15 @@ class SOURCEIO_OT_ChangeSkin(Operator):
     def handle_s1(self, obj):
         prop_path = TinyPath(obj['prop_path'])
         skin_materials = obj['skin_groups'][self.skin_name]
-        current_materials = obj['skin_groups'][obj['active_skin']]
-        unique_material_names = obj['unique_material_names']
-        for skin_material, current_material in zip(skin_materials, current_materials):
-            if unique_material_names:
-                skin_material = f"{prop_path.stem}_{skin_material[:63]}"[:63]
-                current_material = f"{prop_path.stem}_{current_material[:63]}"[:63]
-            else:
-                skin_material = skin_material[:63]
-                current_material = current_material[:63]
+        old_skins = obj['skin_groups'][obj['active_skin']]
 
-            swap_materials(obj, skin_material, current_material)
+        remap = {old: new for old, new in zip(old_skins, skin_materials)}
+
+        for n, mat in enumerate(obj.data.materials):
+            if (replacement := remap.get(mat)) == None: continue
+            obj.data.materials[n] = replacement
+
+        del remap
 
     def handle_s2(self, obj):
         skin_material = obj['skin_groups'][self.skin_name]
