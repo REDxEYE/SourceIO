@@ -73,7 +73,7 @@ class UnlitGeneric(Source1ShaderBase):
         if basetexture:
             basetexture_node = self.create_and_connect_texture_node(basetexture, name='$basetexture')
             if texture2:
-                texture2_node = self.create_and_connect_texture_node(texture2, name='$basetexture')
+                texture2_node = self.create_and_connect_texture_node(texture2, name='$texture2')
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
                 color_mix.blend_type = 'MULTIPLY'
                 color_mix.inputs['Fac'].default_value = 1.0
