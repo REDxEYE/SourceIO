@@ -44,6 +44,18 @@ class UnlitGeneric(Source1ShaderBase):
         elif len(color_value) > 3:
             color_value = color_value[:3]
         return color_value
+    
+    @property
+    def basetexturetransform(self):
+        return self._vmt.get_transform_matrix('$basetexturetransform',
+            {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+            'translate': (0, 0, 0)})
+    
+    @property
+    def texture2transform(self):
+        return self._vmt.get_transform_matrix('$texture2transform',
+            {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+            'translate': (0, 0, 0)})
 
     @property
     def additive(self):
@@ -72,9 +84,14 @@ class UnlitGeneric(Source1ShaderBase):
             self.bpy_material.use_backface_culling = True
         if basetexture:
             basetexture_node = self.create_and_connect_texture_node(basetexture, name='$basetexture')
+            if self.basetexturetransform:
+                uv, self.uv_map = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
             if texture2:
                 texture2_node = self.create_and_connect_texture_node(texture2, name='$texture2')
+                if self.texture2transform:
+                    uv, self.uv_map = self.handle_transform(self.texture2transform, texture2_node.inputs[0])
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                color_mix.name = 'twotex_mult'
                 color_mix.blend_type = 'MULTIPLY'
                 color_mix.inputs['Fac'].default_value = 1.0
                 self.connect_nodes(basetexture_node.outputs['Color'], color_mix.inputs['Color1'])
@@ -85,6 +102,7 @@ class UnlitGeneric(Source1ShaderBase):
 
             if self.color or self.color2:
                 color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
+                color_mix.name = 'color_mult'
                 color_mix.location
                 color_mix.blend_type = 'MULTIPLY'
                 self.connect_nodes(texture_output, color_mix.inputs['Color1'])
@@ -117,4 +135,16 @@ class UnlitGeneric(Source1ShaderBase):
             self.connect_nodes(basetexture_node.outputs[1], mix.inputs[0])
             texture_output = mix.outputs[0]
 
-        self.connect_nodes(texture_output, material_output.inputs[0])
+        culling = self.create_node_group('BackfaceCulling')
+
+        # so we can toggle backface culling across eevee and cycles with one boolean property
+        driv = culling.inputs['$nocull'].driver_add('default_value')
+        driv.driver.expression = '1-var'
+        var = driv.driver.variables.new()
+        var.type = 'SINGLE_PROP'
+        var.targets[0].id_type = 'MATERIAL'
+        var.targets[0].id = self.bpy_material
+        var.targets[0].data_path = 'use_backface_culling'
+
+        self.connect_nodes(texture_output, culling.inputs[0])
+        self.connect_nodes(culling.outputs[0], material_output.inputs[0])

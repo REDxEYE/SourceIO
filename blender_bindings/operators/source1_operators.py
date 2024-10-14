@@ -37,6 +37,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     filter_glob: StringProperty(default="*.mdl;*.md3", options={'HIDDEN'})
 
     def execute(self, context):
+        
         directory = self.get_directory()
 
         content_manager = ContentManager()

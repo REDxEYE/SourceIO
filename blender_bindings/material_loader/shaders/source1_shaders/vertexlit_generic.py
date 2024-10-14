@@ -39,8 +39,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def basetexturetransform(self):
         return self._vmt.get_transform_matrix('$basetexturetransform',
-                                              {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
-                                               'translate': (0, 0, 0)})
+                                                {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+                                                'translate': (0, 0, 0)})
 
     @property
     def selfillummask(self):
@@ -278,11 +278,26 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             else:
                 self.bpy_material.blend_method = 'HASHED'
             self.bpy_material.shadow_method = 'HASHED'
+        if self.additive:
+            self.bpy_material.blend_method = 'BLEND'
+            self.bpy_material.surface_render_method = 'BLENDED'
         uv = None
         if self.use_bvlg_status:
             self.do_arrange = True
 
+            self.bpy_material.use_backface_culling = not self.nocull
+
             group_node = self.create_node_group("VertexLitGeneric", [-200, 0])
+
+            # so we can toggle backface culling across eevee and cycles with one boolean property
+            driv = group_node.inputs['$nocull'].driver_add('default_value')
+            driv.driver.expression = '1-var'
+            var = driv.driver.variables.new()
+            var.type = 'SINGLE_PROP'
+            var.targets[0].id_type = 'MATERIAL'
+            var.targets[0].id = self.bpy_material
+            var.targets[0].data_path = 'use_backface_culling'
+
             final = group_node.outputs[0]
             
             if self.basetexture:
@@ -409,6 +424,15 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 self.connect_nodes(group_node.outputs['Final Albedo'], sio_diffuse.inputs['Albedo'])
                 self.connect_nodes(group_node.outputs['Lighting'], sio_diffuse.inputs['Light Pass'])
 
+                # so we can toggle backface culling across eevee and cycles with one boolean property
+                driv = sio_diffuse.inputs['$nocull'].driver_add('default_value')
+                driv.driver.expression = '1-var'
+                var = driv.driver.variables.new()
+                var.type = 'SINGLE_PROP'
+                var.targets[0].id_type = 'MATERIAL'
+                var.targets[0].id = self.bpy_material
+                var.targets[0].data_path = 'use_backface_culling'
+
                 final = sio_diffuse.outputs['EEVEE Pass']
                 final_cycles = sio_diffuse.outputs['Cycles Pass']
 
@@ -426,7 +450,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 else:
                     add = self.create_node(Nodes.ShaderNodeAddShader)
                     transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
-                    self.connect_nodes(final, add_eevee.inputs[1])
+                    self.connect_nodes(final, add.inputs[1])
                     self.connect_nodes(transparent.outputs[0], add.inputs[0])
                     final = add.outputs[0]
                     

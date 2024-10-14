@@ -78,4 +78,17 @@ class Modulate(Source1ShaderBase):
         transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
         self.connect_nodes(mult.outputs[0], transparent.inputs[0])
         out = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        self.connect_nodes(transparent.outputs[0], out.inputs[0])
+
+        culling = self.create_node_group('BackfaceCulling')
+        self.connect_nodes(transparent.outputs[0], culling.inputs[0])
+
+        # so we can toggle backface culling across eevee and cycles with one boolean property
+        driv = culling.inputs['$nocull'].driver_add('default_value')
+        driv.driver.expression = '1-var'
+        var = driv.driver.variables.new()
+        var.type = 'SINGLE_PROP'
+        var.targets[0].id_type = 'MATERIAL'
+        var.targets[0].id = self.bpy_material
+        var.targets[0].data_path = 'use_backface_culling'
+
+        self.connect_nodes(culling.outputs[0], out.inputs[0])

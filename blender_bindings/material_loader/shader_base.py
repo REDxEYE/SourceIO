@@ -10,7 +10,6 @@ from ...logger import SourceLogMan
 from ..utils.bpy_utils import append_blend
 from .node_arranger import nodes_iterate
 
-
 class Nodes:
     ShaderNodeAddShader = 'ShaderNodeAddShader'
     ShaderNodeAmbientOcclusion = 'ShaderNodeAmbientOcclusion'
