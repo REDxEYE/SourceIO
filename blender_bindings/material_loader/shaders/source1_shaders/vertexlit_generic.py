@@ -423,6 +423,12 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     self.connect_nodes(transparent.outputs[0], add_cycles.inputs[0])
                     final = add_eevee.outputs[0]
                     final_cycles = add_cycles.outputs[0]
+                else:
+                    add = self.create_node(Nodes.ShaderNodeAddShader)
+                    transparent = self.create_node(Nodes.ShaderNodeBsdfTransparent)
+                    self.connect_nodes(final, add_eevee.inputs[1])
+                    self.connect_nodes(transparent.outputs[0], add.inputs[0])
+                    final = add.outputs[0]
                     
             if self.alphatest or self.translucent:
                 alphatest_node = self.create_node_group("$alphatest", [250, 0])
