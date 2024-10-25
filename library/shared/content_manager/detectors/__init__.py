@@ -14,6 +14,7 @@ from .sourcemod import SourceMod
 from .titanfall1 import TitanfallDetector
 from .vindictus import VindictusDetector
 from ..provider import ContentProvider
+from .deadlock import DeadlockDetector
 
 
 def detect_game(path: TinyPath) -> list[ContentProvider]:
@@ -21,7 +22,7 @@ def detect_game(path: TinyPath) -> list[ContentProvider]:
                        SFMDetector(), GModDetector(),Portal2Detector(), SourceMod(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
-                       Source1Detector(), Source2Detector()]
+                       DeadlockDetector(), Source1Detector(), Source2Detector()]
 
     for detector in detector_addons:
         results = detector.scan(path)

@@ -20,6 +20,7 @@ from SourceIO.library.source2.resource_types.compiled_world_resource import Comp
     CompiledMapResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.logger import SourceLogMan
+from .entities.deadlock_entity_handlers import DeadlockEntityHandler
 
 log_manager = SourceLogMan()
 
@@ -138,6 +139,8 @@ def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.C
     #     handler = SteamPalEntityHandler
     elif cm.steam_id == SteamAppId.COUNTER_STRIKE_GO:
         handler = CS2EntityHandler
+    elif cm.steam_id == SteamAppId.DEADLOCK:
+        handler = DeadlockEntityHandler
     else:
         handler = BaseEntityHandler
 
