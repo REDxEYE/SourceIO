@@ -46,6 +46,12 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def alphatest(self):
         return self._vmt.get_int('$alphatest', 0) == 1
+    
+    @property
+    def basetexturetransform(self):
+        return self._vmt.get_transform_matrix('$basetexturetransform',
+                                                        {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+                                                        'translate': (0, 0, 0)})
 
     @property
     def translucent(self):
@@ -70,6 +76,9 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                     name='$basetexture')
             
             albedo = basetexture_node.outputs[0]
+            if self.basetexturetransform:
+                uv, self.uv_map = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
+                
 
             if self.detail:
                 albedo, detail = self.handle_detail(shader.inputs['Base Color'], albedo, uv_node=None)

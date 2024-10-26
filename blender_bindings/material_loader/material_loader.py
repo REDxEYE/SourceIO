@@ -46,7 +46,16 @@ class Source1MaterialLoader(MaterialLoaderBase):
                                                                                             self.vmt)
 
         handler.create_nodes(material)
-
+        material['shader_type'] = handler._vmt.shader
+        try:
+            params = handler._vmt.data.to_dict()
+            #if (dx90 := (params.get('>=dx90') or params.get('>=DX90'))):
+            #    for key, value in dx90.items():
+            #        params[key] = value
+            #    # unravel it a bit, because dx90 is how we usually see the materials
+            material['vmt_parameters'] = handler._vmt.data.to_dict()
+        except:
+            pass
         handler.align_nodes()
         if self.vmt.shader not in self._handlers:
             logger.error(f'Shader "{self.vmt.shader}" not currently supported by SourceIO')

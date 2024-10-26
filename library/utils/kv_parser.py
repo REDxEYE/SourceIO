@@ -120,7 +120,12 @@ class KVDataProxy(Mapping):
         for k, v in self.items():
             if isinstance(v, KVDataProxy):
                 v = v.to_dict()
-            items[k] = v
+            if items.get(k) != None and isinstance(v, dict):
+                if not isinstance(items[k], list):
+                    items[k] = [items[k]]
+                items[k].append(v)
+            else:
+                items[k] = v
         return items
 
 

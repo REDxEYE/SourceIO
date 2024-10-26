@@ -37,6 +37,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     filter_glob: StringProperty(default="*.mdl;*.md3", options={'HIDDEN'})
 
     def execute(self, context):
+        
         directory = self.get_directory()
 
         content_manager = ContentManager()
@@ -184,7 +185,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
 
     def execute(self, context):
         directory = self.get_directory()
-        content_manager = StandaloneContentProvider()
+        content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
@@ -215,7 +216,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
 
     def execute(self, context):
         directory = self.get_directory()
-        content_manager = StandaloneContentProvider()
+        content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
@@ -226,7 +227,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
             Source1ShaderBase.use_bvlg(self.use_bvlg)
             file_path = TinyPath(file.name)
             mat = get_or_create_material(file_path.stem, file_path.as_posix())
-            loader = Source1MaterialLoader((directory / file.name).open('rb'), file_path.stem)
+            loader = Source1MaterialLoader(content_manager, (directory / file.name).open('rb'), file_path.stem)
             bpy_material = bpy.data.materials.get(loader.material_name, dict())
             if bpy_material.get('source_loaded'):
                 if self.override:

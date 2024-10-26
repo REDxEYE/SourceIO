@@ -9,7 +9,7 @@ class values():
     x_last = 0
     margin_x = 300
     mat_name = ""
-    margin_y = 20
+    margin_y = 300
 
 
 def outputnode_search(ntree):  # return node/None

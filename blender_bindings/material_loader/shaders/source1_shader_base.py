@@ -14,6 +14,10 @@ class Source1ShaderBase(ShaderBase):
         super().__init__()
         self.content_manager = content_manager
         self.load_bvlg_nodes()
+        if (dx90 := (vmt.get('>=dx90') or vmt.get('>=DX90'))):
+            # unravel it, because we want dx90 properties
+            for key, value in dx90.items():
+                vmt[key] = value
         self._vmt: VMT = vmt
         self.textures = {}
 
