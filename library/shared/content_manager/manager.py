@@ -147,7 +147,9 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
 
     def find_file(self, filepath: TinyPath) -> Buffer | None:
         if filepath.is_absolute():
-            return FileBuffer(filepath)
+            if filepath.exists():
+                return FileBuffer(filepath)
+            return None
         logger.debug(f'Requesting {filepath} file')
         for child in self.children:
             if (file := child.find_file(filepath)) is not None:
