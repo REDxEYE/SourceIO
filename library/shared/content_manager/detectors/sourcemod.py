@@ -2,6 +2,7 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.utils.tiny_path import TinyPath
 from .source1 import Source1Detector
+from ..providers.source1_gameinfo_provider import Source1GameInfoProvider
 
 
 class SourceMod(Source1Detector):
@@ -16,5 +17,7 @@ class SourceMod(Source1Detector):
         if mod_root is None:
             return []
         content_providers = {}
-        cls.recursive_traversal(smods_dir, mod_name, content_providers)
+        initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
+        if initial_mod_gi_path is not None:
+            cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), content_providers)
         return list(content_providers.values())
