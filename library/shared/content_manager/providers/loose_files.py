@@ -9,6 +9,8 @@ from SourceIO.library.utils.tiny_path import TinyPath
 
 class LooseFilesContentProvider(ContentProvider):
     def check(self, filepath: TinyPath) -> bool:
+        if filepath.is_absolute():
+            return filepath.exists()
         return (self.root / filepath).exists()
 
     def get_relative_path(self, filepath: TinyPath):
