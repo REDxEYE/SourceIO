@@ -20,6 +20,7 @@ def import_model(model_path: TinyPath, buffer: Buffer,
                  override_steam_id: Optional[SteamAppId] = None,
                  ) -> Optional[ModelContainer]:
     ident, version = buffer.read_fmt("4sI")
+    logger.info(f"Trying to load model: {model_path}")
     logger.info(f"Detected magic: {ident!r}, version:{version}")
     steam_id = content_provider.get_steamid_from_asset(model_path)
     handler = choose_model_importer(ident, version, (override_steam_id or steam_id or None))
