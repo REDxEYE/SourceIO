@@ -342,6 +342,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
                         if data:
                             shader = data['m_shaderName']
                             overlay |= shader == "csgo_static_overlay.vfx"
+                            overlay |= shader == "citadel_overlay.vfx"
                 else:
                     overlay = False
                     morph_supported = bool(morph_block)
