@@ -13,6 +13,14 @@ class PBR(Source2ShaderBase):
         return self._material_resource.get_int_property('F_SELF_ILLUM', 0)
 
     @property
+    def flag_alpha_test(self):
+        return self._material_resource.get_int_property('F_ALPHA_TEST', 0)
+
+    @property
+    def flag_render_backfaces(self):
+        return self._material_resource.get_int_property('F_RENDER_BACKFACES', 0)
+
+    @property
     def color_texture(self):
         texture_path = self._material_resource.get_texture_property('g_tColor', None)
         if texture_path is not None:
@@ -123,7 +131,12 @@ class PBR(Source2ShaderBase):
         color_texture = self.color_texture
         if color_texture:
             color_map_node = self.create_texture_node(color_texture, "color")
-            self.connect_nodes(color_map_node.outputs[1],shader.inputs["Metallic"])
+            if self.flag_alpha_test:
+                self.connect_nodes(color_map_node.outputs[1], shader.inputs["Alpha"])
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'HASHED'
+            else:
+                self.connect_nodes(color_map_node.outputs[1],shader.inputs["Metallic"])
             uv_mapping = self.setup_uv_transform(self.albedo_texcoord_offset1, self.albedo_texcoord_scale1)
             if uv_mapping:
                 self.connect_nodes(uv_mapping.outputs[0], color_map_node.inputs[0])
