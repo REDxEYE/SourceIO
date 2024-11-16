@@ -159,6 +159,7 @@ class SOFEntityHandler(BaseEntityHandler):
         world = self._load_brush_model(0, 'world_geometry')
         if not world:
             return
+        self._world_geometry_name = world.name
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
 
