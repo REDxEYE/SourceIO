@@ -52,6 +52,7 @@ class DeadlockEntityHandler(CS2EntityHandler):
     entity_lookup_table['item_crate_spawn'] = Base
     entity_lookup_table['citadel_item_powerup_spawner'] = Base
     entity_lookup_table['citadel_item_pickup_rejuv_herotest_infospawn'] = Base
+    entity_lookup_table['info_target_server_only'] = Base
     # entity_lookup_table['citadel_volume_omni'] = Base
 
     def load_entities(self):
@@ -216,6 +217,14 @@ class DeadlockEntityHandler(CS2EntityHandler):
         self._set_icon_if_present(obj, entity)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection("info_super_trooper_spawn", obj, 'info')
+
+    def handle_info_target_server_only(self, entity: Base, entity_raw: dict):
+        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
+        self._set_location_and_scale(obj, get_origin(entity_raw))
+        self._set_rotation(obj, get_angles(entity_raw))
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._put_into_collection("info_target_server_only", obj, 'info')
 
     def handle_info_mini_map_marker(self, entity: Base, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
