@@ -1,5 +1,6 @@
 import io
 import os
+import platform
 from os import PathLike
 from pathlib import Path
 from typing import Union
@@ -8,6 +9,9 @@ os_sep = os.path.sep
 
 PathTypes = Union[Path, str, PathLike, 'TinyPath']
 
+sep = '/'
+is_windows = platform.system() == "Windows"
+
 
 class TinyPath(str, PathLike):
 
@@ -15,7 +19,10 @@ class TinyPath(str, PathLike):
         return Path(self)
 
     def __new__(cls, value: str):
-        return super().__new__(cls, str(value).replace("\\", "/").rstrip("/"))
+        value = str(value)
+        if "\\" in value:
+            value = value.replace("\\", "/")
+        return super().__new__(cls, value.rstrip("/"))
 
     @property
     def stem(self):
@@ -57,7 +64,9 @@ class TinyPath(str, PathLike):
         return TinyPath(self[:self.index("/")])
 
     def is_absolute(self):
-        return ":" in self.parts[0]
+        if is_windows:
+            return ":" in self
+        return os.path.isabs(self)
 
     def is_relative_to(self, other: PathTypes) -> bool:
         if os.name == "nt":
@@ -93,16 +102,16 @@ class TinyPath(str, PathLike):
         return open(self, mode, buffering, encoding, errors, newline)
 
     def as_posix(self):
-        return Path(self).as_posix()
+        return self
 
     def exists(self):
-        return Path(self).exists()
+        return os.path.exists(self)
 
     def is_file(self):
-        return Path(self).is_file()
+        return os.path.isfile(self)
 
     def is_dir(self):
-        return Path(self).is_dir()
+        return os.path.isdir(self)
 
     def with_suffix(self, suffix: str):
         if self.suffix:
