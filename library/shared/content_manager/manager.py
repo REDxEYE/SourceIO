@@ -64,6 +64,8 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
     def get_steamid_from_asset(self, asset_path: TinyPath) -> ContentProvider | None:
         if asset_path.is_absolute():
             asset_path = self.get_relative_path(asset_path)
+        if asset_path is None:
+            return None
         for child in self.children:
             if provider := child.get_steamid_from_asset(asset_path):
                 return provider
