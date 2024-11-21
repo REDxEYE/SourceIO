@@ -102,7 +102,7 @@ class TinyPath(str, PathLike):
         return open(self, mode, buffering, encoding, errors, newline)
 
     def as_posix(self):
-        return self
+        return str(self)
 
     def exists(self):
         return os.path.exists(self)
