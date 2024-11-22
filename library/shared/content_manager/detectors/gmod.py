@@ -21,16 +21,17 @@ class GModDetector(Source1Detector):
             gmod_root = gmod_dir.parent
         if gmod_root is None:
             return []
+        gmod_dir = gmod_dir.parent
         providers = {}
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
             cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
 
-        garrysmod_mod_gi_path = gmod_root / "garrysmod/gameinfo.txt"
+        garrysmod_mod_gi_path = gmod_root / "gameinfo.txt"
         if initial_mod_gi_path != garrysmod_mod_gi_path:
             cls.add_provider(Source1GameInfoProvider(garrysmod_mod_gi_path), providers)
 
-        cls.register_common(gmod_root, providers)
+        cls.register_common(gmod_root.parent, providers)
         for addon in (gmod_dir / "addons").iterdir():
             if addon.suffix == ".gma":
                 provider = GMAContentProvider(addon)
