@@ -12,6 +12,8 @@ def parse_int_vector(string):
 
 
 def parse_float_vector(string):
+    if string is None:
+        return [0.0, 0.0, 0.0]
     return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
@@ -53,6 +55,8 @@ def parse_int_vector(string):
 
 
 def parse_float_vector(string):
+    if string is None:
+        return [0.0, 0.0, 0.0]
     return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
