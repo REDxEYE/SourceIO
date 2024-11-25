@@ -1,4 +1,4 @@
-from ....utils.bpy_utils import is_blender_4
+from ....utils.bpy_utils import is_blender_4, is_blender_4_3
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 from .detail import DetailSupportMixin
@@ -269,8 +269,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
-
-        if self.alphatest or self.translucent:
+        if not is_blender_4_3() and (self.alphatest or self.translucent):
             if self.translucent:
                 self.bpy_material.blend_method = 'BLEND'
                 if hasattr(self.bpy_material, 'surface_render_method'):

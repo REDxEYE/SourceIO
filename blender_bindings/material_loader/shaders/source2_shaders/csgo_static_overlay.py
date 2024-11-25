@@ -1,5 +1,6 @@
 from pprint import pformat
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
@@ -105,14 +106,17 @@ class CSGOStaticOverlay(Source2ShaderBase):
                 "g_flMetalness", 0)
 
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
         elif self._material_resource.get_int_property("F_OVERLAY", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
         elif self._material_resource.get_int_property("F_BLEND_MODE", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])

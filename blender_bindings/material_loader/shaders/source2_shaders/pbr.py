@@ -1,6 +1,6 @@
 import numpy as np
 
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
@@ -133,8 +133,9 @@ class PBR(Source2ShaderBase):
             color_map_node = self.create_texture_node(color_texture, "color")
             if self.flag_alpha_test:
                 self.connect_nodes(color_map_node.outputs[1], shader.inputs["Alpha"])
-                self.bpy_material.blend_method = 'HASHED'
-                self.bpy_material.shadow_method = 'HASHED'
+                if not is_blender_4_3():
+                    self.bpy_material.blend_method = 'HASHED'
+                    self.bpy_material.shadow_method = 'HASHED'
             else:
                 self.connect_nodes(color_map_node.outputs[1],shader.inputs["Metallic"])
             uv_mapping = self.setup_uv_transform(self.albedo_texcoord_offset1, self.albedo_texcoord_scale1)

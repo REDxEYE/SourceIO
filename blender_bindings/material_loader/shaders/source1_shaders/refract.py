@@ -1,4 +1,4 @@
-from ....utils.bpy_utils import is_blender_4
+from ....utils.bpy_utils import is_blender_4, is_blender_4_3
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -63,9 +63,9 @@ class Refract(Source1ShaderBase):
     def create_nodes(self, material):
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
-
-        self.bpy_material.blend_method = 'OPAQUE'
-        self.bpy_material.shadow_method = 'NONE'
+        if not is_blender_4_3():
+            self.bpy_material.blend_method = 'OPAQUE'
+            self.bpy_material.shadow_method = 'NONE'
         self.bpy_material.use_screen_refraction = True
         self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

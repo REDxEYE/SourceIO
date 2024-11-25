@@ -4,10 +4,9 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from ...library.shared.content_manager.manager import ContentManager
 from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
-from ..utils.bpy_utils import append_blend
+from ..utils.bpy_utils import append_blend, is_blender_4_3
 from .node_arranger import nodes_iterate
 
 class Nodes:
@@ -274,8 +273,9 @@ class ShaderBase:
 
         self.bpy_material.use_nodes = True
         self.clean_nodes()
-        self.bpy_material.blend_method = 'OPAQUE'
-        self.bpy_material.shadow_method = 'OPAQUE'
+        if not is_blender_4_3():
+            self.bpy_material.blend_method = 'OPAQUE'
+            self.bpy_material.shadow_method = 'OPAQUE'
         self.bpy_material.use_screen_refraction = False
         self.bpy_material.refraction_depth = 0.2
         self.bpy_material['source_loaded'] = True

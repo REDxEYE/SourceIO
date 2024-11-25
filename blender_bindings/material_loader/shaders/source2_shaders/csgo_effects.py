@@ -2,6 +2,7 @@ from pprint import pformat
 
 import bpy
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
@@ -124,15 +125,18 @@ class CSGOEffects(Source2ShaderBase):
             self.connect_nodes(vcolor_node.outputs[0], shader.inputs["ModelTint"])
 
         if material_data.get_int_property("F_ALPHA_TEST", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'CLIP'
-            self.bpy_material.shadow_method = 'CLIP'
-            self.bpy_material.alpha_threshold = material_data.get_float_property("g_flAlphaTestReference", 0.5)
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'CLIP'
+                self.bpy_material.shadow_method = 'CLIP'
+                self.bpy_material.alpha_threshold = material_data.get_float_property("g_flAlphaTestReference", 0.5)
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
         elif material_data.get_int_property("S_TRANSLUCENT", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
         elif material_data.get_int_property("F_ADDITIVE_BLEND", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])

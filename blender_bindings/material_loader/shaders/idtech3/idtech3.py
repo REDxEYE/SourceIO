@@ -3,7 +3,7 @@ from typing import Optional
 import bpy
 
 from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ShaderBase
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -40,8 +40,9 @@ class IdTech3Shader(ShaderBase):
                 basetexture_node.id_data.nodes.active = basetexture_node
                 if texture_input is not None:
                     if texture.get("alphaFunc", "") == "GE128":
-                        self.bpy_material.blend_method = 'HASHED'
-                        self.bpy_material.shadow_method = 'HASHED'
+                        if not is_blender_4_3():
+                            self.bpy_material.blend_method = 'HASHED'
+                            self.bpy_material.shadow_method = 'HASHED'
 
                         mix_node = self.create_node(Nodes.ShaderNodeMixShader)
                         self.connect_nodes(basetexture_node.outputs[1], mix_node.inputs[0])
@@ -50,8 +51,9 @@ class IdTech3Shader(ShaderBase):
                         self.connect_nodes(shader_output, mix_node.inputs[2])
                         shader_output = mix_node.outputs[0]
                     elif texture.get("alphaFunc", "") == "LT128":
-                        self.bpy_material.blend_method = 'HASHED'
-                        self.bpy_material.shadow_method = 'HASHED'
+                        if not is_blender_4_3():
+                            self.bpy_material.blend_method = 'HASHED'
+                            self.bpy_material.shadow_method = 'HASHED'
 
                         mix_node = self.create_node(Nodes.ShaderNodeMixShader)
                         self.connect_nodes(basetexture_node.outputs[1], mix_node.inputs[0])

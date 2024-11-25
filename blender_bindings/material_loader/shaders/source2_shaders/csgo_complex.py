@@ -1,5 +1,6 @@
 from pprint import pformat
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
@@ -107,17 +108,20 @@ class CSGOComplex(Source2ShaderBase):
                 "g_flMetalness", 0)
 
         if material_data.get_int_property("F_ALPHA_TEST", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'CLIP'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'CLIP'
+                self.bpy_material.shadow_method = 'CLIP'
             self.bpy_material.alpha_threshold = material_data.get_float_property("g_flAlphaTestReference", 0.5)
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
 
         elif material_data.get_int_property("S_TRANSLUCENT", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])
 
         elif material_data.get_int_property("F_OVERLAY", 0) and alpha_output is not None:
-            self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(alpha_output, shader.inputs["Alpha"])

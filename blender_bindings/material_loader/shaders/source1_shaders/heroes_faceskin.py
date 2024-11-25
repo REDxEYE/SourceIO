@@ -3,6 +3,7 @@ from typing import Iterable
 import bpy
 import numpy as np
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -192,8 +193,7 @@ class HeroesFaceskin(Source1ShaderBase):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
         parentnode = material_output
-
-        if self.alphatest or self.translucent:
+        if not is_blender_4_3() and (self.alphatest or self.translucent):
             if self.translucent:
                 self.bpy_material.blend_method = 'BLEND'
             else:
