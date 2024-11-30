@@ -1,22 +1,23 @@
-from pathlib import Path
 from typing import Union, Optional
 import bpy
 import numpy as np
 
-from ...utils.texture_utils import check_texture_cache
-from ....library.shared.content_providers.content_manager import ContentManager
-from ....library.source2.resource_types import (CompiledMaterialResource,
-                                                CompiledTextureResource)
-from ....logger import SourceLogMan
-from ...source2.vtex_loader import import_texture
+from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.source2.resource_types import CompiledMaterialResource, CompiledTextureResource
+from SourceIO.logger import SourceLogMan
+from SourceIO.blender_bindings.source2.vtex_loader import import_texture
 from ..shader_base import ShaderBase, Nodes
 
 logger = SourceLogMan().get_logger("Source2::Shader")
 
 
 class Source2ShaderBase(ShaderBase):
-    def __init__(self, source2_material: CompiledMaterialResource, tinted: bool = False):
+    def __init__(self, content_manager: ContentManager, source2_material: CompiledMaterialResource,
+                 tinted: bool = False):
         super().__init__()
+        self.content_manager = content_manager
         self.load_source2_nodes()
         self._material_resource = source2_material
         self.tinted = tinted
@@ -24,8 +25,8 @@ class Source2ShaderBase(ShaderBase):
     def _have_texture(self, slot_name: str) -> Optional[bpy.types.Node]:
         texture_path = self._material_resource.get_texture_property(slot_name, None)
         if texture_path is not None:
-            return self._material_resource.get_child_resource(texture_path, ContentManager()) is not None
-        return False
+            return self._material_resource.get_child_resource(texture_path, self.content_manager) is not None
+        return None
 
     def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float],
                      is_data=False,
@@ -45,7 +46,8 @@ class Source2ShaderBase(ShaderBase):
     def load_texture_or_default(self, name_or_id: Union[str, int], default_color: tuple = (1.0, 1.0, 1.0, 1.0),
                                 invert_y: bool = False):
         print(f'Loading texture {name_or_id}')
-        resource = self._material_resource.get_child_resource(name_or_id, ContentManager(), CompiledTextureResource)
+        resource = self._material_resource.get_child_resource(name_or_id, self.content_manager,
+                                                              CompiledTextureResource)
         texture_name: str
         if isinstance(name_or_id, int):
             texture_name = f"0x{name_or_id:08}"
@@ -54,7 +56,7 @@ class Source2ShaderBase(ShaderBase):
         else:
             raise Exception(f"Invalid name or id: {name_or_id}")
 
-        return self.load_texture(resource, Path(texture_name), invert_y) or self.get_missing_texture(
+        return self.load_texture(resource, TinyPath(texture_name), invert_y) or self.get_missing_texture(
             f'missing_{texture_name}',
             default_color)
 

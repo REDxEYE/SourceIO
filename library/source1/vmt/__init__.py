@@ -2,9 +2,10 @@ import traceback
 from math import radians
 from typing import Union
 
+from ...shared.content_manager.manager import ContentManager
 from ...utils import Buffer
+from ...utils.tiny_path import TinyPath
 from ....logger import SourceLogMan
-from ...shared.content_providers.content_manager import ContentManager
 from ...utils.kv_parser import ValveKeyValueParser, KVDataProxy, KVLexerException
 
 log_manager = SourceLogMan()
@@ -12,7 +13,7 @@ logger = log_manager.get_logger('Source1::VMT')
 
 
 class VMT:
-    def __init__(self, buffer: Buffer, filename: str):
+    def __init__(self, buffer: Buffer, filename: str, content_manager: ContentManager):
         self._usage_report = set()
         data = buffer.read()
         if isinstance(data, bytes):
@@ -22,21 +23,20 @@ class VMT:
             parser.parse()
             self.shader, self.data = parser.tree.top()
             del parser
-            self._postprocess()
+            self._postprocess(content_manager)
         except KVLexerException as ex:
             logger.exception("Failed to parse material due to", ex)
             traceback.print_exc()
             self.shader = "FAILED_TO_LOAD"
             self.data = KVDataProxy([])
 
-    def _postprocess(self):
-        content_manager = ContentManager()
+    def _postprocess(self, content_manager: ContentManager):
         if self.shader == 'patch':
-            original_material = content_manager.find_file(self.get_string('include'))
+            original_material = content_manager.find_file(TinyPath(self.get_string('include')))
             if not original_material:
                 logger.error(f'Failed to find original material {self.get_string("include")!r}')
                 return
-            patched_vmt = VMT(original_material, self.get_string('include'))
+            patched_vmt = VMT(original_material, self.get_string('include'), content_manager)
             if 'insert' in self:
                 patch_data = self.get('insert', {})
                 patched_vmt.data.merge(patch_data)

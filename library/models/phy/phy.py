@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
 
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.library.shared.types import Vector3, Vector4
 from SourceIO.library.utils import Buffer, FileBuffer
 
@@ -192,7 +192,7 @@ class Phy:
     kv: str
 
     @classmethod
-    def from_filepath(cls, filepath: Path):
+    def from_filepath(cls, filepath: TinyPath):
         return cls.from_buffer(FileBuffer(filepath))
 
     @classmethod

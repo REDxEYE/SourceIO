@@ -1,21 +1,23 @@
+import itertools
 import warnings
 from collections import defaultdict
-from pathlib import Path
 
 import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.library.models.vtx.v7.vtx import Vtx
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
-from SourceIO.library.shared.content_providers.content_manager import \
-    ContentManager
+from SourceIO.library.shared.content_manager.provider import \
+    ContentProvider
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
 from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.models.mdl.v49.mdl_file import MdlV49
 from SourceIO.library.models.vvd import Vvd
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -28,10 +30,10 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def import_model(mdl: MdlV49, vtx: Vtx, vvd: Vvd,
+def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      ContentManager())
+                                                      content_manager)
 
     objects = []
     bodygroups = defaultdict(list)
@@ -56,7 +58,18 @@ def import_model(mdl: MdlV49, vtx: Vtx, vvd: Vvd,
 
             mesh_data = bpy.data.meshes.new(mesh_name)
             mesh_obj = bpy.data.objects.new(object_name, mesh_data)
-            mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
+            if getattr(mdl, 'material_mapper', None):
+                material_mapper = mdl.material_mapper
+                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for (n, group) in enumerate(mdl.skin_groups)}
+                for key, value in true_skin_groups.items():
+                    while None in value:
+                        value.remove(None)
+                try:
+                    mesh_obj['skin_groups'] = true_skin_groups
+                except:
+                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            else:
+                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
 
@@ -375,32 +388,7 @@ def create_attachments(mdl: MdlV49, armature: bpy.types.Object, scale):
     return attachments
 
 
-def import_materials(mdl, use_bvlg=False):
-    content_manager = ContentManager()
-    for material in mdl.materials:
-        material_path = None
-        material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_material(Path(mat_path) / material.name)
-            if material_file:
-                material_path = Path(mat_path) / material.name
-                break
-        if material_path is None:
-            logger.info(f'Material {material.name} not found')
-            continue
-        mat = get_or_create_material(material.name, material_path.as_posix())
-
-        if mat.get('source1_loaded', False):
-            logger.info(f'Skipping loading of {mat} as it already loaded')
-            continue
-
-        if material_path:
-            Source1ShaderBase.use_bvlg(use_bvlg)
-            loader = Source1MaterialLoader(material_file, material.name)
-            loader.create_material(mat)
-
-
-def import_animations(cm: ContentManager, mdl: MdlV49, armature: bpy.types.Object,
+def import_animations(cm: ContentProvider, mdl: MdlV49, armature: bpy.types.Object,
                       scale: float):
     bpy.ops.object.select_all(action="DESELECT")
     bpy.context.scene.collection.objects.link(armature)
@@ -461,7 +449,7 @@ def import_animations(cm: ContentManager, mdl: MdlV49, armature: bpy.types.Objec
                         rot_curves[i].keyframe_points[frame_id].co = (frame_id, (rot[i]))
                 else:
                     mat = bl_bone.matrix.inverted() @ mat
-                    pos,rot,scl = mat.decompose()
+                    pos, rot, scl = mat.decompose()
                     for i in range(3):
                         pos_curves[i].keyframe_points[frame_id].co = (frame_id, (pos[i]))
 

@@ -1,6 +1,3 @@
-
-
-
 class FGDProperty:
     def __init__(self, name, value_type, display_name=None, default_value=None, description=None, meta=None):
         self._name = name
@@ -58,7 +55,10 @@ class FGDProperty:
                             'text_block', 'resource:material', 'resource:texture',
                             'surface_properties', 'target_name_or_class', 'scene',
                             'modelstatechoices', 'resource_choices:model', 'resource:postprocessing',
-                            'remove_key', ]:
+                            'remove_key', 'resource:vsnap', 'subclass_choice:scripts/vehicles.vdata',
+                            'subclass_choice:scripts/precipitation.vdata', 'resource:vtex',
+                            'vdata_choice:scripts/light_styles.vdata', 'animgraph', 'animgraph_enum',
+                            'vdata_choice:scripts/light_style_event_types.vdata']:
             buffer.append(f"\t\treturn self._entity_data.get('{self.name}')")
             if self.default_value is None:
                 buffer.append(f'\treturn None')
@@ -74,7 +74,8 @@ class FGDProperty:
         elif value_type == 'scriptlist':
             buffer.append(f"\t\treturn self._entity_data.get('{self.name}')")
             buffer.append(f'\treturn "{self.default_value}"')
-        elif value_type in ['vector', 'angle', 'color255', 'local_point', 'vecline', 'sidelist', 'axis',
+        elif value_type in ['vector', 'vector2d', 'angle', 'color255', 'color255alpha', 'local_point', 'vecline',
+                            'sidelist', 'axis',
                             'node_id_list', 'world_point', 'curve']:
             buffer.append(f"\t\treturn parse_int_vector(self._entity_data.get('{self.name}'))")
             buffer.append(f'\treturn parse_int_vector("{self.default_value}")')
@@ -148,10 +149,10 @@ class FGDEntity:
                  properties=None, io=None):
         self.name: str = name
         self.class_type: str = class_type
-        self._definitions: List = definitions
+        self._definitions: list = definitions
         self._description: str = description
         self._properties = properties
-        self._io: List = io
+        self._io: list = io
 
     def __str__(self):
         return f"{self.class_type}({self.name})"
@@ -187,7 +188,13 @@ class FGDEntity:
             if not definition:
                 continue
             if name == 'iconsprite':
-                buffer += f'\ticon_sprite = "{definition[0]}"\n'
+                if isinstance(definition, dict):
+                    image_ = definition["image"]
+                    buffer += f'\ticon_sprite = "{image_}"\n'
+                elif isinstance(definition, (list, tuple)):
+                    buffer += f'\ticon_sprite = "{definition[0]}"\n'
+                else:
+                    raise NotImplementedError(f"Unsupported type:{definition}")
             elif name == 'studio':
                 buffer += f'\t_model = "{definition[0]}"\n'
         if not self.bases:

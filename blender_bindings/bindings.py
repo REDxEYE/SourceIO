@@ -1,18 +1,16 @@
-from pathlib import Path
-
 import bpy
-from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
-                       IntProperty, PointerProperty, StringProperty)
 
-# from ..library.source1.vtf import is_vtflib_supported
 from .attributes import register_props, unregister_props
-from .operators.flex_operators import SourceIO_PG_FlexController
 from .operators.flex_operators import classes as flex_classes
 from .operators.goldsrc_operators import SOURCEIO_OT_GBSPImport
-from .operators.shared_operators import (SOURCEIO_UL_MountedResource, shared_classes)
+from .operators.shared_operators import shared_classes
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_DMXImporter,
                                           SOURCEIO_OT_MDLImport)
+from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
+                                          SOURCEIO_OT_VMTImport,
+                                          # SOURCEIO_OT_VTFExport,
+                                          SOURCEIO_OT_VTFImport)
 from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMATImport,
                                           SOURCEIO_OT_VMDLImport,
@@ -20,17 +18,10 @@ from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VPK_VMAPImport,
                                           SOURCEIO_OT_VTEXImport,
                                           SOURCEIO_OT_DMXCameraImport)
-
-from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
-                                          SOURCEIO_OT_VMTImport,
-    # SOURCEIO_OT_VTFExport,
-                                          SOURCEIO_OT_VTFImport)
-# from .operators.vpk_operators import (SourceIO_OP_VPKBrowser,
-#                                       SourceIO_OP_VPKBrowserLoader)
-# from .operators.vpk_operators import classes as vpk_classes
 from .ui.export_nodes import register_nodes, unregister_nodes
 from .utils.bpy_utils import is_blender_4_1
 from ..library.utils.singleton import SingletonMeta
+from ..library.utils.tiny_path import TinyPath
 
 custom_icons = {}
 
@@ -104,7 +95,7 @@ def menu_import(self, context):
 
 
 def load_icon(loader, filename, name):
-    script_path = Path(__file__).parent
+    script_path = TinyPath(__file__).parent
     icon_path = script_path / 'icons' / filename
     loader.load(name, str(icon_path), 'IMAGE')
 

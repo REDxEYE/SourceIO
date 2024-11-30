@@ -4,6 +4,7 @@ from typing import Type
 import bpy
 
 from ...library.models.mdl.v10.structs.texture import StudioTexture
+from ...library.shared.content_manager.manager import ContentManager
 from ...library.source1.vmt import VMT
 from ...library.source2 import CompiledMaterialResource
 from ...logger import SourceLogMan
@@ -35,15 +36,26 @@ class Source1MaterialLoader(MaterialLoaderBase):
         logger.info(f'Registered Source1 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
-    def __init__(self, file_object, material_name):
+    def __init__(self, content_manager: ContentManager, file_object, material_name):
         super().__init__(material_name)
-        self.vmt: VMT = VMT(file_object, self.material_name)
+        self.vmt: VMT = VMT(file_object, self.material_name, content_manager)
+        self.content_manager = content_manager
 
     def create_material(self, material: bpy.types.Material):
-        handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.vmt)
+        handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.content_manager,
+                                                                                            self.vmt)
 
         handler.create_nodes(material)
-
+        material['shader_type'] = handler._vmt.shader
+        try:
+            params = handler._vmt.data.to_dict()
+            #if (dx90 := (params.get('>=dx90') or params.get('>=DX90'))):
+            #    for key, value in dx90.items():
+            #        params[key] = value
+            #    # unravel it a bit, because dx90 is how we usually see the materials
+            material['vmt_parameters'] = handler._vmt.data.to_dict()
+        except:
+            pass
         handler.align_nodes()
         if self.vmt.shader not in self._handlers:
             logger.error(f'Shader "{self.vmt.shader}" not currently supported by SourceIO')
@@ -80,8 +92,10 @@ class Source2MaterialLoader(MaterialLoaderBase):
         logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
         _handlers[sub.SHADER] = sub
 
-    def __init__(self, material_resource: CompiledMaterialResource, material_name, tinted: bool = False):
+    def __init__(self, content_manager: ContentManager, material_resource: CompiledMaterialResource, material_name,
+                 tinted: bool = False):
         super().__init__(material_name)
+        self.content_manager = content_manager
         self.material_name: str = material_name[:63]
         self.material_resource = material_resource
         self.tinted = tinted
@@ -95,7 +109,8 @@ class Source2MaterialLoader(MaterialLoaderBase):
         if not data:
             return
         shader = data['m_shaderName']
-        handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.material_resource, self.tinted)
+        handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.content_manager,
+                                                                             self.material_resource, self.tinted)
 
         if shader not in self._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')

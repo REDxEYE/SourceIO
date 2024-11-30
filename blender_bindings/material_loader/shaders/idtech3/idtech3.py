@@ -1,12 +1,11 @@
-from pathlib import Path
 from typing import Optional
 
 import bpy
 
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
-from ....utils.bpy_utils import is_blender_4
-from ...shader_base import Nodes, ShaderBase
-from ....utils.texture_utils import check_texture_cache
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ShaderBase
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
+from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class IdTech3Shader(ShaderBase):
@@ -41,8 +40,9 @@ class IdTech3Shader(ShaderBase):
                 basetexture_node.id_data.nodes.active = basetexture_node
                 if texture_input is not None:
                     if texture.get("alphaFunc", "") == "GE128":
-                        self.bpy_material.blend_method = 'HASHED'
-                        self.bpy_material.shadow_method = 'HASHED'
+                        if not is_blender_4_3():
+                            self.bpy_material.blend_method = 'HASHED'
+                            self.bpy_material.shadow_method = 'HASHED'
 
                         mix_node = self.create_node(Nodes.ShaderNodeMixShader)
                         self.connect_nodes(basetexture_node.outputs[1], mix_node.inputs[0])
@@ -51,8 +51,9 @@ class IdTech3Shader(ShaderBase):
                         self.connect_nodes(shader_output, mix_node.inputs[2])
                         shader_output = mix_node.outputs[0]
                     elif texture.get("alphaFunc", "") == "LT128":
-                        self.bpy_material.blend_method = 'HASHED'
-                        self.bpy_material.shadow_method = 'HASHED'
+                        if not is_blender_4_3():
+                            self.bpy_material.blend_method = 'HASHED'
+                            self.bpy_material.shadow_method = 'HASHED'
 
                         mix_node = self.create_node(Nodes.ShaderNodeMixShader)
                         self.connect_nodes(basetexture_node.outputs[1], mix_node.inputs[0])
@@ -82,16 +83,17 @@ class IdTech3Shader(ShaderBase):
             shader.inputs['Specular'].default_value = 0
 
     def load_texture(self, texture_name) -> Optional[bpy.types.Image]:
-        image = check_texture_cache(Path(texture_name))
+        texture_name = TinyPath(texture_name)
+        image = check_texture_cache(texture_name)
         if image is not None:
             return image
         model_texture = bpy.data.images.get(texture_name, None)
         if model_texture is None:
-            texture_buffer = ContentManager().find_file(texture_name + ".png")
+            texture_buffer = self.content_manager.find_file(texture_name + ".png")
             if texture_buffer is None:
-                texture_buffer = ContentManager().find_file(texture_name + ".jpg")
+                texture_buffer = self.content_manager.find_file(texture_name + ".jpg")
                 if texture_buffer is None:
-                    texture_buffer = ContentManager().find_file(texture_name + ".jpeg")
+                    texture_buffer = self.content_manager.find_file(texture_name + ".jpeg")
 
             if texture_buffer:
                 model_texture = bpy.data.images.new(

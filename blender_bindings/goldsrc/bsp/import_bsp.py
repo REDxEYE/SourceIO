@@ -1,6 +1,5 @@
 import math
-from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Optional, cast
 
 import bpy
 import numpy as np
@@ -17,12 +16,13 @@ from SourceIO.library.goldsrc.bsp.lumps.texture_data import TextureDataLump
 from SourceIO.library.goldsrc.bsp.lumps.texture_info import TextureInfoLump
 from SourceIO.library.goldsrc.bsp.lumps.vertex_lump import VertexLump
 from SourceIO.library.goldsrc.bsp.structs.texture import TextureInfo
-from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 from SourceIO.library.goldsrc.rad import convert_light_value, parse_rad
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
-from SourceIO.library.shared.content_providers.goldsrc_content_provider import GoldSrcWADContentProvider
+from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import GoldSrcWADContentProvider
 from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from ...goldsrc.bsp.entity_handlers import entity_handlers
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
@@ -33,23 +33,24 @@ from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
     GoldSrcShaderMode2
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
     GoldSrcShaderMode5
-from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
+from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, is_blender_4_3
 
 log_manager = SourceLogMan()
-content_manager = ContentManager()
 
 
 class BSP:
-    def __init__(self, map_path: Path, *, scale=1.0, single_collection=False, fix_rotation=True):
+    def __init__(self, content_manager: ContentManager, map_path: TinyPath, *, scale=1.0, single_collection=False,
+                 fix_rotation=True):
         self.map_path = map_path
         self.fix_rotation = fix_rotation
         self.bsp_name = map_path.stem
         self.logger = log_manager.get_logger(self.bsp_name)
-        self.logger.info(f'Loading map "{self.bsp_name}"')
-        self.bsp_file = BspFile.from_filename(map_path)
-        rad_file = content_manager.find_file(map_path.with_suffix('.rad').name, 'maps')
-        shared_rad_file = content_manager.find_file('lights.rad', 'maps')
+        self.logger.info(f"Loading map \"{self.bsp_name}\"")
+        self.bsp_file = BspFile.from_filename(map_path, content_manager)
+        rad_file = content_manager.find_file(TinyPath("maps") / map_path.with_suffix(".rad").name, )
+        shared_rad_file = content_manager.find_file(TinyPath("maps/lights.rad"))
         rad_data = {}
+        self.content_manager = content_manager
         if shared_rad_file:
             rad_data.update(parse_rad(shared_rad_file))
         if rad_file:
@@ -238,23 +239,22 @@ class BSP:
             entity_class: str = entity['classname']
 
             if entity_class in entity_handlers:
-                entity_handlers[entity_class](entity, self.scale, self.bsp_collection, self.fix_rotation,
+                entity_handlers[entity_class](self.content_manager, entity, self.scale, self.bsp_collection,
+                                              self.fix_rotation,
                                               self._single_collection)
             else:
                 if entity_class == 'worldspawn':
                     for game_wad_path in entity.get('wad', '').split(';'):
                         if len(game_wad_path) == 0:
                             continue
-                        game_wad_path = backwalk_file_resolver(self.map_path, Path(game_wad_path))
-                        wad_file = self.bsp_file.manager.find_path(game_wad_path)
-                        if wad_file:
-                            self.bsp_file.manager.register_content_provider(
-                                f'{game_wad_path.parent.stem}_{game_wad_path.stem}',
-                                GoldSrcWADContentProvider(wad_file))
+                        game_wad_path = backwalk_file_resolver(self.map_path, TinyPath(game_wad_path))
+                        if game_wad_path.exists():
+                            self.bsp_file.manager.add_child(GoldSrcWADContentProvider(game_wad_path))
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
                     entity_collection = self.get_collection(entity_class)
-                    handle_generic_model_prop(entity, self.scale, entity_collection, self.fix_rotation,
+                    handle_generic_model_prop(self.content_manager, entity, self.scale, entity_collection,
+                                              self.fix_rotation,
                                               self._single_collection)
                 elif entity_class.startswith('trigger'):
                     self.load_trigger(entity_class, entity)
@@ -388,9 +388,10 @@ class BSP:
                     else:
                         loader = GoldSrcShader(studio_texture)
                     loader.create_nodes(mode_mat, rad_data)
-                    if render_mode < 255:
-                        mode_mat.blend_method = 'HASHED'
-                        mode_mat.shadow_method = 'HASHED'
+                    if not is_blender_4_3():
+                        if render_mode < 255:
+                            mode_mat.blend_method = 'HASHED'
+                            mode_mat.shadow_method = 'HASHED'
                 model_object.data.materials[model_material_index] = mode_mat
 
     def _get_light_angles(self, entity_data):

@@ -1,6 +1,5 @@
 import math
 import re
-from pathlib import Path
 from pprint import pformat
 
 import bpy
@@ -8,8 +7,8 @@ import numpy as np
 from mathutils import Euler
 
 from ....operators.import_settings_base import BSPOptions
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
+from .....library.shared.content_manager.provider import \
+    ContentProvider
 from .....library.source1.bsp.bsp_file import BSPFile
 from .....library.source1.bsp.datatypes.face import Face
 from .....library.source1.bsp.datatypes.model import Model
@@ -18,6 +17,7 @@ from .....library.source1.bsp.datatypes.texture_info import TextureInfo
 from .....library.source1.vmt import VMT
 from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .....library.utils.path_utilities import path_stem
+from .....library.utils.tiny_path import TinyPath
 from .....logger import SourceLogMan
 from ....utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
 from ...vtf import import_texture
@@ -67,6 +67,7 @@ class AbstractEntityHandler:
                  world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
+        self.content_manager = bsp_file.content_manager
         self.scale = world_scale
         self.light_scale = light_scale
         self.parent_collection = parent_collection
@@ -74,6 +75,7 @@ class AbstractEntityHandler:
         self._entites = self._bsp.get_lump('LUMP_ENTITIES').entities
         self._handled_paths = []
         self._entity_by_name_cache = {}
+        self._world_geometry_name = ""
 
     def load_entities(self, settings: BSPOptions):
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
@@ -151,13 +153,19 @@ class AbstractEntityHandler:
         remapped = dict(zip(vertex_ids, tmp2))
 
         material_lookup_table = {}
-        for texture_info in sorted(set(material_ids)):
-            texture_info = bsp_textures_info[texture_info]
+        skippable_materials = set()
+        for texture_info_id in sorted(set(material_ids)):
+            texture_info = bsp_textures_info[texture_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = self._get_string(texture_data.name_id)
             material_name = strip_patch_coordinates.sub("", material_name)
             material = get_or_create_material(path_stem(material_name), material_name)
             material_lookup_table[texture_data.name_id] = add_material(material, mesh_obj)
+            material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
+            if material_file:
+                vmt = VMT(material_file, material_name, self.content_manager)
+                if vmt.get_int("$abovewater", 1) == 0:
+                    skippable_materials.add(texture_info_id)
 
         uvs_per_face = []
         luvs_per_face = []
@@ -165,6 +173,9 @@ class AbstractEntityHandler:
         for map_face in bsp_faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
+            if map_face.tex_info_id in skippable_materials:
+                continue
+
             uvs = {}
             luvs = {}
             face = []
@@ -290,17 +301,21 @@ class AbstractEntityHandler:
         icon_path = getattr(entity, 'icon_sprite', None)
 
         if icon_path is not None:
-            icon_path = Path(icon_path)
+            icon_path = TinyPath(icon_path)
             icon = bpy.data.images.get(icon_path.stem, None)
             if icon is None:
-                icon_material_file = ContentManager().find_material(icon_path, silent=True)
+                icon_material_file = self.content_manager.find_file(
+                    TinyPath("materials") / icon_path.with_suffix(".vmt"))
                 if not icon_material_file:
                     return
-                vmt = VMT(icon_material_file, icon_path)
-                texture = ContentManager().find_texture(vmt.get_string('$basetexture', None), silent=True)
+                vmt = VMT(icon_material_file, icon_path, self.content_manager)
+                base_texture = vmt.get_string('$basetexture', None)
+                if not base_texture:
+                    return
+                texture = self.content_manager.find_file(TinyPath("materials") / (base_texture + ".vtf"))
                 if not texture:
                     return
-                icon = import_texture(Path(icon_path.stem), texture)
+                icon = import_texture(TinyPath(icon_path.stem), texture)
 
             obj.empty_display_type = 'IMAGE'
             obj.empty_display_size = (1 / self.scale)

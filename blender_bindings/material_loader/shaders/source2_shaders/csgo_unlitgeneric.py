@@ -1,5 +1,6 @@
 from pprint import pformat
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
@@ -44,15 +45,18 @@ class CSGOUnlitGeneric(Source2ShaderBase):
         #     self.connect_nodes(metalness_conv.outputs[1], shader.inputs["Metallic"])
 
         if self._material_resource.get_int_property("F_ALPHA_TEST", 0):
-            self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.shadow_method = 'CLIP'
-            self.bpy_material.alpha_threshold = self._material_resource.get_float_property("g_flAlphaTestReference", 0.5)
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'CLIP'
+                self.bpy_material.alpha_threshold = self._material_resource.get_float_property("g_flAlphaTestReference", 0.5)
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
         if self._material_resource.get_int_property("F_OVERLAY", 0):
-            self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])
         if self._material_resource.get_int_property("F_BLEND_MODE", 0):
-            self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.shadow_method = 'CLIP'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'BLEND'
+                self.bpy_material.shadow_method = 'CLIP'
             self.connect_nodes(color_texture.outputs[1], shader.inputs["Alpha"])

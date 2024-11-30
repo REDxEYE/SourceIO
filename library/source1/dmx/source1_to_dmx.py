@@ -1,30 +1,19 @@
 import os
-from pathlib import Path
-from typing import Iterable, Sized, Optional, Type
+from typing import Optional, Type
 
 import numpy as np
 
-from ...shared.content_providers.content_manager import ContentManager
-from ...shared.types import Vector3, Vector4
-from ...utils import datamodel, FileBuffer
-from ...utils.math_utilities import matrix_to_quat
-from ...utils.path_utilities import find_vtx
-from ...models.mdl.structs.bone import Bone
-from SourceIO.library.models.mdl.structs.model import Model as MdlModel
-from ...models.mdl.v49.mdl_file import MdlV49
-from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
-from ...models.vtx.v7.structs.model import Model as VtxModel
-from ...models.vtx.v7.structs.model import ModelLod as VtxModelLod
-from ...models.vtx.v7.vtx import Vtx
-from ...models.vvd import Vvd
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.types import Vector3, Vector4
+from SourceIO.library.utils import datamodel
 
 
 def sanitize_name(name):
-    return Path(name).stem.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+    return TinyPath(name).stem.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
 
 
 def normalize_path(path):
-    return Path(str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\'))
+    return TinyPath(str(path).lower().replace(' ', '_').replace('-', '_').strip('/\\'))
 
 
 class DmxModel2:
@@ -252,7 +241,7 @@ class DmxModel2:
         new_transform["orientation"] = rotation
         return new_transform
 
-    def save(self, path: Path, encoding_format: str, encoding_version: int):
+    def save(self, path: TinyPath, encoding_format: str, encoding_version: int):
         os.makedirs(path.parent, exist_ok=True)
         self.dmx.write(path, encoding_format, encoding_version)
 

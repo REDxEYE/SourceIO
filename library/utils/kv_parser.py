@@ -1,9 +1,10 @@
 import warnings
 from enum import Enum
-from pathlib import Path
 from typing import Iterator, Mapping, Union
 
 __all__ = ["KVLexerException", "KVParserException", "ValveKeyValueParser", "KeyValuePair", "KVDataProxy"]
+
+from SourceIO.library.utils.tiny_path import TinyPath
 
 KeyValuePair = tuple[str, Union[str, 'KeyValuePair', list['KeyValuePair']]]
 
@@ -119,7 +120,12 @@ class KVDataProxy(Mapping):
         for k, v in self.items():
             if isinstance(v, KVDataProxy):
                 v = v.to_dict()
-            items[k] = v
+            if items.get(k) != None and isinstance(v, dict):
+                if not isinstance(items[k], list):
+                    items[k] = [items[k]]
+                items[k].append(v)
+            else:
+                items[k] = v
         return items
 
 
@@ -315,10 +321,10 @@ class ValveKeyValueLexer:
 
 
 class ValveKeyValueParser:
-    def __init__(self, path: Union[Path, str] = None, buffer_and_name: tuple[str, str] = None, self_recover=False,
+    def __init__(self, path: TinyPath = None, buffer_and_name: tuple[str, str] = None, self_recover=False,
                  array_of_blocks=False):
         if path is not None:
-            self._path = Path(path)
+            self._path = TinyPath(path)
             with self._path.open() as f:
                 self._lexer = ValveKeyValueLexer(f.read(), str(self._path))
         elif buffer_and_name is not None:

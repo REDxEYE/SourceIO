@@ -1,23 +1,25 @@
 import os
 import platform
-from pathlib import Path
+from typing import Optional
+
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
-def pop_path_back(path: Path):
+def pop_path_back(path: TinyPath):
     if len(path.parts) > 1:
-        return Path().joinpath(*path.parts[1:])
+        return TinyPath(os.sep.join(path.parts[1:]))
     else:
         return path
 
 
-def pop_path_front(path: Path):
+def pop_path_front(path: TinyPath):
     if len(path.parts) > 1:
-        return Path().joinpath(*path.parts[:-1])
+        return TinyPath(os.sep.join(path.parts[:-1]))
     else:
         return path
 
 
-def find_vtx(mdl_path: Path):
+def find_vtx(mdl_path: TinyPath):
     possible_vtx_version = [70, 80, 11, None, 90, 12]
     for vtx_version in possible_vtx_version[::-1]:
         if vtx_version is None:
@@ -28,7 +30,7 @@ def find_vtx(mdl_path: Path):
             return path
 
 
-def find_vtx_cm(mdl_path: Path, content_manager):
+def find_vtx_cm(mdl_path: TinyPath, content_manager):
     possible_vtx_version = [70, 80, 11, None, 12, 90]
     for vtx_version in possible_vtx_version[::-1]:
         if vtx_version is None:
@@ -39,9 +41,9 @@ def find_vtx_cm(mdl_path: Path, content_manager):
             return path
 
 
-def backwalk_file_resolver(current_path, file_to_find):
-    current_path = Path(current_path).absolute()
-    file_to_find = Path(file_to_find)
+def backwalk_file_resolver(current_path, file_to_find) -> Optional[TinyPath]:
+    current_path = TinyPath(current_path).absolute()
+    file_to_find = TinyPath(file_to_find)
 
     for _ in range(len(current_path.parts) - 1):
         second_part = file_to_find
@@ -52,14 +54,15 @@ def backwalk_file_resolver(current_path, file_to_find):
 
             second_part = pop_path_back(second_part)
         current_path = pop_path_front(current_path)
+    return None
 
 
-def corrected_path(path: Path):
+def corrected_path(path: TinyPath):
     if platform.system() == "Windows" or path.exists():  # Shortcut for windows
         return path
     root, *parts, fname = path.parts
 
-    new_path = Path(root)
+    new_path = TinyPath(root)
     for part in parts:
         for dir_name in new_path.iterdir():
             if dir_name.is_file():
@@ -73,7 +76,7 @@ def corrected_path(path: Path):
     return path
 
 
-def get_mod_path(path: Path) -> Path:
+def get_mod_path(path: TinyPath) -> TinyPath:
     _path = path
     while len(path.parts) > 1:
         if (path / 'maps').exists():
@@ -102,9 +105,10 @@ def collect_full_material_names(material_names: list[str], material_search_paths
         for material_name in material_names:
             if material_name in full_mat_names:
                 continue
-            real_material_path = content_manager.find_material(Path(material_path) / material_name)
+            real_material_path = content_manager.find_file(
+                "materials" / TinyPath(material_path) / (material_name + ".vmt"))
             if real_material_path is not None:
-                full_mat_names[material_name] = (Path(material_path) / material_name).as_posix()
+                full_mat_names[material_name] = (TinyPath(material_path) / material_name).as_posix()
     for material_name in material_names:
         if material_name not in full_mat_names:
             full_mat_names[material_name] = material_name

@@ -3,6 +3,7 @@ from typing import Iterable
 import bpy
 import numpy as np
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -194,11 +195,12 @@ class HeroesArmor(Source1ShaderBase):
         parentnode = material_output
 
         if self.alphatest or self.translucent:
-            if self.translucent:
-                self.bpy_material.blend_method = 'BLEND'
-            else:
-                self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'HASHED'
+            if not is_blender_4_3():
+                if self.translucent:
+                    self.bpy_material.blend_method = 'BLEND'
+                else:
+                    self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'HASHED'
 
         if self.use_bvlg_status:
             self.do_arrange = False

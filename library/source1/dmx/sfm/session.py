@@ -1,10 +1,9 @@
-
-
-from ....shared.content_providers.content_manager import ContentManager
+from ....shared.content_manager.manager import ContentManager
 from ....utils import datamodel
 from ....utils.datamodel import Element
 from .base_element import BaseElement
 from .film_clip import FilmClip
+from ....utils.tiny_path import TinyPath
 
 
 def find_by_name_n_type(array, name, elem_type):
@@ -52,7 +51,7 @@ class Entity:
     @property
     def __transform(self):
         return find_by_name_n_type(self.animset.controls, 'transform', 'DmeTransformControl') or \
-               find_by_name_n_type(self.animset.controls, 'rootTransform', 'DmeTransformControl')
+            find_by_name_n_type(self.animset.controls, 'rootTransform', 'DmeTransformControl')
 
     @property
     def position(self):
@@ -169,11 +168,11 @@ class Session(BaseElement):
 
     @staticmethod
     def find_map(map_name):
-        return ContentManager().find_file(map_name, additional_dir='maps')
+        return ContentManager().find_file(TinyPath("maps") / map_name)
 
     @staticmethod
     def find_model(model: str):
-        return ContentManager().find_file(model)
+        return ContentManager().find_file(TinyPath(model))
 
     def __init__(self, element: Element):
         super().__init__(element)

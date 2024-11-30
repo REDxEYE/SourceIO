@@ -1,8 +1,8 @@
-from pathlib import Path
 from typing import Optional
 
+from SourceIO.blender_bindings.models.mdl36 import import_materials
+from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_animations
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
-from SourceIO.blender_bindings.models.mdl49.import_mdl import import_model, import_materials, import_animations
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.exceptions import SourceIOMissingFileException
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
@@ -11,9 +11,10 @@ from SourceIO.library.models.mdl.v49 import MdlV49
 from SourceIO.library.models.phy.phy import Phy
 from SourceIO.library.models.vtx import open_vtx
 from SourceIO.library.models.vvd import Vvd
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import find_vtx_cm
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -25,7 +26,7 @@ logger = log_manager.get_logger('MDL loader')
 @register_model_importer(b"IDST", 47)
 @register_model_importer(b"IDST", 48)
 @register_model_importer(b"IDST", 49)
-def import_mdl49(model_path: Path, buffer: Buffer,
+def import_mdl49(model_path: TinyPath, buffer: Buffer,
                  content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV49.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
@@ -36,7 +37,15 @@ def import_mdl49(model_path: Path, buffer: Buffer,
     vtx = open_vtx(vtx_buffer)
     vvd = Vvd.from_buffer(vvd_buffer)
 
-    container = import_model(mdl, vtx, vvd, options.scale, options.create_flex_drivers)
+    if options.import_textures:
+        try:
+            import_materials(content_manager, mdl, use_bvlg=options.use_bvlg)
+        except Exception as t_ex:
+            logger.error(f'Failed to import materials, caused by {t_ex}')
+            import traceback
+            traceback.print_exc()
+
+    container = import_model(content_manager, mdl, vtx, vvd, options.scale, options.create_flex_drivers)
     if options.import_physics:
         phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
         if phy_buffer is None:
@@ -45,13 +54,7 @@ def import_mdl49(model_path: Path, buffer: Buffer,
             phy = Phy.from_buffer(phy_buffer)
             import_physics(phy, phy_buffer, mdl, container, options.scale)
 
-    if options.import_textures:
-        try:
-            import_materials(mdl, use_bvlg=options.use_bvlg)
-        except Exception as t_ex:
-            logger.error(f'Failed to import materials, caused by {t_ex}')
-            import traceback
-            traceback.print_exc()
+    
     if options.import_animations and container.armature:
         import_animations(content_manager, mdl, container.armature, options.scale)
     return container

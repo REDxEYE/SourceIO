@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 from ......logger import SourceLogMan
 from .....shared.app_id import SteamAppId
-from .....shared.content_providers.content_manager import ContentManager
 from .....utils.file_utils import Buffer
 
 if TYPE_CHECKING:
@@ -253,10 +252,9 @@ class StaticPropLump:
         self.static_props: list[StaticProp] = []
 
     def parse(self, reader: Buffer, bsp: 'BSPFile'):
-        content_manager = ContentManager()
         for _ in range(reader.read_int32()):
             self.model_names.append(reader.read_ascii_string(128))
-        if self._glump_info.version<13:
+        if self._glump_info.version < 13:
             for _ in range(reader.read_int32()):
                 self.leafs.append(reader.read_uint16())
         else:

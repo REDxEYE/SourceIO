@@ -1,10 +1,10 @@
 import os
 import sys
-from pathlib import Path
 
 
 def running_in_blender():
-    exe_name = Path(sys.argv[0]).stem.lower()
+    from SourceIO.library.utils.tiny_path import TinyPath
+    exe_name = TinyPath(sys.argv[0]).stem.lower()
     return "blender" in exe_name or "bforartists" in exe_name
 
 
@@ -18,3 +18,6 @@ def loaded_as_addon():
         return bpy.app.sdl.supported
     except ImportError:
         return False
+
+
+__all__ = ["running_in_blender", "loaded_as_addon"]

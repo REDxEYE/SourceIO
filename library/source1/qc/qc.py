@@ -1,11 +1,11 @@
 import math
-from pathlib import Path
 
 from ...utils.math_utilities import vector_transform
 from ..mdl.structs.bodygroup import BodyPart
 from ..mdl.structs.bone import ProceduralBoneType
 from ..mdl.structs.header import StudioHDRFlags
 from ..mdl.v49.mdl_file import MdlV49
+from ...utils.tiny_path import TinyPath
 
 
 def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
@@ -15,7 +15,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
 
     def write_model(bodygroup: BodyPart):
         model = bodygroup.models[0]
-        name = Path(model.name if (model.name and model.name != 'blank') else model.name).stem
+        name = TinyPath(model.name if (model.name and model.name != 'blank') else model.name).stem
         buffer.write(f"$model \"{name}\" \"{name}\"")
         if model.has_flexes or model.has_eyebals:
             buffer.write("{\n\n")
@@ -66,7 +66,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
             if len(model.meshes) == 0:
                 buffer.write("\tblank\n")
             else:
-                model_name = Path(model.name).stem
+                model_name = TinyPath(model.name).stem
                 buffer.write(f"\tstudio \"{model_name}\"\n")
         buffer.write("}\n")
 
@@ -155,7 +155,7 @@ def generate_qc(mdl: MdlV49, buffer, plugin_version="UNKNOWN"):
     def write_sequences():
         buffer.write(f"$sequence \"idle\" ")
         buffer.write("{\n")
-        file_name = Path(mdl.body_parts[0].models[0].name).stem
+        file_name = TinyPath(mdl.body_parts[0].models[0].name).stem
         buffer.write(f"\t\"{file_name}\"\n")
         buffer.write("\tactivity \"ACT_DIERAGDOLL\" 1\n")
         buffer.write(f"\tfadein {0.2:.2f}\n")

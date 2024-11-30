@@ -1,27 +1,24 @@
 import re
-from collections import defaultdict
-from pathlib import Path
 from typing import Optional
 
-import bpy
 import bmesh
+import bpy
+import numpy as np
 from mathutils import Vector, geometry
 
-import numpy as np
-
-from .base_entity_handler import BaseEntityHandler
-from .....library.source1.bsp.bsp_file import BSPFile
-from .....library.source1.bsp.datatypes.plane import RavenPlane
-from .....library.source1.bsp.lumps import RavenModelLump, RavenFaceLump, VertexLump, ShadersLump, RavenBrushLump, \
-    RavenBrushSidesLump
-from .....library.source1.bsp.lumps.plane_lump import RavenPlaneLump
-from .....library.source1.bsp.lumps.surf_edge_lump import RavenIndicesLump
-from .....library.utils.math_utilities import ensure_length, lerp_vec, SOURCE1_HAMMER_UNIT_TO_METERS
-from .....library.utils.path_utilities import path_stem
-from .....logger import SourceLogMan
-from ....utils.bpy_utils import add_material, get_or_create_material
 from .abstract_entity_handlers import _srgb2lin
 from .base_entity_classes import *
+from .base_entity_handler import BaseEntityHandler
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.plane import RavenPlane
+from SourceIO.library.source1.bsp.lumps import RavenModelLump, RavenFaceLump, VertexLump, ShadersLump, RavenBrushLump, \
+    RavenBrushSidesLump
+from SourceIO.library.source1.bsp.lumps.plane_lump import RavenPlaneLump
+from SourceIO.library.source1.bsp.lumps.surf_edge_lump import RavenIndicesLump
+from SourceIO.library.utils.math_utilities import ensure_length, SOURCE1_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.logger import SourceLogMan
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SourceLogMan()
@@ -162,6 +159,7 @@ class SOFEntityHandler(BaseEntityHandler):
         world = self._load_brush_model(0, 'world_geometry')
         if not world:
             return
+        self._world_geometry_name = world.name
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
 

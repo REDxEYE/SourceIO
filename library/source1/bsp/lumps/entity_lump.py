@@ -1,10 +1,10 @@
-from pathlib import Path
 import charset_normalizer
 
-from .....logger import SourceLogMan
-from ....utils import Buffer
-from ....utils.kv_parser import ValveKeyValueParser
-from ....utils.s1_keyvalues import KVParser
+from SourceIO.library.utils import Buffer
+from SourceIO.library.utils.kv_parser import ValveKeyValueParser
+from SourceIO.library.utils.s1_keyvalues import KVParser
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 from .. import Lump, LumpInfo, lump_tag
 from ..bsp_file import BSPFile
 
@@ -40,12 +40,12 @@ class EntityPartitionsLump(Lump):
         data = buffer.read_ascii_string(-1)
         entity_files = data.split(' ')[1:]
         for ent_file in entity_files:
-            ent_path: Path = bsp.filepath.parent / f'{bsp.filepath.stem}_{ent_file}.ent'
+            ent_path: TinyPath = bsp.filepath.parent / f'{bsp.filepath.stem}_{ent_file}.ent'
             if ent_path.exists():
                 with ent_path.open('r') as f:
                     magic = f.read(11).strip()
                     assert magic == 'ENTITIES01', 'Invalid ent file'
-                    parser = KVParser('EntityLump', f.read(-1))
+                    parser = KVParser(TinyPath('EntityLump'), f.read(-1))
                     entity = parser.parse_value()
                     while entity is not None:
                         self.entities.append(entity)

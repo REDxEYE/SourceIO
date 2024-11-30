@@ -1,18 +1,13 @@
-from pathlib import Path
-
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        StringProperty)
 
-from .import_settings_base import ModelOptions
-from ..models import import_model
-from ..models.common import put_into_collections
-from ...library.global_config import GoldSrcConfig
-from ...library.shared.content_providers.content_manager import ContentManager
-from ...library.utils import FileBuffer
-from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-from ...logger import SourceLogMan
 from ..goldsrc.bsp.import_bsp import BSP
+from ...library.global_config import GoldSrcConfig
+from ...library.shared.content_manager.manager import ContentManager
+from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
+from ...library.utils.tiny_path import TinyPath
+from ...logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("GoldSrc::Operators")
 
@@ -34,15 +29,18 @@ class SOURCEIO_OT_GBSPImport(bpy.types.Operator):
 
     def execute(self, context):
 
-        if Path(self.filepath).is_file():
-            directory = Path(self.filepath).parent.absolute()
+        if TinyPath(self.filepath).is_file():
+            directory = TinyPath(self.filepath).parent.absolute()
         else:
-            directory = Path(self.filepath).absolute()
+            directory = TinyPath(self.filepath).absolute()
+        content_provider = ContentManager()
+        content_provider.scan_for_content(directory)
         for n, file in enumerate(self.files):
             logger.info(f"Loading {n}/{len(self.files)}")
-            content_manager = GoldSrcConfig()
-            content_manager.use_hd = self.use_hd
-            bsp = BSP(directory / file.name, scale=self.scale, single_collection=self.single_collection,
+            config = GoldSrcConfig()
+            config.use_hd = self.use_hd
+            bsp = BSP(content_provider, directory / file.name, scale=self.scale,
+                      single_collection=self.single_collection,
                       fix_rotation=self.fix_rotation)
             bsp.load_map()
         return {'FINISHED'}

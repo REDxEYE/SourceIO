@@ -1,4 +1,3 @@
-
 def parse_source_value(value):
     if type(value) is str:
         value: str
@@ -14,6 +13,8 @@ def parse_int_vector(string):
 
 
 def parse_float_vector(string):
+    if string is None:
+        return [0.0, 0.0, 0.0]
     return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
@@ -33,7 +34,7 @@ class Base:
     @property
     def class_name(self):
         return self._raw_data.get('classname')
-        
+
     @property
     def hammer_id(self):
         if self._hammer_id == -1:
@@ -51,13 +52,11 @@ class Angles(Base):
         return parse_float_vector(self._raw_data.get('angles', "0 0 0"))
 
 
-
 class Origin(Base):
 
     @property
     def origin(self):
         return parse_float_vector(self._raw_data.get('origin', None))
-
 
 
 class Studiomodel(Base):
@@ -79,7 +78,6 @@ class Studiomodel(Base):
         return self._raw_data.get('disableshadows', "0")
 
 
-
 class BasePlat(Base):
     pass
 
@@ -91,13 +89,11 @@ class Targetname(Base):
         return self._raw_data.get('targetname', None)
 
 
-
 class Parentname(Base):
 
     @property
     def parentname(self):
         return self._raw_data.get('parentname', None)
-
 
 
 class BaseBrush(Base):
@@ -111,7 +107,6 @@ class EnableDisable(Base):
         return self._raw_data.get('startdisabled', "0")
 
 
-
 class RenderFxChoices(Base):
 
     @property
@@ -119,13 +114,11 @@ class RenderFxChoices(Base):
         return self._raw_data.get('renderfx', "0")
 
 
-
 class Shadow(Base):
 
     @property
     def disableshadows(self):
         return self._raw_data.get('disableshadows', "0")
-
 
 
 class RenderFields(RenderFxChoices):
@@ -147,7 +140,6 @@ class RenderFields(RenderFxChoices):
         return self._raw_data.get('disablereceiveshadows', "0")
 
 
-
 class DXLevelChoice(Base):
 
     @property
@@ -159,7 +151,6 @@ class DXLevelChoice(Base):
         return self._raw_data.get('maxdxlevel', "0")
 
 
-
 class Inputfilter(Base):
 
     @property
@@ -167,13 +158,11 @@ class Inputfilter(Base):
         return self._raw_data.get('inputfilter', "0")
 
 
-
 class Global(Base):
 
     @property
     def globalname(self):
         return self._raw_data.get('globalname', "")
-
 
 
 class EnvGlobal(Targetname):
@@ -187,7 +176,6 @@ class EnvGlobal(Targetname):
         return parse_source_value(self._raw_data.get('counter', 0))
 
 
-
 class DamageFilter(Base):
 
     @property
@@ -195,13 +183,11 @@ class DamageFilter(Base):
         return self._raw_data.get('damagefilter', "")
 
 
-
 class ResponseContext(Base):
 
     @property
     def ResponseContext(self):
         return self._raw_data.get('responsecontext', "")
-
 
 
 class Breakable(DamageFilter, Targetname, Shadow):
@@ -221,7 +207,6 @@ class Breakable(DamageFilter, Targetname, Shadow):
     @property
     def BreakModelMessage(self):
         return self._raw_data.get('breakmodelmessage', "")
-
 
 
 class BreakableBrush(Parentname, Breakable, Global):
@@ -267,13 +252,11 @@ class BreakableBrush(Parentname, Breakable, Global):
         return parse_source_value(self._raw_data.get('pressuredelay', 0))
 
 
-
 class BreakableProp(Breakable):
 
     @property
     def pressuredelay(self):
         return parse_source_value(self._raw_data.get('pressuredelay', 0))
-
 
 
 class BaseNPC(Angles, ResponseContext, Shadow, Targetname, DamageFilter, RenderFields):
@@ -319,9 +302,9 @@ class BaseNPC(Angles, ResponseContext, Shadow, Targetname, DamageFilter, RenderF
         return parse_source_value(self._raw_data.get('physdamagescale', 1.0))
 
 
-
 class info_npc_spawn_destination(Parentname, Angles, Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -333,7 +316,6 @@ class info_npc_spawn_destination(Parentname, Angles, Targetname):
     @property
     def RenameNPC(self):
         return self._raw_data.get('renamenpc', "")
-
 
 
 class BaseNPCMaker(Angles, Targetname, EnableDisable):
@@ -352,9 +334,9 @@ class BaseNPCMaker(Angles, Targetname, EnableDisable):
         return parse_source_value(self._raw_data.get('maxlivechildren', 5))
 
 
-
 class npc_template_maker(BaseNPCMaker):
     icon_sprite = "editor/npc_maker.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -384,13 +366,11 @@ class npc_template_maker(BaseNPCMaker):
         return parse_source_value(self._raw_data.get('minspawndistance', 0))
 
 
-
 class BaseHelicopter(BaseNPC):
 
     @property
     def InitialSpeed(self):
         return self._raw_data.get('initialspeed', "0")
-
 
 
 class PlayerClass(Base):
@@ -444,13 +424,11 @@ class Light(Base):
         return parse_source_value(self._raw_data.get('_hardfalloff', 0))
 
 
-
 class Node(Base):
 
     @property
     def nodeid(self):
         return parse_source_value(self._raw_data.get('nodeid', None))
-
 
 
 class HintNode(Node):
@@ -492,13 +470,11 @@ class HintNode(Node):
         return self._raw_data.get('maximumstate', "3")
 
 
-
 class TriggerOnce(Parentname, Global, EnableDisable, Targetname, Origin):
 
     @property
     def filtername(self):
         return self._raw_data.get('filtername', None)
-
 
 
 class Trigger(TriggerOnce):
@@ -568,13 +544,13 @@ class worldbase(Base):
         return self._raw_data.get('coldworld', "0")
 
 
-
 class worldspawn(ResponseContext, worldbase, Targetname):
     pass
 
 
 class ambient_generic(Targetname):
     icon_sprite = "editor/ambient_generic.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -648,7 +624,6 @@ class ambient_generic(Targetname):
         return self._raw_data.get('sourceentityname', None)
 
 
-
 class func_lod(Targetname):
 
     @property
@@ -658,7 +633,6 @@ class func_lod(Targetname):
     @property
     def Solid(self):
         return self._raw_data.get('solid', "0")
-
 
 
 class env_zoom(Targetname):
@@ -673,7 +647,6 @@ class env_zoom(Targetname):
     @property
     def FOV(self):
         return parse_source_value(self._raw_data.get('fov', 75))
-
 
 
 class env_screenoverlay(Targetname):
@@ -762,7 +735,6 @@ class env_screenoverlay(Targetname):
         return parse_source_value(self._raw_data.get('overlaytime10', 1.0))
 
 
-
 class env_screeneffect(Targetname):
     @property
     def origin(self):
@@ -771,7 +743,6 @@ class env_screeneffect(Targetname):
     @property
     def type(self):
         return self._raw_data.get('type', "0")
-
 
 
 class env_texturetoggle(Targetname):
@@ -784,7 +755,6 @@ class env_texturetoggle(Targetname):
         return self._raw_data.get('target', None)
 
 
-
 class env_splash(Angles, Targetname):
     @property
     def origin(self):
@@ -793,7 +763,6 @@ class env_splash(Angles, Targetname):
     @property
     def scale(self):
         return parse_source_value(self._raw_data.get('scale', 8.0))
-
 
 
 class env_particlelight(Parentname):
@@ -816,7 +785,6 @@ class env_particlelight(Parentname):
     @property
     def PSName(self):
         return self._raw_data.get('psname', "")
-
 
 
 class env_sun(Angles, Targetname):
@@ -865,7 +833,6 @@ class env_sun(Angles, Targetname):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
 
 
-
 class game_ragdoll_manager(Targetname):
     @property
     def origin(self):
@@ -882,7 +849,6 @@ class game_ragdoll_manager(Targetname):
     @property
     def SaveImportant(self):
         return self._raw_data.get('saveimportant', "0")
-
 
 
 class game_gib_manager(Targetname):
@@ -903,9 +869,9 @@ class game_gib_manager(Targetname):
         return self._raw_data.get('allownewgibs', "0")
 
 
-
 class env_lightglow(Parentname, Angles, Targetname):
     model_ = "models/editor/axis_helper_thick.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -941,7 +907,6 @@ class env_lightglow(Parentname, Angles, Targetname):
     @property
     def HDRColorScale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
-
 
 
 class env_smokestack(Parentname, Angles):
@@ -1014,9 +979,9 @@ class env_smokestack(Parentname, Angles):
         return parse_source_value(self._raw_data.get('renderamt', 255))
 
 
-
 class env_fade(Targetname):
     icon_sprite = "editor/env_fade"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1038,7 +1003,6 @@ class env_fade(Targetname):
         return parse_int_vector(self._raw_data.get('rendercolor', "0 0 0"))
 
 
-
 class env_player_surface_trigger(Targetname):
     @property
     def origin(self):
@@ -1049,12 +1013,13 @@ class env_player_surface_trigger(Targetname):
         return self._raw_data.get('gamematerial', "0")
 
 
-
 class env_tonemap_controller(Targetname):
     icon_sprite = "editor/env_tonemap_controller.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -1080,7 +1045,6 @@ class func_useableladder(Parentname, Targetname):
         return self._raw_data.get('laddersurfaceproperties', None)
 
 
-
 class func_ladderendpoint(Parentname, Angles, Targetname):
     @property
     def origin(self):
@@ -1091,7 +1055,6 @@ class func_ladderendpoint(Parentname, Angles, Targetname):
         return self._raw_data.get('target', None)
 
 
-
 class info_ladder_dismount(Parentname):
     @property
     def origin(self):
@@ -1100,7 +1063,6 @@ class info_ladder_dismount(Parentname):
     @property
     def target(self):
         return self._raw_data.get('target', None)
-
 
 
 class func_areaportalwindow(Targetname):
@@ -1130,7 +1092,6 @@ class func_areaportalwindow(Targetname):
         return parse_source_value(self._raw_data.get('portalversion', 1))
 
 
-
 class func_wall(Shadow, Targetname, Global, RenderFields):
 
     @property
@@ -1138,13 +1099,11 @@ class func_wall(Shadow, Targetname, Global, RenderFields):
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_clip_vphysics(Targetname, EnableDisable):
 
     @property
     def filtername(self):
         return self._raw_data.get('filtername', None)
-
 
 
 class func_brush(Parentname, Global, EnableDisable, Shadow, Inputfilter, Targetname, Origin, RenderFields):
@@ -1174,7 +1133,6 @@ class func_brush(Parentname, Global, EnableDisable, Shadow, Inputfilter, Targetn
         return self._raw_data.get('vrad_brush_cast_shadows', "0")
 
 
-
 class vgui_screen_base(Parentname, Angles, Targetname):
 
     @property
@@ -1194,16 +1152,17 @@ class vgui_screen_base(Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('height', 32))
 
 
-
 class vgui_screen(vgui_screen_base):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class vgui_slideshow_display(Parentname, Angles, Targetname):
     model_ = "models/editor/axis_helper_thick.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1241,7 +1200,6 @@ class vgui_slideshow_display(Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('height', 128))
 
 
-
 class cycler(Angles, Parentname, Targetname, RenderFields):
     @property
     def origin(self):
@@ -1258,7 +1216,6 @@ class cycler(Angles, Parentname, Targetname, RenderFields):
     @property
     def sequence(self):
         return parse_source_value(self._raw_data.get('sequence', 0))
-
 
 
 class gibshooterbase(Parentname, Targetname):
@@ -1298,7 +1255,6 @@ class gibshooterbase(Parentname, Targetname):
     @property
     def lightingorigin(self):
         return self._raw_data.get('lightingorigin', "")
-
 
 
 class env_beam(Parentname, RenderFxChoices, Targetname):
@@ -1379,7 +1335,6 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('filtername', None)
 
 
-
 class env_beverage(Parentname, Targetname):
     @property
     def origin(self):
@@ -1392,7 +1347,6 @@ class env_beverage(Parentname, Targetname):
     @property
     def beveragetype(self):
         return self._raw_data.get('beveragetype', "0")
-
 
 
 class env_embers(Parentname, Angles, Targetname):
@@ -1418,11 +1372,11 @@ class env_embers(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('rendercolor', "255 255 255"))
 
 
-
 class env_funnel(Parentname, Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -1444,7 +1398,6 @@ class env_blood(Parentname, Targetname):
         return self._raw_data.get('amount', "100")
 
 
-
 class env_bubbles(Parentname, Targetname):
 
     @property
@@ -1460,9 +1413,9 @@ class env_bubbles(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('current', 0))
 
 
-
 class env_explosion(Parentname, Targetname):
     icon_sprite = "editor/env_explosion.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1486,7 +1439,6 @@ class env_explosion(Parentname, Targetname):
     @property
     def ignoredEntity(self):
         return self._raw_data.get('ignoredentity', None)
-
 
 
 class env_smoketrail(Parentname, Targetname):
@@ -1555,9 +1507,9 @@ class env_smoketrail(Parentname, Targetname):
         return self._raw_data.get('smokesprite', "sprites/whitepuff.spr")
 
 
-
 class env_physexplosion(Parentname, Targetname):
     icon_sprite = "editor/env_physexplosion.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1579,9 +1531,9 @@ class env_physexplosion(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('inner_radius', 0))
 
 
-
 class env_physimpact(Parentname, Targetname):
     icon_sprite = "editor/env_physexplosion.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1603,9 +1555,9 @@ class env_physimpact(Parentname, Targetname):
         return self._raw_data.get('directionentityname', "")
 
 
-
 class env_fire(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/env_fire"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1635,9 +1587,9 @@ class env_fire(Parentname, Targetname, EnableDisable):
         return parse_source_value(self._raw_data.get('damagescale', 1.0))
 
 
-
 class env_firesource(Parentname, Targetname):
     icon_sprite = "editor/env_firesource"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1649,7 +1601,6 @@ class env_firesource(Parentname, Targetname):
     @property
     def firedamage(self):
         return parse_source_value(self._raw_data.get('firedamage', 10))
-
 
 
 class env_firesensor(Parentname, Targetname):
@@ -1670,7 +1621,6 @@ class env_firesensor(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('heattime', 0))
 
 
-
 class env_entity_igniter(Targetname):
     @property
     def origin(self):
@@ -1685,9 +1635,9 @@ class env_entity_igniter(Targetname):
         return parse_source_value(self._raw_data.get('lifetime', 10))
 
 
-
 class env_fog_controller(DXLevelChoice, Angles, Targetname):
     icon_sprite = "editor/fog_controller.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1737,9 +1687,9 @@ class env_fog_controller(DXLevelChoice, Angles, Targetname):
         return self._raw_data.get('farz', "-1")
 
 
-
 class env_steam(Parentname, Angles, Targetname):
     viewport_model = "models/editor/spot_cone.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1787,7 +1737,6 @@ class env_steam(Parentname, Angles, Targetname):
     @property
     def rollspeed(self):
         return parse_source_value(self._raw_data.get('rollspeed', 8))
-
 
 
 class env_laser(Parentname, RenderFxChoices, Targetname):
@@ -1840,7 +1789,6 @@ class env_laser(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('dissolvetype', "None")
 
 
-
 class env_message(Targetname):
     @property
     def origin(self):
@@ -1863,7 +1811,6 @@ class env_message(Targetname):
         return self._raw_data.get('messageattenuation', "0")
 
 
-
 class env_hudhint(Targetname):
     @property
     def origin(self):
@@ -1874,9 +1821,9 @@ class env_hudhint(Targetname):
         return self._raw_data.get('message', "")
 
 
-
 class env_shake(Parentname, Targetname):
     icon_sprite = "editor/env_shake.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1898,7 +1845,6 @@ class env_shake(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('frequency', 2.5))
 
 
-
 class env_viewpunch(Parentname, Targetname):
     @property
     def origin(self):
@@ -1913,7 +1859,6 @@ class env_viewpunch(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('radius', 500))
 
 
-
 class env_rotorwash_emitter(Parentname, Targetname):
     @property
     def origin(self):
@@ -1924,17 +1869,19 @@ class env_rotorwash_emitter(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('altitude', 1024))
 
 
-
 class gibshooter(gibshooterbase):
     icon_sprite = "editor/gibshooter.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class env_shooter(gibshooterbase, RenderFields):
     icon_sprite = "editor/env_shooter.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -1968,9 +1915,9 @@ class env_shooter(gibshooterbase, RenderFields):
         return parse_source_value(self._raw_data.get('massoverride', 0))
 
 
-
 class env_rotorshooter(gibshooterbase, RenderFields):
     icon_sprite = "editor/env_shooter.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2000,9 +1947,9 @@ class env_rotorshooter(gibshooterbase, RenderFields):
         return parse_source_value(self._raw_data.get('rotortimevariance', 0.3))
 
 
-
 class env_soundscape_proxy(Parentname, Targetname):
     icon_sprite = "editor/env_soundscape.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2016,9 +1963,9 @@ class env_soundscape_proxy(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('radius', 128))
 
 
-
 class env_soundscape(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/env_soundscape.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2064,17 +2011,19 @@ class env_soundscape(Parentname, Targetname, EnableDisable):
         return self._raw_data.get('position7', "")
 
 
-
 class env_soundscape_triggerable(env_soundscape):
     icon_sprite = "editor/env_soundscape.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class env_spark(Parentname, Angles, Targetname):
     icon_sprite = "editor/env_spark.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2090,7 +2039,6 @@ class env_spark(Parentname, Angles, Targetname):
     @property
     def TrailLength(self):
         return self._raw_data.get('traillength', "1")
-
 
 
 class env_sprite(Parentname, Targetname, DXLevelChoice, RenderFields):
@@ -2119,16 +2067,17 @@ class env_sprite(Parentname, Targetname, DXLevelChoice, RenderFields):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
 
 
-
 class env_sprite_oriented(Angles, env_sprite):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class env_wind(Angles, Targetname):
     icon_sprite = "editor/env_wind.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2164,7 +2113,6 @@ class env_wind(Angles, Targetname):
     @property
     def gustdirchange(self):
         return parse_source_value(self._raw_data.get('gustdirchange', 20))
-
 
 
 class sky_camera(Angles):
@@ -2209,7 +2157,6 @@ class sky_camera(Angles):
         return self._raw_data.get('fogend', "2000.0")
 
 
-
 class BaseSpeaker(ResponseContext, Targetname):
 
     @property
@@ -2227,7 +2174,6 @@ class BaseSpeaker(ResponseContext, Targetname):
     @property
     def concept(self):
         return self._raw_data.get('concept', "")
-
 
 
 class game_weapon_manager(Targetname):
@@ -2248,9 +2194,9 @@ class game_weapon_manager(Targetname):
         return parse_source_value(self._raw_data.get('ammomod', 1))
 
 
-
 class game_end(Targetname):
     icon_sprite = "editor/game_end.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2258,7 +2204,6 @@ class game_end(Targetname):
     @property
     def master(self):
         return self._raw_data.get('master', None)
-
 
 
 class game_player_equip(Targetname):
@@ -2269,7 +2214,6 @@ class game_player_equip(Targetname):
     @property
     def master(self):
         return self._raw_data.get('master', None)
-
 
 
 class game_player_team(Targetname):
@@ -2286,7 +2230,6 @@ class game_player_team(Targetname):
         return self._raw_data.get('master', None)
 
 
-
 class game_score(Targetname):
     @property
     def origin(self):
@@ -2301,9 +2244,9 @@ class game_score(Targetname):
         return self._raw_data.get('master', None)
 
 
-
 class game_text(Targetname):
     icon_sprite = "editor/game_text.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2357,11 +2300,11 @@ class game_text(Targetname):
         return self._raw_data.get('master', None)
 
 
-
 class point_enable_motion_fixup(Parentname, Angles):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -2383,9 +2326,9 @@ class point_message(Parentname, Targetname):
         return self._raw_data.get('developeronly', "0")
 
 
-
 class point_spotlight(Angles, Parentname, Targetname, DXLevelChoice, RenderFields):
     model_ = "models/editor/cone_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2401,7 +2344,6 @@ class point_spotlight(Angles, Parentname, Targetname, DXLevelChoice, RenderField
     @property
     def HDRColorScale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
-
 
 
 class point_tesla(Parentname, Targetname):
@@ -2462,11 +2404,11 @@ class point_tesla(Parentname, Targetname):
         return self._raw_data.get('interval_max', "2")
 
 
-
 class point_clientcommand(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -2474,6 +2416,7 @@ class point_servercommand(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -2491,7 +2434,6 @@ class point_bonusmaps_accessor(Targetname):
         return self._raw_data.get('mapname', "")
 
 
-
 class game_ui(Targetname):
     @property
     def origin(self):
@@ -2502,13 +2444,13 @@ class game_ui(Targetname):
         return parse_source_value(self._raw_data.get('fieldofview', -1.0))
 
 
-
 class game_zone_player(Parentname, Targetname):
     pass
 
 
 class infodecal(Targetname):
     model_ = "models/editor/axis_helper_thick.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2522,9 +2464,9 @@ class infodecal(Targetname):
         return self._raw_data.get('lowpriority', "0")
 
 
-
 class info_projecteddecal(Angles, Targetname):
     model_ = "models/editor/axis_helper_thick.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2538,7 +2480,6 @@ class info_projecteddecal(Angles, Targetname):
         return parse_source_value(self._raw_data.get('distance', 64))
 
 
-
 class info_no_dynamic_shadow(Base):
     @property
     def origin(self):
@@ -2549,17 +2490,19 @@ class info_no_dynamic_shadow(Base):
         return self._raw_data.get('sides', None)
 
 
-
 class info_player_start(Angles, PlayerClass):
     model_ = "models/editor/playerstart.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_overlay(Targetname):
     model_ = "models/editor/overlay_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -2633,7 +2576,6 @@ class info_overlay(Targetname):
         return parse_source_value(self._raw_data.get('fademaxdist', 0))
 
 
-
 class info_overlay_transition(Base):
     @property
     def origin(self):
@@ -2680,7 +2622,6 @@ class info_overlay_transition(Base):
         return parse_source_value(self._raw_data.get('debugdraw', 0))
 
 
-
 class info_intermission(Base):
     @property
     def origin(self):
@@ -2691,12 +2632,13 @@ class info_intermission(Base):
         return self._raw_data.get('target', None)
 
 
-
 class info_landmark(Targetname):
     icon_sprite = "editor/info_landmark"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -2704,19 +2646,23 @@ class info_null(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_target(Parentname, Angles, Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_particle_system(Parentname, Angles, Targetname):
     model_ = "models/editor/cone_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3014,9 +2960,9 @@ class info_particle_system(Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('cpoint7_parent', 0))
 
 
-
 class phys_ragdollmagnet(Parentname, Angles, Targetname, EnableDisable):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3038,41 +2984,49 @@ class phys_ragdollmagnet(Parentname, Angles, Targetname, EnableDisable):
         return self._raw_data.get('target', "")
 
 
-
 class info_lighting(Targetname):
     icon_sprite = "editor/info_lighting.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_teleport_destination(Parentname, Angles, Targetname, PlayerClass):
     model_ = "models/editor/playerstart.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_node(Node):
     model_ = "models/editor/ground_node.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_node_hint(Angles, HintNode, Targetname):
     model_ = "models/editor/ground_node_hint.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_node_air(Node):
     model_ = "models/editor/air_node.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3080,11 +3034,11 @@ class info_node_air(Node):
     @property
     def nodeheight(self):
         return parse_source_value(self._raw_data.get('nodeheight', 0))
-
 
 
 class info_node_air_hint(Angles, HintNode, Targetname):
     model_ = "models/editor/air_node_hint.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3094,12 +3048,13 @@ class info_node_air_hint(Angles, HintNode, Targetname):
         return parse_source_value(self._raw_data.get('nodeheight', 0))
 
 
-
 class info_hint(Angles, HintNode, Targetname):
     model_ = "models/editor/node_hint.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -3133,7 +3088,6 @@ class info_node_link(Targetname):
         return self._raw_data.get('invertallow', "0")
 
 
-
 class info_node_link_controller(Targetname):
     @property
     def origin(self):
@@ -3164,7 +3118,6 @@ class info_node_link_controller(Targetname):
         return self._raw_data.get('invertallow', "0")
 
 
-
 class info_radial_link_controller(Parentname, Targetname):
     @property
     def origin(self):
@@ -3175,17 +3128,19 @@ class info_radial_link_controller(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('radius', 120))
 
 
-
 class info_node_climb(Angles, HintNode, Targetname):
     model_ = "models/editor/climb_node.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class light(Targetname, Light):
     icon_sprite = "editor/light.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3199,9 +3154,9 @@ class light(Targetname, Light):
         return parse_source_value(self._raw_data.get('_distance', 0))
 
 
-
 class light_environment(Angles):
     icon_sprite = "editor/light_env.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3239,7 +3194,6 @@ class light_environment(Angles):
         return parse_source_value(self._raw_data.get('sunspreadangle', 0))
 
 
-
 class light_spot(Angles, Targetname, Light):
     @property
     def origin(self):
@@ -3270,9 +3224,9 @@ class light_spot(Angles, Targetname, Light):
         return parse_source_value(self._raw_data.get('pitch', -90))
 
 
-
 class light_dynamic(Parentname, Angles, Targetname):
     icon_sprite = "editor/light.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3314,9 +3268,9 @@ class light_dynamic(Parentname, Angles, Targetname):
         return self._raw_data.get('style', "0")
 
 
-
 class shadow_control(Targetname):
     icon_sprite = "editor/shadow_control.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3338,9 +3292,9 @@ class shadow_control(Targetname):
         return self._raw_data.get('disableallshadows', "0")
 
 
-
 class color_correction(Targetname, EnableDisable):
     icon_sprite = "editor/color_correction.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3370,7 +3324,6 @@ class color_correction(Targetname, EnableDisable):
         return parse_source_value(self._raw_data.get('fadeoutduration', 0.0))
 
 
-
 class color_correction_volume(Targetname, EnableDisable):
 
     @property
@@ -3386,7 +3339,6 @@ class color_correction_volume(Targetname, EnableDisable):
         return self._raw_data.get('filename', "")
 
 
-
 class KeyFrame(Base):
 
     @property
@@ -3398,13 +3350,11 @@ class KeyFrame(Base):
         return parse_source_value(self._raw_data.get('movespeed', 64))
 
 
-
 class Mover(Base):
 
     @property
     def PositionInterpolator(self):
         return self._raw_data.get('positioninterpolator', "0")
-
 
 
 class func_movelinear(Parentname, Targetname, Origin, RenderFields):
@@ -3438,7 +3388,6 @@ class func_movelinear(Parentname, Targetname, Origin, RenderFields):
         return self._raw_data.get('stopsound', None)
 
 
-
 class func_water_analog(Parentname, Targetname, Origin):
 
     @property
@@ -3468,7 +3417,6 @@ class func_water_analog(Parentname, Targetname, Origin):
     @property
     def WaveHeight(self):
         return self._raw_data.get('waveheight', "3.0")
-
 
 
 class func_rotating(Angles, Parentname, Shadow, Targetname, Origin, RenderFields):
@@ -3502,7 +3450,6 @@ class func_rotating(Angles, Parentname, Shadow, Targetname, Origin, RenderFields
         return self._raw_data.get('solidbsp', "0")
 
 
-
 class func_platrot(Angles, BasePlat, Parentname, Shadow, Targetname, Origin, RenderFields):
 
     @property
@@ -3530,7 +3477,6 @@ class func_platrot(Angles, BasePlat, Parentname, Shadow, Targetname, Origin, Ren
         return self._raw_data.get('_minlight', None)
 
 
-
 class keyframe_track(Parentname, Angles, KeyFrame, Targetname):
     pass
 
@@ -3552,7 +3498,6 @@ class move_track(Parentname, KeyFrame, Mover, Targetname):
     @property
     def NoRotate(self):
         return self._raw_data.get('norotate', "0")
-
 
 
 class RopeKeyFrame(DXLevelChoice):
@@ -3602,7 +3547,6 @@ class RopeKeyFrame(DXLevelChoice):
         return self._raw_data.get('nowind', "0")
 
 
-
 class keyframe_rope(Parentname, RopeKeyFrame, KeyFrame, Targetname):
     model_ = "models/editor/axis_helper_thick.mdl"
     pass
@@ -3614,7 +3558,6 @@ class move_rope(Parentname, RopeKeyFrame, KeyFrame, Targetname):
     @property
     def PositionInterpolator(self):
         return self._raw_data.get('positioninterpolator', "2")
-
 
 
 class Button(Base):
@@ -3672,7 +3615,6 @@ class func_button(Parentname, Button, Targetname, DamageFilter, Origin, RenderFi
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_rot_button(Angles, Parentname, Global, EnableDisable, Button, Targetname, Origin):
 
     @property
@@ -3702,7 +3644,6 @@ class func_rot_button(Angles, Parentname, Global, EnableDisable, Button, Targetn
     @property
     def _minlight(self):
         return self._raw_data.get('_minlight', None)
-
 
 
 class momentary_rot_button(Angles, Parentname, Targetname, Origin, RenderFields):
@@ -3742,7 +3683,6 @@ class momentary_rot_button(Angles, Parentname, Targetname, Origin, RenderFields)
     @property
     def solidbsp(self):
         return self._raw_data.get('solidbsp', "0")
-
 
 
 class Door(Parentname, Shadow, Global, Targetname, RenderFields):
@@ -3828,7 +3768,6 @@ class Door(Parentname, Shadow, Global, Targetname, RenderFields):
         return self._raw_data.get('loopmovesound', "0")
 
 
-
 class func_door(Door, Origin):
 
     @property
@@ -3840,7 +3779,6 @@ class func_door(Door, Origin):
         return self._raw_data.get('filtername', None)
 
 
-
 class func_door_rotating(Angles, Door, Origin):
 
     @property
@@ -3850,7 +3788,6 @@ class func_door_rotating(Angles, Door, Origin):
     @property
     def solidbsp(self):
         return self._raw_data.get('solidbsp', "0")
-
 
 
 class prop_door_rotating(Angles, Parentname, Studiomodel, Global, Targetname):
@@ -3927,9 +3864,9 @@ class prop_door_rotating(Angles, Parentname, Studiomodel, Global, Targetname):
         return self._raw_data.get('opendir', "0")
 
 
-
 class env_cubemap(Base):
     icon_sprite = "editor/env_cubemap.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -3941,7 +3878,6 @@ class env_cubemap(Base):
     @property
     def sides(self):
         return self._raw_data.get('sides', None)
-
 
 
 class BModelParticleSpawner(Base):
@@ -3979,7 +3915,6 @@ class BModelParticleSpawner(Base):
         return self._raw_data.get('frozen', "0")
 
 
-
 class func_dustmotes(Targetname, BModelParticleSpawner):
 
     @property
@@ -3993,7 +3928,6 @@ class func_dustmotes(Targetname, BModelParticleSpawner):
     @property
     def Alpha(self):
         return parse_source_value(self._raw_data.get('alpha', 255))
-
 
 
 class func_smokevolume(Targetname):
@@ -4035,7 +3969,6 @@ class func_smokevolume(Targetname):
         return parse_source_value(self._raw_data.get('density', 1))
 
 
-
 class func_dustcloud(Targetname, BModelParticleSpawner):
 
     @property
@@ -4049,7 +3982,6 @@ class func_dustcloud(Targetname, BModelParticleSpawner):
     @property
     def SizeMax(self):
         return self._raw_data.get('sizemax', "200")
-
 
 
 class env_dustpuff(Parentname, Angles, Targetname):
@@ -4070,7 +4002,6 @@ class env_dustpuff(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('color', "128 128 128"))
 
 
-
 class env_particlescript(Parentname, Angles, Targetname):
     @property
     def origin(self):
@@ -4079,7 +4010,6 @@ class env_particlescript(Parentname, Angles, Targetname):
     @property
     def model(self):
         return self._raw_data.get('model', "models/Ambient_citadel_paths.mdl")
-
 
 
 class env_effectscript(Parentname, Angles, Targetname):
@@ -4096,9 +4026,9 @@ class env_effectscript(Parentname, Angles, Targetname):
         return self._raw_data.get('scriptfile', "scripts/effects/testeffect.txt")
 
 
-
 class logic_auto(Base):
     icon_sprite = "editor/logic_auto.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4108,9 +4038,9 @@ class logic_auto(Base):
         return self._raw_data.get('globalstate', None)
 
 
-
 class point_viewcontrol(Parentname, Angles, Targetname):
     viewport_model = "models/editor/camera.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4146,7 +4076,6 @@ class point_viewcontrol(Parentname, Angles, Targetname):
     @property
     def deceleration(self):
         return self._raw_data.get('deceleration', "500")
-
 
 
 class point_posecontroller(Targetname):
@@ -4195,9 +4124,9 @@ class point_posecontroller(Targetname):
         return parse_source_value(self._raw_data.get('fmodamplitude', 0.0))
 
 
-
 class logic_compare(Targetname):
     icon_sprite = "editor/logic_compare.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4211,9 +4140,9 @@ class logic_compare(Targetname):
         return parse_source_value(self._raw_data.get('comparevalue', None))
 
 
-
 class logic_branch(Targetname):
     icon_sprite = "editor/logic_branch.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4221,7 +4150,6 @@ class logic_branch(Targetname):
     @property
     def InitialValue(self):
         return parse_source_value(self._raw_data.get('initialvalue', None))
-
 
 
 class logic_branch_listener(Targetname):
@@ -4294,9 +4222,9 @@ class logic_branch_listener(Targetname):
         return self._raw_data.get('branch16', None)
 
 
-
 class logic_case(Targetname):
     icon_sprite = "editor/logic_case.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4366,9 +4294,9 @@ class logic_case(Targetname):
         return self._raw_data.get('case16', None)
 
 
-
 class logic_multicompare(Targetname):
     icon_sprite = "editor/logic_multicompare.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4382,17 +4310,19 @@ class logic_multicompare(Targetname):
         return self._raw_data.get('shouldcomparetovalue', "0")
 
 
-
 class logic_relay(Targetname, EnableDisable):
     icon_sprite = "editor/logic_relay.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class logic_timer(Targetname, EnableDisable):
     icon_sprite = "editor/logic_timer.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4412,7 +4342,6 @@ class logic_timer(Targetname, EnableDisable):
     @property
     def RefireTime(self):
         return self._raw_data.get('refiretime', None)
-
 
 
 class hammer_updateignorelist(Targetname):
@@ -4485,7 +4414,6 @@ class hammer_updateignorelist(Targetname):
         return self._raw_data.get('ignoredname16', "")
 
 
-
 class logic_collision_pair(Targetname):
     @property
     def origin(self):
@@ -4504,9 +4432,9 @@ class logic_collision_pair(Targetname):
         return self._raw_data.get('startdisabled', "1")
 
 
-
 class env_microphone(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/env_microphone.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4540,7 +4468,6 @@ class env_microphone(Parentname, Targetname, EnableDisable):
         return parse_source_value(self._raw_data.get('maxrange', 240))
 
 
-
 class math_remap(Targetname, EnableDisable):
     @property
     def origin(self):
@@ -4561,7 +4488,6 @@ class math_remap(Targetname, EnableDisable):
     @property
     def out2(self):
         return parse_source_value(self._raw_data.get('out2', None))
-
 
 
 class math_colorblend(Targetname):
@@ -4586,9 +4512,9 @@ class math_colorblend(Targetname):
         return parse_int_vector(self._raw_data.get('colormax', "255 255 255"))
 
 
-
 class math_counter(Targetname, EnableDisable):
     icon_sprite = "editor/math_counter.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -4606,7 +4532,6 @@ class math_counter(Targetname, EnableDisable):
         return parse_source_value(self._raw_data.get('max', 0))
 
 
-
 class logic_lineto(Targetname):
     @property
     def origin(self):
@@ -4621,7 +4546,6 @@ class logic_lineto(Targetname):
         return self._raw_data.get('target', None)
 
 
-
 class logic_navigation(Targetname):
     @property
     def origin(self):
@@ -4634,7 +4558,6 @@ class logic_navigation(Targetname):
     @property
     def navprop(self):
         return self._raw_data.get('navprop', "Ignore")
-
 
 
 class logic_autosave(Targetname):
@@ -4653,7 +4576,6 @@ class logic_autosave(Targetname):
     @property
     def MinHitPointsToCommit(self):
         return parse_source_value(self._raw_data.get('minhitpointstocommit', 0))
-
 
 
 class logic_active_autosave(Targetname):
@@ -4676,7 +4598,6 @@ class logic_active_autosave(Targetname):
     @property
     def DangerousTime(self):
         return parse_source_value(self._raw_data.get('dangeroustime', 10))
-
 
 
 class point_template(Targetname):
@@ -4749,7 +4670,6 @@ class point_template(Targetname):
         return self._raw_data.get('template16', None)
 
 
-
 class env_entity_maker(Parentname, Angles, Targetname):
     @property
     def origin(self):
@@ -4776,13 +4696,11 @@ class env_entity_maker(Parentname, Angles, Targetname):
         return self._raw_data.get('postspawninheritangles', "0")
 
 
-
 class BaseFilter(Targetname):
 
     @property
     def Negated(self):
         return self._raw_data.get('negated', "Allow entities that match criteria")
-
 
 
 class filter_multi(BaseFilter):
@@ -4813,14 +4731,12 @@ class filter_multi(BaseFilter):
         return self._raw_data.get('filter05', None)
 
 
-
 class filter_activator_name(BaseFilter):
     icon_sprite = "editor/filter_name.vmt"
 
     @property
     def filtername(self):
         return self._raw_data.get('filtername', None)
-
 
 
 class filter_activator_class(BaseFilter):
@@ -4831,7 +4747,6 @@ class filter_activator_class(BaseFilter):
         return self._raw_data.get('filterclass', None)
 
 
-
 class filter_activator_mass_greater(BaseFilter):
     icon_sprite = "editor/filter_class.vmt"
 
@@ -4840,13 +4755,11 @@ class filter_activator_mass_greater(BaseFilter):
         return parse_source_value(self._raw_data.get('filtermass', None))
 
 
-
 class filter_damage_type(BaseFilter):
 
     @property
     def damagetype(self):
         return self._raw_data.get('damagetype', "64")
-
 
 
 class filter_enemy(BaseFilter):
@@ -4869,7 +4782,6 @@ class filter_enemy(BaseFilter):
         return parse_source_value(self._raw_data.get('filter_max_per_enemy', 0))
 
 
-
 class point_anglesensor(Parentname, Targetname, EnableDisable):
     @property
     def origin(self):
@@ -4890,7 +4802,6 @@ class point_anglesensor(Parentname, Targetname, EnableDisable):
     @property
     def tolerance(self):
         return parse_source_value(self._raw_data.get('tolerance', None))
-
 
 
 class point_angularvelocitysensor(Targetname):
@@ -4919,7 +4830,6 @@ class point_angularvelocitysensor(Targetname):
         return self._raw_data.get('usehelper', "0")
 
 
-
 class point_velocitysensor(Targetname):
     @property
     def origin(self):
@@ -4938,7 +4848,6 @@ class point_velocitysensor(Targetname):
         return self._raw_data.get('enabled', "1")
 
 
-
 class point_proximity_sensor(Parentname, Angles, Targetname, EnableDisable):
     @property
     def origin(self):
@@ -4949,7 +4858,6 @@ class point_proximity_sensor(Parentname, Angles, Targetname, EnableDisable):
         return self._raw_data.get('target', None)
 
 
-
 class point_teleport(Angles, Targetname):
     @property
     def origin(self):
@@ -4958,7 +4866,6 @@ class point_teleport(Angles, Targetname):
     @property
     def target(self):
         return self._raw_data.get('target', None)
-
 
 
 class point_hurt(Targetname):
@@ -4987,7 +4894,6 @@ class point_hurt(Targetname):
         return self._raw_data.get('damagetype', "0")
 
 
-
 class point_playermoveconstraint(Targetname):
     @property
     def origin(self):
@@ -5004,7 +4910,6 @@ class point_playermoveconstraint(Targetname):
     @property
     def speedfactor(self):
         return parse_source_value(self._raw_data.get('speedfactor', 0.15))
-
 
 
 class func_physbox(BreakableBrush, Origin, RenderFields):
@@ -5042,7 +4947,6 @@ class func_physbox(BreakableBrush, Origin, RenderFields):
         return self._raw_data.get('notsolid', "0")
 
 
-
 class TwoObjectPhysics(Targetname):
 
     @property
@@ -5074,7 +4978,6 @@ class TwoObjectPhysics(Targetname):
         return parse_source_value(self._raw_data.get('teleportfollowdistance', 0))
 
 
-
 class phys_constraintsystem(Targetname):
     @property
     def origin(self):
@@ -5083,7 +4986,6 @@ class phys_constraintsystem(Targetname):
     @property
     def additionaliterations(self):
         return parse_source_value(self._raw_data.get('additionaliterations', 0))
-
 
 
 class phys_keepupright(Angles, Targetname):
@@ -5098,7 +5000,6 @@ class phys_keepupright(Angles, Targetname):
     @property
     def angularlimit(self):
         return parse_source_value(self._raw_data.get('angularlimit', 15))
-
 
 
 class physics_cannister(Angles, Targetname):
@@ -5143,7 +5044,6 @@ class physics_cannister(Angles, Targetname):
         return self._raw_data.get('gassound', "ambient/objects/cannister_loop.wav")
 
 
-
 class info_constraint_anchor(Parentname, Targetname):
     @property
     def origin(self):
@@ -5154,7 +5054,6 @@ class info_constraint_anchor(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('massscale', 1))
 
 
-
 class info_mass_center(Base):
     @property
     def origin(self):
@@ -5163,7 +5062,6 @@ class info_mass_center(Base):
     @property
     def target(self):
         return self._raw_data.get('target', "")
-
 
 
 class phys_spring(Targetname):
@@ -5202,7 +5100,6 @@ class phys_spring(Targetname):
     @property
     def breaklength(self):
         return self._raw_data.get('breaklength', "0")
-
 
 
 class phys_hinge(TwoObjectPhysics):
@@ -5263,25 +5160,29 @@ class phys_hinge(TwoObjectPhysics):
         return self._raw_data.get('reversalsoundlarge', "")
 
 
-
 class phys_ballsocket(TwoObjectPhysics):
     icon_sprite = "editor/phys_ballsocket.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class phys_constraint(TwoObjectPhysics):
     model_ = "models/editor/axis_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class phys_pulleyconstraint(TwoObjectPhysics):
     model_ = "models/editor/axis_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -5299,9 +5200,9 @@ class phys_pulleyconstraint(TwoObjectPhysics):
         return self._raw_data.get('position2', None)
 
 
-
 class phys_slideconstraint(TwoObjectPhysics):
     model_ = "models/editor/axis_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -5359,9 +5260,9 @@ class phys_slideconstraint(TwoObjectPhysics):
         return self._raw_data.get('reversalsoundlarge', "")
 
 
-
 class phys_lengthconstraint(TwoObjectPhysics):
     model_ = "models/editor/axis_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -5379,9 +5280,9 @@ class phys_lengthconstraint(TwoObjectPhysics):
         return self._raw_data.get('attachpoint', None)  # Set to none due to bug in BlackMesa base.fgd file
 
 
-
 class phys_ragdollconstraint(TwoObjectPhysics):
     model_ = "models/editor/axis_helper.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -5423,7 +5324,6 @@ class phys_ragdollconstraint(TwoObjectPhysics):
         return parse_source_value(self._raw_data.get('zfriction', 0))
 
 
-
 class phys_convert(Targetname):
     @property
     def origin(self):
@@ -5442,7 +5342,6 @@ class phys_convert(Targetname):
         return parse_source_value(self._raw_data.get('massoverride', 0))
 
 
-
 class ForceController(Targetname):
 
     @property
@@ -5454,7 +5353,6 @@ class ForceController(Targetname):
         return self._raw_data.get('forcetime', "0")
 
 
-
 class phys_thruster(Angles, ForceController):
     @property
     def origin(self):
@@ -5463,7 +5361,6 @@ class phys_thruster(Angles, ForceController):
     @property
     def force(self):
         return self._raw_data.get('force', "0")
-
 
 
 class phys_torque(ForceController):
@@ -5478,7 +5375,6 @@ class phys_torque(ForceController):
     @property
     def axis(self):
         return self._raw_data.get('axis', "")
-
 
 
 class phys_motor(Targetname):
@@ -5507,7 +5403,6 @@ class phys_motor(Targetname):
         return self._raw_data.get('attach1', "")
 
 
-
 class phys_magnet(Parentname, Angles, Studiomodel, Targetname):
     @property
     def origin(self):
@@ -5534,13 +5429,11 @@ class phys_magnet(Parentname, Angles, Studiomodel, Targetname):
         return parse_source_value(self._raw_data.get('maxobjects', 0))
 
 
-
 class prop_detail_base(Base):
 
     @property
     def model(self):
         return self._raw_data.get('model', None)
-
 
 
 class prop_static_base(DXLevelChoice, Angles):
@@ -5594,7 +5487,6 @@ class prop_static_base(DXLevelChoice, Angles):
         return self._raw_data.get('ignorenormals', "0")
 
 
-
 class BaseFadeProp(Base):
 
     @property
@@ -5610,8 +5502,8 @@ class BaseFadeProp(Base):
         return parse_source_value(self._raw_data.get('fadescale', 1))
 
 
-
-class prop_dynamic_base(Angles, BaseFadeProp, Parentname, BreakableProp, Studiomodel, Global, DXLevelChoice, RenderFields):
+class prop_dynamic_base(Angles, BaseFadeProp, Parentname, BreakableProp, Studiomodel, Global, DXLevelChoice,
+                        RenderFields):
 
     @property
     def solid(self):
@@ -5646,11 +5538,11 @@ class prop_dynamic_base(Angles, BaseFadeProp, Parentname, BreakableProp, Studiom
         return self._raw_data.get('lightingorigin', "")
 
 
-
 class prop_detail(prop_detail_base):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -5658,6 +5550,7 @@ class prop_static(prop_static_base):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -5665,6 +5558,7 @@ class prop_dynamic(prop_dynamic_base, EnableDisable):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -5676,7 +5570,6 @@ class prop_dynamic_override(prop_dynamic_base):
     @property
     def health(self):
         return parse_source_value(self._raw_data.get('health', 0))
-
 
 
 class BasePropPhysics(Angles, BaseFadeProp, Studiomodel, BreakableProp, Global, DXLevelChoice):
@@ -5726,7 +5619,6 @@ class BasePropPhysics(Angles, BaseFadeProp, Studiomodel, BreakableProp, Global, 
         return self._raw_data.get('puntsound', None)
 
 
-
 class prop_physics_override(BasePropPhysics):
     @property
     def origin(self):
@@ -5737,11 +5629,11 @@ class prop_physics_override(BasePropPhysics):
         return parse_source_value(self._raw_data.get('health', 0))
 
 
-
 class prop_physics(BasePropPhysics, RenderFields):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -5755,7 +5647,6 @@ class prop_physics_multiplayer(prop_physics):
         return self._raw_data.get('physicsmode', "0")
 
 
-
 class prop_ragdoll(Angles, BaseFadeProp, Studiomodel, Targetname, DXLevelChoice, EnableDisable):
     @property
     def origin(self):
@@ -5766,7 +5657,6 @@ class prop_ragdoll(Angles, BaseFadeProp, Studiomodel, Targetname, DXLevelChoice,
         return self._raw_data.get('angleoverride', "")
 
 
-
 class prop_dynamic_ornament(prop_dynamic_base):
     @property
     def origin(self):
@@ -5775,7 +5665,6 @@ class prop_dynamic_ornament(prop_dynamic_base):
     @property
     def InitialOwner(self):
         return self._raw_data.get('initialowner', None)
-
 
 
 class func_areaportal(Targetname):
@@ -5793,13 +5682,11 @@ class func_areaportal(Targetname):
         return parse_source_value(self._raw_data.get('portalversion', 1))
 
 
-
 class func_occluder(Targetname):
 
     @property
     def StartActive(self):
         return self._raw_data.get('startactive', "1")
-
 
 
 class func_breakable(BreakableBrush, Origin, RenderFields):
@@ -5817,7 +5704,6 @@ class func_breakable(BreakableBrush, Origin, RenderFields):
         return parse_source_value(self._raw_data.get('physdamagescale', 1.0))
 
 
-
 class func_breakable_surf(BreakableBrush, RenderFields):
 
     @property
@@ -5827,7 +5713,6 @@ class func_breakable_surf(BreakableBrush, RenderFields):
     @property
     def surfacetype(self):
         return self._raw_data.get('surfacetype', "0")
-
 
 
 class func_conveyor(Parentname, Targetname, Shadow, RenderFields):
@@ -5845,7 +5730,6 @@ class func_conveyor(Parentname, Targetname, Shadow, RenderFields):
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_detail(DXLevelChoice):
     pass
 
@@ -5861,7 +5745,6 @@ class func_illusionary(Parentname, Shadow, Targetname, Origin, RenderFields):
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_precipitation(Parentname, Targetname):
 
     @property
@@ -5875,7 +5758,6 @@ class func_precipitation(Parentname, Targetname):
     @property
     def preciptype(self):
         return self._raw_data.get('preciptype', "0")
-
 
 
 class func_wall_toggle(func_wall):
@@ -5901,7 +5783,6 @@ class func_guntarget(Parentname, Targetname, Global, RenderFields):
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_fish_pool(Base):
     @property
     def origin(self):
@@ -5920,7 +5801,6 @@ class func_fish_pool(Base):
         return parse_source_value(self._raw_data.get('max_range', 150))
 
 
-
 class PlatSounds(Base):
 
     @property
@@ -5934,7 +5814,6 @@ class PlatSounds(Base):
     @property
     def volume(self):
         return self._raw_data.get('volume', "0.85")
-
 
 
 class Trackchange(Parentname, PlatSounds, Global, Targetname, RenderFields):
@@ -5962,7 +5841,6 @@ class Trackchange(Parentname, PlatSounds, Global, Targetname, RenderFields):
     @property
     def speed(self):
         return parse_source_value(self._raw_data.get('speed', 0))
-
 
 
 class BaseTrain(Parentname, Global, Shadow, Targetname, Origin, RenderFields):
@@ -6044,7 +5922,6 @@ class BaseTrain(Parentname, Global, Shadow, Targetname, Origin, RenderFields):
         return parse_source_value(self._raw_data.get('movesoundmaxtime', 0))
 
 
-
 class func_trackautochange(Trackchange):
 
     @property
@@ -6052,13 +5929,11 @@ class func_trackautochange(Trackchange):
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_trackchange(Trackchange):
 
     @property
     def _minlight(self):
         return self._raw_data.get('_minlight', None)
-
 
 
 class func_tracktrain(BaseTrain):
@@ -6076,13 +5951,11 @@ class func_tracktrain(BaseTrain):
         return parse_source_value(self._raw_data.get('manualdecelspeed', 0))
 
 
-
 class func_tanktrain(BaseTrain):
 
     @property
     def health(self):
         return parse_source_value(self._raw_data.get('health', 100))
-
 
 
 class func_traincontrols(Parentname, Global):
@@ -6092,9 +5965,9 @@ class func_traincontrols(Parentname, Global):
         return self._raw_data.get('target', None)
 
 
-
 class tanktrain_aitarget(Targetname):
     icon_sprite = "editor/tanktrain_aitarget.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -6108,9 +5981,9 @@ class tanktrain_aitarget(Targetname):
         return self._raw_data.get('newtarget', None)
 
 
-
 class tanktrain_ai(Targetname):
     icon_sprite = "editor/tanktrain_ai.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -6130,7 +6003,6 @@ class tanktrain_ai(Targetname):
     @property
     def movementsound(self):
         return self._raw_data.get('movementsound', "vehicles/tank_treads_loop1.wav")
-
 
 
 class path_track(Parentname, Angles, Targetname):
@@ -6159,11 +6031,11 @@ class path_track(Parentname, Angles, Targetname):
         return self._raw_data.get('orientationtype', "1")
 
 
-
 class test_traceline(Angles):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -6186,7 +6058,6 @@ class trigger_autosave(Targetname):
         return parse_source_value(self._raw_data.get('minimumhitpoints', 0))
 
 
-
 class trigger_changelevel(EnableDisable):
 
     @property
@@ -6202,13 +6073,11 @@ class trigger_changelevel(EnableDisable):
         return self._raw_data.get('landmark', None)
 
 
-
 class trigger_gravity(Trigger):
 
     @property
     def gravity(self):
         return parse_source_value(self._raw_data.get('gravity', 1))
-
 
 
 class trigger_playermovement(Trigger):
@@ -6220,7 +6089,6 @@ class trigger_soundscape(Trigger):
     @property
     def soundscape(self):
         return self._raw_data.get('soundscape', None)
-
 
 
 class trigger_hurt(Trigger):
@@ -6250,7 +6118,6 @@ class trigger_hurt(Trigger):
         return self._raw_data.get('nodmgforce', "0")
 
 
-
 class trigger_remove(Trigger):
     pass
 
@@ -6260,7 +6127,6 @@ class trigger_multiple(Trigger):
     @property
     def wait(self):
         return parse_source_value(self._raw_data.get('wait', 1))
-
 
 
 class trigger_once(TriggerOnce):
@@ -6286,7 +6152,6 @@ class trigger_look(Trigger):
         return parse_source_value(self._raw_data.get('timeout', 0))
 
 
-
 class trigger_push(Trigger):
 
     @property
@@ -6300,7 +6165,6 @@ class trigger_push(Trigger):
     @property
     def alternateticksfix(self):
         return parse_source_value(self._raw_data.get('alternateticksfix', 0))
-
 
 
 class trigger_wind(Angles, Trigger):
@@ -6326,7 +6190,6 @@ class trigger_wind(Angles, Trigger):
         return parse_source_value(self._raw_data.get('holdnoise', 0))
 
 
-
 class trigger_impact(Angles, Targetname, Origin):
 
     @property
@@ -6342,7 +6205,6 @@ class trigger_impact(Angles, Targetname, Origin):
         return parse_source_value(self._raw_data.get('viewkick', 0.05))
 
 
-
 class trigger_proximity(Trigger):
 
     @property
@@ -6354,7 +6216,6 @@ class trigger_proximity(Trigger):
         return self._raw_data.get('radius', "256")
 
 
-
 class trigger_teleport(Trigger):
 
     @property
@@ -6364,7 +6225,6 @@ class trigger_teleport(Trigger):
     @property
     def landmark(self):
         return self._raw_data.get('landmark', None)
-
 
 
 class trigger_transition(Targetname):
@@ -6393,9 +6253,9 @@ class ai_speechfilter(ResponseContext, Targetname, EnableDisable):
         return self._raw_data.get('neversayhello', "0")
 
 
-
 class water_lod_control(Targetname):
     icon_sprite = "editor/waterlodcontrol.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -6407,7 +6267,6 @@ class water_lod_control(Targetname):
     @property
     def cheapwaterenddistance(self):
         return parse_source_value(self._raw_data.get('cheapwaterenddistance', 2000))
-
 
 
 class info_camera_link(Targetname):
@@ -6422,7 +6281,6 @@ class info_camera_link(Targetname):
     @property
     def PointCamera(self):
         return self._raw_data.get('pointcamera', None)
-
 
 
 class logic_measure_movement(Targetname):
@@ -6455,7 +6313,6 @@ class logic_measure_movement(Targetname):
         return self._raw_data.get('measuretype', "0")
 
 
-
 class npc_furniture(Parentname, BaseNPC):
     @property
     def origin(self):
@@ -6466,11 +6323,11 @@ class npc_furniture(Parentname, BaseNPC):
         return self._raw_data.get('model', None)
 
 
-
 class env_credits(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -6488,9 +6345,9 @@ class material_modify_control(Parentname, Targetname):
         return self._raw_data.get('materialvar', None)
 
 
-
 class point_devshot_camera(Angles):
     viewport_model = "models/editor/camera.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -6504,11 +6361,11 @@ class point_devshot_camera(Angles):
         return parse_source_value(self._raw_data.get('fov', 75))
 
 
-
 class logic_playerproxy(DamageFilter, Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -6544,7 +6401,6 @@ class env_spritetrail(Parentname, Targetname):
     @property
     def rendermode(self):
         return self._raw_data.get('rendermode', "5")
-
 
 
 class env_projectedtexture(Parentname, Angles, Targetname):
@@ -6593,7 +6449,6 @@ class env_projectedtexture(Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('cameraspace', 0))
 
 
-
 class func_reflective_glass(func_brush):
     pass
 
@@ -6602,6 +6457,7 @@ class env_particle_performance_monitor(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -6619,7 +6475,6 @@ class npc_puppet(Parentname, Studiomodel, BaseNPC):
         return self._raw_data.get('attachmentname', "")
 
 
-
 class point_gamestats_counter(Targetname, Origin, EnableDisable):
     @property
     def origin(self):
@@ -6628,7 +6483,6 @@ class point_gamestats_counter(Targetname, Origin, EnableDisable):
     @property
     def Name(self):
         return self._raw_data.get('name', None)
-
 
 
 class func_instance(Angles):
@@ -6689,7 +6543,6 @@ class func_instance(Angles):
         return self._raw_data.get('replace10', None)
 
 
-
 class func_instance_parms(Base):
     @property
     def origin(self):
@@ -6736,7 +6589,6 @@ class func_instance_parms(Base):
         return self._raw_data.get('parm10', None)
 
 
-
 class TalkNPC(BaseNPC):
 
     @property
@@ -6750,7 +6602,6 @@ class TalkNPC(BaseNPC):
     @property
     def DontUseSpeechSemaphore(self):
         return self._raw_data.get('dontusespeechsemaphore', "0")
-
 
 
 class PlayerCompanion(BaseNPC):
@@ -6768,13 +6619,11 @@ class PlayerCompanion(BaseNPC):
         return self._raw_data.get('gameendally', "No")
 
 
-
 class RappelNPC(BaseNPC):
 
     @property
     def waitingtorappel(self):
         return self._raw_data.get('waitingtorappel', "No")
-
 
 
 class AlyxInteractable(Base):
@@ -6808,11 +6657,11 @@ class CombineBallSpawners(Angles, Targetname, Origin, Global):
         return parse_source_value(self._raw_data.get('ballrespawntime', 4.0))
 
 
-
 class prop_combine_ball(BasePropPhysics):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -6823,7 +6672,6 @@ class trigger_physics_trap(Angles, Trigger):
         return self._raw_data.get('dissolvetype', "Energy")
 
 
-
 class trigger_weapon_dissolve(Trigger):
 
     @property
@@ -6831,13 +6679,11 @@ class trigger_weapon_dissolve(Trigger):
         return self._raw_data.get('emittername', "")
 
 
-
 class trigger_weapon_strip(Trigger):
 
     @property
     def KillWeapons(self):
         return self._raw_data.get('killweapons', "No")
-
 
 
 class func_combine_ball_spawner(CombineBallSpawners):
@@ -6862,7 +6708,6 @@ class point_combine_ball_launcher(CombineBallSpawners):
         return parse_source_value(self._raw_data.get('maxballbounces', 8))
 
 
-
 class npc_blob(BaseNPC):
     model_ = "models/combine_soldier.mdl"
     pass
@@ -6879,7 +6724,6 @@ class npc_combine_cannon(BaseNPC):
     @property
     def sightdist(self):
         return parse_source_value(self._raw_data.get('sightdist', 1024))
-
 
 
 class npc_combine_camera(BaseNPC):
@@ -6902,17 +6746,19 @@ class npc_combine_camera(BaseNPC):
         return self._raw_data.get('defaulttarget', "")
 
 
-
 class npc_turret_ground(Parentname, BaseNPC, AlyxInteractable):
     model_ = "models/combine_turrets/ground_turret.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class npc_turret_ceiling(Angles, Studiomodel, Targetname):
     model_ = "models/combine_turrets/ceiling_turret.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -6922,9 +6768,9 @@ class npc_turret_ceiling(Angles, Studiomodel, Targetname):
         return parse_source_value(self._raw_data.get('minhealthdmg', 0))
 
 
-
 class npc_turret_floor(Angles, Targetname):
     model_ = "models/combine_turrets/floor_turret.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -6934,13 +6780,11 @@ class npc_turret_floor(Angles, Targetname):
         return parse_source_value(self._raw_data.get('skinnumber', 0))
 
 
-
 class VehicleDriverNPC(BaseNPC):
 
     @property
     def vehicle(self):
         return self._raw_data.get('vehicle', None)
-
 
 
 class npc_vehicledriver(VehicleDriverNPC):
@@ -6955,14 +6799,12 @@ class npc_vehicledriver(VehicleDriverNPC):
         return parse_source_value(self._raw_data.get('driverminspeed', 0))
 
 
-
 class npc_cranedriver(VehicleDriverNPC):
     model_ = "models/roller.mdl"
 
     @property
     def releasepause(self):
         return parse_source_value(self._raw_data.get('releasepause', 0))
-
 
 
 class npc_apcdriver(VehicleDriverNPC):
@@ -6977,7 +6819,6 @@ class npc_apcdriver(VehicleDriverNPC):
         return parse_source_value(self._raw_data.get('driverminspeed', 0))
 
 
-
 class npc_rollermine(BaseNPC, AlyxInteractable):
     model_ = "models/roller.mdl"
 
@@ -6988,7 +6829,6 @@ class npc_rollermine(BaseNPC, AlyxInteractable):
     @property
     def uniformsightdist(self):
         return self._raw_data.get('uniformsightdist', "0")
-
 
 
 class npc_missiledefense(BaseNPC):
@@ -7032,9 +6872,9 @@ class npc_sniper(BaseNPC):
         return parse_source_value(self._raw_data.get('paintintervalvariance', 0.75))
 
 
-
 class info_radar_target(Parentname, Targetname, EnableDisable):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -7052,17 +6892,19 @@ class info_radar_target(Parentname, Targetname, EnableDisable):
         return self._raw_data.get('mode', "0")
 
 
-
 class info_target_vehicle_transition(Angles, Targetname, EnableDisable):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_snipertarget(Parentname, Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -7074,7 +6916,6 @@ class info_snipertarget(Parentname, Targetname):
     @property
     def groupname(self):
         return self._raw_data.get('groupname', None)
-
 
 
 class prop_thumper(Angles, Targetname):
@@ -7093,7 +6934,6 @@ class prop_thumper(Angles, Targetname):
     @property
     def EffectRadius(self):
         return parse_source_value(self._raw_data.get('effectradius', 1000))
-
 
 
 class npc_antlion(BaseNPC):
@@ -7120,7 +6960,6 @@ class npc_antlion(BaseNPC):
         return self._raw_data.get('unburroweffects', "No")
 
 
-
 class npc_antlionguard(BaseNPC):
     model_ = "models/antlion_guard.mdl"
 
@@ -7145,14 +6984,12 @@ class npc_antlionguard(BaseNPC):
         return self._raw_data.get('shovetargets', "")
 
 
-
 class npc_crow(BaseNPC):
     model_ = "models/crow.mdl"
 
     @property
     def deaf(self):
         return self._raw_data.get('deaf', "0")
-
 
 
 class npc_seagull(BaseNPC):
@@ -7163,14 +7000,12 @@ class npc_seagull(BaseNPC):
         return self._raw_data.get('deaf', "0")
 
 
-
 class npc_pigeon(BaseNPC):
     model_ = "models/pigeon.mdl"
 
     @property
     def deaf(self):
         return self._raw_data.get('deaf', "0")
-
 
 
 class npc_ichthyosaur(BaseNPC):
@@ -7183,7 +7018,6 @@ class BaseHeadcrab(BaseNPC):
     @property
     def startburrowed(self):
         return self._raw_data.get('startburrowed', "No")
-
 
 
 class npc_headcrab(Parentname, BaseHeadcrab):
@@ -7209,7 +7043,6 @@ class npc_stalker(BaseNPC):
         return self._raw_data.get('beampower', "Low")
 
 
-
 class npc_bullseye(Parentname, BaseNPC):
     icon_sprite = "editor/bullseye.vmt"
 
@@ -7228,7 +7061,6 @@ class npc_bullseye(Parentname, BaseNPC):
     @property
     def autoaimradius(self):
         return parse_source_value(self._raw_data.get('autoaimradius', 0))
-
 
 
 class npc_enemyfinder(Parentname, BaseNPC):
@@ -7268,7 +7100,6 @@ class npc_enemyfinder(Parentname, BaseNPC):
     @property
     def StartOn(self):
         return self._raw_data.get('starton', "1")
-
 
 
 class npc_enemyfinder_combinecannon(Parentname, BaseNPC):
@@ -7314,7 +7145,6 @@ class npc_enemyfinder_combinecannon(Parentname, BaseNPC):
         return self._raw_data.get('starton', "1")
 
 
-
 class npc_citizen(Parentname, TalkNPC, PlayerCompanion):
 
     @property
@@ -7358,14 +7188,12 @@ class npc_citizen(Parentname, TalkNPC, PlayerCompanion):
         return self._raw_data.get('denycommandconcept', "")
 
 
-
 class npc_fisherman(BaseNPC):
     model_ = "models/Barney.mdl"
 
     @property
     def ExpressionOverride(self):
         return self._raw_data.get('expressionoverride', None)
-
 
 
 class npc_barney(TalkNPC, PlayerCompanion):
@@ -7380,7 +7208,6 @@ class npc_barney(TalkNPC, PlayerCompanion):
         return self._raw_data.get('expressionoverride', None)
 
 
-
 class BaseCombine(RappelNPC):
 
     @property
@@ -7390,7 +7217,6 @@ class BaseCombine(RappelNPC):
     @property
     def NumGrenades(self):
         return self._raw_data.get('numgrenades', "5")
-
 
 
 class npc_combine_s(BaseCombine):
@@ -7409,9 +7235,9 @@ class npc_combine_s(BaseCombine):
         return self._raw_data.get('usemarch', "0")
 
 
-
 class npc_launcher(Parentname, BaseNPC):
     model_ = "models/junk/w_traffcone.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -7505,7 +7331,6 @@ class npc_launcher(Parentname, BaseNPC):
         return self._raw_data.get('damageradius', "200")
 
 
-
 class npc_hunter(BaseNPC):
     model_ = "models/hunter.mdl"
 
@@ -7514,12 +7339,13 @@ class npc_hunter(BaseNPC):
         return self._raw_data.get('followtarget', "")
 
 
-
 class npc_hunter_maker(npc_template_maker):
     icon_sprite = "editor/npc_maker.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -7550,7 +7376,6 @@ class npc_advisor(BaseNPC):
         return self._raw_data.get('priority_grab_name', "")
 
 
-
 class env_sporeexplosion(Parentname, Targetname, EnableDisable):
     @property
     def origin(self):
@@ -7559,7 +7384,6 @@ class env_sporeexplosion(Parentname, Targetname, EnableDisable):
     @property
     def spawnrate(self):
         return parse_source_value(self._raw_data.get('spawnrate', 25))
-
 
 
 class env_gunfire(Parentname, Targetname, EnableDisable):
@@ -7612,9 +7436,9 @@ class env_gunfire(Parentname, Targetname, EnableDisable):
         return self._raw_data.get('tracertype', "AR2TRACER")
 
 
-
 class env_headcrabcanister(Parentname, Angles, Targetname):
     model_ = "models/props_combine/headcrabcannister01b.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -7668,7 +7492,6 @@ class env_headcrabcanister(Parentname, Angles, Targetname):
         return self._raw_data.get('launchpositionname', "")
 
 
-
 class npc_vortigaunt(TalkNPC, PlayerCompanion):
 
     @property
@@ -7682,7 +7505,6 @@ class npc_vortigaunt(TalkNPC, PlayerCompanion):
     @property
     def HealthRegenerateEnabled(self):
         return self._raw_data.get('healthregenerateenabled', "0")
-
 
 
 class npc_spotlight(BaseNPC):
@@ -7720,7 +7542,6 @@ class npc_spotlight(BaseNPC):
         return parse_source_value(self._raw_data.get('spotlightwidth', 50))
 
 
-
 class npc_strider(BaseNPC):
 
     @property
@@ -7732,14 +7553,12 @@ class npc_strider(BaseNPC):
         return self._raw_data.get('disablephysics', "0")
 
 
-
 class npc_barnacle(BaseNPC, BaseFadeProp):
     model_ = "models/Barnacle.mdl"
 
     @property
     def RestDist(self):
         return parse_source_value(self._raw_data.get('restdist', 16))
-
 
 
 class npc_combinegunship(BaseHelicopter):
@@ -7749,17 +7568,21 @@ class npc_combinegunship(BaseHelicopter):
 
 class info_target_helicopter_crash(Parentname, Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class info_target_gunshipcrash(Parentname, Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -7839,7 +7662,6 @@ class npc_combinedropship(BaseHelicopter):
         return self._raw_data.get('cratetype', "2")
 
 
-
 class npc_helicopter(BaseHelicopter):
     model_ = "models/combine_helicopter.mdl"
 
@@ -7856,17 +7678,19 @@ class npc_helicopter(BaseHelicopter):
         return self._raw_data.get('noncombat', "No")
 
 
-
 class grenade_helicopter(Parentname, Targetname):
     model_ = "models/combine_helicopter/helicopter_bomb01.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class npc_heli_avoidsphere(Parentname, Targetname):
     icon_sprite = "editor/env_firesource"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -7874,7 +7698,6 @@ class npc_heli_avoidsphere(Parentname, Targetname):
     @property
     def radius(self):
         return parse_source_value(self._raw_data.get('radius', 128))
-
 
 
 class npc_heli_avoidbox(Parentname, Angles, Origin):
@@ -7918,7 +7741,6 @@ class npc_poisonzombie(BaseNPC):
         return self._raw_data.get('crabcount', "3")
 
 
-
 class npc_cscanner(BaseNPC):
     model_ = "models/combine_scanner.mdl"
 
@@ -7945,7 +7767,6 @@ class npc_cscanner(BaseNPC):
     @property
     def NeverInspectPlayers(self):
         return self._raw_data.get('neverinspectplayers', "0")
-
 
 
 class npc_clawscanner(BaseNPC):
@@ -7976,14 +7797,12 @@ class npc_clawscanner(BaseNPC):
         return self._raw_data.get('neverinspectplayers', "0")
 
 
-
 class npc_manhack(BaseNPC, AlyxInteractable):
     model_ = "models/manhack.mdl"
 
     @property
     def ignoreclipbrushes(self):
         return self._raw_data.get('ignoreclipbrushes', "0")
-
 
 
 class npc_mortarsynth(BaseNPC):
@@ -8007,7 +7826,6 @@ class npc_metropolice(RappelNPC):
         return self._raw_data.get('weapondrawn', "0")
 
 
-
 class npc_crabsynth(BaseNPC):
     model_ = "models/Synth.mdl"
     pass
@@ -8025,7 +7843,6 @@ class npc_monk(TalkNPC):
         return self._raw_data.get('hasgun', "1")
 
 
-
 class npc_alyx(Parentname, TalkNPC, PlayerCompanion):
 
     @property
@@ -8039,7 +7856,6 @@ class npc_alyx(Parentname, TalkNPC, PlayerCompanion):
     @property
     def ShouldHaveEMP(self):
         return self._raw_data.get('shouldhaveemp', "1")
-
 
 
 class ai_goal_operator(Targetname, EnableDisable):
@@ -8068,7 +7884,6 @@ class ai_goal_operator(Targetname, EnableDisable):
         return self._raw_data.get('moveto', "1")
 
 
-
 class info_darknessmode_lightsource(Targetname, EnableDisable):
     @property
     def origin(self):
@@ -8079,13 +7894,11 @@ class info_darknessmode_lightsource(Targetname, EnableDisable):
         return parse_source_value(self._raw_data.get('lightradius', 256.0))
 
 
-
 class npc_kleiner(TalkNPC):
 
     @property
     def model(self):
         return self._raw_data.get('model', "models/kleiner.mdl")
-
 
 
 class npc_eli(Parentname, TalkNPC):
@@ -8095,7 +7908,6 @@ class npc_eli(Parentname, TalkNPC):
         return self._raw_data.get('model', "models/eli.mdl")
 
 
-
 class npc_magnusson(TalkNPC):
 
     @property
@@ -8103,13 +7915,11 @@ class npc_magnusson(TalkNPC):
         return self._raw_data.get('model', "models/magnusson.mdl")
 
 
-
 class npc_breen(TalkNPC):
 
     @property
     def model(self):
         return self._raw_data.get('model', "models/breen.mdl")
-
 
 
 class npc_mossman(TalkNPC):
@@ -8141,7 +7951,6 @@ class monster_generic(BaseNPC):
         return parse_source_value(self._raw_data.get('body', 0))
 
 
-
 class generic_actor(Parentname, BaseNPC):
     @property
     def origin(self):
@@ -8154,7 +7963,6 @@ class generic_actor(Parentname, BaseNPC):
     @property
     def hull_name(self):
         return self._raw_data.get('hull_name', "Human")
-
 
 
 class cycler_actor(BaseNPC):
@@ -8171,9 +7979,9 @@ class cycler_actor(BaseNPC):
         return self._raw_data.get('sentence', "")
 
 
-
 class npc_maker(BaseNPCMaker):
     icon_sprite = "editor/npc_maker.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8197,7 +8005,6 @@ class npc_maker(BaseNPCMaker):
     @property
     def additionalequipment(self):
         return self._raw_data.get('additionalequipment', "0")
-
 
 
 class npc_antlion_template_maker(BaseNPCMaker):
@@ -8262,7 +8069,6 @@ class npc_antlion_template_maker(BaseNPCMaker):
         return self._raw_data.get('createspores', "0")
 
 
-
 class point_antlion_repellant(Targetname):
     @property
     def origin(self):
@@ -8271,7 +8077,6 @@ class point_antlion_repellant(Targetname):
     @property
     def repelradius(self):
         return parse_source_value(self._raw_data.get('repelradius', 512))
-
 
 
 class player_control(Targetname):
@@ -8337,9 +8142,9 @@ class BaseScripted(Parentname, Angles, Targetname):
         return self._raw_data.get('m_bdisablenpccollisions', "0")
 
 
-
 class scripted_sentence(Targetname):
     icon_sprite = "editor/scripted_sentence.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8377,9 +8182,9 @@ class scripted_sentence(Targetname):
         return self._raw_data.get('attenuation', "0")
 
 
-
 class scripted_target(Parentname, Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8413,9 +8218,9 @@ class scripted_target(Parentname, Targetname):
         return self._raw_data.get('target', None)
 
 
-
 class ai_relationship(Targetname):
     icon_sprite = "editor/ai_relationship.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8449,7 +8254,6 @@ class ai_relationship(Targetname):
         return self._raw_data.get('reciprocal', "0")
 
 
-
 class ai_ally_manager(Targetname):
     @property
     def origin(self):
@@ -8462,7 +8266,6 @@ class ai_ally_manager(Targetname):
     @property
     def maxmedics(self):
         return parse_source_value(self._raw_data.get('maxmedics', 1))
-
 
 
 class LeadGoalBase(Targetname):
@@ -8556,9 +8359,9 @@ class LeadGoalBase(Targetname):
         return self._raw_data.get('retrieveconceptmodifier', "")
 
 
-
 class ai_goal_lead(LeadGoalBase):
     icon_sprite = "editor/ai_goal_lead.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8568,9 +8371,9 @@ class ai_goal_lead(LeadGoalBase):
         return self._raw_data.get('searchtype', "0")
 
 
-
 class ai_goal_lead_weapon(LeadGoalBase):
     icon_sprite = "editor/ai_goal_lead.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8586,7 +8389,6 @@ class ai_goal_lead_weapon(LeadGoalBase):
     @property
     def SearchType(self):
         return self._raw_data.get('searchtype', "0")
-
 
 
 class FollowGoal(Targetname):
@@ -8616,25 +8418,29 @@ class FollowGoal(Targetname):
         return self._raw_data.get('formation', "0")
 
 
-
 class ai_goal_follow(FollowGoal):
     icon_sprite = "editor/ai_goal_follow.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class ai_goal_injured_follow(FollowGoal):
     icon_sprite = "editor/ai_goal_follow.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class ai_battle_line(Parentname, Angles, Targetname):
     model_ = "models/pigeon.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8652,9 +8458,9 @@ class ai_battle_line(Parentname, Angles, Targetname):
         return self._raw_data.get('strict', "1")
 
 
-
 class ai_goal_standoff(Targetname):
     icon_sprite = "editor/ai_goal_standoff.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8692,9 +8498,9 @@ class ai_goal_standoff(Targetname):
         return self._raw_data.get('abandonifenemyhides', "0")
 
 
-
 class ai_goal_police(Parentname, Angles, Targetname):
     icon_sprite = "editor/ai_goal_police.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8708,9 +8514,9 @@ class ai_goal_police(Parentname, Angles, Targetname):
         return self._raw_data.get('policetarget', "")
 
 
-
 class assault_rallypoint(Parentname, Angles, Targetname):
     icon_sprite = "editor/assault_rally.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8740,9 +8546,9 @@ class assault_rallypoint(Parentname, Angles, Targetname):
         return self._raw_data.get('urgent', "0")
 
 
-
 class assault_assaultpoint(Parentname, Angles, Targetname):
     icon_sprite = "editor/assault_point.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -8792,7 +8598,6 @@ class assault_assaultpoint(Parentname, Angles, Targetname):
         return self._raw_data.get('assaulttolerance', "36")
 
 
-
 class ai_goal_assault(Targetname):
     @property
     def origin(self):
@@ -8823,7 +8628,6 @@ class ai_goal_assault(Targetname):
         return self._raw_data.get('rallyselectmethod', "0")
 
 
-
 class BaseActBusy(Targetname):
 
     @property
@@ -8845,7 +8649,6 @@ class BaseActBusy(Targetname):
     @property
     def visibleonly(self):
         return self._raw_data.get('visibleonly', "0")
-
 
 
 class ai_goal_actbusy(BaseActBusy):
@@ -8876,7 +8679,6 @@ class ai_goal_actbusy(BaseActBusy):
     @property
     def allowteleport(self):
         return self._raw_data.get('allowteleport', "0")
-
 
 
 class ai_goal_actbusy_queue(BaseActBusy):
@@ -8973,7 +8775,6 @@ class ai_goal_actbusy_queue(BaseActBusy):
         return self._raw_data.get('mustreachfront', "0")
 
 
-
 class ai_changetarget(Targetname):
     @property
     def origin(self):
@@ -8988,11 +8789,11 @@ class ai_changetarget(Targetname):
         return self._raw_data.get('m_isznewtarget', None)
 
 
-
 class ai_npc_eventresponsesystem(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -9020,7 +8821,6 @@ class ai_changehintgroup(Targetname):
     @property
     def hintlimiting(self):
         return self._raw_data.get('hintlimiting', "0")
-
 
 
 class ai_script_conditions(Targetname):
@@ -9125,9 +8925,9 @@ class ai_script_conditions(Targetname):
         return self._raw_data.get('playerinvehicle', "2")
 
 
-
 class scripted_sequence(DXLevelChoice, BaseScripted):
     model_ = "models/editor/scriptedsequence.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9137,9 +8937,9 @@ class scripted_sequence(DXLevelChoice, BaseScripted):
         return self._raw_data.get('onplayerdeath', "0")
 
 
-
 class aiscripted_schedule(Targetname):
     icon_sprite = "editor/aiscripted_schedule"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9173,11 +8973,11 @@ class aiscripted_schedule(Targetname):
         return self._raw_data.get('goalent', None)
 
 
-
 class ai_citizen_response_system(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -9188,13 +8988,11 @@ class func_healthcharger(Parentname, Origin, EnableDisable, Global):
         return self._raw_data.get('_minlight', None)
 
 
-
 class func_recharge(Parentname, Targetname, Origin):
 
     @property
     def _minlight(self):
         return self._raw_data.get('_minlight', None)
-
 
 
 class func_vehicleclip(Parentname, Targetname, Global):
@@ -9216,7 +9014,6 @@ class func_lookdoor(func_movelinear):
         return self._raw_data.get('fieldofview', "0.0")
 
 
-
 class trigger_waterydeath(Trigger):
     pass
 
@@ -9229,7 +9026,6 @@ class env_global(EnvGlobal):
     @property
     def globalstate(self):
         return self._raw_data.get('globalstate', None)
-
 
 
 class BaseTank(Angles, Parentname, Global, Shadow, Targetname, Origin, RenderFields):
@@ -9391,13 +9187,11 @@ class BaseTank(Angles, Parentname, Global, Shadow, Targetname, Origin, RenderFie
         return self._raw_data.get('effecthandling', "0")
 
 
-
 class func_tank(BaseTank):
 
     @property
     def ammotype(self):
         return self._raw_data.get('ammotype', "")
-
 
 
 class func_tankpulselaser(BaseTank):
@@ -9427,13 +9221,11 @@ class func_tankpulselaser(BaseTank):
         return self._raw_data.get('pulsefiresound', "")
 
 
-
 class func_tanklaser(BaseTank):
 
     @property
     def laserentity(self):
         return self._raw_data.get('laserentity', None)
-
 
 
 class func_tankrocket(BaseTank):
@@ -9443,13 +9235,11 @@ class func_tankrocket(BaseTank):
         return parse_source_value(self._raw_data.get('rocketspeed', 800))
 
 
-
 class func_tankairboatgun(BaseTank):
 
     @property
     def airboat_gun_model(self):
         return self._raw_data.get('airboat_gun_model', None)
-
 
 
 class func_tankapcrocket(BaseTank):
@@ -9461,7 +9251,6 @@ class func_tankapcrocket(BaseTank):
     @property
     def burstcount(self):
         return parse_source_value(self._raw_data.get('burstcount', 10))
-
 
 
 class func_tankmortar(BaseTank):
@@ -9495,7 +9284,6 @@ class func_tankmortar(BaseTank):
         return parse_source_value(self._raw_data.get('firevariance', 0))
 
 
-
 class func_tankphyscannister(BaseTank):
 
     @property
@@ -9503,13 +9291,11 @@ class func_tankphyscannister(BaseTank):
         return self._raw_data.get('barrel_volume', "")
 
 
-
 class func_tank_combine_cannon(BaseTank):
 
     @property
     def ammotype(self):
         return self._raw_data.get('ammotype', "")
-
 
 
 class Item(Angles, Targetname, Shadow):
@@ -9527,9 +9313,9 @@ class Item(Angles, Targetname, Shadow):
         return parse_source_value(self._raw_data.get('fadescale', 1))
 
 
-
 class item_dynamic_resupply(Item):
     model_ = "models/items/healthkit.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9583,145 +9369,179 @@ class item_dynamic_resupply(Item):
         return parse_source_value(self._raw_data.get('desiredammoar2_altfire', 0))
 
 
-
 class item_ammo_pistol(Item):
     model_ = "models/items/boxsrounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_pistol_large(Item):
     model_ = "models/items/largeBoxSRounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_smg1(Item):
     model_ = "models/items/BoxMRounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_smg1_large(Item):
     model_ = "models/items/LargeBoxMRounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_ar2(Item):
     model_ = "models/items/BoxBRounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_ar2_large(Item):
     model_ = "models/items/LargeBoxBRounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_357(Item):
     model_ = "models/items/357ammo.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_357_large(Item):
     model_ = "models/items/357ammobox.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_crossbow(Item):
     model_ = "models/items/CrossbowRounds.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_box_buckshot(Item):
     model_ = "models/items/BoxBuckshot.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_rpg_round(Item):
     model_ = "models/weapons/w_missile_closed.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_smg1_grenade(Item):
     model_ = "models/items/AR2_Grenade.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_battery(Item):
     model_ = "models/items/battery.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_healthkit(Item):
     model_ = "models/items/healthkit.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_healthvial(Item):
     model_ = "models/healthvial.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_ar2_altfire(Item):
     model_ = "models/items/combine_rifle_ammo01.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_suit(Item):
     model_ = "models/items/hevsuit.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class item_ammo_crate(Angles, BaseFadeProp, Targetname):
     model_ = "models/items/ammocrate_rockets.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9731,9 +9551,9 @@ class item_ammo_crate(Angles, BaseFadeProp, Targetname):
         return self._raw_data.get('ammotype', "0")
 
 
-
 class item_item_crate(BasePropPhysics):
     model_ = "models/items/item_item_crate.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9759,9 +9579,9 @@ class item_item_crate(BasePropPhysics):
         return self._raw_data.get('specificresupply', "")
 
 
-
 class item_healthcharger(Angles, BaseFadeProp, Targetname):
     model_ = "models/props_combine/health_charger001.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9769,11 +9589,11 @@ class item_healthcharger(Angles, BaseFadeProp, Targetname):
     @property
     def _minlight(self):
         return self._raw_data.get('_minlight', None)
-
 
 
 class item_suitcharger(Angles, BaseFadeProp, Targetname):
     model_ = "models/props_combine/suit_charger001.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -9781,7 +9601,6 @@ class item_suitcharger(Angles, BaseFadeProp, Targetname):
     @property
     def _minlight(self):
         return self._raw_data.get('_minlight', None)
-
 
 
 class Weapon(Angles, Targetname):
@@ -9799,116 +9618,143 @@ class Weapon(Angles, Targetname):
         return parse_source_value(self._raw_data.get('fadescale', 1))
 
 
-
 class weapon_crowbar(Weapon):
     model_ = "models/weapons/w_crowbar.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_stunstick(Weapon):
     model_ = "models/weapons/w_stunbaton.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_pistol(Weapon):
     model_ = "models/weapons/w_pistol.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_ar2(Weapon):
     model_ = "models/weapons/w_irifle.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_rpg(Weapon):
     model_ = "models/weapons/w_rocket_launcher.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_smg1(Weapon):
     model_ = "models/weapons/w_smg1.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_357(Weapon):
     model_ = "models/weapons/w_357.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_crossbow(Weapon):
     model_ = "models/weapons/w_crossbow.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_shotgun(Weapon):
     model_ = "models/weapons/w_shotgun.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_frag(Weapon):
     model_ = "models/weapons/w_grenade.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_physcannon(Weapon):
     model_ = "models/weapons/w_physics.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_bugbait(Weapon):
     model_ = "models/spore.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_alyxgun(Weapon):
     model_ = "models/weapons/W_Alyx_Gun.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class weapon_annabelle(Weapon):
     model_ = "models/weapons/W_annabelle.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -9971,7 +9817,6 @@ class trigger_vphysics_motion(Trigger):
         return parse_source_value(self._raw_data.get('particletrailendsize', 3))
 
 
-
 class point_bugbait(Targetname):
     @property
     def origin(self):
@@ -9986,7 +9831,6 @@ class point_bugbait(Targetname):
         return parse_source_value(self._raw_data.get('radius', 512))
 
 
-
 class weapon_brickbat(Weapon):
     @property
     def origin(self):
@@ -9995,7 +9839,6 @@ class weapon_brickbat(Weapon):
     @property
     def BrickbatType(self):
         return self._raw_data.get('brickbattype', "Rock")
-
 
 
 class path_corner(Angles, Targetname):
@@ -10020,7 +9863,6 @@ class path_corner(Angles, Targetname):
         return parse_source_value(self._raw_data.get('yaw_speed', 0))
 
 
-
 class path_corner_crash(Targetname):
     @property
     def origin(self):
@@ -10029,7 +9871,6 @@ class path_corner_crash(Targetname):
     @property
     def target(self):
         return self._raw_data.get('target', None)
-
 
 
 class player_loadsaved(Targetname):
@@ -10058,11 +9899,11 @@ class player_loadsaved(Targetname):
         return self._raw_data.get('loadtime', "0")
 
 
-
 class player_weaponstrip(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10070,11 +9911,13 @@ class player_speedmod(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class logic_choreographed_scene(Targetname):
     icon_sprite = "editor/choreo_scene.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -10124,9 +9967,9 @@ class logic_choreographed_scene(Targetname):
         return self._raw_data.get('onplayerdeath', "0")
 
 
-
 class logic_scene_list_manager(Targetname):
     icon_sprite = "editor/choreo_manager.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -10196,9 +10039,9 @@ class logic_scene_list_manager(Targetname):
         return self._raw_data.get('scene15', "")
 
 
-
 class ai_sound(Parentname, Targetname):
     icon_sprite = "editor/ai_sound.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -10224,16 +10067,17 @@ class ai_sound(Parentname, Targetname):
         return self._raw_data.get('locationproxy', "")
 
 
-
 class env_rotorwash(Parentname, Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class combine_mine(Parentname, Targetname):
     model_ = "models/props_combine/combine_mine01.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -10255,7 +10099,6 @@ class combine_mine(Parentname, Targetname):
         return self._raw_data.get('modification', "0")
 
 
-
 class env_ar2explosion(Parentname, Targetname):
     @property
     def origin(self):
@@ -10266,11 +10109,11 @@ class env_ar2explosion(Parentname, Targetname):
         return self._raw_data.get('material', "particle/particle_noisesphere")
 
 
-
 class env_starfield(Targetname):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10288,7 +10131,6 @@ class env_flare(Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('duration', 30))
 
 
-
 class env_muzzleflash(Parentname, Angles, Targetname):
     @property
     def origin(self):
@@ -10301,7 +10143,6 @@ class env_muzzleflash(Parentname, Angles, Targetname):
     @property
     def scale(self):
         return parse_source_value(self._raw_data.get('scale', 1))
-
 
 
 class env_terrainmorph(Parentname, Targetname):
@@ -10326,7 +10167,6 @@ class env_terrainmorph(Parentname, Targetname):
         return parse_source_value(self._raw_data.get('fraction', 1))
 
 
-
 class logic_achievement(Targetname, EnableDisable):
     @property
     def origin(self):
@@ -10337,9 +10177,9 @@ class logic_achievement(Targetname, EnableDisable):
         return self._raw_data.get('achievementevent', "0")
 
 
-
 class point_camera(Parentname, Angles):
     viewport_model = "models/editor/camera.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -10377,13 +10217,11 @@ class point_camera(Parentname, Angles):
         return parse_source_value(self._raw_data.get('fogmaxdensity', 1))
 
 
-
 class func_monitor(func_brush):
 
     @property
     def target(self):
         return self._raw_data.get('target', None)
-
 
 
 class func_bulletshield(func_brush):
@@ -10401,7 +10239,6 @@ class BaseVehicle(Targetname, Origin, Global, prop_static_base):
         return parse_source_value(self._raw_data.get('actionscale', 1))
 
 
-
 class BaseDriveableVehicle(BaseVehicle):
 
     @property
@@ -10409,11 +10246,11 @@ class BaseDriveableVehicle(BaseVehicle):
         return self._raw_data.get('vehiclelocked', "0")
 
 
-
 class prop_vehicle(BaseVehicle):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10421,6 +10258,7 @@ class prop_vehicle_driveable(BaseDriveableVehicle):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10470,7 +10308,6 @@ class point_apc_controller(Angles, Targetname):
         return self._raw_data.get('targetentityname', "")
 
 
-
 class prop_vehicle_apc(BaseDriveableVehicle):
     @property
     def origin(self):
@@ -10481,13 +10318,11 @@ class prop_vehicle_apc(BaseDriveableVehicle):
         return self._raw_data.get('missilehint', "")
 
 
-
 class info_apc_missile_hint(Angles, Targetname, Origin, EnableDisable):
 
     @property
     def target(self):
         return self._raw_data.get('target', "")
-
 
 
 class prop_vehicle_jeep(BaseDriveableVehicle):
@@ -10500,11 +10335,11 @@ class prop_vehicle_jeep(BaseDriveableVehicle):
         return self._raw_data.get('cargovisible', "0")
 
 
-
 class vehicle_viewcontroller(BaseDriveableVehicle):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10518,11 +10353,11 @@ class prop_vehicle_airboat(BaseDriveableVehicle):
         return self._raw_data.get('enablegun', "0")
 
 
-
 class prop_vehicle_cannon(BaseDriveableVehicle):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10536,19 +10371,21 @@ class prop_vehicle_crane(BaseDriveableVehicle):
         return self._raw_data.get('magnetname', "")
 
 
-
 class prop_vehicle_prisoner_pod(Parentname, BaseDriveableVehicle):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
 class env_speaker(BaseSpeaker):
     icon_sprite = "editor/ambient_generic.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10562,7 +10399,6 @@ class script_tauremoval(Parentname, Angles, Targetname):
         return self._raw_data.get('vortigaunt', None)
 
 
-
 class script_intro(Targetname):
     @property
     def origin(self):
@@ -10573,7 +10409,6 @@ class script_intro(Targetname):
         return self._raw_data.get('alternatefovchange', "0")
 
 
-
 class env_citadel_energy_core(Parentname, Angles, Targetname):
     @property
     def origin(self):
@@ -10582,7 +10417,6 @@ class env_citadel_energy_core(Parentname, Angles, Targetname):
     @property
     def scale(self):
         return parse_source_value(self._raw_data.get('scale', 1))
-
 
 
 class env_alyxemp(Parentname, Angles, Targetname):
@@ -10599,7 +10433,6 @@ class env_alyxemp(Parentname, Angles, Targetname):
         return self._raw_data.get('endtargetname', "")
 
 
-
 class test_sidelist(Base):
     @property
     def origin(self):
@@ -10610,12 +10443,13 @@ class test_sidelist(Base):
         return self._raw_data.get('sides', None)
 
 
-
 class info_teleporter_countdown(Targetname):
     icon_sprite = "editor/info_target.vmt"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10633,14 +10467,12 @@ class prop_vehicle_choreo_generic(Parentname, BaseDriveableVehicle):
         return self._raw_data.get('ignoreplayer', "0")
 
 
-
 class filter_combineball_type(BaseFilter):
     icon_sprite = "editor/filter_class.vmt"
 
     @property
     def balltype(self):
         return self._raw_data.get('balltype', "1")
-
 
 
 class env_entity_dissolver(Targetname):
@@ -10661,12 +10493,13 @@ class env_entity_dissolver(Targetname):
         return self._raw_data.get('dissolvetype', "Energy")
 
 
-
 class prop_coreball(Angles, Targetname):
     model_ = "models/props_combine/coreball.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10674,6 +10507,7 @@ class prop_scalable(Angles, Studiomodel, Targetname, RenderFields):
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
+
     pass
 
 
@@ -10699,7 +10533,6 @@ class point_push(Angles, Targetname):
         return parse_source_value(self._raw_data.get('inner_radius', 0))
 
 
-
 class npc_antlion_grub(Angles, BaseFadeProp, Targetname, Global):
     model_ = "models/antlion_grub.mdl"
     pass
@@ -10707,6 +10540,7 @@ class npc_antlion_grub(Angles, BaseFadeProp, Targetname, Global):
 
 class weapon_striderbuster(BasePropPhysics):
     model_ = "models/magnusson_device.mdl"
+
     @property
     def origin(self):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
@@ -10714,7 +10548,6 @@ class weapon_striderbuster(BasePropPhysics):
     @property
     def dud(self):
         return self._raw_data.get('dud', "0")
-
 
 
 class point_flesh_effect_target(Parentname, Targetname):
@@ -10725,8 +10558,6 @@ class point_flesh_effect_target(Parentname, Targetname):
     @property
     def radius(self):
         return parse_source_value(self._raw_data.get('radius', 8))
-
-
 
 
 entity_class_handle = {

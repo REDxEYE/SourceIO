@@ -1,16 +1,15 @@
-from pathlib import Path
-
 import bpy
 
-from ..utils.texture_utils import create_and_cache_texture
-from ...library.source2.data_types.blocks.texture_data import VTexFormat
-from ...library.source2.resource_types import CompiledTextureResource
-from ...logger import SourceLogMan
+from SourceIO.blender_bindings.utils.texture_utils import create_and_cache_texture
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.source2.data_types.blocks.texture_data import VTexFormat
+from SourceIO.library.source2.resource_types import CompiledTextureResource
+from SourceIO.logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("Source2::Texture")
 
 
-def import_texture(resource: CompiledTextureResource, texture_path: Path, invert_y: bool = False):
+def import_texture(resource: CompiledTextureResource, texture_path: TinyPath, invert_y: bool = False):
     logger.info(f'Loading {texture_path} texture')
     if texture_path.stem + '.tga' in bpy.data.images:
         logger.info('Using already loaded texture')

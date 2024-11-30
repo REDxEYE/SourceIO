@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        StringProperty)
@@ -8,15 +6,16 @@ from .import_settings_base import ModelOptions, Source1BSPSettings
 from .operator_helper import ImportOperatorHelper
 from ..models import import_model
 from ..models.common import put_into_collections
-from ..shared.exceptions import SourceIOMissingFileException, RAISE_EXCEPTIONS_ANYWAYS, \
+from ..shared.exceptions import RequiredFileNotFound,RAISE_EXCEPTIONS_ANYWAYS, \
     SourceIOUnsupportedFormatException
 from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.app_id import SteamAppId
-from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.shared.content_manager.manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 from ...library.utils import FileBuffer
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.tiny_path import TinyPath
 from ...library.utils.reporter import Reporter, SourceIOException
 
 from ...logger import SourceLogMan
@@ -57,7 +56,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
                 with FileBuffer(mdl_path) as f:
                     try:
                         model_container = import_model(mdl_path, f, content_manager, self, None)
-                    except SourceIOMissingFileException as e:
+                    except RequiredFileNotFound as e:
                         reporter.error(e)
                         if RAISE_EXCEPTIONS_ANYWAYS:
                             raise e
@@ -66,6 +65,11 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
         finally:
             self.report_errors(reporter)
 
+            # if self.write_qc:
+            #     from ... import bl_info
+            #     from ...library.source1.qc.qc import generate_qc
+            #     qc_file = bpy.data.texts.new('{}.qc'.format(TinyPath(file.name).stem))
+            #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         return {'FINISHED'}
 
 
@@ -92,13 +96,14 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
     def execute(self, context):
         reporter = Reporter.new()
         content_manager = ContentManager()
+        filepath = TinyPath(self.filepath)
         if self.discover_resources:
-            content_manager.scan_for_content(self.filepath)
+            content_manager.scan_for_content(filepath)
         else:
             deserialize_mounted_content(content_manager)
         try:
-            with FileBuffer(Path(self.filepath)) as f:
-                import_bsp(Path(self.filepath), f, content_manager, self,
+            with FileBuffer(filepath) as f:
+                import_bsp(filepath, f, content_manager, self,
                            SteamAppId(int(self.steam_app_id)) if self.steam_app_id != "-999" else None)
         except SourceIOException as e:
             reporter.error(e)
@@ -151,7 +156,7 @@ class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
 
         for file in self.files:
             try:
-                image = import_texture(Path(file.name), (directory / file.name).open('rb'), True)
+                image = import_texture(TinyPath(file.name), (directory / file.name).open('rb'), True)
                 if is_blender_4_1():
                     if (context.region and context.region.type == 'WINDOW'
                             and context.area and context.area.ui_type == 'ShaderNodeTree'
@@ -205,7 +210,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
             deserialize_mounted_content(content_manager)
         for file in self.files:
             skybox_name = path_stem(file.name)
-            load_skybox_texture(skybox_name[:-2], int(self.resolution))
+            load_skybox_texture(skybox_name[:-2], content_manager, int(self.resolution))
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -237,9 +242,9 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
 
         for file in self.files:
             Source1ShaderBase.use_bvlg(self.use_bvlg)
-            file_path = Path(file.name)
+            file_path = TinyPath(file.name)
             mat = get_or_create_material(file_path.stem, file_path.as_posix())
-            loader = Source1MaterialLoader((directory / file.name).open('rb'), file_path.stem)
+            loader = Source1MaterialLoader(content_manager, (directory / file.name).open('rb'), file_path.stem)
             bpy_material = bpy.data.materials.get(loader.material_name, dict())
             if bpy_material.get('source_loaded'):
                 if self.override:

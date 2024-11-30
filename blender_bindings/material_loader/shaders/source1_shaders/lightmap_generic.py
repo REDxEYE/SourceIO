@@ -1,4 +1,4 @@
-from ....utils.bpy_utils import is_blender_4
+from ....utils.bpy_utils import is_blender_4, is_blender_4_3
 from ...shader_base import Nodes
 from ..source1_shader_base import Source1ShaderBase
 
@@ -46,6 +46,12 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def alphatest(self):
         return self._vmt.get_int('$alphatest', 0) == 1
+    
+    @property
+    def basetexturetransform(self):
+        return self._vmt.get_transform_matrix('$basetexturetransform',
+                                                        {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+                                                        'translate': (0, 0, 0)})
 
     @property
     def translucent(self):
@@ -56,7 +62,8 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
             return
 
         if self.isskybox:
-            self.bpy_material.shadow_method = 'NONE'
+            if not is_blender_4_3():
+                self.bpy_material.shadow_method = 'NONE'
             self.bpy_material.use_backface_culling = True
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
@@ -70,17 +77,22 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                     name='$basetexture')
             
             albedo = basetexture_node.outputs[0]
+            if self.basetexturetransform:
+                uv, self.uv_map = self.handle_transform(self.basetexturetransform, basetexture_node.inputs[0])
+                
 
             if self.detail:
                 albedo, detail = self.handle_detail(shader.inputs['Base Color'], albedo, uv_node=None)
 
             if self.alphatest:
-                self.bpy_material.blend_method = 'HASHED'
-                self.bpy_material.shadow_method = 'HASHED'
+                if not is_blender_4_3():
+                    self.bpy_material.blend_method = 'HASHED'
+                    self.bpy_material.shadow_method = 'HASHED'
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])
             if self.translucent:
-                self.bpy_material.blend_method = 'BLEND'
-                self.bpy_material.shadow_method = 'HASHED'
+                if not is_blender_4_3():
+                    self.bpy_material.blend_method = 'BLEND'
+                    self.bpy_material.shadow_method = 'HASHED'
                 self.bpy_material.use_backface_culling = True
                 self.bpy_material.show_transparent_back = False
                 self.connect_nodes(basetexture_node.outputs['Alpha'], shader.inputs['Alpha'])

@@ -1,21 +1,20 @@
 from collections import defaultdict
-from pathlib import Path
 
 import bpy
 import numpy as np
 
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
 from SourceIO.library.models.mdl.v52.mdl_file import MdlV52
 from SourceIO.library.models.vtx.v7.vtx import Vtx
 from SourceIO.library.models.vvc import Vvc
 from SourceIO.library.models.vvd import Vvd
-from SourceIO.library.shared.content_providers.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.logger import SourceLogMan
-from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from ..common import merge_meshes
 from ..mdl49.import_mdl import (create_armature,
                                 create_attachments, create_flex_drivers)
@@ -24,10 +23,10 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def import_model(mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
+def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      ContentManager())
+                                                      content_provider)
 
     objects = []
     bodygroups = defaultdict(list)
@@ -51,7 +50,18 @@ def import_model(mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
 
             mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-            mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
+            if getattr(mdl, 'material_mapper', None):
+                material_mapper = mdl.material_mapper
+                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for (n, group) in enumerate(mdl.skin_groups)}
+                for key, value in true_skin_groups.items():
+                    while None in value:
+                        value.remove(None)
+                try:
+                    mesh_obj['skin_groups'] = true_skin_groups
+                except:
+                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            else:
+                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
 

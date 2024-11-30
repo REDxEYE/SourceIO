@@ -1,27 +1,41 @@
+from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
-from SourceIO.blender_bindings.shared.exceptions import SourceIOWrongMagic
 from SourceIO.library.utils import Buffer, FileBuffer
-from .file_entry import FileEntry
+from SourceIO.library.utils.exceptions import InvalidFileMagic
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
-def open_gma(filepath: Union[str, Path]):
+def check_gma(filepath: TinyPath):
     tmp = FileBuffer(filepath)
     ident = tmp.read(4)
-    if ident != b'GMAD':
-        raise SourceIOWrongMagic(f"Expected GMAD, but got {ident!r}")
-    tmp.close()
-    del tmp
+    return ident == b'GMAD'
 
-    gma = GMA(Path(filepath))
-    gma.read()
-    return gma
+
+@dataclass(slots=True)
+class FileEntry:
+    id: int
+    name: str
+    size: int
+    crc: int
+    offset: int = field(init=False)
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer) -> Optional['FileEntry']:
+        entry_id = buffer.read_uint32()
+        if entry_id == 0:
+            return None
+        name = buffer.read_ascii_string()
+        size, crc = buffer.read_fmt('IQ')
+        return cls(entry_id, name, size, crc)
+
+    def __repr__(self) -> str:
+        return f'FileEntry "{self.name}":0x{self.crc:X} {self.offset}:{self.size}'
 
 
 class GMA:
-    def __init__(self, filepath: Path):
+    def __init__(self, filepath: TinyPath):
         self.filepath = filepath
         self.buffer = FileBuffer(filepath)
         self.version = 0
@@ -33,12 +47,13 @@ class GMA:
         self.addon_author = ''
         self.addon_version = 0
         self._content_offset = 0
-        self.file_entries: dict[Path, FileEntry] = {}
+        self.file_entries: dict[TinyPath, FileEntry] = {}
 
     def read(self):
         buffer = self.buffer
         magic = buffer.read(4)
-        assert magic == b'GMAD'
+        if magic != b"GMAD":
+            raise InvalidFileMagic("Not a GMA file", b"GMAD", magic)
         self.version, self.steam_id, timestamp = buffer.read_fmt('BQQ')
         self.timestamp = timestamp
         if self.version > 1:
@@ -55,13 +70,17 @@ class GMA:
                 break
             entry.offset = offset
             offset += entry.size
-            self.file_entries[Path(entry.name.lower())] = entry
+            self.file_entries[TinyPath(entry.name.lower())] = entry
         self._content_offset = buffer.tell()
 
-    def find_file(self, filename) -> Optional[Buffer]:
+    def find_file(self, filename: TinyPath) -> Optional[Buffer]:
         filename = filename.as_posix().lower()
         if filename in self.file_entries:
             entry = self.file_entries[filename]
             data = self.buffer.slice(self._content_offset + entry.offset, entry.size)
             return data
         return None
+
+    def has_file(self, filename: TinyPath) -> bool:
+        filename = filename.as_posix().lower()
+        return filename in self.file_entries

@@ -4,7 +4,8 @@ from collections import defaultdict
 import numpy as np
 import numpy.typing as npt
 
-from ....shared.content_providers.content_manager import ContentManager
+from ....shared.content_manager.provider import ContentProvider
+from ....shared.content_manager.manager import ContentManager
 from ....utils import Buffer
 from ...resource_types.compiled_texture_resource import \
     CompiledTextureResource

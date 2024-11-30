@@ -3,6 +3,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ...shader_base import Nodes
 from ..source2_shader_base import Source2ShaderBase
 
@@ -125,8 +126,9 @@ class VrSimple(Source2ShaderBase):
             self.connect_nodes(albedo_node.outputs['Color'], shader.inputs['Base Color'])
 
         if self.translucent or self.alpha_test:
-            self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'HASHED'
+            if not is_blender_4_3():
+                self.bpy_material.blend_method = 'HASHED'
+                self.bpy_material.shadow_method = 'HASHED'
             self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Alpha'])
         elif self.metalness:
             self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Metallic'])

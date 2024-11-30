@@ -4,6 +4,7 @@ from typing import Any
 
 class SteamAppId(IntEnum):
     UNKNOWN = 0
+    HALF_LIFE = 70
     HALF_LIFE_2 = 220
     HALF_LIFE_2_EP_1 = 380
     HALF_LIFE_2_EP_2 = 420
@@ -16,12 +17,14 @@ class SteamAppId(IntEnum):
     SOURCE_FILMMAKER = 1840
     GARRYS_MOD = 4000
     BLACK_MESA = 362890
-    HLA_STEAM_ID = 546560
+    HALF_LIFE_ALYX = 546560
     SBOX_STEAM_ID = 590830
     VINDICTUS = 212160
     THINKING_WITH_TIME_MACHINE = 286080
     PORTAL_STORIES_MEL = 317400
+    DEADLOCK = 1422450
     SOLDIERS_OF_FORTUNE2 = -1
+    ROBOT_REPAIR = -2
 
     @classmethod
     def _missing_(cls, value):

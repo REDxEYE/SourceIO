@@ -1,6 +1,5 @@
 from hashlib import md5
 from itertools import chain
-from pathlib import Path
 from typing import Any, MutableMapping
 
 from bpy.props import StringProperty
@@ -15,14 +14,15 @@ from ..models import import_model
 from ..shared.exceptions import SourceIOMissingFileException, SourceIOFileNotFoundWarning, SourceIOModelDidNotLoadWarning, \
     RAISE_EXCEPTIONS_ANYWAYS
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
-from ...library.shared.content_providers.content_manager import ContentManager
+from ...library.shared.content_manager.manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ..models.common import put_into_collections as s1_put_into_collections
 from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
-from ..utils.bpy_utils import get_or_create_collection, find_layer_collection
+from ..utils.bpy_utils import get_or_create_collection, find_layer_collection, pause_view_layer_update
 from ...library.utils.path_utilities import path_stem
+from ...library.utils.tiny_path import TinyPath
 from ...library.utils.reporter import Reporter, SourceIOException
 
 
@@ -33,7 +33,7 @@ def get_parent(collection):
     return bpy.context.scene.collection
 
 
-def get_collection(model_path: Path, *other_args):
+def get_collection(model_path: TinyPath, *other_args):
     md_ = md5(model_path.as_posix().encode("ascii"))
     for key in other_args:
         if key:
@@ -44,7 +44,7 @@ def get_collection(model_path: Path, *other_args):
         return cache[key]
 
 
-def add_collection(model_path: Path, collection: bpy.types.Collection, *other_args):
+def add_collection(model_path: TinyPath, collection: bpy.types.Collection, *other_args):
     md_ = md5(model_path.as_posix().encode("ascii"))
     for key in other_args:
         if key:
@@ -63,7 +63,7 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
 
     # use_bvlg: BoolProperty(default=True)
 
-    def execute(self, context):
+    def execute(self, context:bpy.context):
         reporter = Reporter.new()
         reporter.clear()
         content_manager = ContentManager()
@@ -81,22 +81,27 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                                                                   bpy.context.scene.collection)
         win = bpy.context.window_manager
 
-        win.progress_begin(0, len(context.selected_objects))
-        for n, obj in enumerate(context.selected_objects):
-            print(f'Loading {obj.name}')
-            win.progress_update(n)
-            try:
+        with pause_view_layer_update():
+            win.progress_begin(0, len(context.selected_objects))
+            for n, obj in enumerate(context.selected_objects):
+                print(f'Loading {obj.name}')
+                win.progress_update(n)
                 if obj.get("entity_data", None):
                     custom_prop_data = obj['entity_data']
                     prop_path = custom_prop_data.get('prop_path', None)
                     if prop_path is None or custom_prop_data.get("imported", False):
                         continue
-                    prop_path = Path(prop_path)
+                    prop_path = TinyPath(prop_path)
                     model_type = prop_path.suffix
                     parent = get_parent(obj.users_collection[0])
                     if model_type == '.vmdl_c':
 
-                        instance_collection = get_collection(prop_path)
+                        draw_info = custom_prop_data.get("draw_info", {})
+                        if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                            instance_collection = get_collection(prop_path, str(draw_info["m_nDrawCallIndex"]))
+                        else:
+                            instance_collection = get_collection(prop_path)
+
                         if instance_collection and use_collections:
                             collection = bpy.data.collections.get(instance_collection, None)
                             if collection is not None:
@@ -110,19 +115,30 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                         if vmld_file:
                             # skin = custom_prop_data.get('skin', None)
                             model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                            container = load_model(model_resource, custom_prop_data["scale"], lod_mask=1,
+                            container = load_model(content_manager, model_resource, custom_prop_data["scale"], lod_mask=1,
                                                    import_physics=context.scene.import_physics,
-                                                   import_materials=import_materials)
+                                                   import_materials=import_materials,
+                                                   draw_call_index=draw_info.get("m_nDrawCallIndex", None))
                             if replace_entity:
                                 s2_put_into_collections(container, model_resource.name, parent)
                             else:
-                                prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
+                                if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                                    prop_collection = get_or_create_collection(
+                                        prop_path.stem + f"_{draw_info['m_nDrawCallIndex']}",
+                                        master_instance_collection
+                                    )
+                                else:
+                                    prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
                                 s2_put_into_collections(container, model_resource.name, prop_collection)
                             obj["entity_data"]["prop_path"] = None
                             obj["entity_data"]["imported"] = True
 
                             if use_collections:
-                                add_collection(prop_path, container.master_collection)
+                                if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                                    add_collection(prop_path, container.master_collection,
+                                                   str(draw_info["m_nDrawCallIndex"]))
+                                else:
+                                    add_collection(prop_path, container.master_collection)
 
                                 obj.instance_type = 'COLLECTION'
                                 obj.instance_collection = container.master_collection
@@ -154,7 +170,6 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                             self.report({'INFO'}, f"Model '{prop_path}' not found!")
                     elif model_type in ('.mdl', ".md3"):
                         default_anim = custom_prop_data["entity"].get("defaultanim", None)
-                        prop_path = prop_path
 
                         instance_collection = get_collection(prop_path, default_anim)
                         if instance_collection and use_collections:
@@ -166,12 +181,12 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                                 obj["entity_data"]["imported"] = True
                                 continue
 
-                        mdl_file = content_manager.find_file(prop_path)
+                        mdl_file = content_manager.find_file(TinyPath(prop_path))
                         if not mdl_file:
                             reporter.warning(
                                 SourceIOFileNotFoundWarning(f"Failed to find .mdl({prop_path}) for prop {obj.name}"))
                             continue
-                        cp = content_manager.get_content_provider_from_asset_path(prop_path)
+                        steamapp_id = content_manager.get_steamid_from_asset(prop_path)
                         options = ModelOptions()
                         options.import_textures = import_materials
                         options.import_physics = False
@@ -180,16 +195,14 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                         print(f"BVLG op: {context.scene.use_bvlg}")
                         options.use_bvlg = context.scene.use_bvlg
                         options.bodygroup_grouping = False
-                        options.import_animations = True
+                        options.import_animations = False
                         options.import_physics = context.scene.import_physics
                         try:
                             model_container = import_model(prop_path, mdl_file,
-                                                           content_manager, options,
-                                                           ((cp.steam_id or None) if cp else None))
-                        except SourceIOMissingFileException as e:
+                                                           content_manager, options, steamapp_id)
+                        except RequiredFileNotFound as e:
                             reporter.error(e)
                             continue
-
                         if model_container is None:
                             reporter.warning(
                                 SourceIOModelDidNotLoadWarning(
@@ -285,9 +298,9 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                         #             print(skin_materials, current_materials)
                         #             for skin_material, current_material in zip(skin_materials, current_materials):
                         #                 if unique_material_names:
-                        #                     skin_material = f"{Path(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
+                        #                     skin_material = f"{TinyPath(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
                         #                                     -63:]
-                        #                     current_material = f"{Path(model_container.mdl.header.name).stem}_{current_material[:63]}"[
+                        #                     current_material = f"{TinyPath(model_container.mdl.header.name).stem}_{current_material[:63]}"[
                         #                                        -63:]
                         #                 else:
                         #                     skin_material = skin_material[:63]
@@ -299,10 +312,6 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                         #             print(f'Skin {skin} not found')
                         #
                         # bpy.data.objects.remove(obj)
-            except SourceIOException as e:
-                reporter.error(e)
-                if RAISE_EXCEPTIONS_ANYWAYS:
-                    raise e
 
         win.progress_end()
         self.report_errors(reporter)
@@ -332,19 +341,17 @@ class SOURCEIO_OT_ChangeSkin(OperatorHelper):
         return {'FINISHED'}
 
     def handle_s1(self, obj):
-        prop_path = Path(obj['prop_path'])
+        prop_path = TinyPath(obj['prop_path'])
         skin_materials = obj['skin_groups'][self.skin_name]
-        current_materials = obj['skin_groups'][obj['active_skin']]
-        unique_material_names = obj['unique_material_names']
-        for skin_material, current_material in zip(skin_materials, current_materials):
-            if unique_material_names:
-                skin_material = f"{prop_path.stem}_{skin_material[:63]}"[:63]
-                current_material = f"{prop_path.stem}_{current_material[:63]}"[:63]
-            else:
-                skin_material = skin_material[:63]
-                current_material = current_material[:63]
+        old_skins = obj['skin_groups'][obj['active_skin']]
 
-            swap_materials(obj, skin_material, current_material)
+        remap = {old: new for old, new in zip(old_skins, skin_materials)}
+
+        for n, mat in enumerate(obj.data.materials):
+            if (replacement := remap.get(mat)) == None: continue
+            obj.data.materials[n] = replacement
+
+        del remap
 
     def handle_s2(self, obj):
         skin_material = obj['skin_groups'][self.skin_name]
@@ -572,8 +579,8 @@ class SOURCEIO_OT_NewResource(OperatorHelper):
         cm.clean()
         new_resource = context.scene.mounted_resources.add()
         new_resource.path = self.filepath
-        new_resource.name = Path(self.filepath).name
-        cm.scan_for_content(Path(self.filepath))
+        new_resource.name = TinyPath(self.filepath).name
+        cm.scan_for_content(TinyPath(self.filepath))
         deserialize_mounted_content(cm)
         serialize_mounted_content(cm)
 

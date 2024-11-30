@@ -3,6 +3,7 @@ from collections import OrderedDict
 from enum import Enum
 from typing import TextIO, Union
 
+from SourceIO.library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -39,7 +40,7 @@ class KVToken(Enum):
 
 
 class KVReader:
-    def __init__(self, name: str, data: str, single_value: bool = False):
+    def __init__(self, name: TinyPath, data: str, single_value: bool = False):
         self.name = name
         self.data = data
         self._length = len(self.data)
@@ -88,6 +89,15 @@ class KVReader:
                 if self._next_char() != '"':
                     self._report('String literal is not closed', lc)
                 return KVToken.STR, buf, lc
+
+            if ch == '[':
+                buf = ''
+                while not _is_end(self._peek_char()) and self._peek_char() != ']':
+                    buf += self._next_char()
+                if self._next_char() != ']':
+                    self._report('String literal is not closed', lc)
+                continue
+                # return KVToken.STR, buf, lc
             if ch == '\'':
                 buf = ''
                 while not _is_end(self._peek_char()) and self._peek_char() != '\'':
@@ -328,7 +338,8 @@ class KVWriter:
 
 
 if __name__ == '__main__':
-    data = KVParser('<input>', open(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\gameinfo.txt").read())
+    data = KVParser(TinyPath('input'),
+                    open(r"H:\SteamLibrary\SteamApps\common\SourceFilmmaker\game\Furry\gameinfo.txt").read())
     data = data.parse()
 
     KVWriter(sys.stdout).write(data, 0, True)

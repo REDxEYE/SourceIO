@@ -1,29 +1,32 @@
-from pathlib import Path
-
 import bpy
 import numpy as np
-from mathutils import Vector
 
-from ...utils.texture_utils import check_texture_cache
-from ....library.shared.content_providers.content_manager import ContentManager
-from ...source1.vtf import import_texture
 from ..shader_base import ShaderBase
+from ...source1.vtf import import_texture
+from ...utils.texture_utils import check_texture_cache
+from ....library.shared.content_manager.manager import ContentManager
 from ....library.source1.vmt import VMT
+from ....library.utils.tiny_path import TinyPath
+
 
 class Source1ShaderBase(ShaderBase):
-    def __init__(self, vmt):
+    def __init__(self, content_manager: ContentManager, vmt):
         super().__init__()
+        self.content_manager = content_manager
         self.load_bvlg_nodes()
+        if (dx90 := (vmt.get('>=dx90') or vmt.get('>=DX90'))):
+            # unravel it, because we want dx90 properties
+            for key, value in dx90.items():
+                vmt[key] = value
         self._vmt: VMT = vmt
         self.textures = {}
-    'r'.rsplit()
-    def load_texture(self, texture_name: str, texture_path: Path):
+
+    def load_texture(self, texture_name: str, texture_path: TinyPath):
         image = check_texture_cache(texture_path / texture_name)
         if image is not None:
             return image
 
-        content_manager = ContentManager()
-        texture_file = content_manager.find_texture(texture_path / texture_name)
+        texture_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".vtf"))
         if texture_file is not None:
             return import_texture(texture_path / texture_name, texture_file)
         return None
@@ -32,7 +35,7 @@ class Source1ShaderBase(ShaderBase):
     def convert_ssbump(image: bpy.types.Image):
         if image.get('ssbump_converted', None):
             return image
-        
+
         # from https://github.com/rob5300/ssbumpToNormal-Win/blob/main/SSBumpToNormal.cs
         bumpBasisTranspose = np.array([
             [0.81649661064147949, -0.40824833512306213, -0.40824833512306213],

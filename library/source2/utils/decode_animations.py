@@ -3,7 +3,7 @@ import math
 
 import numpy as np
 
-from ...utils.byte_io_mdl import ByteIO
+from SourceIO.library.utils import Buffer, MemoryBuffer
 
 
 class _Decoder:
@@ -39,12 +39,12 @@ class _Decoder:
         else:
             raise NotImplementedError(f"Unknown decoder type {self.name}")
 
-    def read_element(self, reader: ByteIO):
+    def read_element(self, reader: Buffer):
         if 'O' in self._type:
             return self._read_quat(reader.read(6))
         elif 'Y' in self._type:
             count = int(self._type[:-1])
-            return [reader.read_float16() for _ in range(count)]
+            return [reader.read_half() for _ in range(count)]
         else:
             return reader.read_fmt(self._type)
 
@@ -119,7 +119,7 @@ def parse_anim(anim_desc, decode_key, decoder_array, segment_array):
 def parse_segment(frame_id, frame: 'Frame', segment, decode_key, decoder_array):
     local_channel = segment['m_nLocalChannel']
     data_channel = decode_key['m_dataChannelArray'][local_channel]
-    container = ByteIO(segment['m_container'])
+    container = MemoryBuffer(segment['m_container'])
 
     element_index_array = data_channel['m_nElementIndexArray']
     element_bones = np.zeros(decode_key['m_nChannelElements'], dtype=np.uint32)

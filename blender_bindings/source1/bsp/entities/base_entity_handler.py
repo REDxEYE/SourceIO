@@ -1,22 +1,20 @@
 import math
 import re
 import traceback
-from pathlib import Path
 
 import bpy
 import numpy as np
 from mathutils import Vector
 
-from .....library.shared.content_providers.content_manager import \
-    ContentManager
-from .....library.source1.vtf.cubemap_to_envmap import SkyboxException
-from .....library.utils.math_utilities import ensure_length, lerp_vec
-from .....library.utils.path_utilities import path_stem
-from .....logger import SourceLogMan
-from ....material_loader.material_loader import Source1MaterialLoader
-from ....material_loader.shaders.source1_shaders.sky import Skybox
-from ....utils.bpy_utils import add_material, get_or_create_material
-from ...vtf import load_skybox_texture
+from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.shaders.source1_shaders.sky import Skybox
+from SourceIO.blender_bindings.source1.vtf import load_skybox_texture
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
+from SourceIO.library.source1.vtf.cubemap_to_envmap import SkyboxException
+from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec
+from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
@@ -291,10 +289,13 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_worldspawn(self, entity: worldspawn, entity_raw: dict):
         world = self._load_brush_model(0, 'world_geometry')
+        self._world_geometry_name = world.name
         self._set_entity_data(world, {'entity': entity_raw})
         self.parent_collection.objects.link(world)
         try:
-            skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname, 4096)
+            skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha = load_skybox_texture(entity.skyname,
+                                                                                               self.content_manager,
+                                                                                               4096)
             world_material = bpy.data.worlds.get(entity.skyname, False) or bpy.data.worlds.new(entity.skyname)
             Skybox(skybox_texture, skybox_texture_hdr, skybox_texture_hdr_alpha).create_nodes(world_material)
             bpy.context.scene.world = bpy.data.worlds[entity.skyname]
@@ -586,7 +587,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('color_correction', obj, 'logic')
         # if entity.filename:
-        #     lut_table_file = ContentManager().find_file(entity.filename)
+        #     lut_table_file = StandaloneContentManager().find_file(entity.filename)
         #     if lut_table_file is not None:
         #         lut_table = np.frombuffer(lut_table_file.read(), np.uint8).reshape((-1, 3))
         #         lut_table = lut_table.astype(np.float32) / 255
@@ -674,7 +675,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         point_start = (*location_start, 1)
         point_end = (*location_end, 1)
         point_mid = lerp_vec(point_start, point_end, 0.5)
-        point_mid[2] -= sum(slack * 0.0002 for _ in range(slack))
+        point_mid[2] -= sum(slack * 0.0002 for _ in range(int(slack)))
 
         curve_path.points.add(2)
         curve_path.points[0].co = point_start
@@ -686,12 +687,11 @@ class BaseEntityHandler(AbstractEntityHandler):
         material_name = start_entity.RopeMaterial
         stripped_material_name = strip_patch_coordinates.sub("", material_name)
 
-        mat = get_or_create_material(Path(stripped_material_name).name, stripped_material_name)
+        mat = get_or_create_material(TinyPath(stripped_material_name).name, stripped_material_name)
         add_material(mat, curve_object)
-        content_manager = ContentManager()
-        material_file = content_manager.find_material(material_name)
+        material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
         if material_file:
-            loader = Source1MaterialLoader(material_file, stripped_material_name)
+            loader = Source1MaterialLoader(self.content_manager, material_file, stripped_material_name)
             loader.create_material(mat)
         return curve_object
 
@@ -741,18 +741,18 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('path_track', obj)
 
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
-        material_name = Path(entity.texture).name
-        material_file = ContentManager().find_material(entity.texture)
+        material_name = TinyPath(entity.texture).name
+        material_file = self.content_manager.find_file(TinyPath("materials") / (entity.texture + ".vmt"))
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
-            loader = Source1MaterialLoader(material_file, material_name)
+            loader = Source1MaterialLoader(self.content_manager, material_file, material_name)
             mat = get_or_create_material(path_stem(material_name), material_name)
             loader.create_material(mat)
 
             tex_name = loader.vmt.get('$basetexture', None)
             if not tex_name:
                 return
-            tex_name = Path(tex_name).name
+            tex_name = TinyPath(tex_name).name
             if tex_name in bpy.data.images:
                 size = bpy.data.images[tex_name].size
             else:
@@ -774,11 +774,47 @@ class BaseEntityHandler(AbstractEntityHandler):
         mesh_data = obj.data
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
+        origin = Vector(entity.origin)
+        if self._world_geometry_name != "":
+            world_geometry = bpy.data.objects[self._world_geometry_name]
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            world_geometry_eval = world_geometry.evaluated_get(depsgraph)
+            closest_distance = 1.70141e+38
+            closest_hit = None
+            ray_directions = [
+                Vector((0, 0, -1)),  # Down
+                Vector((0, 0, 1)),  # Up
+                Vector((0, -1, 0)),  # Backward
+                Vector((0, 1, 0)),  # Forward
+                Vector((-1, 0, 0)),  # Left
+                Vector((1, 0, 0)),  # Right
+            ]
+
+            for direction in ray_directions:
+                scaled_origin = origin * self.scale
+                hit, location, normal, index = world_geometry_eval.ray_cast(scaled_origin, direction, distance=closest_distance,
+                                                                            depsgraph=depsgraph)
+
+                if hit:
+                    distance = (scaled_origin - location).length
+                    if distance < closest_distance:
+                        closest_distance = distance
+                        closest_hit = (location, normal)
+
+            if closest_hit:
+                location, normal = closest_hit
+
+                target_direction = -normal
+                rotation = target_direction.to_track_quat('Y', 'Z').to_euler()
+                obj.rotation_euler = rotation
+
+                origin += (normal * 0.01) / self.scale
+
         uv_data = mesh_data.uv_layers.new().data
         material = get_or_create_material(path_stem(material_name), material_name)
         add_material(material, obj)
 
-        self._set_location_and_scale(obj, entity.origin)
+        self._set_location_and_scale(obj, origin)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('infodecal', obj)
 

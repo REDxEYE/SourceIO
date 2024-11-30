@@ -80,7 +80,7 @@ class MdlV44(Mdl):
             skin_group = []
             for _ in range(header.skin_reference_count):
                 texture_index = buffer.read_uint16()
-                skin_group.append(materials[texture_index].name)
+                skin_group.append(materials[texture_index])
             skin_groups.append(skin_group)
 
         diff_start = 0
