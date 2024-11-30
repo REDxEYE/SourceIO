@@ -6,12 +6,14 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
+from SourceIO.blender_bindings.shared.exceptions import SourceIOFileNotFoundWarning
 from SourceIO.library.models.vtx.v6.vtx import Vtx
 from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.reporter import Reporter
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
@@ -88,16 +90,19 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
             if getattr(mdl, 'material_mapper', None):
                 material_mapper = mdl.material_mapper
-                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for (n, group) in enumerate(mdl.skin_groups)}
+                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for
+                                    (n, group) in enumerate(mdl.skin_groups)}
                 for key, value in true_skin_groups.items():
                     while None in value:
                         value.remove(None)
                 try:
                     mesh_obj['skin_groups'] = true_skin_groups
                 except:
-                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
+                                               enumerate(mdl.skin_groups)}
             else:
-                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
+                                           enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)
@@ -240,8 +245,8 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
 
 def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
-    #print(mdl.type)
-    if (material_mapper := getattr(mdl, 'material_mapper', None)) == None:
+    reporter = Reporter.current()
+    if (material_mapper := getattr(mdl, 'material_mapper', None)) is None:
         material_mapper = dict()
     for material in mdl.materials:
         material_path = None
@@ -252,6 +257,7 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
                 material_path = TinyPath(mat_path) / material.name
                 break
         if material_path is None:
+            reporter.warning(SourceIOFileNotFoundWarning(f'Material {material.name} not found'))
             logger.info(f'Material {material.name} not found')
             continue
         mat = get_or_create_material(material.name, material_path.as_posix())
@@ -267,35 +273,7 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
             loader.create_material(mat)
 
         mdl.material_mapper = material_mapper
-        #print(mdl.material_mapper, mdl.skin_groups)
-
-def import_materials2(mdl, use_bvlg=False):
-    content_manager = ContentManager()
-    material_mapper = dict()
-    for material in mdl.materials:
-        material_path = None
-        material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_material(Path(mat_path) / material.name)
-            if material_file:
-                material_path = Path(mat_path) / material.name
-                break
-        if material_path is None:
-            logger.info(f'Material {material.name} not found')
-            continue
-        mat = get_or_create_material(material.name, material_path.as_posix())
-        material_mapper[material.material_pointer] = mat
-
-        if mat.get('source1_loaded', False):
-            logger.info(f'Skipping loading of {mat} as it already loaded')
-            continue
-
-        if material_path:
-            Source1ShaderBase.use_bvlg(use_bvlg)
-            loader = Source1MaterialLoader(material_file, material.name)
-            loader.create_material(mat)
-    mdl.material_mapper = material_mapper
-
+        # print(mdl.material_mapper, mdl.skin_groups)
 
 def __swap_components(vec, mp):
     __pat = 'XYZ'

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from SourceIO.library.utils import Buffer, FileBuffer
-from SourceIO.library.utils.exceptions import InvalidFileMagic
+from SourceIO.blender_bindings.shared.exceptions import InvalidFileMagic
 from SourceIO.library.utils.tiny_path import TinyPath
 
 

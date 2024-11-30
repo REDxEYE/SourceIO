@@ -5,6 +5,7 @@ from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_1
 from SourceIO.library.utils.reporter import Reporter
 from SourceIO.library.utils.tiny_path import TinyPath
 
+
 class OperatorHelper(bpy.types.Operator):
     def report_errors(self, reporter: Reporter):
         for warning in reporter.warnings():

@@ -41,3 +41,7 @@ class Reporter(metaclass=SingletonMeta):
     @classmethod
     def new(cls):
         return cls().clear()
+
+    @classmethod
+    def current(cls):
+        return cls()

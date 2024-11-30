@@ -3,14 +3,13 @@ from typing import Any, Type
 import bpy
 from mathutils import Matrix
 
-from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
+from SourceIO.blender_bindings.shared.exceptions import SourceIOMissingFileException
 from SourceIO.library.shared.content_manager.manager import ContentManager
 from SourceIO.library.utils.tiny_path import TinyPath
 from .entities.base_entity_handlers import BaseEntityHandler
 from .entities.cs2_entity_handlers import CS2EntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
 from .entities.sbox_entity_handlers import SBoxEntityHandler
-from .entities.steampal_entity_handlers import SteamPalEntityHandler
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.source2 import CompiledWorldResource
@@ -55,7 +54,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
     for node_prefix in world_resource.get_worldnode_prefixes():
         node_resource = map_resource.get_worldnode(node_prefix, content_manager)
         if node_resource is None:
-            raise RequiredFileNotFound("Failed to find WorldNode resource")
+            raise SourceIOMissingFileException("Failed to find WorldNode resource")
         collection = get_or_create_collection(f"static_props_{TinyPath(node_prefix).name}", master_collection)
         for scene_object in node_resource.get_scene_objects():
             renderable_model = scene_object["m_renderableModel"]

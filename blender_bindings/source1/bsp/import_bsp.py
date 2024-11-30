@@ -10,7 +10,6 @@ from .entities.sof_entity_handler import SOFEntityHandler
 from ...material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from ...operators.import_settings_base import Source1BSPSettings
 from ....library.shared.content_manager.manager import ContentManager
-from ....library.shared.content_manager.provider import ContentProvider
 from ....library.source1.bsp.bsp_file import open_bsp, BSPFile
 from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
 
@@ -22,10 +21,9 @@ from ....library.utils.math_utilities import (SOURCE1_HAMMER_UNIT_TO_METERS,
 from ....library.utils.path_utilities import path_stem
 from ....library.utils.tiny_path import TinyPath
 from ....logger import SourceLogMan, SLogger
-from ....library.utils.reporter import SourceIOException, Reporter
 from ...material_loader.material_loader import Source1MaterialLoader
 from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, is_blender_4_1, \
+from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, \
     is_blender_4_2
 from .entities.base_entity_handler import BaseEntityHandler
 from .entities.bms_entity_handlers import BlackMesaEntityHandler
