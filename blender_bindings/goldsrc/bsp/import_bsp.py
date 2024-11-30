@@ -33,7 +33,7 @@ from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
     GoldSrcShaderMode2
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
     GoldSrcShaderMode5
-from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
+from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, is_blender_4_3
 
 log_manager = SourceLogMan()
 
@@ -248,11 +248,8 @@ class BSP:
                         if len(game_wad_path) == 0:
                             continue
                         game_wad_path = backwalk_file_resolver(self.map_path, TinyPath(game_wad_path))
-                        wad_file = self.bsp_file.manager.find_path(game_wad_path)
-                        if wad_file:
-                            self.bsp_file.manager.register_content_provider(
-                                f'{game_wad_path.parent.stem}_{game_wad_path.stem}',
-                                GoldSrcWADContentProvider(wad_file))
+                        if game_wad_path.exists():
+                            self.bsp_file.manager.add_child(GoldSrcWADContentProvider(game_wad_path))
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
                     entity_collection = self.get_collection(entity_class)
@@ -391,9 +388,10 @@ class BSP:
                     else:
                         loader = GoldSrcShader(studio_texture)
                     loader.create_nodes(mode_mat, rad_data)
-                    if render_mode < 255:
-                        mode_mat.blend_method = 'HASHED'
-                        mode_mat.shadow_method = 'HASHED'
+                    if not is_blender_4_3():
+                        if render_mode < 255:
+                            mode_mat.blend_method = 'HASHED'
+                            mode_mat.shadow_method = 'HASHED'
                 model_object.data.materials[model_material_index] = mode_mat
 
     def _get_light_angles(self, entity_data):

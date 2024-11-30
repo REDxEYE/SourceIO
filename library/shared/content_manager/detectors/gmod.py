@@ -1,3 +1,4 @@
+from SourceIO.library.archives.gma import check_gma
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.gma_provider import GMAContentProvider
@@ -34,6 +35,8 @@ class GModDetector(Source1Detector):
         cls.register_common(gmod_root.parent, providers)
         for addon in (gmod_dir / "addons").iterdir():
             if addon.suffix == ".gma":
+                if not check_gma(addon):
+                    continue
                 provider = GMAContentProvider(addon)
             else:
                 provider = LooseFilesContentProvider(addon, SteamAppId.GARRYS_MOD)
