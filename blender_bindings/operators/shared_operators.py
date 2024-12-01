@@ -200,7 +200,7 @@ class SourceIO_OT_LoadEntity(OperatorHelper):
                         try:
                             model_container = import_model(prop_path, mdl_file,
                                                            content_manager, options, steamapp_id)
-                        except RequiredFileNotFound as e:
+                        except SourceIOMissingFileException as e:
                             reporter.error(e)
                             continue
                         if model_container is None:

@@ -1,5 +1,7 @@
 import bpy
 
+from ....shared.exceptions import SourceIOUnsupportedFeature
+from .....library.utils.reporter import Reporter
 from .....logger import SourceLogMan
 from ..source1_shader_base import Source1ShaderBase
 
@@ -90,6 +92,7 @@ class DetailSupportMixin(Source1ShaderBase):
 
     def handle_detail(self, next_socket: bpy.types.NodeSocket, albedo_socket: bpy.types.NodeSocket, *, uv_node=None):
         if self.detailmode not in [0, 1, 2, 5]:
+            Reporter.current().warning(SourceIOUnsupportedFeature(f'Failed to load detail: unhandled Detail mode, got {self.detailmode}'))
             logger.error(f'Failed to load detail: unhandled Detail mode, got' + str(self.detailmode))
             return albedo_socket, None
         detailblend = self.create_node_group('$DetailBlendMode' + str(self.detailmode), [-500, -60], name='DetailBlend')
@@ -128,6 +131,7 @@ class DetailSupportMixin(Source1ShaderBase):
 
     def handle_detail2(self, next_socket: bpy.types.NodeSocket, albedo_socket: bpy.types.NodeSocket, *, uv_node=None):
         if self.detailmode not in [0, 1, 2, 5]:
+            Reporter.current().warning(SourceIOUnsupportedFeature(f'Failed to load detail: unhandled Detail mode, got {self.detailmode}'))
             logger.error(f'Failed to load detail: unhandled Detail mode, got' + str(self.detailmode))
             return albedo_socket, None
         detailblend = self.create_node_group('$DetailBlendMode' + str(self.detailmode), [-500, -60], name='DetailBlend')

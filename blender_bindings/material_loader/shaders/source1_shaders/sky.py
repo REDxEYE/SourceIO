@@ -17,7 +17,6 @@ class Skybox(Source1ShaderBase):
         self.do_arrange = True
 
     def create_nodes(self, material):
-        self.logger.info(f'Creating material {repr(material.name)}')
         self.bpy_material = material
 
         if self.bpy_material is None:
@@ -27,6 +26,7 @@ class Skybox(Source1ShaderBase):
         if self.bpy_material.get('source_loaded'):
             return 'LOADED'
 
+        self.logger.info(f'Creating material {repr(material.name)}')
         self.bpy_material.use_nodes = True
         self.clean_nodes()
         self.bpy_material['source_loaded'] = True

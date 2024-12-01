@@ -3,10 +3,12 @@ from typing import Type
 
 import bpy
 
+from ..shared.exceptions import SourceIOUnsupportedFeature
 from ...library.models.mdl.v10.structs.texture import StudioTexture
 from ...library.shared.content_manager.manager import ContentManager
 from ...library.source1.vmt import VMT
 from ...library.source2 import CompiledMaterialResource
+from ...library.utils.reporter import Reporter, SourceIOWarning, SourceIOException, SourceIOWrappedException
 from ...logger import SourceLogMan
 from .shader_base import ShaderBase
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
@@ -49,7 +51,7 @@ class Source1MaterialLoader(MaterialLoaderBase):
         material['shader_type'] = handler._vmt.shader
         try:
             params = handler._vmt.data.to_dict()
-            #if (dx90 := (params.get('>=dx90') or params.get('>=DX90'))):
+            # if (dx90 := (params.get('>=dx90') or params.get('>=DX90'))):
             #    for key, value in dx90.items():
             #        params[key] = value
             #    # unravel it a bit, because dx90 is how we usually see the materials
@@ -58,7 +60,7 @@ class Source1MaterialLoader(MaterialLoaderBase):
             pass
         handler.align_nodes()
         if self.vmt.shader not in self._handlers:
-            logger.error(f'Shader "{self.vmt.shader}" not currently supported by SourceIO')
+            Reporter.current().warning(SourceIOUnsupportedFeature(f'Shader "{self.vmt.shader}" not currently supported by SourceIO'))
         return handler.bpy_material
 
 
@@ -76,9 +78,11 @@ class GoldSrcMaterialLoader(MaterialLoaderBase):
 
     def create_material(self, material: bpy.types.Material):
         handler: GoldSrcShaderBase = self._handlers['goldsrc_shader'](self.texture_data)
+
         try:
             handler.create_nodes(material)
         except Exception as ex:
+            Reporter.current().error(SourceIOWrappedException(f"Failed to load {self.material_name} due to", ex))
             logger.error(f'Failed to load material, due to {ex} error')
             traceback.print_exc()
             logger.debug(f'Failed material: {self.material_name}:{self.texture_data.name}')
@@ -112,11 +116,14 @@ class Source2MaterialLoader(MaterialLoaderBase):
         handler: Source2ShaderBase = self._handlers.get(shader, DummyShader)(self.content_manager,
                                                                              self.material_resource, self.tinted)
 
+        reporter = Reporter.current()
         if shader not in self._handlers:
+            reporter.warning(SourceIOUnsupportedFeature(f'Shader "{shader}" not currently supported by SourceIO'))
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')
         try:
             handler.create_nodes(material)
         except Exception as ex:
+            reporter.error(SourceIOWrappedException(f"Failed to load {self.material_name} due to", ex))
             logger.error(f'Failed to load material, due to {ex} error')
             traceback.print_exc()
             logger.debug(f'Failed material: {self.material_name}')

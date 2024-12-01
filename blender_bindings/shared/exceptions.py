@@ -23,6 +23,8 @@ class SourceIOFileNotFoundWarning(SourceIOWarning):
 class SourceIOModelDidNotLoadWarning(SourceIOWarning):
     pass
 
+class SourceIOUnsupportedFeature(SourceIOWarning):
+    pass
 
 class InvalidFileMagic(SourceIOException):
     def __init__(self, message:str, expected:bytes, actual:bytes, *args):

@@ -4,6 +4,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
+from ...library.utils.reporter import Reporter, SourceIOWarning
 from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 from ..utils.bpy_utils import append_blend, is_blender_4_3

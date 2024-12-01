@@ -3,7 +3,6 @@ import bpy
 from .attributes import register_props, unregister_props
 from .operators.flex_operators import classes as flex_classes
 from .operators.goldsrc_operators import SOURCEIO_OT_GBSPImport
-from .operators.operator_helper import SourceIO_WM_ErrorPopupOperator
 from .operators.shared_operators import shared_classes
 from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_DMXImporter,

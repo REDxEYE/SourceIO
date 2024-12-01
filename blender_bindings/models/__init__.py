@@ -4,6 +4,7 @@ from SourceIO.blender_bindings.models.model_tags import MODEL_HANDLERS, choose_m
 from SourceIO.library.utils import Buffer
 from . import mdl4, mdl6, mdl10, mdl36, mdl44, mdl49, md3_15
 from ..operators.import_settings_base import ModelOptions
+from ..shared.exceptions import SourceIOUnsupportedFormatException
 from ..shared.model_container import ModelContainer
 from ...library.shared.app_id import SteamAppId
 from ...library.shared.content_manager.manager import ContentManager
@@ -25,8 +26,7 @@ def import_model(model_path: TinyPath, buffer: Buffer,
     steam_id = content_provider.get_steamid_from_asset(model_path)
     handler = choose_model_importer(ident, version, (override_steam_id or steam_id or None))
     if handler is None:
-        logger.error(f"No handler found for ident {ident} version: {version}")
-        return None
+        raise SourceIOUnsupportedFormatException(f"No handler found for ident {ident} version: {version}")
     buffer.seek(0)
     container = handler(model_path, buffer, content_provider, options)
     return container
