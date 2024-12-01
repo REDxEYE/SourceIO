@@ -1,5 +1,6 @@
 from SourceIO.library.utils.tiny_path import TinyPath
 from .cs2 import CS2Detector
+from .csgo import CSGODetector
 from .gmod import GModDetector
 from .goldsrc import GoldSrcDetector
 from .hla import HLADetector
@@ -19,7 +20,7 @@ from .deadlock import DeadlockDetector
 
 def detect_game(path: TinyPath) -> list[ContentProvider]:
     detector_addons = [GoldSrcDetector(), IDTech3Detector(),
-                       SFMDetector(), GModDetector(),Portal2Detector(), SourceMod(),
+                       SFMDetector(), GModDetector(), Portal2Detector(), SourceMod(), CSGODetector(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
                        DeadlockDetector(), Source1Detector(), Source2Detector()]
