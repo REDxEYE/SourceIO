@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 from .....utils import Buffer
 
 
@@ -45,3 +44,9 @@ class Enum:
                 value = EnumValue.from_buffer(buffer)
                 values[value.value] = value
         return cls(version, s_id, name, disc_crc, user_version, values)
+
+    def is_flags(self):
+        is_flag = True
+        for emum_value in self.values.values():
+            is_flag &= emum_value.value.bit_count() == 1 or emum_value.value.bit_count() == emum_value.value.bit_length()
+        return is_flag

@@ -186,7 +186,15 @@ class ResourceIntrospectionManifest(BaseBlock):
         return self.read_struct(buffer, self.struct_by_id(member.data_type))
 
     def _read_enum(self, buffer: Buffer, member: StructMember):
-        return String(self.enum_by_id(member.data_type).values[buffer.read_uint32()].name)
+        enum_value = buffer.read_uint32()
+        enumerator = self.enum_by_id(member.data_type)
+        if enumerator.is_flags():
+            tmp = []
+            for value, key in enumerator.values.items():
+                if value & enum_value:
+                    tmp.append(key.name)
+            return String("|".join(tmp))
+        return String(enumerator.values[enum_value].name)
 
     def _read_ex_ref(self, buffer: Buffer, member: StructMember):
         resource_id = buffer.read_uint64()
