@@ -17,7 +17,7 @@ class CompiledEntityLumpResource(CompiledResource):
     def get_entities(self) -> Iterator[Object]:
         data, = self.get_data_block(block_name='DATA')
         for entity_key_values in data["m_entityKeyValues"]:
-            if "m_keyValuesData" in entity_key_values and entity_key_values["m_keyValuesData"] is not None:
+            if "m_keyValuesData" in entity_key_values and len(entity_key_values["m_keyValuesData"]):
                 buffer = MemoryBuffer(entity_key_values["m_keyValuesData"])
                 yield EntityKeyValues.from_buffer(buffer)
             elif "keyValue3Data" in entity_key_values:
