@@ -183,14 +183,13 @@ register_, unregister_ = bpy.utils.register_classes_factory(classes)
 is_windows = platform.system() == "Windows"
 def register():
     # Taken from https://github.com/lasa01/Plumber/blob/master/plumber/__init__.py
-    if is_windows:
+    if is_windows and False:
         # Check if the extension module was renamed on the last unregister,
         # and either rename it back or delete it if the addon was updated with a newer extension module
         ext_path = TinyPath(__file__).parent.parent / "library/utils/rustlib/windows_x64/rustlib.pyd"
         unloaded_ext_path = TinyPath(__file__).parent.parent.parent / "rustlib.pyd.unloaded"
-        print(ext_path)
-        if unloaded_ext_path.is_file():
-            if ext_path.is_file():
+        if unloaded_ext_path.exists():
+            if ext_path.exists():
                 try:
                     os.remove(unloaded_ext_path)
                 except OSError:
@@ -214,12 +213,11 @@ def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
 
     # Taken from https://github.com/lasa01/Plumber/blob/master/plumber/__init__.py
-    if is_windows:
+    if is_windows and False:
         # Rename the extension module to allow updating the addon without restarting Blender,
         # since the extension module will stay open and can't be overwritten even if the addon is unloaded
         ext_path = TinyPath(__file__).parent.parent / "library/utils/rustlib/windows_x64/rustlib.pyd"
         unloaded_ext_path = TinyPath(__file__).parent.parent.parent / "rustlib.pyd.unloaded"
-        print(ext_path)
         try:
             os.rename(ext_path, unloaded_ext_path)
         except OSError:
