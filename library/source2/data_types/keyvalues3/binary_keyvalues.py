@@ -163,9 +163,9 @@ class BinaryKeyValues:
     def _read_object(self, buffers: BufferGroup, strings: list[str], block_sizes: list[int]):
         attribute_count = buffers.int_buffer.read_uint32()
         obj = Object()
-        for _ in range(attribute_count):
+        for i in range(attribute_count):
             name_id = buffers.int_buffer.read_int32()
-            name = strings[name_id] if name_id != -1 else ""
+            name = strings[name_id] if name_id != -1 else str(i)
 
             data_type, data_flag = self._read_type(buffers.type_buffer)
             reader = self._kv_readers[data_type]

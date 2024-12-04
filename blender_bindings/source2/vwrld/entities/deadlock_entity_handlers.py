@@ -53,7 +53,11 @@ class DeadlockEntityHandler(CS2EntityHandler):
     entity_lookup_table['citadel_item_powerup_spawner'] = Base
     entity_lookup_table['citadel_item_pickup_rejuv_herotest_infospawn'] = Base
     entity_lookup_table['info_target_server_only'] = Base
-    # entity_lookup_table['citadel_volume_omni'] = Base
+    entity_lookup_table['trigger_hurt_citadel'] = Base
+    entity_lookup_table['citadel_volume_omni'] = Base
+    entity_lookup_table['citadel_point_talker'] = Base
+    entity_lookup_table['citadel_trigger_interior'] = Base
+    entity_lookup_table['trigger_catapult'] = Base
 
     def load_entities(self):
         for entity in self._entities:
@@ -72,6 +76,9 @@ class DeadlockEntityHandler(CS2EntityHandler):
     def handle_modifier_citadel_idol_return(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection("modifier_citadel_idol_return", obj, 'triggers')
+
+    def handle_citadel_volume_omni(self, entity: Base, entity_raw: dict):
+        pass
 
     def handle_citadel_trigger_idol_return(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -109,9 +116,17 @@ class DeadlockEntityHandler(CS2EntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection("trigger_modifier", obj, 'triggers')
 
+    def handle_trigger_hurt_citadel(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("trigger_hurt_citadel", obj, 'triggers')
+
     def handle_trigger_remove_modifier(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection("trigger_remove_modifier", obj, 'triggers')
+
+    def handle_trigger_catapult(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("trigger_catapult", obj, 'triggers')
 
     def handle_trigger_tier3phase2_shield(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -150,105 +165,46 @@ class DeadlockEntityHandler(CS2EntityHandler):
         self._put_into_collection("func_regenerate", obj, 'func')
 
     def handle_citadel_zipline_path(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("citadel_zipline_path", obj, 'path')
+        self._handle_point_entity(entity,entity_raw,"citadel_zipline_path", "path")
 
     def handle_citadel_zipline_path_node(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("citadel_zipline_path_node", obj, 'path')
+        self._handle_point_entity(entity,entity_raw,"citadel_zipline_path_node", "path")
 
     def handle_lane_marker_path(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("lane_marker_path", obj, 'path')
+        self._handle_point_entity(entity,entity_raw,"lane_marker_path", "path")
 
     def handle_info_team_spawn(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_team_spawn", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_team_spawn", "info")
+
+    def handle_citadel_point_talker(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"citadel_point_talker", "info")
 
     def handle_info_cover_point(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_cover_point", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_cover_point", "info")
 
     def handle_info_neutral_trooper_spawn(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_neutral_trooper_spawn", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_neutral_trooper_spawn", "info")
 
     def handle_info_neutral_trooper_camp(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_neutral_trooper_camp", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_neutral_trooper_camp", "info")
 
     def handle_info_trooper_spawn(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_trooper_spawn", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_trooper_spawn", "info")
 
     def handle_info_super_trooper_spawn(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_super_trooper_spawn", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_super_trooper_spawn", "info")
 
     def handle_info_target_server_only(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_target_server_only", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_target_server_only", "info")
 
     def handle_info_mini_map_marker(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_mini_map_marker", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_mini_map_marker", "info")
 
     def handle_info_hero_testing_point(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_hero_testing_point", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_hero_testing_point", "info")
 
     def handle_info_ability_test_bot(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("info_ability_test_bot", obj, 'info')
+        self._handle_point_entity(entity,entity_raw,"info_ability_test_bot", "info")
 
     def handle_npc_boss_tier2(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
@@ -271,16 +227,15 @@ class DeadlockEntityHandler(CS2EntityHandler):
         self._put_into_collection("destroyable_building", obj, 'npc')
 
     def handle_logic_auto_citadel(self, entity: Base, entity_raw: dict):
-        obj = bpy.data.objects.new(self._get_entity_name(entity), None)
-        self._set_location_and_scale(obj, get_origin(entity_raw))
-        self._set_rotation(obj, get_angles(entity_raw))
-        self._set_icon_if_present(obj, entity)
-        self._set_entity_data(obj, {'entity': entity_raw})
-        self._put_into_collection("logic_auto_citadel", obj, 'logic')
+        self._handle_point_entity(entity,entity_raw,"logic_auto_citadel", "logic")
 
     def handle_hero_testing_controller(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection("hero_testing_controller", obj, 'logic')
+
+    def handle_citadel_trigger_interior(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("citadel_trigger_interior", obj, 'triggers')
 
     def handle_citadel_herotest_orbspawner(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)

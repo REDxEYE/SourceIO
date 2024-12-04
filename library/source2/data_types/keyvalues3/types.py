@@ -69,20 +69,21 @@ class BinaryBlob(BaseType, bytes):
         return bytes(self)
 
 
-T = TypeVar('T', BaseType, str)
+T = TypeVar('T', BaseType, str, NoneType)
 
 
+DEBUGGING = False
 class Object(BaseType, dict):
-
     def __setitem__(self, key, value: T):
-        if not isinstance(value, (BaseType, str, NoneType, np.ndarray)):
-            raise TypeError(f'Only KV3 types are allowed, got {type(value)}')
-        if isinstance(value, np.ndarray):
-            assert value.dtype in (np.float32, np.float64,
-                                   np.int8, np.uint8,
-                                   np.int16, np.uint16,
-                                   np.int32, np.uint32,
-                                   np.int64, np.uint64)
+        if DEBUGGING:
+            if isinstance(value, np.ndarray):
+                assert value.dtype in (np.float32, np.float64,
+                                       np.int8, np.uint8,
+                                       np.int16, np.uint16,
+                                       np.int32, np.uint32,
+                                       np.int64, np.uint64)
+            elif not isinstance(value, (BaseType, str, NoneType)):
+                raise TypeError(f'Only KV3 types are allowed, got {type(value)}')
         super(Object, self).__setitem__(key, value)
 
     def __getitem__(self, item):
