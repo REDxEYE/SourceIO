@@ -2,29 +2,32 @@ from typing import Iterator, Optional, Union
 
 from SourceIO.library.shared.content_manager.provider import ContentProvider, glob_generic
 from SourceIO.library.utils import Buffer, FileBuffer
-from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver, corrected_path
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class LooseFilesContentProvider(ContentProvider):
     def check(self, filepath: TinyPath) -> bool:
+        filepath = corrected_path(filepath)
         if filepath.is_absolute():
             return filepath.exists()
         return (self.root / filepath).exists()
 
     def get_relative_path(self, filepath: TinyPath):
+        filepath = corrected_path(filepath)
         if filepath.is_relative_to(self.root):
             return filepath.relative_to(self.root)
         return None
 
     def get_provider_from_path(self, filepath: TinyPath) -> ContentProvider | None:
-        full_path = self.root / filepath
+        full_path = corrected_path(self.root / filepath)
         if full_path.exists() and full_path.is_file():
             return self
         return None
 
     def get_steamid_from_asset(self, asset_path: TinyPath) -> SteamAppId | None:
+        asset_path = corrected_path(asset_path)
         if self.check(asset_path):
             return self.steam_id
         return None

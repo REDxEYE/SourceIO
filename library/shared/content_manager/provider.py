@@ -49,7 +49,7 @@ class ContentProvider:
         return cls.__name__
 
     def __init__(self, filepath: TinyPath):
-        self.filepath = filepath
+        self.filepath = corrected_path(filepath)
 
     def __hash__(self):
         return hash(self.unique_name)
