@@ -795,7 +795,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
     buffer0_decompressed_size, block0_compressed_size = buffer.read_fmt("2I")
     buffer1_decompressed_size, block1_compressed_size = buffer.read_fmt("2I")
     bytes_count2, short_count2, int_count2, double_count2 = buffer.read_fmt("4I")
-    (field_54, object_count, field_5c, field_60) = buffer.read_fmt("4I")
+    (field_54, object_count_v5, field_5c, field_60) = buffer.read_fmt("4I")
 
     compressed_buffer0 = buffer.read(block0_compressed_size)
     compressed_buffer1 = buffer.read(block1_compressed_size)
@@ -845,7 +845,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
     doubles_buffer = MemoryBuffer(buffer0.read(double_count * 8))
 
     strings = [bytes_buffer.read_ascii_string() for _ in range(ints_buffer.read_uint32())]
-    object_member_count_buffer = MemoryBuffer(buffer1.read(object_count * 4))
+    object_member_count_buffer = MemoryBuffer(buffer1.read(object_count_v5 * 4))
 
     bytes_buffer2 = MemoryBuffer(buffer1.read(bytes_count2))
     if short_count2:

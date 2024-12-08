@@ -249,14 +249,27 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         if blendweights.dtype == np.uint8:
             weights_array = blendweights.astype(np.float32) / 255
         elif blendweights.dtype == np.uint16:
-            weights_array = blendweights.astype(np.float32) / 255
+            weights_array = blendweights.view(np.uint8).reshape(-1,8) / 255
         else:
-            raise NotImplementedError(f"Blendweights of type {used_vertices['BLENDWEIGHT'].dtype} not supported")
-        indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
+            raise NotImplementedError(f"Blendweights of type {blendweights.dtype} not supported")
+        indices_array = used_vertices["BLENDINDICES"]
+        if indices_array.dtype == np.uint8:
+            indices_array = indices_array.astype(np.uint32)
+        elif indices_array.dtype == np.uint16:
+            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
+        elif indices_array.dtype == np.int32:
+            indices_array = indices_array.view(np.uint16).astype(np.uint32).reshape(-1,8)
+        else:
+            raise NotImplementedError(f"Blendindices of type {indices_array.dtype} not supported")
     else:
-        indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
+        indices_array = used_vertices["BLENDINDICES"]
+        if indices_array.dtype == np.uint8:
+            indices_array = indices_array.astype(np.uint32)
+        elif indices_array.dtype == np.uint16:
+            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
+        else:
+            raise NotImplementedError(f"Blendindices of type {indices_array.dtype} not supported")
         weights_array = np.ones_like(indices_array, dtype=np.float32)
-    indices_array[np.where(indices_array>len(weight_groups))] = 0
     remapped_indices = remap_table[indices_array]
     for n, bone_indices in enumerate(remapped_indices):
         weights = weights_array[n]
