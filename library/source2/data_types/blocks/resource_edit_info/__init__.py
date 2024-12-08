@@ -1,7 +1,7 @@
 from .....utils import Buffer
 from ....resource_types.resource import CompiledResource
 from ...blocks.base import BaseBlock
-from ...keyvalues3.binary_keyvalues import BinaryKeyValues
+from ...keyvalues3.binary_keyvalues import read_valve_keyvalue3
 from .dependencies import *
 
 
@@ -44,7 +44,7 @@ class ResourceEditInfo(BaseBlock):
 class ResourceEditInfo2(ResourceEditInfo):
     @classmethod
     def from_buffer(cls, buffer: Buffer, resource: CompiledResource):
-        vkv = BinaryKeyValues.from_buffer(buffer).root
+        vkv = read_valve_keyvalue3(buffer)
         self = cls(buffer, resource)
         self.inputs = InputDependencies.from_vkv3(vkv['m_InputDependencies'])
         self.additional_inputs = AdditionalInputDependencies.from_vkv3(vkv['m_AdditionalInputDependencies'])

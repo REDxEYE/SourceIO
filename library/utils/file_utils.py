@@ -66,6 +66,8 @@ class Buffer(abc.ABC, io.RawIOBase):
     def align(self, align_to):
         value = self.tell()
         padding = (align_to - value % align_to) % align_to
+        if padding + self.tell() > self.size():
+            return
         self.seek(padding, io.SEEK_CUR)
 
     def skip(self, size):
@@ -187,6 +189,10 @@ class Buffer(abc.ABC, io.RawIOBase):
     def peek_uint32(self):
         with self.save_current_offset():
             return self.read_uint32()
+
+    def peek_fmt(self, fmt):
+        with self.save_current_offset():
+            return self.read_fmt(fmt)
 
     def peek(self, size: int):
         with self.save_current_offset():

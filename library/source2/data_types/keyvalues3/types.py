@@ -5,12 +5,12 @@ from typing import Collection, Optional, TypeVar
 
 import numpy as np
 
-from .enums import KV3Type, KV3TypeFlag
+from .enums import KV3Type, KV3TypeFlag, Specifier
 
 
 class BaseType(abc.ABC):
     def __init_subclass__(cls, **kwargs):
-        cls.flag = KV3TypeFlag.NONE
+        cls.specifier: Specifier = Specifier.UNSPECIFIED
 
     def to_dict(self):
         return NotImplemented
@@ -63,6 +63,10 @@ class Double(_BaseFloat):
     pass
 
 
+class Float(_BaseFloat):
+    pass
+
+
 class BinaryBlob(BaseType, bytes):
 
     def to_dict(self):
@@ -71,8 +75,9 @@ class BinaryBlob(BaseType, bytes):
 
 T = TypeVar('T', BaseType, str, NoneType)
 
-
 DEBUGGING = False
+
+
 class Object(BaseType, dict):
     def __setitem__(self, key, value: T):
         if DEBUGGING:
@@ -135,10 +140,10 @@ class Array(BaseType, list[T]):
 
 
 class TypedArray(BaseType, list[T]):
-    def __init__(self, data_type: KV3Type, data_flag: KV3TypeFlag, initial: Optional[list[T]] = None):
+    def __init__(self, data_type: KV3Type, data_specifier: Specifier, initial: Optional[list[T]] = None):
         super(TypedArray, self).__init__(initial)
         self.data_type = data_type
-        self.data_flag = data_flag
+        self.data_specifier = data_specifier
 
     def append(self, value: T):
         assert isinstance(value, BaseType)
@@ -162,5 +167,5 @@ class TypedArray(BaseType, list[T]):
 
 
 __all__ = ['BaseType', 'Object', 'NullObject', 'String', 'Bool',
-           'Int64', 'UInt32', 'UInt64', 'Int32', 'Double',
+           'Int64', 'UInt32', 'UInt64', 'Int32', 'Double', 'Float',
            'BinaryBlob', 'Array', 'TypedArray']

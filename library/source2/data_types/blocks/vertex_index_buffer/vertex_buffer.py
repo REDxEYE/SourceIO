@@ -49,7 +49,7 @@ class VertexAttribute:
         elif self.format == DxgiFormat.R32G32B32A32_UINT:
             return np.uint32, (4,)
         elif self.format == DxgiFormat.R32G32B32A32_SINT:
-            return np.int32, (3,)
+            return np.int32, (4,)
         elif self.format == DxgiFormat.R16G16_FLOAT:
             return np.float16, (2,)
         elif self.format == DxgiFormat.R16G16_SINT:
@@ -58,6 +58,10 @@ class VertexAttribute:
             return np.uint16, (2,)
         elif self.format == DxgiFormat.R16G16B16A16_SINT:
             return np.int16, (4,)
+        elif self.format == DxgiFormat.R16G16B16A16_UINT:
+            return np.uint16, (4,)
+        elif self.format == DxgiFormat.R16G16B16A16_UNORM:
+            return np.uint16, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_SNORM:
             return np.int8, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_UNORM:

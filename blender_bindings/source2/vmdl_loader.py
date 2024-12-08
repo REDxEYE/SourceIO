@@ -245,11 +245,18 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
                              np.uint32)
     if has_weights and has_indicies:
-        weights_array = used_vertices["BLENDWEIGHT"] / 255
+        blendweights = used_vertices["BLENDWEIGHT"]
+        if blendweights.dtype == np.uint8:
+            weights_array = blendweights.astype(np.float32) / 255
+        elif blendweights.dtype == np.uint16:
+            weights_array = blendweights.astype(np.float32) / 255
+        else:
+            raise NotImplementedError(f"Blendweights of type {used_vertices['BLENDWEIGHT'].dtype} not supported")
         indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
     else:
         indices_array = used_vertices["BLENDINDICES"].astype(np.uint32)
         weights_array = np.ones_like(indices_array, dtype=np.float32)
+    indices_array[np.where(indices_array>len(weight_groups))] = 0
     remapped_indices = remap_table[indices_array]
     for n, bone_indices in enumerate(remapped_indices):
         weights = weights_array[n]

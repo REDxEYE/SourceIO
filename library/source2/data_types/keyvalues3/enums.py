@@ -1,4 +1,4 @@
-from enum import IntEnum, IntFlag
+from enum import IntEnum, IntFlag, auto
 
 from ....utils import ExtendedEnum
 
@@ -9,6 +9,7 @@ class KV3Signatures(ExtendedEnum):
     KV3_V2 = b'\x023VK'
     KV3_V3 = b'\x033VK'
     KV3_V4 = b'\x043VK'
+    KV3_V5 = b'\x053VK'
 
 
 class KV3Encodings(ExtendedEnum):
@@ -62,6 +63,50 @@ class KV3Type(IntEnum):
     UNKNOWN_22 = 22
     INT32_AS_BYTE = 23
     ARRAY_TYPED_BYTE_LENGTH = 24
+    ARRAY_TYPED_BYTE_LENGTH2 = 25
 
 
-__all__ = ['KV3Type', 'KV3TypeFlag', 'KV3Signatures', 'KV3Formats', 'KV3Encodings', 'KV3CompressionMethod']
+class Specifier(IntEnum):
+    INVALID = 0
+    RESOURCE = 1
+    RESOURCE_NAME = 2
+    PANORAMA = 3
+    SOUNDEVENT = 4
+    SUBCLASS = 5
+    ENTITY_NAME = 6
+    LOCALIZE = 7
+    UNSPECIFIED = 8
+    NULL = 9
+    BINARY_BLOB = 10
+    ARRAY = 11
+    TABLE = 12
+    BOOL8 = 13
+    CHAR8 = 14
+    UCHAR32 = 15
+    INT8 = 16
+    UINT8 = 17
+    INT16 = 18
+    UINT16 = 19
+    INT32 = 20
+    UINT32 = 21
+    INT64 = 22
+    UINT64 = 23
+    FLOAT32 = 24
+    FLOAT64 = auto()
+    STRING = auto()
+    POINTER = auto()
+    COLOR32 = auto()
+    VECTOR = auto()
+    VECTOR2D = auto()
+    VECTOR4D = auto()
+    ROTATION_VECTOR = auto()
+    QUATERNION = auto()
+    QANGLE = auto()
+    MATRIX3X4 = auto()
+    TRANSFORM = auto()
+    STRING_TOKEN = auto()
+    EHANDLE = auto()
+
+
+__all__ = ['KV3Type', 'KV3TypeFlag', 'KV3Signatures', 'KV3Formats', 'KV3Encodings', 'KV3CompressionMethod',
+           'Specifier']

@@ -1,6 +1,6 @@
 from ....utils import Buffer
 from ...resource_types.resource import CompiledResource
-from ..keyvalues3.binary_keyvalues import BinaryKeyValues
+from ..keyvalues3.binary_keyvalues import read_valve_keyvalue3
 from ..keyvalues3.enums import KV3Signatures
 from ..keyvalues3.types import BaseType
 from .base import BaseBlock
@@ -40,11 +40,13 @@ class KVBlock(dict[str, BaseType], BaseBlock):
             magic = buffer.read(4)
             buffer.seek(-4, 1)
             if KV3Signatures.is_valid(magic):
-                kv3 = BinaryKeyValues.from_buffer(buffer.slice())
-                self.update(kv3.root)
-            elif self.has_ntro:
-                ntro, = self._resource.get_data_block(block_name='NTRO')
-                self.update(ntro.read_struct(buffer.slice(), self._get_struct(ntro)))
+                kv3 = read_valve_keyvalue3(buffer)
+                self.update(kv3)
             else:
-                raise NotImplementedError('Unknown data block format')
+                return self
+            # elif self.has_ntro:
+            #     ntro, = self._resource.get_data_block(block_name='NTRO')
+            #     self.update(ntro.read_struct(buffer.slice(), self._get_struct(ntro)))
+            # else:
+            #     raise NotImplementedError('Unknown data block format')
         return self

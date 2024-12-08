@@ -11,7 +11,7 @@ from .entities.cs2_entity_handlers import CS2EntityHandler
 from .entities.hlvr_entity_handlers import HLVREntityHandler
 from .entities.sbox_entity_handlers import SBoxEntityHandler
 from .entities.steampal_entity_handlers import SteamPalEntityHandler
-from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection
+from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection, pause_view_layer_update
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.source2 import CompiledWorldResource
 from SourceIO.library.source2.data_types.keyvalues3.types import Object
@@ -52,31 +52,32 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                  content_manager: ContentManager, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
     map_name = map_resource.name
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
-    for node_prefix in world_resource.get_worldnode_prefixes():
-        node_resource = map_resource.get_worldnode(node_prefix, content_manager)
-        if node_resource is None:
-            raise RequiredFileNotFound("Failed to find WorldNode resource")
-        collection = get_or_create_collection(f"static_props_{TinyPath(node_prefix).name}", master_collection)
-        for scene_object in node_resource.get_scene_objects():
-            renderable_model = scene_object["m_renderableModel"]
-            proper_path = node_resource.get_child_resource_path(renderable_model)
-            create_static_prop_placeholder(scene_object, proper_path, Matrix(scene_object.get('m_vTransform', None)),
-                                           collection, scale)
-        for scene_object in node_resource.get_aggregate_scene_objects():
-            renderable_model = scene_object["m_renderableModel"]
-            proper_path = node_resource.get_child_resource_path(renderable_model)
-            if scene_object["m_fragmentTransforms"] or scene_object["m_aggregateMeshes"]:
-                fragments = scene_object["m_fragmentTransforms"]
-                for i, draw_info in enumerate(scene_object["m_aggregateMeshes"]):
-                    if draw_info.get("m_bHasTransform", fragments):
-                        matrix = Matrix(fragments[i].reshape(3, 4))
-                    else:
-                        matrix = Matrix.Identity(4)
-                    create_aggregate_prop_placeholder(scene_object, proper_path, matrix,
-                                                      collection, scale, draw_info)
-            else:
-                create_static_prop_placeholder(scene_object, proper_path, None, collection, scale)
-    load_entities(world_resource, master_collection, scale, content_manager)
+    with pause_view_layer_update():
+        for node_prefix in world_resource.get_worldnode_prefixes():
+            node_resource = map_resource.get_worldnode(node_prefix, content_manager)
+            if node_resource is None:
+                raise RequiredFileNotFound("Failed to find WorldNode resource")
+            collection = get_or_create_collection(f"static_props_{TinyPath(node_prefix).name}", master_collection)
+            for scene_object in node_resource.get_scene_objects():
+                renderable_model = scene_object["m_renderableModel"]
+                proper_path = node_resource.get_child_resource_path(renderable_model)
+                create_static_prop_placeholder(scene_object, proper_path, Matrix(scene_object.get('m_vTransform', None)),
+                                               collection, scale)
+            for scene_object in node_resource.get_aggregate_scene_objects():
+                renderable_model = scene_object["m_renderableModel"]
+                proper_path = node_resource.get_child_resource_path(renderable_model)
+                if scene_object["m_fragmentTransforms"] or scene_object["m_aggregateMeshes"]:
+                    fragments = scene_object["m_fragmentTransforms"]
+                    for i, draw_info in enumerate(scene_object["m_aggregateMeshes"]):
+                        if draw_info.get("m_bHasTransform", fragments):
+                            matrix = Matrix(fragments[i].reshape(3, 4))
+                        else:
+                            matrix = Matrix.Identity(4)
+                        create_aggregate_prop_placeholder(scene_object, proper_path, matrix,
+                                                          collection, scale, draw_info)
+                else:
+                    create_static_prop_placeholder(scene_object, proper_path, None, collection, scale)
+        load_entities(world_resource, master_collection, scale, content_manager)
 
 
 def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath | None, matrix: Matrix | None,
