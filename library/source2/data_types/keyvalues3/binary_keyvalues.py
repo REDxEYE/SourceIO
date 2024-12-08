@@ -65,7 +65,6 @@ def read_valve_keyvalue3(buffer: Buffer):
         raise BufferError("Not a KV3 buffer")
     sig = KV3Signatures(sig)
     encoding = buffer.read(16)
-    print(sig)
     if sig == KV3Signatures.VKV_LEGACY:
         return read_legacy(encoding, buffer)
     elif sig == KV3Signatures.KV3_V1:
@@ -139,11 +138,14 @@ def _read_string(context: KV3ContextNew, specifier: Specifier):
 
 
 def _read_blob(context: KV3ContextNew, specifier: Specifier):
-    if context.binary_blob_buffer is not None:
+    if context.binary_blob_sizes is not None:
         expected_size = context.binary_blob_sizes.pop(0)
-        data = context.binary_blob_buffer.read(expected_size)
-        assert len(data) == expected_size, "Binary blob is smaller than expected"
-        value = BinaryBlob(data)
+        if expected_size == 0:
+            value = BinaryBlob(b"")
+        else:
+            data = context.binary_blob_buffer.read(expected_size)
+            assert len(data) == expected_size, "Binary blob is smaller than expected"
+            value = BinaryBlob(data)
     else:
         value = BinaryBlob(context.active_buffer.byte_buffer.read(context.active_buffer.int_buffer.read_int32()))
     value.specifier = specifier
@@ -797,8 +799,12 @@ def read_v5(encoding: bytes, buffer: Buffer):
     bytes_count2, short_count2, int_count2, double_count2 = buffer.read_fmt("4I")
     (field_54, object_count_v5, field_5c, field_60) = buffer.read_fmt("4I")
 
-    compressed_buffer0 = buffer.read(block0_compressed_size)
-    compressed_buffer1 = buffer.read(block1_compressed_size)
+    if compression_method>0:
+        compressed_buffer0 = buffer.read(block0_compressed_size)
+        compressed_buffer1 = buffer.read(block1_compressed_size)
+    else:
+        compressed_buffer0 = buffer.read(buffer0_decompressed_size)
+        compressed_buffer1 = buffer.read(buffer1_decompressed_size)
 
     if compression_method == 0:
         if compression_dict_id != 0:
@@ -845,6 +851,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
     doubles_buffer = MemoryBuffer(buffer0.read(double_count * 8))
 
     strings = [bytes_buffer.read_ascii_string() for _ in range(ints_buffer.read_uint32())]
+
     object_member_count_buffer = MemoryBuffer(buffer1.read(object_count_v5 * 4))
 
     bytes_buffer2 = MemoryBuffer(buffer1.read(bytes_count2))
@@ -861,9 +868,11 @@ def read_v5(encoding: bytes, buffer: Buffer):
     types_buffer = MemoryBuffer(buffer1.read(types_size))
 
     if block_count == 0:
+        block_sizes = None
         assert buffer1.read_uint32() == 0xFFEEDD00
     else:
-        raise NotImplementedError("Blocks are not supported")
+        block_sizes = [buffer1.read_uint32() for _ in range(block_count)]
+        assert sum(block_sizes) == 0, "Blocks are not supported"
 
     def _read_type(context: KV3ContextNew):
         t = context.types_buffer.read_int8()
@@ -886,7 +895,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
         buffer1=buffer1,
         types_buffer=types_buffer,
         object_member_count_buffer=object_member_count_buffer,
-        binary_blob_sizes=None,
+        binary_blob_sizes=block_sizes,
         binary_blob_buffer=None,
         read_type=_read_type,
         read_value=_read_value_legacy,

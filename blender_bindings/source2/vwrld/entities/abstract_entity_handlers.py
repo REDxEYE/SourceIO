@@ -241,7 +241,7 @@ class AbstractEntityHandler:
 
         return obj
 
-    def _handle_point_entity(self, entity, entity_raw: dict, group: str, subgroup: str):
+    def _handle_point_entity(self, entity, entity_raw: dict, subgroup: str, group: str):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
         self._set_location_and_scale(obj, get_origin(entity_raw))
         self._set_rotation(obj, get_angles(entity_raw))
