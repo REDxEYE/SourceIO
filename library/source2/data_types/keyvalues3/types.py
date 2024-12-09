@@ -105,10 +105,11 @@ class Object(BaseType, dict):
         if any(isinstance(i, np.ndarray) for i in self.values()):
             res = {}
             for k, v in self.items():
-                if isinstance(v, np.ndarray):
-                    v = v.tolist()
-                else:
-                    v = v.to_dict()
+                if v is not None:
+                    if isinstance(v, np.ndarray):
+                        v = v.tolist()
+                    else:
+                        v = v.to_dict()
                 res[k] = v
             return res
         return {k: v.to_dict() for (k, v) in self.items()}
@@ -136,7 +137,7 @@ class Array(BaseType, list[T]):
                     i = i.to_dict()
                 res.append(i)
             return res
-        return [i.to_dict() for i in self]
+        return [(i.to_dict() if i is not None else None) for i in self]
 
 
 class TypedArray(BaseType, list[T]):
