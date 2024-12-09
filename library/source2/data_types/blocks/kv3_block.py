@@ -23,9 +23,8 @@ class KVBlock(dict[str, BaseType], BaseBlock):
     def __getitem__(self, item):
         if isinstance(item, tuple):
             for key in item:
-                value = self.get(key, None)
-                if value is not None:
-                    return value
+                if dict.__contains__(key):
+                    return dict.__getitem__(self, key)
             raise KeyError(item)
         else:
             return dict.__getitem__(self, item)
