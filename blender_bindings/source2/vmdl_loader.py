@@ -75,7 +75,8 @@ def load_model(content_manager: ContentManager, resource: CompiledModelResource,
             objects = load_physics(physics_block, scale)
             physics_objects = objects
     container = ModelContainer([], defaultdict(list), physics_objects, [], armature, None)
-    objects = create_meshes(content_manager, resource, container, scale, lod_mask, import_attachments, import_materials, draw_call_index)
+    objects = create_meshes(content_manager, resource, container, scale, lod_mask, import_attachments, import_materials,
+                            draw_call_index)
     container.objects = objects
     if armature:
         for obj in objects:
@@ -211,10 +212,12 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
     vbib_block: VertexIndexBuffer
     data_block, = mesh_resource.get_data_block(block_name='DATA')
     vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
+    morph_block = None
     if ("m_morphSet", "m_pMorphSet") in data_block:
-        morph_set_path = data_block['m_morphSet', "m_pMorphSet"]
-        morph_resource = mesh_resource.get_child_resource(morph_set_path, content_manager, CompiledMorphResource)
-        morph_block, = morph_resource.get_data_block(block_name='DATA')
+        if morph_set_path:= data_block['m_morphSet', "m_pMorphSet"] is not None:
+            morph_resource = mesh_resource.get_child_resource(morph_set_path, content_manager, CompiledMorphResource)
+            if morph_resource is not None:
+                morph_block, = morph_resource.get_data_block(block_name='DATA')
     else:
         morph_block, = mesh_resource.get_data_block(block_name='MRPH')
     if data_block and vbib_block:

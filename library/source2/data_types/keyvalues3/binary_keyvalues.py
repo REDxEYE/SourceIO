@@ -609,15 +609,11 @@ def read_v3(encoding: bytes, buffer: Buffer):
     else:
         raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
 
-    bytes_buffer = MemoryBuffer(data_buffer.read(bytes_count))
-    data_buffer.align(4)
-    ints_buffer = MemoryBuffer(data_buffer.read(ints_count * 4))
-    data_buffer.align(8)
-    doubles_buffer = MemoryBuffer(data_buffer.read(doubles_count * 8))
+    kv_buffer = split_buffer(data_buffer, bytes_count, 0, ints_count, doubles_count, True)
 
     types_buffer = MemoryBuffer(data_buffer.read(strings_types_size))
 
-    strings = [types_buffer.read_ascii_string() for _ in range(ints_buffer.read_uint32())]
+    strings = [types_buffer.read_ascii_string() for _ in range(kv_buffer.int_buffer.read_uint32())]
 
     if block_count == 0:
         block_sizes = []
@@ -641,18 +637,17 @@ def read_v3(encoding: bytes, buffer: Buffer):
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
         block_buffer = MemoryBuffer(block_data)
 
-    buffers = KV3Buffers(bytes_buffer, None, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
         strings=strings,
-        buffer0=buffers,
-        buffer1=buffers,
+        buffer0=kv_buffer,
+        buffer1=kv_buffer,
         types_buffer=types_buffer,
-        object_member_count_buffer=ints_buffer,
+        object_member_count_buffer=kv_buffer.int_buffer,
         binary_blob_sizes=block_sizes,
         binary_blob_buffer=block_buffer,
         read_type=_read_type_v3,
         read_value=_read_value_legacy,
-        active_buffer=buffers
+        active_buffer=kv_buffer
     )
     root = context.read_value(context)
     return root
@@ -708,15 +703,11 @@ def read_v4(encoding: bytes, buffer: Buffer):
     else:
         raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
 
-    bytes_buffer = MemoryBuffer(data_buffer.read(bytes_count))
-    data_buffer.align(4)
-    ints_buffer = MemoryBuffer(data_buffer.read(ints_count * 4))
-    data_buffer.align(8)
-    doubles_buffer = MemoryBuffer(data_buffer.read(doubles_count * 8))
+    kv_buffer = split_buffer(data_buffer, bytes_count, short_count, ints_count, doubles_count, True)
 
     types_buffer = MemoryBuffer(data_buffer.read(strings_types_size))
 
-    strings = [types_buffer.read_ascii_string() for _ in range(ints_buffer.read_uint32())]
+    strings = [types_buffer.read_ascii_string() for _ in range(kv_buffer.int_buffer.read_uint32())]
 
     if block_count == 0:
         block_sizes = []
@@ -732,7 +723,7 @@ def read_v4(encoding: bytes, buffer: Buffer):
                 for uncompressed_block_size in block_sizes:
                     block_data += data_buffer.read(uncompressed_block_size)
             elif compression_method == 1:
-                compressed_sizes = [data_buffer.read_uint16() for _ in range(compressed_block_sizes)]
+                compressed_sizes = [data_buffer.read_uint16() for _ in range(data_buffer.remaining() // 2)]
                 block_data = decompress_lz4_chain(buffer, block_sizes, compressed_sizes, compression_frame_size)
             elif compression_method == 2:
                 block_data += data_buffer.read()
@@ -740,18 +731,17 @@ def read_v4(encoding: bytes, buffer: Buffer):
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
         block_buffer = MemoryBuffer(block_data)
 
-    buffers = KV3Buffers(bytes_buffer, None, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
         strings=strings,
-        buffer0=buffers,
-        buffer1=buffers,
+        buffer0=kv_buffer,
+        buffer1=kv_buffer,
         types_buffer=types_buffer,
-        object_member_count_buffer=ints_buffer,
+        object_member_count_buffer=kv_buffer.int_buffer,
         binary_blob_sizes=block_sizes,
         binary_blob_buffer=block_buffer,
         read_type=_read_type_v3,
         read_value=_read_value_legacy,
-        active_buffer=buffers
+        active_buffer=kv_buffer
     )
     root = context.read_value(context)
     return root

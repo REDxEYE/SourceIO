@@ -52,6 +52,16 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                  content_manager: ContentManager, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
     map_name = map_resource.name
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
+    data_block = world_resource.get_data_block(block_name="DATA")
+    uv_scale = None
+    if data_block:
+        data_block, = data_block
+        if "m_worldLightingInfo" in data_block:
+            uv_scale = data_block["m_worldLightingInfo"].get("m_vLightmapUvScale", None)
+            if uv_scale is not None:
+                uv_scale: list[float] = uv_scale.tolist()
+    if uv_scale is None:
+        uv_scale: list[float] = [1., 1.]
     with pause_view_layer_update():
         for node_prefix in world_resource.get_worldnode_prefixes():
             node_resource = map_resource.get_worldnode(node_prefix, content_manager)
@@ -61,8 +71,9 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
             for scene_object in node_resource.get_scene_objects():
                 renderable_model = scene_object["m_renderableModel"]
                 proper_path = node_resource.get_child_resource_path(renderable_model)
-                create_static_prop_placeholder(scene_object, proper_path, Matrix(scene_object.get('m_vTransform', None)),
-                                               collection, scale)
+                create_static_prop_placeholder(scene_object, proper_path,
+                                               Matrix(scene_object.get('m_vTransform', None)),
+                                               collection, scale, uv_scale)
             for scene_object in node_resource.get_aggregate_scene_objects():
                 renderable_model = scene_object["m_renderableModel"]
                 proper_path = node_resource.get_child_resource_path(renderable_model)
@@ -74,20 +85,21 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                         else:
                             matrix = Matrix.Identity(4)
                         create_aggregate_prop_placeholder(scene_object, proper_path, matrix,
-                                                          collection, scale, draw_info)
+                                                          collection, scale, draw_info, uv_scale)
                 else:
-                    create_static_prop_placeholder(scene_object, proper_path, None, collection, scale)
+                    create_static_prop_placeholder(scene_object, proper_path, None, collection, scale, uv_scale)
         load_entities(world_resource, master_collection, scale, content_manager)
 
 
 def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath | None, matrix: Matrix | None,
-                                   collection: bpy.types.Collection, scale: float):
+                                   collection: bpy.types.Collection, scale: float, uv_scale: list[float]):
     if not proper_path:
         return
 
     custom_data = {'prop_path': str(proper_path),
                    'type': 'static_prop',
                    'scale': scale,
+                   'uv_scale': uv_scale,
                    'entity': {k: str(v) for (k, v) in scene_object.to_dict().items()},
                    'skin': scene_object.get('skin', 'default') or 'default'}
     empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
@@ -100,13 +112,15 @@ def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath |
 
 
 def create_aggregate_prop_placeholder(scene_object: Object, proper_path: TinyPath | None, matrix: Matrix | None,
-                                      collection: bpy.types.Collection, scale: float, draw_info: dict):
+                                      collection: bpy.types.Collection, scale: float, draw_info: dict,
+                                      uv_scale: list[float]):
     if not proper_path:
         return
 
     custom_data = {'prop_path': str(proper_path),
                    'type': 'static_prop',
                    'scale': scale,
+                   'uv_scale': uv_scale,
                    'entity': {k: str(v) for (k, v) in scene_object.items() if
                               k not in ["m_fragmentTransforms", "m_aggregateMeshes"]},
                    'draw_info': draw_info,

@@ -20,6 +20,7 @@ from ..source2.vmdl_loader import load_model
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection, pause_view_layer_update
+from ...library.source2.data_types.blocks.kv3_block import KVBlock
 from ...library.utils.path_utilities import path_stem
 from ...library.utils.tiny_path import TinyPath
 
@@ -61,7 +62,7 @@ class SourceIO_OT_LoadEntity(Operator):
 
     # use_bvlg: BoolProperty(default=True)
 
-    def execute(self, context:bpy.context):
+    def execute(self, context: bpy.context):
         content_manager = ContentManager()
         deserialize_mounted_content(content_manager)
         use_collections = context.scene.use_instances
@@ -91,12 +92,13 @@ class SourceIO_OT_LoadEntity(Operator):
                         continue
                     prop_path = TinyPath(prop_path)
                     model_type = prop_path.suffix
-                    parent = get_parent(obj.users_collection[0])
+                    # parent = get_parent(obj.users_collection[0])
+                    parent = obj.users_collection[0]
                     if model_type == '.vmdl_c':
-
                         draw_info = custom_prop_data.get("draw_info", {})
-                        if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
-                            instance_collection = get_collection(prop_path, str(draw_info["m_nDrawCallIndex"]))
+                        draw_call_index = draw_info.get("m_nDrawCallIndex", None)
+                        if draw_call_index is not None:
+                            instance_collection = get_collection(prop_path, str(draw_call_index))
                         else:
                             instance_collection = get_collection(prop_path)
 
@@ -112,27 +114,63 @@ class SourceIO_OT_LoadEntity(Operator):
                         vmld_file = content_manager.find_file(prop_path)
                         if vmld_file:
                             # skin = custom_prop_data.get('skin', None)
+                            if draw_call_index is not None:
+                                model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
+                                mdat_blocks = model_resource.get_data_block(block_name="MDAT")
+                                assert len(mdat_blocks) == 1
+                                mdat: KVBlock = mdat_blocks[0]
+                                assert len(mdat["m_sceneObjects"]) == 1
+                                total_count = len(mdat["m_sceneObjects"][0]["m_drawCalls"])
+                                for i in range(total_count):
+                                    print(f"Pre-loading drawcalls {i+1}/{total_count}")
+                                    container = load_model(content_manager, model_resource, custom_prop_data["scale"],
+                                                           lod_mask=1,
+                                                           import_physics=context.scene.import_physics,
+                                                           import_materials=import_materials,
+                                                           draw_call_index=i)
+                                    prop_collection = get_or_create_collection(
+                                        prop_path.stem + f"_{draw_call_index}",
+                                        master_instance_collection
+                                    )
+                                    s2_put_into_collections(container, model_resource.name, prop_collection)
+                                    add_collection(prop_path, container.master_collection, str(i))
+
+                                instance_collection = get_collection(prop_path, str(draw_call_index))
+
+                                if instance_collection:
+                                    collection = bpy.data.collections.get(instance_collection, None)
+                                    if collection is not None:
+                                        obj.instance_type = 'COLLECTION'
+                                        obj.instance_collection = collection
+                                        obj["entity_data"]["prop_path"] = None
+                                        obj["entity_data"]["imported"] = True
+                                        continue
+                                else:
+                                    raise ValueError("Failed to get draw call collection")
+
                             model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                            container = load_model(content_manager, model_resource, custom_prop_data["scale"], lod_mask=1,
+                            container = load_model(content_manager, model_resource, custom_prop_data["scale"],
+                                                   lod_mask=1,
                                                    import_physics=context.scene.import_physics,
                                                    import_materials=import_materials,
-                                                   draw_call_index=draw_info.get("m_nDrawCallIndex", None))
+                                                   draw_call_index=draw_call_index)
                             if replace_entity:
                                 s2_put_into_collections(container, model_resource.name, parent)
                             else:
-                                if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                                if draw_call_index is not None:
                                     prop_collection = get_or_create_collection(
-                                        prop_path.stem + f"_{draw_info['m_nDrawCallIndex']}",
+                                        prop_path.stem + f"_{draw_call_index}",
                                         master_instance_collection
                                     )
                                 else:
-                                    prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
+                                    prop_collection = get_or_create_collection(prop_path.stem,
+                                                                               master_instance_collection)
                                 s2_put_into_collections(container, model_resource.name, prop_collection)
                             obj["entity_data"]["prop_path"] = None
                             obj["entity_data"]["imported"] = True
 
                             if use_collections:
-                                if draw_info and draw_info.get("m_nDrawCallIndex", None) is not None:
+                                if draw_info and draw_call_index is not None:
                                     add_collection(prop_path, container.master_collection,
                                                    str(draw_info["m_nDrawCallIndex"]))
                                 else:
