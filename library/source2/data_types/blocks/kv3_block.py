@@ -23,7 +23,7 @@ class KVBlock(dict[str, BaseType], BaseBlock):
     def __getitem__(self, item):
         if isinstance(item, tuple):
             for key in item:
-                if dict.__contains__(key):
+                if dict.__contains__(self, key):
                     return dict.__getitem__(self, key)
             raise KeyError(item)
         else:
