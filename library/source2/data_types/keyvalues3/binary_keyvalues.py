@@ -243,8 +243,26 @@ def _read_float(context: KV3ContextNew, specifier: Specifier):
     return value
 
 
-def _read_byte(context: KV3ContextNew, specifier: Specifier):
-    value = Int32(context.active_buffer.byte_buffer.read_int8())
+def _read_int16(context: KV3ContextNew, specifier: Specifier):
+    value = Int32(context.active_buffer.short_buffer.read_int16())
+    value.specifier = specifier
+    return value
+
+
+def _read_uint16(context: KV3ContextNew, specifier: Specifier):
+    value = UInt32(context.active_buffer.short_buffer.read_uint16())
+    value.specifier = specifier
+    return value
+
+
+def _read_int8(context: KV3ContextNew, specifier: Specifier):
+    value = Int32(context.active_buffer.byte_buffer.read_uint8())
+    value.specifier = specifier
+    return value
+
+
+def _read_uint8(context: KV3ContextNew, specifier: Specifier):
+    value = UInt32(context.active_buffer.byte_buffer.read_uint8())
     value.specifier = specifier
     return value
 
@@ -270,10 +288,10 @@ _kv3_readers: list[Callable[['KV3ContextNew', Specifier], Any] | None] = [
     lambda a, c: Double(0.0),
     lambda a, c: Double(1.0),
     _read_float,
-    None,  # UNKNOWN_20
-    None,  # UNKNOWN_21
-    None,  # UNKNOWN_22
-    _read_byte,  # INT32_AS_BYTE
+    _read_int16,
+    _read_uint16,
+    _read_int8,
+    _read_uint8,
     _read_array_typed_byte_size,
     _read_array_typed_byte_size2,
 ]
@@ -286,6 +304,62 @@ def _read_value_legacy(context: KV3ContextNew):
         raise NotImplementedError(f"Reader for {value_type!r} not implemented")
 
     return reader(context, specifier)
+
+
+def _read_type_legacy(context: KV3ContextNew):
+    data_type = context.types_buffer.read_uint8()
+    specifier = Specifier.UNSPECIFIED
+
+    if data_type & 0x80:
+        data_type &= 0x7F
+        flag = context.types_buffer.read_uint8()
+        if flag & 1:
+            specifier = Specifier.RESOURCE
+        elif flag & 2:
+            specifier = Specifier.RESOURCE_NAME
+        elif flag & 8:
+            specifier = Specifier.PANORAMA
+        elif flag & 16:
+            specifier = Specifier.SOUNDEVENT
+        elif flag & 32:
+            specifier = Specifier.SUBCLASS
+    return KV3Type(data_type), specifier
+
+
+def _read_type_v3(context: KV3ContextNew):
+    data_type = context.types_buffer.read_uint8()
+    specifier = Specifier.UNSPECIFIED
+
+    if data_type & 0x80:
+        data_type &= 0x3F
+        flag = context.types_buffer.read_uint8()
+        if flag & 1:
+            specifier = Specifier.RESOURCE
+        elif flag & 2:
+            specifier = Specifier.RESOURCE_NAME
+        elif flag & 8:
+            specifier = Specifier.PANORAMA
+        elif flag & 16:
+            specifier = Specifier.SOUNDEVENT
+        elif flag & 32:
+            specifier = Specifier.SUBCLASS
+    return KV3Type(data_type), specifier
+
+
+def split_buffer(data_buffer: Buffer, bytes_count: int, short_count: int, int_count: int, double_count: int,
+                 force_align=False):
+    bytes_buffer = MemoryBuffer(data_buffer.read(bytes_count))
+    if short_count or force_align:
+        data_buffer.align(2)
+    shorts_buffer = MemoryBuffer(data_buffer.read(short_count * 2))
+    if int_count or force_align:
+        data_buffer.align(4)
+    ints_buffer = MemoryBuffer(data_buffer.read(int_count * 4))
+    if double_count or force_align:
+        data_buffer.align(8)
+    doubles_buffer = MemoryBuffer(data_buffer.read(double_count * 8))
+
+    return KV3Buffers(bytes_buffer, shorts_buffer, ints_buffer, doubles_buffer)
 
 
 def read_legacy(encoding: bytes, buffer: Buffer):
@@ -305,25 +379,6 @@ def read_legacy(encoding: bytes, buffer: Buffer):
         raise ValueError("Unsupported Legacy encoding")
 
     strings = [buffer.read_ascii_string() for _ in range(buffer.read_uint32())]
-
-    def _read_type_legacy(context: KV3ContextNew):
-        data_type = context.types_buffer.read_uint8()
-        specifier = Specifier.UNSPECIFIED
-
-        if data_type & 0x80:
-            data_type &= 0x7F
-            flag = context.types_buffer.read_uint8()
-            if flag & 1:
-                specifier = Specifier.RESOURCE
-            elif flag & 2:
-                specifier = Specifier.RESOURCE_NAME
-            elif flag & 8:
-                specifier = Specifier.PANORAMA
-            elif flag & 16:
-                specifier = Specifier.SOUNDEVENT
-            elif flag & 32:
-                specifier = Specifier.SUBCLASS
-        return KV3Type(data_type), specifier
 
     buffers = KV3Buffers(buffer, None, buffer, buffer)
     context = KV3ContextNew(
@@ -362,47 +417,23 @@ def read_v1(encoding: bytes, buffer: Buffer):
     else:
         raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
 
-    bytes_buffer = MemoryBuffer(buffer.read(bytes_count))
-    buffer.align(4)
-    ints_buffer = MemoryBuffer(buffer.read(ints_count * 4))
-    buffer.align(8)
-    doubles_buffer = MemoryBuffer(buffer.read(doubles_count * 8))
+    kv_buffer = split_buffer(buffer, bytes_count, 0, ints_count, doubles_count, force_align=True)
 
-    strings = [buffer.read_ascii_string() for _ in range(ints_buffer.read_uint32())]
+    strings = [buffer.read_ascii_string() for _ in range(kv_buffer.int_buffer.read_uint32())]
     types_buffer = MemoryBuffer(buffer.read(-1))
 
-    def _read_type(context: KV3ContextNew):
-        data_type = context.types_buffer.read_uint8()
-        specifier = Specifier.UNSPECIFIED
-
-        if data_type & 0x80:
-            data_type &= 0x7F
-            flag = context.types_buffer.read_uint8()
-            if flag & 1:
-                specifier = Specifier.RESOURCE
-            elif flag & 2:
-                specifier = Specifier.RESOURCE_NAME
-            elif flag & 8:
-                specifier = Specifier.PANORAMA
-            elif flag & 16:
-                specifier = Specifier.SOUNDEVENT
-            elif flag & 32:
-                specifier = Specifier.SUBCLASS
-        return KV3Type(data_type), specifier
-
-    buffers = KV3Buffers(bytes_buffer, None, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
         strings=strings,
-        buffer0=buffers,
-        buffer1=buffers,
+        buffer0=kv_buffer,
+        buffer1=kv_buffer,
         types_buffer=types_buffer,
-        object_member_count_buffer=ints_buffer,
+        object_member_count_buffer=kv_buffer.int_buffer,
         binary_blob_sizes=None,
         binary_blob_buffer=None,
-        read_type=_read_type,
+        read_type=_read_type_legacy,
         read_value=_read_value_legacy,
 
-        active_buffer=buffers
+        active_buffer=kv_buffer
     )
     root = context.read_value(context)
     return root
@@ -570,7 +601,7 @@ def read_v3(encoding: bytes, buffer: Buffer):
         del u_data, data
     elif compression_method == 2:
         data = buffer.read(compressed_size)
-        u_data = zstd_decompress_stream(data, )
+        u_data = zstd_decompress_stream(data)
         assert len(
             u_data) == uncompressed_size + block_total_size, "Decompressed data size does not match expected size"
         data_buffer = MemoryBuffer(u_data)
@@ -602,44 +633,13 @@ def read_v3(encoding: bytes, buffer: Buffer):
                 for uncompressed_block_size in block_sizes:
                     block_data += data_buffer.read(uncompressed_block_size)
             elif compression_method == 1:
-                cd = LZ4ChainDecoder(compression_frame_size, 0)
-                for block_size in block_sizes:
-                    block_size_tmp = block_size
-                    while data_buffer.tell() < data_buffer.size() and block_size_tmp > 0:
-                        compressed_block_size = data_buffer.read_uint16()
-                        decompressed = cd.decompress(buffer.read(compressed_block_size), compression_frame_size)
-                        if len(decompressed) > block_size_tmp:
-                            decompressed = decompressed[:block_size_tmp]
-                            block_size_tmp = 0
-                        elif block_size_tmp < 0:
-                            raise ValueError("Failed to decompress blocks!")
-                        else:
-                            block_size_tmp -= len(decompressed)
-                        block_data += decompressed
+                compressed_sizes = [data_buffer.read_uint16() for _ in range(data_buffer.remaining() // 2)]
+                block_data = decompress_lz4_chain(buffer, block_sizes, compressed_sizes, compression_frame_size)
             elif compression_method == 2:
                 block_data += data_buffer.read()
             else:
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
         block_buffer = MemoryBuffer(block_data)
-
-    def _read_type(context: KV3ContextNew):
-        data_type = context.types_buffer.read_uint8()
-        specifier = Specifier.UNSPECIFIED
-
-        if data_type & 0x80:
-            data_type &= 0x3F
-            flag = context.types_buffer.read_uint8()
-            if flag & 1:
-                specifier = Specifier.RESOURCE
-            elif flag & 2:
-                specifier = Specifier.RESOURCE_NAME
-            elif flag & 8:
-                specifier = Specifier.PANORAMA
-            elif flag & 16:
-                specifier = Specifier.SOUNDEVENT
-            elif flag & 32:
-                specifier = Specifier.SUBCLASS
-        return KV3Type(data_type), specifier
 
     buffers = KV3Buffers(bytes_buffer, None, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
@@ -650,7 +650,7 @@ def read_v3(encoding: bytes, buffer: Buffer):
         object_member_count_buffer=ints_buffer,
         binary_blob_sizes=block_sizes,
         binary_blob_buffer=block_buffer,
-        read_type=_read_type,
+        read_type=_read_type_v3,
         read_value=_read_value_legacy,
         active_buffer=buffers
     )
@@ -674,7 +674,10 @@ def read_v4(encoding: bytes, buffer: Buffer):
     block_count = buffer.read_uint32()
     block_total_size = buffer.read_uint32()
 
-    buffer.read_uint64()
+    short_count = buffer.read_uint32()
+    compressed_block_sizes = buffer.read_uint32() // 2
+    # if block_count>0:
+    #     assert compressed_block_sizes>0
 
     if compression_method == 0:
         if compression_dict_id != 0:
@@ -729,44 +732,13 @@ def read_v4(encoding: bytes, buffer: Buffer):
                 for uncompressed_block_size in block_sizes:
                     block_data += data_buffer.read(uncompressed_block_size)
             elif compression_method == 1:
-                cd = LZ4ChainDecoder(compression_frame_size, 0)
-                for block_size in block_sizes:
-                    block_size_tmp = block_size
-                    while data_buffer.tell() < data_buffer.size() and block_size_tmp > 0:
-                        compressed_block_size = data_buffer.read_uint16()
-                        decompressed = cd.decompress(buffer.read(compressed_block_size), compression_frame_size)
-                        if len(decompressed) > block_size_tmp:
-                            decompressed = decompressed[:block_size_tmp]
-                            block_size_tmp = 0
-                        elif block_size_tmp < 0:
-                            raise ValueError("Failed to decompress blocks!")
-                        else:
-                            block_size_tmp -= len(decompressed)
-                        block_data += decompressed
+                compressed_sizes = [data_buffer.read_uint16() for _ in range(compressed_block_sizes)]
+                block_data = decompress_lz4_chain(buffer, block_sizes, compressed_sizes, compression_frame_size)
             elif compression_method == 2:
                 block_data += data_buffer.read()
             else:
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
         block_buffer = MemoryBuffer(block_data)
-
-    def _read_type(context: KV3ContextNew):
-        data_type = context.types_buffer.read_uint8()
-        specifier = Specifier.UNSPECIFIED
-
-        if data_type & 0x80:
-            data_type &= 0x3F
-            flag = context.types_buffer.read_uint8()
-            if flag & 1:
-                specifier = Specifier.RESOURCE
-            elif flag & 2:
-                specifier = Specifier.RESOURCE_NAME
-            elif flag & 8:
-                specifier = Specifier.PANORAMA
-            elif flag & 16:
-                specifier = Specifier.SOUNDEVENT
-            elif flag & 32:
-                specifier = Specifier.SUBCLASS
-        return KV3Type(data_type), specifier
 
     buffers = KV3Buffers(bytes_buffer, None, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
@@ -777,7 +749,7 @@ def read_v4(encoding: bytes, buffer: Buffer):
         object_member_count_buffer=ints_buffer,
         binary_blob_sizes=block_sizes,
         binary_blob_buffer=block_buffer,
-        read_type=_read_type,
+        read_type=_read_type_v3,
         read_value=_read_value_legacy,
         active_buffer=buffers
     )
@@ -849,31 +821,10 @@ def read_v5(encoding: bytes, buffer: Buffer):
 
     del compressed_buffer0, compressed_buffer1
 
-    bytes_buffer = MemoryBuffer(buffer0.read(bytes_count))
-    if short_count:
-        buffer0.align(2)
-    shorts_buffer = MemoryBuffer(buffer0.read(short_count * 2))
-    if int_count:
-        buffer0.align(4)
-    ints_buffer = MemoryBuffer(buffer0.read(int_count * 4))
-    if double_count:
-        buffer0.align(8)
-    doubles_buffer = MemoryBuffer(buffer0.read(double_count * 8))
-
-    strings = [bytes_buffer.read_ascii_string() for _ in range(ints_buffer.read_uint32())]
-
+    kv_buffer0 = split_buffer(buffer0, bytes_count, short_count, int_count, double_count)
+    strings = [kv_buffer0.byte_buffer.read_ascii_string() for _ in range(kv_buffer0.int_buffer.read_uint32())]
     object_member_count_buffer = MemoryBuffer(buffer1.read(object_count_v5 * 4))
-
-    bytes_buffer2 = MemoryBuffer(buffer1.read(bytes_count2))
-    if short_count2:
-        buffer1.align(2)
-    shorts_buffer2 = MemoryBuffer(buffer1.read(short_count2 * 2))
-    if int_count2:
-        buffer1.align(4)
-    ints_buffer2 = MemoryBuffer(buffer1.read(int_count2 * 4))
-    if double_count2:
-        buffer1.align(8)
-    doubles_buffer2 = MemoryBuffer(buffer1.read(double_count2 * 8))
+    kv_buffer1 = split_buffer(buffer1, bytes_count2, short_count2, int_count2, double_count2)
 
     types_buffer = MemoryBuffer(buffer1.read(types_size))
 
@@ -891,18 +842,10 @@ def read_v5(encoding: bytes, buffer: Buffer):
                 for uncompressed_block_size in block_sizes:
                     block_data += buffer.read(uncompressed_block_size)
             elif compression_method == 1:
-                cd = LZ4ChainDecoder(compression_frame_size, 0)
-                for block_size in block_sizes:
-                    block_size_tmp = block_size
-                    while buffer.tell() < buffer.size() and block_size_tmp > 0:
-                        compressed_size = compressed_sizes.pop(0)
-                        block = buffer.read(compressed_size)
-                        decompressed = cd.decompress(block, compression_frame_size)
-                        actual_size = min(compression_frame_size, block_size_tmp)
-                        block_size_tmp -= actual_size
-                        block_data += decompressed[:actual_size]
+                block_data = decompress_lz4_chain(buffer, block_sizes, compressed_sizes, compression_frame_size)
             elif compression_method == 2:
-                zstd_compressed_data = buffer.read(compressed_total_size - block0_compressed_size - block1_compressed_size)
+                zstd_compressed_data = buffer.read(
+                    compressed_total_size - block0_compressed_size - block1_compressed_size)
                 block_data = zstd_decompress(zstd_compressed_data, block_total_size)
             else:
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
@@ -922,19 +865,33 @@ def read_v5(encoding: bytes, buffer: Buffer):
             # f = KV3TypeFlag(context.types_buffer.read_uint8())
         return KV3Type(t & mask), specific_type
 
-    buffer1 = KV3Buffers(bytes_buffer2, shorts_buffer2, ints_buffer2, doubles_buffer2)
-    buffer0 = KV3Buffers(bytes_buffer, shorts_buffer, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
         strings=strings,
-        buffer0=buffer0,
-        buffer1=buffer1,
+        buffer0=kv_buffer0,
+        buffer1=kv_buffer1,
         types_buffer=types_buffer,
         object_member_count_buffer=object_member_count_buffer,
         binary_blob_sizes=block_sizes,
         binary_blob_buffer=blocks_buffer,
         read_type=_read_type,
         read_value=_read_value_legacy,
-        active_buffer=buffer1
+        active_buffer=kv_buffer1
     )
     root = context.read_value(context)
     return root
+
+
+def decompress_lz4_chain(buffer: Buffer, decompressed_block_sizes: list[int], compressed_block_sizes: list[int],
+                         compression_frame_size: int):
+    block_data = b""
+    cd = LZ4ChainDecoder(compression_frame_size, 0)
+    for block_size in decompressed_block_sizes:
+        block_size_tmp = block_size
+        while buffer.tell() < buffer.size() and block_size_tmp > 0:
+            compressed_size = compressed_block_sizes.pop(0)
+            block = buffer.read(compressed_size)
+            decompressed = cd.decompress(block, compression_frame_size)
+            actual_size = min(compression_frame_size, block_size_tmp)
+            block_size_tmp -= actual_size
+            block_data += decompressed[:actual_size]
+    return block_data
