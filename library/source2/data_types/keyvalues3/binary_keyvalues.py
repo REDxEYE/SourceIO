@@ -4,7 +4,7 @@ from typing import Any, Optional, Callable
 import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer, WritableMemoryBuffer
-from SourceIO.library.utils.rustlib import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream
+from SourceIO.library.utils.rustlib import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream, zstd_decompress
 from .enums import *
 from .types import *
 
@@ -280,10 +280,10 @@ _kv3_readers: list[Callable[['KV3ContextNew', Specifier], Any] | None] = [
 
 
 def _read_value_legacy(context: KV3ContextNew):
-    type, specifier = context.read_type(context)
-    reader = _kv3_readers[type]
+    value_type, specifier = context.read_type(context)
+    reader = _kv3_readers[value_type]
     if reader is None:
-        raise NotImplementedError(f"Reader for {type!r} not implemented")
+        raise NotImplementedError(f"Reader for {value_type!r} not implemented")
 
     return reader(context, specifier)
 
@@ -624,12 +624,22 @@ def read_v3(encoding: bytes, buffer: Buffer):
 
     def _read_type(context: KV3ContextNew):
         data_type = context.types_buffer.read_uint8()
-        flag = KV3TypeFlag.NONE
+        specifier = Specifier.UNSPECIFIED
 
         if data_type & 0x80:
             data_type &= 0x3F
-            flag = KV3TypeFlag(buffer.read_uint8())
-        return KV3Type(data_type), flag, Specifier.UNSPECIFIED
+            flag = context.types_buffer.read_uint8()
+            if flag & 1:
+                specifier = Specifier.RESOURCE
+            elif flag & 2:
+                specifier = Specifier.RESOURCE_NAME
+            elif flag & 8:
+                specifier = Specifier.PANORAMA
+            elif flag & 16:
+                specifier = Specifier.SOUNDEVENT
+            elif flag & 32:
+                specifier = Specifier.SUBCLASS
+        return KV3Type(data_type), specifier
 
     buffers = KV3Buffers(bytes_buffer, None, ints_buffer, doubles_buffer)
     context = KV3ContextNew(
@@ -881,7 +891,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
                 for uncompressed_block_size in block_sizes:
                     block_data += buffer.read(uncompressed_block_size)
             elif compression_method == 1:
-                cd = LZ4ChainDecoder(compression_frame_size)
+                cd = LZ4ChainDecoder(compression_frame_size, 0)
                 for block_size in block_sizes:
                     block_size_tmp = block_size
                     while buffer.tell() < buffer.size() and block_size_tmp > 0:
@@ -891,8 +901,12 @@ def read_v5(encoding: bytes, buffer: Buffer):
                         actual_size = min(compression_frame_size, block_size_tmp)
                         block_size_tmp -= actual_size
                         block_data += decompressed[:actual_size]
+            elif compression_method == 2:
+                zstd_compressed_data = buffer.read(compressed_total_size - block0_compressed_size - block1_compressed_size)
+                block_data = zstd_decompress(zstd_compressed_data, block_total_size)
             else:
                 raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
+            assert buffer.read_uint32() == 0xFFEEDD00
         blocks_buffer = MemoryBuffer(block_data)
 
     def _read_type(context: KV3ContextNew):

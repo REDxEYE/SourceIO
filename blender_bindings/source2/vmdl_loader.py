@@ -247,11 +247,12 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     if has_weights and has_indicies:
         blendweights = used_vertices["BLENDWEIGHT"]
         if blendweights.dtype == np.uint8:
-            weights_array = blendweights.astype(np.float32) / 255
+            weights_array = blendweights.astype(np.float32)
         elif blendweights.dtype == np.uint16:
-            weights_array = blendweights.view(np.uint8).reshape(-1,8) / 255
+            weights_array = blendweights.view(np.uint8).astype(np.float32).reshape(-1,8)
         else:
             raise NotImplementedError(f"Blendweights of type {blendweights.dtype} not supported")
+        weights_array = weights_array / 255
         indices_array = used_vertices["BLENDINDICES"]
         if indices_array.dtype == np.uint8:
             indices_array = indices_array.astype(np.uint32)

@@ -37,6 +37,8 @@ def get_block_class(name) -> Type['BaseBlock']:
         return KVBlock
     elif name == 'INSG':
         return KVBlock
+    elif name == 'ANIM':
+        return KVBlock
     elif name == 'DSTF':
         return KVBlock
     elif name == 'MRPH':
