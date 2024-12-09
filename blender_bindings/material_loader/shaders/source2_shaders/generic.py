@@ -3,7 +3,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3, is_blender_4
 from ...shader_base import Nodes
 from ..source2_shader_base import Source2ShaderBase
 
@@ -71,7 +71,12 @@ class Generic(Source2ShaderBase):
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         shader.inputs['Roughness'].default_value = self.roughness
-        shader.inputs['Specular'].default_value = self.specular
+
+        if is_blender_4():
+            shader.inputs['Specular IOR Level'].default_value = self.specular
+        else:
+            shader.inputs['Specular'].default_value = self.specular
+
         color_texture = self.color_texture
         normal_texture = self.normal_texture
 
