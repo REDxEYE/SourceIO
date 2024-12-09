@@ -791,15 +791,15 @@ def read_v5(encoding: bytes, buffer: Buffer):
     block_count = buffer.read_uint32()
     block_total_size = buffer.read_uint32()
     short_count = buffer.read_uint32()
-    unk = buffer.read_uint32()
-    assert unk == 0
+    compressed_block_sizes = buffer.read_uint32() // 2
+    # assert unk == 0
 
     buffer0_decompressed_size, block0_compressed_size = buffer.read_fmt("2I")
     buffer1_decompressed_size, block1_compressed_size = buffer.read_fmt("2I")
     bytes_count2, short_count2, int_count2, double_count2 = buffer.read_fmt("4I")
     (field_54, object_count_v5, field_5c, field_60) = buffer.read_fmt("4I")
 
-    if compression_method>0:
+    if compression_method > 0:
         compressed_buffer0 = buffer.read(block0_compressed_size)
         compressed_buffer1 = buffer.read(block1_compressed_size)
     else:
@@ -869,10 +869,31 @@ def read_v5(encoding: bytes, buffer: Buffer):
 
     if block_count == 0:
         block_sizes = None
+        blocks_buffer = None
         assert buffer1.read_uint32() == 0xFFEEDD00
     else:
         block_sizes = [buffer1.read_uint32() for _ in range(block_count)]
-        assert sum(block_sizes) == 0, "Blocks are not supported"
+        assert buffer1.read_uint32() == 0xFFEEDD00
+        compressed_sizes = [buffer1.read_uint16() for _ in range(compressed_block_sizes)]
+        block_data = b''
+        if block_total_size > 0:
+            if compression_method == 0:
+                for uncompressed_block_size in block_sizes:
+                    block_data += buffer.read(uncompressed_block_size)
+            elif compression_method == 1:
+                cd = LZ4ChainDecoder(compression_frame_size)
+                for block_size in block_sizes:
+                    block_size_tmp = block_size
+                    while buffer.tell() < buffer.size() and block_size_tmp > 0:
+                        compressed_size = compressed_sizes.pop(0)
+                        block = buffer.read(compressed_size)
+                        decompressed = cd.decompress(block, compression_frame_size)
+                        actual_size = min(compression_frame_size, block_size_tmp)
+                        block_size_tmp -= actual_size
+                        block_data += decompressed[:actual_size]
+            else:
+                raise NotImplementedError(f"Unknown {compression_method} KV3 compression method")
+        blocks_buffer = MemoryBuffer(block_data)
 
     def _read_type(context: KV3ContextNew):
         t = context.types_buffer.read_int8()
@@ -896,7 +917,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
         types_buffer=types_buffer,
         object_member_count_buffer=object_member_count_buffer,
         binary_blob_sizes=block_sizes,
-        binary_blob_buffer=None,
+        binary_blob_buffer=blocks_buffer,
         read_type=_read_type,
         read_value=_read_value_legacy,
         active_buffer=buffer1

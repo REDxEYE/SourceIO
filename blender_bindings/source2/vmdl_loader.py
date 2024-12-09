@@ -257,6 +257,8 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
             indices_array = indices_array.astype(np.uint32)
         elif indices_array.dtype == np.uint16:
             indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
+        elif indices_array.dtype == np.int16:
+            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
         elif indices_array.dtype == np.int32:
             indices_array = indices_array.view(np.uint16).astype(np.uint32).reshape(-1,8)
         else:
