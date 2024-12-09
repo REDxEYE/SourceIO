@@ -91,6 +91,15 @@ class Object(BaseType, dict):
                 raise TypeError(f'Only KV3 types are allowed, got {type(value)}')
         super(Object, self).__setitem__(key, value)
 
+    def __contains__(self, item):
+        if isinstance(item, tuple):
+            for key in item:
+                if dict.__contains__(self, key):
+                    return True
+            return False
+        else:
+            return dict.__contains__(self, item)
+
     def __getitem__(self, item):
         if isinstance(item, tuple):
             for key in item:

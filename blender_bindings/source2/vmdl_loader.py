@@ -207,9 +207,12 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
                        import_attachments: bool, import_materials: bool = True,
                        draw_call_index: int | None = None
                        ):
+    data_block: KVBlock
+    vbib_block: VertexIndexBuffer
     data_block, = mesh_resource.get_data_block(block_name='DATA')
     vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
-    if morph_set_path := data_block['m_morphSet', "m_pMorphSet"]:
+    if ("m_morphSet", "m_pMorphSet") in data_block:
+        morph_set_path = data_block['m_morphSet', "m_pMorphSet"]
         morph_resource = mesh_resource.get_child_resource(morph_set_path, content_manager, CompiledMorphResource)
         morph_block, = morph_resource.get_data_block(block_name='DATA')
     else:
@@ -249,7 +252,7 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         if blendweights.dtype == np.uint8:
             weights_array = blendweights.astype(np.float32)
         elif blendweights.dtype == np.uint16:
-            weights_array = blendweights.view(np.uint8).astype(np.float32).reshape(-1,8)
+            weights_array = blendweights.view(np.uint8).astype(np.float32).reshape(-1, 8)
         else:
             raise NotImplementedError(f"Blendweights of type {blendweights.dtype} not supported")
         weights_array = weights_array / 255
@@ -257,11 +260,11 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         if indices_array.dtype == np.uint8:
             indices_array = indices_array.astype(np.uint32)
         elif indices_array.dtype == np.uint16:
-            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
+            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
         elif indices_array.dtype == np.int16:
-            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
+            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
         elif indices_array.dtype == np.int32:
-            indices_array = indices_array.view(np.uint16).astype(np.uint32).reshape(-1,8)
+            indices_array = indices_array.view(np.uint16).astype(np.uint32).reshape(-1, 8)
         else:
             raise NotImplementedError(f"Blendindices of type {indices_array.dtype} not supported")
     else:
@@ -269,7 +272,7 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         if indices_array.dtype == np.uint8:
             indices_array = indices_array.astype(np.uint32)
         elif indices_array.dtype == np.uint16:
-            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1,8)
+            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
         else:
             raise NotImplementedError(f"Blendindices of type {indices_array.dtype} not supported")
         weights_array = np.ones_like(indices_array, dtype=np.float32)

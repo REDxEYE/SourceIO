@@ -11,6 +11,15 @@ class KVBlock(dict[str, BaseType], BaseBlock):
         BaseBlock.__init__(self, buffer, resource)
         dict.__init__(self)
 
+    def __contains__(self, item):
+        if isinstance(item, tuple):
+            for key in item:
+                if dict.__contains__(self, key):
+                    return True
+            return False
+        else:
+            return dict.__contains__(self, item)
+
     def __getitem__(self, item):
         if isinstance(item, tuple):
             for key in item:
