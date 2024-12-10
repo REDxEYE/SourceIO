@@ -1,3 +1,5 @@
+import math
+
 import bpy
 
 from SourceIO.library.source2.data_types.keyvalues3.types import NullObject
@@ -195,3 +197,45 @@ class CS2EntityHandler(HLVREntityHandler):
 
         self._set_entity_data(lamp, {'entity': entity_raw})
         self._put_into_collection('light_rect', lamp, 'lights')
+
+    def handle_light_omni2(self, entity: light_omni2, entity_raw: dict):
+        name = self._get_entity_name(entity)
+
+        # Could also be < 180, but I personally believe we should only count spots that can be implemented in blender
+        is_spot = entity.outer_angle <= 90
+
+        lamp_data = None
+        lamp = None
+        angles = []
+
+        # TODO: This should probably take in all axes into account
+        light_source_radius = float(entity.size_params[0]) * self.scale
+
+        if is_spot:
+            lamp_data = bpy.data.lights.new(name + "_DATA", 'SPOT')
+            lamp = bpy.data.objects.new(name, lamp_data)
+            # light_omni2 as a spotlight in cs2 is oriented differently to light_spot in hla
+            # could it be beneficial to re orient the light either way?
+            angles = get_angles(entity_raw)
+            angles[0] -= 90
+
+            # TODO: I think there should be a better way of correcting outer_angle
+            lamp_data.spot_size = math.radians(entity.outer_angle * 2)
+            lamp_data.spot_blend = np.clip(light_source_radius, 0, 1)
+        else:
+            lamp_data = bpy.data.lights.new(name + "_DATA", 'POINT')
+            lamp = bpy.data.objects.new(name, lamp_data)
+            angles = get_angles(entity_raw)
+
+        self._set_location_and_scale(lamp, get_origin(entity_raw))
+        self._set_rotation(lamp, angles)
+        scale_vec = get_scale(entity_raw)
+
+        color = np.divide(entity.color, 255.0)
+        brightness = float(entity.brightness)
+        lamp_data.energy = brightness * 10000 * scale_vec[0] * self.scale
+        lamp_data.color = color[:3]
+        lamp_data.shadow_soft_size = light_source_radius
+
+        self._set_entity_data(lamp, {'entity': entity_raw})
+        self._put_into_collection('light_omni2', lamp, 'lights')
