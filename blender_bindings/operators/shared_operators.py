@@ -1,17 +1,22 @@
+import collections
+import itertools
+import operator
 from hashlib import md5
 from itertools import chain
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Iterable
 
-from bpy.props import (BoolProperty, StringProperty)
+from bpy.props import (StringProperty)
 from bpy.types import (Panel,
                        Operator,
                        PropertyGroup)
 from idprop.types import *
 import bpy
+from mathutils import Matrix
 
 from .import_settings_base import ModelOptions
 from ..models import import_model
 from ..shared.exceptions import RequiredFileNotFound
+from ..shared.model_container import ModelContainer
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from ...library.shared.content_manager.manager import ContentManager
 from ...library.source2 import CompiledModelResource
@@ -92,118 +97,8 @@ class SourceIO_OT_LoadEntity(Operator):
                         continue
                     prop_path = TinyPath(prop_path)
                     model_type = prop_path.suffix
-                    # parent = get_parent(obj.users_collection[0])
-                    parent = obj.users_collection[0]
                     if model_type == '.vmdl_c':
-                        draw_info = custom_prop_data.get("draw_info", {})
-                        draw_call_index = draw_info.get("m_nDrawCallIndex", None)
-                        if draw_call_index is not None:
-                            instance_collection = get_collection(prop_path, str(draw_call_index))
-                        else:
-                            instance_collection = get_collection(prop_path)
-
-                        if instance_collection and use_collections:
-                            collection = bpy.data.collections.get(instance_collection, None)
-                            if collection is not None:
-                                obj.instance_type = 'COLLECTION'
-                                obj.instance_collection = collection
-                                obj["entity_data"]["prop_path"] = None
-                                obj["entity_data"]["imported"] = True
-                                continue
-
-                        vmld_file = content_manager.find_file(prop_path)
-                        if vmld_file:
-                            # skin = custom_prop_data.get('skin', None)
-                            if draw_call_index is not None:
-                                model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                                mdat_blocks = model_resource.get_data_block(block_name="MDAT")
-                                assert len(mdat_blocks) == 1
-                                mdat: KVBlock = mdat_blocks[0]
-                                assert len(mdat["m_sceneObjects"]) == 1
-                                total_count = len(mdat["m_sceneObjects"][0]["m_drawCalls"])
-                                for i in range(total_count):
-                                    print(f"Pre-loading drawcalls {i+1}/{total_count}")
-                                    container = load_model(content_manager, model_resource, custom_prop_data["scale"],
-                                                           lod_mask=1,
-                                                           import_physics=context.scene.import_physics,
-                                                           import_materials=import_materials,
-                                                           draw_call_index=i)
-                                    prop_collection = get_or_create_collection(
-                                        prop_path.stem + f"_{draw_call_index}",
-                                        master_instance_collection
-                                    )
-                                    s2_put_into_collections(container, model_resource.name, prop_collection)
-                                    add_collection(prop_path, container.master_collection, str(i))
-
-                                instance_collection = get_collection(prop_path, str(draw_call_index))
-
-                                if instance_collection:
-                                    collection = bpy.data.collections.get(instance_collection, None)
-                                    if collection is not None:
-                                        obj.instance_type = 'COLLECTION'
-                                        obj.instance_collection = collection
-                                        obj["entity_data"]["prop_path"] = None
-                                        obj["entity_data"]["imported"] = True
-                                        continue
-                                else:
-                                    raise ValueError("Failed to get draw call collection")
-
-                            model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-                            container = load_model(content_manager, model_resource, custom_prop_data["scale"],
-                                                   lod_mask=1,
-                                                   import_physics=context.scene.import_physics,
-                                                   import_materials=import_materials,
-                                                   draw_call_index=draw_call_index)
-                            if replace_entity:
-                                s2_put_into_collections(container, model_resource.name, parent)
-                            else:
-                                if draw_call_index is not None:
-                                    prop_collection = get_or_create_collection(
-                                        prop_path.stem + f"_{draw_call_index}",
-                                        master_instance_collection
-                                    )
-                                else:
-                                    prop_collection = get_or_create_collection(prop_path.stem,
-                                                                               master_instance_collection)
-                                s2_put_into_collections(container, model_resource.name, prop_collection)
-                            obj["entity_data"]["prop_path"] = None
-                            obj["entity_data"]["imported"] = True
-
-                            if use_collections:
-                                if draw_info and draw_call_index is not None:
-                                    add_collection(prop_path, container.master_collection,
-                                                   str(draw_info["m_nDrawCallIndex"]))
-                                else:
-                                    add_collection(prop_path, container.master_collection)
-
-                                obj.instance_type = 'COLLECTION'
-                                obj.instance_collection = container.master_collection
-                                continue
-                            if replace_entity:
-                                if container.armature:
-                                    container.armature.location = obj.location
-                                    container.armature.rotation_mode = "XYZ"
-                                    container.armature.rotation_euler = obj.rotation_euler
-                                    container.armature.scale = obj.scale
-                                    container.armature.name = obj.name
-                                else:
-                                    for ob in chain(container.objects,
-                                                    container.physics_objects):  # type:bpy.types.Object
-                                        ob.location = obj.location
-                                        ob.rotation_mode = "XYZ"
-                                        ob.rotation_euler = obj.rotation_euler
-                                        ob.scale = obj.scale
-                                bpy.data.objects.remove(obj)
-                            else:
-                                if container.armature:
-                                    container.armature.parent = obj
-                                else:
-                                    for o in container.objects:
-                                        o.parent = obj
-                                    for o in container.physics:
-                                        o.parent = obj
-                        else:
-                            self.report({'INFO'}, f"Model '{prop_path}' not found!")
+                        self.load_vmdl(content_manager, context, obj)
                     elif model_type in ('.mdl', ".md3"):
                         default_anim = custom_prop_data["entity"].get("defaultanim", None)
 
@@ -350,6 +245,149 @@ class SourceIO_OT_LoadEntity(Operator):
         win.progress_end()
 
         return {'FINISHED'}
+
+    def load_vmdl(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
+        use_collections = context.scene.use_instances
+        import_materials = context.scene.import_materials
+        replace_entity = context.scene.replace_entity and not use_collections
+        master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
+                                                              bpy.context.scene.collection)
+        parent = obj.users_collection[0]
+        imported_collection = get_or_create_collection("IMPORTED", parent)
+
+        custom_prop_data = dict(obj['entity_data'])
+        prop_path = TinyPath(custom_prop_data['prop_path'])
+        prop_type = custom_prop_data['type']
+
+        if prop_type == "aggregate_static_prop":
+            vmld_file = content_manager.find_file(prop_path)
+            if vmld_file:
+                model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
+            else:
+                self.report({"WARNING"}, f"Failed to find VMDL_c file for prop {prop_path}")
+                return
+
+            def _preload_draw_calls(draw_calls: Iterable[int]):
+                for draw_call in draw_calls:
+                    container = load_model(content_manager, model_resource, custom_prop_data["scale"],
+                                           lod_mask=1,
+                                           import_physics=context.scene.import_physics,
+                                           import_materials=import_materials,
+                                           draw_call_index=draw_call)
+                    prop_collection = get_or_create_collection(
+                        prop_path.stem + f"_{draw_call}",
+                        master_instance_collection
+                    )
+                    s2_put_into_collections(container, model_resource.name, prop_collection)
+                    add_collection(prop_path, container.master_collection, str(draw_call))
+
+            fragments = custom_prop_data["fragments"]
+            get_draw_call = operator.itemgetter("draw_call")
+            draw_calls = {draw_call: [d["matrix"] for d in matrices] for (draw_call, matrices) in
+                          itertools.groupby(sorted(fragments, key=get_draw_call), key=get_draw_call)}
+            _preload_draw_calls([d for d, m in draw_calls.items() if len(m) > 1])
+            for draw_call, matrices in draw_calls.items():
+                if len(matrices) > 1:
+                    instance_collection = get_collection(prop_path, str(draw_call))
+                    if instance_collection is None:
+                        raise ValueError("Failed to get draw call collection")
+                    for matrix in matrices:
+                        if instance_collection:
+                            collection = bpy.data.collections.get(instance_collection, None)
+                            if collection is not None:
+                                obj.matrix_world @= matrix
+                                obj.instance_type = 'COLLECTION'
+                                obj.instance_collection = collection
+                                obj["entity_data"]["prop_path"] = None
+                                obj["entity_data"]["imported"] = True
+                                return
+                else:
+                    matrix = Matrix(matrices[0])
+                    container = load_model(content_manager, model_resource, custom_prop_data["scale"],
+                                           lod_mask=1,
+                                           import_physics=context.scene.import_physics,
+                                           import_materials=import_materials,
+                                           draw_call_index=draw_call)
+                    s2_put_into_collections(container, model_resource.name, imported_collection, bodygroup_grouping=False)
+                    self.add_matrix(container, matrix)
+                    self.replace_placeholder(container, obj, False)
+            bpy.data.objects.remove(obj)
+            return
+
+        instance_collection = get_collection(prop_path)
+
+        if instance_collection and use_collections:
+            collection = bpy.data.collections.get(instance_collection, None)
+            if collection is not None:
+                obj.instance_type = 'COLLECTION'
+                obj.instance_collection = collection
+                obj["entity_data"]["prop_path"] = None
+                obj["entity_data"]["imported"] = True
+                return
+
+        vmld_file = content_manager.find_file(prop_path)
+        if vmld_file:
+            # skin = custom_prop_data.get('skin', None)
+            model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
+            container = load_model(content_manager, model_resource, custom_prop_data["scale"],
+                                   lod_mask=1,
+                                   import_physics=context.scene.import_physics,
+                                   import_materials=import_materials)
+            if replace_entity:
+                s2_put_into_collections(container, model_resource.name, imported_collection)
+            else:
+                prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
+                s2_put_into_collections(container, model_resource.name, prop_collection)
+            obj["entity_data"]["prop_path"] = None
+            obj["entity_data"]["imported"] = True
+
+            if use_collections:
+                add_collection(prop_path, container.master_collection)
+
+                obj.instance_type = 'COLLECTION'
+                obj.instance_collection = container.master_collection
+                return
+            if replace_entity:
+                self.replace_placeholder(container, obj)
+        else:
+            self.report({'INFO'}, f"Model '{prop_path}' not found!")
+
+    @staticmethod
+    def add_matrix(container: ModelContainer, matrix: Matrix):
+        if container.armature:
+            container.armature.matrix_world @= matrix
+        else:
+            for ob in chain(container.objects, container.physics_objects):  # type:bpy.types.Object
+                ob.matrix_world @= matrix
+
+    @staticmethod
+    def replace_placeholder(container: ModelContainer, obj: bpy.types.Object, delete_object: bool = False):
+        if container.armature:
+            container.armature.location = obj.location
+            container.armature.rotation_mode = "XYZ"
+            container.armature.rotation_euler = obj.rotation_euler
+            container.armature.scale = obj.scale
+            container.armature.name = obj.name
+            container.armature["entity_data"] = obj["entity_data"]
+            container.armature["entity_data"]["prop_path"] = None
+            container.armature["entity_data"]["imported"] = True
+        else:
+            if len(container.objects) > 1 or container.physics_objects:
+                for ob in chain(container.objects, container.physics_objects):  # type:bpy.types.Object
+                    ob.parent = obj
+                obj["entity_data"]["prop_path"] = None
+                obj["entity_data"]["imported"] = True
+            else:
+                container.objects[0].location = obj.location
+                container.objects[0].rotation_mode = "XYZ"
+                container.objects[0].rotation_euler = obj.rotation_euler
+                container.objects[0].scale = obj.scale
+                container.objects[0].name = obj.name
+                container.objects[0]["entity_data"] = obj["entity_data"]
+                container.objects[0]["entity_data"]["prop_path"] = None
+                container.objects[0]["entity_data"]["imported"] = True
+                if delete_object:
+                    bpy.data.objects.remove(obj)
 
 
 # noinspection PyPep8Naming

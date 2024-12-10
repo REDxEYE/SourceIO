@@ -5,6 +5,7 @@ from pprint import pformat
 import bpy
 from mathutils import Euler
 
+from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from .base_entity_classes import *
 from SourceIO.blender_bindings.source2.vtex_loader import import_texture
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection
@@ -179,7 +180,12 @@ class AbstractEntityHandler:
                         return
                     obj.empty_display_type = 'IMAGE'
                     obj.empty_display_size = 16 * self.scale  # (1 / self.scale)
-                    obj.data = import_texture(image_resource, TinyPath(path_texture))
+                    texture_path = TinyPath(path_texture)
+                    if image_resource is not None:
+                        texture = check_texture_cache(texture_path)
+                        if texture is not None:
+                            obj.data = texture
+                        obj.data = import_texture(image_resource, texture_path)
 
     @staticmethod
     def _create_lines(name, points, closed=False):
