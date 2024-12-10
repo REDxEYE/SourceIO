@@ -13627,10 +13627,6 @@ class light_rect(Targetname, Parentname, CanBeClientOnly, Light2Inputs):
 
 
 class light_omni2(Targetname, Parentname, CanBeClientOnly, Light2Inputs):
-    pass
-
-    icon_sprite = "materials/editor/light_omni.vmat"
-
     @property
     def brightness_units(self):
         if "brightness_units" in self._entity_data:
@@ -13900,6 +13896,15 @@ class light_omni2(Targetname, Parentname, CanBeClientOnly, Light2Inputs):
         if "fogshadows" in self._entity_data:
             return self._entity_data.get('fogshadows')
         return "-1"
+
+    # TODO: Replace with more elegant solution for light size in cs2
+    @property
+    def lightsourceradius(self):
+        if "lightsourceradius" in self._entity_data:
+            # TODO: This should probably take in all axes into account
+            return float(self._entity_data.get('size_params')[0])
+        return float(2.0)
+
 
 
 class markup_volume(Targetname, Parentname, Global, EnableDisable):
@@ -16300,6 +16305,7 @@ entity_class_handle = {
     "light_base_attenuation_params": light_base_attenuation_params,
     "light_environment": light_environment,
     "light_omni": light_omni,
+    "light_omni2": light_omni2,
     "light_spot": light_spot,
     "light_ortho": light_ortho,
     "IndoorOutdoorLevel": IndoorOutdoorLevel,
