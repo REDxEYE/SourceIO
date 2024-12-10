@@ -204,8 +204,8 @@ class CS2EntityHandler(HLVREntityHandler):
         # Could also be < 180, but I personally believe we should only count spots that can be implemented in blender
         is_spot = entity.outer_angle <= 90
 
-        lamp_data = []
-        lamp = []
+        lamp_data = None
+        lamp = None
         angles = []
 
         # TODO: This should probably take in all axes into account
