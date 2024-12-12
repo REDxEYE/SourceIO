@@ -13,7 +13,7 @@ from SourceIO.library.utils.tiny_path import TinyPath
 from .operator_helper import ImportOperatorHelper
 from ..source2.dmx.camera_loader import load_camera
 from ..source2.vmat_loader import load_material
-from ..source2.vmdl_loader import load_model, put_into_collections, get_physics_block
+from ..source2.vmdl_loader import load_model, put_into_collections, get_physics_block, ImportContext
 from ..source2.vphy_loader import load_physics
 from ..source2.vtex_loader import import_texture
 from ..source2.vwrld.loader import load_map
@@ -51,9 +51,9 @@ class SOURCEIO_OT_VMDLImport(ImportOperatorHelper):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
                 model_resource = CompiledModelResource.from_buffer(f, directory / file.name)
-                container = load_model(content_manager, model_resource, self.scale, self.lod_mask,
-                                       self.import_physics, self.import_attachments,
-                                       self.import_materials)
+                import_context = ImportContext(self.scale, self.lod_mask, self.import_physics, self.import_attachments,
+                                               self.import_materials)
+                container = load_model(content_manager, model_resource, import_context)
 
             master_collection = get_new_unique_collection(model_resource.name, bpy.context.scene.collection)
             put_into_collections(container, TinyPath(model_resource.name).stem, master_collection, False)

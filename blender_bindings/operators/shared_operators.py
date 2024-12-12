@@ -21,7 +21,7 @@ from ..utils.resource_utils import deserialize_mounted_content, serialize_mounte
 from ...library.shared.content_manager.manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ..models.common import put_into_collections as s1_put_into_collections
-from ..source2.vmdl_loader import load_model
+from ..source2.vmdl_loader import load_model, ImportContext
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection, pause_view_layer_update
@@ -158,25 +158,7 @@ class SourceIO_OT_LoadEntity(Operator):
                             continue
 
                         if replace_entity:
-                            if model_container.armature:
-                                model_container.armature.location = obj.location
-                                model_container.armature.rotation_mode = "XYZ"
-                                model_container.armature.rotation_euler = obj.rotation_euler
-                                model_container.armature.scale = obj.scale
-                                model_container.armature.name = obj.name
-                                model_container.armature["entity_data"] = obj["entity_data"]
-                                model_container.armature["entity_data"]["prop_path"] = None
-                                model_container.armature["entity_data"]["imported"] = True
-                            else:
-                                for ob in model_container.objects:  # type:bpy.types.Object
-                                    ob.location = obj.location
-                                    ob.rotation_mode = "XYZ"
-                                    ob.rotation_euler = obj.rotation_euler
-                                    ob.scale = obj.scale
-                                    ob["entity_data"] = obj["entity_data"]
-                                    ob["entity_data"]["prop_path"] = None
-                                    ob["entity_data"]["imported"] = True
-                            bpy.data.objects.remove(obj)
+                            self.replace_placeholder(model_container, obj, True)
                         else:
                             if model_container.armature:
                                 model_container.armature.parent = obj
@@ -255,9 +237,19 @@ class SourceIO_OT_LoadEntity(Operator):
         parent = obj.users_collection[0]
         imported_collection = get_or_create_collection("IMPORTED", parent)
 
-        custom_prop_data = dict(obj['entity_data'])
+        custom_prop_data: dict[str, Any] = dict(obj['entity_data'])
         prop_path = TinyPath(custom_prop_data['prop_path'])
         prop_type = custom_prop_data['type']
+
+        import_context = ImportContext(
+            scale=custom_prop_data["scale"],
+            lod_mask=1,
+            import_physics=context.scene.import_physics,
+            import_attachments=False,
+            import_materials=import_materials,
+            draw_call_index=None,
+            lm_uv_scale=(1, 1)
+        )
 
         if prop_type == "aggregate_static_prop":
             vmld_file = content_manager.find_file(prop_path)
@@ -269,15 +261,11 @@ class SourceIO_OT_LoadEntity(Operator):
 
             def _preload_draw_calls(draw_calls: Iterable[int]):
                 for draw_call in draw_calls:
-                    container = load_model(content_manager, model_resource, custom_prop_data["scale"],
-                                           lod_mask=1,
-                                           import_physics=context.scene.import_physics,
-                                           import_materials=import_materials,
-                                           draw_call_index=draw_call)
-                    prop_collection = get_or_create_collection(
-                        prop_path.stem + f"_{draw_call}",
-                        master_instance_collection
-                    )
+                    import_context.draw_call_index = draw_call
+                    container = load_model(content_manager, model_resource, import_context)
+                    prop_collection = get_or_create_collection(prop_path.stem + f"_{draw_call}",
+                                                               master_instance_collection
+                                                               )
                     s2_put_into_collections(container, model_resource.name, prop_collection)
                     add_collection(prop_path, container.master_collection, str(draw_call))
 
@@ -303,12 +291,10 @@ class SourceIO_OT_LoadEntity(Operator):
                                 return
                 else:
                     matrix = Matrix(matrices[0])
-                    container = load_model(content_manager, model_resource, custom_prop_data["scale"],
-                                           lod_mask=1,
-                                           import_physics=context.scene.import_physics,
-                                           import_materials=import_materials,
-                                           draw_call_index=draw_call)
-                    s2_put_into_collections(container, model_resource.name, imported_collection, bodygroup_grouping=False)
+                    import_context.draw_call_index = draw_call
+                    container = load_model(content_manager, model_resource, import_context)
+                    s2_put_into_collections(container, model_resource.name, imported_collection,
+                                            bodygroup_grouping=False)
                     self.add_matrix(container, matrix)
                     self.replace_placeholder(container, obj, False)
             bpy.data.objects.remove(obj)
@@ -329,10 +315,7 @@ class SourceIO_OT_LoadEntity(Operator):
         if vmld_file:
             # skin = custom_prop_data.get('skin', None)
             model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
-            container = load_model(content_manager, model_resource, custom_prop_data["scale"],
-                                   lod_mask=1,
-                                   import_physics=context.scene.import_physics,
-                                   import_materials=import_materials)
+            container = load_model(content_manager, model_resource, import_context)
             if replace_entity:
                 s2_put_into_collections(container, model_resource.name, imported_collection)
             else:
@@ -377,6 +360,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     ob.parent = obj
                 obj["entity_data"]["prop_path"] = None
                 obj["entity_data"]["imported"] = True
+                return
             else:
                 container.objects[0].location = obj.location
                 container.objects[0].rotation_mode = "XYZ"
@@ -386,8 +370,8 @@ class SourceIO_OT_LoadEntity(Operator):
                 container.objects[0]["entity_data"] = obj["entity_data"]
                 container.objects[0]["entity_data"]["prop_path"] = None
                 container.objects[0]["entity_data"]["imported"] = True
-                if delete_object:
-                    bpy.data.objects.remove(obj)
+        if delete_object:
+            bpy.data.objects.remove(obj)
 
 
 # noinspection PyPep8Naming
