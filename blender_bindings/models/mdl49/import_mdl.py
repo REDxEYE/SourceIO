@@ -242,6 +242,19 @@ def nway(multi_value, flex_value, x, y, z, w):
         multi_value = 1.0
     return multi_value * flex_value
 
+def nway(multi_value, flex_value, x, y, zw):
+    z=zw[0]
+    w=list(zw[1])[0]
+    if multi_value <= x or multi_value >= w:  # outside of boundaries
+        multi_value = 0.0
+    elif multi_value <= y:
+        multi_value = rclamped(multi_value, x, y, 0.0, 1.0)
+    elif multi_value >= z:
+        multi_value = rclamped(multi_value, z, w, 1.0, 0.0)
+    else:
+        multi_value = 1.0
+    return multi_value * flex_value
+
 
 def combo(*values):
     val = values[0]
@@ -274,7 +287,11 @@ bpy.app.driver_namespace["nway"] = nway
 bpy.app.driver_namespace["rclamped"] = rclamped
 
     """
-
+    
+    run_function="""
+def create_drivers():
+"""
+        
     def normalize_name(name):
         return name.replace("-", "_").replace(" ", "_")
 
@@ -290,11 +307,19 @@ bpy.app.driver_namespace["rclamped"] = rclamped
             normalized_input_name = normalize_name(inp[0])
             if inp[1] in ('fetch1', '2WAY1', '2WAY0', 'NWAY', 'DUE'):
                 if 'left_' in input_name:
-                    input_definitions.append(
+                    if 'Lid' in input_name:
+                        input_definitions.append(
                         f'{normalized_input_name} = obj_data.flex_controllers["{input_name.replace("left_", "")}"].value_left')
+                    else:
+                        input_definitions.append(
+                        f'{normalized_input_name.replace("left_", "")} = obj_data.flex_controllers["{input_name.replace("left_", "")}"].value_left')                        
                 elif 'right_' in input_name:
-                    input_definitions.append(
+                    if 'Lid' in input_name:
+                        input_definitions.append(
                         f'{normalized_input_name} = obj_data.flex_controllers["{input_name.replace("right_", "")}"].value_right')
+                    else:
+                        input_definitions.append(
+                        f'{normalized_input_name.replace("right_", "")} = obj_data.flex_controllers["{input_name.replace("right_", "")}"].value_right')
                 else:
                     input_definitions.append(
                         f'{normalized_input_name} = obj_data.flex_controllers["{inp[0]}"].value')
@@ -308,8 +333,9 @@ bpy.app.driver_namespace["rclamped"] = rclamped
 def {driver_name}(obj_data):
     {st.join(input_definitions)}
     return {expr}
-bpy.app.driver_namespace["{driver_name}"] = {driver_name}
-
+"""
+        run_function += f"""
+    bpy.app.driver_namespace["{driver_name}"] = {driver_name}
 """
         blender_py_file += template_function
 
@@ -319,7 +345,7 @@ bpy.app.driver_namespace["{driver_name}"] = {driver_name}
         normalized_flex_name = normalize_name(flex_name)
 
         if flex_name == 'base':
-            continue
+            continue        
         if flex_name not in all_exprs:
             warnings.warn(f'Rule for {flex_name} not found! Generating basic rule.')
             expr, inputs = _parse_simple_flex(flex_name) or (None, None)
@@ -333,20 +359,35 @@ bpy.app.driver_namespace["{driver_name}"] = {driver_name}
                 template_function = f"""
 def {normalized_flex_name}_driver(obj_data):
     return obj_data.flex_controllers["{flex_name}"].value
-bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_name}_driver
-
-                                """
+"""
                 blender_py_file += template_function
             else:
                 template_function = f"""
 def {normalized_flex_name}_driver(obj_data):
     {st.join([i[0] for i in inputs])}
     return {expr}
-bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_name}_driver
-
-                """
+"""
                 blender_py_file += template_function
-
+            run_function+=f"""
+    bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_name}_driver
+"""
+    blender_py_file+=run_function
+    blender_py_file+="""
+create_drivers()
+"""
+    
+    driver_file = bpy.data.texts.new(f'{mdl.header.name}.py')
+    driver_file.write(blender_py_file)
+    driver_file.use_module = True
+    driver_file.as_module().create_drivers()
+    
+    for shape_key in shape_key_block.key_blocks:        
+        flex_name = shape_key.name
+        normalized_flex_name = normalize_name(flex_name)
+        
+        if flex_name == 'base':
+            continue  
+        
         shape_key.driver_remove("value")
         fcurve = shape_key.driver_add("value")
         fcurve.modifiers.remove(fcurve.modifiers[0])
@@ -359,10 +400,6 @@ bpy.app.driver_namespace["{normalized_flex_name}_driver"] = {normalized_flex_nam
         var.targets[0].id_type = 'OBJECT'
         var.targets[0].id = obj
         var.targets[0].data_path = f"data"
-
-    driver_file = bpy.data.texts.new(f'{mdl.header.name}.py')
-    driver_file.write(blender_py_file)
-    driver_file.use_module = True
 
 
 def create_attachments(mdl: MdlV49, armature: bpy.types.Object, scale):
