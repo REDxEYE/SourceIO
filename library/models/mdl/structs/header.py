@@ -176,7 +176,7 @@ class MdlHeaderV36:
 
         local_animation_count, local_animation_offset = buffer.read_fmt('2I')
         local_sequence_count, local_sequence_offset = buffer.read_fmt('2I')
-        buffer.skip(16)
+        # buffer.skip(16)
         sequences_indexed_flag, sequence_group_count = buffer.read_fmt('2I')
         sequence_group_offset = buffer.read_int32()
 

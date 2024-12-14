@@ -26,9 +26,11 @@ class Mesh:
         material_index, model_offset, vertex_count, vertex_index_start = buffer.read_fmt('Ii2I')
         flex_count, flex_offset, material_type, material_param, mesh_id = buffer.read_fmt('5I')
         center = buffer.read_fmt('3f')
-        if version > 36:
+        if version <= 36:
+            buffer.skip(4*5)
+        else:
             buffer.skip(4 * 9)
-        buffer.skip(4 * 8)
+            buffer.skip(4 * 8)
         flexes = []
         if flex_count > 0 and flex_offset != 0:
             with buffer.read_from_offset(entry + flex_offset):
