@@ -47,7 +47,7 @@ def import_mdl52(model_path: TinyPath, buffer: Buffer,
             import traceback
             traceback.print_exc()
 
-    container = import_model(content_manager, mdl, vtx, vvd, vvc, options.scale)
+    container = import_model(content_manager, mdl, vtx, vvd, vvc, options.scale,  process_bone=options.process_bone)
     if options.import_physics:
         phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
         if phy_buffer is None:

@@ -31,7 +31,7 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
-                 scale=1.0, create_drivers=False, load_refpose=False):
+                 scale=1.0, create_drivers=False, load_refpose=False, process_bone=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_manager)
 
@@ -46,7 +46,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
     vertex_anim_cache = preprocess_vertex_animation(mdl, vvd)
 
     if not static_prop:
-        armature = create_armature(mdl, scale, load_refpose)
+        armature = create_armature(mdl, scale, load_refpose, process_bone)
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):

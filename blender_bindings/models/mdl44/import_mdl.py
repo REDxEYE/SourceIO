@@ -30,7 +30,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
+def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False, process_bone=False):
     model_name = path_stem(mdl.header.name)
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -71,6 +71,9 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
                 mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
                 mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
                 bl_bone.matrix = mat
+    if process_bone and armature and armature_obj:
+        from ..bone_process import SourceBoneProcess
+        SourceBoneProcess(armature, armature_obj)
 
     bpy.ops.object.mode_set(mode='OBJECT')
 

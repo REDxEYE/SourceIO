@@ -24,7 +24,7 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
-                 scale=1.0, create_drivers=False, load_refpose=False):
+                 scale=1.0, create_drivers=False, load_refpose=False, process_bone=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_provider)
 
@@ -39,7 +39,7 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
     armature = None
 
     if not static_prop:
-        armature = create_armature(mdl, scale)
+        armature = create_armature(mdl, scale,process_bone=process_bone)
 
     for vtx_body_part, body_part in zip(vtx.body_parts, mdl.body_parts):
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
