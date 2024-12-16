@@ -23,6 +23,7 @@ class EntityLump(Lump):
         chaset = charset_normalizer.from_bytes(buffer)
         self._logger.info(f"Detected {chaset.best().encoding!r} encoding in entity lump")
         buffer = buffer.decode(chaset.best().encoding, "ignore")
+        buffer = buffer.translate(str.maketrans({chr(i): " " for i in range(0xA)}))
         parser = ValveKeyValueParser(buffer_and_name=(buffer, 'EntityLump'), self_recover=True, array_of_blocks=True)
         parser.parse()
         for ent in parser.tree:
