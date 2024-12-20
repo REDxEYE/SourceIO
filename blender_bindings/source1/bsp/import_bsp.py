@@ -52,6 +52,11 @@ def import_bsp(map_path: TinyPath, buffer: Buffer, content_manager: ContentManag
     bsp = open_bsp(map_path, buffer, content_manager, override_steamappid)
     if bsp is None:
         raise Exception("Could not open map file. This function can only load Source1 BSP files.")
+
+    pak_lump: Optional[PakLump] = bsp.get_lump('LUMP_PAK')
+    if pak_lump:
+        content_manager.add_child(pak_lump)
+
     master_collection = bpy.data.collections.new(map_path.name)
     bpy.context.scene.collection.children.link(master_collection)
     import_entities(bsp, content_manager, settings, master_collection, logger)
