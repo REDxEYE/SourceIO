@@ -2,21 +2,20 @@ from collections import Counter
 from hashlib import md5
 from typing import Optional, TypeVar, Union
 
-from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.detectors import detect_game
-from .providers import register_provider
-from .providers.hfs_provider import HFS1ContentProvider, HFS2ContentProvider
-from .providers.loose_files import LooseFilesContentProvider
-from .providers.source1_gameinfo_provider import Source1GameInfoProvider
-from .providers.source2_gameinfo_provider import Source2GameInfoProvider
-from .providers.zip_content_provider import ZIPContentProvider
-from ...utils.tiny_path import TinyPath
-from ....library.utils.path_utilities import (backwalk_file_resolver,
-                                              corrected_path, get_mod_path)
-from ....logger import SourceLogMan
-from ...utils import Buffer, FileBuffer
-from ...utils.singleton import SingletonMeta
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.shared.content_manager.providers import register_provider
+from SourceIO.library.shared.content_manager.providers.hfs_provider import HFS1ContentProvider, HFS2ContentProvider
+from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
+from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
+from SourceIO.library.shared.content_manager.providers.source2_gameinfo_provider import Source2GameInfoProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
+from SourceIO.library.shared.content_manager.providers.zip_content_provider import ZIPContentProvider
+from SourceIO.library.utils import Buffer, FileBuffer
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver, get_mod_path
+from SourceIO.library.utils.singleton import SingletonMeta
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('ContentManager')

@@ -1,10 +1,10 @@
+from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
+from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from .source1 import Source1Detector
-from ..providers.vpk_provider import VPKContentProvider
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('InfraDetector')
@@ -29,10 +29,10 @@ class InfraDetector(Source1Detector):
                     continue
             cls.add_provider(VPKContentProvider(vpk_path), providers)
 
-        portal2_mod_gi_path = infra_root / "infra/gameinfo.txt"
-        if initial_mod_gi_path != portal2_mod_gi_path:
-            cls.add_provider(Source1GameInfoProvider(portal2_mod_gi_path), providers)
-        for vpk_path in portal2_mod_gi_path.parent.glob("*.vpk"):
+        infra_mod_gi_path = infra_root / "infra/gameinfo.txt"
+        if initial_mod_gi_path != infra_mod_gi_path:
+            cls.add_provider(Source1GameInfoProvider(infra_mod_gi_path), providers)
+        for vpk_path in infra_mod_gi_path.parent.glob("*.vpk"):
             with vpk_path.open("rb") as f:
                 if f.read(4) != b"\x34\x12\xAA\x55":
                     continue

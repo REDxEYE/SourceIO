@@ -1,9 +1,9 @@
 from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.utils.tiny_path import TinyPath
-from .source1 import Source1Detector
 
 
 class TitanfallDetector(Source1Detector):

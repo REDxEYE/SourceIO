@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import IntFlag
 from typing import Optional
 
-from .common import Quaternion, Vector3
+from SourceIO.library.shared.intermidiate_data.common import Quaternion, Vector3
 
 
 class BoneFlags(IntFlag):

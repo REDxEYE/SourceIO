@@ -1,11 +1,10 @@
-from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.shared.content_manager.provider import ContentProvider
-from SourceIO.library.shared.content_manager.providers import register_provider
-from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.global_config import GoldSrcConfig
+from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.detectors.content_detector import ContentDetector
+from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import (GoldSrcContentProvider,
                                                                                         GoldSrcWADContentProvider)
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
@@ -27,6 +26,6 @@ class GoldSrcDetector(ContentDetector):
         for default_resource in ('decals.wad', 'halflife.wad', 'liquids.wad', 'xeno.wad'):
             if (folder / default_resource).exists():
                 cls.add_provider(GoldSrcWADContentProvider(folder / default_resource, SteamAppId.HALF_LIFE), providers)
-        if (hl_root/(mod_name+"_hd")).exists() and GoldSrcConfig().use_hd:
-            cls.add_provider(GoldSrcContentProvider(hl_root/(mod_name+"_hd"), SteamAppId.HALF_LIFE), providers)
+        if (hl_root / (mod_name + "_hd")).exists() and GoldSrcConfig().use_hd:
+            cls.add_provider(GoldSrcContentProvider(hl_root / (mod_name + "_hd"), SteamAppId.HALF_LIFE), providers)
         return list(providers.values())

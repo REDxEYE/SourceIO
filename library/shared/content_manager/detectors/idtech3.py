@@ -1,12 +1,9 @@
-
-
-from SourceIO.library.shared.content_manager.providers.zip_content_provider import ZIPContentProvider
-from ..providers import register_provider
-from ....utils.tiny_path import TinyPath
-from .....library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
-from .source1 import Source1Detector
+from SourceIO.library.shared.content_manager.providers.zip_content_provider import ZIPContentProvider
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class IDTech3Detector(Source1Detector):

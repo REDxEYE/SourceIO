@@ -1,10 +1,10 @@
-from .source1 import Source1Detector
-from ..providers.source1_gameinfo_provider import Source1GameInfoProvider
-from ....utils.tiny_path import TinyPath
-from .....library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
-from .....logger import SourceLogMan
+from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
+from SourceIO.library.utils.path_utilities import backwalk_file_resolver
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('SFMDetector')
