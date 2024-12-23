@@ -1,11 +1,7 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-from ....utils.file_utils import Buffer
-from .primitive import Primitive
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
 
 
 @dataclass(slots=True)
@@ -16,5 +12,5 @@ class MaterialSort:
     vertex_offset: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(*buffer.read_fmt('Hh2I'))

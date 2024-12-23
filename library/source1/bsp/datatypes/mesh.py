@@ -1,11 +1,8 @@
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING
 
-from ....utils.file_utils import Buffer
-from .primitive import Primitive
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
 
 
 class VertexType(IntEnum):
@@ -14,34 +11,35 @@ class VertexType(IntEnum):
     LIT_BUMP = 2
     UNLIT_TS = 3
 
-class Mesh(Primitive):
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.triangle_start = 0
-        self.triangle_count = 0
-        self.unk1_offset = 0
-        self.unk1_count = 0
-        self.unk2 = 0
-        self.unk3 = 0
-        self.unk4 = 0
-        self.unk5 = 0
-        self.unk6 = 0
-        self.material_sort = 0
-        self.flags = 0
 
-    def parse(self, reader: Buffer, bsp: 'BSPFile'):
-        self.triangle_start = reader.read_uint32()  # 0-4
-        self.triangle_count = reader.read_uint16()  # 4-6
-        self.unk1_offset = reader.read_uint16()
-        self.unk1_count = reader.read_uint16()
-        self.unk2 = reader.read_uint16()
-        self.unk3 = reader.read_uint32()
-        self.unk4 = reader.read_uint16()
-        self.unk5 = reader.read_uint16()
-        self.unk6 = reader.read_uint16()
-        self.material_sort = reader.read_uint16()  # 22-24
-        self.flags = reader.read_uint32()  # 24-28
-        return self
+@dataclass(slots=True)
+class Mesh:
+    triangle_start: int
+    triangle_count: int
+    unk1_offset: int
+    unk1_count: int
+    unk2: int
+    unk3: int
+    unk4: int
+    unk5: int
+    unk6: int
+    material_sort: int
+    flags: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+        triangle_start = buffer.read_uint32()  # 0-4
+        triangle_count = buffer.read_uint16()  # 4-6
+        unk1_offset = buffer.read_uint16()
+        unk1_count = buffer.read_uint16()
+        unk2 = buffer.read_uint16()
+        unk3 = buffer.read_uint32()
+        unk4 = buffer.read_uint16()
+        unk5 = buffer.read_uint16()
+        unk6 = buffer.read_uint16()
+        material_sort = buffer.read_uint16()  # 22-24
+        flags = buffer.read_uint32()  # 24-28
+        return cls(triangle_start, triangle_count, unk1_offset, unk1_count, unk2, unk3, unk4, unk5, unk6, material_sort, flags)
 
     @property
     def vertex_type(self):

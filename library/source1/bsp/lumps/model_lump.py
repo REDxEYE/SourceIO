@@ -1,10 +1,8 @@
-
-
-from ....shared.app_id import SteamAppId
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.model import Model, RespawnModel, DMModel, RavenModel
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.model import Model, RespawnModel, DMModel, RavenModel
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(14, 'LUMP_MODELS')
@@ -13,7 +11,7 @@ class ModelLump(Lump):
         super().__init__(lump_info)
         self.models: list[Model] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         model_class = RespawnModel if bsp.version == (29, 0) else Model
         model_class = DMModel if bsp.version == (20, 4) else model_class
         while buffer:
@@ -27,7 +25,7 @@ class RavenModelLump(Lump):
         super().__init__(lump_info)
         self.models: list[RavenModel] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             self.models.append(RavenModel.from_buffer(buffer, self.version, bsp))
         return self

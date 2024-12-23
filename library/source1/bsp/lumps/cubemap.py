@@ -1,9 +1,7 @@
-
-
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.cubemap import Cubemap
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.cubemap import Cubemap
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(42, 'LUMP_CUBEMAPS')
@@ -12,7 +10,7 @@ class CubemapLump(Lump):
         super().__init__(lump_info)
         self.cubemaps: list[Cubemap] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             self.cubemaps.append(Cubemap.from_buffer(buffer, self.version, bsp))
         return self

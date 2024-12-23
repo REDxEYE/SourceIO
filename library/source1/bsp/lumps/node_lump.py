@@ -1,10 +1,8 @@
-
-
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.node import Node, VNode
-from . import SteamAppId
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.node import Node, VNode
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(5, 'LUMP_NODES')
@@ -14,7 +12,7 @@ class NodeLump(Lump):
         super().__init__(lump_info)
         self.nodes: list[Node] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             plane = Node.from_buffer(buffer, self.version, bsp)
             self.nodes.append(plane)
@@ -28,7 +26,7 @@ class VNodeLump(Lump):
         super().__init__(lump_info)
         self.nodes: list[VNode] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             plane = VNode.from_buffer(buffer, self.version, bsp)
             self.nodes.append(plane)

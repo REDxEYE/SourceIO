@@ -1,47 +1,47 @@
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
-from ....utils.file_utils import Buffer
-from .primitive import Primitive
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
 
 
-class GameLumpHeader(Primitive):
+@dataclass
+class GameLumpHeader:
+    id: int = 0
+    flags: int = 0
+    version: int = 0
+    offset: int = 0
+    size: int = 0
 
-    def __init__(self, lump):
-        super().__init__(lump)
-        self.id = 0
-        self.flags = 0
-        self.version = 0
-        self.offset = 0
-        self.size = 0
-
-    def parse(self, reader: Buffer, bsp: 'BSPFile'):
-        self.id = reader.read_fourcc()[::-1]
-        self.flags = reader.read_uint16()
-        self.version = reader.read_uint16()
-        self.offset, self.size = reader.read_fmt('2i')
-        return self
+    @staticmethod
+    def from_buffer(reader: Buffer, bsp: BSPFile):
+        id = reader.read_fourcc()[::-1]
+        flags = reader.read_uint16()
+        version = reader.read_uint16()
+        offset, size = reader.read_fmt('2i')
+        return GameLumpHeader(id, flags, version, offset, size)
 
     def __repr__(self):
         return f"GameLumpHeader({self.id=}, {self.flags=})"
 
 
+@dataclass
 class DMGameLumpHeader(GameLumpHeader):
-    def parse(self, reader: Buffer, bsp: 'BSPFile'):
+    @staticmethod
+    def read(reader: Buffer, bsp: BSPFile):
         reader.skip(4)
-        self.id = reader.read_fourcc()[::-1]
-        self.flags = reader.read_uint16()
-        self.version = reader.read_uint16()
-        self.offset, self.size = reader.read_fmt('2i')
-        return self
+        id = reader.read_fourcc()[::-1]
+        flags = reader.read_uint16()
+        version = reader.read_uint16()
+        offset, size = reader.read_fmt('2i')
+        return DMGameLumpHeader(id, flags, version, offset, size)
 
 
+@dataclass
 class VindictusGameLumpHeader(GameLumpHeader):
-    def parse(self, reader: Buffer, bsp: 'BSPFile'):
-        self.id = reader.read_fourcc()[::-1]
-        self.flags = reader.read_uint32()
-        self.version = reader.read_uint32()
-        self.offset, self.size = reader.read_fmt('2i')
-        return self
+    @staticmethod
+    def read(reader: Buffer, bsp: BSPFile):
+        id = reader.read_fourcc()[::-1]
+        flags = reader.read_uint32()
+        version = reader.read_uint32()
+        offset, size = reader.read_fmt('2i')
+        return VindictusGameLumpHeader(id, flags, version, offset, size)

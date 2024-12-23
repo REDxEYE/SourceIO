@@ -1,12 +1,7 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Tuple
 
-from ....shared.types import Vector3
-from ....utils.file_utils import Buffer
-from ..lumps.plane_lump import PlaneLump
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
 
 
 @dataclass(slots=True)
@@ -16,7 +11,7 @@ class RavenBrush:
     shader_id: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(*buffer.read_fmt("3i"))
 
 
@@ -27,5 +22,5 @@ class RavenBrushSide:
     face_id: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(*buffer.read_fmt("3i"))

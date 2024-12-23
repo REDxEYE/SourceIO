@@ -1,13 +1,11 @@
 import lzma
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import Optional, Type, Union
 
-from ...shared.app_id import SteamAppId
-from ...utils.file_utils import Buffer, FileBuffer, MemoryBuffer
-from ...utils.math_utilities import sizeof_fmt
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.utils.file_utils import Buffer, MemoryBuffer
+from SourceIO.library.utils.math_utilities import sizeof_fmt
 
-if TYPE_CHECKING:
-    from .bsp_file import BSPFile
 
 
 @dataclass(slots=True)
@@ -100,8 +98,8 @@ class Lump:
     def __init__(self, lump_info: LumpInfo):
         self._info = lump_info
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
-        return self
+    # def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    #     return self
 
     # noinspection PyUnresolvedReferences,PyProtectedMember
     @staticmethod

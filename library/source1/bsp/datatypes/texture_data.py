@@ -1,13 +1,8 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-from ....shared.types import Vector3
-from ....utils.file_utils import Buffer
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
-    from ..lumps.string_lump import StringsLump
-
+from SourceIO.library.shared.types import Vector3
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
 
 
 @dataclass(slots=True)
@@ -20,7 +15,7 @@ class TextureData:
     view_height: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         reflectivity = buffer.read_fmt('3f')
         name_id = buffer.read_int32()
         width = buffer.read_int32()
@@ -29,19 +24,13 @@ class TextureData:
         view_height = buffer.read_int32()
         return cls(reflectivity, name_id, width, height, view_width, view_height)
 
-    def get_name(self, bsp: 'BSPFile'):
-        lump: StringsLump = bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
-        if lump:
-            return lump.strings[self.name_id]
-        return None
-
 
 @dataclass(slots=True)
 class RespawnTextureData(TextureData):
     unk1: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         reflectivity = buffer.read_fmt('3f')
         name_id = buffer.read_int32()
         width = buffer.read_int32()

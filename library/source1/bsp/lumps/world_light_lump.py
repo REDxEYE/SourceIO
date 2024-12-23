@@ -1,9 +1,7 @@
-
-
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.world_light import WorldLight
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.world_light import WorldLight
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(15, 'LUMP_WORLDLIGHTS')
@@ -12,7 +10,7 @@ class WorldLightLump(Lump):
         super().__init__(lump_info)
         self.lights: list[WorldLight] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             self.lights.append(WorldLight.from_buffer(buffer, self.version, bsp))
         return self

@@ -1,7 +1,7 @@
-from ....utils import Buffer
-from ....models.phy.phy import SolidHeader
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
+from SourceIO.library.models.phy.phy import SolidHeader
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils import Buffer
 
 
 class SolidBlock:
@@ -24,7 +24,7 @@ class PhysicsLump(Lump):
         super().__init__(lump_info)
         self.solid_blocks: dict[int, SolidBlock] = {}
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             solid_block_id = buffer.read_int32()
             if solid_block_id == -1:

@@ -1,10 +1,10 @@
 import zipfile
 from io import BytesIO
 
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.providers.zip_content_provider import ZIPContentProvider
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -19,7 +19,7 @@ class PakLump(Lump, ZIPContentProvider):
         self._zip_file = None
         self._cache = {}
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.filepath = bsp.filepath
         if self._zip_file is None:
             zip_data = BytesIO(buffer.read())

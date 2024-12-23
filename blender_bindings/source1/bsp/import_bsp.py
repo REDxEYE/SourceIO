@@ -5,37 +5,37 @@ from typing import Any, Optional, Type
 import bpy
 import numpy as np
 
-from .entities.abstract_entity_handlers import AbstractEntityHandler
-from .entities.sof_entity_handler import SOFEntityHandler
-from ...material_loader.shaders.idtech3.idtech3 import IdTech3Shader
-from ...operators.import_settings_base import Source1BSPSettings
-from ....library.shared.content_manager.manager import ContentManager
-from ....library.shared.content_manager.provider import ContentProvider
-from ....library.source1.bsp.bsp_file import open_bsp, BSPFile
-from ....library.source1.bsp.datatypes.gamelumps.static_prop_lump import StaticPropLump
-
-from ....library.source1.bsp.lumps import *
-from ....library.utils import Buffer
-from ....library.utils.idtech3_shader_parser import parse_shader_materials
-from ....library.utils.math_utilities import (SOURCE1_HAMMER_UNIT_TO_METERS,
-                                              convert_rotation_source1_to_blender)
-from ....library.utils.path_utilities import path_stem
-from ....library.utils.tiny_path import TinyPath
-from ....logger import SourceLogMan, SLogger
-from ...material_loader.material_loader import Source1MaterialLoader
-from ...material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, is_blender_4_1, \
+from SourceIO.blender_bindings.source1.bsp.entities.abstract_entity_handlers import AbstractEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.sof_entity_handler import SOFEntityHandler
+from SourceIO.blender_bindings.material_loader.shaders.idtech3.idtech3 import IdTech3Shader
+from SourceIO.blender_bindings.operators.import_settings_base import Source1BSPSettings
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.source1.bsp.bsp_file import open_bsp, BSPFile
+from SourceIO.library.source1.bsp.datatypes.static_prop_lump import StaticPropLump
+from SourceIO.library.source1.bsp.datatypes.face import Face
+from SourceIO.library.source1.bsp.datatypes.texture_data import TextureData
+from SourceIO.library.source1.bsp.datatypes.texture_info import TextureInfo
+from SourceIO.library.source1.bsp.lumps import *
+from SourceIO.library.utils import Buffer, TinyPath, path_stem, SOURCE1_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.idtech3_shader_parser import parse_shader_materials
+from SourceIO.library.utils.math_utilities import convert_rotation_source1_to_blender
+from SourceIO.logger import SourceLogMan, SLogger
+from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, \
     is_blender_4_2
-from .entities.base_entity_handler import BaseEntityHandler
-from .entities.bms_entity_handlers import BlackMesaEntityHandler
-from .entities.csgo_entity_handlers import CSGOEntityHandler
-from .entities.halflife2_entity_handler import HalfLifeEntityHandler
-from .entities.left4dead2_entity_handlers import Left4dead2EntityHandler
-from .entities.portal2_entity_handlers import Portal2EntityHandler
-from .entities.portal_entity_handlers import PortalEntityHandler
-from .entities.tf2_entity_handler import TF2EntityHandler
-from .entities.titanfall_entity_handler import TitanfallEntityHandler
-from .entities.vindictus_entity_handler import VindictusEntityHandler
+
+from SourceIO.blender_bindings.source1.bsp.entities.base_entity_handler import BaseEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.bms_entity_handlers import BlackMesaEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.csgo_entity_handlers import CSGOEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.halflife2_entity_handler import HalfLifeEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.left4dead2_entity_handlers import Left4dead2EntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.portal2_entity_handlers import Portal2EntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.portal_entity_handlers import PortalEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.tf2_entity_handler import TF2EntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.titanfall_entity_handler import TitanfallEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.vindictus_entity_handler import VindictusEntityHandler
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SourceLogMan()
@@ -224,6 +224,21 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
         import_idtech3_materials()
 
 
+def get_tex_info(face: Face, bsp: BSPFile):
+    tex_info_lump: TextureInfoLump = bsp.get_lump('LUMP_TEXINFO')
+    if tex_info_lump:
+        return tex_info_lump.texture_info[face.tex_info_id]
+    return None
+
+
+def get_texture_data(tex_info: TextureInfo, bsp: BSPFile) -> Optional[TextureData]:
+    tex_data_lump: TextureDataLump = bsp.get_lump('LUMP_TEXDATA')
+    if tex_data_lump:
+        tex_datas = tex_data_lump.texture_data
+        return tex_datas[tex_info.texture_data_id]
+    return None
+
+
 def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
                 master_collection: bpy.types.Collection, logger: SLogger):
     disp_info_lump: Optional[DispInfoLump] = bsp.get_lump('LUMP_DISPINFO')
@@ -250,8 +265,8 @@ def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
         final_vertex_colors = {}
         src_face = disp_info.get_source_face(bsp)
 
-        texture_info = src_face.get_tex_info(bsp)
-        texture_data = texture_info.get_texture_data(bsp)
+        texture_info = get_tex_info(src_face, bsp)
+        texture_data = get_texture_data(texture_info, bsp)
         tv1, tv2 = texture_info.texture_vectors
 
         first_edge = src_face.first_edge

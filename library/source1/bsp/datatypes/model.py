@@ -1,12 +1,8 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-from ....shared.types import Vector3
-from ....utils.file_utils import Buffer
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
-    from ..lumps.node_lump import NodeLump
+from SourceIO.library.shared.types import Vector3
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
 
 
 @dataclass(slots=True)
@@ -19,14 +15,8 @@ class Model:
     face_count: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("3i"))
-
-    def get_node(self, bsp: 'BSPFile'):
-        lump: NodeLump = bsp.get_lump('LUMP_NODES')
-        if lump:
-            return lump.nodes[self.head_node]
-        return None
 
 
 @dataclass(slots=True)
@@ -39,7 +29,7 @@ class RavenModel:
     brush_count: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("4i"))
 
 
@@ -48,7 +38,7 @@ class DMModel(Model):
     unk: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         head = buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f')
         unk, *rest = buffer.read_fmt("4i")
         return cls(*head, *rest, unk)
@@ -62,5 +52,5 @@ class RespawnModel:
     mesh_count: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("2I"))

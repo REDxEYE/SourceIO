@@ -1,14 +1,9 @@
 from dataclasses import dataclass
 from enum import IntFlag
-from typing import TYPE_CHECKING, Optional, Tuple
 
-from ....shared.types import Vector4
-from ....utils.file_utils import Buffer
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
-    from ..lumps.texture_lump import TextureDataLump
-    from .texture_data import TextureData
+from SourceIO.library.shared.types import Vector4
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils.file_utils import Buffer
 
 
 class SurfaceInfo(IntFlag):
@@ -35,7 +30,7 @@ class TextureInfo:
     texture_data_id: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         texture_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
         lightmap_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
         if bsp.version == (20, 4):
@@ -43,10 +38,3 @@ class TextureInfo:
         flags = SurfaceInfo(buffer.read_uint32())
         texture_data_id = buffer.read_int32()
         return cls(texture_vectors, lightmap_vectors, flags, texture_data_id)
-
-    def get_texture_data(self, bsp: 'BSPFile') -> Optional['TextureData']:
-        tex_data_lump: TextureDataLump = bsp.get_lump('LUMP_TEXDATA')
-        if tex_data_lump:
-            tex_datas = tex_data_lump.texture_data
-            return tex_datas[self.texture_data_id]
-        return None

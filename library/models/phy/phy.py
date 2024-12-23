@@ -42,28 +42,30 @@ class ConvexTriangle:
         return self.edges[::2]
 
 
+@dataclass(slots=True)
 class ConvexLeaf:
-    def __init__(self, root_collision):
-        self.is_root = root_collision
-        self._entry = 0
-        self.vertex_offset = 0
-        self.bone_id = 0
-        self.flags = 0
-        self.triangle_count = 0
-        self.unused = 0
+    is_root: bool
+    _entry: int = 0
+    vertex_offset: int = 0
+    bone_id: int = 0
+    flags: int = 0
+    triangle_count: int = 0
+    unused: int = 0
+    triangles: list = field(default_factory=list)
+    unique_vertices: set = field(default_factory=set)
 
-        self.triangles = []
-        self.unique_vertices = set()
-
-    def read(self, buffer: Buffer):
-        self._entry = buffer.tell()
-        self.vertex_offset, self.bone_id, self.flags, self.triangle_count, self.unused = buffer.read_fmt('3i2h')
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, is_root: bool):
+        entry = buffer.tell()
+        vertex_offset, bone_id, flags, triangle_count, unused = buffer.read_fmt(
+            '3i2h')
         triangles = []
-        for _ in range(self.triangle_count):
+        unique_vertices = set()
+        for _ in range(triangle_count):
             tri = ConvexTriangle.from_buffer(buffer)
             triangles.append(tri.vertex_ids)
-            self.unique_vertices.update(tri.vertex_ids)
-        self.triangles = triangles
+            unique_vertices.update(tri.vertex_ids)
+        return cls(is_root, entry, vertex_offset, bone_id, flags, triangle_count, unused, triangles, unique_vertices)
 
     def child_node(self, buffer: Buffer):
         if self.has_children:
@@ -113,8 +115,7 @@ class TreeNode:
             if convex_offset:
                 with buffer.save_current_offset():
                     buffer.seek(entry_offset + convex_offset)
-                    convex_leaf = ConvexLeaf(not is_leaf)
-                    convex_leaf.read(buffer)
+                    convex_leaf = ConvexLeaf.from_buffer(buffer, not is_leaf)
                 if is_leaf:
                     return cls(center, radius, bbox_size, None, None, convex_leaf)
             left_node = TreeNode.from_buffer(buffer)
@@ -206,7 +207,7 @@ class Phy:
             buffer.seek(solid_start + solid.end())
             solid_start = buffer.tell()
             solids.append(solid)
-        if solids:
-            buffer.seek(solid_start + solids[-1].end())
+        # if solids:
+        #     buffer.seek(solid_start + solids[-1].end())
         kv = buffer.read_ascii_string()
         return cls(header, solids, kv)

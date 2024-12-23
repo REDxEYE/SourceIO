@@ -1,12 +1,12 @@
 import charset_normalizer
 
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.kv_parser import ValveKeyValueParser
 from SourceIO.library.utils.s1_keyvalues import KVParser
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
 
 log_manager = SourceLogMan()
 
@@ -18,7 +18,7 @@ class EntityLump(Lump):
         self.entities = []
         self._logger = log_manager.get_logger("Entity Lump")
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         buffer = buffer.read(-1).strip(b"\x00")
         chaset = charset_normalizer.from_bytes(buffer)
         self._logger.info(f"Detected {chaset.best().encoding!r} encoding in entity lump")
@@ -37,7 +37,7 @@ class EntityPartitionsLump(Lump):
         super().__init__(lump_info)
         self.entities = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         data = buffer.read_ascii_string(-1)
         entity_files = data.split(' ')[1:]
         for ent_file in entity_files:

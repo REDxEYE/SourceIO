@@ -1,13 +1,11 @@
-
-
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.game_lump_header import (GameLumpHeader,
-                                          VindictusGameLumpHeader, DMGameLumpHeader)
-from ..datatypes.gamelumps.detail_prop_lump import DetailPropLump
-from ..datatypes.gamelumps.static_prop_lump import StaticPropLump
-from . import SteamAppId
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.detail_prop_lump import DetailPropLump
+from SourceIO.library.source1.bsp.datatypes.game_lump_header import (GameLumpHeader, VindictusGameLumpHeader,
+                                                                     DMGameLumpHeader)
+from SourceIO.library.source1.bsp.datatypes.static_prop_lump import StaticPropLump
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(35, 'LUMP_GAME_LUMP')
@@ -18,10 +16,10 @@ class GameLump(Lump):
         self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
-            lump = GameLumpHeader(self).parse(buffer, bsp)
+            lump = GameLumpHeader.from_buffer(buffer, bsp)
             if not lump.id:
                 continue
             self.game_lumps_info.append(lump)
@@ -67,10 +65,10 @@ class GameLump204(Lump):
         self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
-            lump = DMGameLumpHeader(self).parse(buffer, bsp)
+            lump = DMGameLumpHeader.from_buffer(buffer, bsp)
             if not lump.id:
                 continue
             self.game_lumps_info.append(lump)
@@ -111,10 +109,10 @@ class VGameLump(Lump):
         self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
-            lump = VindictusGameLumpHeader(self).parse(buffer, bsp)
+            lump = VindictusGameLumpHeader.from_buffer(buffer, bsp)
             if not lump.id:
                 continue
             self.game_lumps_info.append(lump)

@@ -1,12 +1,10 @@
 from enum import IntFlag
-from typing import TYPE_CHECKING
 
-from ......logger import SourceLogMan
-from .....shared.app_id import SteamAppId
-from .....utils.file_utils import Buffer
-
-if TYPE_CHECKING:
-    from ...bsp_file import BSPFile
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.game_lump_header import GameLumpHeader
+from SourceIO.library.utils.file_utils import Buffer
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('StaticPropLump')
@@ -245,13 +243,12 @@ class StaticProp:
 
 class StaticPropLump:
     def __init__(self, glump_info):
-        from ..game_lump_header import GameLumpHeader
         self._glump_info: GameLumpHeader = glump_info
         self.model_names: list[str] = []
         self.leafs: list[int] = []
         self.static_props: list[StaticProp] = []
 
-    def parse(self, reader: Buffer, bsp: 'BSPFile'):
+    def parse(self, reader: Buffer, bsp: BSPFile):
         for _ in range(reader.read_int32()):
             self.model_names.append(reader.read_ascii_string(128))
         if self._glump_info.version < 13:

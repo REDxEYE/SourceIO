@@ -1,14 +1,10 @@
 import math
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING
 
-from ....shared.types import Vector3
-from ....utils.file_utils import Buffer
-from .primitive import Primitive
-
-if TYPE_CHECKING:
-    from ..bsp_file import BSPFile
+from SourceIO.library.shared.types import Vector3
+from SourceIO.library.utils.file_utils import Buffer
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
 
 
 class EmitType(IntEnum):
@@ -88,7 +84,7 @@ class WorldLight:
     owner: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: 'BSPFile'):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         origin = buffer.read_fmt('3f')
         intensity = Color32.from_array(buffer.read_fmt('3f'))
         normal = buffer.read_fmt('3f')

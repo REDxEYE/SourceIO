@@ -1,10 +1,8 @@
-
-
-from ....shared.app_id import SteamAppId
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.plane import Plane, RavenPlane
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.plane import Plane, RavenPlane
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(1, 'LUMP_PLANES')
@@ -14,7 +12,7 @@ class PlaneLump(Lump):
         super().__init__(lump_info)
         self.planes: list[Plane] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             plane = Plane.from_buffer(buffer, self.version, bsp)
             self.planes.append(plane)
@@ -28,7 +26,7 @@ class RavenPlaneLump(Lump):
         super().__init__(lump_info)
         self.planes: list[RavenPlane] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             plane = RavenPlane.from_buffer(buffer, self.version, bsp)
             self.planes.append(plane)

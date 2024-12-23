@@ -1,8 +1,8 @@
 import numpy as np
 
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(3, 'LUMP_VERTICES')
@@ -12,7 +12,7 @@ class VertexLump(Lump):
         super().__init__(lump_info)
         self.vertices = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertices = np.frombuffer(buffer.read(), np.float32)
         self.vertices = self.vertices.reshape((-1, 3))
         return self
@@ -32,7 +32,7 @@ class RavenVertexLump(Lump):
         super().__init__(lump_info)
         self.vertices = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertices = np.frombuffer(buffer.read(), self.dtype)
         return self
 
@@ -52,7 +52,7 @@ class UnLitVertexLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self
 
@@ -72,7 +72,7 @@ class LitVertexFlatLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self
 
@@ -95,7 +95,7 @@ class BumpLitVertexLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self
 
@@ -114,7 +114,7 @@ class UnlitTSVertexLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self
 
@@ -133,7 +133,7 @@ class BlinnPhongVertexLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self
 
@@ -154,7 +154,7 @@ class R5VertexLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self
 
@@ -174,6 +174,6 @@ class R7VertexLump(Lump):
         super().__init__(lump_info)
         self.vertex_info = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertex_info = np.frombuffer(buffer.read(), self._dtype)
         return self

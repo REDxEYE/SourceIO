@@ -1,12 +1,10 @@
-
-
 import numpy as np
 
-from ....utils import Buffer
-from .. import Lump, LumpInfo, lump_tag
-from ..bsp_file import BSPFile
-from ..datatypes.displacement import DispInfo, VDispInfo
-from . import SteamAppId
+from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.datatypes.displacement import DispInfo, VDispInfo
+from SourceIO.library.utils import Buffer
 
 
 @lump_tag(26, 'LUMP_DISPINFO')
@@ -15,7 +13,7 @@ class DispInfoLump(Lump):
         super().__init__(lump_info)
         self.infos: list[DispInfo] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             self.infos.append(DispInfo.from_buffer(buffer, self.version, bsp))
         return self
@@ -27,7 +25,7 @@ class VDispInfoLump(Lump):
         super().__init__(lump_info)
         self.infos: list[DispInfo] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             self.infos.append(VDispInfo.from_buffer(buffer, self.version, bsp))
         return self
@@ -49,7 +47,7 @@ class DispVertLump(Lump):
         self.vertices: np.ndarray = np.array(0, dtype=self.dtype)
         self.transformed_vertices = np.array((-1, 3))
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         self.vertices = np.frombuffer(buffer.read(), self.dtype)
 
         self.transformed_vertices = self.vertices['position'] * self.vertices['dist']
@@ -72,7 +70,7 @@ class DispMultiblendLump(Lump):
         super().__init__(lump_info)
         self.blends = np.ndarray([])
 
-    def parse(self, buffer: Buffer, bsp: 'BSPFile'):
+    def parse(self, buffer: Buffer, bsp: BSPFile):
         assert self._info.size % self.dtype.itemsize == 0
         self.blends = np.frombuffer(buffer.read(), self.dtype)
         return self
