@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from ....shared.types import Vector3
-from ....utils import Buffer
+
+from SourceIO.library.shared.types import Vector3
+from SourceIO.library.utils import Buffer
 
 
 @dataclass(slots=True)

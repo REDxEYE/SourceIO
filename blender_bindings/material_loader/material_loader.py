@@ -3,11 +3,11 @@ from typing import Type
 
 import bpy
 
-from ...library.models.mdl.v10.structs.texture import StudioTexture
-from ...library.shared.content_manager.manager import ContentManager
-from ...library.source1.vmt import VMT
-from ...library.source2 import CompiledMaterialResource
-from ...logger import SourceLogMan
+from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.source1.vmt import VMT
+from SourceIO.library.source2 import CompiledMaterialResource
+from SourceIO.logger import SourceLogMan
 from .shader_base import ShaderBase
 from .shaders.goldsrc_shader_base import GoldSrcShaderBase
 from .shaders.source1_shader_base import Source1ShaderBase

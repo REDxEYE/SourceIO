@@ -10,7 +10,7 @@ from SourceIO.blender_bindings.material_loader.material_loader import Source1Mat
 from SourceIO.blender_bindings.material_loader.shaders.source1_shaders.sky import Skybox
 from SourceIO.blender_bindings.source1.vtf import load_skybox_texture
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
-from SourceIO.library.source1.vtf.cubemap_to_envmap import SkyboxException
+from SourceIO.library.source1.vtf import SkyboxException
 from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath

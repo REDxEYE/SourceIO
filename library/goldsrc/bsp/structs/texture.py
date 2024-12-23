@@ -3,11 +3,11 @@ from typing import Optional
 
 import numpy as np
 
-from ....models.mdl.v10.structs.texture import MdlTextureFlag
-from .....logger import SourceLogMan
-from ....utils import Buffer
-from ...wad import MipTex, WadLump, flip_texture, make_texture
-from ..bsp_file import BspFile
+from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
+from SourceIO.library.goldsrc.wad import MipTex, WadLump, flip_texture, make_texture
+from SourceIO.library.models.mdl.v10.structs.texture import MdlTextureFlag
+from SourceIO.library.utils import Buffer
+from SourceIO.logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("GoldSrc::Texture")
 

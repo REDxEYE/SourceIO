@@ -1,5 +1,4 @@
-from SourceIO.library.utils import Buffer, FileBuffer
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import Buffer, FileBuffer, TinyPath
 
 
 def load_compiled_resource_from_path(path: TinyPath):

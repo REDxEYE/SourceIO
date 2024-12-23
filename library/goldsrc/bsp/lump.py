@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
-from ...utils import Buffer
+from SourceIO.library.utils import Buffer
 
 if TYPE_CHECKING:
     from .bsp_file import BspFile

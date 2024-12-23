@@ -1,6 +1,6 @@
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material
 from SourceIO.blender_bindings.material_loader.material_loader import Source2MaterialLoader
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledMaterialResource
 from SourceIO.library.utils.tiny_path import TinyPath
 

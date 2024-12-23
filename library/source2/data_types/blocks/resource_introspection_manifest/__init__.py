@@ -2,14 +2,12 @@ from typing import Union
 
 import numpy as np
 
-from .....utils import Buffer
-from ....resource_types.resource import CompiledResource
-from ...keyvalues3.binary_keyvalues import (Bool, Double, Int32, Int64,
-                                            KV3Type, KV3TypeFlag, NullObject,
-                                            Object, String, TypedArray, UInt32,
-                                            UInt64)
-from ..base import BaseBlock
-from ..resource_external_reference_list import ResourceExternalReferenceList
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.source2.data_types.keyvalues3.binary_keyvalues import Bool, Double, Int32, Int64, KV3Type, \
+    KV3TypeFlag, NullObject, Object, String, TypedArray, UInt32, UInt64
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
+from SourceIO.library.source2.data_types.blocks.resource_external_reference_list import ResourceExternalReferenceList
 from .enum import Enum
 from .struct import KeyValueDataType, Struct, StructMember
 

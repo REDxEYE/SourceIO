@@ -6,7 +6,7 @@ from . import mdl4, mdl6, mdl10, mdl36, mdl44, mdl49, md3_15
 from ..operators.import_settings_base import ModelOptions
 from ..shared.model_container import ModelContainer
 from ...library.shared.app_id import SteamAppId
-from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan
 

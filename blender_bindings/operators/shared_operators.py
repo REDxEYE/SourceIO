@@ -17,14 +17,13 @@ from ..models import import_model
 from ..shared.exceptions import RequiredFileNotFound
 from ..shared.model_container import ModelContainer
 from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
-from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from ...library.source2 import CompiledModelResource
 from ..models.common import put_into_collections as s1_put_into_collections
 from ..source2.vmdl_loader import load_model, ImportContext
 from ..source2.vmdl_loader import \
     put_into_collections as s2_put_into_collections
 from ..utils.bpy_utils import get_or_create_collection, find_layer_collection, pause_view_layer_update
-from ...library.source2.data_types.blocks.kv3_block import KVBlock
 from ...library.utils.path_utilities import path_stem
 from ...library.utils.tiny_path import TinyPath
 

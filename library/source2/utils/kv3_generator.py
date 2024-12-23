@@ -1,4 +1,4 @@
-from ...utils.s2_keyvalues import KeyValues
+from SourceIO.library.utils.s2_keyvalues import KeyValues
 
 
 class KV3mdl:

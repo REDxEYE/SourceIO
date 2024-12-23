@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Union
 
-from ......utils import Buffer
-from .....data_types.keyvalues3.types import Object
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.data_types.keyvalues3.types import Object
 from .dependency import Dependency, DependencyList
 
 

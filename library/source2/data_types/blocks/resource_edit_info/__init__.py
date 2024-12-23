@@ -1,7 +1,7 @@
-from .....utils import Buffer
-from ....resource_types.resource import CompiledResource
-from ...blocks.base import BaseBlock
-from ...keyvalues3.binary_keyvalues import read_valve_keyvalue3
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
+from SourceIO.library.source2.data_types.keyvalues3.binary_keyvalues import read_valve_keyvalue3
 from .dependencies import *
 
 

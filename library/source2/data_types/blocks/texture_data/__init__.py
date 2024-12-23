@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Any
 
-from .....utils import Buffer, MemoryBuffer
-from ....resource_types.resource import CompiledResource
-from ...blocks.base import BaseBlock
-from ...blocks.texture_data.enums import VTexExtraData, VTexFlags, VTexFormat
+from SourceIO.library.utils import Buffer, MemoryBuffer
+from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
+from SourceIO.library.source2.data_types.blocks.texture_data.enums import VTexExtraData, VTexFlags, VTexFormat
 
 
 @dataclass(slots=True)

@@ -3,7 +3,7 @@ import numpy as np
 
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledTextureResource
 from SourceIO.library.source2.data_types.blocks.texture_data import VTexFormat
 from SourceIO.library.utils.path_utilities import path_stem

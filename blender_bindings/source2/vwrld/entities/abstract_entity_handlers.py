@@ -9,7 +9,7 @@ from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from .base_entity_classes import *
 from SourceIO.blender_bindings.source2.vtex_loader import import_texture
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledMaterialResource, CompiledTextureResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.tiny_path import TinyPath

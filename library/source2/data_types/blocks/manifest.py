@@ -1,6 +1,5 @@
-from .....library.utils import Buffer
-
-from ...resource_types.resource import CompiledResource
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.resource_types.resource import CompiledResource
 from .kv3_block import KVBlock
 
 

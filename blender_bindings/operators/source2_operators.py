@@ -2,7 +2,7 @@ import bpy
 from bpy.props import (BoolProperty, FloatProperty,
                        IntProperty, StringProperty)
 
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledTextureResource, \
     CompiledPhysicsResource

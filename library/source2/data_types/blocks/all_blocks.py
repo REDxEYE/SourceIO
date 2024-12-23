@@ -6,7 +6,6 @@ from .base import BaseBlock
 def get_block_class(name) -> Type['BaseBlock']:
     from .agrp_block import AgrpBlock
     from .aseq_block import AseqBlock
-    from .dummy import DummyBlock
     from .kv3_block import KVBlock
     from .morph_block import MorphBlock
     from .phys_block import PhysBlock

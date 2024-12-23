@@ -1,10 +1,11 @@
 import typing
 from dataclasses import dataclass
 
-from ....utils import Buffer
-from .base import BaseBlock
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
+
 if typing.TYPE_CHECKING:
-    from ...resource_types.resource import CompiledResource
+    from SourceIO.library.source2.resource_types.resource import CompiledResource
 
 
 @dataclass(slots=True)

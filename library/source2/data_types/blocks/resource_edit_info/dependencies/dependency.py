@@ -2,8 +2,8 @@ import abc
 from abc import ABC
 from typing import TypeVar
 
-from ......utils import Buffer
-from ....keyvalues3.types import Object, TypedArray
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.data_types.keyvalues3.types import Object, TypedArray
 
 
 class Dependency(ABC):

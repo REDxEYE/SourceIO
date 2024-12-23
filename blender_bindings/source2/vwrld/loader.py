@@ -4,7 +4,7 @@ import bpy
 from mathutils import Matrix
 
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils.tiny_path import TinyPath
 from .entities.base_entity_handlers import BaseEntityHandler
 from .entities.cs2_entity_handlers import CS2EntityHandler

@@ -4,7 +4,7 @@ from typing import Optional, Callable
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.tiny_path import TinyPath
 

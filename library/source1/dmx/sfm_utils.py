@@ -1,5 +1,3 @@
-
-
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 

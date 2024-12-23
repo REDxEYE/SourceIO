@@ -1,6 +1,6 @@
 from enum import IntEnum, IntFlag, auto
 
-from ....utils import ExtendedEnum
+from SourceIO.library.utils import ExtendedEnum
 
 
 class KV3Signatures(ExtendedEnum):

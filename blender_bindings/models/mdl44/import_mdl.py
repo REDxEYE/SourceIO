@@ -8,7 +8,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.library.models.vtx.v7.vtx import Vtx
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.library.shared.content_manager.provider import \

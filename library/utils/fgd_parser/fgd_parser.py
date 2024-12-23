@@ -1,6 +1,6 @@
 from enum import Enum
 
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils.fgd_parser.fgd_classes import FGDEntity
 from SourceIO.library.utils.tiny_path import TinyPath
 

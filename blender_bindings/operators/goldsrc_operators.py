@@ -4,7 +4,7 @@ from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
 
 from ..goldsrc.bsp.import_bsp import BSP
 from ...library.global_config import GoldSrcConfig
-from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from ...library.utils.tiny_path import TinyPath
 from ...logger import SourceLogMan

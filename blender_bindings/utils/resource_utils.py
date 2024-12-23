@@ -1,6 +1,6 @@
 import bpy
 
-from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 
 
 def serialize_mounted_content(cm: ContentManager):

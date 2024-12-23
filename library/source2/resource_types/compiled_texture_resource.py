@@ -6,12 +6,11 @@ from typing import Optional, Type
 import numpy as np
 import numpy.typing as npt
 
-from ..data_types.blocks.resource_edit_info import ResourceEditInfo
-from ...utils.rustlib import lz4_decompress, decode_texture
-from ..data_types.blocks.base import BaseBlock
-from ..data_types.blocks.texture_data import CompressedMip, TextureData
-from ..data_types.blocks.texture_data.enums import (VTexExtraData, VTexFlags,
-                                                    VTexFormat)
+from SourceIO.library.source2.data_types.blocks.resource_edit_info import ResourceEditInfo
+from SourceIO.library.utils.rustlib import lz4_decompress, decode_texture
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
+from SourceIO.library.source2.data_types.blocks.texture_data import CompressedMip, TextureData, VTexExtraData, \
+    VTexFlags, VTexFormat
 from .resource import CompiledResource
 
 logger = logging.getLogger('CompiledTextureResource')
@@ -24,9 +23,10 @@ class CompiledTextureResource(CompiledResource):
     def _get_block_class(self, name) -> Type[BaseBlock]:
         if name == 'DATA':
             return TextureData
-        return super(CompiledTextureResource, self)._get_block_class(name)
+        return super()._get_block_class(name)
 
-    def _calculate_buffer_size_for_mip(self, data_block: TextureData, mip_level):
+    @staticmethod
+    def _calculate_buffer_size_for_mip(data_block: TextureData, mip_level):
         texture_info = data_block.texture_info
         bytes_per_pixel = VTexFormat.block_size(texture_info.pixel_format)
         width = texture_info.width >> mip_level

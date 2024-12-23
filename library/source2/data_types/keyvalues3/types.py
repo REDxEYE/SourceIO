@@ -5,7 +5,7 @@ from typing import Collection, Optional, TypeVar
 
 import numpy as np
 
-from .enums import KV3Type, KV3TypeFlag, Specifier
+from .enums import KV3Type, Specifier
 
 
 class BaseType(abc.ABC):

@@ -4,7 +4,7 @@ import numpy as np
 
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.utils.tiny_path import TinyPath
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2.resource_types import CompiledMaterialResource, CompiledTextureResource
 from SourceIO.logger import SourceLogMan
 from SourceIO.blender_bindings.source2.vtex_loader import import_texture

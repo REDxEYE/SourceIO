@@ -2,8 +2,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .....utils import Buffer, MemoryBuffer
-from .....utils.rustlib import decode_index_buffer
+from SourceIO.library.utils import Buffer, MemoryBuffer
+from SourceIO.library.utils.rustlib import decode_index_buffer
 
 
 @dataclass(slots=True)

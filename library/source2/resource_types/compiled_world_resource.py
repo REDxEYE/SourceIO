@@ -1,6 +1,6 @@
 from typing import Iterator, Optional
 
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils import MemoryBuffer
 from SourceIO.library.source2.data_types.keyvalues3.types import Object
 from SourceIO.library.source2.utils.entity_keyvalues import EntityKeyValues

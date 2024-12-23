@@ -1,11 +1,10 @@
 import abc
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from ....utils import Buffer
+from SourceIO.library.utils import Buffer
 
 if TYPE_CHECKING:
-    from ...resource_types.resource import CompiledResource
+    from SourceIO.library.source2.resource_types.resource import CompiledResource
 
 
 class BaseBlock:

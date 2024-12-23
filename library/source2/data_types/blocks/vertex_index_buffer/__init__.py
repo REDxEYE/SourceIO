@@ -1,8 +1,6 @@
-
-
-from .....utils import Buffer
-from ....resource_types.resource import CompiledResource
-from ..base import BaseBlock
+from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
 from .index_buffer import IndexBuffer
 from .vertex_buffer import VertexBuffer
 

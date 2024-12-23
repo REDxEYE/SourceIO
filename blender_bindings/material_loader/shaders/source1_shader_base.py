@@ -4,7 +4,7 @@ import numpy as np
 from ..shader_base import ShaderBase
 from ...source1.vtf import import_texture
 from ...utils.texture_utils import check_texture_cache
-from ....library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from ....library.source1.vmt import VMT
 from ....library.utils.tiny_path import TinyPath
 

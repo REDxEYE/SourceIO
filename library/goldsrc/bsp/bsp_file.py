@@ -1,9 +1,8 @@
 from typing import Optional
 
-from SourceIO.library.shared.content_manager.manager import ContentManager
-from SourceIO.library.utils import Buffer, FileBuffer
 from .lump import Lump, LumpInfo, LumpType
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.utils import Buffer, FileBuffer, TinyPath
 
 
 class BspFile:

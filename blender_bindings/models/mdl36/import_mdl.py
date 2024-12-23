@@ -7,7 +7,7 @@ import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.library.models.vtx.v6.vtx import Vtx
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *

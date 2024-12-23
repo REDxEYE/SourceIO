@@ -4,12 +4,10 @@ from collections import defaultdict
 import numpy as np
 import numpy.typing as npt
 
-from ....shared.content_manager.provider import ContentProvider
-from ....shared.content_manager.manager import ContentManager
-from ....utils import Buffer
-from ...resource_types.compiled_texture_resource import \
-    CompiledTextureResource
-from ...resource_types.resource import CompiledResource
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.source2.resource_types.compiled_texture_resource import CompiledTextureResource
+from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.utils import Buffer
 from .kv3_block import KVBlock
 
 

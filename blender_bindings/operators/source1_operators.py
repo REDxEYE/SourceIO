@@ -10,7 +10,7 @@ from ..shared.exceptions import RequiredFileNotFound
 from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
 from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from ...library.shared.app_id import SteamAppId
-from ...library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from ..source1.vtf import import_texture, load_skybox_texture
 from ...library.utils import FileBuffer
 from ...library.utils.path_utilities import path_stem
@@ -20,7 +20,6 @@ from ...logger import SourceLogMan
 from ..material_loader.material_loader import Source1MaterialLoader
 from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
 from ..source1.bsp.import_bsp import import_bsp
-from ..source1.dmx.load_sfm_session import load_session
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
 

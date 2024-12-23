@@ -18,7 +18,7 @@ from SourceIO.library.goldsrc.bsp.lumps.vertex_lump import VertexLump
 from SourceIO.library.goldsrc.bsp.structs.texture import TextureInfo
 from SourceIO.library.goldsrc.rad import convert_light_value, parse_rad
 from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import GoldSrcWADContentProvider
 from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
 from SourceIO.library.utils.path_utilities import backwalk_file_resolver

@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-
-from .....utils import Buffer
+from SourceIO.library.utils import Buffer
 
 
 class KeyValueDataType(IntEnum):

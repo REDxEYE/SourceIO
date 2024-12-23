@@ -1,11 +1,7 @@
-from typing import TYPE_CHECKING
-
-from ....utils import Buffer
-from ..lump import Lump, LumpInfo, LumpType
-from ..structs.texture import TextureData
-
-if TYPE_CHECKING:
-    from ..bsp_file import BspFile
+from SourceIO.library.utils import Buffer
+from SourceIO.library.goldsrc.bsp.lump import Lump, LumpInfo, LumpType
+from SourceIO.library.goldsrc.bsp.structs.texture import TextureData
+from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
 
 
 class TextureDataLump(Lump):
@@ -16,7 +12,7 @@ class TextureDataLump(Lump):
         self.key_values: dict[str, TextureData] = {}
         self.values: list[TextureData] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+    def parse(self, buffer: Buffer, bsp: BspFile):
         textures_count = buffer.read_uint32()
         textures_offset = buffer.read_fmt(f'{textures_count}i')
 

@@ -3,14 +3,13 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Optional, Type, TypeVar, Union
 
-from ..data_types.blocks.resource_external_reference_list import ResourceExternalReferenceList
-from ...shared.content_manager.manager import ContentManager
-from ...utils import Buffer, MemoryBuffer
-from .. import load_compiled_resource
-from ..data_types.blocks.all_blocks import get_block_class
-from ..data_types.blocks.base import BaseBlock
-from ..data_types.compiled_file_header import CompiledHeader
-from ...utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.source2 import load_compiled_resource
+from SourceIO.library.source2.data_types.blocks.all_blocks import get_block_class
+from SourceIO.library.source2.data_types.blocks.base import BaseBlock
+from SourceIO.library.source2.data_types.blocks.resource_external_reference_list import ResourceExternalReferenceList
+from SourceIO.library.source2.data_types.compiled_file_header import CompiledHeader
+from SourceIO.library.utils import Buffer, MemoryBuffer, TinyPath
 
 T = TypeVar("T", bound="CompiledResource")
 

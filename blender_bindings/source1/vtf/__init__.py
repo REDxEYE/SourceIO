@@ -1,11 +1,11 @@
 import numpy as np
 
 from ...utils.texture_utils import create_and_cache_texture
-from ....library.shared.content_manager.manager import ContentManager
+from ....library.shared.content_manager import ContentManager
 from ....library.utils.tiny_path import TinyPath
 from ....logger import SourceLogMan
 from ....library.source1.vtf import load_texture
-from ....library.source1.vtf.cubemap_to_envmap import convert_skybox_to_equiangular
+from ....library.source1.vtf import convert_skybox_to_equiangular
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::VTF')

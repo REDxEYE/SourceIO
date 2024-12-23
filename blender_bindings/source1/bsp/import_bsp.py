@@ -10,7 +10,7 @@ from SourceIO.blender_bindings.source1.bsp.entities.sof_entity_handler import SO
 from SourceIO.blender_bindings.material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from SourceIO.blender_bindings.operators.import_settings_base import Source1BSPSettings
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.bsp.bsp_file import open_bsp, BSPFile
 from SourceIO.library.source1.bsp.datatypes.static_prop_lump import StaticPropLump
 from SourceIO.library.source1.bsp.datatypes.face import Face

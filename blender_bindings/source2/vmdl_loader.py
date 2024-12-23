@@ -13,7 +13,7 @@ from mathutils import Matrix, Quaternion, Vector
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, find_layer_collection, get_new_unique_collection, \
     get_or_create_material, is_blender_4_1
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledMorphResource, \
     CompiledPhysicsResource, CompiledResource
 from SourceIO.library.source2.common import convert_normals, convert_normals_2

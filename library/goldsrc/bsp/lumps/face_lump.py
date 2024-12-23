@@ -1,11 +1,7 @@
-from typing import TYPE_CHECKING
-
-from ....utils import Buffer
-from ..lump import Lump, LumpInfo, LumpType
-from ..structs.face import Face
-
-if TYPE_CHECKING:
-    from ..bsp_file import BspFile
+from SourceIO.library.utils import Buffer
+from SourceIO.library.goldsrc.bsp.lump import Lump, LumpInfo, LumpType
+from SourceIO.library.goldsrc.bsp.structs.face import Face
+from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
 
 
 class FaceLump(Lump):
@@ -15,7 +11,7 @@ class FaceLump(Lump):
         super().__init__(info)
         self.values: list[Face] = []
 
-    def parse(self, buffer: Buffer, bsp: 'BspFile'):
+    def parse(self, buffer: Buffer, bsp: BspFile):
         while buffer:
             face = Face.from_buffer(buffer)
             self.values.append(face)

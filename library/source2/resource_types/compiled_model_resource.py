@@ -1,8 +1,7 @@
-
 import numpy as np
 
-from ...shared.intermidiate_data.bone import Bone, BoneFlags
-from ..exceptions import MissingBlock
+from SourceIO.library.shared.intermidiate_data.bone import Bone, BoneFlags
+from SourceIO.library.source2.exceptions import MissingBlock
 from .resource import CompiledResource
 
 

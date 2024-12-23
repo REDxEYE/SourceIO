@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ....utils import Buffer
+from SourceIO.library.utils import Buffer
 from .base import BaseBlock
 
 

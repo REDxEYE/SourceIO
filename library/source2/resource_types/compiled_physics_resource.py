@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..exceptions import MissingBlock
+from SourceIO.library.source2.exceptions import MissingBlock
 from .resource import CompiledResource
 
 

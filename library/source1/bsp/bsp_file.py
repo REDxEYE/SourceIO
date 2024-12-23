@@ -1,7 +1,7 @@
 from typing import Optional, Type
 
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.shared.content_manager.manager import ContentManager
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.bsp.lump import RavenLumpInfo, LumpTag, LumpInfo, Lump
 from SourceIO.library.utils import Buffer, FileBuffer
 from SourceIO.library.utils.tiny_path import TinyPath

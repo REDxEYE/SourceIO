@@ -1,8 +1,8 @@
-from ....utils import Buffer
-from ...resource_types.resource import CompiledResource
-from ..keyvalues3.binary_keyvalues import read_valve_keyvalue3
-from ..keyvalues3.enums import KV3Signatures
-from ..keyvalues3.types import BaseType
+from SourceIO.library.source2.data_types.keyvalues3.binary_keyvalues import read_valve_keyvalue3
+from SourceIO.library.source2.data_types.keyvalues3.enums import KV3Signatures
+from SourceIO.library.source2.data_types.keyvalues3.types import BaseType
+from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.utils import Buffer
 from .base import BaseBlock
 
 
