@@ -2,9 +2,7 @@ from abc import abstractmethod
 from typing import Iterator, Optional
 
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.utils import Buffer, FileBuffer
-from SourceIO.library.utils.path_utilities import corrected_path
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import Buffer, FileBuffer, TinyPath, corrected_path
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()

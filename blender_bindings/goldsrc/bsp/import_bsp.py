@@ -21,8 +21,7 @@ from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import GoldSrcWADContentProvider
 from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
-from SourceIO.library.utils.path_utilities import backwalk_file_resolver
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import backwalk_file_resolver, TinyPath
 from SourceIO.logger import SourceLogMan
 from ...goldsrc.bsp.entity_handlers import entity_handlers
 from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \

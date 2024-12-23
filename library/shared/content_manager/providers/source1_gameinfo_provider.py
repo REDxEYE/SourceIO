@@ -5,9 +5,8 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider, is
 from SourceIO.library.shared.content_manager.providers import register_provider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
-from SourceIO.library.utils import Buffer, FileBuffer
+from SourceIO.library.utils import Buffer, FileBuffer, TinyPath
 from SourceIO.library.utils.s1_keyvalues import KVParser
-from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()

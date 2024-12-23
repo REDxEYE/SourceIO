@@ -2,10 +2,9 @@ import fnmatch
 from typing import Iterator, Optional
 
 from SourceIO.library.archives.gma import GMA
-from SourceIO.library.shared.content_manager.provider import ContentProvider
-from SourceIO.library.utils import Buffer
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils import Buffer, TinyPath
 
 
 class GMAContentProvider(ContentProvider):

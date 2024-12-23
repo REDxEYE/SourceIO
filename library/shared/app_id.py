@@ -1,5 +1,4 @@
 from enum import IntEnum
-from typing import Any
 
 
 class SteamAppId(IntEnum):

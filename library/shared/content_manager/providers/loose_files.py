@@ -1,10 +1,8 @@
 from typing import Iterator, Optional, Union
 
 from SourceIO.library.shared.content_manager.provider import ContentProvider, glob_generic
-from SourceIO.library.utils import Buffer, FileBuffer
-from SourceIO.library.utils.path_utilities import backwalk_file_resolver, corrected_path
+from SourceIO.library.utils import Buffer, FileBuffer, TinyPath, backwalk_file_resolver, corrected_path
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class LooseFilesContentProvider(ContentProvider):

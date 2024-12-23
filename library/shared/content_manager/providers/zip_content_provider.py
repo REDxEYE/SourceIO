@@ -4,8 +4,7 @@ from zipfile import ZipFile
 
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.provider import ContentProvider
-from SourceIO.library.utils import Buffer, MemoryBuffer
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import Buffer, MemoryBuffer, TinyPath
 
 
 class ZIPContentProvider(ContentProvider):

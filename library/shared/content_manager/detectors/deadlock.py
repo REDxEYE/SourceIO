@@ -2,8 +2,7 @@ from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.detectors.source2 import Source2Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.source2_gameinfo_provider import Source2GameInfoProvider
-from SourceIO.library.utils.path_utilities import backwalk_file_resolver
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import backwalk_file_resolver, TinyPath
 
 
 class DeadlockDetector(Source2Detector):
@@ -18,7 +17,6 @@ class DeadlockDetector(Source2Detector):
             return []
 
         providers = {}
-
 
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.gi")
         if initial_mod_gi_path is not None:

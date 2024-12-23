@@ -1,9 +1,9 @@
 import math
 
 import bpy
-from mathutils import Euler, Matrix, Quaternion, Vector
+from mathutils import Euler, Quaternion, Vector
 
-from ....library.utils.datamodel import load
+from SourceIO.library.utils.datamodel import load
 
 
 def load_camera(dmx_camera_path):

@@ -4,7 +4,7 @@ from .extended_enum import ExtendedEnum
 from .file_utils import (Buffer, FileBuffer, MemoryBuffer, Readable,
                          WritableMemoryBuffer)
 from .tiny_path import TinyPath
-from .path_utilities import path_stem, backwalk_file_resolver
+from .path_utilities import path_stem, backwalk_file_resolver, corrected_path
 from .math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS, SOURCE2_HAMMER_UNIT_TO_METERS
 
 

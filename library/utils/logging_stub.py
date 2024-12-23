@@ -2,8 +2,7 @@ import sys
 from logging import (DEBUG, Filter, Formatter, LogRecord, StreamHandler,
                      getLogger)
 
-
-from ..utils.singleton import SingletonMeta
+from SourceIO.library.utils.singleton import SingletonMeta
 
 
 class BPYLoggingManager(metaclass=SingletonMeta):

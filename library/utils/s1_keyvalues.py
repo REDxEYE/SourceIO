@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TextIO, Union
 
 from SourceIO.library.utils.tiny_path import TinyPath
-from ...logger import SourceLogMan
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Utilities::KeyValue Parser')

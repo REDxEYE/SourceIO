@@ -2,7 +2,7 @@ from typing import Type
 
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers import register_provider
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import TinyPath
 
 
 class ContentDetector:
