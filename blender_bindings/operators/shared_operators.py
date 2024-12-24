@@ -273,7 +273,7 @@ class SourceIO_OT_LoadEntity(Operator):
 
             fragments = custom_prop_data["fragments"]
             get_draw_call = operator.itemgetter("draw_call")
-            draw_calls = {draw_call: [d["matrix"] for d in matrices] for (draw_call, matrices) in
+            draw_calls = {draw_call: [Matrix(d["matrix"]) for d in matrices] for (draw_call, matrices) in
                           itertools.groupby(sorted(fragments, key=get_draw_call), key=get_draw_call)}
             _preload_draw_calls([d for d, m in draw_calls.items() if len(m) > 1])
             for draw_call, matrices in draw_calls.items():
