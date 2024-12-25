@@ -21,7 +21,7 @@ class Source1GameInfoProvider(ContentProvider):
         if header != "gameinfo":
             raise ValueError("Invalid gameinfo header")
         self.filesystem: dict[str, Any] = gameinfo_data["filesystem"]
-        self._steamapp_id = SteamAppId(int(self.filesystem["steamappid"]))
+        self._steamapp_id = SteamAppId(int(self.filesystem.get("steamappid", 0)))
         self.mount: list[ContentProvider] = []
 
         mods_folder = self.root.parent
