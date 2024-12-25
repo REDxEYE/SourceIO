@@ -3,7 +3,7 @@ import numpy as np
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
 from SourceIO.library.source1.bsp.bsp_file import BSPFile
-from SourceIO.library.source1.bsp.datatypes.displacement import DispInfo, VDispInfo
+from SourceIO.library.source1.bsp.datatypes.displacement import DispInfo, VDispInfo, StrataDispInfo
 from SourceIO.library.utils import Buffer
 
 
@@ -16,6 +16,18 @@ class DispInfoLump(Lump):
     def parse(self, buffer: Buffer, bsp: BSPFile):
         while buffer:
             self.infos.append(DispInfo.from_buffer(buffer, self.version, bsp))
+        return self
+
+
+@lump_tag(26, 'LUMP_DISPINFO', 1)
+class DispInfoLump(Lump):
+    def __init__(self, lump_info: LumpInfo):
+        super().__init__(lump_info)
+        self.infos: list[StrataDispInfo] = []
+
+    def parse(self, buffer: Buffer, bsp: BSPFile):
+        while buffer:
+            self.infos.append(StrataDispInfo.from_buffer(buffer, self.version, bsp))
         return self
 
 

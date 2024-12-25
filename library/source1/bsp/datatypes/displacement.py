@@ -81,3 +81,22 @@ class VDispInfo(DispInfo):
         allowed_verts = [buffer.read_int32() for _ in range(10)]
         return cls(start_position, disp_vert_start, disp_tri_start, power, 0, smoothing_angle, contents, map_face,
                    lightmap_alpha_start, lightmap_sample_position_start, allowed_verts)
+
+@dataclass(slots=True)
+class StrataDispInfo(DispInfo):
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+        start_position = buffer.read_fmt('3f')
+        (disp_vert_start,
+         disp_tri_start,
+         power,
+         smoothing_angle,
+         min_tess,
+         contents,
+         map_face,
+         lightmap_alpha_start,
+         lightmap_sample_position_start,) = buffer.read_fmt('3IfiiI2i')
+        buffer.skip(144)
+        allowed_verts = [buffer.read_int32() for _ in range(10)]
+        return cls(start_position, disp_vert_start, disp_tri_start, power, 0, smoothing_angle, contents, map_face,
+                   lightmap_alpha_start, lightmap_sample_position_start, allowed_verts)

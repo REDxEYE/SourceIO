@@ -8,7 +8,7 @@ from mathutils import Euler
 
 from SourceIO.blender_bindings.source1.bsp.entities.base_entity_classes import *
 from SourceIO.blender_bindings.source1.vtf import import_texture
-from SourceIO.blender_bindings.operators.import_settings_base import BSPOptions
+from SourceIO.blender_bindings.operators.import_settings_base import Source1BSPSettings
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
 from SourceIO.library.source1.bsp.bsp_file import BSPFile
 from SourceIO.library.source1.bsp.datatypes.face import Face
@@ -74,8 +74,10 @@ class AbstractEntityHandler:
         self._handled_paths = []
         self._entity_by_name_cache = {}
         self._world_geometry_name = ""
+        self.settings: Source1BSPSettings | None = None
 
-    def load_entities(self, settings: BSPOptions):
+    def load_entities(self, settings: Source1BSPSettings):
+        self.settings = settings
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
             entity_class: str = entity_data['classname']
@@ -156,20 +158,20 @@ class AbstractEntityHandler:
             texture_info = bsp_textures_info[texture_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = self._get_string(texture_data.name_id)
-
-            material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
-            if material_file:
-                vmt = VMT(material_file, material_name, self.content_manager)
-                material_name = strip_patch_coordinates.sub("", material_name)
-                if vmt.get_int("$abovewater", 1) == 0:
-                    skippable_materials.add(texture_info_id)
-            else:
-                material_name = strip_patch_coordinates.sub("", material_name)
+            if self.settings and self.settings.import_textures:
                 material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
                 if material_file:
                     vmt = VMT(material_file, material_name, self.content_manager)
+                    material_name = strip_patch_coordinates.sub("", material_name)
                     if vmt.get_int("$abovewater", 1) == 0:
                         skippable_materials.add(texture_info_id)
+                else:
+                    material_name = strip_patch_coordinates.sub("", material_name)
+                    material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
+                    if material_file:
+                        vmt = VMT(material_file, material_name, self.content_manager)
+                        if vmt.get_int("$abovewater", 1) == 0:
+                            skippable_materials.add(texture_info_id)
             material = get_or_create_material(path_stem(material_name), material_name)
             material_lookup_table[texture_data.name_id] = add_material(material, mesh_obj)
 
