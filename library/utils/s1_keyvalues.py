@@ -178,7 +178,7 @@ class KVParser(KVReader):
         return pairs if len(pairs) > 1 else pairs[0] if pairs else None
 
     def parse_pair(self):
-        key = self._match(KVToken.STR)[1].lower()
+        key = str(self._match(KVToken.STR,KVToken.NUM)[1]).lower()
 
         if self._match(KVToken.PLUS, required=False, consume=False):
             key = [key]
