@@ -23,7 +23,7 @@ class CompiledTextureResource(CompiledResource):
     def _get_block_class(self, name) -> Type[BaseBlock]:
         if name == 'DATA':
             return TextureData
-        return super()._get_block_class(name)
+        return super(CompiledTextureResource, self)._get_block_class(name)
 
     @staticmethod
     def _calculate_buffer_size_for_mip(data_block: TextureData, mip_level):

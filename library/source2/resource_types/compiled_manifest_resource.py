@@ -10,4 +10,4 @@ class CompiledManifestResource(CompiledResource):
     def _get_block_class(self, name) -> Type[BaseBlock]:
         if name == "DATA":
             return ManifestBlock
-        return super()._get_block_class(name)
+        return super(CompiledManifestResource, self)._get_block_class(name)
