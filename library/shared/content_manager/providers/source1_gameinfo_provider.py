@@ -42,7 +42,10 @@ class Source1GameInfoProvider(ContentProvider):
                     continue
                 if search_path.endswith(".vpk"):
                     tmp = TinyPath(search_path)
-                    search_path = tmp.with_name(tmp.stem + "_dir")
+                    if (mods_folder / tmp.with_name(tmp.stem + "_dir")).resolve().exists():
+                        search_path = tmp.with_name(tmp.stem + "_dir")
+                    else:
+                        search_path = TinyPath(search_path)
                 mod_folder = (mods_folder / search_path).resolve()
                 if mod_folder.exists():
                     if mod_folder.is_file():

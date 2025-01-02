@@ -21,11 +21,11 @@ from SourceIO.library.utils.tiny_path import TinyPath
 
 
 def detect_game(path: TinyPath) -> list[ContentProvider]:
-    detector_addons = [GoldSrcDetector(), IDTech3Detector(),
+    detector_addons = [GoldSrcDetector(),
                        SFMDetector(), GModDetector(), InfraDetector(), Portal2Detector(),Portal2RevolutionDetector(), SourceMod(), CSGODetector(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
-                       DeadlockDetector(), Source1Detector(), Source2Detector()]
+                       DeadlockDetector(), Source1Detector(), Source2Detector(), IDTech3Detector()]
 
     for detector in detector_addons:
         results = detector.scan(path)
