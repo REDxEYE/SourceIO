@@ -1,5 +1,6 @@
 from pprint import pformat
 
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 
