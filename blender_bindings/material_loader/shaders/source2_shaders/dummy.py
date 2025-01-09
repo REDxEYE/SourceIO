@@ -1,11 +1,8 @@
 from pprint import pformat
-from typing import Optional
 
-import bpy
-import numpy as np
-
-from ...shader_base import Nodes
-from ..source2_shader_base import Source2ShaderBase
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 
 
 class DummyShader(Source2ShaderBase):
@@ -16,7 +13,7 @@ class DummyShader(Source2ShaderBase):
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        data, = self._material_resource.get_data_block(block_name='DATA')
+        data = self._material_resource.get_block(KVBlock,block_name='DATA')
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, data["m_shaderName"])
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         self.logger.info(pformat(dict(data)))

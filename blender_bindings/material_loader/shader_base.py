@@ -4,9 +4,9 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from ...library.utils.tiny_path import TinyPath
-from ...logger import SourceLogMan
-from ..utils.bpy_utils import append_blend, is_blender_4_3
+from SourceIO.blender_bindings.utils.bpy_utils import append_blend, is_blender_4_3
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 from .node_arranger import nodes_iterate
 
 class Nodes:

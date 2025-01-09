@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-import numpy as np
-
-from SourceIO.library.utils import FileBuffer, Buffer
+from SourceIO.library.utils import Buffer
 from .structs.animation import StudioAnimation
 from .structs.bodypart import StudioBodypart
 from .structs.bone import StudioBone

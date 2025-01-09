@@ -2,12 +2,12 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
                        StringProperty)
 
-from ..goldsrc.bsp.import_bsp import BSP
-from ...library.global_config import GoldSrcConfig
+from SourceIO.blender_bindings.goldsrc.bsp.import_bsp import BSP
+from SourceIO.library.global_config import GoldSrcConfig
 from SourceIO.library.shared.content_manager import ContentManager
-from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
-from ...library.utils.tiny_path import TinyPath
-from ...logger import SourceLogMan
+from SourceIO.library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("GoldSrc::Operators")
 

@@ -1,7 +1,9 @@
-import os
 import platform
 
 import bpy
+
+from SourceIO.library.utils.singleton import SingletonMeta
+from SourceIO.library.utils.tiny_path import TinyPath
 
 from .attributes import register_props, unregister_props
 from .operators.flex_operators import classes as flex_classes
@@ -23,8 +25,7 @@ from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_DMXCameraImport)
 from .ui.export_nodes import register_nodes, unregister_nodes
 from .utils.bpy_utils import is_blender_4_1
-from ..library.utils.singleton import SingletonMeta
-from ..library.utils.tiny_path import TinyPath
+
 
 custom_icons = {}
 

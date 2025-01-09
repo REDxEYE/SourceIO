@@ -2,13 +2,13 @@ import math
 from functools import partial
 import bpy
 
-from ...models import import_model
-from ...models.common import put_into_collections
-from ...operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.models import import_model
+from SourceIO.blender_bindings.models.common import put_into_collections
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.utils.bpy_utils import get_new_unique_collection, get_or_create_collection
 from SourceIO.library.shared.content_manager import ContentManager
-from ....library.utils.math_utilities import parse_hammer_vector
-from ...utils.bpy_utils import get_new_unique_collection, get_or_create_collection
-from ....library.utils.tiny_path import TinyPath
+from SourceIO.library.utils.math_utilities import parse_hammer_vector
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
 def handle_generic_model_prop(content_manager: ContentManager, entity_data, scale, parent_collection, fix_rotation=True,

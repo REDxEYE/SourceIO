@@ -4,22 +4,21 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
 
 from .import_settings_base import ModelOptions, Source1BSPSettings
 from .operator_helper import ImportOperatorHelper
-from ..models import import_model
-from ..models.common import put_into_collections
-from ..shared.exceptions import RequiredFileNotFound
-from ..utils.bpy_utils import get_or_create_material, is_blender_4_1
-from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
-from ...library.shared.app_id import SteamAppId
+from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.models import import_model
+from SourceIO.blender_bindings.models.common import put_into_collections
+from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
+from SourceIO.blender_bindings.source1.bsp.import_bsp import import_bsp
+from SourceIO.blender_bindings.source1.vtf import import_texture, load_skybox_texture
+from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, is_blender_4_1
+from SourceIO.blender_bindings.utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
+from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
-from ..source1.vtf import import_texture, load_skybox_texture
-from ...library.utils import FileBuffer
-from ...library.utils.path_utilities import path_stem
-from ...library.utils.tiny_path import TinyPath
-
-from ...logger import SourceLogMan
-from ..material_loader.material_loader import Source1MaterialLoader
-from ..material_loader.shaders.source1_shader_base import Source1ShaderBase
-from ..source1.bsp.import_bsp import import_bsp
+from SourceIO.library.utils import FileBuffer
+from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
 

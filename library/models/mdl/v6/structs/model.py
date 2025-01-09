@@ -1,5 +1,3 @@
-
-
 import numpy as np
 
 from SourceIO.library.utils import Buffer

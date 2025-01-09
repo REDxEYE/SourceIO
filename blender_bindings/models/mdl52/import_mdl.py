@@ -3,6 +3,8 @@ from collections import defaultdict
 import bpy
 import numpy as np
 
+from SourceIO.blender_bindings.models.common import merge_meshes
+from SourceIO.blender_bindings.models.mdl49.import_mdl import create_armature, create_attachments, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
@@ -15,9 +17,6 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.logger import SourceLogMan
-from ..common import merge_meshes
-from ..mdl49.import_mdl import (create_armature,
-                                create_attachments, create_flex_drivers)
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')

@@ -1,4 +1,5 @@
 import sys
+import warnings
 from pathlib import Path
 
 bl_info = {
@@ -11,7 +12,7 @@ bl_info = {
                    "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
     "category": "Import-Export"
 }
-
+warnings.simplefilter("always", DeprecationWarning)
 if "SourceIO" not in sys.modules:
     sys.modules['SourceIO'] = sys.modules[Path(__file__).parent.stem]
 

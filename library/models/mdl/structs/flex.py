@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -65,10 +64,10 @@ class FlexController:
 @dataclass(slots=True)
 class FlexControllerUI:
     name: str
-    controller: Optional[str]
-    left_controller: Optional[str]
-    right_controller: Optional[str]
-    nway_controller: Optional[str]
+    controller: str | None
+    left_controller: str | None
+    right_controller: str | None
+    nway_controller: str | None
     remap_type: FlexControllerRemapType
     stereo: bool = False
     unused = []
@@ -119,7 +118,7 @@ class FlexControllerUI:
 @dataclass(slots=True)
 class FlexOp:
     op: FlexOpType
-    value: Union[float, int]
+    value: float | int
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):
@@ -164,9 +163,9 @@ class Flex:
     flex_desc_index: int
     targets: Vector4[float]
 
-    partner_index: Optional[int]
+    partner_index: int | None
     vertex_anim_type: VertexAminationType
-    vertex_animations: Optional[npt.NDArray] = field(repr=False)
+    vertex_animations: npt.NDArray | None = field(repr=False)
 
     def __eq__(self, other: 'Flex'):
         return self.flex_desc_index == other.flex_desc_index and self.targets == other.targets
@@ -189,7 +188,7 @@ class Flex:
                 vert_anim_class = VertAnimWrinkleV49
             else:
                 vert_anim_class = VertAnimV49
-            buffer.skip(3+6*4)
+            buffer.skip(3 + 6 * 4)
         else:
             partner_index = None
             vertex_anim_type = VertexAminationType.NORMAL

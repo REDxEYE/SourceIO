@@ -1,8 +1,5 @@
 from dataclasses import dataclass
 
-
-import numpy as np
-
 from SourceIO.library.shared.types import Vector3
 from SourceIO.library.utils import Buffer
 from .event import StudioEvent

@@ -1,4 +1,3 @@
-import itertools
 import warnings
 from collections import defaultdict
 
@@ -6,25 +5,21 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
-from SourceIO.library.models.vtx.v7.vtx import Vtx
-from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.utils.common import get_slice
-from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
-from SourceIO.library.shared.content_manager.provider import \
-    ContentProvider
+from SourceIO.blender_bindings.models.common import merge_meshes
+from SourceIO.blender_bindings.models.mdl44.import_mdl import create_armature
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
 from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.models.mdl.v49.mdl_file import MdlV49
+from SourceIO.library.models.vtx.v7.vtx import Vtx
 from SourceIO.library.models.vvd import Vvd
-from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.shared.content_manager.provider import ContentProvider
+from SourceIO.library.utils.common import get_slice
+from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.logger import SourceLogMan
-from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
-from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
-from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
-from ..common import merge_meshes
-from ..mdl44.import_mdl import create_armature
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')

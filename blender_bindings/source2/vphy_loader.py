@@ -2,8 +2,8 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
-from ...library.source2.data_types.blocks.phys_block import PhysBlock
-from ...library.source2.data_types.keyvalues3.types import BinaryBlob, TypedArray
+from SourceIO.library.source2.blocks.phys_block import PhysBlock
+from SourceIO.library.source2.keyvalues3.binary_keyvalues import BinaryBlob, TypedArray
 from ...library.source2.utils.entity_keyvalues_keys import EntityKeyValuesKeys
 from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 

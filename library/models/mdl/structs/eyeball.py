@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from SourceIO.library.shared.types import Vector3
 from SourceIO.library.utils import Buffer
@@ -25,7 +24,7 @@ class Eyeball:
 
     upper_lid_flex_desc: int
     lower_lid_flex_desc: int
-    eyeball_is_non_facs: Optional[int]
+    eyeball_is_non_facs: int | None
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):

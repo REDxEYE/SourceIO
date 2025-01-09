@@ -1,7 +1,7 @@
 from SourceIO.library.utils import FileBuffer
+from SourceIO.library.utils.tiny_path import TinyPath
 from .file import File
 from .index import Index
-from ...utils.tiny_path import TinyPath
 
 
 # noinspection PyShadowingNames

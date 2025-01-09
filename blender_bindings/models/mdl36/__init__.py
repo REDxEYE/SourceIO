@@ -10,7 +10,6 @@ from SourceIO.library.models.mdl.v36 import MdlV36
 from SourceIO.library.models.phy.phy import Phy
 from SourceIO.library.models.vtx import open_vtx
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import find_vtx_cm
 from SourceIO.library.utils.tiny_path import TinyPath

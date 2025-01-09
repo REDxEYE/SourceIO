@@ -1,7 +1,7 @@
 import bpy
 
-from .....logger import SourceLogMan
-from ..source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')

@@ -1,13 +1,10 @@
-
 import bpy
 import numpy as np
 
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import get_new_unique_collection
-
 from SourceIO.library.models.mdl.structs.model import Model
 from SourceIO.library.models.vtx.v7.structs.lod import ModelLod as VtxModel
-
 from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
 
 

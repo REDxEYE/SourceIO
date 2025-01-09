@@ -1,6 +1,6 @@
-from ....utils.bpy_utils import is_blender_4, is_blender_4_3
-from ...shader_base import Nodes
-from ..source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 
 
 class Refract(Source1ShaderBase):

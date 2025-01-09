@@ -20,7 +20,7 @@ class DispInfoLump(Lump):
 
 
 @lump_tag(26, 'LUMP_DISPINFO', 1)
-class DispInfoLump(Lump):
+class DispInfoLumpV1(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
         self.infos: list[StrataDispInfo] = []

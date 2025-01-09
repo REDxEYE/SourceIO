@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from itertools import chain
 from struct import pack, unpack
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Mapping, Optional
 
 import bpy
 import numpy as np
@@ -15,20 +15,21 @@ from SourceIO.blender_bindings.utils.bpy_utils import add_material, find_layer_c
     get_or_create_material, is_blender_4_1
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledMorphResource, \
-    CompiledPhysicsResource, CompiledResource
+    CompiledPhysicsResource, CompiledResource, CompiledTextureResource
 from SourceIO.library.source2.common import convert_normals, convert_normals_2
-from SourceIO.library.source2.data_types.blocks.kv3_block import KVBlock
-from SourceIO.library.source2.data_types.blocks.morph_block import MorphBlock
-from SourceIO.library.source2.data_types.blocks.phys_block import PhysBlock
-from SourceIO.library.source2.data_types.blocks.vertex_index_buffer import VertexIndexBuffer, IndexBuffer
-from SourceIO.library.source2.data_types.blocks.vertex_index_buffer.vertex_buffer import VertexBuffer
-from SourceIO.library.source2.data_types.keyvalues3.types import NullObject, Object
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
+from SourceIO.library.source2.blocks.morph_block import MorphBlock
+from SourceIO.library.source2.blocks.phys_block import PhysBlock
+from SourceIO.library.source2.blocks.vertex_index_buffer import VertexIndexBuffer, IndexBuffer
+from SourceIO.library.source2.blocks.vertex_index_buffer.vertex_buffer import VertexBuffer
+from SourceIO.library.source2.keyvalues3.types import NullObject, Object
 from SourceIO.library.source2.exceptions import MissingBlock
 from SourceIO.library.source2.resource_types import CompiledMeshResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
+from SourceIO.library.source2.compiled_resource import DATA_BLOCK
 from ...library.utils.tiny_path import TinyPath
 
 
@@ -155,8 +156,8 @@ def create_armature(content_manager: ContentManager, resource: CompiledModelReso
 def create_meshes(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
                   import_contex: ImportContext) -> list[bpy.types.Object]:
     lod_mask = unpack("Q", pack("q", import_contex.lod_mask))[0]
-    data, = model_resource.get_data_block(block_name='DATA')
-    ctrl, = model_resource.get_data_block(block_name='CTRL')
+    data = model_resource.get_block(KVBlock, block_name='DATA')
+    ctrl = model_resource.get_block(KVBlock, block_name='CTRL')
     group_masks = {}
     lod_count = len(data['m_lodGroupSwitchDistances'])
 
@@ -195,13 +196,21 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
                        container: ModelContainer, mesh_info: Mapping[str, Any], import_context: ImportContext
                        ):
     mesh_index = mesh_info['mesh_index']
-    data_block: Optional[KVBlock] = model_resource.get_data_block(block_id=mesh_info['data_block'])
-    vbib_block: Optional[VertexIndexBuffer] = model_resource.get_data_block(block_id=mesh_info['vbib_block'])
-    morph_block: Optional[MorphBlock] = model_resource.get_data_block(block_id=mesh_info['morph_block'])
+    data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block'])
+    vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block'])
+    morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block'])
+    texture = None
+    if morph_block:
+        morph_texture = model_resource.get_child_resource(morph_block['m_pTextureAtlas'], content_manager,
+                                                          CompiledTextureResource)
+        texture,_ = morph_texture.get_texture_data(0)
+        if texture is None:
+            logging.error(f'Failed to find {morph_block["m_pTextureAtlas"]!r} morf texture')
+
     if data_block and vbib_block:
         return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
-                           vbib_block.vertex_buffers, morph_block, mesh_index, model_resource, import_context,
-                           mesh_info['name'])
+                           vbib_block.vertex_buffers, texture, morph_block, mesh_index, model_resource,
+                           import_context, mesh_info['name'])
     return None
 
 
@@ -209,26 +218,34 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
                        container: ModelContainer, mesh_id: int, mesh_resource: CompiledMeshResource,
                        import_context: ImportContext
                        ):
-    data_block: KVBlock
-    vbib_block: VertexIndexBuffer
-    data_block, = mesh_resource.get_data_block(block_name='DATA')
-    vbib_block, = mesh_resource.get_data_block(block_name='VBIB')
+    data_block = mesh_resource.get_block(KVBlock, block_name='DATA')
+    vbib_block = mesh_resource.get_block(VertexIndexBuffer, block_name='VBIB')
     morph_block = None
+    texture = None
     if ("m_morphSet", "m_pMorphSet") in data_block:
         if morph_set_path := data_block['m_morphSet', "m_pMorphSet"] is not None:
             morph_resource = mesh_resource.get_child_resource(morph_set_path, content_manager, CompiledMorphResource)
             if morph_resource is not None:
-                morph_block, = morph_resource.get_data_block(block_name='DATA')
+                morph_block = morph_resource.get_block(MorphBlock, block_name='DATA')
     else:
-        morph_block, = mesh_resource.get_data_block(block_name='MRPH')
+        morph_block, = mesh_resource.get_block(MorphBlock, block_name='MRPH')
+
+    if morph_block:
+        morph_texture = model_resource.get_child_resource(morph_block['m_pTextureAtlas'], content_manager,
+                                                          CompiledTextureResource)
+        texture, _ = morph_texture.get_texture_data(0)
+        if texture is None:
+            logging.error(f'Failed to find {morph_block["m_pTextureAtlas"]!r} morf texture')
+
     if data_block and vbib_block:
         return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
-                           vbib_block.vertex_buffers, morph_block, mesh_id, mesh_resource, import_context)
+                           vbib_block.vertex_buffers, texture, morph_block, mesh_id, mesh_resource,
+                           import_context)
     elif data_block and 'm_vertexBuffers' in data_block and 'm_indexBuffers' in data_block:
         vertex_buffers = [VertexBuffer.from_kv(buf) for buf in data_block['m_vertexBuffers']]
         index_buffers = [IndexBuffer.from_kv(buf) for buf in data_block['m_indexBuffers']]
         return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers,
-                           morph_block, mesh_id, mesh_resource, import_context)
+                           texture, morph_block, mesh_id, mesh_resource, import_context)
     return None
 
 
@@ -242,7 +259,7 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
 
     if not has_weights and not has_indicies:
         return
-    model_data_block, = model_resource.get_data_block(block_name='DATA')
+    model_data_block = model_resource.get_block(KVBlock, block_name='DATA')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
     remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
@@ -326,7 +343,8 @@ def use_compressed_normals(draw_call: dict):
 
 
 def create_mesh(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
-                data_block: KVBlock, index_buffers: list, vertex_buffers: list, morph_block: MorphBlock,
+                data_block: KVBlock, index_buffers: list, vertex_buffers: list,
+                morph_texture: np.ndarray | None, morph_block: MorphBlock | None,
                 mesh_id: int, mesh_resource: CompiledResource, import_context: ImportContext,
                 mesh_name: Optional[str] = None) -> list[bpy.types.Object]:
     objects: list[bpy.types.Object] = []
@@ -363,7 +381,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
                     morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED', 0) == 1
                     overlay = material_resource.get_int_property('F_OVERLAY', 0) == 1
                     if not overlay:
-                        data, = material_resource.get_data_block(block_name='DATA')
+                        data = material_resource.get_block(KVBlock, block_name='DATA')
                         if data:
                             shader = data['m_shaderName']
                             overlay |= shader == "csgo_static_overlay.vfx"
@@ -487,7 +505,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
 
             _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
             objects.append(mesh_obj)
-            if morph_block and morph_supported:
+            if morph_block and morph_supported and morph_texture is not None:
                 pos_bundle_id = morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED')
                 if pos_bundle_id is None:
                     pos_bundle_id = morph_block.get_bundle_id('BUNDLE_TYPE_POSITION_SPEED')
@@ -495,7 +513,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
                     mesh_obj.shape_key_add(name='base')
                     for flex_name_ in morph_block['m_FlexDesc']:
                         flex_name = flex_name_['m_szFacs']
-                        morph_data = morph_block.get_morph_data(flex_name, pos_bundle_id, content_manager)
+                        morph_data = morph_block.get_morph_data(flex_name, pos_bundle_id, morph_texture)
                         if morph_data is None:
                             continue
                         flex_data = morph_data[:, :, :3].reshape((-1, 3))
@@ -534,9 +552,8 @@ def load_attachments(attachments_info: list[Object], container: ModelContainer, 
 
 
 def get_physics_block(content_manager: ContentManager, model_resource: CompiledModelResource) -> Optional[PhysBlock]:
-    data: KVBlock = cast(KVBlock, model_resource.get_data_block(block_name='DATA')[0])
-
-    cdata, = cast(Optional[KVBlock], model_resource.get_data_block(block_name='CTRL'))
+    data = model_resource.get_block(KVBlock, block_id=DATA_BLOCK)
+    cdata = model_resource.get_block(KVBlock, block_name="CTRL")
 
     if 'm_refPhysicsData' in data and data['m_refPhysicsData']:
         for phys_file_path in data['m_refPhysicsData']:
@@ -544,7 +561,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
                                                       CompiledPhysicsResource)
             if not vphys:
                 return None
-            phys_data, = vphys.get_data_block(block_name="DATA")
+            phys_data = vphys.get_block(PhysBlock, block_name="DATA")
             if phys_data is None:
                 raise MissingBlock('Required block "DATA" is missing')
             return phys_data
@@ -552,7 +569,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
         return None
     elif 'embedded_physics' in cdata and cdata['embedded_physics']:
         block_id = cdata['embedded_physics']['phys_data_block']
-        phys_data = model_resource.get_data_block(block_id=block_id)
+        phys_data = model_resource.get_block(KVBlock, block_id=block_id)
         return phys_data
     return None
 

@@ -49,6 +49,7 @@ class BPYLogger:
         self._logger.handlers.clear()
         formatter = Formatter('[%(levelname)s]--[%(name)s:%(function)s] %(message)s')
         sh = StreamHandler(sys.stdout)
+        sh.setFormatter(formatter)
         self._logger.addHandler(sh)
         for handler in self._logger.handlers:
             handler.setFormatter(formatter)

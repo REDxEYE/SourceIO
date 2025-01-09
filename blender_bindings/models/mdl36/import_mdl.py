@@ -6,19 +6,19 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
-from SourceIO.library.models.vtx.v6.vtx import Vtx
-from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.models.common import merge_meshes
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
+from SourceIO.library.models.vtx.v6.vtx import Vtx
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
-from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
-from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
-from SourceIO.blender_bindings.models.common import merge_meshes
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')

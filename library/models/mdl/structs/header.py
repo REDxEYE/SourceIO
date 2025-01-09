@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import IntFlag
-from typing import Optional, Tuple
 
 from SourceIO.library.shared.types import Vector3
 from SourceIO.library.utils import Buffer
@@ -502,8 +501,8 @@ class MdlHeaderV49:
     max_eye_deflection: float
     linear_bone_offset: int
 
-    bone_flex_driver_count: Optional[int]
-    bone_flex_driver_offset: Optional[int]
+    bone_flex_driver_count: int | None
+    bone_flex_driver_offset: int | None
 
     reserved: tuple[int, ...]
 

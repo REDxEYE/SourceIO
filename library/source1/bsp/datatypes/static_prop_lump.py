@@ -61,6 +61,17 @@ class StaticProp:
         # Vindictus specific
         self.scaling = [1.0, 1.0, 1.0]
 
+    def __repr__(self):
+        return f'<StaticProp origin: {self.origin}, rotation: {self.rotation}, prop_type: {self.prop_type}, ' \
+               f'first_leaf: {self.first_leaf}, leaf_count: {self.leaf_count}, solid: {self.solid}, flags: {self.flags}, ' \
+               f'skin: {self.skin}, fade_min_dist: {self.fade_min_dist}, fade_max_dist: {self.fade_max_dist}, ' \
+               f'lighting_origin: {self.lighting_origin}, forced_fade_scale: {self.forced_fade_scale}, ' \
+               f'min_dx_level: {self.min_dx_level}, max_dx_level: {self.max_dx_level}, lightmap_resolution: {self.lightmap_resolution}, ' \
+               f'min_cpu_level: {self.min_cpu_level}, max_cpu_level: {self.max_cpu_level}, min_gpu_level: {self.min_gpu_level}, ' \
+               f'max_gpu_level: {self.max_gpu_level}, diffuse_modulation: {self.diffuse_modulation}, disable_x360: {self.disable_x360}, ' \
+               f'flags_ex: {self.flags_ex}, uniform_scale: {self.uniform_scale}, uniform_scale_yz: {self.uniform_scale_yz}, ' \
+               f'unk_vector: {self.unk_vector}, scaling: {self.scaling}>'
+
     def parse(self, reader: Buffer, version: int, bsp_version: tuple[int, int], size: int, app_id: int):
         if bsp_version == (20, 4):
             self._parse_v6(reader)

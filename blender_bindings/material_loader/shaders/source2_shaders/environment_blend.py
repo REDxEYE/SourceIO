@@ -1,9 +1,8 @@
 from pprint import pformat
 
-from ..source2_shader_base import Source2ShaderBase
-from ...shader_base import Nodes
-
-import mathutils
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 
 # todo support border effects, as well as modifiers to textures like softness, sharpness, brightness, darkness, and contrast
 class EnvironmentBlend(Source2ShaderBase):
@@ -16,7 +15,7 @@ class EnvironmentBlend(Source2ShaderBase):
         shader = self.create_node_group("environment_blend.vfx", name=self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         material_data = self._material_resource
-        data, = material_data.get_data_block(block_name='DATA')
+        data = material_data.get_block(KVBlock, block_name='DATA')
         self.logger.info(pformat(dict(data)))
 
         if self._have_texture("g_tColor1"):
@@ -88,8 +87,8 @@ class EnvironmentBlend(Source2ShaderBase):
                 self.connect_nodes(uv_transform.outputs[0], detail_texture.inputs[0])
 
             self.connect_nodes(detail_texture.outputs[0], shader.inputs["ColorOverlay"])
-            #shader.inputs["F_DETAIL_TEXTURE"].default_value = 2.0
-            #shader.inputs["g_flDetailBlendFactor"].default_value = 2
+            # shader.inputs["F_DETAIL_TEXTURE"].default_value = 2.0
+            # shader.inputs["g_flDetailBlendFactor"].default_value = 2
 
         if self._have_texture("g_tColorWorldOverlay"):
             # todo support scale, rotation and translation
@@ -130,21 +129,33 @@ class EnvironmentBlend(Source2ShaderBase):
 
             self.connect_nodes(reveal_detail_texture.outputs[0], shader.inputs["RevealOverlay"])
 
-        shader.inputs["WorldOverlayStrength0"].default_value = material_data.get_float_property("g_flWorldOverlayStrength1", 1.0)
-        shader.inputs["WorldOverlayStrength1"].default_value = material_data.get_float_property("g_flWorldOverlayStrength2", 1.0)
-        shader.inputs["WorldOverlayStrength2"].default_value = material_data.get_float_property("g_flWorldOverlayStrength3", 1.0)
+        shader.inputs["WorldOverlayStrength0"].default_value = material_data.get_float_property(
+            "g_flWorldOverlayStrength1", 1.0)
+        shader.inputs["WorldOverlayStrength1"].default_value = material_data.get_float_property(
+            "g_flWorldOverlayStrength2", 1.0)
+        shader.inputs["WorldOverlayStrength2"].default_value = material_data.get_float_property(
+            "g_flWorldOverlayStrength3", 1.0)
 
-        shader.inputs["ColorOverlayStrength0"].default_value = material_data.get_float_property("g_flColorOverlayStrength1", 1.0)
-        shader.inputs["ColorOverlayStrength1"].default_value = material_data.get_float_property("g_flColorOverlayStrength2", 1.0)
-        shader.inputs["ColorOverlayStrength2"].default_value = material_data.get_float_property("g_flColorOverlayStrength3", 1.0)
+        shader.inputs["ColorOverlayStrength0"].default_value = material_data.get_float_property(
+            "g_flColorOverlayStrength1", 1.0)
+        shader.inputs["ColorOverlayStrength1"].default_value = material_data.get_float_property(
+            "g_flColorOverlayStrength2", 1.0)
+        shader.inputs["ColorOverlayStrength2"].default_value = material_data.get_float_property(
+            "g_flColorOverlayStrength3", 1.0)
 
-        shader.inputs["NormalOverlayStrength0"].default_value = material_data.get_float_property("g_flNormalOverlayStrength1", 1.0)
-        shader.inputs["NormalOverlayStrength1"].default_value = material_data.get_float_property("g_flNormalOverlayStrength2", 1.0)
-        shader.inputs["NormalOverlayStrength2"].default_value = material_data.get_float_property("g_flNormalOverlayStrength3", 1.0)
+        shader.inputs["NormalOverlayStrength0"].default_value = material_data.get_float_property(
+            "g_flNormalOverlayStrength1", 1.0)
+        shader.inputs["NormalOverlayStrength1"].default_value = material_data.get_float_property(
+            "g_flNormalOverlayStrength2", 1.0)
+        shader.inputs["NormalOverlayStrength2"].default_value = material_data.get_float_property(
+            "g_flNormalOverlayStrength3", 1.0)
 
-        shader.inputs["RoughnessOverlayStrength0"].default_value = material_data.get_float_property("g_flRoughnessOverlayStrength1", 1.0)
-        shader.inputs["RoughnessOverlayStrength1"].default_value = material_data.get_float_property("g_flRoughnessOverlayStrength2", 1.0)
-        shader.inputs["RoughnessOverlayStrength2"].default_value = material_data.get_float_property("g_flRoughnessOverlayStrength3", 1.0)
+        shader.inputs["RoughnessOverlayStrength0"].default_value = material_data.get_float_property(
+            "g_flRoughnessOverlayStrength1", 1.0)
+        shader.inputs["RoughnessOverlayStrength1"].default_value = material_data.get_float_property(
+            "g_flRoughnessOverlayStrength2", 1.0)
+        shader.inputs["RoughnessOverlayStrength2"].default_value = material_data.get_float_property(
+            "g_flRoughnessOverlayStrength3", 1.0)
 
         if self.tinted:
             vcolor_node = self.create_node(Nodes.ShaderNodeVertexColor)

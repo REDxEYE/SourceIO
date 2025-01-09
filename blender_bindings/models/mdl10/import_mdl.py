@@ -5,8 +5,7 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Vector
 
-from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
-    GoldSrcShader
+from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material

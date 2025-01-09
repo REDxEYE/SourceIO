@@ -2,18 +2,18 @@ import struct
 import traceback
 from dataclasses import dataclass
 
-from ..structs.local_animation import StudioAnimDesc
-from ..structs.sequence import StudioSequence
-from SourceIO.logger import SourceLogMan
+from SourceIO.library.models.mdl.structs.attachment import Attachment
+from SourceIO.library.models.mdl.structs.bodygroup import BodyPart
+from SourceIO.library.models.mdl.structs.bone import Bone
+from SourceIO.library.models.mdl.structs.flex import FlexController, FlexControllerUI, FlexRule
+from SourceIO.library.models.mdl.structs.header import MdlHeaderV49
+from SourceIO.library.models.mdl.structs.local_animation import StudioAnimDesc
+from SourceIO.library.models.mdl.structs.material import MaterialV49
+from SourceIO.library.models.mdl.structs.sequence import StudioSequence
+from SourceIO.library.models.mdl.v44.mdl_file import MdlV44
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.kv_parser import KVParserException, ValveKeyValueParser
-from ..structs.attachment import Attachment
-from ..structs.bodygroup import BodyPart
-from ..structs.bone import Bone
-from ..structs.flex import FlexController, FlexControllerUI, FlexRule
-from ..structs.header import MdlHeaderV49
-from ..structs.material import MaterialV49
-from ..v44.mdl_file import MdlV44
+from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('MDL49')

@@ -2,13 +2,13 @@ from typing import Union, Optional
 import bpy
 import numpy as np
 
+from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase, Nodes
+from SourceIO.blender_bindings.source2.vtex_loader import import_texture
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
-from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2.resource_types import CompiledMaterialResource, CompiledTextureResource
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from SourceIO.blender_bindings.source2.vtex_loader import import_texture
-from ..shader_base import ShaderBase, Nodes
 
 logger = SourceLogMan().get_logger("Source2::Shader")
 
@@ -25,7 +25,7 @@ class Source2ShaderBase(ShaderBase):
     def _have_texture(self, slot_name: str) -> Optional[bpy.types.Node]:
         texture_path = self._material_resource.get_texture_property(slot_name, None)
         if texture_path is not None:
-            return self._material_resource.get_child_resource(texture_path, self.content_manager) is not None
+            return self._material_resource.has_child_resource(texture_path, self.content_manager)
         return None
 
     def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float],

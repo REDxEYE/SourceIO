@@ -2,7 +2,7 @@ import math
 
 import bpy
 
-from SourceIO.library.source2.data_types.keyvalues3.types import NullObject
+from SourceIO.library.source2.keyvalues3.types import NullObject
 from .abstract_entity_handlers import get_scale, Base
 from .hlvr_entity_classes import point_viewcontrol
 from .hlvr_entity_handlers import HLVREntityHandler, get_origin, get_angles

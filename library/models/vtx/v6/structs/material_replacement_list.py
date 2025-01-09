@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 from SourceIO.library.utils import Buffer
 
 

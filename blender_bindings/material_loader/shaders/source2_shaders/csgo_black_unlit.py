@@ -1,7 +1,8 @@
 from pprint import pformat
 
-from ..source2_shader_base import Source2ShaderBase
-from ...shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 
 
 class CSGOBlackUnlit(Source2ShaderBase):
@@ -14,5 +15,5 @@ class CSGOBlackUnlit(Source2ShaderBase):
         shader = self.create_node_group("csgo_black_unlit.vfx", name=self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         material_data = self._material_resource
-        data, = material_data.get_data_block(block_name='DATA')
+        data = self._material_resource.get_block(KVBlock,block_name='DATA')
         self.logger.info(pformat(dict(data)))

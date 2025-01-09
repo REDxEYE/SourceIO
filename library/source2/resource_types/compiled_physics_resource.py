@@ -1,7 +1,8 @@
 import numpy as np
 
 from SourceIO.library.source2.exceptions import MissingBlock
-from .resource import CompiledResource
+from SourceIO.library.source2.compiled_resource import CompiledResource
+from SourceIO.library.source2.blocks.phys_block import PhysBlock
 
 
 class CompiledPhysicsResource(CompiledResource):
@@ -17,7 +18,7 @@ class CompiledPhysicsResource(CompiledResource):
         return vertex_ids
 
     def parse_meshes(self):
-        data, = self.get_data_block(block_name='DATA')
+        data = self.get_block(PhysBlock,block_name='DATA')
         if data is None:
             raise MissingBlock('Required block "DATA" is missing')
         spheres = []

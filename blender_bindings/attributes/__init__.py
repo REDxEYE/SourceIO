@@ -1,6 +1,5 @@
 import bpy
-from bpy.props import (BoolProperty, CollectionProperty, FloatProperty,
-                       IntProperty, PointerProperty, StringProperty)
+from bpy.props import CollectionProperty, IntProperty, StringProperty
 
 from SourceIO.blender_bindings.operators.flex_operators import SourceIO_PG_FlexController
 from SourceIO.blender_bindings.operators.shared_operators import SOURCEIO_UL_MountedResource

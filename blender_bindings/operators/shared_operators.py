@@ -13,19 +13,19 @@ import bpy
 from mathutils import Matrix
 
 from .import_settings_base import ModelOptions
-from ..models import import_model
-from ..shared.exceptions import RequiredFileNotFound
-from ..shared.model_container import ModelContainer
-from ..utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
+from SourceIO.blender_bindings.models import import_model
+from SourceIO.blender_bindings.models.common import put_into_collections as s1_put_into_collections
+from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
+from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.source2.vmdl_loader import load_model, ImportContext
+from SourceIO.blender_bindings.source2.vmdl_loader import put_into_collections as s2_put_into_collections
+from SourceIO.blender_bindings.utils.bpy_utils import (get_or_create_collection, find_layer_collection,
+                                                       pause_view_layer_update)
+from SourceIO.blender_bindings.utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from SourceIO.library.shared.content_manager import ContentManager
-from ...library.source2 import CompiledModelResource
-from ..models.common import put_into_collections as s1_put_into_collections
-from ..source2.vmdl_loader import load_model, ImportContext
-from ..source2.vmdl_loader import \
-    put_into_collections as s2_put_into_collections
-from ..utils.bpy_utils import get_or_create_collection, find_layer_collection, pause_view_layer_update
-from ...library.utils.path_utilities import path_stem
-from ...library.utils.tiny_path import TinyPath
+from SourceIO.library.source2 import CompiledModelResource
+from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.tiny_path import TinyPath
 
 
 def get_parent(collection):

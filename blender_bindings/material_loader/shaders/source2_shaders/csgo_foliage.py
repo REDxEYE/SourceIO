@@ -1,8 +1,9 @@
 from pprint import pformat
 
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
-from ..source2_shader_base import Source2ShaderBase
-from ...shader_base import Nodes
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 
 
 class CSGOFoliage(Source2ShaderBase):
@@ -14,8 +15,8 @@ class CSGOFoliage(Source2ShaderBase):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
-        data, = self._material_resource.get_data_block(block_name='DATA')
-        self.logger.info(pformat(dict(data)))
+        data_block = self._material_resource.get_block(KVBlock,block_name='DATA')
+        self.logger.info(pformat(dict(data_block)))
 
         color_texture = self._get_texture("g_tColor", (1, 1, 1, 1))
 

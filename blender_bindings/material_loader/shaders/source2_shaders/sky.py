@@ -5,7 +5,7 @@ from ..source2_shader_base import Source2ShaderBase
 from ...shader_base import Nodes
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledTextureResource
-from SourceIO.library.source2.data_types.blocks.texture_data import VTexFormat
+from SourceIO.library.source2.blocks.texture_data import VTexFormat
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
 from SourceIO.logger import SourceLogMan

@@ -102,7 +102,7 @@ class TreeNode:
     bbox_size: Vector4[int]
     left_node: Optional['TreeNode'] = field(default=None)
     right_node: Optional['TreeNode'] = field(default=None)
-    convex_leaf: Optional[ConvexLeaf] = field(default=None)
+    convex_leaf: ConvexLeaf | None = field(default=None)
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
@@ -110,7 +110,7 @@ class TreeNode:
         right_node_offset, convex_offset, *center, radius = buffer.read_fmt('2i4f')
         bbox_size = buffer.read_fmt('4B')
         is_leaf = right_node_offset == 0
-        convex_leaf: Optional[ConvexLeaf] = None
+        convex_leaf: ConvexLeaf | None = None
         with buffer.save_current_offset():
             if convex_offset:
                 with buffer.save_current_offset():

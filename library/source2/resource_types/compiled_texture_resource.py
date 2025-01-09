@@ -6,12 +6,12 @@ from typing import Optional, Type
 import numpy as np
 import numpy.typing as npt
 
-from SourceIO.library.source2.data_types.blocks.resource_edit_info import ResourceEditInfo
+from SourceIO.library.source2.blocks.resource_edit_info import ResourceEditInfo, ResourceEditInfo2
 from SourceIO.library.utils.rustlib import lz4_decompress, decode_texture
-from SourceIO.library.source2.data_types.blocks.base import BaseBlock
-from SourceIO.library.source2.data_types.blocks.texture_data import CompressedMip, TextureData, VTexExtraData, \
+from SourceIO.library.source2.blocks.base import BaseBlock
+from SourceIO.library.source2.blocks.texture_data import CompressedMip, TextureData, VTexExtraData, \
     VTexFlags, VTexFormat
-from .resource import CompiledResource
+from SourceIO.library.source2.compiled_resource import CompiledResource
 
 logger = logging.getLogger('CompiledTextureResource')
 
@@ -67,17 +67,15 @@ class CompiledTextureResource(CompiledResource):
         return size
 
     def get_texture_format(self) -> VTexFormat:
-        data_block: TextureData
-        data_block, = self.get_data_block(block_name='DATA')
+        data_block = self.get_block(TextureData,block_name='DATA')
         return data_block.texture_info.pixel_format
 
     def is_cubemap(self) -> bool:
-        data_block: TextureData
-        data_block, = self.get_data_block(block_name='DATA')
+        data_block = self.get_block(TextureData,block_name='DATA')
         return data_block.texture_info.flags & VTexFlags.CUBE_TEXTURE
 
     def get_resolution(self, mip_level: int = 0):
-        data_block, = self.get_data_block(block_name='DATA')
+        data_block = self.get_block(TextureData,block_name='DATA')
         texture_info = data_block.texture_info
         width = texture_info.width >> mip_level
         height = texture_info.height >> mip_level
@@ -91,8 +89,7 @@ class CompiledTextureResource(CompiledResource):
             if block.name == 'DATA':
                 info_block = block
                 break
-        data_block: TextureData
-        data_block, = self.get_data_block(block_name='DATA')
+        data_block = self.get_block(TextureData,block_name='DATA')
         buffer = self._buffer
         buffer.seek(info_block.absolute_offset + info_block.size)
 
@@ -134,8 +131,7 @@ class CompiledTextureResource(CompiledResource):
                 info_block = block
                 break
 
-        data_block: TextureData
-        data_block, = self.get_data_block(block_name='DATA')
+        data_block = self.get_block(TextureData,block_name='DATA')
         buffer = self._buffer
         buffer.seek(info_block.absolute_offset + info_block.size)
         compression_info: Optional[CompressedMip] = data_block.extra_data.get(VTexExtraData.COMPRESSED_MIP_SIZE, None)
@@ -171,10 +167,8 @@ class CompiledTextureResource(CompiledResource):
         return data, (width, height)
 
     def _decompress_texture(self, data: bytes, height, pixel_format, width):
-        resource_info_block: ResourceEditInfo
-        resource_info_block, = self.get_data_block(block_name="REDI")
-        if resource_info_block is None:
-            resource_info_block, = self.get_data_block(block_name="RED2")
+        resource_info_block = (self.get_block(ResourceEditInfo, block_name="REDI") or
+                               self.get_block(ResourceEditInfo2, block_name="RED2"))
 
         invert = False
         normalize = False

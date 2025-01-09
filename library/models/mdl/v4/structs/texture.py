@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import IntFlag
 
 import numpy as np
 import numpy.typing as npt

@@ -6,6 +6,7 @@ import bpy
 from mathutils import Euler
 
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from .base_entity_classes import *
 from SourceIO.blender_bindings.source2.vtex_loader import import_texture
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection
@@ -171,7 +172,7 @@ class AbstractEntityHandler:
             if not icon_material_file:
                 return
             vmt = CompiledMaterialResource.from_buffer(icon_material_file, icon_path)
-            data_block, = vmt.get_data_block(block_name='DATA')
+            data_block = vmt.get_block(KVBlock, block_name='DATA')
             if data_block['m_shaderName'] == 'tools_sprite.vfx':
                 path_texture = next((a for a in vmt.get_child_resources() if isinstance(a, str) and ".vtex" in a), None)
                 if path_texture is not None:

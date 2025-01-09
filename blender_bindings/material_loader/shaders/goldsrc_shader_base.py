@@ -2,8 +2,8 @@ from typing import Optional
 
 import bpy
 
-from ....library.models.mdl.v10.structs.texture import StudioTexture
-from ..shader_base import Nodes, ShaderBase
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ShaderBase
+from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 
 
 class GoldSrcShaderBase(ShaderBase):

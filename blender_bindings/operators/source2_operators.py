@@ -4,21 +4,23 @@ from bpy.props import (BoolProperty, FloatProperty,
 
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
-from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledTextureResource, \
-    CompiledPhysicsResource
+from SourceIO.library.source2 import (CompiledMaterialResource, CompiledModelResource,
+                                      CompiledTextureResource, CompiledPhysicsResource)
 from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledMapResource
 from SourceIO.library.utils import FileBuffer
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.tiny_path import TinyPath
 from .operator_helper import ImportOperatorHelper
-from ..source2.dmx.camera_loader import load_camera
-from ..source2.vmat_loader import load_material
-from ..source2.vmdl_loader import load_model, put_into_collections, get_physics_block, ImportContext
-from ..source2.vphy_loader import load_physics
-from ..source2.vtex_loader import import_texture
-from ..source2.vwrld.loader import load_map
-from ..utils.bpy_utils import get_new_unique_collection, is_blender_4_1
-from ..utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
+from SourceIO.blender_bindings.source2.dmx.camera_loader import load_camera
+from SourceIO.blender_bindings.source2.vmat_loader import load_material
+from SourceIO.blender_bindings.source2.vmdl_loader import (load_model, put_into_collections,
+                                                           get_physics_block, ImportContext)
+from SourceIO.blender_bindings.source2.vphy_loader import load_physics
+from SourceIO.blender_bindings.source2.vtex_loader import import_texture
+from SourceIO.blender_bindings.source2.vwrld.loader import load_map
+from SourceIO.blender_bindings.utils.bpy_utils import get_new_unique_collection, is_blender_4_1
+from SourceIO.blender_bindings.utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
+from SourceIO.library.source2.blocks.phys_block import PhysBlock
 
 
 # noinspection PyPep8Naming
@@ -109,7 +111,7 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
                     phys_res = CompiledPhysicsResource.from_buffer(phys_file, phys_filename)
                     phys_collection = bpy.data.collections.new("physics")
                     map_collection.children.link(phys_collection)
-                    objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
+                    objects = load_physics(phys_res.get_block(PhysBlock, block_name="DATA"))
 
                     for obj in objects:
                         phys_collection.objects.link(obj)
@@ -166,7 +168,7 @@ class SOURCEIO_OT_VPK_VMAPImport(ImportOperatorHelper):
                 phys_res = CompiledPhysicsResource.from_buffer(phys_file, phys_filename)
                 phys_collection = bpy.data.collections.new("physics")
                 map_collection.children.link(phys_collection)
-                objects = load_physics(phys_res.get_data_block(block_name="DATA")[0])
+                objects = load_physics(phys_res.get_block(PhysBlock, block_name="DATA"))
 
                 for obj in objects:
                     phys_collection.objects.link(obj)
@@ -262,7 +264,7 @@ class SOURCEIO_OT_VPHYSImport(ImportOperatorHelper):
             print(f"Loading {n + 1}/{len(self.files)}")
             with FileBuffer(directory / file.name) as f:
                 phys_res = CompiledPhysicsResource.from_buffer(f, directory / file.name)
-                objects = load_physics(phys_res.get_data_block(block_name="DATA")[0], self.scale)
+                objects = load_physics(phys_res.get_block(PhysBlock, block_name="DATA"), self.scale)
 
             master_collection = get_new_unique_collection(phys_res.name, bpy.context.scene.collection)
             for obj in objects:

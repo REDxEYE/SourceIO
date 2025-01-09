@@ -1,10 +1,9 @@
 import sys
 from logging import DEBUG, Filter, Formatter, Logger, LogRecord, StreamHandler
 
-
 import bpy
 
-from ...library.utils.singleton import SingletonMeta
+from SourceIO.library.utils.singleton import SingletonMeta
 
 
 def get_log_file(filename):
@@ -61,8 +60,6 @@ class BPYLogger:
 
         self._logger = self.Logger(name)
         self._logger.addFilter(self._filter)
-        for h in self._logger.handlers:
-            self._logger.removeHandler(h)
         self._logger.handlers.clear()
         self._formatter = Formatter('[%(levelname)s]--[%(name)s:%(function)s]: %(message)s')
 

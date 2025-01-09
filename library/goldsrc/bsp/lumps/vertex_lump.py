@@ -1,8 +1,8 @@
 import numpy as np
 
-from SourceIO.library.utils import Buffer
-from SourceIO.library.goldsrc.bsp.lump import Lump, LumpInfo, LumpType
 from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
+from SourceIO.library.goldsrc.bsp.lump import Lump, LumpInfo, LumpType
+from SourceIO.library.utils import Buffer
 
 
 class VertexLump(Lump):

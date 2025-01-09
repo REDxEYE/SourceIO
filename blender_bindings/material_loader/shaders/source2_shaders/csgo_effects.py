@@ -2,9 +2,10 @@ from pprint import pformat
 
 import bpy
 
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
-from ..source2_shader_base import Source2ShaderBase
-from ...shader_base import Nodes
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 
 
 class CSGOEffects(Source2ShaderBase):
@@ -17,7 +18,7 @@ class CSGOEffects(Source2ShaderBase):
         shader = self.create_node_group("csgo_effects.vfx", name=self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         material_data = self._material_resource
-        data, = material_data.get_data_block(block_name='DATA')
+        data = self._material_resource.get_block(KVBlock,block_name='DATA')
         self.logger.info(pformat(dict(data)))
 
         if self._have_texture("g_tColor"):

@@ -1,8 +1,8 @@
 from typing import Type
 
-from SourceIO.library.source2.data_types.blocks.base import BaseBlock
-from SourceIO.library.source2.data_types.blocks.morph_block import MorphBlock
-from .resource import CompiledResource
+from SourceIO.library.source2.blocks.base import BaseBlock
+from SourceIO.library.source2.blocks.morph_block import MorphBlock
+from SourceIO.library.source2.compiled_resource import CompiledResource
 
 
 class CompiledMorphResource(CompiledResource):

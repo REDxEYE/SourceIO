@@ -1,4 +1,5 @@
-from ..shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from .source2_shader_base import Source2ShaderBase
 
 
@@ -17,7 +18,7 @@ class DebugMaterial(Source2ShaderBase):
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
             return
 
-        data_block, = self._material_resource.get_data_block(block_name='DATA')
+        data_block = self._material_resource.get_block(KVBlock,block_name='DATA')
 
         for int_param in data_block['m_intParams']:
             node = self.create_node(Nodes.ShaderNodeValue, int_param['m_name'])

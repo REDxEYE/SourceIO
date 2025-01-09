@@ -1,6 +1,6 @@
-from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.library.utils import FileBuffer
 from SourceIO.library.utils.singleton import SingletonMeta
+from SourceIO.library.utils.tiny_path import TinyPath
 from .archive import Archive
 from .file import File
 

@@ -1,10 +1,7 @@
 from collections import OrderedDict
 from itertools import repeat
 
-import bpy
-
-
-class values():
+class values:
     average_y = 0
     x_last = 0
     margin_x = 300

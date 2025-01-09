@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag
-from typing import Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -153,7 +152,7 @@ class Bone:
     contents: Contents
     surface_prop: str
 
-    procedural_rule: Optional[Union[AxisInterpRule, JiggleRule, QuatInterpRule]]
+    procedural_rule: AxisInterpRule | JiggleRule | QuatInterpRule | None
 
     @property
     def matrix(self):

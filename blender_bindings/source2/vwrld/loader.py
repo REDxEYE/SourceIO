@@ -4,23 +4,23 @@ import bpy
 from mathutils import Matrix
 
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
-from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.utils.tiny_path import TinyPath
-from .entities.base_entity_handlers import BaseEntityHandler
-from .entities.cs2_entity_handlers import CS2EntityHandler
-from .entities.hlvr_entity_handlers import HLVREntityHandler
-from .entities.sbox_entity_handlers import SBoxEntityHandler
-from .entities.steampal_entity_handlers import SteamPalEntityHandler
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection, pause_view_layer_update
 from SourceIO.library.shared.app_id import SteamAppId
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledWorldResource
-from SourceIO.library.source2.data_types.keyvalues3.types import Object
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
+from SourceIO.library.source2.keyvalues3.types import Object
 from SourceIO.library.source2.resource_types import CompiledManifestResource
-from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, \
-    CompiledMapResource
+from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, CompiledMapResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
+
+from .entities.base_entity_handlers import BaseEntityHandler
+from .entities.cs2_entity_handlers import CS2EntityHandler
 from .entities.deadlock_entity_handlers import DeadlockEntityHandler
+from .entities.hlvr_entity_handlers import HLVREntityHandler
+from .entities.sbox_entity_handlers import SBoxEntityHandler
 
 log_manager = SourceLogMan()
 
@@ -39,7 +39,7 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
             filter(lambda a: isinstance(a, str) and a.endswith(".vwrld"), manifest_resource.get_child_resources()),
             None)
         if world_resource_path is not None:
-            world_resource = manifest_resource.get_child_resource(world_resource_path, cm)
+            world_resource = manifest_resource.get_child_resource(world_resource_path, cm, CompiledWorldResource)
             return import_world(world_resource, map_resource, cm, scale)
 
     world_resource_path = next(filter(lambda a: a.endswith(".vwrld"), map_resource.get_child_resources()), None)
@@ -52,10 +52,9 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                  content_manager: ContentManager, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
     map_name = map_resource.name
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
-    data_block = world_resource.get_data_block(block_name="DATA")
+    data_block = world_resource.get_block(KVBlock, block_name="DATA")
     uv_scale = None
     if data_block:
-        data_block, = data_block
         if "m_worldLightingInfo" in data_block:
             uv_scale = data_block["m_worldLightingInfo"].get("m_vLightmapUvScale", None)
             if uv_scale is not None:
@@ -153,7 +152,7 @@ def create_empty(name: str, scale: float, custom_data=None):
 
 def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.Collection,
                   scale: float, cm: ContentManager):
-    data_block, = world_resource.get_data_block(block_name='DATA')
+    data_block = world_resource.get_block(KVBlock, block_name='DATA')
     entity_lumps = data_block["m_entityLumps"]
 
     if cm.steam_id == SteamAppId.HALF_LIFE_ALYX:

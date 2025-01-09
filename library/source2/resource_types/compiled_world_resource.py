@@ -1,21 +1,23 @@
 from typing import Iterator, Optional
 
 from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from SourceIO.library.utils import MemoryBuffer
-from SourceIO.library.source2.data_types.keyvalues3.types import Object
+from SourceIO.library.source2.keyvalues3.types import Object
 from SourceIO.library.source2.utils.entity_keyvalues import EntityKeyValues
-from SourceIO.library.source2.resource_types.resource import CompiledResource
+from SourceIO.library.source2.compiled_resource import CompiledResource, DATA_BLOCK
+
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class CompiledEntityLumpResource(CompiledResource):
     def get_child_lumps(self, content_manager: ContentManager):
-        data, = self.get_data_block(block_name='DATA')
+        data = self.get_block(KVBlock, block_name='DATA')
         for child_lump in data["m_childLumps"]:
             yield self.get_child_resource(child_lump, content_manager, CompiledEntityLumpResource)
 
     def get_entities(self) -> Iterator[Object]:
-        data, = self.get_data_block(block_name='DATA')
+        data = self.get_block(KVBlock, block_name='DATA')
         for entity_key_values in data["m_entityKeyValues"]:
             if "m_keyValuesData" in entity_key_values and len(entity_key_values["m_keyValuesData"]):
                 buffer = MemoryBuffer(entity_key_values["m_keyValuesData"])
@@ -27,16 +29,22 @@ class CompiledEntityLumpResource(CompiledResource):
 
 
 class CompiledWorldNodeResource(CompiledResource):
+    @property
+    def data_block(self):
+        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+
     def get_scene_objects(self) -> list[Object]:
-        data, = self.get_data_block(block_name='DATA')
-        return data["m_sceneObjects"]
+        return self.data_block["m_sceneObjects"]
 
     def get_aggregate_scene_objects(self) -> list[Object]:
-        data, = self.get_data_block(block_name='DATA')
-        return data.get("m_aggregateSceneObjects", [])
+        return self.data_block.get("m_aggregateSceneObjects", [])
 
 
 class CompiledMapResource(CompiledResource):
+    @property
+    def data_block(self):
+        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+
     def get_worldnode(self, node_group_prefix: str, content_manager: ContentManager) \
             -> Optional[CompiledWorldNodeResource]:
         world_node = self.get_child_resource(TinyPath(node_group_prefix + ".vwnod").as_posix(), content_manager,
@@ -51,7 +59,11 @@ class CompiledMapResource(CompiledResource):
 
 
 class CompiledWorldResource(CompiledResource):
+
+    @property
+    def data_block(self):
+        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+
     def get_worldnode_prefixes(self) -> Iterator[str]:
-        data, = self.get_data_block(block_name='DATA')
-        for world_node_group in data['m_worldNodes']:
+        for world_node_group in self.data_block['m_worldNodes']:
             yield TinyPath(world_node_group['m_worldNodePrefix']).as_posix()

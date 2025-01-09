@@ -5,6 +5,13 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+from SourceIO.blender_bindings.goldsrc.bsp.entity_handlers import entity_handlers
+from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
+from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import GoldSrcShaderMode1
+from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import GoldSrcShaderMode2
+from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import GoldSrcShaderMode5
+from SourceIO.blender_bindings.utils.bpy_utils import (add_material, get_or_create_collection,
+                                                       get_or_create_material, is_blender_4_3)
 from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
 from SourceIO.library.goldsrc.bsp.lump import LumpType
 from SourceIO.library.goldsrc.bsp.lumps.edge_lump import EdgeLump
@@ -20,19 +27,9 @@ from SourceIO.library.goldsrc.rad import convert_light_value, parse_rad
 from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.providers.goldsrc_content_provider import GoldSrcWADContentProvider
-from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
 from SourceIO.library.utils import backwalk_file_resolver, TinyPath
+from SourceIO.library.utils.math_utilities import deg2rad, parse_hammer_vector
 from SourceIO.logger import SourceLogMan
-from ...goldsrc.bsp.entity_handlers import entity_handlers
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
-    GoldSrcShader
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode1 import \
-    GoldSrcShaderMode1
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode2 import \
-    GoldSrcShaderMode2
-from ...material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import \
-    GoldSrcShaderMode5
-from ...utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, is_blender_4_3
 
 log_manager = SourceLogMan()
 

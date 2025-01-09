@@ -1,10 +1,3 @@
-from typing import Optional
-
-import bpy
-import numpy as np
-
-from ...shader_base import Nodes
-from ..source2_shader_base import Source2ShaderBase
 from .blend import Blend
 
 

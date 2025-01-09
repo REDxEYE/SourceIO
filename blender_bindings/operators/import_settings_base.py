@@ -1,5 +1,4 @@
-from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
-                       FloatProperty, StringProperty)
+from bpy.props import BoolProperty, FloatProperty
 
 from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 
@@ -22,7 +21,6 @@ class BSPOptions(SharedOptions):
     load_info: BoolProperty(name="Load info entities", default=False)
     load_logic: BoolProperty(name="Load logic entities", default=False)
     load_ropes: BoolProperty(name="Load rope entities", default=False)
-
 
 
 class GoldSrcBspSettings(BSPOptions):
