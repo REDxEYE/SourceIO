@@ -45,17 +45,15 @@ class CompressedMip:
         return cls(compressed, unk, mip_count, [])
 
 
+@dataclass(slots=True)
 class TextureData(BaseBlock):
-    def __init__(self, buffer: Buffer):
-        super().__init__(buffer)
-        self.texture_info = TextureInfo(0, VTexFlags(0), (1, 1, 1, 1), 0, 0, 0, VTexFormat.RGBA8888, 0, 0)
-        self.extra_data: dict[VTexExtraData:Any] = {}
+    texture_info: TextureInfo
+    extra_data: dict[VTexExtraData, Any]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'BaseBlock':
-        self = cls(buffer)
-        self.texture_info = TextureInfo.from_buffer(buffer)
-
+        texture_info = TextureInfo.from_buffer(buffer)
+        extra_data = {}
         extra_data_offset = buffer.read_relative_offset32()
         extra_data_count = buffer.read_uint32()
 
@@ -69,10 +67,10 @@ class TextureData(BaseBlock):
                         buffer.seek(offset, 1)
                         extra_buffer = MemoryBuffer(buffer.read(size))
                         if extra_type == VTexExtraData.COMPRESSED_MIP_SIZE:
-                            self.extra_data[extra_type] = compressed_mip = CompressedMip.from_buffer(extra_buffer)
+                            extra_data[extra_type] = compressed_mip = CompressedMip.from_buffer(extra_buffer)
                             compressed_mip.mip_sizes.extend(
                                 [buffer.read_uint32() for _ in range(compressed_mip.mip_count)])
                         else:
-                            self.extra_data[extra_type] = extra_buffer
+                            extra_data[extra_type] = extra_buffer
 
-        return self
+        return cls(texture_info, extra_data)

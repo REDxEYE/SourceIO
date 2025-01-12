@@ -40,8 +40,8 @@ def convert_normals_2(input_array: np.ndarray):
     # X Y Z
     input_array = input_array.ravel()
     output = np.zeros((len(input_array), 3), dtype=np.float32)
-    sign_bit = input_array & 1
-    tbits = (input_array >> 1) & 0x7ff
+    # sign_bit = input_array & 1
+    # tbits = (input_array >> 1) & 0x7ff
     xbits = (input_array >> 12) & 0x3ff
     ybits = (input_array >> 22) & 0x3ff
 
@@ -67,15 +67,3 @@ def convert_normals_2(input_array: np.ndarray):
     output[:, 1] /= sq
     output[:, 2] /= sq
     return output
-
-
-def magnitude(array: np.ndarray):
-    array = np.sum(array ** 2)
-    return np.sqrt(array)
-
-
-def normalize(array: np.ndarray):
-    magn = magnitude(array)
-    if magn == 0:
-        return array
-    return array / magn

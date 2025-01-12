@@ -5,20 +5,20 @@ import numpy as np
 import numpy.typing as npt
 
 
-from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.utils.ntro_reader import NTROBuffer
 from .kv3_block import KVBlock
 
 
 class MorphBlock(KVBlock):
 
-    def __init__(self, buffer: Buffer):
+    def __init__(self, buffer: NTROBuffer):
         super().__init__(buffer)
         self._morph_datas: dict[int, dict[str, npt.NDArray[np.float32]]] = defaultdict(dict)
         self._vmorf_texture = None
 
     @staticmethod
-    def _get_struct(ntro):
-        return ntro.struct_by_name('MorphSetData_t')
+    def _struct_name():
+        return 'MorphSetData_t'
 
         # encoding_type = encoding_type[0].split('::')[-1]
         # lookup_type = lookup_type[0].split('::')[-1]

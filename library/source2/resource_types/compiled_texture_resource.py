@@ -20,11 +20,6 @@ logger = logging.getLogger('CompiledTextureResource')
 class CompiledTextureResource(CompiledResource):
     _cached_mips: dict[int, tuple[npt.NDArray, bool]] = field(default_factory=dict)
 
-    def _get_block_class(self, name) -> Type[BaseBlock]:
-        if name == 'DATA':
-            return TextureData
-        return super(CompiledTextureResource, self)._get_block_class(name)
-
     @staticmethod
     def _calculate_buffer_size_for_mip(data_block: TextureData, mip_level):
         texture_info = data_block.texture_info

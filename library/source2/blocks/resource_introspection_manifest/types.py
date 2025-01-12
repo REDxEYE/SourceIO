@@ -4,6 +4,55 @@ from enum import IntEnum
 from SourceIO.library.utils import Buffer
 
 
+@dataclass(slots=True)
+class EnumValue:
+    name: str
+    value: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        name_offset = buffer.read_relative_offset32()
+        value = buffer.read_uint32()
+        with buffer.read_from_offset(name_offset):
+            name = buffer.read_ascii_string()
+            if '::' in name:
+                _, name = name.split('::', 1)
+        return cls(name, value)
+
+
+@dataclass(slots=True)
+class Enum:
+    version: int
+    id: int
+    name: str
+    disc_crc: int
+    user_version: int
+    values: dict[int, EnumValue]
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        version, s_id = buffer.read_fmt('2I')
+        assert version == 4, f'Introspection version {version} is not supported'
+        name_offset = buffer.read_relative_offset32()
+        disc_crc, user_version = buffer.read_fmt('2i')
+        values_offset = buffer.read_relative_offset32()
+        values_count = buffer.read_uint32()
+        with buffer.read_from_offset(name_offset):
+            name = buffer.read_ascii_string()
+        with buffer.read_from_offset(values_offset):
+            values = {}
+            for _ in range(values_count):
+                value = EnumValue.from_buffer(buffer)
+                values[value.value] = value
+        return cls(version, s_id, name, disc_crc, user_version, values)
+
+    def is_flags(self):
+        is_flag = True
+        for emum_value in self.values.values():
+            is_flag &= emum_value.value.bit_count() == 1 or emum_value.value.bit_count() == emum_value.value.bit_length()
+        return is_flag
+
+
 class KeyValueDataType(IntEnum):
     STRUCT = 1
     ENUM = 2
@@ -39,7 +88,7 @@ class StructMember:
     stride_offset: int
     data_type: int
     type: KeyValueDataType
-    indirection_bytes: field(default_factory=list)
+    indirection_bytes: list[int] = field(default_factory=list)
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):

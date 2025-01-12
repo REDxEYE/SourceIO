@@ -59,7 +59,7 @@ def _legacy_block_decompress(in_buffer: Buffer) -> Buffer:
     return out_buffer
 
 
-def read_valve_keyvalue3(buffer: Buffer):
+def read_valve_keyvalue3(buffer: Buffer) -> AnyKVType:
     sig = buffer.read(4)
     if not KV3Signatures.is_valid(sig):
         raise BufferError("Not a KV3 buffer")
@@ -99,7 +99,7 @@ class KV3ContextNew:
     binary_blob_buffer: Buffer | None
 
     read_type: Callable[['KV3ContextNew'], tuple[KV3Type, Specifier]]
-    read_value: Callable[['KV3ContextNew'], Any]
+    read_value: Callable[['KV3ContextNew'], AnyKVType]
     active_buffer: KV3Buffers | None = None
 
 

@@ -11,11 +11,12 @@ import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, find_layer_collection, get_new_unique_collection, \
-    get_or_create_material, is_blender_4_1
+from SourceIO.blender_bindings.utils.bpy_utils import (add_material, find_layer_collection,
+                                                       get_new_unique_collection, get_or_create_material,
+                                                       is_blender_4_1)
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.source2 import CompiledMaterialResource, CompiledModelResource, CompiledMorphResource, \
-    CompiledPhysicsResource, CompiledResource, CompiledTextureResource
+from SourceIO.library.source2 import (CompiledMaterialResource, CompiledModelResource, CompiledMorphResource,
+                                      CompiledPhysicsResource, CompiledTextureResource, CompiledMeshResource)
 from SourceIO.library.source2.common import convert_normals, convert_normals_2
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from SourceIO.library.source2.blocks.morph_block import MorphBlock
@@ -24,13 +25,12 @@ from SourceIO.library.source2.blocks.vertex_index_buffer import VertexIndexBuffe
 from SourceIO.library.source2.blocks.vertex_index_buffer.vertex_buffer import VertexBuffer
 from SourceIO.library.source2.keyvalues3.types import NullObject, Object
 from SourceIO.library.source2.exceptions import MissingBlock
-from SourceIO.library.source2.resource_types import CompiledMeshResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.source2.compiled_resource import DATA_BLOCK
+from SourceIO.library.utils.tiny_path import TinyPath
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
-from SourceIO.library.source2.compiled_resource import DATA_BLOCK
-from ...library.utils.tiny_path import TinyPath
 
 
 def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):
@@ -203,7 +203,7 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
     if morph_block:
         morph_texture = model_resource.get_child_resource(morph_block['m_pTextureAtlas'], content_manager,
                                                           CompiledTextureResource)
-        texture,_ = morph_texture.get_texture_data(0)
+        texture, _ = morph_texture.get_texture_data(0)
         if texture is None:
             logging.error(f'Failed to find {morph_block["m_pTextureAtlas"]!r} morf texture')
 
@@ -345,7 +345,7 @@ def use_compressed_normals(draw_call: dict):
 def create_mesh(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
                 data_block: KVBlock, index_buffers: list, vertex_buffers: list,
                 morph_texture: np.ndarray | None, morph_block: MorphBlock | None,
-                mesh_id: int, mesh_resource: CompiledResource, import_context: ImportContext,
+                mesh_id: int, mesh_resource: CompiledMeshResource, import_context: ImportContext,
                 mesh_name: Optional[str] = None) -> list[bpy.types.Object]:
     objects: list[bpy.types.Object] = []
     g_vertex_offset = 0

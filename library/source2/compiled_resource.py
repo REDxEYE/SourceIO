@@ -7,12 +7,15 @@ from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2.blocks.all_blocks import guess_block_type
 from SourceIO.library.source2.blocks.base import BaseBlock
 from SourceIO.library.source2.blocks.resource_external_reference_list import ResourceExternalReferenceList
+from SourceIO.library.source2.blocks.resource_introspection_manifest.manifest import ResourceIntrospectionManifest
 from SourceIO.library.source2.compiled_file_header import CompiledHeader, BlockInfo
+from SourceIO.library.source2.utils.ntro_reader import NTROBuffer
 from SourceIO.library.utils import Buffer, MemoryBuffer, TinyPath
 
 CompiledResourceT = TypeVar("CompiledResourceT", bound="CompiledResource")
 BlockT = TypeVar("BlockT", bound="BaseBlock")
 DATA_BLOCK = -9999
+_SKIP_BLOCKS = ["NTRO", "RERL"]
 
 
 @dataclass(slots=True)
@@ -32,7 +35,16 @@ class CompiledResource:
         if block_class is None:
             warnings.warn(f"Block of type {info_block.name} is not supported")
             return None
-        data_block = block_class.from_buffer(MemoryBuffer(self._buffer.read(info_block.size)))
+
+        if self.has_block(block_name="NTRO") and info_block.name not in _SKIP_BLOCKS:
+            ntro = self.get_block(ResourceIntrospectionManifest, block_name="NTRO")
+            resource_list = self.get_block(ResourceExternalReferenceList, block_name="RERL")
+            self._buffer.seek(info_block.absolute_offset)
+            buffer = NTROBuffer(self._buffer.read(info_block.size), ntro.info, {v.hash: v.name for v in resource_list})
+        else:
+            self._buffer.seek(info_block.absolute_offset)
+            buffer = NTROBuffer(self._buffer.read(info_block.size), None, None)
+        data_block = block_class.from_buffer(buffer)
         data_block.custom_name = info_block.name
         return data_block
 
@@ -84,9 +96,6 @@ class CompiledResource:
         inmemory_buffer = MemoryBuffer(buffer.read())
         header = CompiledHeader.from_buffer(inmemory_buffer)
         return cls(inmemory_buffer, filename, header)
-
-    def _get_block_class(self, name) -> Type[BaseBlock]:
-        return guess_block_type(name)
 
     def has_child_resource(self, name_or_id: str | int, cm: ContentManager):
         resource_path = self.get_child_resource_path(name_or_id)

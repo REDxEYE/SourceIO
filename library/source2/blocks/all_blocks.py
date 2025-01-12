@@ -8,12 +8,11 @@ from .morph_block import MorphBlock
 from .phys_block import PhysBlock
 from .resource_edit_info import ResourceEditInfo, ResourceEditInfo2
 from .resource_external_reference_list import ResourceExternalReferenceList
-from .resource_introspection_manifest import ResourceIntrospectionManifest
+from SourceIO.library.source2.blocks.resource_introspection_manifest.manifest import ResourceIntrospectionManifest
 from .vertex_index_buffer import VertexIndexBuffer
 
 
 def guess_block_type(name) -> Type[BaseBlock]:
-
     if name == "NTRO":
         return ResourceIntrospectionManifest
     elif name == "REDI":

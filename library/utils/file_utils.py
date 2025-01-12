@@ -8,6 +8,8 @@ from pathlib import Path
 from struct import calcsize, pack, unpack
 from typing import Optional, Protocol, Union, TypeVar, Type
 
+from PIL.ImageChops import offset
+
 try:
     from SourceIO.library.utils.tiny_path import TinyPath
 except ImportError:
@@ -227,7 +229,7 @@ class Buffer(abc.ABC, io.RawIOBase):
 
 class MemoryBuffer(Buffer):
 
-    def __init__(self, buffer: Union[bytes, bytearray, memoryview]):
+    def __init__(self, buffer: bytes | bytearray | memoryview):
         super().__init__()
         self._buffer = memoryview(buffer)
         self._offset = 0
@@ -292,6 +294,12 @@ class MemoryBuffer(Buffer):
 
     def close(self) -> None:
         self._buffer = None
+
+    def read_nt_string(self: 'MemoryBuffer'):
+        end = self._buffer.obj.index(b"\x00", self._offset)
+        string = self._buffer[self._offset:end]
+        self._offset+=end-self._offset+1
+        return string.tobytes().decode("utf8")
 
     def slice(self, offset: Optional[int] = None, size: int = -1) -> 'MemorySlice':
         if offset is None:
@@ -384,4 +392,4 @@ class Readable(Protocol):
         ...
 
 
-__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'Readable']
+__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'MemorySlice', 'Readable']

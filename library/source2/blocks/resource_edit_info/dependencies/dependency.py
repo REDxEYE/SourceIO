@@ -18,11 +18,11 @@ class Dependency(ABC):
         pass
 
 
-T = TypeVar('T', bound=Dependency)
+DependencyT = TypeVar('DependencyT', bound=Dependency)
 
 
-class DependencyList(list[T]):
-    dependency_type: T = Dependency
+class DependencyList(list[DependencyT]):
+    dependency_type: DependencyT = Dependency
 
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'DependencyList':

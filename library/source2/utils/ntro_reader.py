@@ -1,83 +1,52 @@
-from typing import Union
+from abc import ABC
+from dataclasses import dataclass
+from typing import Union, Optional
 
 import numpy as np
 
-from SourceIO.library.utils import Buffer
-
-from SourceIO.library.source2.keyvalues3.types import *
-from SourceIO.library.source2.blocks.base import BaseBlock
-from SourceIO.library.source2.blocks.resource_external_reference_list import ResourceExternalReferenceList
+from SourceIO.library.source2.blocks.resource_introspection_manifest.types import StructMember, KeyValueDataType, \
+    Struct, Enum
 from SourceIO.library.source2.keyvalues3.enums import Specifier, KV3Type
-from .enum import Enum
-from .struct import KeyValueDataType, Struct, StructMember
+from SourceIO.library.source2.keyvalues3.types import Object, NullObject, TypedArray, String, UInt32, Int32, UInt64, \
+    Int64, Double, Bool
+from SourceIO.library.utils import MemoryBuffer, Buffer
+from SourceIO.library.utils.file_utils import MemorySlice
 
 
-class ResourceIntrospectionManifest(BaseBlock):
+@dataclass
+class ResourceIntrospectionInfo:
+    version: int
+    structs: list[Struct]
+    enums: list[Enum]
 
-    def __init__(self, buffer: Buffer):
-        super().__init__(buffer)
-        self.version = 0
-        self._structs: list[Struct] = []
-        self._enums: list[Enum] = []
+    struct_lookup: dict[str | int, Struct]
+    enum_lookup: dict[str | int, Enum]
 
-        self._s2p_struct: dict[str, Struct] = {}
-        self._i2p_struct: dict[int, Struct] = {}
-        self._s2p_enum: dict[str, Enum] = {}
-        self._i2p_enum: dict[int, Enum] = {}
+    resource_list: dict[int, str]
 
     def struct_by_pos(self, pos: int) -> Struct:
-        return self._structs[pos]
+        return self.structs[pos]
 
     def struct_by_name(self, name: str) -> Struct:
-        return self._s2p_struct[name]
+        return self.struct_lookup[name]
 
     def struct_by_id(self, s_id: int) -> Struct:
-        return self._i2p_struct[s_id]
-
-    def enum_by_pos(self, pos: int) -> Enum:
-        return self._enums[pos]
-
-    def enum_by_name(self, name: str) -> Enum:
-        return self._s2p_enum[name]
+        return self.struct_lookup[s_id]
 
     def enum_by_id(self, e_id: int) -> Enum:
-        return self._i2p_enum[e_id]
+        return self.enum_lookup[e_id]
 
-    @classmethod
-    def from_buffer(cls, buffer: Buffer):
-        self: 'ResourceIntrospectionManifest' = cls(buffer)
-        self.version = buffer.read_uint32()
-        assert self.version == 4, f'Introspection version {self.version} is not supported'
-        struct_offset = buffer.read_relative_offset32()
-        struct_count = buffer.read_uint32()
-        enum_offset = buffer.read_relative_offset32()
-        enum_count = buffer.read_uint32()
-
-        with buffer.read_from_offset(struct_offset):
-            for i in range(struct_count):
-                structure = Struct.from_buffer(buffer)
-                self._s2p_struct[structure.name] = structure
-                self._i2p_struct[structure.id] = structure
-                self._structs.append(structure)
-        with buffer.read_from_offset(enum_offset):
-            for i in range(enum_count):
-                enum = Enum.from_buffer(buffer)
-                self._s2p_enum[enum.name] = enum
-                self._i2p_enum[enum.id] = enum
-                self._enums.append(enum)
-        return self
-
-    def read_struct(self, buffer: Buffer, top_struct: Struct) -> Union[NullObject, Object]:
+    def read_struct(self, buffer: Buffer, struct: Struct) -> Union[NullObject, Object]:
         data = Object()
         members: list[tuple[str, StructMember]] = []
 
-        def collect_members(struct: Struct):
-            if struct.parent_struct_id:
-                collect_members(self._i2p_struct[struct.parent_struct_id])
-            for item in struct.members.items():
+        def collect_members(st: Struct):
+            if st.parent_struct_id:
+                collect_members(self.struct_lookup[st.parent_struct_id])
+            for item in st.members.items():
                 members.append(item)
 
-        collect_members(top_struct)
+        collect_members(struct)
         members.sort(key=lambda a: a[1].stride_offset)
         struct_start = buffer.tell()
         for name, member in members:
@@ -146,7 +115,7 @@ class ResourceIntrospectionManifest(BaseBlock):
                 else:
                     value = reader(self, buffer, member)
             data[name] = value
-        buffer.seek(struct_start + top_struct.disc_size)
+        buffer.seek(struct_start + struct.disc_size)
         return data
 
     @staticmethod
@@ -198,68 +167,84 @@ class ResourceIntrospectionManifest(BaseBlock):
         resource_id = buffer.read_uint64()
         if resource_id == 0:
             return String('')
-        resource_external_references = self._resource.get_block(ResourceExternalReferenceList, block_name='RERL')
-        if resource := resource_external_references.find_resource(resource_id):
+        if resource := self.resource_list.get(resource_id, None):
             return String(resource)
         return NullObject()
 
-    def _read_string(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_string(buffer: Buffer, member: StructMember):
         offset = buffer.read_relative_offset32()
         if offset == buffer.tell() - 4:
             return String('')
         with buffer.read_from_offset(offset):
             return String(buffer.read_ascii_string())
 
-    def _read_ubyte(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_ubyte(buffer: Buffer, member: StructMember):
         return UInt32(buffer.read_uint8())
 
-    def _read_byte(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_byte(buffer: Buffer, member: StructMember):
         return Int32(buffer.read_int8())
 
-    def _read_ushort(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_ushort(buffer: Buffer, member: StructMember):
         return UInt32(buffer.read_uint16())
 
-    def _read_short(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_short(buffer: Buffer, member: StructMember):
         return Int32(buffer.read_int16())
 
-    def _read_uint32(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_uint32(buffer: Buffer, member: StructMember):
         return UInt32(buffer.read_uint32())
 
-    def _read_int32(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_int32(buffer: Buffer, member: StructMember):
         return Int32(buffer.read_int32())
 
-    def _read_uint64(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_uint64(buffer: Buffer, member: StructMember):
         return UInt64(buffer.read_uint64())
 
-    def _read_int64(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_int64(buffer: Buffer, member: StructMember):
         return Int64(buffer.read_int64())
 
-    def _read_float(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_float(buffer: Buffer, member: StructMember):
         return Double(buffer.read_float())
 
-    def _read_vector2(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_vector2(buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()), Double(buffer.read_float())])
 
-    def _read_vector3(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_vector3(buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()), Double(buffer.read_float()), Double(buffer.read_float())])
 
-    def _read_vector4(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_vector4(buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()) for _ in range(4)])
 
-    def _read_color(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_color(buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_uint8() / 255) for _ in range(4)])
 
-    def _read_bool(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_bool(buffer: Buffer, member: StructMember):
         return Bool(buffer.read_uint8() == 1)
 
-    def _read_mat34(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_mat34(buffer: Buffer, member: StructMember):
         return np.frombuffer(buffer.read(4 * 12), dtype=np.float32).reshape(3, 4)
 
-    def _read_ctrans(self, buffer: Buffer, member: StructMember):
+    @staticmethod
+    def _read_ctrans(buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()) for _ in range(7)])
 
@@ -310,3 +295,50 @@ class ResourceIntrospectionManifest(BaseBlock):
         None,  # 43
         _read_vector4,  # 44
     )
+
+
+class NTROHelper(ABC):
+    def __init__(self, ntro: ResourceIntrospectionInfo | None, resource_list: dict[int, str] | None):
+        self._ntro: ResourceIntrospectionInfo | None = ntro
+        if ntro is not None and resource_list is not None:
+            ntro.resource_list = resource_list
+
+    @property
+    def has_ntro(self):
+        return self._ntro is not None
+
+
+class NTROSlice(MemorySlice, NTROHelper):
+
+    def __init__(self, buffer: Union[bytes, bytearray, memoryview], offset: int,
+                 ntro: ResourceIntrospectionInfo | None,
+                 resource_list: dict[int, str] | None):
+        MemorySlice.__init__(self, buffer, offset)
+        NTROHelper.__init__(self, ntro, resource_list)
+
+    def read_struct(self, name: str) -> Object | NullObject:
+        assert self._ntro is not None
+        struct = self._ntro.struct_by_name(name)
+        return self._ntro.read_struct(self, struct)
+
+class NTROBuffer(MemoryBuffer, NTROHelper):
+
+    def __init__(self,
+                 buffer: bytes | bytearray | memoryview,
+                 ntro: ResourceIntrospectionInfo | None,
+                 resource_list: dict[int, str] | None):
+        MemoryBuffer.__init__(self, buffer)
+        NTROHelper.__init__(self, ntro, resource_list)
+
+    def read_struct(self, name: str) -> Object | NullObject:
+        assert self._ntro is not None
+        struct = self._ntro.struct_by_name(name)
+        return self._ntro.read_struct(self, struct)
+
+    def slice(self, offset: Optional[int] = None, size: int = -1) -> 'NTROSlice':
+        if offset is None:
+            offset = self._offset
+        slice_offset = self.tell()
+        if size == -1:
+            return NTROSlice(self._buffer[offset:], slice_offset, self._ntro, self._ntro.resource_list)
+        return NTROSlice(self._buffer[offset:offset + size], slice_offset, self._ntro, self._ntro.resource_list)

@@ -4,8 +4,8 @@ from mathutils import Matrix, Vector
 
 from SourceIO.library.source2.blocks.phys_block import PhysBlock
 from SourceIO.library.source2.keyvalues3.binary_keyvalues import BinaryBlob, TypedArray
-from ...library.source2.utils.entity_keyvalues_keys import EntityKeyValuesKeys
-from ...library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
+from SourceIO.library.source2.utils.entity_keyvalues_keys import EntityKeyValuesKeys
+from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 
 
 def generate_capsule_mesh(p1, p2, radius, segments=16):

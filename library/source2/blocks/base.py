@@ -1,16 +1,12 @@
 import abc
-from typing import Optional
 
-from SourceIO.library.utils import Buffer
+from SourceIO.library.source2.utils.ntro_reader import NTROBuffer
 
 
 class BaseBlock:
-    custom_name: Optional[str] = None
-
-    def __init__(self, buffer: Buffer):
-        self._buffer = buffer
+    custom_name: str | None = None
 
     @classmethod
     @abc.abstractmethod
-    def from_buffer(cls, buffer: Buffer) -> 'BaseBlock':
+    def from_buffer(cls, buffer: NTROBuffer) -> 'BaseBlock':
         raise NotImplementedError()
