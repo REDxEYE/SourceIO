@@ -424,7 +424,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
             if overlay and normals is not None:
                 positions += normals * 0.01
 
-            mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)).tolist())
+            mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)))
             mesh.update()
             material = get_or_create_material(material_stem, TinyPath(material_name).as_posix())
             add_material(material, mesh_obj)

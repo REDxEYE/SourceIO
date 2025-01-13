@@ -7,11 +7,12 @@ from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection, pause_view_layer_update
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.source2 import CompiledWorldResource
+from SourceIO.library.source2 import CompiledWorldResource, CompiledResource
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from SourceIO.library.source2.keyvalues3.types import Object
 from SourceIO.library.source2.resource_types import CompiledManifestResource
-from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, CompiledMapResource
+from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, \
+    CompiledMapResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
@@ -48,6 +49,14 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
         return import_world(world_resource, map_resource, cm, scale)
 
 
+def cheap_path_check(resource_id: str | int, content_manager: ContentManager, resource: CompiledResource):
+    if isinstance(resource_id, str):
+        res_path = TinyPath(resource_id + "_c")
+        if content_manager.check(res_path):
+            return TinyPath(resource_id + "_c")
+    return resource.get_child_resource_path(resource_id)
+
+
 def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMapResource,
                  content_manager: ContentManager, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
     map_name = map_resource.name
@@ -70,7 +79,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
             collection = get_or_create_collection(f"static_props_{TinyPath(node_prefix).name}", master_collection)
             for scene_object in node_resource.get_scene_objects():
                 renderable_model = scene_object["m_renderableModel"]
-                proper_path = node_resource.get_child_resource_path(renderable_model)
+                proper_path = cheap_path_check(renderable_model, content_manager, node_resource)
                 if (transform := scene_object.get('m_vTransform', None)) is not None:
                     matrix = Matrix(transform).to_4x4()
                 else:
@@ -78,7 +87,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                 create_static_prop_placeholder(scene_object, proper_path, matrix, collection, scale, uv_scale)
             for scene_object in node_resource.get_aggregate_scene_objects():
                 renderable_model = scene_object["m_renderableModel"]
-                proper_path = node_resource.get_child_resource_path(renderable_model)
+                proper_path = cheap_path_check(renderable_model, content_manager, node_resource)
                 if scene_object["m_fragmentTransforms"] or scene_object["m_aggregateMeshes"]:
                     fragments = []
                     transforms: list | None = scene_object.get("m_fragmentTransforms", None)

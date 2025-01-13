@@ -11,14 +11,16 @@ from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class CompiledEntityLumpResource(CompiledResource):
+    @property
+    def data_block(self):
+        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+
     def get_child_lumps(self, content_manager: ContentManager):
-        data = self.get_block(KVBlock, block_name='DATA')
-        for child_lump in data["m_childLumps"]:
+        for child_lump in self.data_block["m_childLumps"]:
             yield self.get_child_resource(child_lump, content_manager, CompiledEntityLumpResource)
 
     def get_entities(self) -> Iterator[Object]:
-        data = self.get_block(KVBlock, block_name='DATA')
-        for entity_key_values in data["m_entityKeyValues"]:
+        for entity_key_values in self.data_block["m_entityKeyValues"]:
             if "m_keyValuesData" in entity_key_values and len(entity_key_values["m_keyValuesData"]):
                 buffer = MemoryBuffer(entity_key_values["m_keyValuesData"])
                 yield EntityKeyValues.from_buffer(buffer)
@@ -41,10 +43,6 @@ class CompiledWorldNodeResource(CompiledResource):
 
 
 class CompiledMapResource(CompiledResource):
-    @property
-    def data_block(self):
-        return self.get_block(KVBlock, block_id=DATA_BLOCK)
-
     def get_worldnode(self, node_group_prefix: str, content_manager: ContentManager) \
             -> Optional[CompiledWorldNodeResource]:
         world_node = self.get_child_resource(TinyPath(node_group_prefix + ".vwnod").as_posix(), content_manager,
@@ -59,7 +57,6 @@ class CompiledMapResource(CompiledResource):
 
 
 class CompiledWorldResource(CompiledResource):
-
     @property
     def data_block(self):
         return self.get_block(KVBlock, block_id=DATA_BLOCK)
