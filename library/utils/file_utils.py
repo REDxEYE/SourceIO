@@ -8,8 +8,6 @@ from pathlib import Path
 from struct import calcsize, pack, unpack
 from typing import Optional, Protocol, Union, TypeVar, Type
 
-from PIL.ImageChops import offset
-
 try:
     from SourceIO.library.utils.tiny_path import TinyPath
 except ImportError:
