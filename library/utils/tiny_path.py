@@ -119,6 +119,8 @@ class TinyPath(str, PathLike):
         return TinyPath(self + suffix)
 
     def iterdir(self):
+        if not self.exists():
+            return []
         for item in Path(self).iterdir():
             yield TinyPath(item.as_posix())
 
