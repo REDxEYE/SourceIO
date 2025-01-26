@@ -33,6 +33,6 @@ class ResourceIntrospectionManifest(BaseBlock):
                 enum_lookup[enum_type.name] = enum_type
                 enum_lookup[enum_type.id] = enum_type
                 enums.append(enum_type)
-        return cls(buffer, ResourceIntrospectionInfo(version, structs, enums, struct_lookup, enum_lookup, {}))
+        return cls(ResourceIntrospectionInfo(version, structs, enums, struct_lookup, enum_lookup, {}))
 
 

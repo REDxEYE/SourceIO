@@ -9,6 +9,7 @@ from SourceIO.blender_bindings.source1.bsp.entities.abstract_entity_handlers imp
 from SourceIO.blender_bindings.source1.bsp.entities.sof_entity_handler import SOFEntityHandler
 from SourceIO.blender_bindings.material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from SourceIO.blender_bindings.operators.import_settings_base import Source1BSPSettings
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.bsp.bsp_file import open_bsp, BSPFile
@@ -356,22 +357,20 @@ def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
                                                                        np.ones((shape_, 1))),
                                                                       axis=1)
             multiblend_offset += subdiv_vert_count
-
-        face_indices = []
+        face_indices = np.zeros(((num_edge_vertices - 1) * (num_edge_vertices - 1) * 2, 3),np.uint32)
+        face_index = 0
         for i in range(num_edge_vertices - 1):
             for j in range(num_edge_vertices - 1):
                 index = i * num_edge_vertices + j
                 if index & 1:
-                    face_indices.append((index, index + 1, index + num_edge_vertices))
-                    face_indices.append((index + 1, index + num_edge_vertices + 1, index + num_edge_vertices))
+                    face_indices[face_index] = (index, index + 1, index + num_edge_vertices)
+                    face_indices[face_index+1] = (index + 1, index + num_edge_vertices + 1, index + num_edge_vertices)
                 else:
-                    face_indices.append((index, index + num_edge_vertices + 1, index + num_edge_vertices))
-                    face_indices.append((index, index + 1, index + num_edge_vertices + 1,))
-
-        mesh_obj = bpy.data.objects.new(f"{bsp.filepath.stem}_disp_{disp_info.map_face}",
-                                        bpy.data.meshes.new(
-                                            f"{bsp.filepath.stem}_disp_{disp_info.map_face}_MESH"))
-        mesh_data = mesh_obj.data
+                    face_indices[face_index] = (index, index + num_edge_vertices + 1, index + num_edge_vertices)
+                    face_indices[face_index+1] = (index, index + 1, index + num_edge_vertices + 1)
+                face_index+=2
+        mesh_data = FastMesh.new(f"{bsp.filepath.stem}_disp_{disp_info.map_face}_MESH")
+        mesh_obj = bpy.data.objects.new(f"{bsp.filepath.stem}_disp_{disp_info.map_face}", mesh_data)
         if parent_collection is not None:
             parent_collection.objects.link(mesh_obj)
         else:

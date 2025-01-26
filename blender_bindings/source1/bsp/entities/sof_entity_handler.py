@@ -6,6 +6,7 @@ import bpy
 import numpy as np
 from mathutils import Vector, geometry
 
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from .abstract_entity_handlers import _srgb2lin
 from .base_entity_classes import *
 from .base_entity_handler import BaseEntityHandler
@@ -261,8 +262,8 @@ class SOFEntityHandler(BaseEntityHandler):
             vertices = np.asarray(vertices)
             if len(indices) == 0:
                 return None
-            mesh_obj = bpy.data.objects.new(model_name, bpy.data.meshes.new(f"{model_name}_MESH"))
-            mesh_data = mesh_obj.data
+            mesh_data = FastMesh.new(f"{model_name}_MESH")
+            mesh_obj = bpy.data.objects.new(model_name, mesh_data)
 
             mesh_data.from_pydata(vertices["pos"] * self.scale, [], indices)
 

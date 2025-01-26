@@ -4,14 +4,11 @@ from pprint import pformat
 
 import bpy
 
+from ....utils.fast_mesh import FastMesh
 from .....library.source1.bsp.datatypes.model import RespawnModel
 from .....library.source1.bsp.datatypes.texture_data import TextureData
-from .....library.source1.bsp.lumps.face_indices_lump import *
-from .....library.source1.bsp.lumps.lightmap_header_lump import *
-from .....library.source1.bsp.lumps.lightmap_lump import *
 from .....library.source1.bsp.lumps.material_sort_lump import *
 from .....library.source1.bsp.lumps.mesh_lump import *
-from .....library.source1.bsp.lumps.vertex_lump import *
 from .....library.source1.bsp.lumps.vertex_normal_lump import *
 from ....utils.bpy_utils import add_material
 from ..entities.base_entity_handler import BaseEntityHandler
@@ -130,10 +127,9 @@ class TitanfallEntityHandler(BaseEntityHandler):
                 else:
                     merged_materials_ids = np.append(merged_materials_ids,
                                                      np.full((vertex_indices.shape[0] // 3,), mat_id), axis=0)
-            mesh_obj = bpy.data.objects.new(f'{model_name}_{lightmap_id}',
-                                            bpy.data.meshes.new(f"{model_name}_{lightmap_id}_MESH"))
+            mesh_data = bpy.data.meshes.new(f"{model_name}_{lightmap_id}_MESH")
+            mesh_obj = bpy.data.objects.new(f'{model_name}_{lightmap_id}', mesh_data)
             objs.append(mesh_obj)
-            mesh_data = mesh_obj.data
             for mat in material_indices:
                 add_material(mat, mesh_obj)
 

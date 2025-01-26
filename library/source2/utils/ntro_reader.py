@@ -171,80 +171,63 @@ class ResourceIntrospectionInfo:
             return String(resource)
         return NullObject()
 
-    @staticmethod
-    def _read_string(buffer: Buffer, member: StructMember):
+    def _read_string(self, buffer: Buffer, member: StructMember):
         offset = buffer.read_relative_offset32()
         if offset == buffer.tell() - 4:
             return String('')
         with buffer.read_from_offset(offset):
             return String(buffer.read_ascii_string())
 
-    @staticmethod
-    def _read_ubyte(buffer: Buffer, member: StructMember):
+    def _read_ubyte(self, buffer: Buffer, member: StructMember):
         return UInt32(buffer.read_uint8())
 
-    @staticmethod
-    def _read_byte(buffer: Buffer, member: StructMember):
+    def _read_byte(self, buffer: Buffer, member: StructMember):
         return Int32(buffer.read_int8())
 
-    @staticmethod
-    def _read_ushort(buffer: Buffer, member: StructMember):
+    def _read_ushort(self, buffer: Buffer, member: StructMember):
         return UInt32(buffer.read_uint16())
 
-    @staticmethod
-    def _read_short(buffer: Buffer, member: StructMember):
+    def _read_short(self, buffer: Buffer, member: StructMember):
         return Int32(buffer.read_int16())
 
-    @staticmethod
-    def _read_uint32(buffer: Buffer, member: StructMember):
+    def _read_uint32(self, buffer: Buffer, member: StructMember):
         return UInt32(buffer.read_uint32())
 
-    @staticmethod
-    def _read_int32(buffer: Buffer, member: StructMember):
+    def _read_int32(self, buffer: Buffer, member: StructMember):
         return Int32(buffer.read_int32())
 
-    @staticmethod
-    def _read_uint64(buffer: Buffer, member: StructMember):
+    def _read_uint64(self, buffer: Buffer, member: StructMember):
         return UInt64(buffer.read_uint64())
 
-    @staticmethod
-    def _read_int64(buffer: Buffer, member: StructMember):
+    def _read_int64(self, buffer: Buffer, member: StructMember):
         return Int64(buffer.read_int64())
 
-    @staticmethod
-    def _read_float(buffer: Buffer, member: StructMember):
+    def _read_float(self, buffer: Buffer, member: StructMember):
         return Double(buffer.read_float())
 
-    @staticmethod
-    def _read_vector2(buffer: Buffer, member: StructMember):
+    def _read_vector2(self, buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()), Double(buffer.read_float())])
 
-    @staticmethod
-    def _read_vector3(buffer: Buffer, member: StructMember):
+    def _read_vector3(self, buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()), Double(buffer.read_float()), Double(buffer.read_float())])
 
-    @staticmethod
-    def _read_vector4(buffer: Buffer, member: StructMember):
+    def _read_vector4(self, buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()) for _ in range(4)])
 
-    @staticmethod
-    def _read_color(buffer: Buffer, member: StructMember):
+    def _read_color(self, buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_uint8() / 255) for _ in range(4)])
 
-    @staticmethod
-    def _read_bool(buffer: Buffer, member: StructMember):
+    def _read_bool(self, buffer: Buffer, member: StructMember):
         return Bool(buffer.read_uint8() == 1)
 
-    @staticmethod
-    def _read_mat34(buffer: Buffer, member: StructMember):
+    def _read_mat34(self, buffer: Buffer, member: StructMember):
         return np.frombuffer(buffer.read(4 * 12), dtype=np.float32).reshape(3, 4)
 
-    @staticmethod
-    def _read_ctrans(buffer: Buffer, member: StructMember):
+    def _read_ctrans(self, buffer: Buffer, member: StructMember):
         return TypedArray(KV3Type.DOUBLE, Specifier.UNSPECIFIED,
                           [Double(buffer.read_float()) for _ in range(7)])
 
@@ -320,6 +303,7 @@ class NTROSlice(MemorySlice, NTROHelper):
         assert self._ntro is not None
         struct = self._ntro.struct_by_name(name)
         return self._ntro.read_struct(self, struct)
+
 
 class NTROBuffer(MemoryBuffer, NTROHelper):
 

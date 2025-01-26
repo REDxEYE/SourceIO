@@ -7,6 +7,7 @@ from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.blender_bindings.models.mdl49.import_mdl import create_armature, create_attachments, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
 from SourceIO.library.models.mdl.v52.mdl_file import MdlV52
@@ -47,7 +48,7 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
                 continue
             mesh_name = f'{body_part.name}_{model.name}'
 
-            mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
+            mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
             if getattr(mdl, 'material_mapper', None):
                 material_mapper = mdl.material_mapper

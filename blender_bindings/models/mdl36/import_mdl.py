@@ -11,6 +11,7 @@ from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base impor
 from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
@@ -84,7 +85,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
             if model.vertex_count == 0:
                 continue
             mesh_name = f'{body_part.name}_{model.name}'
-            mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
+            mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
             if getattr(mdl, 'material_mapper', None):
                 material_mapper = mdl.material_mapper

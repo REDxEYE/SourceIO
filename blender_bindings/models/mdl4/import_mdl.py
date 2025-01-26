@@ -6,6 +6,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.v4.mdl_file import Mdl
 from SourceIO.library.models.mdl.v4.structs.sequence import euler_to_quat
 from SourceIO.library.models.mdl.v4.structs.texture import StudioTexture
@@ -78,7 +79,7 @@ def import_model(name: str, mdl_buffer: Buffer, options: ModelOptions):
     for model in mdl.models:
         model_name = model.name
 
-        model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+        model_mesh = FastMesh.new(f'{model_name}_mesh')
         model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
         objects.append(model_object)

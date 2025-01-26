@@ -10,6 +10,7 @@ from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_s
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.v6.mdl_file import Mdl
 from SourceIO.library.models.mdl.v6.structs.texture import StudioTexture
 from SourceIO.library.utils import Buffer
@@ -79,7 +80,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
         for body_part_model in body_part.models:
             model_name = body_part_model.name
 
-            model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+            model_mesh = FastMesh.new(f'{model_name}_mesh')
             model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
             bodyparts[body_part.name].append(model_object)

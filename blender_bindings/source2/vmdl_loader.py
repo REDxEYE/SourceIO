@@ -31,6 +31,7 @@ from SourceIO.library.source2.compiled_resource import DATA_BLOCK
 from SourceIO.library.utils.tiny_path import TinyPath
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
+from ..utils.fast_mesh import FastMesh
 
 
 def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):
@@ -359,7 +360,6 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
             draw_calls = scene_object["m_drawCalls"]
 
         for draw_call in draw_calls:
-            # print(draw_call)
             assert len(draw_call['m_vertexBuffers']) == 1
             assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
 
@@ -368,7 +368,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
             vertex_buffer = vertex_buffers[vertex_buffer_info['m_hBuffer']]
             index_buffer = index_buffers[index_buffer_info['m_hBuffer']]
             material_name = draw_call['m_material', 'm_pMaterial']
-            material_resource: Optional[CompiledMaterialResource] = None
+            material_resource: CompiledMaterialResource | None = None
             if not isinstance(material_name, NullObject):
                 material_resource = mesh_resource.get_child_resource(material_name, content_manager,
                                                                      CompiledMaterialResource)
@@ -408,7 +408,8 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
 
             material_stem = path_stem(material_name)
             model_name = mesh_name or mesh_resource.name
-            mesh = bpy.data.meshes.new(f'{model_name}_{material_stem}_mesh')
+            mesh = FastMesh.new(f'{model_name}_{material_stem}_mesh')
+            # mesh = bpy.data.meshes.new(f'{model_name}_{material_stem}_mesh')
             mesh_obj = bpy.data.objects.new(f'{model_name}_{material_stem}', mesh)
 
             positions = used_vertices['POSITION'] * import_context.scale
@@ -424,7 +425,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
             if overlay and normals is not None:
                 positions += normals * 0.01
 
-            mesh.from_pydata(positions, [], new_indices.reshape((-1, 3)))
+            mesh.from_pydata(positions, np.empty(0), new_indices.reshape((-1, 3)))
             mesh.update()
             material = get_or_create_material(material_stem, TinyPath(material_name).as_posix())
             add_material(material, mesh_obj)

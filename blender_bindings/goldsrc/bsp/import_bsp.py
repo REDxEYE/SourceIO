@@ -12,6 +12,7 @@ from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_s
 from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader_mode5 import GoldSrcShaderMode5
 from SourceIO.blender_bindings.utils.bpy_utils import (add_material, get_or_create_collection,
                                                        get_or_create_material, is_blender_4_3)
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
 from SourceIO.library.goldsrc.bsp.lump import LumpType
 from SourceIO.library.goldsrc.bsp.lumps.edge_lump import EdgeLump
@@ -139,7 +140,7 @@ class BSP:
         entity_model = self.bsp_lump_models.values[model_index]
         if not entity_model.faces:
             return
-        model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+        model_mesh = FastMesh.new(f'{model_name}_mesh')
         model_object = bpy.data.objects.new(model_name, model_mesh)
 
         if parent_collection is not None:

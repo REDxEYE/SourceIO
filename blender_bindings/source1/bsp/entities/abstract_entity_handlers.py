@@ -134,8 +134,8 @@ class AbstractEntityHandler:
 
     def _load_brush_model(self, model_id, model_name):
         model = self._bsp.get_lump("LUMP_MODELS").models[model_id]
-        mesh_obj = bpy.data.objects.new(model_name, bpy.data.meshes.new(f"{model_name}_MESH"))
-        mesh_data = mesh_obj.data
+        mesh_data = bpy.data.meshes.new(f"{model_name}_MESH")
+        mesh_obj = bpy.data.objects.new(model_name, mesh_data)
         faces = []
         material_indices = []
 

@@ -769,9 +769,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             [-x_cor, 0, z_cor]
         ]
 
-        mesh = bpy.data.meshes.new(entity.class_name + str(entity.hammer_id))
-        obj = bpy.data.objects.new(entity.class_name + str(entity.hammer_id), mesh)
-        mesh_data = obj.data
+        mesh_data = bpy.data.meshes.new(entity.class_name + str(entity.hammer_id))
+        obj = bpy.data.objects.new(entity.class_name + str(entity.hammer_id), mesh_data)
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
 
         origin = Vector(entity.origin)

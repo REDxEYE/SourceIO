@@ -10,6 +10,7 @@ from SourceIO.blender_bindings.models.model_tags import register_model_importer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, add_material
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.library.models.md3 import read_md3_model
 from SourceIO.library.shared.content_manager import ContentManager
@@ -38,7 +39,7 @@ def import_md3_15(model_path: TinyPath, buffer: Buffer,
         if surface.frames.size == 0:
             continue
 
-        model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
+        model_mesh = FastMesh.new(f'{model_name}_mesh')
         model_object = bpy.data.objects.new(f'{model_name}', model_mesh)
 
         objects.append(model_object)
