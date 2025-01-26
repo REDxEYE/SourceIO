@@ -190,18 +190,19 @@ class AbstractEntityHandler:
             first_edge = map_face.first_edge
             edge_count = map_face.edge_count
 
-            texture_info = bsp_textures_info[map_face.tex_info_id]
-            texture_data = bsp_textures_data[texture_info.texture_data_id]
-            tv1, tv2 = texture_info.texture_vectors
-            lv1, lv2 = texture_info.lightmap_vectors
-
             used_surf_edges = bsp_surf_edges[first_edge:first_edge + edge_count]
             reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = bsp_edges[np.abs(used_surf_edges)]
             tmp = np.arange(len(used_edges))
             face_vertex_ids = used_edges[tmp, reverse]
+            face_vertex_ids = np.array(list(dict.fromkeys(face_vertex_ids)))
 
             uv_vertices = bsp_vertices[face_vertex_ids]
+
+            texture_info = bsp_textures_info[map_face.tex_info_id]
+            texture_data = bsp_textures_data[texture_info.texture_data_id]
+            tv1, tv2 = texture_info.texture_vectors
+            lv1, lv2 = texture_info.lightmap_vectors
 
             u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / (texture_data.width or 512)
             v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / (texture_data.height or 512))
@@ -237,7 +238,8 @@ class AbstractEntityHandler:
         for poly in mesh_data.polygons:
             for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
                 uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
-        mesh_data.validate()
+        if mesh_data.validate():
+            self.logger.warn(f"Mesh(*{model_id}) had some invalid geometry")
         return mesh_obj
 
     def _handle_brush_model(self, class_name, group, entity, entity_raw):

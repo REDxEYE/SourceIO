@@ -128,6 +128,9 @@ class TinyPath(str, PathLike):
         suffix = self.suffix
         return (self.parent / name).with_suffix(suffix)
 
+    def mkdir(self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False):
+        return Path(self).mkdir(mode, parents, exist_ok=exist_ok)
+
     def __repr__(self):
         return f"{self.__class__.__name__}(\"{self!s}\")"
 
