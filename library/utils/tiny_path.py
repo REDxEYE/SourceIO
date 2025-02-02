@@ -1,6 +1,7 @@
 import io
 import os
 import platform
+from collections import defaultdict
 from os import PathLike
 from pathlib import Path
 from typing import Union
@@ -11,6 +12,7 @@ PathTypes = Union[Path, str, PathLike, 'TinyPath']
 
 sep = '/'
 is_windows = platform.system() == "Windows"
+MAX_CACHE_SIZE = 512
 
 
 class TinyPath(str, PathLike):
@@ -99,13 +101,24 @@ class TinyPath(str, PathLike):
              errors=None, newline=None):
         if "b" not in mode:
             encoding = io.text_encoding(encoding)
+        if self in self._cache:
+            del self._cache[self]
         return open(self, mode, buffering, encoding, errors, newline)
 
     def as_posix(self):
         return str(self)
 
+    _cache: dict['TinyPath', bool] = defaultdict(lambda: False)
+
     def exists(self):
-        return os.path.exists(self)
+        if (res := self._cache.get(self, None)) is not None:
+            return res
+        res = os.path.exists(self)
+        if res:
+            self._cache[self] = True
+            if len(self._cache) > MAX_CACHE_SIZE:
+                self._cache.pop(next(iter(self._cache.keys())))
+        return res
 
     def is_file(self):
         return os.path.isfile(self)
