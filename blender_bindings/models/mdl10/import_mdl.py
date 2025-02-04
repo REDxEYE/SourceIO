@@ -139,7 +139,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
                 remap[model_material_index] = load_material(path_stem(mdl.header.name), model_texture_info,
                                                             model_object)
 
-            model_mesh.from_pydata(model_vertices, [], model_indices)
+            model_mesh.from_pydata(model_vertices, [], np.asarray(model_indices,np.uint32))
             model_mesh.update()
             model_mesh.polygons.foreach_set("use_smooth", np.ones(len(model_mesh.polygons), np.uint32))
             model_mesh.polygons.foreach_set('material_index', [remap[a] for a in model_materials])
