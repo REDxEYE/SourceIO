@@ -5,11 +5,16 @@ import bpy
 from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class IdTech3Shader(ShaderBase):
     SHADER: str = 'idtech3_shader'
+
+    def __init__(self, content_manager: ContentManager):
+        super().__init__()
+        self.content_manager = content_manager
 
     def create_nodes(self, material, material_data: dict):
         if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:

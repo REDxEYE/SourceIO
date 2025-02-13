@@ -6,7 +6,7 @@ import numpy as np
 from SourceIO.library.goldsrc.bsp.bsp_file import BspFile
 from SourceIO.library.goldsrc.wad import MipTex, WadLump, flip_texture, make_texture
 from SourceIO.library.models.mdl.v10.structs.texture import MdlTextureFlag
-from SourceIO.library.utils import Buffer
+from SourceIO.library.utils import Buffer, TinyPath
 from SourceIO.logger import SourceLogMan
 
 logger = SourceLogMan().get_logger("GoldSrc::Texture")
@@ -65,7 +65,7 @@ class TextureData:
         if self.data is not None:
             return self.data
 
-        resource = bsp.manager.find_file(self.name)
+        resource = bsp.manager.find_file(TinyPath(self.name))
         resource: WadLump
         if resource:
             if isinstance(resource, MipTex):
