@@ -20,10 +20,12 @@ class EntityLump(Lump):
 
     def parse(self, buffer: Buffer, bsp: BSPFile):
         buffer = buffer.read(-1).strip(b"\x00")
-        chaset = charset_normalizer.from_bytes(buffer)
-        self._logger.info(f"Detected {chaset.best().encoding!r} encoding in entity lump")
-        buffer = buffer.decode(chaset.best().encoding, "ignore")
+        # chaset = charset_normalizer.from_bytes(buffer)
+        # self._logger.info(f"Detected {chaset.best().encoding!r} encoding in entity lump")
+        # buffer = buffer.decode(chaset.best().encoding, "replace")
+        buffer = buffer.decode("utf8", "replace")
         buffer = buffer.translate(str.maketrans({chr(i): " " for i in range(0xA)}))
+        buffer = buffer.translate(str.maketrans({chr(65533): " "}))
         parser = ValveKeyValueParser(buffer_and_name=(buffer, 'EntityLump'), self_recover=True, array_of_blocks=True)
         parser.parse()
         for ent in parser.tree:
