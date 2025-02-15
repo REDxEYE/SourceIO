@@ -11,6 +11,7 @@ from SourceIO.library.source2.blocks.resource_introspection_manifest.manifest im
 from SourceIO.library.source2.compiled_file_header import CompiledHeader, BlockInfo
 from SourceIO.library.source2.utils.ntro_reader import NTROBuffer
 from SourceIO.library.utils import Buffer, MemoryBuffer, TinyPath
+from SourceIO.library.utils.perf_sampler import timed
 
 CompiledResourceT = TypeVar("CompiledResourceT", bound="CompiledResource")
 BlockT = TypeVar("BlockT", bound="BaseBlock")
@@ -29,6 +30,7 @@ class CompiledResource:
     def name(self):
         return self._filepath.stem
 
+    @timed
     def _get_block(self, block_class: Type[BlockT] | None, info_block: BlockInfo) -> BlockT | None:
         self._buffer.seek(info_block.absolute_offset)
         block_class = block_class or guess_block_type(info_block.name)
@@ -92,6 +94,7 @@ class CompiledResource:
         return False
 
     @classmethod
+    @timed
     def from_buffer(cls, buffer: Buffer, filename: TinyPath):
         inmemory_buffer = MemoryBuffer(buffer.read())
         header = CompiledHeader.from_buffer(inmemory_buffer)

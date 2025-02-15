@@ -5,6 +5,7 @@ import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer, WritableMemoryBuffer
 from SourceIO.library.utils.rustlib import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream, zstd_decompress
+from SourceIO.library.utils.perf_sampler import timed
 from .enums import *
 from .types import *
 
@@ -59,6 +60,7 @@ def _legacy_block_decompress(in_buffer: Buffer) -> Buffer:
     return out_buffer
 
 
+@timed
 def read_valve_keyvalue3(buffer: Buffer) -> AnyKVType:
     sig = buffer.read(4)
     if not KV3Signatures.is_valid(sig):
@@ -166,7 +168,6 @@ def _read_object(context: KV3ContextNew, specifier: Specifier):
     for i in range(member_count):
         name_id = context.active_buffer.int_buffer.read_int32()
         name = context.strings[name_id] if name_id != -1 else str(i)
-
         obj[name] = context.read_value(context)
     obj.specifier = specifier
     return obj
@@ -297,6 +298,7 @@ _kv3_readers: list[Callable[['KV3ContextNew', Specifier], Any] | None] = [
 ]
 
 
+@timed
 def _read_value_legacy(context: KV3ContextNew):
     value_type, specifier = context.read_type(context)
     reader = _kv3_readers[value_type]
@@ -362,6 +364,7 @@ def split_buffer(data_buffer: Buffer, bytes_count: int, short_count: int, int_co
     return KV3Buffers(bytes_buffer, shorts_buffer, ints_buffer, doubles_buffer)
 
 
+@timed
 def read_legacy(encoding: bytes, buffer: Buffer):
     if not KV3Encodings.is_valid(encoding):
         raise BufferError(f'Buffer contains unknown encoding: {encoding!r}')
@@ -398,6 +401,7 @@ def read_legacy(encoding: bytes, buffer: Buffer):
     return root
 
 
+@timed
 def read_v1(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
 
@@ -439,6 +443,7 @@ def read_v1(encoding: bytes, buffer: Buffer):
     return root
 
 
+@timed
 def read_v2(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -564,6 +569,7 @@ def read_v2(encoding: bytes, buffer: Buffer):
     return root
 
 
+@timed
 def read_v3(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -653,6 +659,7 @@ def read_v3(encoding: bytes, buffer: Buffer):
     return root
 
 
+@timed
 def read_v4(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -747,6 +754,7 @@ def read_v4(encoding: bytes, buffer: Buffer):
     return root
 
 
+@timed
 def read_v5(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -793,17 +801,17 @@ def read_v5(encoding: bytes, buffer: Buffer):
         if compression_frame_size != 16384:
             raise NotImplementedError('Unknown compression method in KV3 v2 block')
 
-        u_data = lz4_decompress(compressed_buffer0, buffer0_decompressed_size)
+        u_data = lz4_decompress_wrp(compressed_buffer0, buffer0_decompressed_size)
         assert len(u_data) == buffer0_decompressed_size, "Decompressed data size does not match expected size"
         buffer0 = MemoryBuffer(u_data)
-        u_data = lz4_decompress(compressed_buffer1, buffer1_decompressed_size)
+        u_data = lz4_decompress_wrp(compressed_buffer1, buffer1_decompressed_size)
         assert len(u_data) == buffer1_decompressed_size, "Decompressed data size does not match expected size"
         buffer1 = MemoryBuffer(u_data)
     elif compression_method == 2:
-        u_data = zstd_decompress_stream(compressed_buffer0)
+        u_data = zstd_decompress_stream_wrp(compressed_buffer0)
         assert len(u_data) == buffer0_decompressed_size, "Decompressed data size does not match expected size"
         buffer0 = MemoryBuffer(u_data)
-        u_data = zstd_decompress_stream(compressed_buffer1)
+        u_data = zstd_decompress_stream_wrp(compressed_buffer1)
         assert len(u_data) == buffer1_decompressed_size, "Decompressed data size does not match expected size"
         buffer1 = MemoryBuffer(u_data)
     else:
@@ -842,6 +850,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
             assert buffer.read_uint32() == 0xFFEEDD00
         blocks_buffer = MemoryBuffer(block_data)
 
+    @timed
     def _read_type(context: KV3ContextNew):
         t = context.types_buffer.read_int8()
         mask = 63
@@ -871,6 +880,17 @@ def read_v5(encoding: bytes, buffer: Buffer):
     return root
 
 
+@timed
+def zstd_decompress_stream_wrp(data):
+    return zstd_decompress_stream(data)
+
+
+@timed
+def lz4_decompress_wrp(data, decomp_size):
+    return lz4_decompress(data, decomp_size)
+
+
+@timed
 def decompress_lz4_chain(buffer: Buffer, decompressed_block_sizes: list[int], compressed_block_sizes: list[int],
                          compression_frame_size: int):
     block_data = b""

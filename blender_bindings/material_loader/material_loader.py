@@ -17,7 +17,7 @@ from .shaders.source2_shaders.dummy import DummyShader
 # noinspection PyUnresolvedReferences
 from .shaders import source1_shaders, source2_shaders, goldsrc_shaders
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
-from ...library.source2.compiled_resource import DATA_BLOCK
+from SourceIO.library.utils.perf_sampler import timed
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
@@ -43,6 +43,7 @@ class Source1MaterialLoader(MaterialLoaderBase):
         self.vmt: VMT = VMT(file_object, self.material_name, content_manager)
         self.content_manager = content_manager
 
+    @timed
     def create_material(self, material: bpy.types.Material):
         handler: Source1ShaderBase = self._handlers.get(self.vmt.shader, Source1ShaderBase)(self.content_manager,
                                                                                             self.vmt)

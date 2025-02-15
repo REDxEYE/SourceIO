@@ -49,8 +49,8 @@ def check_texture_cache(texture_path: TinyPath) -> Optional[bpy.types.Image]:
             return bpy.data.images[f'{short_name}.hdr']
     if bpy.context.scene.TextureCachePath == "":
         return None
-    full_path = TinyPath(bpy.context.scene.TextureCachePath) / texture_path.with_suffix(".png")
     image = None
+    full_path = TinyPath(bpy.context.scene.TextureCachePath) / texture_path.with_suffix(".png")
     if full_path.exists():
         image = bpy.data.images.load(full_path.as_posix(), check_existing=True)
     full_path = full_path.with_suffix(".hdr")

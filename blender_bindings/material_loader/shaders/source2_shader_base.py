@@ -7,6 +7,7 @@ from SourceIO.blender_bindings.source2.vtex_loader import import_texture
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2.resource_types import CompiledMaterialResource, CompiledTextureResource
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -28,6 +29,7 @@ class Source2ShaderBase(ShaderBase):
             return self._material_resource.has_child_resource(texture_path, self.content_manager)
         return None
 
+    @timed
     def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float],
                      is_data=False,
                      invert_y: bool = False):

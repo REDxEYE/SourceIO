@@ -2,6 +2,8 @@ import bpy
 import numpy as np
 from bpy.types import Mesh
 
+from SourceIO.library.utils.perf_sampler import timed
+
 
 class FastMesh(Mesh):
     __slots__ = ()
@@ -12,6 +14,7 @@ class FastMesh(Mesh):
         mesh.__class__ = cls
         return mesh
 
+    @timed
     def from_pydata(self,
                     vertices: np.ndarray,
                     edges: np.ndarray,
@@ -87,3 +90,7 @@ class FastMesh(Mesh):
                 # Flag loose edges.
                 calc_edges_loose=has_faces,
             )
+
+    @timed
+    def update(self, calc_edges: bool = False, calc_edges_loose: bool = False) -> None:
+        return super().update(calc_edges=calc_edges, calc_edges_loose=calc_edges_loose)

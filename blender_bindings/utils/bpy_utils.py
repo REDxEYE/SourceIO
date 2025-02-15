@@ -3,6 +3,7 @@ import random
 
 import bpy
 
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
@@ -28,8 +29,10 @@ def is_blender_4():
 def is_blender_4_1():
     return bpy.app.version >= (4, 1, 0)
 
+
 def is_blender_4_2():
     return bpy.app.version >= (4, 2, 0)
+
 
 def is_blender_4_3():
     return bpy.app.version >= (4, 3, 0)
@@ -44,6 +47,7 @@ def find_layer_collection(layer_collection, name):
             return found
 
 
+@timed
 def add_material(material, model_ob):
     md = model_ob.data
     for i, ob_material in enumerate(md.materials):
@@ -56,6 +60,7 @@ def add_material(material, model_ob):
         return len(md.materials) - 1
 
 
+@timed
 def get_or_create_material(name: str, full_path: str):
     for mat in bpy.data.materials:
         if (fp := mat.get('full_path', None)) is None:
@@ -68,12 +73,17 @@ def get_or_create_material(name: str, full_path: str):
     return mat
 
 
+KNOWN_COLLECTIONS_CACHE = {}
+
+
 def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Collection:
-    new_collection = (bpy.data.collections.get(name, None) or
-                      bpy.data.collections.new(name))
+    if name in KNOWN_COLLECTIONS_CACHE:
+        return bpy.data.collections[KNOWN_COLLECTIONS_CACHE[name]]
+
+    new_collection = (bpy.data.collections.get(name, None) or bpy.data.collections.new(name))
     if new_collection.name not in parent.children:
         parent.children.link(new_collection)
-    new_collection.name = name
+    KNOWN_COLLECTIONS_CACHE[name] = new_collection.name
     return new_collection
 
 

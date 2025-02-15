@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 import numpy.typing as npt
 
-
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.source2.utils.ntro_reader import NTROBuffer
 from .kv3_block import KVBlock
 
@@ -39,6 +39,7 @@ class MorphBlock(KVBlock):
         if bundle_name in self.bundles:
             return self.bundles.index(bundle_name)
 
+    @timed
     def get_morph_data(self, flex_name: str, bundle_id: int, texture):
         bundle_data = self._morph_datas[bundle_id]
         if flex_name in bundle_data:
@@ -46,7 +47,7 @@ class MorphBlock(KVBlock):
         assert self.lookup_type == 'LOOKUP_TYPE_VERTEX_ID'
         assert self.encoding_type == 'ENCODING_TYPE_OBJECT_SPACE'
 
-        t_width,t_height = texture.shape[:2]
+        t_width, t_height = texture.shape[:2]
         width = self['m_nWidth']
         height = self['m_nHeight']
 

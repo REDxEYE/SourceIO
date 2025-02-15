@@ -6,6 +6,7 @@ from SourceIO.library.utils import MemoryBuffer
 from SourceIO.library.source2.keyvalues3.types import Object
 from SourceIO.library.source2.utils.entity_keyvalues import EntityKeyValues
 from SourceIO.library.source2.compiled_resource import CompiledResource, DATA_BLOCK
+from SourceIO.library.utils.perf_sampler import timed
 
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -19,6 +20,7 @@ class CompiledEntityLumpResource(CompiledResource):
         for child_lump in self.data_block["m_childLumps"]:
             yield self.get_child_resource(child_lump, content_manager, CompiledEntityLumpResource)
 
+    @timed
     def get_entities(self) -> Iterator[Object]:
         for entity_key_values in self.data_block["m_entityKeyValues"]:
             if "m_keyValuesData" in entity_key_values and len(entity_key_values["m_keyValuesData"]):
@@ -43,6 +45,7 @@ class CompiledWorldNodeResource(CompiledResource):
 
 
 class CompiledMapResource(CompiledResource):
+    @timed
     def get_worldnode(self, node_group_prefix: str, content_manager: ContentManager) \
             -> Optional[CompiledWorldNodeResource]:
         world_node = self.get_child_resource(TinyPath(node_group_prefix + ".vwnod").as_posix(), content_manager,

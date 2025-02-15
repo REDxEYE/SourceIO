@@ -7,8 +7,8 @@ import numpy as np
 import numpy.typing as npt
 
 from SourceIO.library.source2.blocks.resource_edit_info import ResourceEditInfo, ResourceEditInfo2
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.rustlib import lz4_decompress, decode_texture
-from SourceIO.library.source2.blocks.base import BaseBlock
 from SourceIO.library.source2.blocks.texture_data import CompressedMip, TextureData, VTexExtraData, \
     VTexFlags, VTexFormat
 from SourceIO.library.source2.compiled_resource import CompiledResource
@@ -118,6 +118,7 @@ class CompiledTextureResource(CompiledResource):
         data = self._decompress_texture(face_data, height, pixel_format, width)
         return data, (width, height)
 
+    @timed
     def get_texture_data(self, mip_level: int = 0):
         logger.info(f'Loading texture {self._filepath.as_posix()!r}')
         info_block = None
@@ -161,6 +162,7 @@ class CompiledTextureResource(CompiledResource):
         data = self._decompress_texture(data, height, pixel_format, width)
         return data, (width, height)
 
+    @timed
     def _decompress_texture(self, data: bytes, height, pixel_format, width):
         resource_info_block = (self.get_block(ResourceEditInfo, block_name="REDI") or
                                self.get_block(ResourceEditInfo2, block_name="RED2"))

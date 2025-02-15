@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.rustlib import decode_index_buffer
 
 
@@ -30,8 +31,10 @@ class IndexBuffer:
 
     @classmethod
     def from_kv(cls, data: dict) -> 'IndexBuffer':
-        return IndexBuffer(data["m_nElementCount"], data["m_nElementSizeInBytes"], MemoryBuffer(data["m_pData"].tobytes()))
+        return IndexBuffer(data["m_nElementCount"], data["m_nElementSizeInBytes"],
+                           MemoryBuffer(data["m_pData"].tobytes()))
 
+    @timed
     def get_indices(self):
         index_dtype = np.uint32 if self.index_size == 4 else np.uint16
         indices = np.frombuffer(self.data.data, index_dtype)

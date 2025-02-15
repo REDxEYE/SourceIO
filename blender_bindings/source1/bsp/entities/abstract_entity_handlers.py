@@ -18,6 +18,7 @@ from SourceIO.library.source1.bsp.datatypes.texture_info import TextureInfo
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -128,11 +129,14 @@ class AbstractEntityHandler:
         entity_obj = entity_class(entity)
         return entity_obj, entity
 
-    def _get_string(self, string_id):
-        strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
-        return strings[string_id] or "NO_NAME"
 
+
+    @timed
     def _load_brush_model(self, model_id, model_name):
+        def _get_string(string_id):
+            strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
+            return strings[string_id] or "NO_NAME"
+
         model = self._bsp.get_lump("LUMP_MODELS").models[model_id]
         mesh_data = bpy.data.meshes.new(f"{model_name}_MESH")
         mesh_obj = bpy.data.objects.new(model_name, mesh_data)
@@ -157,7 +161,7 @@ class AbstractEntityHandler:
         for texture_info_id in sorted(set(material_ids)):
             texture_info = bsp_textures_info[texture_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
-            material_name = self._get_string(texture_data.name_id)
+            material_name = _get_string(texture_data.name_id)
             if self.settings and self.settings.import_textures:
                 material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
                 if material_file:

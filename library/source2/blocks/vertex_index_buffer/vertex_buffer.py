@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.rustlib import decode_vertex_buffer
 from .enums import DxgiFormat, SlotType
 
@@ -126,6 +127,7 @@ class VertexBuffer:
             struct.append((attr.name, *attr.get_numpy_type()))
         return np.dtype(struct)
 
+    @timed
     def get_vertices(self):
         np_dtype = self.generate_numpy_dtype()
         return np.frombuffer(self.data.data, np_dtype, self.vertex_count)

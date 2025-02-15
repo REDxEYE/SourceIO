@@ -21,6 +21,7 @@ from SourceIO.library.source1.bsp.lumps import *
 from SourceIO.library.utils import Buffer, TinyPath, path_stem, SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.idtech3_shader_parser import parse_shader_materials
 from SourceIO.library.utils.math_utilities import convert_rotation_source1_to_blender
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.logger import SourceLogMan, SLogger
 from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -66,7 +67,7 @@ def import_bsp(map_path: TinyPath, buffer: Buffer, content_manager: ContentManag
     import_materials(bsp, content_manager, settings, logger)
     import_disp(bsp, settings, master_collection, logger)
 
-
+@timed
 def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
                     master_collection: bpy.types.Collection, logger: SLogger):
     steam_id = bsp.steam_app_id
@@ -107,7 +108,7 @@ def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Sou
         json.dump(entity_lump.entities, entities_json, indent=1)
     entity_handler.load_entities(settings)
 
-
+@timed
 def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                     logger: SLogger):
     if not settings.import_cubemaps:
@@ -127,7 +128,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         refl_probe.influence_distance = (cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * settings.scale * 10000
         parent_collection.objects.link(obj)
 
-
+@timed
 def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                         logger: SLogger):
     gamelump: Optional[GameLump] = bsp.get_lump('LUMP_GAME_LUMP')
@@ -160,7 +161,7 @@ def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_colle
                                               }
                 parent_collection.objects.link(placeholder)
 
-
+@timed
 def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
     if not settings.import_textures:
         return
@@ -239,7 +240,7 @@ def get_texture_data(tex_info: TextureInfo, bsp: BSPFile) -> Optional[TextureDat
         return tex_datas[tex_info.texture_data_id]
     return None
 
-
+@timed
 def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
                 master_collection: bpy.types.Collection, logger: SLogger):
     disp_info_lump: Optional[DispInfoLump] = bsp.get_lump('LUMP_DISPINFO')

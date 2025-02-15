@@ -13,6 +13,7 @@ from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKCo
 from SourceIO.library.shared.content_manager.providers.zip_content_provider import ZIPContentProvider
 from SourceIO.library.utils import Buffer, FileBuffer, TinyPath, backwalk_file_resolver
 from SourceIO.library.utils.path_utilities import get_mod_path
+from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.singleton import SingletonMeta
 from SourceIO.logger import SourceLogMan
 
@@ -141,6 +142,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         for child in self.children:
             yield from child.glob(pattern)
 
+    @timed
     def find_file(self, filepath: TinyPath) -> Buffer | None:
         if filepath.is_absolute():
             if filepath.exists():
