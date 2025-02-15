@@ -140,7 +140,7 @@ class BSP:
         entity_model = self.bsp_lump_models.values[model_index]
         if not entity_model.faces:
             return
-        model_mesh = FastMesh.new(f'{model_name}_mesh')
+        model_mesh = bpy.data.meshes.new(f'{model_name}_mesh')
         model_object = bpy.data.objects.new(model_name, model_mesh)
 
         if parent_collection is not None:
@@ -207,7 +207,7 @@ class BSP:
             uvs_per_face.append(uvs)
             faces.append(face[::-1])
 
-        model_mesh.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], np.asarray(faces, np.uint32))
+        model_mesh.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
         model_mesh.polygons.foreach_set('material_index', material_indices)
         model_mesh.update()
 
