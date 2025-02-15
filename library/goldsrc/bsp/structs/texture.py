@@ -65,7 +65,7 @@ class TextureData:
         if self.data is not None:
             return self.data
 
-        resource = bsp.manager.find_file(TinyPath(self.name))
+        resource = bsp.manager.find_file(TinyPath(self.name), do_not_cache=True)
         resource: WadLump
         if resource:
             if isinstance(resource, MipTex):

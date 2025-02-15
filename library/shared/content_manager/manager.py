@@ -143,7 +143,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
             yield from child.glob(pattern)
 
     @timed
-    def find_file(self, filepath: TinyPath) -> Buffer | None:
+    def find_file(self, filepath: TinyPath, do_not_cache=False) -> Buffer | None:
         if filepath.is_absolute():
             if filepath.exists():
                 return FileBuffer(filepath)
@@ -156,6 +156,9 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         for child in self.children:
             if (file := child.find_file(filepath)) is not None:
                 logger.debug(f'Found in {child}!')
+                if do_not_cache:
+                    return file
+
                 self._cache[filepath] = file
                 if len(self._cache) > MAX_CACHE_SIZE:
                     self._cache.pop(next(iter(self._cache.keys())))
