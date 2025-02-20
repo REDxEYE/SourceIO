@@ -6,6 +6,7 @@ from SourceIO.library.shared.content_manager.detectors.goldsrc import GoldSrcDet
 from SourceIO.library.shared.content_manager.detectors.hla import HLADetector
 from SourceIO.library.shared.content_manager.detectors.idtech3 import IDTech3Detector
 from SourceIO.library.shared.content_manager.detectors.infra import InfraDetector
+from SourceIO.library.shared.content_manager.detectors.left4dead import Left4DeadDetector
 from SourceIO.library.shared.content_manager.detectors.portal2 import Portal2Detector
 from SourceIO.library.shared.content_manager.detectors.portal2_revolution import Portal2RevolutionDetector
 from SourceIO.library.shared.content_manager.detectors.robot_repair import RobotRepairDetector
@@ -22,7 +23,8 @@ from SourceIO.library.utils.tiny_path import TinyPath
 
 def detect_game(path: TinyPath) -> list[ContentProvider]:
     detector_addons = [GoldSrcDetector(),
-                       SFMDetector(), GModDetector(), InfraDetector(), Portal2Detector(),Portal2RevolutionDetector(), SourceMod(), CSGODetector(),
+                       SFMDetector(), GModDetector(), InfraDetector(), Left4DeadDetector(), Portal2Detector(),
+                       Portal2RevolutionDetector(), SourceMod(), CSGODetector(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
                        DeadlockDetector(), Source1Detector(), Source2Detector(), IDTech3Detector()]
