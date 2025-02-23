@@ -206,8 +206,11 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
     if morph_block:
         morph_texture = model_resource.get_child_resource(morph_block['m_pTextureAtlas'], content_manager,
                                                           CompiledTextureResource)
-        texture, _ = morph_texture.get_texture_data(0)
-        if texture is None:
+        if morph_texture is not None:
+            texture, _ = morph_texture.get_texture_data(0)
+            if texture is None:
+                logging.error(f'Failed to find {morph_block["m_pTextureAtlas"]!r} morf texture')
+        else:
             logging.error(f'Failed to find {morph_block["m_pTextureAtlas"]!r} morf texture')
 
     if data_block and vbib_block:
