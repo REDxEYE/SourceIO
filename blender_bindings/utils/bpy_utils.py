@@ -52,7 +52,7 @@ def add_material(material, model_ob):
     md = model_ob.data
     for i, ob_material in enumerate(md.materials):
         if (ob_material.name == material.name and
-                ob_material.get("full_path", "Not match") == material.get("full_path", "Not match too")
+            ob_material.get("full_path", "Not match") == material.get("full_path", "Not match too")
         ):
             return i
     else:
@@ -77,8 +77,10 @@ KNOWN_COLLECTIONS_CACHE = {}
 
 
 def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Collection:
-    if name in KNOWN_COLLECTIONS_CACHE:
-        return bpy.data.collections[KNOWN_COLLECTIONS_CACHE[name]]
+    if (key := KNOWN_COLLECTIONS_CACHE.get(name, None)) is not None:
+        if (collection := bpy.data.collections.get(key, None)) is not None:
+            return collection
+        KNOWN_COLLECTIONS_CACHE.clear()
 
     new_collection = (bpy.data.collections.get(name, None) or bpy.data.collections.new(name))
     if new_collection.name not in parent.children:

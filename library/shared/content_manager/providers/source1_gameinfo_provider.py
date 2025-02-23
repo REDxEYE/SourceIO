@@ -51,14 +51,21 @@ class Source1GameInfoProvider(ContentProvider):
                     if mod_folder.is_file():
                         if mod_folder.suffix == ".vpk":
                             mod_provider = register_provider(VPKContentProvider(mod_folder, self._steamapp_id))
+                            self._add_mount(mod_provider)
                         else:
                             logger.warn("Only VPK/HFS/GMA supported to be mounted as files")
                             continue
                     else:
                         mod_provider = register_provider(LooseFilesContentProvider(mod_folder, self._steamapp_id))
-                    if mod_provider not in self.mount:
-                        logger.info(f"Mounted: {mod_provider}")
-                        self.mount.append(mod_provider)
+                        self._add_mount(mod_provider)
+                        for vpk in mod_folder.glob("*_dir.vpk"):
+                            vpk_provider = register_provider(VPKContentProvider(vpk, self._steamapp_id))
+                            self._add_mount(vpk_provider)
+
+    def _add_mount(self, mod_provider):
+        if mod_provider not in self.mount:
+            logger.info(f"Mounted: {mod_provider}")
+            self.mount.append(mod_provider)
 
     @property
     def name(self) -> str:
