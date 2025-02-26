@@ -201,7 +201,7 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
     mesh_index = mesh_info['mesh_index']
     data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block'])
     vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block'])
-    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['tools_vb_block'])
+    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info.get('tools_vb_block',-1))
     morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block'])
     texture = None
     if morph_block:
