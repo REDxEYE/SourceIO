@@ -78,7 +78,7 @@ class ImportContext:
     lm_uv_scale: tuple[float, float] = (1, 1)
 
 
-@timed
+# @timed
 def load_model(content_manager: ContentManager, resource: CompiledModelResource, import_contex: ImportContext):
     armature = create_armature(content_manager, resource, import_contex.scale)
     physics_objects = []
@@ -201,6 +201,7 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
     mesh_index = mesh_info['mesh_index']
     data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block'])
     vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block'])
+    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['tools_vb_block'])
     morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block'])
     texture = None
     if morph_block:
@@ -215,7 +216,9 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
 
     if data_block and vbib_block:
         return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
-                           vbib_block.vertex_buffers, texture, morph_block, mesh_index, model_resource,
+                           vbib_block.vertex_buffers, tbuf_block.vertex_buffers if tbuf_block else [], texture,
+                           morph_block, mesh_index,
+                           model_resource,
                            import_context, mesh_info['name'])
     return None
 
@@ -245,12 +248,12 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
 
     if data_block and vbib_block:
         return create_mesh(content_manager, model_resource, container, data_block, vbib_block.index_buffers,
-                           vbib_block.vertex_buffers, texture, morph_block, mesh_id, mesh_resource,
+                           vbib_block.vertex_buffers, [], texture, morph_block, mesh_id, mesh_resource,
                            import_context)
     elif data_block and 'm_vertexBuffers' in data_block and 'm_indexBuffers' in data_block:
         vertex_buffers = [VertexBuffer.from_kv(buf) for buf in data_block['m_vertexBuffers']]
         index_buffers = [IndexBuffer.from_kv(buf) for buf in data_block['m_indexBuffers']]
-        return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers,
+        return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers, [],
                            texture, morph_block, mesh_id, mesh_resource, import_context)
     return None
 
@@ -324,6 +327,18 @@ def convert_to_float32(uv_array: np.ndarray):
         return (uv_array.astype(np.float32) - dtype_min) / (dtype_max - dtype_min) * 2 - 1
 
 
+def convert_to_float32_any(uv_array: np.ndarray):
+    if uv_array.dtype == np.float32 or uv_array.dtype == np.float16:
+        return uv_array
+    dtype_info = np.iinfo(uv_array.dtype)
+    dtype_min, dtype_max = dtype_info.min, dtype_info.max
+
+    if dtype_info.kind == 'u':  # Unsigned type
+        return (uv_array.astype(np.float32) - dtype_min) / (dtype_max - dtype_min)
+    else:  # Signed type
+        return (uv_array.astype(np.float32) - dtype_min) / (dtype_max - dtype_min) * 2 - 1
+
+
 class RenderMeshDrawPrimitiveFlags(IntEnum):
     NONE = 0x0,
     UseShadowFastPath = 0x1,
@@ -349,9 +364,8 @@ def use_compressed_normals(draw_call: dict):
         return "MESH_DRAW_FLAGS_USE_COMPRESSED_NORMAL_TANGENT" in flags or "USE_COMPRESSED_NORMAL_TANGENT" in flags
 
 
-@timed
 def create_mesh(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
-                data_block: KVBlock, index_buffers: list, vertex_buffers: list,
+                data_block: KVBlock, index_buffers: list, vertex_buffers: list, extra_vertex_buffers: list,
                 morph_texture: np.ndarray | None, morph_block: MorphBlock | None,
                 mesh_id: int, mesh_resource: CompiledMeshResource, import_context: ImportContext,
                 mesh_name: Optional[str] = None) -> list[bpy.types.Object]:
@@ -363,7 +377,7 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
     for scene_object in data_block['m_sceneObjects']:
         import_scene_object(content_manager, data_block, g_vertex_offset, import_context, index_buffers, mesh_id,
                             mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, scene_object,
-                            vertex_buffers)
+                            vertex_buffers, extra_vertex_buffers)
     return objects
 
 
@@ -371,24 +385,30 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
 def import_scene_object(content_manager: ContentManager, data_block, g_vertex_offset, import_context, index_buffers,
                         mesh_id, mesh_name,
                         mesh_resource, model_resource, morph_block, morph_texture, objects, scene_object,
-                        vertex_buffers):
+                        vertex_buffers, extra_vertex_buffers):
     if import_context.draw_call_index is not None:
         draw_calls = [scene_object["m_drawCalls"][import_context.draw_call_index]]
     else:
         draw_calls = scene_object["m_drawCalls"]
     for draw_call in draw_calls:
         import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
-                        mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers)
+                        mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
+                        extra_vertex_buffers)
 
 
 @timed
 def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
-                    mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers):
+                    mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
+                    extra_vertex_buffers):
     assert len(draw_call['m_vertexBuffers']) == 1
     assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
     vertex_buffer_info = draw_call['m_vertexBuffers'][0]
     index_buffer_info = draw_call['m_indexBuffer']
     vertex_buffer = vertex_buffers[vertex_buffer_info['m_hBuffer']]
+    if extra_vertex_buffers:
+        extra_vertex_buffer = extra_vertex_buffers[vertex_buffer_info['m_hBuffer']]
+    else:
+        extra_vertex_buffer = None
     index_buffer = index_buffers[index_buffer_info['m_hBuffer']]
     material_name = draw_call['m_material', 'm_pMaterial']
     material_resource: CompiledMaterialResource | None = None
@@ -425,7 +445,7 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
     part_indices = indices[start_index:start_index + index_count]
     used_vertices_ids, _, new_indices = np.unique(part_indices, return_index=True, return_inverse=True)
     used_vertices = vertices[base_vertex:][used_vertices_ids]
-    del used_vertices_ids, part_indices
+    del part_indices
     material_stem = path_stem(material_name)
     model_name = mesh_name or mesh_resource.name
     mesh = FastMesh.new(f'{model_name}_{material_stem}_mesh')
@@ -511,11 +531,21 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
         mesh.normals_split_custom_set_from_vertices(normals)
         if not is_blender_4_1():
             mesh.use_auto_smooth = True
+    color_layers = 0
     if vertex_buffer.has_attribute('COLOR'):
         color = used_vertices['COLOR']
-        vertex_colors = mesh.vertex_colors.get('COLOR', False) or mesh.vertex_colors.new(name='COLOR')
+        vertex_colors = mesh.vertex_colors.get('COLOR0', False) or mesh.vertex_colors.new(name='COLOR0')
         vertex_colors_data = vertex_colors.data
         vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
+        color_layers += 1
+    if extra_vertex_buffer and extra_vertex_buffer.has_attribute('COLOR'):
+        extra_vertices = extra_vertex_buffer.get_vertices()
+        extra_used_vertices = convert_to_float32_any(extra_vertices[base_vertex:][used_vertices_ids]["COLOR"])
+        vertex_colors = mesh.vertex_colors.get(f'COLOR{color_layers}', False) or mesh.vertex_colors.new(
+            name=f'COLOR{color_layers}')
+        vertex_colors_data = vertex_colors.data
+        vertex_colors_data.foreach_set('color', extra_used_vertices[vertex_indices].flatten())
+
     _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
     objects.append(mesh_obj)
     if morph_block and morph_supported and morph_texture is not None:

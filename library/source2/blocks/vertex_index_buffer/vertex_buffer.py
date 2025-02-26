@@ -6,6 +6,7 @@ from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.rustlib import decode_vertex_buffer
 from .enums import DxgiFormat, SlotType
+from SourceIO.library.utils.rustlib import zstd_decompress
 
 
 @dataclass(slots=True)
@@ -86,7 +87,9 @@ class VertexBuffer:
 
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'VertexBuffer':
-        vertex_count, vertex_size = buffer.read_fmt('2I')
+        vertex_count, vertex_size = buffer.read_fmt('II')
+        is_zstd_compressed = vertex_size & 0x8000000
+        vertex_size &= 0x7FFFFFF
         attr_offset = buffer.read_relative_offset32()
         attr_count = buffer.read_uint32()
 
@@ -102,7 +105,12 @@ class VertexBuffer:
             if data_size == vertex_size * vertex_count:
                 _vertex_buffer = MemoryBuffer(data)
             else:
-                _vertex_buffer = MemoryBuffer(decode_vertex_buffer(data, vertex_size, vertex_count))
+                if is_zstd_compressed:
+                    _vertex_buffer = MemoryBuffer(
+                        decode_vertex_buffer(zstd_decompress(data, vertex_size * vertex_count), vertex_size,
+                                             vertex_count))
+                else:
+                    _vertex_buffer = MemoryBuffer(decode_vertex_buffer(data, vertex_size, vertex_count))
         return cls(vertex_count, vertex_size, _vertex_buffer, attributes)
 
     @classmethod

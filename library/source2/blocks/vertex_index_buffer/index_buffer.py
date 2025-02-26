@@ -16,7 +16,8 @@ class IndexBuffer:
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'IndexBuffer':
         index_count, index_size = buffer.read_fmt('2I')
-        index_size = index_size & 0x0000FFFF
+        is_zstd_compressed = index_size & 0x8000000
+        index_size &= 0x7FFFFFF
         unk1, unk2 = buffer.read_fmt('2I')
         data_offset = buffer.read_relative_offset32()
         data_size = buffer.read_uint32()

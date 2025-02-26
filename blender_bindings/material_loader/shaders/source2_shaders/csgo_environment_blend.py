@@ -20,7 +20,7 @@ class CSGOEnvironmentBlend(Source2ShaderBase):
         self.logger.info(pformat(dict(data)))
 
         vcolor_node = self.create_node(Nodes.ShaderNodeVertexColor)
-        vcolor_node.layer_name = "COLOR"
+        vcolor_node.layer_name = "COLOR0"
         self.connect_nodes(vcolor_node.outputs[0], shader.inputs["BlendModulate"])
 
         if self._have_texture("g_tColor1"):
