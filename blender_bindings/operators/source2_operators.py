@@ -87,7 +87,9 @@ class SOURCEIO_OT_VMAPImport(ImportOperatorHelper):
             else:
                 deserialize_mounted_content(content_manager)
             file_stem = TinyPath(file.name).stem
-            content_manager.add_child(VPKContentProvider(directory / f"{file_stem}.vpk"))
+            map_vpk_file = directory / f"{file_stem}.vpk"
+            if map_vpk_file.exists():
+                content_manager.add_child(VPKContentProvider(map_vpk_file))
             with FileBuffer(directory / file.name) as buffer:
                 model = CompiledMapResource.from_buffer(buffer, TinyPath(file.name))
                 load_map(model, content_manager, self.scale)
