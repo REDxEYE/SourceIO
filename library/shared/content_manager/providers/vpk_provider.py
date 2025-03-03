@@ -36,6 +36,7 @@ class VPKContentProvider(ContentProvider):
     def _init(self):
         if self._initialized:
             return
+        logger.info(f"Loading {self.filepath!r}")
         self.vpk_archive = Vpk.from_path(self.filepath)
         self._initialized = True
 
