@@ -279,7 +279,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             self.bpy_material.shadow_method = 'HASHED'
         if self.additive:
             self.bpy_material.blend_method = 'BLEND'
-            self.bpy_material.surface_render_method = 'BLENDED'
+            if hasattr(self.bpy_material, 'surface_render_method'):
+                self.bpy_material.surface_render_method = 'BLENDED'
         uv = None
         if self.use_bvlg_status:
             self.do_arrange = True
