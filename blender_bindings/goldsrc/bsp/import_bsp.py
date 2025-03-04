@@ -245,7 +245,7 @@ class BSP:
                         if len(game_wad_path) == 0:
                             continue
                         game_wad_path = backwalk_file_resolver(self.map_path, TinyPath(game_wad_path))
-                        if game_wad_path.exists():
+                        if game_wad_path is not None and game_wad_path.exists():
                             self.bsp_file.manager.add_child(GoldSrcWADContentProvider(game_wad_path))
                 elif entity_class.startswith('monster_') and 'model' in entity:
                     from .entity_handlers import handle_generic_model_prop
