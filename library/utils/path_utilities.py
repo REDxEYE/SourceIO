@@ -60,6 +60,8 @@ def backwalk_file_resolver(current_path, file_to_find) -> Optional[TinyPath]:
 def corrected_path(path: TinyPath):
     if platform.system() == "Windows" or path.exists():  # Shortcut for windows
         return path
+    if len(path.parts) < 3:
+        return path
     root, *parts, fname = path.parts
 
     new_path = TinyPath(root)
