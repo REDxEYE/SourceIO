@@ -154,7 +154,7 @@ class TinyPath(str, PathLike):
 
     def __rtruediv__(self, other: PathTypes):
         if self.is_absolute():
-            raise ValueError("Cannot add relative path to absolute path.")
+            raise ValueError(f"Cannot add relative path to absolute path: {self!r}|{other!r}.")
         return TinyPath(other) / self
 
     def __eq__(self, other: PathTypes):
