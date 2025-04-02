@@ -25,7 +25,8 @@ class Source1ShaderBase(ShaderBase):
         image = check_texture_cache(texture_path / texture_name)
         if image is not None:
             return image
-
+        if texture_path.is_absolute(): # Absolute paths shouldn't even be here! This path is invalid
+            return None
         texture_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".vtf"))
         if texture_file is not None:
             return import_texture(texture_path / texture_name, texture_file)

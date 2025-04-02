@@ -107,10 +107,12 @@ def collect_full_material_names(material_names: list[str], material_search_paths
         for material_name in material_names:
             if material_name in full_mat_names:
                 continue
-            real_material_path = content_manager.find_file(
-                "materials" / TinyPath(material_path) / (material_name + ".vmt"))
+            material_path = TinyPath(material_path)
+            if material_path.is_absolute(): # Absolute paths shouldn't even be here! This path is invalid
+                continue
+            real_material_path = content_manager.find_file("materials" / material_path / (material_name + ".vmt"))
             if real_material_path is not None:
-                full_mat_names[material_name] = (TinyPath(material_path) / material_name).as_posix()
+                full_mat_names[material_name] = (material_path / material_name).as_posix()
     for material_name in material_names:
         if material_name not in full_mat_names:
             full_mat_names[material_name] = material_name
