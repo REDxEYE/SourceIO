@@ -46,7 +46,8 @@ class Source1GameInfoProvider(ContentProvider):
                         search_path = tmp.with_name(tmp.stem + "_dir")
                     else:
                         search_path = TinyPath(search_path)
-                if TinyPath(search_path).is_absolute():
+                search_path = TinyPath(search_path)
+                if search_path.is_absolute():
                     mod_folder = search_path
                 else:
                     mod_folder = (mods_folder / search_path).resolve()
