@@ -14,7 +14,6 @@ from SourceIO.library.source2.resource_types import CompiledManifestResource
 from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, \
     CompiledMapResource
 from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
-from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -32,7 +31,7 @@ logger = log_manager.get_logger("VWRLD")
 def get_entity_name(entity_data: dict[str, Any]):
     return f'{entity_data.get("targetname", entity_data.get("hammeruniqueid", "missing_hammer_id"))}'
 
-@timed
+
 def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float = SOURCE2_HAMMER_UNIT_TO_METERS):
     manifest_resource_path = next(filter(lambda a: a.endswith(".vrman"), map_resource.get_child_resources()), None)
     if manifest_resource_path is not None:
@@ -46,7 +45,7 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
 
     world_resource_path = next(filter(lambda a: a.endswith(".vwrld"), map_resource.get_child_resources()), None)
     if world_resource_path is not None:
-        world_resource = map_resource.get_child_resource(world_resource_path, cm)
+        world_resource = map_resource.get_child_resource(world_resource_path, cm, CompiledWorldResource)
         return import_world(world_resource, map_resource, cm, scale)
 
 
