@@ -1,3 +1,5 @@
+from typing import Type, cast
+
 from SourceIO.library.source2.keyvalues3.binary_keyvalues import read_valve_keyvalue3
 from SourceIO.library.source2.keyvalues3.enums import KV3Signatures
 from SourceIO.library.source2.keyvalues3.types import AnyKVType, Object, Array
@@ -50,4 +52,15 @@ class KVBlock(dict[str, AnyKVType], BaseBlock):
                 raise TypeError(f'Invalid KV3 type: {type(kv3)}')
             return cls(kv3)
         else:
-            raise NotImplementedError('Unknown data block format')
+            return cls({})
+            # raise NotImplementedError('Unknown data block format')
+
+
+def custom_type_kvblock(struct_name: str) -> Type[KVBlock]:
+    """
+    Decorator to set the struct name for a KVBlock subclass.
+    """
+    new_kvblock = type(struct_name, (KVBlock,), {
+        "_struct_name": staticmethod(lambda: struct_name),
+    })
+    return cast(Type[KVBlock], new_kvblock)

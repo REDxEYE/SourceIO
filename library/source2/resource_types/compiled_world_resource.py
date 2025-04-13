@@ -1,7 +1,7 @@
 from typing import Iterator, Optional
 
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.source2.blocks.kv3_block import KVBlock
+from SourceIO.library.source2.blocks.kv3_block import KVBlock, custom_type_kvblock
 from SourceIO.library.utils import MemoryBuffer
 from SourceIO.library.source2.keyvalues3.types import Object
 from SourceIO.library.source2.utils.entity_keyvalues import EntityKeyValues
@@ -35,7 +35,7 @@ class CompiledEntityLumpResource(CompiledResource):
 class CompiledWorldNodeResource(CompiledResource):
     @property
     def data_block(self):
-        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+        return self.get_block(custom_type_kvblock("WorldNode_t"), block_id=DATA_BLOCK)
 
     def get_scene_objects(self) -> list[Object]:
         return self.data_block["m_sceneObjects"]
@@ -62,7 +62,7 @@ class CompiledMapResource(CompiledResource):
 class CompiledWorldResource(CompiledResource):
     @property
     def data_block(self):
-        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+        return self.get_block(custom_type_kvblock("World_t"), block_id=DATA_BLOCK)
 
     def get_worldnode_prefixes(self) -> Iterator[str]:
         for world_node_group in self.data_block['m_worldNodes']:

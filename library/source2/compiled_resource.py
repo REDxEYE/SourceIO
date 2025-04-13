@@ -40,7 +40,7 @@ class CompiledResource:
 
         if self.has_block(block_name="NTRO") and info_block.name not in _SKIP_BLOCKS:
             ntro = self.get_block(ResourceIntrospectionManifest, block_name="NTRO")
-            resource_list = self.get_block(ResourceExternalReferenceList, block_name="RERL")
+            resource_list = self.get_block(ResourceExternalReferenceList, block_name="RERL") or []
             self._buffer.seek(info_block.absolute_offset)
             buffer = NTROBuffer(self._buffer.read(info_block.size), ntro.info, {v.hash: v.name for v in resource_list})
         else:

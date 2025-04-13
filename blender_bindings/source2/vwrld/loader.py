@@ -8,8 +8,7 @@ from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_collection, 
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledWorldResource, CompiledResource
-from SourceIO.library.source2.blocks.kv3_block import KVBlock
-from SourceIO.library.source2.keyvalues3.types import Object
+from SourceIO.library.source2.keyvalues3.types import Object, NullObject
 from SourceIO.library.source2.resource_types import CompiledManifestResource
 from SourceIO.library.source2.resource_types.compiled_world_resource import CompiledEntityLumpResource, \
     CompiledMapResource
@@ -61,7 +60,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                  content_manager: ContentManager, scale=SOURCE2_HAMMER_UNIT_TO_METERS):
     map_name = map_resource.name
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
-    data_block = world_resource.get_block(KVBlock, block_name="DATA")
+    data_block = world_resource.data_block
     uv_scale = None
     if data_block:
         if "m_worldLightingInfo" in data_block:
@@ -161,7 +160,7 @@ def create_empty(name: str, scale: float, custom_data=None):
 
 def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.Collection,
                   scale: float, cm: ContentManager):
-    data_block = world_resource.get_block(KVBlock, block_name='DATA')
+    data_block = world_resource.data_block
     entity_lumps = data_block["m_entityLumps"]
 
     if cm.steam_id == SteamAppId.HALF_LIFE_ALYX:
@@ -178,6 +177,8 @@ def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.C
         handler = BaseEntityHandler
 
     for entity_lump in entity_lumps:
+        if isinstance(entity_lump,NullObject):
+            continue
         entity_resource = world_resource.get_child_resource(entity_lump, cm, CompiledEntityLumpResource)
         load_entity_lump(entity_resource, handler, collection, scale, cm)
 

@@ -18,7 +18,7 @@ from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import (CompiledMaterialResource, CompiledModelResource, CompiledMorphResource,
                                       CompiledPhysicsResource, CompiledTextureResource, CompiledMeshResource)
 from SourceIO.library.source2.common import convert_normals, convert_normals_2
-from SourceIO.library.source2.blocks.kv3_block import KVBlock
+from SourceIO.library.source2.blocks.kv3_block import KVBlock, custom_type_kvblock
 from SourceIO.library.source2.blocks.morph_block import MorphBlock
 from SourceIO.library.source2.blocks.phys_block import PhysBlock
 from SourceIO.library.source2.blocks.vertex_index_buffer import VertexIndexBuffer, IndexBuffer
@@ -159,7 +159,7 @@ def create_armature(content_manager: ContentManager, resource: CompiledModelReso
 def create_meshes(content_manager: ContentManager, model_resource: CompiledModelResource, container: ModelContainer,
                   import_contex: ImportContext) -> list[bpy.types.Object]:
     lod_mask = unpack("Q", pack("q", import_contex.lod_mask))[0]
-    data = model_resource.get_block(KVBlock, block_name='DATA')
+    data = model_resource.get_block(custom_type_kvblock("PermModelData_t"), block_name='DATA')
     ctrl = model_resource.get_block(KVBlock, block_name='CTRL')
     group_masks = {}
     lod_count = len(data['m_lodGroupSwitchDistances'])
@@ -172,7 +172,7 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
         group_masks[0xFFFF] = model_resource.name + '_ALL'
     for i, mesh in enumerate(data['m_refMeshes']):
         mesh_mask = int(data['m_refMeshGroupMasks'][i])
-        lod_id = data['m_refLODGroupMasks'][i]
+        lod_id = int(data['m_refLODGroupMasks'][i])
         if lod_id & lod_mask == 0:
             continue
         if isinstance(mesh, NullObject) or not mesh:
