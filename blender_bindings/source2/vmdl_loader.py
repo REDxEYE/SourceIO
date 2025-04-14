@@ -201,7 +201,7 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
     mesh_index = mesh_info['mesh_index']
     data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block'])
     vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block'])
-    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info.get('tools_vb_block',-1))
+    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info.get('tools_vb_block', -1))
     morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block'])
     texture = None
     if morph_block:
@@ -270,7 +270,10 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     if not has_weights and not has_indicies:
         return
     model_data_block = model_resource.get_block(KVBlock, block_name='DATA')
+    mdat_block = model_resource.get_block(KVBlock, block_name='MDAT')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
+    weight_count = mdat_block["m_skeleton"].get("m_nBoneWeightCount", 4)
+    assert weight_count == 4 or weight_count == 8, f"Unsupported weight count, only support 4,8, got {weight_count}"
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
     remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
                              np.uint32)
@@ -278,20 +281,29 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         blendweights = used_vertices["BLENDWEIGHT"]
         if blendweights.dtype == np.uint8:
             weights_array = blendweights.astype(np.float32)
+            weights_array = weights_array / 255
         elif blendweights.dtype == np.uint16:
-            weights_array = blendweights.view(np.uint8).astype(np.float32).reshape(-1, 8)
+            if weight_count == 8:
+                weights_array = blendweights.view(np.uint8).astype(np.float32).reshape(-1, 8)
+                weights_array = weights_array / 255
+            else:
+                weights_array = blendweights.astype(np.float32) / 65535
         else:
             raise NotImplementedError(f"Blendweights of type {blendweights.dtype} not supported")
-        weights_array = weights_array / 255
+
         indices_array = used_vertices["BLENDINDICES"]
         if indices_array.dtype == np.uint8:
             indices_array = indices_array.astype(np.uint32)
-        elif indices_array.dtype == np.uint16:
-            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
-        elif indices_array.dtype == np.int16:
-            indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
+        elif indices_array.dtype == np.uint16 or indices_array.dtype==np.int16:
+            if weight_count == 8:
+                indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
+            else:
+                indices_array = indices_array.astype(np.uint32)
         elif indices_array.dtype == np.int32:
-            indices_array = indices_array.view(np.uint16).astype(np.uint32).reshape(-1, 8)
+            if weight_count == 8:
+                indices_array = indices_array.view(np.uint16).astype(np.uint32).reshape(-1, 8)
+            else:
+                indices_array = indices_array.astype(np.uint32)
         else:
             raise NotImplementedError(f"Blendindices of type {indices_array.dtype} not supported")
     else:

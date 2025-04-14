@@ -285,7 +285,7 @@ class CompiledTextureResource(CompiledResource):
 
     @staticmethod
     def _normalize(output: np.ndarray) -> np.ndarray:
-        output = output.astype(np.int16)
+        output = output.astype(np.int32)
         swizzle_r = output[:, :, 0] * 2 - 255
         swizzle_g = output[:, :, 1] * 2 - 255
         derive_b = np.sqrt((255 * 255) - (swizzle_r * swizzle_r) - (swizzle_g * swizzle_g))

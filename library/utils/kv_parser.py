@@ -423,3 +423,33 @@ class ValveKeyValueParser:
                 token, value = self.peek()
                 raise KVParserException(
                     f"Unexpected token {token}:\"{value}\" in {self._path} at {self._lexer.line}:{self._lexer.column}")
+
+
+if __name__ == '__main__':
+    data = """"EyeRefract"
+{
+	"$Iris"               "models/wn/citizens/eyes/eye-iris-green" //"models/bloocobalt/l4d/riot/eyeball_l_green"			  // Iris color in RGB with cornea noise in A
+	"$AmbientOcclTexture" "models/wn/citizens/eyes/eyeball_l_ambient"				  // Ambient occlusion in RGB, A unused
+	"$Envmap"             "models/wn/citizens/eyes/eye-reflection-cubemap"    // Reflection environment map
+	"$CorneaTexture"      "models/wn/citizens/eyes/eye-cornea"                 // Special texture that has 2D cornea normal in RG and other data in BA
+
+	"$EyeballRadius" "0.5"				// Default 0.5
+	"$AmbientOcclColor" "[0.36 0.25 0.2]"	// Default 0.33, 0.33, 0.33
+	"$Dilation" "0.5"					// Default 0.5
+	"$ParallaxStrength" "0.25"          // Default 0.25
+	"$CorneaBumpStrength" "1.25"			// Default 1.0
+
+	"$halflambert" "1"
+	"$nodecal" "1"
+
+	// These effects are only available in ps.2.0b and later
+	"$RaytraceSphere" "1"				// Default 1 - Enables raytracing in the pixel shader to make the eyeball look round
+	"$SphereTexkillCombo" "0"			// Default 1 - Enables killing pixels that don't ray-intersect the sphere
+
+
+}
+    """
+
+    tmp = ValveKeyValueParser(None, (data, ""),True)
+    parse = tmp.parse()
+    print(tmp.tree.top())
