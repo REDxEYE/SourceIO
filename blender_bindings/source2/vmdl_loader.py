@@ -33,6 +33,7 @@ from SourceIO.library.utils.perf_sampler import timed
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
 from ..utils.fast_mesh import FastMesh
+from ...library.utils import MemoryBuffer
 
 
 def put_into_collections(model_container, model_name, parent_collection=None, bodygroup_grouping=False):
@@ -273,7 +274,7 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
     mdat_block = model_resource.get_block(KVBlock, block_name='MDAT')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
     weight_count = mdat_block["m_skeleton"].get("m_nBoneWeightCount", 4)
-    assert weight_count == 4 or weight_count == 8, f"Unsupported weight count, only support 4,8, got {weight_count}"
+    assert weight_count in [1,4,8], f"Unsupported weight count, only support 1, 4, 8, got {weight_count}"
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
     remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
                              np.uint32)
@@ -294,7 +295,7 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         indices_array = used_vertices["BLENDINDICES"]
         if indices_array.dtype == np.uint8:
             indices_array = indices_array.astype(np.uint32)
-        elif indices_array.dtype == np.uint16 or indices_array.dtype==np.int16:
+        elif indices_array.dtype == np.uint16 or indices_array.dtype == np.int16:
             if weight_count == 8:
                 indices_array = indices_array.view(np.uint8).astype(np.uint32).reshape(-1, 8)
             else:
@@ -408,19 +409,46 @@ def import_scene_object(content_manager: ContentManager, data_block, g_vertex_of
                         extra_vertex_buffers)
 
 
+def combine_vertex_buffers(vertex_buffers: list[VertexBuffer]):
+    if not vertex_buffers:
+        return np.array([])
+
+    # Get total vertex count
+    assert all(vertex_buffers[0].vertex_count == vb.vertex_count for vb in vertex_buffers)
+    all_attrs = []
+    combined_dtype = []
+    used_names = set()
+    attr_counts = defaultdict(int)
+    for vb in vertex_buffers:
+        for attr in vb.attributes:
+            np_type, shape = attr.get_numpy_type()
+            attr_name = attr.name
+            if attr_name in used_names:
+                attr_name+=f"_{(attr_counts[attr_name])}"
+            attr_counts[attr.name]+=1
+
+            used_names.add(attr.name)
+            combined_dtype.append((attr.name, np_type, shape))
+            all_attrs.append(attr)
+
+    combined_array = np.zeros(vertex_buffers[0].vertex_count, dtype=combined_dtype)
+    for vb in vertex_buffers:
+        vertices = vb.get_vertices()
+
+        for attr in vb.attributes:
+            if attr.name in combined_array.dtype.names:
+                combined_array[attr.name][:] = vertices[attr.name]
+
+    return combined_array,VertexBuffer(vertex_buffers[0].vertex_count,0,MemoryBuffer(b""),all_attrs)
+
 @timed
 def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
                     mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
                     extra_vertex_buffers):
-    assert len(draw_call['m_vertexBuffers']) == 1
+    # assert len(draw_call['m_vertexBuffers']) == 1
     assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
-    vertex_buffer_info = draw_call['m_vertexBuffers'][0]
     index_buffer_info = draw_call['m_indexBuffer']
-    vertex_buffer = vertex_buffers[vertex_buffer_info['m_hBuffer']]
-    if extra_vertex_buffers:
-        extra_vertex_buffer = extra_vertex_buffers[vertex_buffer_info['m_hBuffer']]
-    else:
-        extra_vertex_buffer = None
+
     index_buffer = index_buffers[index_buffer_info['m_hBuffer']]
     material_name = draw_call['m_material', 'm_pMaterial']
     material_resource: CompiledMaterialResource | None = None
@@ -448,7 +476,16 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
         overlay = False
         morph_supported = bool(morph_block)
         logging.error(f'Failed to load material {material_name} for {mesh_resource.name}!')
-    vertices = vertex_buffer.get_vertices()
+
+    all_buffers = []
+    for vertex_buffer_info in draw_call['m_vertexBuffers']:
+        vertex_buffer = vertex_buffers[vertex_buffer_info['m_hBuffer']]
+        all_buffers.append(vertex_buffer)
+        if extra_vertex_buffers:
+            extra_vertex_buffer = extra_vertex_buffers[vertex_buffer_info['m_hBuffer']]
+            all_buffers.append(extra_vertex_buffer)
+
+    vertices,vertex_buffer = combine_vertex_buffers(all_buffers)
     indices = index_buffer.get_indices()
     base_vertex = draw_call['m_nBaseVertex']
     vertex_count = draw_call['m_nVertexCount']
@@ -544,19 +581,14 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
         if not is_blender_4_1():
             mesh.use_auto_smooth = True
     color_layers = 0
-    if vertex_buffer.has_attribute('COLOR'):
-        color = used_vertices['COLOR']
-        vertex_colors = mesh.vertex_colors.get('COLOR0', False) or mesh.vertex_colors.new(name='COLOR0')
-        vertex_colors_data = vertex_colors.data
-        vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
-        color_layers += 1
-    if extra_vertex_buffer and extra_vertex_buffer.has_attribute('COLOR'):
-        extra_vertices = extra_vertex_buffer.get_vertices()
-        extra_used_vertices = convert_to_float32_any(extra_vertices[base_vertex:][used_vertices_ids]["COLOR"])
-        vertex_colors = mesh.vertex_colors.get(f'COLOR{color_layers}', False) or mesh.vertex_colors.new(
-            name=f'COLOR{color_layers}')
-        vertex_colors_data = vertex_colors.data
-        vertex_colors_data.foreach_set('color', extra_used_vertices[vertex_indices].flatten())
+    for color_layer in range(8):
+        color_layer_name = f"COLOR_{color_layer}" if color_layer>0 else "COLOR"
+        if vertex_buffer.has_attribute(color_layer_name):
+            color = used_vertices[color_layer_name]
+            vertex_colors = mesh.vertex_colors.get(color_layer_name, False) or mesh.vertex_colors.new(name=color_layer_name)
+            vertex_colors_data = vertex_colors.data
+            vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
+            color_layers += 1
 
     _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
     objects.append(mesh_obj)
