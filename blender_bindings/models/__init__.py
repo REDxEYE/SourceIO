@@ -8,7 +8,7 @@ from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from . import mdl4, mdl6, mdl10, mdl36, mdl44, mdl49, md3_15
+from . import mdl4, mdl6, mdl10, mdl36, mdl44, mdl49, md3_15, mdl2531
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('MDL loader')

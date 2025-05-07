@@ -8,7 +8,7 @@ class VampireDetector(Source1Detector):
     @classmethod
     def scan(cls, path: TinyPath) -> list[ContentProvider]:
         game_root = None
-        game_exe = backwalk_file_resolver(path, r'\dlls\vampire.dll')
+        game_exe = backwalk_file_resolver(path, r'dlls/vampire.dll')
         if game_exe is not None:
             game_root = game_exe.parent.parent
         if game_root is None:

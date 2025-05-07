@@ -1,9 +1,8 @@
 
 from typing import Optional
 
-from SourceIO.blender_bindings.models.mdl36 import import_materials
 from SourceIO.blender_bindings.models.model_tags import register_model_importer
-from SourceIO.blender_bindings.models.mdl2531.import_mdl import import_model
+from SourceIO.blender_bindings.models.mdl2531.import_mdl import import_model, import_materials
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
@@ -27,12 +26,10 @@ def import_mdl2531(model_path: TinyPath, buffer: Buffer,
                  content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
     mdl = MdlV2531.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
-    vvd_buffer = content_manager.find_file(model_path.with_suffix(".vvd"))
-    if vtx_buffer is None or vvd_buffer is None:
-        logger.error(f"Could not find VTX and/or VVD file for {model_path}")
-        raise RequiredFileNotFound(f"Could not find VTX and/or VVD file for {model_path}")
+    if vtx_buffer is None:
+        logger.error(f"Could not find VTX file for {model_path}")
+        raise RequiredFileNotFound(f"Could not find VTX file for {model_path}")
     vtx = open_vtx(vtx_buffer)
-    vvd = Vvd.from_buffer(vvd_buffer)
     if options.import_textures:
         try:
             import_materials(content_manager, mdl, use_bvlg=options.use_bvlg)
@@ -40,7 +37,7 @@ def import_mdl2531(model_path: TinyPath, buffer: Buffer,
             logger.error(f'Failed to import materials, caused by {t_ex}')
             import traceback
             traceback.print_exc()
-    container = import_model(content_manager, mdl, vtx, vvd, options.scale, options.create_flex_drivers)
+    container = import_model(content_manager, mdl, vtx, options.scale, options.create_flex_drivers)
     if options.import_physics:
         phy_buffer = content_manager.find_file(model_path.with_suffix(".phy"))
         if phy_buffer is None:

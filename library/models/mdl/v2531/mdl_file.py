@@ -1,6 +1,5 @@
 import traceback
 from dataclasses import dataclass, field
-from typing import List
 
 from SourceIO.library.utils.file_utils import Buffer
 from SourceIO.library.models.mdl import Mdl
@@ -17,23 +16,23 @@ from SourceIO.library.models.mdl.v49.flex_expressions import *
 class MdlV2531(Mdl):
     header: MdlHeaderV2531
 
-    bones: List[Bone]
-    skin_groups: List[List[str]]
-    materials: List[MaterialV2531]
-    materials_paths: List[str]
+    bones: list[Bone]
+    skin_groups: list[list[str]]
+    materials: list[MaterialV2531]
+    materials_paths: list[str]
 
-    flex_names: List[str]
-    flex_controllers: List[FlexController]
-    flex_rules: List[FlexRule]
+    flex_names: list[str]
+    flex_controllers: list[FlexController]
+    flex_rules: list[FlexRule]
 
-    body_parts: List[BodyPart]
+    body_parts: list[BodyPart]
 
-    attachments: List[Attachment]
-    include_models: List[str]
+    attachments: list[Attachment]
+    include_models: list[str]
 
-    bone_table_by_name: List = field(default_factory=list)
+    bone_table_by_name: list = field(default_factory=list)
 
-    animations: List = field(default_factory=list)
+    animations: list = field(default_factory=list)
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
@@ -63,7 +62,7 @@ class MdlV2531(Mdl):
             skin_group = []
             for _ in range(header.skin_reference_count):
                 texture_index = buffer.read_uint16()
-                skin_group.append(materials[texture_index].name)
+                skin_group.append(materials[texture_index])
             skin_groups.append(skin_group)
 
         diff_start = 0

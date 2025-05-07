@@ -38,7 +38,6 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     def execute(self, context):
         
         directory = self.get_directory()
-
         content_manager = ContentManager()
         if self.discover_resources:
             content_manager.scan_for_content(directory)

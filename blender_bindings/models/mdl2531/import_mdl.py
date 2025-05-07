@@ -1,20 +1,24 @@
 from typing import Union
+from collections import defaultdict
 
 import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
-from SourceIO.library.shared.content_providers.content_manager import \
-    ContentManager
-from SourceIO.library.source1.mdl.structs.header import StudioHDRFlags
-from SourceIO.library.source1.mdl.structs.model import ModelV2531
-from SourceIO.library.source1.mdl.v2531.mdl_file import MdlV2531
-from SourceIO.library.source1.mdl.v36.mdl_file import MdlV36
-from SourceIO.library.source1.mdl.v49.flex_expressions import *
-from SourceIO.library.source1.vtx import open_vtx
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
+from SourceIO.library.models.mdl.structs.model import ModelV2531
+from SourceIO.library.models.mdl.v2531.mdl_file import MdlV2531
+from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
+from SourceIO.library.models.mdl.v49.flex_expressions import *
+from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material
-from .. import FileImport
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material, is_blender_4_1
+from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.library.models.vtx.v107.vtx import Vtx
+from SourceIO.library.models.vvc import Vvc
 from ..common import merge_meshes
 from SourceIO.logger import SourceLogMan
 from SourceIO.library.utils.tiny_path import TinyPath
@@ -63,13 +67,14 @@ def create_armature(mdl: MdlV2531, scale=1.0):
     return armature_obj
 
 
-def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: Vvd,
+def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
+    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
+                                                      content_manager)
     objects = []
     bodygroups = defaultdict(list)
     attachments = []
     desired_lod = 0
-    all_vertices = vvd.lod_data[desired_lod]
 
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
@@ -83,43 +88,25 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: 
             if model.vertex_count == 0:
                 continue
             mesh_name = f'{body_part.name}_{model.name}'
-            used_copy = False
-            if re_use_meshes and static_prop:
-                mesh_obj_original = bpy.data.objects.get(mesh_name, None)
-                mesh_data_original = bpy.data.meshes.get(f'{mdl.header.name}_{mesh_name}_MESH', False)
-                if mesh_obj_original and mesh_data_original:
-                    mesh_data = mesh_data_original.copy()
-                    mesh_obj = mesh_obj_original.copy()
-                    mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
-                    mesh_obj['active_skin'] = mesh_obj_original['active_skin']
-                    mesh_obj['model_type'] = 's1'
-                    mesh_obj.data = mesh_data
-                    used_copy = True
-                else:
-                    mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
-                    mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-                    mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
-                    mesh_obj['active_skin'] = '0'
-                    mesh_obj['model_type'] = 's1'
+            mesh_data = FastMesh.new(f'{mesh_name}_MESH')
+            mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
+            if getattr(mdl, 'material_mapper', None):
+                material_mapper = mdl.material_mapper
+                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for (n, group) in enumerate(mdl.skin_groups)}
+                for key, value in true_skin_groups.items():
+                    while None in value:
+                        value.remove(None)
+                try:
+                    mesh_obj['skin_groups'] = true_skin_groups
+                except:
+                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             else:
-                mesh_data = bpy.data.meshes.new(f'{mesh_name}_MESH')
-                mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-                mesh_obj['skin_groups'] = {str(n): group for (n, group) in enumerate(mdl.skin_groups)}
-                mesh_obj['active_skin'] = '0'
-                mesh_obj['model_type'] = 's1'
-
-            if not static_prop:
-                modifier = mesh_obj.modifiers.new(
-                    type="ARMATURE", name="Armature")
-                modifier.object = armature
-                mesh_obj.parent = armature
+                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            mesh_obj['active_skin'] = '0'
+            mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)
             bodygroups[body_part.name].append(mesh_obj)
-            mesh_obj['unique_material_names'] = unique_material_names
-            mesh_obj['prop_path'] = TinyPath(mdl.header.name).stem
-
-            if used_copy:
-                continue
+            mesh_obj['prop_path'] = path_stem(mdl.header.name)
 
             model_vertices = model.vertices
             vtx_vertices, indices_array, material_indices_array = merge_meshes(model, vtx_model.model_lods[desired_lod])
@@ -150,18 +137,16 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: 
 
             mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
             mesh_data.normals_split_custom_set_from_vertices(normals)
-            # TODO: Not a property in Blender 4.2, there seems to be a shade_auto_smooth that can be used:
-            # https://docs.blender.org/api/4.4/bpy.ops.object.html#bpy.ops.object.shade_auto_smooth
-            # mesh_data.use_auto_smooth = True
+            if is_blender_4_1():
+                pass
+            else:
+                mesh_data.use_auto_smooth = True
 
             material_remapper = np.zeros((material_indices_array.max() + 1,), dtype=np.uint32)
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
-                if unique_material_names:
-                    mat_name = f"{Path(mdl.header.name).stem}_{mat_name[-63:]}"[-63:]
-                else:
-                    mat_name = mat_name[-63:]
-                material_remapper[mat_id] = add_material(mat_name, mesh_obj)
+                material = get_or_create_material(mat_name, full_material_names[mat_name])
+                material_remapper[mat_id] = add_material(material, mesh_obj)
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].ravel())
 
@@ -174,6 +159,10 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: 
             uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
 
             if not static_prop:
+                modifier = mesh_obj.modifiers.new(type="ARMATURE", name="Armature")
+                modifier.object = armature
+                mesh_obj.parent = armature
+
                 weight_groups = {bone.name: mesh_obj.vertex_groups.new(name=bone.name) for bone in mdl.bones}
 
                 for n, (bone_indices, bone_weights) in enumerate(zip(vertices['bone_id'], vertices['weight'])):
@@ -182,7 +171,6 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx, vvd: 
                             bone_name = mdl.bones[bone_index].name
                             weight_groups[bone_name].add([n], weight, 'REPLACE')
 
-            if not static_prop:
                 mesh_obj.shape_key_add(name='base')
                 for mesh in model.meshes:
                     for flex in mesh.flexes:
@@ -275,28 +263,30 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
     return attachments
 
-# TODO: Remove when tested that 36 material import works
-# def import_materials(mdl, unique_material_names=False, use_bvlg=False):
-#     content_manager = ContentManager()
-#     for material in mdl.materials:
-#         if unique_material_names:
-#             mat_name = f"{Path(mdl.header.name).stem}_{material.name[-63:]}"[-63:]
-#         else:
-#             mat_name = material.name[-63:]
 
-#         if bpy.data.materials.get(mat_name, False):
-#             if bpy.data.materials[mat_name].get('source1_loaded', False):
-#                 logger.info(f'Skipping loading of {mat_name} as it already loaded')
-#                 continue
-#         material_path = None
-#         for mat_path in mdl.materials_paths:
-#             material_path = content_manager.find_material(Path(mat_path) / material.name)
-#             if material_path:
-#                 break
-#         if material_path:
-#             Source1ShaderBase.use_bvlg(use_bvlg)
-#             new_material = Source1MaterialLoader(material_path, mat_name)
-#             new_material.create_material()
+def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
+    for material in mdl.materials:
+        material_path = None
+        material_file = None
+        for mat_path in mdl.materials_paths:
+            material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
+            if material_file:
+                material_path = TinyPath(mat_path) / material.name
+                break
+        if material_path is None:
+            logger.info(f'Material {material.name} not found')
+            continue
+        mat = get_or_create_material(material.name, material_path.as_posix())
+
+        if mat.get('source1_loaded', False):
+            logger.info(f'Skipping loading of {mat} as it already loaded')
+            continue
+
+        if material_path:
+            Source1ShaderBase.use_bvlg(use_bvlg)
+            logger.info(f"Have material_file: {material_file}")
+            loader = Source1MaterialLoader(content_manager, material_file, material.name)
+            loader.create_material(mat)
 
 
 def __swap_components(vec, mp):
