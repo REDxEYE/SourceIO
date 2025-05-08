@@ -1,4 +1,8 @@
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from typing import Any
+
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 
@@ -175,10 +179,7 @@ class HeroesArmor(Source1ShaderBase):
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
-
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         if self._vmt.get('proxies', None):
             proxies = self._vmt.get('proxies')
             for proxy_name, proxy_data in proxies.items():

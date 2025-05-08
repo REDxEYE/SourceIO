@@ -1,5 +1,7 @@
 import sys
-from typing import Optional
+from abc import abstractmethod
+from enum import Enum
+from typing import Optional, Any
 
 import bpy
 import numpy as np
@@ -8,6 +10,7 @@ from SourceIO.blender_bindings.utils.bpy_utils import append_blend, is_blender_4
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from .node_arranger import nodes_iterate
+
 
 class Nodes:
     ShaderNodeAddShader = 'ShaderNodeAddShader'
@@ -113,6 +116,10 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
 
 
+class ExtraMaterialParameters(str, Enum):
+    USE_OBJECT_TINT = "UseObjectTint"
+
+
 class ShaderBase:
     SHADER: str = "Unknown"
     use_bvlg_status = True
@@ -134,6 +141,32 @@ class ShaderBase:
             current_path = TinyPath(__file__).parent.parent
             asset_path = current_path / 'assets' / "source2_materials.blend"
             append_blend(str(asset_path), "node_groups")
+
+    def insert_object_tint(self, color_output_socket, tint_amount=1.0, tint_mask_output=None | object):
+        color_multiply_node = self.create_node(Nodes.ShaderNodeMixRGB)
+        color_multiply_node.blend_type = 'MULTIPLY'
+        if tint_mask_output is None:
+            color_multiply_node.inputs[0].default_value = tint_amount
+        else:
+            self.connect_nodes(tint_mask_output, color_multiply_node.inputs[0])
+        self.connect_nodes(color_output_socket, color_multiply_node.inputs[1])
+        object_color = self.create_node(Nodes.ShaderNodeObjectInfo)
+        self.connect_nodes(object_color.outputs["Color"], color_multiply_node.inputs[2])
+
+        return color_multiply_node.outputs[0]
+
+    def insert_generic_tint(self, color_output_socket, tint: tuple[float, ...], tint_amount=1.0,
+                            tint_mask_output=None | object):
+        color_multiply_node = self.create_node(Nodes.ShaderNodeMixRGB)
+        color_multiply_node.blend_type = 'MULTIPLY'
+        if tint_mask_output is None:
+            color_multiply_node.inputs[0].default_value = tint_amount
+        else:
+            self.connect_nodes(tint_mask_output, color_multiply_node.inputs[0])
+        self.connect_nodes(color_output_socket, color_multiply_node.inputs[1])
+        color_multiply_node.inputs[2].default_value = tint
+
+        return color_multiply_node.outputs[0]
 
     @staticmethod
     def ensure_length(array: list, length, filler):
@@ -261,24 +294,9 @@ class ShaderBase:
         for receiver in receivers:
             self.connect_nodes(middle_output_socket, receiver)
 
-    def create_nodes(self, material):
-        self.bpy_material = material
-        if self.bpy_material is None:
-            self.logger.error('Failed to get or create material')
-            return 'UNKNOWN'
-
-        if self.bpy_material.get('source_loaded'):
-            return 'LOADED'
-        self.logger.info(f'Creating material {repr(material.name)}')
-
-        self.bpy_material.use_nodes = True
-        self.clean_nodes()
-        if not is_blender_4_3():
-            self.bpy_material.blend_method = 'OPAQUE'
-            self.bpy_material.shadow_method = 'OPAQUE'
-        self.bpy_material.use_screen_refraction = False
-        self.bpy_material.refraction_depth = 0.2
-        self.bpy_material['source_loaded'] = True
+    @abstractmethod
+    def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+        raise NotImplementedError("create_nodes method should be implemented in the subclass")
 
     def align_nodes(self):
         if not self.do_arrange:

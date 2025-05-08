@@ -1,6 +1,9 @@
+from typing import Any
+
+import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 
@@ -8,44 +11,13 @@ from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 class VrSkin(Source2ShaderBase):
     SHADER: str = 'vr_skin.vfx'
 
-    @property
-    def color_texture(self):
-        texture_path = self._material_resource.get_texture_property('g_tColor', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.3, 0.3, 0.3, 1.0))
-            return image
-        return None
+    # @property
+    # def ambient_occlusion(self):
+    #     return self._get_texture('g_tAmbientOcclusion', (1.0, 1.0, 1.0, 1.0), True)
 
-    @property
-    def ambient_occlusion(self):
-        texture_path = self._material_resource.get_texture_property('g_tAmbientOcclusion', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (1.0, 1.0, 1.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
-
-    @property
-    def normal_texture(self):
-        texture_path = self._material_resource.get_texture_property('g_tNormal', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            image, roughness = self.split_normal(image)
-            return image, roughness
-        return None
-
-    @property
-    def combined_masks(self):
-        texture_path = self._material_resource.get_texture_property('g_tCombinedMasks', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+    # @property
+    # def combined_masks(self):
+    #     return self._get_texture('g_tCombinedMasks', (1.0, 1.0, 1.0, 1.0), True)
 
     @property
     def color(self):
@@ -74,34 +46,32 @@ class VrSkin(Source2ShaderBase):
             return
         return value[0]
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
-
+    def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+        self.bpy_material = material
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
-        color_texture = self.color_texture
-        normal_texture, roughness_texture = self.normal_texture
-        albedo_node = self.create_node(Nodes.ShaderNodeTexImage, 'albedo')
-        albedo_node.image = color_texture
-        combined_masks = self.combined_masks
-        if combined_masks:
-            combined_mask_node = self.create_node(Nodes.ShaderNodeTexImage, 'combined_masks')
-            combined_mask_node.image = combined_masks
-        if self.color[0] != 1.0 and self.color[1] != 1.0 and self.color[2] != 1.0:
+        normal_node = self._get_texture('g_tNormal', (0.5, 0.5, 1.0, 1.0), True)
+        albedo_node = self._get_texture('g_tColor', (0.3, 0.3, 0.3, 1.0), False)
+        color_tint = self.color
+        base_color_input = shader.inputs['Base Color']
+        if color_tint[0] != 1.0 and color_tint[1] != 1.0 and color_tint[2] != 1.0:
             color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
             color_mix.blend_type = 'MULTIPLY'
             self.connect_nodes(albedo_node.outputs['Color'], color_mix.inputs['Color1'])
-            color = self.color
+            color = color_tint
             if sum(color) > 3:
                 color = list(np.divide(color, 255))
             color_mix.inputs['Color2'].default_value = color
             color_mix.inputs['Fac'].default_value = 1.0
-            self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
+            base_color_output = color_mix.outputs['Color']
         else:
-            self.connect_nodes(albedo_node.outputs['Color'], shader.inputs['Base Color'])
+            base_color_output = albedo_node.outputs['Color']
+
+        if extra_parameters.get(ExtraMaterialParameters.USE_OBJECT_TINT, False):
+            base_color_output = self.insert_object_tint(base_color_output, 1.0)
+        self.connect_nodes(base_color_output, base_color_input)
 
         if self.translucent or self.alpha_test:
             if not is_blender_4_3():
@@ -111,17 +81,17 @@ class VrSkin(Source2ShaderBase):
         elif self.metalness:
             self.connect_nodes(albedo_node.outputs['Alpha'], shader.inputs['Metallic'])
 
-        normal_map_texture = self.create_node(Nodes.ShaderNodeTexImage, 'normal')
-        normal_map_texture.image = normal_texture
-
         normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
 
-        self.connect_nodes(normal_map_texture.outputs['Color'], normalmap_node.inputs['Color'])
+        self.connect_nodes(normal_node.outputs['Color'], normalmap_node.inputs['Color'])
         self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
 
         if self.roughness_value is None:
-            roughness_node = self.create_node(Nodes.ShaderNodeTexImage, 'roughness')
-            roughness_node.image = roughness_texture
-            self.connect_nodes(roughness_node.outputs['Color'], shader.inputs['Roughness'])
-        elif self.roughness_value is not None:
+            self.connect_nodes(normal_node.outputs[1], shader.inputs['Roughness'])
+        else:
             shader.inputs['Roughness'].default_value = self.roughness_value
+
+        self._skip_texture("g_tOcclusion")
+        self._skip_texture("g_tShadowFalloff")
+        self._skip_texture("g_tDiffuseFalloff")
+        self._skip_texture("g_tCombinedMasks")

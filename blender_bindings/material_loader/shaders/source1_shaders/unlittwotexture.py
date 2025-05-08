@@ -1,4 +1,8 @@
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from typing import Any
+
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 
 
@@ -68,10 +72,8 @@ class UnlitGeneric(Source1ShaderBase):
     def nocull(self):
         return self._vmt.get_int('$nocull', 0) == 1
 
-    def create_nodes(self, material):
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         self.do_arrange = True
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
 

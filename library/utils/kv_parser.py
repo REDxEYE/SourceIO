@@ -192,7 +192,8 @@ class ValveKeyValueLexer:
         symbol = self.symbol
         if symbol:
             if symbol == '\r' and self.next_symbol == '\n':
-                self._offset += 1
+                symbol = '\n'
+                # self._offset += 1
 
             if symbol == '\n' or symbol == '\r':
                 self._line += 1
@@ -264,11 +265,20 @@ class ValveKeyValueLexer:
             elif symbol.isspace():
                 self.advance()
                 continue
+            elif symbol == '/' and self.next_symbol == '*':
+                self.advance(),self.advance()
+                while (self.symbol!= '*' and self.next_symbol!= '/') or self.symbol=="":
+                    self.advance()
+                if self.symbol=="":
+                    yield VKVToken.EOF, None
+                self.advance(), self.advance()
+                continue
             elif symbol == '/' and self.next_symbol == '/':
                 self.advance(), self.advance()
                 comment = ''
                 while self.symbol != '\n' and self:
                     comment += self.advance()
+                continue
                 # yield VKVToken.COMMENT, comment
             elif symbol == '{':
                 yield VKVToken.LBRACE, self.advance()
@@ -409,6 +419,9 @@ class ValveKeyValueParser:
                         condition = self._parse_expression()
                         node_stack[-1].append((key.lower(), (value[1], condition)))
                     else:
+                        node_stack[-1].append((key.lower(), value[1]))
+                    while not self.match(VKVToken.NEWLINE):
+                        value = self.advance()
                         node_stack[-1].append((key.lower(), value[1]))
                     self.expect(VKVToken.NEWLINE)
             elif self._array_of_blocks and self.match(VKVToken.LBRACE, True):

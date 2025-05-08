@@ -17,7 +17,7 @@ class IdTech3Shader(ShaderBase):
         self.content_manager = content_manager
 
     def create_nodes(self, material, material_data: dict):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
+        if super().create_nodes(material,{}) in ['UNKNOWN', 'LOADED']:
             return
         if not material_data["textures"]:
             return

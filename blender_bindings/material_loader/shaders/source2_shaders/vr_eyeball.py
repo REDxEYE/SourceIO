@@ -1,4 +1,9 @@
+from typing import Any
+
+import bpy
 import numpy as np
+
+from SourceIO.blender_bindings.material_loader.shader_base import ExtraMaterialParameters
 
 from SourceIO.blender_bindings.material_loader.shader_base import Nodes
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
@@ -88,9 +93,7 @@ class VrEyeball(Source2ShaderBase):
             return
         return value[0]
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled,self.SHADER)

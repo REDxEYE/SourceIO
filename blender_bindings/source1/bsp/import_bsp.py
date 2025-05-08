@@ -18,12 +18,13 @@ from SourceIO.library.source1.bsp.datatypes.face import Face
 from SourceIO.library.source1.bsp.datatypes.texture_data import TextureData
 from SourceIO.library.source1.bsp.datatypes.texture_info import TextureInfo
 from SourceIO.library.source1.bsp.lumps import *
+from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils import Buffer, TinyPath, path_stem, SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.idtech3_shader_parser import parse_shader_materials
 from SourceIO.library.utils.math_utilities import convert_rotation_source1_to_blender
 from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.logger import SourceLogMan, SLogger
-from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material, \
     is_blender_4_2
@@ -67,6 +68,7 @@ def import_bsp(map_path: TinyPath, buffer: Buffer, content_manager: ContentManag
     import_materials(bsp, content_manager, settings, logger)
     import_disp(bsp, settings, master_collection, logger)
 
+
 @timed
 def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
                     master_collection: bpy.types.Collection, logger: SLogger):
@@ -108,6 +110,7 @@ def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Sou
         json.dump(entity_lump.entities, entities_json, indent=1)
     entity_handler.load_entities(settings)
 
+
 @timed
 def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                     logger: SLogger):
@@ -127,6 +130,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         obj.location *= settings.scale
         refl_probe.influence_distance = (cubemap.size or 1) * SOURCE1_HAMMER_UNIT_TO_METERS * settings.scale * 10000
         parent_collection.objects.link(obj)
+
 
 @timed
 def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
@@ -161,6 +165,7 @@ def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_colle
                                               }
                 parent_collection.objects.link(placeholder)
 
+
 @timed
 def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
     if not settings.import_textures:
@@ -186,13 +191,14 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
                     f'Skipping loading of {tmp} as it already loaded')
                 continue
             logger.info(f"Loading {material_name} material")
-            material_file = content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
+            material_path = TinyPath("materials") / (material_name + ".vmt")
+            material_file = content_manager.find_file(material_path)
 
             if material_file:
-                material_name = strip_patch_coordinates.sub("", material_name)
                 try:
-                    loader = Source1MaterialLoader(content_manager, material_file, material_name)
-                    loader.create_material(mat)
+                    Source1ShaderBase.use_bvlg(settings.use_bvlg)
+                    vmt = VMT(material_file, material_path, content_manager)
+                    ShaderRegistry.source1_create_nodes(content_manager, mat, vmt, {})
                 except Exception as e:
                     logger.exception("Failed to load material due to exception:", e)
             else:
@@ -239,6 +245,7 @@ def get_texture_data(tex_info: TextureInfo, bsp: BSPFile) -> Optional[TextureDat
         tex_datas = tex_data_lump.texture_data
         return tex_datas[tex_info.texture_data_id]
     return None
+
 
 @timed
 def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
@@ -358,18 +365,18 @@ def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
                                                                        np.ones((shape_, 1))),
                                                                       axis=1)
             multiblend_offset += subdiv_vert_count
-        face_indices = np.zeros(((num_edge_vertices - 1) * (num_edge_vertices - 1) * 2, 3),np.uint32)
+        face_indices = np.zeros(((num_edge_vertices - 1) * (num_edge_vertices - 1) * 2, 3), np.uint32)
         face_index = 0
         for i in range(num_edge_vertices - 1):
             for j in range(num_edge_vertices - 1):
                 index = i * num_edge_vertices + j
                 if index & 1:
                     face_indices[face_index] = (index, index + 1, index + num_edge_vertices)
-                    face_indices[face_index+1] = (index + 1, index + num_edge_vertices + 1, index + num_edge_vertices)
+                    face_indices[face_index + 1] = (index + 1, index + num_edge_vertices + 1, index + num_edge_vertices)
                 else:
                     face_indices[face_index] = (index, index + num_edge_vertices + 1, index + num_edge_vertices)
-                    face_indices[face_index+1] = (index, index + 1, index + num_edge_vertices + 1)
-                face_index+=2
+                    face_indices[face_index + 1] = (index, index + 1, index + num_edge_vertices + 1)
+                face_index += 2
         mesh_data = FastMesh.new(f"{bsp.filepath.stem}_disp_{disp_info.map_face}_MESH")
         mesh_obj = bpy.data.objects.new(f"{bsp.filepath.stem}_disp_{disp_info.map_face}", mesh_data)
         if parent_collection is not None:

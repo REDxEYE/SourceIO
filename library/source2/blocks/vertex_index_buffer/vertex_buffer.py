@@ -129,6 +129,12 @@ class VertexBuffer:
                 return True
         return False
 
+    def get_attribute(self, attribute_name: str)-> VertexAttribute:
+        for attribute in self.attributes:
+            if attribute.name == attribute_name:
+                return attribute
+        raise ValueError(f"Attribute {attribute_name} not found in vertex buffer")
+
     def generate_numpy_dtype(self):
         struct = []
         for attr in self.attributes:

@@ -1,6 +1,9 @@
+from typing import Any
+
+import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 
@@ -50,9 +53,7 @@ class CitadelOverlay(Source2ShaderBase):
     def color(self):
         return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node_group("citadel_overlay.vfx", name=self.SHADER)

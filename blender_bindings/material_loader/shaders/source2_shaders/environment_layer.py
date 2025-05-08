@@ -1,6 +1,9 @@
+from typing import Any
+
+import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 
@@ -50,8 +53,8 @@ class CitadelEnvironmentLayer(Source2ShaderBase):
     def color(self):
         return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
+    def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+        if super().create_nodes(material, extra_parameters) in ['UNKNOWN', 'LOADED']:
             return
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
@@ -97,4 +100,3 @@ class CitadelEnvironmentLayer(Source2ShaderBase):
         self.connect_nodes(normal_roughness_node.outputs['Color'], normalmap_node.inputs['Color'])
         self.connect_nodes(normal_roughness_node.outputs['Alpha'], shader.inputs['Roughness'])
         self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
-

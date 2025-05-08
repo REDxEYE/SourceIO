@@ -298,7 +298,8 @@ class SourceIO_OT_LoadEntity(Operator):
                     imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
                     s2_put_into_collections(container, model_resource.name, imported_collection,
                                             bodygroup_grouping=False)
-                    self.add_matrix(container, matrix)
+                    # self.add_matrix(container, matrix)
+                    obj.matrix_world @= matrix
                     self.replace_placeholder(container, obj, False)
             bpy.data.objects.remove(obj)
             return
@@ -345,7 +346,7 @@ class SourceIO_OT_LoadEntity(Operator):
             container.armature.matrix_world @= matrix
         else:
             for ob in chain(container.objects, container.physics_objects):  # type:bpy.types.Object
-                ob.matrix_world @= matrix
+                ob.matrix_world = ob.matrix_world @ matrix
 
     @staticmethod
     def replace_placeholder(container: ModelContainer, obj: bpy.types.Object, delete_object: bool = False):

@@ -10,7 +10,7 @@ class GoldSrcShader(GoldSrcShaderBase):
     SHADER: str = 'goldsrc_shader'
 
     def create_nodes(self, material, rad_info=None, model_name: Optional[str] = None):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
+        if super().create_nodes(material, {}) in ['UNKNOWN', 'LOADED']:
             return
 
         basetexture = self.load_texture(material.name, model_name)

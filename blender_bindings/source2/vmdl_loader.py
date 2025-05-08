@@ -33,6 +33,7 @@ from SourceIO.library.utils.perf_sampler import timed
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
 from ..utils.fast_mesh import FastMesh
+from ...library.source2.blocks.vertex_index_buffer.enums import DxgiFormat
 from ...library.utils import MemoryBuffer
 
 
@@ -176,13 +177,24 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
         lod_id = int(data['m_refLODGroupMasks'][i])
         if lod_id & lod_mask == 0:
             continue
-        if isinstance(mesh, NullObject) or not mesh:
+        if (isinstance(mesh, NullObject) or not mesh) and ctrl is not None:
             # Embedded mesh
             mesh_info = ctrl['embedded_meshes'][i]
             sub_meshes = load_internal_mesh(content_manager, model_resource, container, mesh_info, import_contex)
         else:
             # External mesh
-            mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
+            mesh_resource = None
+            if isinstance(mesh, NullObject):
+                for resource_id in model_resource.get_child_resources():
+                    if isinstance(resource_id, str) and resource_id.endswith(".vmesh"):
+                        mesh_resource = model_resource.get_child_resource(resource_id, content_manager,
+                                                                          CompiledMeshResource)
+                        break
+
+            else:
+                mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
+            if mesh_resource is None:
+                logging.error(f'Failed to find vmesh file for {model_resource.name}')
             sub_meshes = load_external_mesh(content_manager, model_resource, container, i, mesh_resource, import_contex)
         object_groups.extend(sub_meshes)
         for sub_mesh in sub_meshes:
@@ -270,11 +282,13 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
 
     if not has_weights and not has_indicies:
         return
-    model_data_block = model_resource.get_block(KVBlock, block_name='DATA')
+    model_data_block = model_resource.get_block(custom_type_kvblock("PermModelData_t"), block_name='DATA')
     mdat_block = model_resource.get_block(KVBlock, block_name='MDAT')
     bones = model_data_block['m_modelSkeleton']['m_boneName']
-    weight_count = mdat_block["m_skeleton"].get("m_nBoneWeightCount", 4)
-    assert weight_count in [1,4,8], f"Unsupported weight count, only support 1, 4, 8, got {weight_count}"
+    # weight_count = mdat_block["m_skeleton"].get("m_nBoneWeightCount", 4)
+    indices_attribute = vertex_buffer.get_attribute('BLENDINDICES')
+    weight_count = 8 if indices_attribute.format in [DxgiFormat.R32G32B32A32_SINT, DxgiFormat.R16G16B16A16_UINT] else 4
+    # assert weight_count in [1, 2, 3, 4, 8], f"Unsupported weight count, only support 1, 2, 3, 4, 8, got {weight_count}"
     weight_groups = {bone: mesh_obj.vertex_groups.new(name=bone) for bone in bones}
     remap_table = np.asarray(model_data_block['m_remappingTable'][model_data_block['m_remappingTableStarts'][mesh_id]:],
                              np.uint32)
@@ -316,6 +330,8 @@ def _add_vertex_groups(model_resource: CompiledModelResource,
         else:
             raise NotImplementedError(f"Blendindices of type {indices_array.dtype} not supported")
         weights_array = np.ones_like(indices_array, dtype=np.float32)
+    # invalid_indices = weights_array==0
+    # indices_array[invalid_indices] = 0
     remapped_indices = remap_table[indices_array]
     for n, bone_indices in enumerate(remapped_indices):
         weights = weights_array[n]
@@ -413,7 +429,6 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer]):
     if not vertex_buffers:
         return np.array([])
 
-    # Get total vertex count
     assert all(vertex_buffers[0].vertex_count == vb.vertex_count for vb in vertex_buffers)
     all_attrs = []
     combined_dtype = []
@@ -424,8 +439,8 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer]):
             np_type, shape = attr.get_numpy_type()
             attr_name = attr.name
             if attr_name in used_names:
-                attr_name+=f"_{(attr_counts[attr_name])}"
-            attr_counts[attr.name]+=1
+                attr_name += f"_{(attr_counts[attr_name])}"
+            attr_counts[attr.name] += 1
 
             used_names.add(attr.name)
             combined_dtype.append((attr.name, np_type, shape))
@@ -439,7 +454,8 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer]):
             if attr.name in combined_array.dtype.names:
                 combined_array[attr.name][:] = vertices[attr.name]
 
-    return combined_array,VertexBuffer(vertex_buffers[0].vertex_count,0,MemoryBuffer(b""),all_attrs)
+    return combined_array, VertexBuffer(vertex_buffers[0].vertex_count, 0, MemoryBuffer(b""), all_attrs)
+
 
 @timed
 def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
@@ -458,9 +474,11 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
     else:
         material_name = "NullMaterial"
     tint = draw_call.get("m_vTintColor", None)
+
     if material_resource:
         if import_context.import_materials:
-            load_material(content_manager, material_resource, TinyPath(material_name), tint is not None)
+            load_material(content_manager, material_resource, TinyPath(material_name),
+                          tint is not None and all(a != 1.0 for a in tint))
             morph_supported = material_resource.get_int_property('F_MORPH_SUPPORTED', 0) == 1
             overlay = material_resource.get_int_property('F_OVERLAY', 0) == 1
             if not overlay:
@@ -485,7 +503,7 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
             extra_vertex_buffer = extra_vertex_buffers[vertex_buffer_info['m_hBuffer']]
             all_buffers.append(extra_vertex_buffer)
 
-    vertices,vertex_buffer = combine_vertex_buffers(all_buffers)
+    vertices, vertex_buffer = combine_vertex_buffers(all_buffers)
     indices = index_buffer.get_indices()
     base_vertex = draw_call['m_nBaseVertex']
     vertex_count = draw_call['m_nVertexCount']
@@ -499,6 +517,10 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
     model_name = mesh_name or mesh_resource.name
     mesh = FastMesh.new(f'{model_name}_{material_stem}_mesh')
     mesh_obj = bpy.data.objects.new(f'{model_name}_{material_stem}', mesh)
+
+    if tint is not None:
+        mesh_obj.color = list(tint) + [1.0]
+
     positions = used_vertices['POSITION'] * import_context.scale
     if vertex_buffer.has_attribute('NORMAL'):
         normals = used_vertices['NORMAL']
@@ -582,10 +604,11 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
             mesh.use_auto_smooth = True
     color_layers = 0
     for color_layer in range(8):
-        color_layer_name = f"COLOR_{color_layer}" if color_layer>0 else "COLOR"
+        color_layer_name = f"COLOR_{color_layer}" if color_layer > 0 else "COLOR"
         if vertex_buffer.has_attribute(color_layer_name):
             color = used_vertices[color_layer_name]
-            vertex_colors = mesh.vertex_colors.get(color_layer_name, False) or mesh.vertex_colors.new(name=color_layer_name)
+            vertex_colors = mesh.vertex_colors.get(color_layer_name, False) or mesh.vertex_colors.new(
+                name=color_layer_name)
             vertex_colors_data = vertex_colors.data
             vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
             color_layers += 1
@@ -655,7 +678,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
         return None
     elif 'embedded_physics' in cdata and cdata['embedded_physics']:
         block_id = cdata['embedded_physics']['phys_data_block']
-        phys_data = model_resource.get_block(KVBlock, block_id=block_id)
+        phys_data = model_resource.get_block(custom_type_kvblock("VPhysXAggregateData_t"), block_id=block_id)
         return phys_data
     return None
 

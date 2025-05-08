@@ -4,7 +4,7 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
 
 from .import_settings_base import ModelOptions, Source1BSPSettings
 from .operator_helper import ImportOperatorHelper
-from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.models import import_model
 from SourceIO.blender_bindings.models.common import put_into_collections
@@ -19,6 +19,7 @@ from SourceIO.library.utils import FileBuffer
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
+from ...library.source1.vmt import VMT
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
 
@@ -200,7 +201,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
         return {'RUNNING_MODAL'}
 
 
-# noinspection PyUnresolvedReferences,PyPep8Naming
+# noinspection PyPep8Naming
 class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
     """Load Source Engine VMT material"""
     bl_idname = "sourceio.vmt"
@@ -222,17 +223,20 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
             deserialize_mounted_content(content_manager)
 
         for file in self.files:
-            Source1ShaderBase.use_bvlg(self.use_bvlg)
             file_path = TinyPath(file.name)
             mat = get_or_create_material(file_path.stem, file_path.as_posix())
-            loader = Source1MaterialLoader(content_manager, (directory / file.name).open('rb'), file_path.stem)
-            bpy_material = bpy.data.materials.get(loader.material_name, dict())
-            if bpy_material.get('source_loaded'):
+
+            Source1ShaderBase.use_bvlg(self.use_bvlg)
+            material_path = (directory / file.name).open('rb')
+            with FileBuffer(material_path) as material_file:
+                vmt = VMT(material_file, material_path, content_manager)
+
+            if mat.get('source_loaded'):
                 if self.override:
-                    del bpy_material['source_loaded']
+                    del mat['source_loaded']
                 else:
                     self.report({'INFO'}, '{} material already exists')
-            loader.create_material(mat)
+            ShaderRegistry.source1_create_nodes(content_manager, mat, vmt, {})
         content_manager.clean()
         return {'FINISHED'}
 

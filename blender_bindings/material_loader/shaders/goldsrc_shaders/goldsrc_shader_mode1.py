@@ -10,7 +10,7 @@ class GoldSrcShaderMode1(GoldSrcShaderBase):
     SHADER: str = 'goldsrc_shader_mode1'
 
     def create_nodes(self, material, rad_info=None, model_name: Optional[str] = None):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
+        if super().create_nodes(material, {}) in ['UNKNOWN', 'LOADED']:
             return
 
         basetexture = self.load_texture(material.name, model_name)
@@ -59,4 +59,3 @@ class GoldSrcShaderMode1(GoldSrcShaderBase):
                 shader.inputs['Specular IOR Level'].default_value = 0
             else:
                 shader.inputs['Specular'].default_value = 0
-

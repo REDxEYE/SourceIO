@@ -1,6 +1,9 @@
 from pprint import pformat
+from typing import Any
 
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
@@ -9,9 +12,7 @@ from SourceIO.library.source2.blocks.kv3_block import KVBlock
 class CSGOStaticOverlay(Source2ShaderBase):
     SHADER: str = 'csgo_static_overlay.vfx'
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node_group("csgo_complex.vfx", name=self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
@@ -93,9 +94,8 @@ class CSGOStaticOverlay(Source2ShaderBase):
             shader.inputs["g_vColorTint"].default_value = tint
 
         if self.tinted:
-            vcolor_node = self.create_node(Nodes.ShaderNodeVertexColor)
-            vcolor_node.layer_name = "TINT"
-            self.connect_nodes(vcolor_node.outputs[0], shader.inputs["m_vColorTint"])
+            object_color = self.create_node(Nodes.ShaderNodeObjectInfo)
+            self.connect_nodes(object_color.outputs["Color"], shader.inputs["m_vColorTint"])
 
         shader.inputs["g_flModelTintAmount"].default_value = material_data.get_float_property(
             "g_flModelTintAmount", 0.0)

@@ -1,6 +1,9 @@
+from typing import Any
+
+import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 
@@ -60,9 +63,7 @@ class VRGeneric(Source2ShaderBase):
     def roughness(self):
         return self._material_resource.get_vector_property('g_vGlossinessRange', [0, 1, 0, 0])[1]
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
@@ -75,18 +76,22 @@ class VRGeneric(Source2ShaderBase):
         albedo_node = self.create_node(Nodes.ShaderNodeTexImage, 'albedo')
         albedo_node.image = color_texture
 
+        color_input_socket = shader.inputs['Base Color']
+        color_output_socket = albedo_node.outputs['Color']
         if self.color[0] != 1.0 and self.color[1] != 1.0 and self.color[2] != 1.0:
             color_mix = self.create_node(Nodes.ShaderNodeMixRGB)
             color_mix.blend_type = 'MULTIPLY'
-            self.connect_nodes(albedo_node.outputs['Color'], color_mix.inputs['Color1'])
+            self.connect_nodes(color_output_socket, color_mix.inputs['Color1'])
             color = self.color
             if sum(color) > 3:
                 color = list(np.divide(color, 255))
             color_mix.inputs['Color2'].default_value = color
             color_mix.inputs['Fac'].default_value = 1.0
-            self.connect_nodes(color_mix.outputs['Color'], shader.inputs['Base Color'])
-        else:
-            self.connect_nodes(albedo_node.outputs['Color'], shader.inputs['Base Color'])
+            color_output_socket = color_mix.outputs['Color']
+        if extra_parameters.get(ExtraMaterialParameters.USE_OBJECT_TINT, False):
+            color_output_socket = self.insert_object_tint(color_output_socket, 1.0)
+        self.connect_nodes(color_output_socket, color_input_socket)
+
 
         if self.translucent or self.alpha_test:
             if not is_blender_4_3():

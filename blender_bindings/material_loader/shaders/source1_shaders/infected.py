@@ -1,4 +1,8 @@
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from typing import Any
+
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
 from .detail import DetailSupportMixin
@@ -190,12 +194,9 @@ class Infected(DetailSupportMixin, Source1ShaderBase):
         value = self._vmt.get_int('$disablevariation', 0)
         return value
 
-    def create_nodes(self, material):
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         self.do_arrange = False
-        print(f"BVLG: {self.use_bvlg_status}")
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
-
+        # print(f"BVLG: {self.use_bvlg_status}")
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [400, -140]
         parentnode = material_output

@@ -1,8 +1,10 @@
+from typing import Any
+
 import bpy
 import numpy as np
 
 from ..source2_shader_base import Source2ShaderBase
-from ...shader_base import Nodes
+from ...shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledTextureResource
 from SourceIO.library.source2.blocks.texture_data import VTexFormat
@@ -69,7 +71,7 @@ class Skybox(Source2ShaderBase):
             return image
         return None
 
-    def create_nodes(self, material):
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         self.logger.info(f'Creating material {repr(material.name)}')
         self.bpy_material = material
 

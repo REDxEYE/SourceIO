@@ -6,10 +6,11 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
-from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
+from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shaders.sky import Skybox
 from SourceIO.blender_bindings.source1.vtf import load_skybox_texture
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
+from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.source1.vtf import SkyboxException
 from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec
 from SourceIO.library.utils.path_utilities import path_stem
@@ -689,10 +690,11 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         mat = get_or_create_material(TinyPath(stripped_material_name).name, stripped_material_name)
         add_material(mat, curve_object)
-        material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
+        material_path = TinyPath("materials") / (material_name + ".vmt")
+        material_file = self.content_manager.find_file(material_path)
         if material_file:
-            loader = Source1MaterialLoader(self.content_manager, material_file, stripped_material_name)
-            loader.create_material(mat)
+            vmt = VMT(material_file, material_path, self.content_manager)
+            ShaderRegistry.source1_create_nodes(self.content_manager, mat, vmt, {})
         return curve_object
 
     def handle_path_track(self, entity: path_track, entity_raw: dict):
@@ -742,14 +744,15 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
         material_name = TinyPath(entity.texture).name
-        material_file = self.content_manager.find_file(TinyPath("materials") / (entity.texture + ".vmt"))
+        material_path = TinyPath("materials") / (entity.texture + ".vmt")
+        material_file = self.content_manager.find_file(material_path)
         if material_file:
-            material_name = strip_patch_coordinates.sub("", material_name)
-            loader = Source1MaterialLoader(self.content_manager, material_file, material_name)
             mat = get_or_create_material(path_stem(material_name), material_name)
-            loader.create_material(mat)
+            material_name = strip_patch_coordinates.sub("", material_name)
+            vmt = VMT(material_file, material_path, self.content_manager)
+            ShaderRegistry.source1_create_nodes(self.content_manager, mat, vmt, {})
 
-            tex_name = loader.vmt.get('$basetexture', None)
+            tex_name = vmt.get('$basetexture', None)
             if not tex_name:
                 return
             tex_name = TinyPath(tex_name).name

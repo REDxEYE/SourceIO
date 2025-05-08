@@ -1,6 +1,6 @@
 from collections import Counter
 from hashlib import md5
-from typing import Optional, TypeVar, Union
+from typing import Optional, TypeVar, Union, Iterator
 
 from SourceIO.library.shared.content_manager.detectors import detect_game
 from SourceIO.library.shared.content_manager.provider import ContentProvider
@@ -138,7 +138,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         if child not in self.children:
             self.children.append(child)
 
-    def glob(self, pattern: str):
+    def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
         for child in self.children:
             yield from child.glob(pattern)
 

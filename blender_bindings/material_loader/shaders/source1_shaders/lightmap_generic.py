@@ -1,4 +1,8 @@
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from typing import Any
+
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 from .detail import DetailSupportMixin
@@ -56,10 +60,7 @@ class LightmapGeneric(DetailSupportMixin, Source1ShaderBase):
     def translucent(self):
         return self._vmt.get_int('$translucent', 0) == 1
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
-
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         if self.isskybox:
             if not is_blender_4_3():
                 self.bpy_material.shadow_method = 'NONE'

@@ -182,8 +182,8 @@ class CompiledTextureResource(CompiledResource):
                     hemi_oct_normal = True
                 elif spec.string == "Texture Compiler Version LegacySource1InvertNormals":
                     invert = True
-                # elif spec.string == "Texture Compiler Version Image Inverse":
-                #     invert = True
+                elif spec.string == "Texture Compiler Version Image Inverse":
+                    invert = True
                 elif spec.string == "Texture Compiler Version Image NormalizeNormals":
                     normalize = True
                 elif spec.string == "Texture Compiler Version Image YCoCg Conversion":

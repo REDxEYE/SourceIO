@@ -6,7 +6,7 @@ class CompiledMaterialResource(CompiledResource):
 
     @property
     def data_block(self):
-        return self.get_block(KVBlock, block_id=DATA_BLOCK)
+        return self.get_block(KVBlock, block_name="DATA")
 
     def get_used_textures(self):
         data = self.data_block

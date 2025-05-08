@@ -53,7 +53,7 @@ class ContentProvider:
         return hash(self.unique_name)
 
     @abstractmethod
-    def glob(self, pattern: str):
+    def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
         ...
 
     @abstractmethod

@@ -190,7 +190,7 @@ class BaseEntityHandler(AbstractEntityHandler):
             vmat = CompiledMaterialResource.from_buffer(sky_mat, TinyPath(entity.skyname))
             # load_material(vmat, TinyPath(entity.skyname))
             world_material = bpy.data.worlds.get(entity.skyname, False) or bpy.data.worlds.new(entity.skyname)
-            Skybox(self.content_manager, vmat).create_nodes(world_material)
+            Skybox(self.content_manager, vmat).create_nodes(world_material, {})
 
     def handle_point_clientui_world_panel(self, entity: point_clientui_world_panel, entity_raw: dict):
         pass

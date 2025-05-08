@@ -1,4 +1,8 @@
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+from typing import Any
+
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from .source2_shader_base import Source2ShaderBase
 
@@ -14,9 +18,8 @@ class DebugMaterial(Source2ShaderBase):
             return image
         return None
 
-    def create_nodes(self, material):
-        if super().create_nodes(material) in ['UNKNOWN', 'LOADED']:
-            return
+    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+
 
         data_block = self._material_resource.get_block(KVBlock,block_name='DATA')
 
