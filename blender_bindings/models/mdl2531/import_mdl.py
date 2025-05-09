@@ -12,11 +12,12 @@ from SourceIO.library.models.mdl.structs.model import ModelV2531
 from SourceIO.library.models.mdl.v2531.mdl_file import MdlV2531
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
 from SourceIO.library.models.mdl.v49.flex_expressions import *
+from SourceIO.library.source1.vmt import VMT
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material, is_blender_4_1
+from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
-from SourceIO.blender_bindings.material_loader.material_loader import Source1MaterialLoader
 from SourceIO.library.models.vtx.v107.vtx import Vtx
 from SourceIO.library.models.vvc import Vvc
 from ..common import merge_meshes
@@ -284,9 +285,8 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
 
         if material_path:
             Source1ShaderBase.use_bvlg(use_bvlg)
-            logger.info(f"Have material_file: {material_file}")
-            loader = Source1MaterialLoader(content_manager, material_file, material.name)
-            loader.create_material(mat)
+            vmt = VMT(material_file, material_path, content_manager)
+            ShaderRegistry.source1_create_nodes(content_manager, mat, vmt,{})
 
 
 def __swap_components(vec, mp):
