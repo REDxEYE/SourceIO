@@ -29,13 +29,23 @@ class VMT:
             self.shader = "FAILED_TO_LOAD"
             self.data = KVDataProxy([])
 
+
+    def _lookup_material(self, content_manager: ContentManager, look_for: TinyPath):
+        original_material = content_manager.find_file(look_for)
+        # An extra lookup helps VtMB materials to be found
+        if not original_material:
+            original_material = content_manager.find_file(TinyPath('materials') / look_for.with_suffix('.vmt'))
+        return original_material
+
+
     def _postprocess(self, content_manager: ContentManager):
         if self.shader == 'patch':
-            original_material = content_manager.find_file(TinyPath(self.get_string('include')))
+            look_for = TinyPath(self.get_string('include'))
+            original_material = self._lookup_material(content_manager, look_for)
             if not original_material:
-                logger.error(f'Failed to find original material {self.get_string("include")!r}')
+                logger.error(f'Failed to find original material: {look_for!r}')
                 return
-            patched_vmt = VMT(original_material, self.get_string('include'), content_manager)
+            patched_vmt = VMT(original_material, look_for, content_manager)
             if 'insert' in self:
                 patch_data = self.get('insert', {})
                 patched_vmt.data.merge(patch_data)

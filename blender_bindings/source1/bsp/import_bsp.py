@@ -39,6 +39,7 @@ from SourceIO.blender_bindings.source1.bsp.entities.portal_entity_handlers impor
 from SourceIO.blender_bindings.source1.bsp.entities.tf2_entity_handler import TF2EntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.titanfall_entity_handler import TitanfallEntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.vindictus_entity_handler import VindictusEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.vampire_entity_handler import VampireEntityHandler
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SourceLogMan()
@@ -85,6 +86,8 @@ def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Sou
         handler_class = CSGOEntityHandler
     elif steam_id == SteamAppId.LEFT_4_DEAD_2:
         handler_class = Left4dead2EntityHandler
+    elif steam_id == SteamAppId.VAMPIRE_THE_MASQUERADE_BLOODLINES or bsp.version == 17:
+        handler_class = VampireEntityHandler
     elif steam_id == SteamAppId.PORTAL_2 and bsp.version == 29:  # Titanfall
         handler_class = TitanfallEntityHandler
     elif steam_id == SteamAppId.PORTAL:

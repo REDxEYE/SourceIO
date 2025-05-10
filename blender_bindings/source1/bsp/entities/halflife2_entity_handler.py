@@ -8,6 +8,7 @@ from .halflife2_entity_classes import *
 
 local_entity_lookup_table = BaseEntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)
+local_entity_lookup_table["env_particle"] = Base
 
 
 class HalfLifeEntityHandler(BaseEntityHandler):
@@ -21,6 +22,9 @@ class HalfLifeEntityHandler(BaseEntityHandler):
 
     def _handle_npc(self, entity: BaseNPC, entity_raw: dict):
         return self._handle_entity_with_model(entity, entity_raw)
+
+    def handle_env_particle(self, entity: Base, entity_raw: dict):
+        pass
 
     def handle_logic_choreographed_scene(self, entity: logic_choreographed_scene, entity_raw: dict):
         obj = bpy.data.objects.new(self._get_entity_name(entity), None)
@@ -207,6 +211,10 @@ class HalfLifeEntityHandler(BaseEntityHandler):
     def handle_npc_blob(self, entity: npc_blob, entity_raw: dict):
         obj = self._handle_npc(entity, entity_raw)
         self._put_into_collection('npc_blob', obj, 'npc')
+
+    def handle_npc_maker(self, entity: npc_blob, entity_raw: dict):
+        obj = self._handle_npc(entity, entity_raw)
+        self._put_into_collection('npc_maker', obj, 'npc')
 
     def handle_npc_citizen(self, entity: npc_citizen, entity_raw: dict):
         obj = self._handle_npc(entity, entity_raw)

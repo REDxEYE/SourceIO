@@ -1,5 +1,7 @@
 import numpy as np
+import zlib
 
+from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils import TinyPath
@@ -26,6 +28,21 @@ def load_texture(file_object):
     return None, 0, 0
 
 
+def load_texture_tth(header_file: Buffer, data_file: Buffer):
+    vtf_data = bytearray()
+    if header_file.read_ascii_string(3) != "TTH":
+        return None
+    header_file.seek(6)
+    entry_count = header_file.read_uint8()
+    header_file.skip(1)
+    header_size = header_file.read_uint32()
+    header_file.seek(16 + entry_count * 8 + 4)
+    vtf_data += header_file.read(header_size)
+    vtf_data += zlib.decompress(data_file.read())
+    memory_buffer = MemoryBuffer(vtf_data)
+    return load_texture(memory_buffer)
+
+
 def pad_to(im: np.ndarray, s_size: int):
     new = np.zeros((s_size, s_size, 4), im.dtype)
     new[:, :, 3] = 1
@@ -37,13 +54,24 @@ class SkyboxException(Exception):
     pass
 
 
+def lookup_and_load_texture(content_manager: ContentManager, texture_path: TinyPath):
+    texture_file = content_manager.find_file(texture_path)
+    if texture_file is not None:
+        return load_texture(texture_file)
+    texture_header_file = content_manager.find_file(texture_path.with_suffix(".tth"))
+    texture_data_file = content_manager.find_file(texture_path.with_suffix(".ttz"))
+    if texture_header_file is not None and texture_data_file is not None:
+        return load_texture_tth(texture_header_file, texture_data_file)
+    raise SkyboxException(f"Failed to find skybox texture {texture_path}")
+
+
 def convert_skybox_to_equiangular(skyname: str, content_manager: ContentManager, width=1024):
     sides_names = {'B': 'bk', 'R': 'rt', 'F': 'ft', 'L': 'lf', 'U': 'dn', 'D': 'up'}
     sides = {}
     max_s = 0
     use_hdr = False
     for k, n in sides_names.items():
-        file_path = content_manager.find_file(TinyPath(f'materias/skybox/{skyname}{n}.vmt'))
+        file_path = content_manager.find_file(TinyPath(f'materials/skybox/{skyname}{n}.vmt'))
         if not file_path:
             raise SkyboxException(f'Failed to find skybox material {skyname}{n}')
         material = VMT(file_path, f'skybox/{skyname}{n}', content_manager)
@@ -51,10 +79,7 @@ def convert_skybox_to_equiangular(skyname: str, content_manager: ContentManager,
         texture_path = material.get_string('$basetexture', None)
         if texture_path is None:
             raise SkyboxException('Missing $basetexture in skybox material')
-        texture_file = content_manager.find_file(TinyPath("materials") / (texture_path + ".vtf"))
-        if texture_file is None:
-            raise SkyboxException(f'Failed to find skybox texture {texture_path}')
-        side, h, w = load_texture(texture_file)
+        side, h, w = lookup_and_load_texture(content_manager, TinyPath("materials") / (texture_path + ".vtf"))
         if side is None:
             raise SkyboxException(f'Failed to load texture {texture_path}')
         side = side.reshape((h, w, 4))
@@ -87,10 +112,7 @@ def convert_skybox_to_equiangular(skyname: str, content_manager: ContentManager,
                                                                        None)))
             if texture_path is None:
                 raise SkyboxException('Missing $basetexture in skybox material')
-            texture_file = content_manager.find_file(TinyPath("materials") / (texture_path + ".vtf"))
-            if texture_file is None:
-                raise SkyboxException(f'Failed to find skybox texture {texture_path}')
-            side, h, w = load_texture(texture_file)
+            side, h, w = lookup_and_load_texture(content_manager, TinyPath("materials") / (texture_path + ".vtf"))
             if side is None:
                 raise SkyboxException(f'Failed to load texture {texture_path}')
             side = side.reshape((h, w, 4))

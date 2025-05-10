@@ -11,6 +11,8 @@ from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
+from SourceIO.library.models.mdl.v2531 import MdlV2531
+from SourceIO.library.models.mdl.v36 import MdlV36
 from SourceIO.library.models.mdl.v36 import MdlV36
 from SourceIO.library.models.mdl.v44.mdl_file import MdlV44
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
@@ -263,6 +265,8 @@ def __swap_components(vec, mp):
 
 def import_static_animations(cm: ContentProvider, mdl: MdlV44, animation_name: str, armature: bpy.types.Object,
                              scale: float):
+    if armature is None:
+        return
     bpy.context.view_layer.update()
     bpy.context.view_layer.objects.active = armature
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -297,7 +301,9 @@ def import_static_animations(cm: ContentProvider, mdl: MdlV44, animation_name: s
             buffer.seek(4)
             version = buffer.read_uint32()
             buffer.seek(0)
-            if 35 <= version <= 37:
+            if version == 2531:
+                i_mdl = MdlV2531.from_buffer(buffer)
+            elif 35 <= version <= 37:
                 i_mdl = MdlV36.from_buffer(buffer)
             elif version >= 44:
                 i_mdl = MdlV44.from_buffer(buffer)
