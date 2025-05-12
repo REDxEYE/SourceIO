@@ -226,6 +226,9 @@ class ShaderBase:
         return buffer[0::4], buffer[1::4], buffer[2::4], buffer[3::4],
 
     def load_texture_or_default(self, file: str, default_color: tuple = (1.0, 1.0, 1.0, 1.0)):
+        # Some VMT's in VtMB have a basetexture path starting with a /
+        if file.startswith("/"):
+            file = file[1:]
         file = TinyPath(file)
         texture = self.load_texture(file.stem, file.parent)
         return texture or self.get_missing_texture(f'missing_{file.stem}', default_color)

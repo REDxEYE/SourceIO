@@ -12,6 +12,23 @@ class Material:
 
 
 @dataclass(slots=True)
+class MaterialV2531(Material):
+    width: float
+    height: float
+    unknown: float
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int):
+        entry = buffer.tell()
+        name = buffer.read_source1_string(entry)
+        flags = buffer.read_uint32()
+        width = buffer.read_float()
+        height = buffer.read_float()
+        unknown = buffer.read_float()
+        return cls(name, flags, width, height, unknown)
+
+
+@dataclass(slots=True)
 class MaterialV36(Material):
     width: float
     height: float

@@ -17,6 +17,7 @@ from SourceIO.library.shared.content_manager.detectors.source2 import Source2Det
 from SourceIO.library.shared.content_manager.detectors.sourcemod import SourceMod
 from SourceIO.library.shared.content_manager.detectors.titanfall1 import TitanfallDetector
 from SourceIO.library.shared.content_manager.detectors.vindictus import VindictusDetector
+from SourceIO.library.shared.content_manager.detectors.vampire import VampireDetector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -27,7 +28,8 @@ def detect_game(path: TinyPath) -> list[ContentProvider]:
                        Portal2RevolutionDetector(), SourceMod(), CSGODetector(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
-                       DeadlockDetector(), Source1Detector(), Source2Detector(), IDTech3Detector()]
+                       DeadlockDetector(), Source1Detector(), Source2Detector(), IDTech3Detector(),
+                       VampireDetector()]
 
     for detector in detector_addons:
         results = detector.scan(path)

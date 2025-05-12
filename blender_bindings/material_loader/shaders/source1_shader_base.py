@@ -5,6 +5,7 @@ from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase
 from SourceIO.blender_bindings.source1.vtf import import_texture
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.blender_bindings.source1.vtf import import_texture, import_texture_tth
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -28,8 +29,14 @@ class Source1ShaderBase(ShaderBase):
         if texture_path.is_absolute(): # Absolute paths shouldn't even be here! This path is invalid
             return None
         texture_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".vtf"))
+
         if texture_file is not None:
             return import_texture(texture_path / texture_name, texture_file)
+
+        texture_header_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".tth"))
+        texture_data_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".ttz"))
+        if texture_header_file is not None and texture_data_file is not None:
+            return import_texture_tth(texture_path / texture_name, texture_header_file, texture_data_file)
         return None
 
     @staticmethod

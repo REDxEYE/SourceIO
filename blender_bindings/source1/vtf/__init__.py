@@ -1,10 +1,12 @@
+import zlib
 import numpy as np
 
 from SourceIO.blender_bindings.utils.texture_utils import create_and_cache_texture
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.vtf import convert_skybox_to_equiangular
-from SourceIO.library.source1.vtf import load_texture
+from SourceIO.library.source1.vtf import load_texture, load_texture_tth
 from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -14,6 +16,13 @@ logger = log_manager.get_logger('Source1::VTF')
 def import_texture(texture_path: TinyPath, file_object, update=False):
     logger.info(f'Loading "{texture_path.name}" texture')
     rgba_data, image_height, image_width = load_texture(file_object)
+
+    return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
+
+
+def import_texture_tth(texture_path: TinyPath, header_file: Buffer, data_file: Buffer, update=False):
+    logger.info(f'Loading "{texture_path.name}" texture')
+    rgba_data, image_height, image_width = load_texture_tth(header_file, data_file)
 
     return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
 
