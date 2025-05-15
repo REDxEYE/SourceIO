@@ -173,9 +173,6 @@ class HeroesArmor(Source1ShaderBase):
         return self.ensure_length(color_value, 4, 1.0)
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
-        if super().create_nodes(material, extra_parameters) in ['UNKNOWN', 'LOADED']:
-            return
-
         if self._vmt.get('proxies', None):
             proxies = self._vmt.get('proxies')
             for proxy_name, proxy_data in proxies.items():

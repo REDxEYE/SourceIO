@@ -54,9 +54,6 @@ class CitadelEnvironmentLayer(Source2ShaderBase):
         return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
-        if super().create_nodes(material, extra_parameters) in ['UNKNOWN', 'LOADED']:
-            return
-
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])

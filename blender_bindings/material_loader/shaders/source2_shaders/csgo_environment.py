@@ -11,9 +11,6 @@ class CSGOEnvironment(Source2ShaderBase):
     SHADER: str = 'csgo_environment.vfx'
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
-        if super().create_nodes(material, extra_parameters) in ['UNKNOWN', 'LOADED']:
-            return
-
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader_node = self.create_node(Nodes.ShaderNodeBsdfPrincipled)
         self.connect_nodes(shader_node.outputs['BSDF'], material_output.inputs['Surface'])

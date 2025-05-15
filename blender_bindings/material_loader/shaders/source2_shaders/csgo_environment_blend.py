@@ -13,8 +13,6 @@ class CSGOEnvironmentBlend(Source2ShaderBase):
     SHADER: str = 'csgo_environment_blend.vfx'
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
-        if super().create_nodes(material, extra_parameters) in ['UNKNOWN', 'LOADED']:
-            return
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node_group("csgo_lightmappedgeneric.vfx", name=self.SHADER)
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
