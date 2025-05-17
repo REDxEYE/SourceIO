@@ -18,7 +18,7 @@ class CSGOEnvironmentBlend(Source2ShaderBase):
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         material_data = self._material_resource
         data = self._material_resource.get_block(KVBlock, block_name='DATA')
-        self.logger.info(pformat(dict(data)))
+        # self.logger.info(pformat(dict(data)))
 
         vcolor_node = self.create_node(Nodes.ShaderNodeVertexColor)
         vcolor_node.layer_name = "COLOR"

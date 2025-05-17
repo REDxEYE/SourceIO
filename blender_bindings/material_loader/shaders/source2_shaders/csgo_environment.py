@@ -12,7 +12,7 @@ class CSGOEnvironment(Source2ShaderBase):
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
-        shader_node = self.create_node(Nodes.ShaderNodeBsdfPrincipled)
+        shader_node = self.create_node(Nodes.ShaderNodeBsdfPrincipled, name=self.SHADER)
         self.connect_nodes(shader_node.outputs['BSDF'], material_output.inputs['Surface'])
 
         material_data = self._material_resource

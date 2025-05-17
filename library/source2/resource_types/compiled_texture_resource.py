@@ -62,15 +62,15 @@ class CompiledTextureResource(CompiledResource):
         return size
 
     def get_texture_format(self) -> VTexFormat:
-        data_block = self.get_block(TextureData,block_name='DATA')
+        data_block = self.get_block(TextureData, block_name='DATA')
         return data_block.texture_info.pixel_format
 
     def is_cubemap(self) -> bool:
-        data_block = self.get_block(TextureData,block_name='DATA')
+        data_block = self.get_block(TextureData, block_name='DATA')
         return data_block.texture_info.flags & VTexFlags.CUBE_TEXTURE
 
     def get_resolution(self, mip_level: int = 0):
-        data_block = self.get_block(TextureData,block_name='DATA')
+        data_block = self.get_block(TextureData, block_name='DATA')
         texture_info = data_block.texture_info
         width = texture_info.width >> mip_level
         height = texture_info.height >> mip_level
@@ -84,7 +84,7 @@ class CompiledTextureResource(CompiledResource):
             if block.name == 'DATA':
                 info_block = block
                 break
-        data_block = self.get_block(TextureData,block_name='DATA')
+        data_block = self.get_block(TextureData, block_name='DATA')
         buffer = self._buffer
         buffer.seek(info_block.absolute_offset + info_block.size)
 
@@ -127,7 +127,7 @@ class CompiledTextureResource(CompiledResource):
                 info_block = block
                 break
 
-        data_block = self.get_block(TextureData,block_name='DATA')
+        data_block = self.get_block(TextureData, block_name='DATA')
         buffer = self._buffer
         buffer.seek(info_block.absolute_offset + info_block.size)
         compression_info: Optional[CompressedMip] = data_block.extra_data.get(VTexExtraData.COMPRESSED_MIP_SIZE, None)
@@ -135,6 +135,7 @@ class CompiledTextureResource(CompiledResource):
         desired_mip_size = self._calculate_buffer_size_for_mip(data_block, mip_level)
         if self.is_cubemap():
             desired_mip_size *= 6
+        texture_info = data_block.texture_info
         if compression_info and compression_info.compressed:
             compressed_size = compression_info.mip_sizes[mip_level]
             total_size = 0
@@ -147,18 +148,20 @@ class CompiledTextureResource(CompiledResource):
             assert len(data) == desired_mip_size, "Uncompressed data size != expected uncompressed size"
         else:
             total_size = 0
-            for i in range(data_block.texture_info.mip_count - 1, mip_level, -1):
+            for i in range(texture_info.mip_count - 1, mip_level, -1):
                 total_size += self._calculate_buffer_size_for_mip(data_block, i)
             if self.is_cubemap():
                 total_size *= 6
             buffer.seek(total_size, io.SEEK_CUR)
             data = buffer.read(desired_mip_size)
 
-        pixel_format = data_block.texture_info.pixel_format
-        width = data_block.texture_info.width
-        height = data_block.texture_info.height
+        pixel_format = texture_info.pixel_format
+        width = texture_info.width
+        height = texture_info.height
         if self.is_cubemap():
             height *= 6
+        if texture_info.depth > 1:
+            height *= texture_info.depth
         data = self._decompress_texture(data, height, pixel_format, width)
         return data, (width, height)
 
