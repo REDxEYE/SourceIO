@@ -18,7 +18,7 @@ In order to find the import tools you simply need to go to File>Import>Source En
 * [BlenderVertexLitGeneric](https://github.com/syborg64/BlenderVertexLitGeneric) Shader nodegroup by [syborg64](https://github.com/syborg64)
 * [equilib](https://github.com/haruishi43/equilib) Cubemap to equirectangular converter by [haruishi43](https://github.com/haruishi43/equilib)
 * [HFSExtract](https://github.com/yretenai/HFSExtract) HFS extractor that was used to write native decryptor by [yretenai](https://github.com/yretenai)
-* Idea for better HWM expression handling by [hisanimations](youtube.com/c/hisanimations)
+* Idea for better HWM expression handling by [hisanimations](https://youtube.com/c/hisanimations)
 # Supported formats (v5.3.0):
 
 ## Source 1
