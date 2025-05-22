@@ -28,11 +28,11 @@ class OriginalFaceLump(Lump):
         return self
 
 
-@lump_tag(7, 'LUMP_FACES', bsp_version=17)
+@lump_tag(7, 'LUMP_FACES', bsp_version=17, steam_id=SteamAppId.VAMPIRE_THE_MASQUERADE_BLOODLINES)
 class VampFaceLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:
@@ -40,11 +40,11 @@ class VampFaceLump(Lump):
         return self
 
 
-@lump_tag(27, 'LUMP_ORIGINALFACES', bsp_version=17)
+@lump_tag(27, 'LUMP_ORIGINALFACES', bsp_version=17, steam_id=SteamAppId.VAMPIRE_THE_MASQUERADE_BLOODLINES)
 class VampOriginalFaceLump(Lump):
     def __init__(self, lump_info: LumpInfo):
         super().__init__(lump_info)
-        self.faces: List[Face] = []
+        self.faces: list[Face] = []
 
     def parse(self, buffer: Buffer, bsp: 'BSPFile'):
         while buffer:

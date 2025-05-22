@@ -142,7 +142,7 @@ class ShaderBase:
             asset_path = current_path / 'assets' / "source2_materials.blend"
             append_blend(str(asset_path), "node_groups")
 
-    def insert_object_tint(self, color_output_socket, tint_amount=1.0, tint_mask_output=None | object):
+    def insert_object_tint(self, color_output_socket, tint_amount=1.0, tint_mask_output:None | object=None):
         color_multiply_node = self.create_node(Nodes.ShaderNodeMixRGB)
         color_multiply_node.blend_type = 'MULTIPLY'
         if tint_mask_output is None:
