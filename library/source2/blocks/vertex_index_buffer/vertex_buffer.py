@@ -89,7 +89,8 @@ class VertexBuffer:
     def from_buffer(cls, buffer: Buffer) -> 'VertexBuffer':
         vertex_count, vertex_size = buffer.read_fmt('II')
         is_zstd_compressed = vertex_size & 0x8000000
-        vertex_size &= 0x7FFFFFF
+        some_flag = vertex_size & 0x4000000
+        vertex_size &= 0x3FFFFFF
         attr_offset = buffer.read_relative_offset32()
         attr_count = buffer.read_uint32()
 
