@@ -226,7 +226,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
             mat = get_or_create_material(file_path.stem, file_path.as_posix())
 
             Source1ShaderBase.use_bvlg(self.use_bvlg)
-            material_path = (directory / file.name).open('rb')
+            material_path = directory / file.name
             with FileBuffer(material_path) as material_file:
                 vmt = VMT(material_file, material_path, content_manager)
 
