@@ -81,7 +81,7 @@ class SourceIO_MT_Menu(bpy.types.Menu):
         # layout.operator(SourceIO_OP_VPKBrowser.bl_idname, text="[!!!WIP!!!]Browse already open VPK (.vpk)",
         #                 icon_value=bsp_icon.icon_id)
         # layout.separator()
-        # layout.menu(SourceIOUtils_MT_Menu.bl_idname)
+        layout.menu(SourceIOUtils_MT_Menu.bl_idname)
 
 
 class SourceIOUtils_MT_Menu(bpy.types.Menu):
@@ -129,8 +129,8 @@ def unregister_custom_icon():
 classes = [
     # GoldSrc
     SOURCEIO_OT_GBSPImport,
-    # Source1 stuff
 
+    # Source1 stuff
     SOURCEIO_OT_MDLImport,
     SOURCEIO_OT_BSPImport,
     SOURCEIO_OT_DMXImporter,
