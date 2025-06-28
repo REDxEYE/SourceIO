@@ -72,7 +72,7 @@ class AbstractEntityHandler:
         self.parent_collection = parent_collection
 
         self._entites = self._bsp.get_lump('LUMP_ENTITIES').entities
-        self._handled_paths = []
+        self._handled_paths = set()
         self._entity_by_name_cache = {}
         self._world_geometry_name = ""
         self.settings: Source1BSPSettings | None = None

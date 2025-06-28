@@ -299,7 +299,7 @@ class ShaderBase:
 
     @abstractmethod
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
-        raise NotImplementedError("create_nodes method should be implemented in the subclass")
+        raise NotImplementedError(f"create_nodes method should be implemented by {self.__class__.__name__}")
 
     def align_nodes(self):
         if not self.do_arrange:

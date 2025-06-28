@@ -79,7 +79,7 @@ def read_valve_keyvalue3(buffer: Buffer) -> AnyKVType:
         return read_v4(encoding, buffer)
     elif sig == KV3Signatures.KV3_V5:
         return read_v5(encoding, buffer)
-
+    raise UnsupportedVersion(f"Unsupported KV3 version: {sig!r}")
 
 @dataclass
 class KV3Buffers:

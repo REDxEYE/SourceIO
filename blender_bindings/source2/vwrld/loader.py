@@ -46,7 +46,7 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
     if world_resource_path is not None:
         world_resource = map_resource.get_child_resource(world_resource_path, cm, CompiledWorldResource)
         return import_world(world_resource, map_resource, cm, scale)
-
+    return None
 
 def cheap_path_check(resource_id: str | int, content_manager: ContentManager, resource: CompiledResource):
     if isinstance(resource_id, str):

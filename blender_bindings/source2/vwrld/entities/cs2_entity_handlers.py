@@ -39,7 +39,10 @@ class CS2EntityHandler(HLVREntityHandler):
 
     def load_entities(self):
         for entity in self._entities:
-            self.handle_entity(replace_null_object(entity["values"]))
+            if "values" not in entity:
+                self.handle_entity(replace_null_object(entity))
+            else:
+                self.handle_entity(replace_null_object(entity["values"]))
 
     def handle_env_cs_place(self, entity: env_cs_place, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
