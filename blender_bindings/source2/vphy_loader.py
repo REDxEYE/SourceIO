@@ -195,8 +195,10 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
     for capsule_info in capsules:
         collision_attribute_index = capsule_info["m_nCollisionAttributeIndex"]
         surface_property_index = capsule_info["m_nSurfacePropertyIndex"]
-        if "m_UserFriendlyName" in capsule_info:
+        if "m_UserFriendlyName" in capsule_info and capsule_info["m_UserFriendlyName"] != "":
             shape_name = capsule_info["m_UserFriendlyName"]
+        elif shape_name == "":
+            shape_name = "undefined"
         capsule = capsule_info["m_Capsule"]
         capsule_start, capsule_end = capsule["m_vCenter"]
         radius = capsule["m_flRadius"]
@@ -222,8 +224,10 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
     for sphere_info in spheres:
         collision_attribute_index = sphere_info["m_nCollisionAttributeIndex"]
         surface_property_index = sphere_info["m_nSurfacePropertyIndex"]
-        if "m_UserFriendlyName" in sphere_info:
+        if "m_UserFriendlyName" in sphere_info and sphere_info["m_UserFriendlyName"] != "":
             shape_name = sphere_info["m_UserFriendlyName"]
+        elif shape_name == "":
+            shape_name = "undefined"
         sphere = sphere_info["m_Sphere"]
         radius = sphere["m_flRadius"]
         center = Vector(sphere["m_vCenter"])
@@ -244,8 +248,10 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
     for mesh_info in meshes:
         collision_attribute_index = mesh_info["m_nCollisionAttributeIndex"]
         surface_property_index = mesh_info["m_nSurfacePropertyIndex"]
-        if "m_UserFriendlyName" in mesh_info:
+        if "m_UserFriendlyName" in mesh_info and mesh_info["m_UserFriendlyName"] != "":
             shape_name = mesh_info["m_UserFriendlyName"]
+        elif shape_name == "":
+            shape_name = "undefined"
         mesh = mesh_info["m_Mesh"]
         vertex_data = mesh["m_Vertices"]
         indices_data = mesh["m_Triangles"]
@@ -271,8 +277,10 @@ def generate_physics_shapes(shape_name, bone_matrix, scale, capsules, spheres, h
 
         shapes.append(mesh_obj)
     for hull_info in hulls:
-        if "m_UserFriendlyName" in hull_info:
+        if "m_UserFriendlyName" in hull_info and hull_info["m_UserFriendlyName"] != "":
             shape_name = hull_info["m_UserFriendlyName"]
+        elif shape_name == "":
+            shape_name = "undefined"
         hull = hull_info["m_Hull"]
         if "m_VertexPositions" in hull:
             vertex_data = hull["m_VertexPositions"]
