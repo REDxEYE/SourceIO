@@ -172,50 +172,66 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
             group_masks[2 ** i] = group
     else:
         group_masks[0xFFFF] = model_resource.name + '_ALL'
-    for i, mesh in enumerate(data['m_refMeshes']):
-        mesh_mask = int(data['m_refMeshGroupMasks'][i])
-        lod_id = int(data['m_refLODGroupMasks'][i])
-        if lod_id & lod_mask == 0:
-            continue
-        if (isinstance(mesh, NullObject) or not mesh) and ctrl is not None:
-            # Embedded mesh
-            mesh_info = ctrl['embedded_meshes'][i]
-            sub_meshes = load_internal_mesh(content_manager, model_resource, container, mesh_info, import_contex)
-        else:
-            # External mesh
-            mesh_resource = None
-            if isinstance(mesh, NullObject):
-                for resource_id in model_resource.get_child_resources():
-                    if isinstance(resource_id, str) and resource_id.endswith(".vmesh"):
-                        mesh_resource = model_resource.get_child_resource(resource_id, content_manager,
-                                                                          CompiledMeshResource)
-                        break
 
+    if data['m_refMeshes']:
+        for i, mesh in enumerate(data['m_refMeshes']):
+            mesh_mask = int(data['m_refMeshGroupMasks'][i])
+            lod_id = int(data['m_refLODGroupMasks'][i])
+            if lod_id & lod_mask == 0:
+                continue
+            if (isinstance(mesh, NullObject) or not mesh) and ctrl is not None:
+                # Embedded mesh
+                mesh_info = ctrl['embedded_meshes'][i]
+                sub_meshes = load_internal_mesh(content_manager, model_resource, container, mesh_info, import_contex)
             else:
-                mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
-            if mesh_resource is None:
-                logging.error(f'Failed to find vmesh file for {model_resource.name}')
-            sub_meshes = load_external_mesh(content_manager, model_resource, container, i, mesh_resource, import_contex)
-        object_groups.extend(sub_meshes)
-        for sub_mesh in sub_meshes:
-            for lod in range(lod_count):
-                if lod_id & (2 ** lod) > 0:
-                    sub_mesh.name += f'_LOD{lod}'
-                    break
-            for group_mask, group in group_masks.items():
-                if mesh_mask & group_mask > 0:
-                    container.bodygroups[group].append(sub_mesh)
+                # External mesh
+                mesh_resource = None
+                if isinstance(mesh, NullObject):
+                    for resource_id in model_resource.get_child_resources():
+                        if isinstance(resource_id, str) and resource_id.endswith(".vmesh"):
+                            mesh_resource = model_resource.get_child_resource(resource_id, content_manager,
+                                                                              CompiledMeshResource)
+                            break
+
+                else:
+                    mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
+                if mesh_resource is None:
+                    logging.error(f'Failed to find vmesh file for {model_resource.name}')
+                sub_meshes = load_external_mesh(content_manager, model_resource, container, i, mesh_resource, import_contex)
+            object_groups.extend(sub_meshes)
+            for sub_mesh in sub_meshes:
+                for lod in range(lod_count):
+                    if lod_id & (2 ** lod) > 0:
+                        sub_mesh.name += f'_LOD{lod}'
+                        break
+                for group_mask, group in group_masks.items():
+                    if mesh_mask & group_mask > 0:
+                        container.bodygroups[group].append(sub_mesh)
+    else:
+        for i, mesh_info in enumerate(ctrl['embedded_meshes']):
+            mesh_mask = int(data['m_refMeshGroupMasks'][i])
+            lod_id = int(data['m_refLODGroupMasks'][i])
+            sub_meshes = load_internal_mesh(content_manager, model_resource, container, mesh_info, import_contex)
+            object_groups.extend(sub_meshes)
+            for sub_mesh in sub_meshes:
+                for lod in range(lod_count):
+                    if lod_id & (2 ** lod) > 0:
+                        sub_mesh.name += f'_LOD{lod}'
+                        break
+                for group_mask, group in group_masks.items():
+                    if mesh_mask & group_mask > 0:
+                        container.bodygroups[group].append(sub_mesh)
     return object_groups
 
 
 def load_internal_mesh(content_manager: ContentManager, model_resource: CompiledModelResource,
-                       container: ModelContainer, mesh_info: Mapping[str, Any], import_context: ImportContext
+                       container: ModelContainer, mesh_info: Object, import_context: ImportContext
                        ):
-    mesh_index = mesh_info['mesh_index']
-    data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block'])
-    vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block'])
-    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info.get('tools_vb_block', -1))
-    morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block'])
+    mesh_index = mesh_info['mesh_index', "m_nMeshIndex"]
+    data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block','m_nDataBlock'])
+    vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block', 'm_nVBIBBlock'])
+    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info.get(('tools_vb_block', "m_nToolsVBIBBlock"), -1))
+    morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block', 'm_nMorphBlock'])
     texture = None
     if morph_block:
         morph_texture = model_resource.get_child_resource(morph_block['m_pTextureAtlas'], content_manager,
@@ -232,7 +248,12 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
                            vbib_block.vertex_buffers, tbuf_block.vertex_buffers if tbuf_block else [], texture,
                            morph_block, mesh_index,
                            model_resource,
-                           import_context, mesh_info['name'])
+                           import_context, mesh_info['name','m_Name'])
+    elif data_block and 'm_vertexBuffers' in mesh_info and 'm_indexBuffers' in mesh_info:
+        vertex_buffers = [VertexBuffer.from_kv(buf) for buf in mesh_info['m_vertexBuffers']]
+        index_buffers = [IndexBuffer.from_kv(buf) for buf in mesh_info['m_indexBuffers']]
+        return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers,
+                           [], texture, morph_block, mesh_index, model_resource, import_context, mesh_info['name','m_Name'])
     return None
 
 
@@ -425,7 +446,7 @@ def import_scene_object(content_manager: ContentManager, data_block, g_vertex_of
                         extra_vertex_buffers)
 
 
-def combine_vertex_buffers(vertex_buffers: list[VertexBuffer]):
+def combine_vertex_buffers(vertex_buffers: list[VertexBuffer], mesh_resource: CompiledMeshResource):
     if not vertex_buffers:
         return np.array([])
 
@@ -448,7 +469,7 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer]):
 
     combined_array = np.zeros(vertex_buffers[0].vertex_count, dtype=combined_dtype)
     for vb in vertex_buffers:
-        vertices = vb.get_vertices()
+        vertices = vb.get_vertices(mesh_resource)
 
         for attr in vb.attributes:
             if attr.name in combined_array.dtype.names:
@@ -503,8 +524,8 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
             extra_vertex_buffer = extra_vertex_buffers[vertex_buffer_info['m_hBuffer']]
             all_buffers.append(extra_vertex_buffer)
 
-    vertices, vertex_buffer = combine_vertex_buffers(all_buffers)
-    indices = index_buffer.get_indices()
+    vertices, vertex_buffer = combine_vertex_buffers(all_buffers, mesh_resource)
+    indices = index_buffer.get_indices(mesh_resource)
     base_vertex = draw_call['m_nBaseVertex']
     vertex_count = draw_call['m_nVertexCount']
     start_index = draw_call['m_nStartIndex'] // 3

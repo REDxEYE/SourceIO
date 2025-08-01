@@ -3,12 +3,13 @@ from typing import Type
 from .base import BaseBlock
 from .agrp_block import AgrpBlock
 from .aseq_block import AseqBlock
+from .binary_blob import BinaryBlob
 from .kv3_block import KVBlock
 from .morph_block import MorphBlock
 from .phys_block import PhysBlock
 from .resource_edit_info import ResourceEditInfo, ResourceEditInfo2
 from .resource_external_reference_list import ResourceExternalReferenceList
-from SourceIO.library.source2.blocks.resource_introspection_manifest.manifest import ResourceIntrospectionManifest
+from .resource_introspection_manifest.manifest import ResourceIntrospectionManifest
 from .vertex_index_buffer import VertexIndexBuffer
 
 
@@ -49,5 +50,9 @@ def guess_block_type(name) -> Type[BaseBlock]:
         return VertexIndexBuffer
     elif name == 'VBIB':
         return VertexIndexBuffer
+    elif name == 'MVTX':
+        return BinaryBlob
+    elif name == "MIDX":
+        return BinaryBlob
     else:
         return BaseBlock

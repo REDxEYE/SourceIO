@@ -109,6 +109,11 @@ class Object(BaseType, dict):
         else:
             return dict.__getitem__(self, item)
 
+    def get(self, key:str|tuple[str,...], default=None):
+        if key in self:
+            return self[key]
+        return default
+
     def to_dict(self):
         if any(isinstance(i, np.ndarray) for i in self.values()):
             res = {}

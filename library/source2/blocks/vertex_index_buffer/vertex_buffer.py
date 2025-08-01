@@ -7,6 +7,8 @@ from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.rustlib import decode_vertex_buffer
 from .enums import DxgiFormat, SlotType
 from SourceIO.library.utils.rustlib import zstd_decompress
+from SourceIO.library.source2.compiled_resource import CompiledResource
+from ..binary_blob import BinaryBlob
 
 
 @dataclass(slots=True)
@@ -85,6 +87,12 @@ class VertexBuffer:
     data: MemoryBuffer
     attributes: list[VertexAttribute]
 
+    block_id:int = -1
+    mesh_opt_compressed:bool = False
+    meshopt_index_sequence:bool = False
+    zstd_compressed:bool = False
+
+
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'VertexBuffer':
         vertex_count, vertex_size = buffer.read_fmt('II')
@@ -120,9 +128,17 @@ class VertexBuffer:
         for element in data["m_inputLayoutFields"]:
             elements.append(VertexAttribute(element["m_pSemanticName"], element["m_nSemanticIndex"],
                                             DxgiFormat(element["m_Format"]), element["m_nOffset"], element["m_nSlot"],
-                                            SlotType.from_kv(element["m_nSlotType"]), element["m_nInstanceStepRate"]))
-        return VertexBuffer(data["m_nElementCount"], data["m_nElementSizeInBytes"],
-                            MemoryBuffer(data["m_pData"].tobytes()), elements)
+                                            SlotType.from_kv(element["m_nSlotType"]),
+                                            element.get("m_nInstanceStepRate", -1)))
+        return VertexBuffer(data["m_nElementCount"],
+                            data["m_nElementSizeInBytes"],
+                            MemoryBuffer(data["m_pData"].tobytes()) if "m_pData" in data else None,
+                            elements,
+                            data.get("m_nBlockIndex", -1),
+                            data.get('m_bMeshoptCompressed', False),
+                            data.get('m_bMeshoptIndexSequence', False),
+                            data.get('m_bCompressedZSTD', False)
+                            )
 
     def has_attribute(self, attribute_name: str):
         for attribute in self.attributes:
@@ -130,7 +146,7 @@ class VertexBuffer:
                 return True
         return False
 
-    def get_attribute(self, attribute_name: str)-> VertexAttribute:
+    def get_attribute(self, attribute_name: str) -> VertexAttribute:
         for attribute in self.attributes:
             if attribute.name == attribute_name:
                 return attribute
@@ -143,9 +159,24 @@ class VertexBuffer:
         return np.dtype(struct)
 
     @timed
-    def get_vertices(self):
+    def get_vertices(self, mesh_resource:CompiledResource):
         np_dtype = self.generate_numpy_dtype()
-        return np.frombuffer(self.data.data, np_dtype, self.vertex_count)
+        if not self.data:
+            block = mesh_resource.get_block(BinaryBlob, block_id=self.block_id)
+            buffer = block.data
+
+            if buffer.size == self.vertex_size * self.vertex_count:
+                data = buffer.data
+            else:
+                if self.zstd_compressed:
+                    data = decode_vertex_buffer(zstd_decompress(buffer.data, self.vertex_size * self.vertex_count), self.vertex_size,
+                                             self.vertex_count)
+                else:
+                    data = decode_vertex_buffer(buffer.data, self.vertex_size, self.vertex_count)
+
+        else:
+            data = self.data.data
+        return np.frombuffer(data, np_dtype, self.vertex_count)
 
     def __str__(self) -> str:
         return f'<VertexBuffer ' \
