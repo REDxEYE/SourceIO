@@ -20,7 +20,8 @@ class Face:
     light_offset: int
     area: float
     lightmap_texture_mins_in_luxels: Vector2[int]
-    lightmap_texture_size_in_luxels: Vector2[int]
+    lightmap_width: int
+    lightmap_height: int
     orig_face: int
     prim_count: int
     first_prim_id: int
@@ -40,7 +41,7 @@ class Face:
             light_offset = buffer.read_int32()
             area = buffer.read_float()
             lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
-            lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
+            lightmap_width, lightmap_height = buffer.read_fmt("2i")
             orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("i3I")
             prim_count = (prim_count >> 1) & 0x7FFFFFFF
         else:
@@ -48,11 +49,11 @@ class Face:
              *styles,
              light_offset, area) = buffer.read_fmt("H2BI4h4bif")
             lightmap_texture_mins_in_luxels = buffer.read_fmt("2i")
-            lightmap_texture_size_in_luxels = buffer.read_fmt("2i")
+            lightmap_width, lightmap_height = buffer.read_fmt("2i")
             orig_face, prim_count, first_prim_id, smoothing_groups = buffer.read_fmt("i2Hi")
         return cls(plane_index, side, on_node, first_edge, edge_count, tex_info_id, disp_info_id,
                    surface_fog_volume_id, styles, light_offset, area,
-                   lightmap_texture_mins_in_luxels, lightmap_texture_size_in_luxels,
+                   lightmap_texture_mins_in_luxels, lightmap_width, lightmap_height,
                    orig_face, prim_count, first_prim_id, smoothing_groups)
 
     # def get_tex_info(self, bsp: BSPFile):

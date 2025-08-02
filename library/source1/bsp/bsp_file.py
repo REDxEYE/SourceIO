@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional, Type, TypeVar
 
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
@@ -10,6 +10,7 @@ from SourceIO.logger import SourceLogMan
 log_manager = SourceLogMan()
 
 logger = log_manager.get_logger("BSP")
+LumpType = TypeVar("LumpType", bound=Lump)
 
 
 def open_bsp(filepath: TinyPath, buffer: Buffer, content_manager: ContentManager,
@@ -58,7 +59,7 @@ class BSPFile:
         self.steam_app_id = override_steamappid or self.steam_app_id
         return self
 
-    def get_lump(self, lump_name):
+    def get_lump(self, lump_name)->LumpType:
         if lump_name in self.lumps:
             return self.lumps[lump_name]
         else:

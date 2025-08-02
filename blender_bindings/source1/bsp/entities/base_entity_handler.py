@@ -673,10 +673,14 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         slack = start_entity.Slack
 
+        # start/end in world scale
         point_start = (*location_start, 1)
-        point_end = (*location_end, 1)
-        point_mid = lerp_vec(point_start, point_end, 0.5)
-        point_mid[2] -= sum(slack * 0.0002 for _ in range(int(slack)))
+        point_end   = (*location_end,   1)
+
+        # compute midpoint and drop it by slack (in world units)
+        mid_vec = list(lerp_vec(point_start, point_end, 0.5))
+        mid_vec[2] -= slack * self.scale
+        point_mid = tuple(mid_vec)
 
         curve_path.points.add(2)
         curve_path.points[0].co = point_start
@@ -698,46 +702,34 @@ class BaseEntityHandler(AbstractEntityHandler):
         return curve_object
 
     def handle_path_track(self, entity: path_track, entity_raw: dict):
+        # Avoid reprocessing the same path_track
         if entity.targetname in self._handled_paths:
             return
+        # Find the start of the path (top parent)
         top_parent = entity
         top_parent_raw = entity_raw
-        self._handled_paths.append(top_parent.targetname)
-        parents = []
+        visited = set()
         while True:
-            parent = list(
-                filter(
-                    lambda e: e.get('target', None) == top_parent.targetname and e['classname'] == 'path_track',
-                    self._entites
-                ))
-            if parent and parent[0]['targetname'] not in parents:
-                parents.append(parent[0]['targetname'])
-                top_parent, top_parent_raw = self._get_entity_by_name(parent[0]['targetname'])
+            parent = next((e for e in self._entites if e.get('target', None) == top_parent.targetname and e['classname'] == 'path_track'), None)
+            if parent and parent['targetname'] not in visited:
+                visited.add(parent['targetname'])
+                top_parent, top_parent_raw = self._get_entity_by_name(parent['targetname'])
             else:
                 break
-        next, next_raw = top_parent, top_parent_raw
-        self._handled_paths.append(next.targetname)
-        handled = []
-        parts = [next]
-        while True:
-
-            next_2, next_raw_2 = self._get_entity_by_name(next.target)
-            if next_2 is None or next_2.target == next.targetname:
+        # Traverse the path, collecting all nodes, with loop protection
+        parts = []
+        handled = set()
+        current, current_raw = top_parent, top_parent_raw
+        while current and current.targetname not in handled:
+            parts.append(current)
+            handled.add(current.targetname)
+            self._handled_paths.add(current.targetname)
+            next_entity, next_raw = self._get_entity_by_name(current.target)
+            if not next_entity or next_entity.targetname in handled:
                 break
-            next, next_raw = next_2, next_raw_2
-            if next and next.targetname not in handled:
-                handled.append(next.targetname)
-                self._handled_paths.append(next.targetname)
-                if next in parts:
-                    parts.append(next)
-                    break
-                parts.append(next)
-                if not next.target:
-                    break
-            else:
-                break
-        self.logger.warn(f'Path_track: {len(parts)}')
-        closed = parts[0] == parts[-1]
+            current, current_raw = next_entity, next_raw
+        # Check if the path is closed (forms a loop)
+        closed = len(parts) > 1 and parts[0].targetname == parts[-1].targetname
         points = [Vector(part.origin) * self.scale for part in parts]
         obj = self._create_lines(top_parent.targetname, points, closed)
         self._put_into_collection('path_track', obj)
@@ -745,77 +737,62 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
         material_name = TinyPath(entity.texture).name
         material_path = TinyPath("materials") / (entity.texture + ".vmt")
+        size = [128, 128]
+        mat = None
         material_file = self.content_manager.find_file(material_path)
         if material_file:
-            mat = get_or_create_material(path_stem(material_name), material_name)
             material_name = strip_patch_coordinates.sub("", material_name)
+            mat = get_or_create_material(path_stem(material_name), material_name)
             vmt = VMT(material_file, material_path, self.content_manager)
             ShaderRegistry.source1_create_nodes(self.content_manager, mat, vmt, {})
-
             tex_name = vmt.get('$basetexture', None)
-            if not tex_name:
-                return
-            tex_name = TinyPath(tex_name).name
-            if tex_name in bpy.data.images:
-                size = bpy.data.images[tex_name].size
-            else:
-                size = [128, 128]
-        else:
-            size = [128, 128]
-
-        x_cor = size[0] / 8
-        z_cor = size[1] / 8
+            if tex_name:
+                tex_name = TinyPath(tex_name).name
+                img = bpy.data.images.get(tex_name)
+                if img:
+                    size = list(img.size)
+        x_cor, z_cor = size[0] / 8, size[1] / 8
         verts = [
             [-x_cor, 0, -z_cor],
             [x_cor, 0, -z_cor],
             [x_cor, 0, z_cor],
             [-x_cor, 0, z_cor]
         ]
-
-        mesh_data = bpy.data.meshes.new(entity.class_name + str(entity.hammer_id))
-        obj = bpy.data.objects.new(entity.class_name + str(entity.hammer_id), mesh_data)
+        entity_name = f"{entity.class_name}{entity.hammer_id}"
+        mesh_data = bpy.data.meshes.new(entity_name)
+        obj = bpy.data.objects.new(entity_name, mesh_data)
         mesh_data.from_pydata(verts, [], [[0, 1, 2, 3]])
-
         origin = Vector(entity.origin)
-        if self._world_geometry_name != "":
+        # Project decal onto world geometry if available
+        if self._world_geometry_name:
             world_geometry = bpy.data.objects[self._world_geometry_name]
             depsgraph = bpy.context.evaluated_depsgraph_get()
             world_geometry_eval = world_geometry.evaluated_get(depsgraph)
-            closest_distance = 1.70141e+38
+            closest_distance = float('inf')
             closest_hit = None
             ray_directions = [
-                Vector((0, 0, -1)),  # Down
-                Vector((0, 0, 1)),  # Up
-                Vector((0, -1, 0)),  # Backward
-                Vector((0, 1, 0)),  # Forward
-                Vector((-1, 0, 0)),  # Left
-                Vector((1, 0, 0)),  # Right
+                Vector((0, 0, -1)), Vector((0, 0, 1)),
+                Vector((0, -1, 0)), Vector((0, 1, 0)),
+                Vector((-1, 0, 0)), Vector((1, 0, 0)),
             ]
-
+            scaled_origin = origin * self.scale
             for direction in ray_directions:
-                scaled_origin = origin * self.scale
-                hit, location, normal, index = world_geometry_eval.ray_cast(scaled_origin, direction, distance=closest_distance,
-                                                                            depsgraph=depsgraph)
-
+                hit, location, normal, _ = world_geometry_eval.ray_cast(scaled_origin, direction, distance=closest_distance, depsgraph=depsgraph)
                 if hit:
                     distance = (scaled_origin - location).length
                     if distance < closest_distance:
                         closest_distance = distance
                         closest_hit = (location, normal)
-
             if closest_hit:
                 location, normal = closest_hit
-
                 target_direction = -normal
-                rotation = target_direction.to_track_quat('Y', 'Z').to_euler()
-                obj.rotation_euler = rotation
-
+                obj.rotation_euler = target_direction.to_track_quat('Y', 'Z').to_euler()
                 origin += (normal * 0.01) / self.scale
-
-        uv_data = mesh_data.uv_layers.new().data
-        material = get_or_create_material(path_stem(material_name), material_name)
-        add_material(material, obj)
-
+        # Assign UVs and material
+        mesh_data.uv_layers.new()
+        if not mat:
+            mat = get_or_create_material(path_stem(material_name), material_name)
+        add_material(mat, obj)
         self._set_location_and_scale(obj, origin)
         self._set_entity_data(obj, {'entity': entity_raw})
         self._put_into_collection('infodecal', obj)
