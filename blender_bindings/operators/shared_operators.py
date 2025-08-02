@@ -360,7 +360,10 @@ class SourceIO_OT_LoadEntity(Operator):
             container.armature["entity_data"]["prop_path"] = None
             container.armature["entity_data"]["imported"] = True
         else:
-            if len(container.objects) > 1 or container.physics_objects:
+            if not container.objects:
+                print(f"Warning: No objects found in container for {obj.name}")
+
+            elif len(container.objects) > 1 or container.physics_objects:
                 for ob in chain(container.objects, container.physics_objects):  # type:bpy.types.Object
                     ob.parent = obj
                 obj["entity_data"]["prop_path"] = None
