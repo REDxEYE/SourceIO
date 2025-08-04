@@ -165,7 +165,7 @@ class VertexBuffer:
             block = mesh_resource.get_block(BinaryBlob, block_id=self.block_id)
             buffer = block.data
 
-            if buffer.size == self.vertex_size * self.vertex_count:
+            if buffer.size() == self.vertex_size * self.vertex_count:
                 data = buffer.data
             else:
                 if self.zstd_compressed:
