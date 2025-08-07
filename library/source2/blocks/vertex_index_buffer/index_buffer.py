@@ -57,7 +57,7 @@ class IndexBuffer:
             buffer = block.data
 
             expected_size = self.index_size * self.index_count
-            if buffer.size == expected_size:
+            if buffer.size() == expected_size:
                 data = buffer.data
             else:
                 if self.zstd_compressed:
