@@ -4,9 +4,9 @@ import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.library.utils.perf_sampler import timed
-from SourceIO.library.utils.rustlib import decode_vertex_buffer
 from .enums import DxgiFormat, SlotType
-from SourceIO.library.utils.rustlib import zstd_decompress
+from SourceIO.library.utils.pylib.mesh import decode_vertex_buffer
+from SourceIO.library.utils.pylib.compression import zstd_decompress
 from SourceIO.library.source2.compiled_resource import CompiledResource
 from ..binary_blob import BinaryBlob
 

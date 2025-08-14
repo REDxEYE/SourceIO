@@ -4,7 +4,7 @@ from typing import Any, Optional, Callable
 import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer, WritableMemoryBuffer
-from SourceIO.library.utils.rustlib import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream, zstd_decompress
+from SourceIO.library.utils.pylib.compression import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream, zstd_decompress
 from SourceIO.library.utils.perf_sampler import timed
 from .enums import *
 from .types import *

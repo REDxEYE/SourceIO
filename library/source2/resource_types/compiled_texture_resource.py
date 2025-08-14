@@ -8,7 +8,8 @@ import numpy.typing as npt
 
 from SourceIO.library.source2.blocks.resource_edit_info import ResourceEditInfo, ResourceEditInfo2
 from SourceIO.library.utils.perf_sampler import timed
-from SourceIO.library.utils.rustlib import lz4_decompress, decode_texture
+from SourceIO.library.utils.pylib.compression import lz4_decompress
+from SourceIO.library.utils.pylib.image import decode_texture
 from SourceIO.library.source2.blocks.texture_data import CompressedMip, TextureData, VTexExtraData, \
     VTexFlags, VTexFormat
 from SourceIO.library.source2.compiled_resource import CompiledResource
@@ -195,7 +196,7 @@ class CompiledTextureResource(CompiledResource):
         if pixel_format == VTexFormat.RGBA8888:
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.BC6H:
-            t_data = decode_texture(data, width, height, "BC6")
+            t_data = decode_texture(data, width, height, "BC6H")
             tmp = np.frombuffer(t_data, np.float32, width * height * 3).reshape((width, height, 3))
             data = np.ones((width, height, 4), dtype=np.float32)
             data[:, :, :3] = tmp
@@ -214,11 +215,18 @@ class CompiledTextureResource(CompiledResource):
             data = output.astype(np.float32) / 255
         elif pixel_format == VTexFormat.ATI1N:
             data = decode_texture(data, width, height, "ATI1N")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 1)).astype(np.float32) / 255
+            output = np.zeros((width, height, 4), dtype=np.float32)
+            output[..., 0] = data[..., 0]
+            output[..., 3] = 1
+            data = output
         elif pixel_format == VTexFormat.ATI2N:
             data = decode_texture(data, width, height, "ATI2N")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            data = data.copy()
+            data = np.frombuffer(data, np.uint8).reshape((width, height, 2))
+            output = np.zeros((width, height, 4), dtype=np.uint8)
+            output[..., :2] = data[..., :2]
+            output[..., 3] = 255
+            data = output
             if normalize:
                 data = self._normalize(data)
             if hemi_oct_aniso_roughness:

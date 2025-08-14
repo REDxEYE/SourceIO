@@ -6,7 +6,8 @@ from SourceIO.library.source2 import CompiledResource
 from SourceIO.library.source2.blocks.binary_blob import BinaryBlob
 from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.library.utils.perf_sampler import timed
-from SourceIO.library.utils.rustlib import decode_index_buffer,zstd_decompress
+from SourceIO.library.utils.pylib.compression import zstd_decompress
+from SourceIO.library.utils.pylib.mesh import decode_index_buffer
 
 
 @dataclass(slots=True)

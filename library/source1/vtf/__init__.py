@@ -5,7 +5,7 @@ from SourceIO.library.utils import Buffer, MemoryBuffer
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils import TinyPath
-from SourceIO.library.utils.rustlib import load_vtf_texture
+from SourceIO.library.utils.pylib.vtf import load_vtf_texture
 from SourceIO.logger import SourceLogMan
 from SourceIO.library.utils.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
 
@@ -16,8 +16,8 @@ logger = log_manager.get_logger('Source1::VTF')
 def load_texture(file_object):
     data = file_object.read()
     try:
-        pixel_data, width, height, bpp = load_vtf_texture(data)
-        if bpp == 32:
+        pixel_data, width, height, is_float = load_vtf_texture(data)
+        if is_float:
             rgba_data = np.frombuffer(pixel_data, dtype=np.float32).reshape(height, width, 4)
         else:
             rgba_data = np.frombuffer(pixel_data, dtype=np.uint8).reshape(height, width, 4).astype(np.float32) / 255

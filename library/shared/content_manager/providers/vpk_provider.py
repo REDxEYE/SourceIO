@@ -3,7 +3,7 @@ from typing import Iterator, Optional
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils import Buffer, MemoryBuffer, TinyPath
-from SourceIO.library.utils.rustlib import Vpk
+from SourceIO.library.utils.pylib import VPKFile
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -15,11 +15,11 @@ class VPKContentProvider(ContentProvider):
         super().__init__(filepath)
         self._override_steamid = override_steamid
         self._initialized = False
-        self.vpk_archive: Vpk | None = None
+        self.vpk_archive: VPKFile | None = None
 
     def check(self, filepath: TinyPath) -> bool:
         self._init()
-        return self.vpk_archive.find_file(filepath) is not None
+        return self.vpk_archive.check(filepath)
 
     def get_relative_path(self, filepath: TinyPath) -> TinyPath | None:
         return None
@@ -37,7 +37,7 @@ class VPKContentProvider(ContentProvider):
         if self._initialized:
             return
         logger.info(f"Loading {self.filepath!r}")
-        self.vpk_archive = Vpk.from_path(self.filepath)
+        self.vpk_archive = VPKFile(self.filepath)
         self._initialized = True
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
@@ -50,6 +50,7 @@ class VPKContentProvider(ContentProvider):
         file = self.vpk_archive.find_file(filepath)
         if file:
             return MemoryBuffer(file)
+        return None
 
     @property
     def root(self) -> TinyPath:

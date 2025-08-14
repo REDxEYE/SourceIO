@@ -5,7 +5,7 @@ from typing import Optional
 import bpy
 import numpy as np
 
-from SourceIO.library.utils.rustlib import save_exr, save_png, encode_exr, encode_png
+from SourceIO.library.utils.pylib.image import save_exr, save_png, encode_exr, encode_png
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -60,7 +60,7 @@ def check_texture_cache(texture_path: TinyPath) -> Optional[bpy.types.Image]:
     if full_path.exists():
         image = bpy.data.images.load(full_path.as_posix(), check_existing=True)
     if image is None:
-        return
+        return None
     logger.info(f"Loaded {texture_path!r} texture from disc")
     image.alpha_mode = "CHANNEL_PACKED"
     image.name = texture_path.stem
@@ -68,30 +68,33 @@ def check_texture_cache(texture_path: TinyPath) -> Optional[bpy.types.Image]:
     return image
 
 
-def create_and_cache_texture(texture_path: TinyPath, dimensions: tuple[int, int], data: np.ndarray, is_hdr: bool = False,
+def create_and_cache_texture(texture_path: TinyPath, dimensions: tuple[int, int], data: np.ndarray,
+                             is_hdr: bool = False,
                              invert_y: bool = False):
     _add_texture(texture_path, texture_path.stem)
     if invert_y and not is_hdr:
         data[:, :, 1] = 1 - data[:, :, 1]
+    width, height, channels = data.shape
     data = data.ravel()
 
     if bpy.context.scene.TextureCachePath != "":
         save_path = TinyPath(bpy.context.scene.TextureCachePath) / texture_path
         os.makedirs(save_path.parent, exist_ok=True)
         save_path = save_path.with_suffix(".exr" if is_hdr else ".png")
+
         if is_hdr:
-            save_exr(data.ravel(), dimensions[0], dimensions[1], save_path)
+            save_exr(data.tobytes(), width, height, channels, save_path)
         else:
-            save_png((data * 255).astype(np.uint8), dimensions[0], dimensions[1], save_path)
+            save_png((data * 255).astype(np.uint8).tobytes(), width, height, channels, save_path)
         posix_path = save_path.as_posix()
         image = bpy.data.images.load(posix_path)
         image.alpha_mode = 'CHANNEL_PACKED'
         logger.info(f"Save {texture_path.as_posix()!r} texture to disc: {save_path}")
     else:
         if is_hdr:
-            image_data = encode_exr(data, dimensions[0], dimensions[1])
+            image_data = encode_exr(data.tobytes(), width, height, channels)
         else:
-            image_data = encode_png((data * 255).astype(np.uint8), dimensions[0], dimensions[1])
+            image_data = encode_png((data * 255).astype(np.uint8).tobytes(), width, height, channels)
         image = bpy.data.images.new(texture_path.stem, width=1, height=1)
         image.pack(data=image_data, data_len=len(image_data))
         image.source = 'FILE'
