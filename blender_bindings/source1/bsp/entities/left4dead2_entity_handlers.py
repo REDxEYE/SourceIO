@@ -66,6 +66,20 @@ class Left4dead2EntityHandler(HalfLifeEntityHandler):
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection('info_changelevel', mesh_object, 'brushes')
 
+    def handle_info_survivor_position(self, entity: Base, entity_raw: dict):
+        obj_name = f"info_survivor_position_{entity.hammer_id}"
+        mesh_object = bpy.data.objects.new(obj_name, None)
+        self._set_location(mesh_object, entity.origin)
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('info_survivor_position', mesh_object, 'infos')
+
+    def handle_info_survivor_rescue(self, entity: Base, entity_raw: dict):
+        obj_name = f"info_survivor_rescue_{entity.hammer_id}"
+        mesh_object = bpy.data.objects.new(obj_name, None)
+        self._set_location(mesh_object, entity.origin)
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection('info_survivor_rescue', mesh_object, 'infos')
+
     def handle_trigger_auto_crouch(self, entity: trigger_auto_crouch, entity_raw: dict):
         if 'model' not in entity_raw:
             return
