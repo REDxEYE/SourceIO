@@ -1,97 +1,126 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 from typing import Any
 
 """
 SourceIO vtf module
 """
-
-
 class ImageFormat(IntEnum):
     """
     Enum where members are also (and must be) ints
     """
-    RGBA8888: int
-    ABGR8888: int
-    RGB888: int
-    BGR888: int
-    RGB565: int
-    I8: int
-    IA88: int
-    P8: int
-    A8: int
-    RGB888_BLUESCREEN: int
-    BGR888_BLUESCREEN: int
-    ARGB8888: int
-    BGRA8888: int
-    DXT1: int
-    DXT3: int
-    DXT5: int
-    BGRX8888: int
-    BGR565: int
-    BGRX5551: int
-    BGRA4444: int
-    DXT1_ONEBITALPHA: int
-    BGRA5551: int
-    UV88: int
-    UVWQ8888: int
-    RGBA16161616F: int
-    RGBA16161616: int
-    UVLX8888: int
-    R32F: int
-    RGB323232F: int
-    RGBA32323232F: int
-    NV_DST16: int
-    NV_DST24: int
-    NV_INTZ: int
-    NV_RAWZ: int
-    ATI_DST16: int
-    ATI_DST24: int
-    NV_NULL: int
-    ATI2N: int
-    ATI1N: int
-
+    RGBA8888: ImageFormat | int
+    ABGR8888: ImageFormat | int
+    RGB888: ImageFormat | int
+    BGR888: ImageFormat | int
+    RGB565: ImageFormat | int
+    I8: ImageFormat | int
+    IA88: ImageFormat | int
+    P8: ImageFormat | int
+    A8: ImageFormat | int
+    RGB888_BLUESCREEN: ImageFormat | int
+    BGR888_BLUESCREEN: ImageFormat | int
+    ARGB8888: ImageFormat | int
+    BGRA8888: ImageFormat | int
+    DXT1: ImageFormat | int
+    DXT3: ImageFormat | int
+    DXT5: ImageFormat | int
+    BGRX8888: ImageFormat | int
+    BGR565: ImageFormat | int
+    BGRX5551: ImageFormat | int
+    BGRA4444: ImageFormat | int
+    DXT1_ONEBITALPHA: ImageFormat | int
+    BGRA5551: ImageFormat | int
+    UV88: ImageFormat | int
+    UVWQ8888: ImageFormat | int
+    RGBA16161616F: ImageFormat | int
+    RGBA16161616: ImageFormat | int
+    UVLX8888: ImageFormat | int
+    R32F: ImageFormat | int
+    RGB323232F: ImageFormat | int
+    RGBA32323232F: ImageFormat | int
+    NV_DST16: ImageFormat | int
+    NV_DST24: ImageFormat | int
+    NV_INTZ: ImageFormat | int
+    NV_RAWZ: ImageFormat | int
+    ATI_DST16: ImageFormat | int
+    ATI_DST24: ImageFormat | int
+    NV_NULL: ImageFormat | int
+    ATI2N: ImageFormat | int
+    ATI1N: ImageFormat | int
 
 class MipFilter(IntEnum):
     """
     Enum where members are also (and must be) ints
     """
-    POINT: int
-    BOX: int
-    TRIANGLE: int
-    QUADRATIC: int
-    CUBIC: int
-    CATROM: int
-    MITCHELL: int
-    GAUSSIAN: int
-    SINC: int
-    BESSEL: int
-    HANNING: int
-    HAMMING: int
-    BLACKMAN: int
-    KAISER: int
-
+    POINT: MipFilter | int
+    BOX: MipFilter | int
+    TRIANGLE: MipFilter | int
+    QUADRATIC: MipFilter | int
+    CUBIC: MipFilter | int
+    CATROM: MipFilter | int
+    MITCHELL: MipFilter | int
+    GAUSSIAN: MipFilter | int
+    SINC: MipFilter | int
+    BESSEL: MipFilter | int
+    HANNING: MipFilter | int
+    HAMMING: MipFilter | int
+    BLACKMAN: MipFilter | int
+    KAISER: MipFilter | int
 
 class SharpenFilter(IntEnum):
     """
     Enum where members are also (and must be) ints
     """
-    POINT: int
-    BOX: int
-    TRIANGLE: int
-    QUADRATIC: int
-    CUBIC: int
-    CATROM: int
-    MITCHELL: int
-    GAUSSIAN: int
-    SINC: int
-    BESSEL: int
-    HANNING: int
-    HAMMING: int
-    BLACKMAN: int
-    KAISER: int
+    NONE: SharpenFilter | int
+    NEGATIVE: SharpenFilter | int
+    LIGHTER: SharpenFilter | int
+    DARKER: SharpenFilter | int
+    CONTRASTMORE: SharpenFilter | int
+    CONTRASTLESS: SharpenFilter | int
+    SMOOTHEN: SharpenFilter | int
+    SHARPENSOFT: SharpenFilter | int
+    SHARPENMEDIUM: SharpenFilter | int
+    SHARPENSTRONG: SharpenFilter | int
+    FINDEDGES: SharpenFilter | int
+    CONTOUR: SharpenFilter | int
+    EDGEDETECT: SharpenFilter | int
+    EDGEDETECTSOFT: SharpenFilter | int
+    EMBOSS: SharpenFilter | int
+    MEANREMOVAL: SharpenFilter | int
+    UNSHARP: SharpenFilter | int
+    XSHARPEN: SharpenFilter | int
+    WARPSHARP: SharpenFilter | int
 
+class TextureFlags(IntFlag):
+    """
+    Support for integer-based Flags
+    """
+    POINTSAMPLE: TextureFlags | int
+    TRILINEAR: TextureFlags | int
+    CLAMPS: TextureFlags | int
+    CLAMPT: TextureFlags | int
+    ANISOTROPIC: TextureFlags | int
+    HINT_DXT5: TextureFlags | int
+    SRGB: TextureFlags | int
+    NORMAL: TextureFlags | int
+    NOMIP: TextureFlags | int
+    NOLOD: TextureFlags | int
+    MINMIP: TextureFlags | int
+    PROCEDURAL: TextureFlags | int
+    ONEBITALPHA: TextureFlags | int
+    EIGHTBITALPHA: TextureFlags | int
+    ENVMAP: TextureFlags | int
+    RENDERTARGET: TextureFlags | int
+    DEPTHRENDERTARGET: TextureFlags | int
+    NODEBUGOVERRIDE: TextureFlags | int
+    SINGLECOPY: TextureFlags | int
+    NODEPTHBUFFER: TextureFlags | int
+    CLAMPU: TextureFlags | int
+    VERTEXTEXTURE: TextureFlags | int
+    SSBUMP: TextureFlags | int
+    BORDER: TextureFlags | int
 
 class VTFFile:
     bump_scale: Any
@@ -115,13 +144,19 @@ class VTFFile:
         """
         ...
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    def create(self: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., format: Any = ..., thumbnail: Any = ..., mipmaps: Any = ...) -> Any:
         """
         Create a new VTF image with the given dimensions, layout and format.
         """
         ...
 
-    def generate_mipmaps(*args: Any, **kwargs: Any) -> Any:
+    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., format: Any = ..., thumbnail: Any = ..., mipmaps: Any = ...) -> Any:
+        """
+        Create a new VTF image with the given data, dimensions, layout and format.
+        """
+        ...
+
+    def generate_mipmaps(self: Any, mipmap_filter: Any = ..., sharpen_filter: Any = ...) -> Any:
         """
         Generate mipmaps using the selected filters.
         """
@@ -182,16 +217,15 @@ class VTFFile:
         """
         ...
 
-
 def load_vtf_texture(input_data: Any) -> Any:
     """
     Load VTF texture from input data.
     """
     ...
 
-
 def version() -> Any:
     """
     Return VTFLib version string.
     """
     ...
+

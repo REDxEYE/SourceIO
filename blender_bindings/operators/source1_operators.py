@@ -1,6 +1,7 @@
 import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty,
                        StringProperty)
+from bpy_extras.io_utils import ExportHelper
 
 from .import_settings_base import ModelOptions, Source1BSPSettings
 from .operator_helper import ImportOperatorHelper
@@ -19,7 +20,9 @@ from SourceIO.library.utils import FileBuffer
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from ...library.source1.vmt import VMT
+from SourceIO.blender_bindings.source1.vtf.export_vtf import export_texture
+from SourceIO.library.source1.vmt import VMT
+from SourceIO.library.utils.pylib.vtf import ImageFormat, MipFilter
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
 
@@ -36,7 +39,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
     filter_glob: StringProperty(default="*.mdl;*.md3", options={'HIDDEN'})
 
     def execute(self, context):
-        
+
         directory = self.get_directory()
         content_manager = ContentManager()
         if self.discover_resources:
@@ -157,6 +160,72 @@ class SOURCEIO_OT_VTFImport(ImportOperatorHelper):
                     context.space_data.image = image
 
         return {'FINISHED'}
+
+
+def get_formats():
+    return [(a.name, a.name, a.name) for (i, a) in enumerate(ImageFormat)]
+
+
+def get_filters():
+    return [(a.name, a.name, a.name) for (i, a) in enumerate(MipFilter)]
+
+
+print(get_formats())
+print(get_filters())
+
+
+class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
+    bl_idname = "sourceio.vtf_export"
+    bl_label = "Export VTF"
+    bl_options = {'UNDO'}
+
+    filename_ext = ".vtf"
+
+    filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
+    filepath: StringProperty(
+        subtype='FILE_PATH',
+    )
+    filename: StringProperty(
+        name="File Name",
+        description="Name used by the exported file",
+        maxlen=512,
+        subtype='FILE_NAME',
+    )
+
+    img_format: bpy.props.EnumProperty(name="Texture format", description="Texture format", items=get_formats(),
+                                       default=ImageFormat.RGBA8888.name)
+    mip_filter: bpy.props.EnumProperty(name="Mipmap filter", description="Mipmap filter", items=get_filters(),
+                                       default=MipFilter.CATROM.name)
+
+    # def draw(self, context):
+    #     layout = self.layout
+    #     layout.prop(self, "img_format")
+    #     layout.prop(self, "mip_filter")
+
+    fmt_remap = {a.name:a for a in list(ImageFormat)}
+    filter_remap = {a.name:a for a in list(MipFilter)}
+
+    def execute(self, context):
+        sima = context.space_data
+        ima = sima.image
+        if ima is None:
+            self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
+        else:
+            logger.info(context)
+            export_texture(ima, TinyPath(self.filepath), self.fmt_remap[self.img_format], self.filter_remap[self.mip_filter])
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        if not self.filepath:
+            blend_filepath = context.blend_data.filepath
+            if not blend_filepath:
+                blend_filepath = "untitled"
+            export_folder = TinyPath(blend_filepath).parent
+            self.filepath = (export_folder / (self.filename + self.filename_ext)).as_posix()
+        else:
+            self.filepath = (TinyPath(self.filepath).parent / (self.filename + self.filename_ext)).as_posix()
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
 
 # noinspection PyUnresolvedReferences,PyPep8Naming

@@ -14,7 +14,7 @@ from .operators.source1_operators import (SOURCEIO_OT_BSPImport,
                                           SOURCEIO_OT_MDLImport)
 from .operators.source1_operators import (SOURCEIO_OT_SkyboxImport,
                                           SOURCEIO_OT_VMTImport,
-                                          # SOURCEIO_OT_VTFExport,
+                                          SOURCEIO_OT_VTFExport,
                                           SOURCEIO_OT_VTFImport)
 from .operators.source2_operators import (SOURCEIO_OT_VMAPImport,
                                           SOURCEIO_OT_VMATImport,
@@ -31,7 +31,7 @@ custom_icons = {}
 
 
 # noinspection PyPep8Naming
-class SourceIO_MT_Menu(bpy.types.Menu):
+class SourceIO_MT_ImportMenu(bpy.types.Menu):
     bl_label = "Source Engine Assets"
     bl_idname = "IMPORT_MT_sourceio"
 
@@ -95,7 +95,7 @@ class SourceIOUtils_MT_Menu(bpy.types.Menu):
 
 def menu_import(self, context):
     source_io_icon = custom_icons["main"]["sourceio_icon"]
-    self.layout.menu(SourceIO_MT_Menu.bl_idname, icon_value=source_io_icon.icon_id)
+    self.layout.menu(SourceIO_MT_ImportMenu.bl_idname, icon_value=source_io_icon.icon_id)
 
 
 def load_icon(loader, filename, name):
@@ -146,10 +146,11 @@ classes = [
 
     # Addon tools
     # SourceIOPreferences,
-    SourceIO_MT_Menu,
+    SourceIO_MT_ImportMenu,
     SourceIOUtils_MT_Menu,
 
     SOURCEIO_OT_VTFImport,
+    SOURCEIO_OT_VTFExport,
     SOURCEIO_OT_VMTImport,
     SOURCEIO_OT_SkyboxImport,
 
@@ -182,6 +183,16 @@ register_, unregister_ = bpy.utils.register_classes_factory(classes)
 
 
 is_windows = platform.system() == "Windows"
+
+def vtf_export(self, context):
+    source_io_icon = custom_icons["main"]["vtf_icon"]
+    cur_img = context.space_data.image
+    if cur_img is None:
+        self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF', icon_value=source_io_icon.icon_id)
+    else:
+        self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF', icon_value=source_io_icon.icon_id).filename = \
+            os.path.splitext(cur_img.name)[0]
+
 def register():
     # Taken from https://github.com/lasa01/Plumber/blob/master/plumber/__init__.py
     # if is_windows and False:
@@ -204,11 +215,8 @@ def register():
     register_nodes()
     register_props()
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
+    bpy.types.IMAGE_MT_image.append(vtf_export)
 
-    # if is_vtflib_supported():
-    #     from ..library.source1.vtf import VTFLib
-    #     from .operators.source1_operators import export
-    #     bpy.types.IMAGE_MT_image.append(export)
 
 def unregister():
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
