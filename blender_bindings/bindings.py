@@ -1,3 +1,4 @@
+import os
 import platform
 
 import bpy
@@ -188,9 +189,9 @@ def vtf_export(self, context):
     source_io_icon = custom_icons["main"]["vtf_icon"]
     cur_img = context.space_data.image
     if cur_img is None:
-        self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF', icon_value=source_io_icon.icon_id)
+        self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF...', icon_value=source_io_icon.icon_id)
     else:
-        self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF', icon_value=source_io_icon.icon_id).filename = \
+        self.layout.operator(SOURCEIO_OT_VTFExport.bl_idname, text='Export to VTF...', icon_value=source_io_icon.icon_id).filename = \
             os.path.splitext(cur_img.name)[0]
 
 def register():

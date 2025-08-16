@@ -91,11 +91,11 @@ class TinyPath(str, PathLike):
 
     def glob(self, pattern: str):
         for item in Path(self).glob(pattern):
-            yield item
+            yield TinyPath(item.as_posix())
 
     def rglob(self, pattern: str):
         for item in Path(self).rglob(pattern):
-            yield item
+            yield TinyPath(item.as_posix())
 
     def open(self, mode='r', buffering=-1, encoding=None,
              errors=None, newline=None):

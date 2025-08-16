@@ -1,7 +1,8 @@
-from collections import Counter
+from collections import Counter, OrderedDict
 from hashlib import md5
-from typing import Optional, TypeVar, Union, Iterator
+from typing import Optional, TypeVar, Union, Iterator, Hashable
 
+from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.detectors import detect_game
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers import register_provider
@@ -24,6 +25,30 @@ AnyContentDetector = TypeVar('AnyContentDetector', bound='ContentDetector')
 AnyContentProvider = TypeVar('AnyContentProvider', bound='ContentProvider')
 
 MAX_CACHE_SIZE = 16
+META_CACHE_SIZE = 200_000
+
+K = TypeVar('K', bound=Hashable)
+T = TypeVar('T')
+
+
+class _LRU(OrderedDict[K, T]):
+    """Minimal LRU with O(1) move-to-end on get/set."""
+
+    def __init__(self, maxsize: int):
+        super().__init__()
+        self.maxsize = maxsize
+
+    def get(self, key, default=None) -> T | None:
+        v = super().get(key, default)
+        if v is not default:
+            self.move_to_end(key)
+        return v
+
+    def set(self, key:K, value:T):
+        super().__setitem__(key, value)
+        self.move_to_end(key)
+        if len(self) > self.maxsize:
+            self.popitem(last=False)
 
 
 def get_loose_file_fs_root(path: TinyPath):
@@ -31,6 +56,14 @@ def get_loose_file_fs_root(path: TinyPath):
 
 
 class ContentManager(ContentProvider, metaclass=SingletonMeta):
+
+    def __init__(self):
+        super().__init__(TinyPath("."))
+        self.children: list[ContentProvider] = []
+        self._steam_id = -1
+        self._cache: _LRU[TinyPath, Buffer] = _LRU(MAX_CACHE_SIZE)
+        self._exists_cache: _LRU[TinyPath, bool] = _LRU(META_CACHE_SIZE)
+        self._owner_cache: _LRU[TinyPath, ContentProvider] = _LRU(META_CACHE_SIZE)
 
     @property
     def root(self) -> TinyPath:
@@ -41,36 +74,55 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         return "ContentManager"
 
     def check(self, filepath: TinyPath) -> bool:
+        """Fast existence check with normalized keys and owner short-circuit."""
         if filepath.is_absolute():
             return filepath.exists()
+        k = self._key(filepath)
+        cached = self._exists_cache.get(k)
+        if cached is not None:
+            return cached
+        owner = self._owner_cache.get(k)
+        if owner is not None and owner.check(k):
+            self._note_hit(k, owner)
+            return True
         for child in self.children:
-            if child.check(filepath):
+            if child.check(k):
+                self._note_hit(k, child)
                 return True
+        self._note_miss(k)
         return False
 
     def get_provider_from_path(self, filepath):
-        if filepath.is_absolute():
-            filepath = self.get_relative_path(filepath)
-        for child in self.children:
-            if provider := child.get_provider_from_path(filepath):
-                return provider
-
-    def get_steamid_from_asset(self, asset_path: TinyPath) -> ContentProvider | None:
-        if asset_path.is_absolute():
-            asset_path = self.get_relative_path(asset_path)
-        if asset_path is None:
+        """Return the owning provider if the path resolves."""
+        k = self._key(filepath)
+        if not self.check(k):
             return None
+        owner = self._owner_cache.get(k)
+        if owner is not None:
+            return owner
         for child in self.children:
-            if provider := child.get_steamid_from_asset(asset_path):
-                return provider
+            if child.check(k):
+                self._note_hit(k, child)
+                return child
+        return None
 
-    def __init__(self):
-        super().__init__(TinyPath("."))
-        self.children: list[ContentProvider] = []
-        self._steam_id = -1
-        self._cache: dict[TinyPath, Buffer] = {}
+    def get_steamid_from_asset(self, asset_path: TinyPath) -> SteamAppId | None:
+        """Return provider that owns the asset, if any."""
+        k = self._key(asset_path)
+        if k is None:
+            return None
+        owner = self._owner_cache.get(k)
+        if owner is not None and owner.check(k):
+            return owner.steam_id
+        for child in self.children:
+            if child.check(k):
+                self._note_hit(k, child)
+                return child.steam_id
+        self._note_miss(k)
+        return None
 
     def _find_steam_appid(self, path: TinyPath):
+        """Populate self._steam_id by scanning for steam_appid.txt."""
         if self._steam_id != -1:
             return
         if path.is_file():
@@ -86,6 +138,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                     self._steam_id = -1
 
     def get_relative_path(self, filepath: TinyPath):
+        """Return a relative path under any child root, if resolvable."""
         if not filepath.is_absolute():
             return filepath
         for provider in self.children:
@@ -94,6 +147,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         return None
 
     def scan_for_content(self, scan_path: TinyPath):
+        """Discover and mount providers for the given path."""
         providers = detect_game(scan_path)
         if providers:
             for provider in providers:
@@ -135,38 +189,55 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 self.add_child(LooseFilesContentProvider(root_path))
 
     def add_child(self, child: ContentProvider):
+        """Mount a child provider and invalidate metadata caches."""
         if child not in self.children:
             self.children.append(child)
+            self._clear_meta_caches()
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
+        """Yield all matches across children."""
         for child in self.children:
             yield from child.glob(pattern)
 
     @timed
     def find_file(self, filepath: TinyPath, do_not_cache=False) -> Buffer | None:
+        """Find and optionally cache file buffers with owner/exists LRU metadata."""
         if filepath.is_absolute():
             if filepath.exists():
                 return FileBuffer(filepath)
             return None
-        if (buffer := self._cache.get(filepath, None)) is not None:
-            if not buffer.closed:
-                buffer.seek(0)
-                return buffer
-        logger.debug(f'Requesting {filepath} file')
-        for child in self.children:
-            if (file := child.find_file(filepath)) is not None:
-                logger.debug(f'Found in {child}!')
+        k = self._key(filepath)
+        buf = self._cache.get(k)
+        if buf is not None and not buf.closed:
+            buf.seek(0)
+            return buf
+        logger.debug(f'Requesting {k} file')
+        owner = self._owner_cache.get(k)
+        if owner is not None:
+            file = owner.find_file(k)
+            if file is not None:
+                self._note_hit(k, owner)
                 if do_not_cache:
                     return file
-
-                self._cache[filepath] = file
-                if len(self._cache) > MAX_CACHE_SIZE:
-                    self._cache.pop(next(iter(self._cache.keys())))
+                self._cache.set(k, file)
                 return file
+            self._owner_cache.pop(k, None)
+            self._exists_cache.pop(k, None)
+        for child in self.children:
+            file = child.find_file(k)
+            if file is not None:
+                logger.debug(f'Found in {child}!')
+                self._note_hit(k, child)
+                if do_not_cache:
+                    return file
+                self._cache.set(k, file)
+                return file
+        self._note_miss(k)
         return None
 
     # TODO: MAYBE DEPRECATED
     def serialize(self):
+        """Serialize mounted providers."""
         serialized = {}
         for provider in self.children:
             name = provider.unique_name.replace('\'', '').replace('\"', '').replace(' ', '_')
@@ -177,6 +248,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
 
     # TODO: MAYBE DEPRECATED
     def deserialize(self, data: dict[str, Union[str, dict]]):
+        """Recreate mounts from serialized data."""
         for name, item in data.items():
             name = item["name"]
             path = item["path"]
@@ -227,8 +299,11 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                     self.children.append(register_provider(provider))
 
     def clean(self):
+        """Reset mounts and caches."""
         self.children.clear()
         self._steam_id = -1
+        self._cache.clear()
+        self._clear_meta_caches()
 
     @property
     def steam_id(self):
@@ -240,7 +315,30 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         return used_appids.most_common(1)[0][0]
 
     def get_content_provider_from_asset_path(self, asset_path: TinyPath) -> Optional[ContentProvider]:
+        """Return owning provider using existence checks to avoid opening files."""
         for content_provider in self.children:
             if content_provider.find_file(asset_path):
                 return content_provider
         return None
+
+    def _key(self, path: TinyPath) -> TinyPath:
+        """Normalize to a relative key when possible."""
+        if path.is_absolute():
+            rel = self.get_relative_path(path)
+            return rel if rel is not None else path
+        return path
+
+    def _note_hit(self, k: TinyPath, owner: ContentProvider) -> None:
+        """Mark path as existing and owned by provider."""
+        self._exists_cache.set(k, True)
+        self._owner_cache.set(k, owner)
+
+    def _note_miss(self, k: TinyPath) -> None:
+        """Mark path as non-existent."""
+        self._exists_cache.set(k, False)
+        self._owner_cache.pop(k, None)
+
+    def _clear_meta_caches(self) -> None:
+        """Clear metadata caches."""
+        self._exists_cache.clear()
+        self._owner_cache.clear()

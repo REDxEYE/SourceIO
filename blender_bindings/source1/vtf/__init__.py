@@ -16,15 +16,16 @@ logger = log_manager.get_logger('Source1::VTF')
 def import_texture(texture_path: TinyPath, file_object, update=False):
     logger.info(f'Loading "{texture_path.name}" texture')
     rgba_data, image_height, image_width = load_texture(file_object)
+    rgba_data = rgba_data.reshape(image_height, image_width, -1)
 
-    return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
+    return create_and_cache_texture(texture_path, rgba_data, False, False)
 
 
 def import_texture_tth(texture_path: TinyPath, header_file: Buffer, data_file: Buffer, update=False):
     logger.info(f'Loading "{texture_path.name}" texture')
     rgba_data, image_height, image_width = load_texture_tth(header_file, data_file)
-
-    return create_and_cache_texture(texture_path, (image_width, image_height), rgba_data, False, False)
+    rgba_data = rgba_data.reshape(image_height, image_width, -1)
+    return create_and_cache_texture(texture_path, rgba_data, False, False)
 
 
 def load_skybox_texture(skyname, content_manager:ContentManager, width=1024):
@@ -39,4 +40,5 @@ def load_skybox_texture(skyname, content_manager:ContentManager, width=1024):
 
 
 def texture_from_data(name: str, rgba_data: np.ndarray, image_width: int, image_height: int):
-    return create_and_cache_texture(TinyPath(name + ".png"), (image_width, image_height), rgba_data)
+    rgba_data = rgba_data.reshape(image_height, image_width, -1)
+    return create_and_cache_texture(TinyPath(name + ".png"), rgba_data)

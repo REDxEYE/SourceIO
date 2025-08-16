@@ -24,6 +24,9 @@ class Source1GameInfoProvider(ContentProvider):
         self._steamapp_id = SteamAppId(int(self.filesystem.get("steamappid", 0)))
         self.mount: list[ContentProvider] = []
 
+        self._exists_cache: dict[TinyPath, bool] = {}
+        self._owner_cache: dict[TinyPath, ContentProvider] = {}
+
         mods_folder = self.root.parent
         for search_path_type, search_paths in self.filesystem.get("searchpaths", {}).items():
             if isinstance(search_paths, str):
@@ -70,15 +73,38 @@ class Source1GameInfoProvider(ContentProvider):
         if mod_provider not in self.mount:
             logger.info(f"Mounted: {mod_provider}")
             self.mount.append(mod_provider)
+        self._exists_cache.clear()
+        self._owner_cache.clear()
+
+    def _note_hit(self, filepath: TinyPath, provider: ContentProvider) -> None:
+        """Record that a filepath exists and which provider owns it."""
+        self._exists_cache[filepath] = True
+        self._owner_cache[filepath] = provider
+
+    def _note_miss(self, filepath: TinyPath) -> None:
+        """Record that a filepath does not exist in any mounted provider."""
+        self._exists_cache[filepath] = False
+        if filepath in self._owner_cache:
+            self._owner_cache.pop(filepath, None)
 
     @property
     def name(self) -> str:
         return self.filesystem.get("game", self.root.stem)
 
     def check(self, filepath: TinyPath) -> bool:
+        """Return True if any mounted provider contains the path, with caching."""
+        cached = self._exists_cache.get(filepath)
+        if cached is not None:
+            return cached
+        owner = self._owner_cache.get(filepath)
+        if owner is not None and owner.check(filepath):
+            self._note_hit(filepath, owner)
+            return True
         for mount in self.mount:
             if mount.check(filepath):
+                self._note_hit(filepath, mount)
                 return True
+        self._note_miss(filepath)
         return False
 
     def get_relative_path(self, filepath: TinyPath):
@@ -86,20 +112,34 @@ class Source1GameInfoProvider(ContentProvider):
             rel_path = filepath.relative_to(self.root)
             if self.check(rel_path):
                 return rel_path
+        return None
 
     def get_provider_from_path(self, filepath):
         if self.check(filepath):
             return self
+        return None
 
     def get_steamid_from_asset(self, asset_path: TinyPath) -> SteamAppId | None:
         if self.check(asset_path):
             return self.steam_id
+        return None
 
     def find_file(self, filepath: TinyPath) -> Optional[Buffer]:
+        """Return a Buffer for the file by querying the owning provider first if cached."""
+        owner = self._owner_cache.get(filepath)
+        if owner is not None:
+            buf = owner.find_file(filepath)
+            if buf is not None:
+                self._note_hit(filepath, owner)
+                return buf
+            self._owner_cache.pop(filepath, None)
+            self._exists_cache.pop(filepath, None)
         for mount in self.mount:
-            file = mount.find_file(filepath)
-            if file is not None:
-                return file
+            buf = mount.find_file(filepath)
+            if buf is not None:
+                self._note_hit(filepath, mount)
+                return buf
+        self._note_miss(filepath)
         return None
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:

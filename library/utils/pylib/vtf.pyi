@@ -10,117 +10,117 @@ class ImageFormat(IntEnum):
     """
     Enum where members are also (and must be) ints
     """
-    RGBA8888: ImageFormat | int
-    ABGR8888: ImageFormat | int
-    RGB888: ImageFormat | int
-    BGR888: ImageFormat | int
-    RGB565: ImageFormat | int
-    I8: ImageFormat | int
-    IA88: ImageFormat | int
-    P8: ImageFormat | int
-    A8: ImageFormat | int
-    RGB888_BLUESCREEN: ImageFormat | int
-    BGR888_BLUESCREEN: ImageFormat | int
-    ARGB8888: ImageFormat | int
-    BGRA8888: ImageFormat | int
-    DXT1: ImageFormat | int
-    DXT3: ImageFormat | int
-    DXT5: ImageFormat | int
-    BGRX8888: ImageFormat | int
-    BGR565: ImageFormat | int
-    BGRX5551: ImageFormat | int
-    BGRA4444: ImageFormat | int
-    DXT1_ONEBITALPHA: ImageFormat | int
-    BGRA5551: ImageFormat | int
-    UV88: ImageFormat | int
-    UVWQ8888: ImageFormat | int
-    RGBA16161616F: ImageFormat | int
-    RGBA16161616: ImageFormat | int
-    UVLX8888: ImageFormat | int
-    R32F: ImageFormat | int
-    RGB323232F: ImageFormat | int
-    RGBA32323232F: ImageFormat | int
-    NV_DST16: ImageFormat | int
-    NV_DST24: ImageFormat | int
-    NV_INTZ: ImageFormat | int
-    NV_RAWZ: ImageFormat | int
-    ATI_DST16: ImageFormat | int
-    ATI_DST24: ImageFormat | int
-    NV_NULL: ImageFormat | int
-    ATI2N: ImageFormat | int
-    ATI1N: ImageFormat | int
+    RGBA8888: ImageFormat
+    ABGR8888: ImageFormat
+    RGB888: ImageFormat
+    BGR888: ImageFormat
+    RGB565: ImageFormat
+    I8: ImageFormat
+    IA88: ImageFormat
+    P8: ImageFormat
+    A8: ImageFormat
+    RGB888_BLUESCREEN: ImageFormat
+    BGR888_BLUESCREEN: ImageFormat
+    ARGB8888: ImageFormat
+    BGRA8888: ImageFormat
+    DXT1: ImageFormat
+    DXT3: ImageFormat
+    DXT5: ImageFormat
+    BGRX8888: ImageFormat
+    BGR565: ImageFormat
+    BGRX5551: ImageFormat
+    BGRA4444: ImageFormat
+    DXT1_ONEBITALPHA: ImageFormat
+    BGRA5551: ImageFormat
+    UV88: ImageFormat
+    UVWQ8888: ImageFormat
+    RGBA16161616F: ImageFormat
+    RGBA16161616: ImageFormat
+    UVLX8888: ImageFormat
+    R32F: ImageFormat
+    RGB323232F: ImageFormat
+    RGBA32323232F: ImageFormat
+    NV_DST16: ImageFormat
+    NV_DST24: ImageFormat
+    NV_INTZ: ImageFormat
+    NV_RAWZ: ImageFormat
+    ATI_DST16: ImageFormat
+    ATI_DST24: ImageFormat
+    NV_NULL: ImageFormat
+    ATI2N: ImageFormat
+    ATI1N: ImageFormat
 
 class MipFilter(IntEnum):
     """
     Enum where members are also (and must be) ints
     """
-    POINT: MipFilter | int
-    BOX: MipFilter | int
-    TRIANGLE: MipFilter | int
-    QUADRATIC: MipFilter | int
-    CUBIC: MipFilter | int
-    CATROM: MipFilter | int
-    MITCHELL: MipFilter | int
-    GAUSSIAN: MipFilter | int
-    SINC: MipFilter | int
-    BESSEL: MipFilter | int
-    HANNING: MipFilter | int
-    HAMMING: MipFilter | int
-    BLACKMAN: MipFilter | int
-    KAISER: MipFilter | int
+    POINT: MipFilter
+    BOX: MipFilter
+    TRIANGLE: MipFilter
+    QUADRATIC: MipFilter
+    CUBIC: MipFilter
+    CATROM: MipFilter
+    MITCHELL: MipFilter
+    GAUSSIAN: MipFilter
+    SINC: MipFilter
+    BESSEL: MipFilter
+    HANNING: MipFilter
+    HAMMING: MipFilter
+    BLACKMAN: MipFilter
+    KAISER: MipFilter
 
 class SharpenFilter(IntEnum):
     """
     Enum where members are also (and must be) ints
     """
-    NONE: SharpenFilter | int
-    NEGATIVE: SharpenFilter | int
-    LIGHTER: SharpenFilter | int
-    DARKER: SharpenFilter | int
-    CONTRASTMORE: SharpenFilter | int
-    CONTRASTLESS: SharpenFilter | int
-    SMOOTHEN: SharpenFilter | int
-    SHARPENSOFT: SharpenFilter | int
-    SHARPENMEDIUM: SharpenFilter | int
-    SHARPENSTRONG: SharpenFilter | int
-    FINDEDGES: SharpenFilter | int
-    CONTOUR: SharpenFilter | int
-    EDGEDETECT: SharpenFilter | int
-    EDGEDETECTSOFT: SharpenFilter | int
-    EMBOSS: SharpenFilter | int
-    MEANREMOVAL: SharpenFilter | int
-    UNSHARP: SharpenFilter | int
-    XSHARPEN: SharpenFilter | int
-    WARPSHARP: SharpenFilter | int
+    NONE: SharpenFilter
+    NEGATIVE: SharpenFilter
+    LIGHTER: SharpenFilter
+    DARKER: SharpenFilter
+    CONTRASTMORE: SharpenFilter
+    CONTRASTLESS: SharpenFilter
+    SMOOTHEN: SharpenFilter
+    SHARPENSOFT: SharpenFilter
+    SHARPENMEDIUM: SharpenFilter
+    SHARPENSTRONG: SharpenFilter
+    FINDEDGES: SharpenFilter
+    CONTOUR: SharpenFilter
+    EDGEDETECT: SharpenFilter
+    EDGEDETECTSOFT: SharpenFilter
+    EMBOSS: SharpenFilter
+    MEANREMOVAL: SharpenFilter
+    UNSHARP: SharpenFilter
+    XSHARPEN: SharpenFilter
+    WARPSHARP: SharpenFilter
 
 class TextureFlags(IntFlag):
     """
     Support for integer-based Flags
     """
-    POINTSAMPLE: TextureFlags | int
-    TRILINEAR: TextureFlags | int
-    CLAMPS: TextureFlags | int
-    CLAMPT: TextureFlags | int
-    ANISOTROPIC: TextureFlags | int
-    HINT_DXT5: TextureFlags | int
-    SRGB: TextureFlags | int
-    NORMAL: TextureFlags | int
-    NOMIP: TextureFlags | int
-    NOLOD: TextureFlags | int
-    MINMIP: TextureFlags | int
-    PROCEDURAL: TextureFlags | int
-    ONEBITALPHA: TextureFlags | int
-    EIGHTBITALPHA: TextureFlags | int
-    ENVMAP: TextureFlags | int
-    RENDERTARGET: TextureFlags | int
-    DEPTHRENDERTARGET: TextureFlags | int
-    NODEBUGOVERRIDE: TextureFlags | int
-    SINGLECOPY: TextureFlags | int
-    NODEPTHBUFFER: TextureFlags | int
-    CLAMPU: TextureFlags | int
-    VERTEXTEXTURE: TextureFlags | int
-    SSBUMP: TextureFlags | int
-    BORDER: TextureFlags | int
+    POINTSAMPLE: TextureFlags
+    TRILINEAR: TextureFlags
+    CLAMPS: TextureFlags
+    CLAMPT: TextureFlags
+    ANISOTROPIC: TextureFlags
+    HINT_DXT5: TextureFlags
+    SRGB: TextureFlags
+    NORMAL: TextureFlags
+    NOMIP: TextureFlags
+    NOLOD: TextureFlags
+    MINMIP: TextureFlags
+    PROCEDURAL: TextureFlags
+    ONEBITALPHA: TextureFlags
+    EIGHTBITALPHA: TextureFlags
+    ENVMAP: TextureFlags
+    RENDERTARGET: TextureFlags
+    DEPTHRENDERTARGET: TextureFlags
+    NODEBUGOVERRIDE: TextureFlags
+    SINGLECOPY: TextureFlags
+    NODEPTHBUFFER: TextureFlags
+    CLAMPU: TextureFlags
+    VERTEXTEXTURE: TextureFlags
+    SSBUMP: TextureFlags
+    BORDER: TextureFlags
 
 class VTFFile:
     bump_scale: Any
@@ -150,9 +150,39 @@ class VTFFile:
         """
         ...
 
-    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., format: Any = ..., thumbnail: Any = ..., mipmaps: Any = ...) -> Any:
+    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., image_format: Any = ..., filter_mode: Any = ..., flags: Any = ..., generate_mipmaps: Any = ..., generate_thumbnail: Any = ..., resize_to_pow2: Any = ..., resolution_limit_x: Any = ..., resolution_limit_y: Any = ...) -> Any:
         """
-        Create a new VTF image with the given data, dimensions, layout and format.
+        Create a new VTF image from raw bytes.
+        
+        Parameters
+        ----------
+        data : bytes
+            Raw pixel data (layout must match the chosen image_format).
+        width, height : int
+            Texture dimensions (> 0).
+        frames, faces, slices : int, optional
+            Animation frames, cubemap faces, and depth slices; defaults to 1.
+        image_format : ImageFormat or int, optional
+            Target VTF image format; default RGBA8888.
+        filter_mode : MipmapFilter or int, optional
+            Filter used when generating mipmaps; default CATROM.
+        flags : TextureFlags or int, optional
+            VTF flags to apply; default SRGB.
+        generate_mipmaps : bool, optional
+            Whether to generate mipmaps; default True.
+        generate_thumbnail : bool, optional
+            Whether to embed a thumbnail; default True.
+        resize_to_pow2 : int, optional
+            Power-of-two resize mode: 0=disabled, 1=biggest, 2=smallest, 3=nearest. Default 1.
+        resolution_limit_x, resolution_limit_y : int, optional
+            Clamp final size; if either differs from (width, height), clamping is enabled.
+        
+        Raises
+        ------
+        ValueError
+            If width/height/frames/faces/slices are not positive.
+        VTFLibError
+            If the underlying VTFLib call fails.
         """
         ...
 

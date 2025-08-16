@@ -20,9 +20,9 @@ from SourceIO.library.utils import FileBuffer
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from SourceIO.blender_bindings.source1.vtf.export_vtf import export_texture
+from SourceIO.blender_bindings.source1.vtf.export_vtf import export_texture, VTFExportOptions
 from SourceIO.library.source1.vmt import VMT
-from SourceIO.library.utils.pylib.vtf import ImageFormat, MipFilter
+from SourceIO.library.utils.pylib.vtf import ImageFormat, MipFilter, TextureFlags
 
 logger = SourceLogMan().get_logger("SourceIO::Operators")
 
@@ -169,10 +169,11 @@ def get_formats():
 def get_filters():
     return [(a.name, a.name, a.name) for (i, a) in enumerate(MipFilter)]
 
-
-print(get_formats())
-print(get_filters())
-
+def is_power_of_2(n):
+    """Check if n is a power of 2."""
+    if n <= 0:
+        return False
+    return (n & (n-1)) == 0
 
 class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
     bl_idname = "sourceio.vtf_export"
@@ -194,16 +195,99 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
 
     img_format: bpy.props.EnumProperty(name="Texture format", description="Texture format", items=get_formats(),
                                        default=ImageFormat.RGBA8888.name)
+
+    generate_mipmaps: BoolProperty(
+        name="Generate Mipmaps",
+        description="Generate mipmaps for the texture",
+        default=True,
+        options={'SKIP_SAVE'},
+    )
+
     mip_filter: bpy.props.EnumProperty(name="Mipmap filter", description="Mipmap filter", items=get_filters(),
                                        default=MipFilter.CATROM.name)
 
-    # def draw(self, context):
-    #     layout = self.layout
-    #     layout.prop(self, "img_format")
-    #     layout.prop(self, "mip_filter")
+    flip_green: BoolProperty(
+        name="Flip Green Channel",
+        description="Flip the green channel of the texture (for normal maps)",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
 
-    fmt_remap = {a.name:a for a in list(ImageFormat)}
-    filter_remap = {a.name:a for a in list(MipFilter)}
+    resize_to_pow2: EnumProperty(
+        name="Resize to power of two",
+        description="Resize the exported texture to the nearest power of two",
+        items=(
+            ('1', "Up", "Resize the texture to the next power of two"),
+            ('2', "Down", "Resize the texture to the previous power of two"),
+            ('3', "Both", "Resize the texture to the nearest power of two, either up or down"),
+        ),
+        default='1',
+        options={'SKIP_SAVE'},
+    )
+
+    limit_resolution: BoolProperty(
+        name="Limit resolution",
+        description="Limit the resolution of the exported texture",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+
+    keep_aspect_ratio: BoolProperty(
+        name="Keep aspect ratio",
+        description="Keep the aspect ratio of the exported texture when limiting resolution",
+        default=True,
+        options={'SKIP_SAVE'},
+    )
+
+    limit_resolution_x: EnumProperty(
+        name="Limit resolution X",
+        description="Limit the X resolution of the exported texture",
+        items=(
+            ('4096', "4096", "4096 pixels"),
+            ('2048', "2048", "2048 pixels"),
+            ('1024', "1024", "1024 pixels"),
+            ('512', "512", "512 pixels"),
+            ('256', "256", "256 pixels"),
+            ('128', "128", "128 pixels"),
+        ),
+        default='4096',
+        options={'SKIP_SAVE'},
+    )
+    limit_resolution_y: EnumProperty(
+        name="Limit resolution Y",
+        description="Limit the Y resolution of the exported texture",
+        items=(
+            ('4096', "4096", "4096 pixels"),
+            ('2048', "2048", "2048 pixels"),
+            ('1024', "1024", "1024 pixels"),
+            ('512', "512", "512 pixels"),
+            ('256', "256", "256 pixels"),
+            ('128', "128", "128 pixels"),
+        ),
+        default='4096',
+        options={'SKIP_SAVE'},
+    )
+
+    fmt_remap = {a.name: a for a in list(ImageFormat)}
+    filter_remap = {a.name: a for a in list(MipFilter)}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "img_format", text="Texture Format")
+
+        layout.prop(self, "generate_mipmaps", text="Generate Mipmaps")
+        if self.generate_mipmaps:
+            layout.prop(self, "mip_filter", text="Mipmap filter")
+        layout.prop(self, "flip_green", text="Flip Green Channel")
+
+        layout.prop(self, "resize_to_pow2", text="Resize to power of two")
+        layout.prop(self, "limit_resolution", text="Limit resolution")
+        if self.limit_resolution:
+            limit_box = layout.box()
+            limit_box.prop(self, "keep_aspect_ratio", text="Keep aspect ratio")
+            limit_box.prop(self, "limit_resolution_x", text="Limit resolution X")
+            if self.keep_aspect_ratio:
+                limit_box.prop(self, "limit_resolution_y", text="Limit resolution Y")
 
     def execute(self, context):
         sima = context.space_data
@@ -211,8 +295,31 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
         if ima is None:
             self.report({"ERROR_INVALID_INPUT"}, "No Image provided")
         else:
-            logger.info(context)
-            export_texture(ima, TinyPath(self.filepath), self.fmt_remap[self.img_format], self.filter_remap[self.mip_filter])
+            if self.limit_resolution:
+                clamp_x = int(self.limit_resolution_x)
+                clamp_y = int(self.limit_resolution_y)
+                if self.keep_aspect_ratio:
+                    if ima.size[0] > ima.size[1]:
+                        clamp_y = int(clamp_x * ima.size[1] / ima.size[0])
+                    else:
+                        clamp_x = int(clamp_y * ima.size[0] / ima.size[1])
+            else:
+                clamp_x = ima.size[0]
+                clamp_y = ima.size[1]
+
+            export_options = VTFExportOptions(
+                image_format=self.fmt_remap[self.img_format],
+                filter_mode=self.filter_remap[self.mip_filter],
+                flags=TextureFlags.SRGB,
+                generate_mipmaps=self.generate_mipmaps,
+                flip_green_channel=self.flip_green,
+                resize_to_pow2=int(self.resize_to_pow2),
+                limit_resolution=self.limit_resolution,
+                keep_aspect_ratio=self.keep_aspect_ratio,
+                resolution_limit_x=clamp_x,
+                resolution_limit_y=clamp_y,
+            )
+            export_texture(ima, TinyPath(self.filepath), export_options)
         return {'FINISHED'}
 
     def invoke(self, context, event):

@@ -20,7 +20,8 @@ def import_texture(resource: CompiledTextureResource, texture_path: TinyPath, in
         return None
 
     pixel_format = resource.get_texture_format()
-    image = create_and_cache_texture(texture_path, (width, height), pixel_data,
+    pixel_data = pixel_data.reshape(height, width, -1)
+    image = create_and_cache_texture(texture_path, pixel_data,
                                      pixel_format in (VTexFormat.RGBA16161616F, VTexFormat.BC6H), invert_y)
 
     image.alpha_mode = 'CHANNEL_PACKED'
