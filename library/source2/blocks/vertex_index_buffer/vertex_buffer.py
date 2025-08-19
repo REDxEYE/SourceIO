@@ -21,6 +21,10 @@ class VertexAttribute:
     slot_type: SlotType
     instance_step_rate: int
 
+    def __post_init__(self):
+        if self.name == "blendweight":
+            self._name = "BLENDWEIGHT"
+
     @property
     def name(self):
         if self.index == 0:
