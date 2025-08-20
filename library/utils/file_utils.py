@@ -4,6 +4,8 @@ import contextlib
 import io
 import os
 import struct
+import sys
+import array
 from pathlib import Path
 from struct import calcsize, pack, unpack
 from typing import Optional, Protocol, Union, TypeVar, Type
@@ -12,6 +14,8 @@ try:
     from SourceIO.library.utils.tiny_path import TinyPath
 except ImportError:
     TinyPath = Path
+
+NATIVE_LITTLE = "<" if (sys.byteorder == "little") else ">"
 
 
 class Buffer(abc.ABC, io.RawIOBase):
@@ -81,34 +85,41 @@ class Buffer(abc.ABC, io.RawIOBase):
         return self.tell() + self.read_uint32()
 
     def read_uint64(self):
-        return unpack(self._endian + "Q", self.read(8))[0]
+        return self._read
 
     def read_int64(self):
-        return unpack(self._endian + "q", self.read(8))[0]
+        return self._read("q")
 
     def read_uint32(self):
-        return unpack(self._endian + "I", self.read(4))[0]
+        return self._read("I")
 
     def read_int32(self):
-        return unpack(self._endian + "i", self.read(4))[0]
+        return self._read("i")
 
     def read_uint16(self):
-        return unpack(self._endian + "H", self.read(2))[0]
+        return self._read("H")
 
     def read_int16(self):
-        return unpack(self._endian + "h", self.read(2))[0]
+        return self._read("h")
 
     def read_uint8(self):
-        return unpack(self._endian + "B", self.read(1))[0]
+        return self._read("B")
 
     def read_int8(self):
-        return unpack(self._endian + "b", self.read(1))[0]
+        return self._read("b")
 
     def read_float(self):
-        return unpack(self._endian + "f", self.read(4))[0]
+        return self._read("f")
 
     def read_double(self):
-        return unpack(self._endian + "d", self.read(8))[0]
+        return self._read("d")
+
+    def read_half(self):
+        return self._read("h")
+
+    @abc.abstractmethod
+    def read_array(self, fmt: str, count: int):
+        pass
 
     def read_nt_string(self):
         buffer = bytearray()
@@ -221,9 +232,6 @@ class Buffer(abc.ABC, io.RawIOBase):
             object_list.append(obj)
         return object_list
 
-    def read_half(self):
-        return self.read_fmt("h")[0]
-
 
 class MemoryBuffer(Buffer):
 
@@ -231,6 +239,9 @@ class MemoryBuffer(Buffer):
         super().__init__()
         self._buffer = memoryview(buffer)
         self._offset = 0
+        self._struct_cache_le: dict[str, struct.Struct] = {}
+        self._struct_cache_be: dict[str, struct.Struct] = {}
+        self._struct_cache = self._struct_cache_le
 
     @property
     def data(self) -> memoryview:
@@ -239,15 +250,85 @@ class MemoryBuffer(Buffer):
     def size(self):
         return len(self._buffer)
 
-    def _read(self, fmt: str):
-        data = struct.unpack_from(self._endian + fmt, self._buffer, self._offset)
-        self._offset += struct.calcsize(self._endian + fmt)
-        return data[0]
+    def _get_struct(self, fmt: str) -> struct.Struct:
+        s = self._struct_cache.get(fmt)
+        if s is None:
+            s = struct.Struct(self._endian + fmt)
+            self._struct_cache[fmt] = s
+        return s
 
-    def read_fmt(self, fmt):
-        data = struct.unpack_from(self._endian + fmt, self._buffer, self._offset)
-        self._offset += struct.calcsize(self._endian + fmt)
-        return data
+    def _read_struct(self, s: struct.Struct):
+        val = s.unpack_from(self._buffer, self._offset)
+        self._offset += s.size
+        return val
+
+    _uint64_le = struct.Struct('<Q')
+    _uint64_be = struct.Struct('>Q')
+    _int64_le = struct.Struct('<q')
+    _int64_be = struct.Struct('>q')
+    _uint32_le = struct.Struct('<I')
+    _uint32_be = struct.Struct('>I')
+    _int32_le = struct.Struct('<i')
+    _int32_be = struct.Struct('>i')
+    _uint16_le = struct.Struct('<H')
+    _uint16_be = struct.Struct('>H')
+    _int16_le = struct.Struct('<h')
+    _int16_be = struct.Struct('>h')
+    _float32_le = struct.Struct('<f')
+    _float32_be = struct.Struct('>f')
+    _double_le = struct.Struct('<d')
+    _double_be = struct.Struct('>d')
+    _half_le = struct.Struct('<e')
+    _half_be = struct.Struct('>e')
+
+    def read_uint64(self):
+        return (self._read_struct(self._uint64_le) if self._endian == "<" else self._read_struct(self._uint64_be))[0]
+
+    def read_int64(self):
+        return (self._read_struct(self._int64_le) if self._endian == "<" else self._read_struct(self._int64_be))[0]
+
+    def read_uint32(self):
+        return (self._read_struct(self._uint32_le) if self._endian == "<" else self._read_struct(self._uint32_be))[0]
+
+    def read_int32(self):
+        return (self._read_struct(self._int32_le) if self._endian == "<" else self._read_struct(self._int32_be))[0]
+
+    def read_uint16(self):
+        return (self._read_struct(self._uint16_le) if self._endian == "<" else self._read_struct(self._uint16_be))[0]
+
+    def read_int16(self):
+        return (self._read_struct(self._int16_le) if self._endian == "<" else self._read_struct(self._int16_be))[0]
+
+    def read_uint8(self):
+        return self._read("B")
+
+    def read_int8(self):
+        return self._read("b")
+
+    def read_float(self):
+        return (self._read_struct(self._float32_le) if self._endian == "<" else self._read_struct(self._float32_be))[0]
+
+    def read_double(self):
+        return (self._read_struct(self._double_le) if self._endian == "<" else self._read_struct(self._double_be))[0]
+
+    def read_half(self):
+        return (self._read_struct(self._half_le) if self._endian == "<" else self._read_struct(self._half_be))[0]
+
+    def _read(self, fmt: str):
+        return self._read_struct(self._get_struct(fmt))[0]
+
+    def read_fmt(self, fmt: str):
+        return self._read_struct(self._get_struct(fmt))
+
+    def read_array(self, fmt: str, count: int):
+        itemsize = struct.calcsize(fmt)
+        nbytes = count * itemsize
+        mv = self.read(nbytes)
+        a = array.array(fmt)
+        a.frombytes(mv)  # accepts memoryview; no temporary bytes object created
+        if self._endian != NATIVE_LITTLE and fmt not in ("b", "B"):
+            a.byteswap()
+        return a.tolist()
 
     def write(self, _b: Union[bytes, bytearray]) -> Optional[int]:
         if self._offset + len(_b) > self.size():
@@ -293,11 +374,18 @@ class MemoryBuffer(Buffer):
     def close(self) -> None:
         self._buffer = None
 
-    def read_nt_string(self: 'MemoryBuffer'):
-        end = self._buffer.obj.index(b"\x00", self._offset)
-        string = self._buffer[self._offset:end]
-        self._offset+=end-self._offset+1
-        return string.tobytes().decode("utf8")
+    def read_nt_string(self):
+        obj = self._buffer.obj
+        try:
+            end = obj.find(b"\x00", self._offset)
+        except AttributeError:
+            end = self._buffer.tobytes().find(b"\x00", self._offset)  # rare fallback
+        buffer_size = len(self._buffer)
+        if end == -1:
+            end = buffer_size
+        s = bytes(self._buffer[self._offset:end]).decode("utf8", "replace")
+        self._offset = end + (1 if end < buffer_size else 0)
+        return s
 
     def slice(self, offset: Optional[int] = None, size: int = -1) -> 'MemorySlice':
         if offset is None:
@@ -306,6 +394,16 @@ class MemoryBuffer(Buffer):
         if size == -1:
             return MemorySlice(self._buffer[offset:], slice_offset)
         return MemorySlice(self._buffer[offset:offset + size], slice_offset)
+
+    def set_big_endian(self):
+        """Switch active cache without rebuilding keys."""
+        self._endian = '>'
+        self._struct_cache = self._struct_cache_be
+
+    def set_little_endian(self):
+        """Switch active cache without rebuilding keys."""
+        self._endian = '<'
+        self._struct_cache = self._struct_cache_le
 
 
 class WritableMemoryBuffer(io.BytesIO, Buffer):
@@ -327,6 +425,21 @@ class WritableMemoryBuffer(io.BytesIO, Buffer):
         if size == -1:
             return MemoryBuffer(self.data[offset:])
         return MemoryBuffer(self.data[offset:offset + size])
+
+    def read_array(self, fmt: str, count: int):
+        itemsize = struct.calcsize(fmt)
+        nbytes = count * itemsize
+        buffer = self.getbuffer()
+        offset = self.tell()
+        mv = buffer[offset:offset + nbytes]
+        offset += nbytes
+        self.seek(offset)
+        a = array.array(fmt)
+        a.frombytes(mv)  # accepts memoryview; no temporary bytes object created
+        mv.release()  # release memoryview to avoid keeping the whole buffer in memory
+        if self._endian != NATIVE_LITTLE and fmt not in ("b", "B"):
+            a.byteswap()
+        return a
 
 
 class FileBuffer(io.FileIO, Buffer):
@@ -359,6 +472,14 @@ class FileBuffer(io.FileIO, Buffer):
         self.seek(offset)
         return _data
 
+    def read_array(self, fmt: str, count: int):
+        """Bulk read from file directly into array.array using fromfile; copies once."""
+        a = array.array(fmt)
+        a.fromfile(self, count)  # fast C-level read; advances file offset
+        if self._endian != NATIVE_LITTLE and fmt not in ("b", "B"):
+            a.byteswap()
+        return a
+
     def __str__(self) -> str:
         return f'<FileBuffer: {self.name!r} {self.tell()}/{self.size()}>'
 
@@ -370,6 +491,22 @@ class FileBuffer(io.FileIO, Buffer):
             if size == -1:
                 return MemorySlice(self.read(), slice_offset)
             return MemorySlice(self.read(size), slice_offset)
+
+
+class MMapBuffer(MemoryBuffer):
+    def __init__(self, path: str | Path):
+        import mmap, os
+        fd = os.open(os.fspath(path), os.O_RDONLY)
+        mm = mmap.mmap(fd, 0, access=mmap.ACCESS_READ)
+        os.close(fd)
+        super().__init__(mm)
+        self._mm = mm
+
+    def close(self):
+        if self._mm is not None:
+            self._mm.close()
+            self._mm = None
+
 
 
 class MemorySlice(MemoryBuffer):
@@ -390,4 +527,4 @@ class Readable(Protocol):
         ...
 
 
-__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'MemorySlice', 'Readable']
+__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'MMapBuffer', 'MemorySlice', 'Readable']

@@ -48,6 +48,7 @@ def load_map(map_resource: CompiledMapResource, cm: ContentManager, scale: float
         return import_world(world_resource, map_resource, cm, scale)
     return None
 
+
 def cheap_path_check(resource_id: str | int, content_manager: ContentManager, resource: CompiledResource):
     if isinstance(resource_id, str):
         res_path = TinyPath(resource_id + "_c")
@@ -61,14 +62,14 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
     map_name = map_resource.name
     master_collection = get_or_create_collection(map_name, bpy.context.scene.collection)
     data_block = world_resource.data_block
-    uv_scale = None
+    uv_scale:list[float]|None = None
     if data_block:
         if "m_worldLightingInfo" in data_block:
-            uv_scale = data_block["m_worldLightingInfo"].get("m_vLightmapUvScale", None)
-            if uv_scale is not None:
-                uv_scale: list[float] = uv_scale.tolist()
+            uv_scale_prop = data_block["m_worldLightingInfo"].get("m_vLightmapUvScale", None)
+            if uv_scale_prop is not None:
+                uv_scale = uv_scale_prop.tolist()
     if uv_scale is None:
-        uv_scale: list[float] = [1., 1.]
+        uv_scale = [1., 1.]
 
     with pause_view_layer_update():
         for node_prefix in world_resource.get_worldnode_prefixes():
@@ -103,6 +104,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
 
                         fragment = {
                             "draw_call": draw_info["m_nDrawCallIndex"],
+                            "tint_color": draw_info.get('m_vTintColor', [255, 255, 255]),
                             "matrix": matrix
                         }
                         fragments.append(fragment)
@@ -122,6 +124,7 @@ def create_static_prop_placeholder(scene_object: Object, proper_path: TinyPath |
                    'scale': scale,
                    'uv_scale': uv_scale,
                    'entity': {k: str(v) for (k, v) in scene_object.to_dict().items()},
+                   'tint_color': scene_object.get('m_vTintColor', [1.0, 1.0, 1.0, 1.0]),
                    'skin': scene_object.get('skin', 'default') or 'default'}
     empty = create_empty(proper_path.stem, scale, custom_data=custom_data)
     if matrix is not None:
@@ -177,7 +180,7 @@ def load_entities(world_resource: CompiledWorldResource, collection: bpy.types.C
         handler = BaseEntityHandler
 
     for entity_lump in entity_lumps:
-        if isinstance(entity_lump,NullObject):
+        if isinstance(entity_lump, NullObject):
             continue
         entity_resource = world_resource.get_child_resource(entity_lump, cm, CompiledEntityLumpResource)
         load_entity_lump(entity_resource, handler, collection, scale, cm)

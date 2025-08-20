@@ -89,12 +89,33 @@ def get_or_create_collection(name, parent: bpy.types.Collection) -> bpy.types.Co
     return new_collection
 
 
-def get_new_unique_collection(model_name, parent_collection):
-    copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
+# def get_new_unique_collection(model_name, parent_collection):
+#     copy_count = len([collection for collection in bpy.data.collections if model_name in collection.name])
+#
+#     master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
+#                                                  parent_collection)
+#     return master_collection
 
-    master_collection = get_or_create_collection(model_name + (f'_{copy_count}' if copy_count > 0 else ''),
-                                                 parent_collection)
-    return master_collection
+_name_next_idx = {}
+
+def get_new_unique_collection(model_name, parent_collection):
+    """Faster for repeated calls: caches the next free suffix per base name and verifies only once per new base."""
+    from bpy import data as _d
+
+    if model_name not in _name_next_idx:
+        if _d.collections.get(model_name) is None:
+            _name_next_idx[model_name] = 1
+            return get_or_create_collection(model_name, parent_collection)
+        i = 1
+        while _d.collections.get(f"{model_name}_{i}") is not None:
+            i += 1
+        _name_next_idx[model_name] = i + 1
+        return get_or_create_collection(f"{model_name}_{i}", parent_collection)
+
+    i = _name_next_idx[model_name]
+    name = f"{model_name}_{i}"
+    _name_next_idx[model_name] = i + 1
+    return get_or_create_collection(name, parent_collection)
 
 
 def append_blend(filepath, type_name, link=False):

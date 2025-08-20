@@ -78,9 +78,9 @@ T = TypeVar('T', BaseType, str, NoneType)
 DEBUGGING = False
 
 
-class Object(BaseType, dict):
-    def __setitem__(self, key, value: T):
-        if DEBUGGING:
+class Object(BaseType, dict[str, T]):
+    if DEBUGGING:
+        def __setitem__(self, key, value: T):
             if isinstance(value, np.ndarray):
                 assert value.dtype in (np.float32, np.float64,
                                        np.int8, np.uint8,
@@ -89,7 +89,10 @@ class Object(BaseType, dict):
                                        np.int64, np.uint64)
             elif not isinstance(value, (BaseType, str, NoneType)):
                 raise TypeError(f'Only KV3 types are allowed, got {type(value)}')
-        super(Object, self).__setitem__(key, value)
+            super(Object, self).__setitem__(key, value)
+    else:
+        def __setitem__(self, key, value: T):
+            super(Object, self).__setitem__(key, value)
 
     def __contains__(self, item):
         if isinstance(item, tuple):
@@ -109,7 +112,7 @@ class Object(BaseType, dict):
         else:
             return dict.__getitem__(self, item)
 
-    def get(self, key:str|tuple[str,...], default=None):
+    def get(self, key: str | tuple[str, ...], default=None):
         if key in self:
             return self[key]
         return default

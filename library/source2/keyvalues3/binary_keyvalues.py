@@ -4,8 +4,8 @@ from typing import Any, Optional, Callable
 import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer, WritableMemoryBuffer
-from SourceIO.library.utils.pylib.compression import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream, zstd_decompress
-from SourceIO.library.utils.perf_sampler import timed
+from SourceIO.library.utils.pylib.compression import LZ4ChainDecoder, lz4_decompress, zstd_decompress_stream, \
+    zstd_decompress
 from .enums import *
 from .types import *
 
@@ -79,6 +79,7 @@ def read_valve_keyvalue3(buffer: Buffer) -> AnyKVType:
     elif sig == KV3Signatures.KV3_V5:
         return read_v5(encoding, buffer)
     raise UnsupportedVersion(f"Unsupported KV3 version: {sig!r}")
+
 
 @dataclass
 class KV3Buffers:
@@ -164,10 +165,13 @@ def _read_array(context: KV3ContextNew, specifier: Specifier):
 def _read_object(context: KV3ContextNew, specifier: Specifier):
     member_count = context.object_member_count_buffer.read_uint32()
     obj = Object()
+    names = context.strings
+    read_name_id = context.active_buffer.int_buffer.read_int32
+    read_value = context.read_value
     for i in range(member_count):
-        name_id = context.active_buffer.int_buffer.read_int32()
-        name = context.strings[name_id] if name_id != -1 else str(i)
-        obj[name] = context.read_value(context)
+        name_id = read_name_id()
+        name = names[name_id] if name_id != -1 else str(i)
+        obj[name] = read_value(context)
     obj.specifier = specifier
     return obj
 
@@ -195,7 +199,9 @@ def _read_array_typed_helper(context: KV3ContextNew, count, specifier: Specifier
         return np.frombuffer(buffers.int_buffer.read(4 * count), np.uint32)
     else:
         reader = _kv3_readers[data_type]
-        return TypedArray(data_type, data_specifier, [reader(context, data_specifier) for _ in range(count)])
+        array = TypedArray(data_type, data_specifier, [reader(context, data_specifier) for _ in range(count)])
+        array.specifier = specifier
+        return array
 
 
 def _read_array_typed(context: KV3ContextNew, specifier: Specifier):
@@ -297,7 +303,6 @@ _kv3_readers: list[Callable[['KV3ContextNew', Specifier], Any] | None] = [
 ]
 
 
-@timed
 def _read_value_legacy(context: KV3ContextNew):
     value_type, specifier = context.read_type(context)
     reader = _kv3_readers[value_type]
@@ -501,7 +506,7 @@ def read_v2(encoding: bytes, buffer: Buffer):
         block_buffer = None
 
     else:
-        block_sizes = [data_buffer.read_uint32() for _ in range(block_count)]
+        block_sizes = data_buffer.read_array("I", block_count)
         assert data_buffer.read_uint32() == 0xFFEEDD00
         block_data = b''
         if block_total_size > 0:
@@ -622,7 +627,7 @@ def read_v3(encoding: bytes, buffer: Buffer):
         block_buffer = None
 
     else:
-        block_sizes = [data_buffer.read_uint32() for _ in range(block_count)]
+        block_sizes = list(data_buffer.read_array("I", block_count))
         assert data_buffer.read_uint32() == 0xFFEEDD00
         block_data = b''
         if block_total_size > 0:
@@ -716,7 +721,7 @@ def read_v4(encoding: bytes, buffer: Buffer):
         block_buffer = None
 
     else:
-        block_sizes = [data_buffer.read_uint32() for _ in range(block_count)]
+        block_sizes = list(data_buffer.read_array("I", block_count))
         assert data_buffer.read_uint32() == 0xFFEEDD00
         block_data = b''
         if block_total_size > 0:
@@ -824,7 +829,7 @@ def read_v5(encoding: bytes, buffer: Buffer):
         blocks_buffer = None
         assert buffer1.read_uint32() == 0xFFEEDD00
     else:
-        block_sizes = [buffer1.read_uint32() for _ in range(block_count)]
+        block_sizes = list(buffer1.read_array("I", block_count))
         assert buffer1.read_uint32() == 0xFFEEDD00
         compressed_sizes = [buffer1.read_uint16() for _ in range(compressed_block_sizes)]
         block_data = b''

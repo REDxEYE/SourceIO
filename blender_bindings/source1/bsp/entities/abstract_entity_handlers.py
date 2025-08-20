@@ -59,6 +59,12 @@ def _srgb2lin(s: float) -> float:
     return lin
 
 
+def _set_uv(mesh_data, uv_data, uvs_per_face):
+    for poly in mesh_data.polygons:
+        for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
+            uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+
+
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
@@ -199,7 +205,7 @@ class AbstractEntityHandler:
             used_edges = bsp_edges[np.abs(used_surf_edges)]
             tmp = np.arange(len(used_edges))
             face_vertex_ids = used_edges[tmp, reverse]
-            face_vertex_ids = np.array(list(dict.fromkeys(face_vertex_ids)))
+            # face_vertex_ids = np.array(list(dict.fromkeys(face_vertex_ids)))
 
             uv_vertices = bsp_vertices[face_vertex_ids]
 
@@ -233,15 +239,11 @@ class AbstractEntityHandler:
 
         main_uv = mesh_data.uv_layers.new()
         uv_data = main_uv.data
-        for poly in mesh_data.polygons:
-            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-                uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+        _set_uv(mesh_data, uv_data, uvs_per_face)
 
         lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
         uv_data = lightmap_uv.data
-        for poly in mesh_data.polygons:
-            for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-                uv_data[loop_index].uv = luvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+        _set_uv(mesh_data, uv_data, luvs_per_face)
         if mesh_data.validate():
             self.logger.warn(f"Mesh(*{model_id}) had some invalid geometry")
         return mesh_obj

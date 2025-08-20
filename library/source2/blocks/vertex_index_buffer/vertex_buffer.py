@@ -91,11 +91,10 @@ class VertexBuffer:
     data: MemoryBuffer
     attributes: list[VertexAttribute]
 
-    block_id:int = -1
-    mesh_opt_compressed:bool = False
-    meshopt_index_sequence:bool = False
-    zstd_compressed:bool = False
-
+    block_id: int = -1
+    mesh_opt_compressed: bool = False
+    meshopt_index_sequence: bool = False
+    zstd_compressed: bool = False
 
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'VertexBuffer':
@@ -172,8 +171,9 @@ class VertexBuffer:
                 data = buffer.data
             else:
                 if self.zstd_compressed:
-                    data = decode_vertex_buffer(zstd_decompress(buffer.data, self.vertex_size * self.vertex_count), self.vertex_size,
-                                             self.vertex_count)
+                    data = decode_vertex_buffer(zstd_decompress(buffer.data, self.vertex_size * self.vertex_count),
+                                                self.vertex_size,
+                                                self.vertex_count)
                 else:
                     data = decode_vertex_buffer(buffer.data, self.vertex_size, self.vertex_count)
 

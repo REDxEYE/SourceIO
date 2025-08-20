@@ -80,7 +80,6 @@ class ImportContext:
     lm_uv_scale: tuple[float, float] = (1, 1)
 
 
-# @timed
 def load_model(content_manager: ContentManager, resource: CompiledModelResource, import_contex: ImportContext):
     armature = create_armature(content_manager, resource, import_contex.scale)
     physics_objects = []
@@ -197,7 +196,8 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
                     mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
                 if mesh_resource is None:
                     logging.error(f'Failed to find vmesh file for {model_resource.name}')
-                sub_meshes = load_external_mesh(content_manager, model_resource, container, i, mesh_resource, import_contex)
+                sub_meshes = load_external_mesh(content_manager, model_resource, container, i, mesh_resource,
+                                                import_contex)
             object_groups.extend(sub_meshes)
             for sub_mesh in sub_meshes:
                 for lod in range(lod_count):
@@ -208,7 +208,7 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
                     if mesh_mask & group_mask > 0:
                         container.bodygroups[group].append(sub_mesh)
     else:
-        for i, mesh_info in enumerate(ctrl['embedded_meshes']):
+        for i, mesh_info in enumerate(ctrl.get('embedded_meshes', [])):
             mesh_mask = int(data['m_refMeshGroupMasks'][i])
             lod_id = int(data['m_refLODGroupMasks'][i])
             sub_meshes = load_internal_mesh(content_manager, model_resource, container, mesh_info, import_contex)
@@ -228,9 +228,10 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
                        container: ModelContainer, mesh_info: Object, import_context: ImportContext
                        ):
     mesh_index = mesh_info['mesh_index', "m_nMeshIndex"]
-    data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block','m_nDataBlock'])
+    data_block = model_resource.get_block(KVBlock, block_id=mesh_info['data_block', 'm_nDataBlock'])
     vbib_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info['vbib_block', 'm_nVBIBBlock'])
-    tbuf_block = model_resource.get_block(VertexIndexBuffer, block_id=mesh_info.get(('tools_vb_block', "m_nToolsVBIBBlock"), -1))
+    tbuf_block = model_resource.get_block(VertexIndexBuffer,
+                                          block_id=mesh_info.get(('tools_vb_block', "m_nToolsVBIBBlock"), -1))
     morph_block = model_resource.get_block(MorphBlock, block_id=mesh_info['morph_block', 'm_nMorphBlock'])
     texture = None
     if morph_block:
@@ -248,12 +249,13 @@ def load_internal_mesh(content_manager: ContentManager, model_resource: Compiled
                            vbib_block.vertex_buffers, tbuf_block.vertex_buffers if tbuf_block else [], texture,
                            morph_block, mesh_index,
                            model_resource,
-                           import_context, mesh_info['name','m_Name'])
+                           import_context, mesh_info['name', 'm_Name'])
     elif data_block and 'm_vertexBuffers' in mesh_info and 'm_indexBuffers' in mesh_info:
         vertex_buffers = [VertexBuffer.from_kv(buf) for buf in mesh_info['m_vertexBuffers']]
         index_buffers = [IndexBuffer.from_kv(buf) for buf in mesh_info['m_indexBuffers']]
         return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers,
-                           [], texture, morph_block, mesh_index, model_resource, import_context, mesh_info['name','m_Name'])
+                           [], texture, morph_block, mesh_index, model_resource, import_context,
+                           mesh_info['name', 'm_Name'])
     return None
 
 
@@ -292,7 +294,6 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
     return None
 
 
-@timed
 def _add_vertex_groups(model_resource: CompiledModelResource,
                        vertex_buffer: VertexBuffer,
                        mesh_id: int,
@@ -480,7 +481,6 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer], mesh_resource: Co
 def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
                     mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
                     extra_vertex_buffers):
-    # assert len(draw_call['m_vertexBuffers']) == 1
     assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
     index_buffer_info = draw_call['m_indexBuffer']
 
@@ -521,16 +521,17 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
         if extra_vertex_buffers:
             extra_vertex_buffer = extra_vertex_buffers[vertex_buffer_info['m_hBuffer']]
             all_buffers.append(extra_vertex_buffer)
-
+    all_buffers = [vb for vb in all_buffers if vb.vertex_count > 0]
     vertices, vertex_buffer = combine_vertex_buffers(all_buffers, mesh_resource)
     indices = index_buffer.get_indices(mesh_resource)
     base_vertex = draw_call['m_nBaseVertex']
     vertex_count = draw_call['m_nVertexCount']
-    start_index = draw_call['m_nStartIndex'] // 3
-    index_count = draw_call['m_nIndexCount'] // 3
-    part_indices = indices[start_index:start_index + index_count]
+    tri_start = draw_call['m_nStartIndex'] // 3
+    tri_count = draw_call['m_nIndexCount'] // 3
+    part_indices = indices[tri_start:tri_start + tri_count]
     used_vertices_ids, _, new_indices = np.unique(part_indices, return_index=True, return_inverse=True)
     used_vertices = vertices[base_vertex:][used_vertices_ids]
+
     del part_indices
     material_stem = path_stem(material_name)
     model_name = mesh_name or mesh_resource.name
@@ -541,6 +542,8 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
         mesh_obj.color = list(tint) + [1.0]
 
     positions = used_vertices['POSITION'] * import_context.scale
+
+    normals = None
     if vertex_buffer.has_attribute('NORMAL'):
         normals = used_vertices['NORMAL']
         if use_compressed_normals(draw_call):
@@ -548,14 +551,16 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
                 normals = convert_normals_2(normals)
             else:
                 normals = convert_normals(normals)
-    else:
-        normals = None
+
     if overlay and normals is not None:
         positions += normals * 0.01
+
     mesh.from_pydata(positions, np.empty(0), new_indices.reshape((-1, 3)))
     mesh.update()
+
     material = get_or_create_material(material_stem, TinyPath(material_name).as_posix())
     add_material(material, mesh_obj)
+
     if data_block.get('m_materialGroups', None):
         default_skin = data_block['m_materialGroups'][0]
 
@@ -571,73 +576,65 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
         mesh_obj['active_skin'] = 'default'
         mesh_obj['skin_groups'] = []
     mesh_obj['model_type'] = 'S2'
-    vertex_indices = np.zeros((len(mesh.loops, )), dtype=np.uint32)
+
+    vertex_indices = np.zeros(len(mesh.loops), dtype=np.uint32)
     mesh.loops.foreach_get('vertex_index', vertex_indices)
+
     if tint is not None:
-        vertex_colors = mesh.vertex_colors.get('TINT', False) or mesh.vertex_colors.new(name='TINT')
-        vertex_colors_data = vertex_colors.data
-        tmp = np.ones((4,), np.float32)
-        tmp[:3] = tint
-        tmp[:3] = tmp[:3] ** 0.5
-        tint_data = np.full((vertex_count, 4), tmp, np.float32)
-        vertex_colors_data.foreach_set('color', tint_data[vertex_indices].flatten())
+        vc = mesh.vertex_colors.get('TINT', False) or mesh.vertex_colors.new(name='TINT')
+        vc_data = vc.data
+        c = np.ones(4, dtype=np.float32)
+        c[:3] = np.asarray(tint, dtype=np.float32)[:3]
+        c[:3] = np.sqrt(c[:3])
+        vc_data.foreach_set('color', np.broadcast_to(c, (vertex_indices.size, 4)).reshape(-1))
+
     for uv_id in range(16):
-        if uv_id == 0:
-            attrib_name = f"TEXCOORD"
+        attrib_name = "TEXCOORD" if uv_id == 0 else f"TEXCOORD_{uv_id}"
+        if not vertex_buffer.has_attribute(attrib_name):
+            continue
+
+        uv = used_vertices[attrib_name]
+        if uv.shape[1] < 2:
+            continue
+        if uv.shape[1] == 4:
+            uv0 = convert_to_float32(uv[:, :2])
+            uv1 = convert_to_float32(uv[:, 2:])
+            np.multiply(uv0[:, 1], -1.0, out=uv0[:, 1])
+            np.add(uv0[:, 1], 1.0, out=uv0[:, 1])
+            np.multiply(uv1[:, 1], -1.0, out=uv1[:, 1])
+            np.add(uv1[:, 1], 1.0, out=uv1[:, 1])
+            data = mesh.uv_layers.new(name=attrib_name).data
+            data.foreach_set('uv', uv0[vertex_indices].reshape(-1))
+            data = mesh.uv_layers.new(name=attrib_name + "_2").data
+            data.foreach_set('uv', uv1[vertex_indices].reshape(-1))
         else:
-            attrib_name = f"TEXCOORD_{uv_id}"
-        if vertex_buffer.has_attribute(attrib_name):
-            uv_layer = used_vertices[attrib_name].copy()
-            if uv_layer.shape[1] < 2:
-                continue
-            if uv_layer.shape[1] == 4:
-                uv_layer_0 = convert_to_float32(uv_layer[:, :2])
-                uv_layer_1 = convert_to_float32(uv_layer[:, 2:])
-                uv_layer_0[:, 1] = np.subtract(1, uv_layer_0[:, 1])
-                uv_layer_1[:, 1] = np.subtract(1, uv_layer_1[:, 1])
+            uv2 = convert_to_float32(uv[:, :2])
+            np.multiply(uv2[:, 1], -1.0, out=uv2[:, 1])
+            np.add(uv2[:, 1], 1.0, out=uv2[:, 1])
+            data = mesh.uv_layers.new(name=attrib_name).data
+            data.foreach_set('uv', uv2[vertex_indices].reshape(-1))
 
-                uv_data = mesh.uv_layers.new(name=attrib_name).data
-                uv_data.foreach_set('uv', uv_layer_0[vertex_indices].flatten())
-
-                uv_data = mesh.uv_layers.new(name=attrib_name + "_2").data
-                uv_data.foreach_set('uv', uv_layer_1[vertex_indices].flatten())
-                del uv_layer_0, uv_layer_1, uv_data
-
-            else:
-                uv_layer = convert_to_float32(uv_layer)
-                uv_layer[:, 1] = np.subtract(1, uv_layer[:, 1])
-
-                uv_data = mesh.uv_layers.new(name=attrib_name).data
-                uv_data.foreach_set('uv', uv_layer[vertex_indices].flatten())
-                del uv_layer, uv_data
-    if vertex_buffer.has_attribute('NORMAL'):
-        mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), np.uint32))
-        normals = used_vertices['NORMAL']
-        if use_compressed_normals(draw_call):
-            if normals.dtype == np.uint32:
-                normals = convert_normals_2(normals)
-            else:
-                normals = convert_normals(normals)
+    if normals is not None:
+        mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), dtype=np.bool_))
+        print("Print setting normals")
         mesh.normals_split_custom_set_from_vertices(normals)
         if not is_blender_4_1():
             mesh.use_auto_smooth = True
-    color_layers = 0
-    for color_layer in range(8):
-        color_layer_name = f"COLOR_{color_layer}" if color_layer > 0 else "COLOR"
-        if vertex_buffer.has_attribute(color_layer_name):
-            color = used_vertices[color_layer_name]
-            vertex_colors = mesh.vertex_colors.get(color_layer_name, False) or mesh.vertex_colors.new(
-                name=color_layer_name)
-            vertex_colors_data = vertex_colors.data
-            vertex_colors_data.foreach_set('color', color[vertex_indices].flatten())
-            color_layers += 1
+
+    for i in range(8):
+        name = "COLOR" if i == 0 else f"COLOR_{i}"
+        if not vertex_buffer.has_attribute(name):
+            continue
+        color = used_vertices[name].astype(np.float32) / 255
+        vc = mesh.vertex_colors.get(name, False) or mesh.vertex_colors.new(name=name)
+        vc.data.foreach_set('color', color[vertex_indices].ravel())
 
     _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
     objects.append(mesh_obj)
+
     if morph_block and morph_supported and morph_texture is not None:
-        pos_bundle_id = morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED')
-        if pos_bundle_id is None:
-            pos_bundle_id = morph_block.get_bundle_id('BUNDLE_TYPE_POSITION_SPEED')
+        pos_bundle_id = morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED') or \
+                        morph_block.get_bundle_id('BUNDLE_TYPE_POSITION_SPEED')
         if pos_bundle_id is not None:
             mesh_obj.shape_key_add(name='base')
             for flex_name_ in morph_block['m_FlexDesc']:
@@ -645,15 +642,15 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
                 morph_data = morph_block.get_morph_data(flex_name, pos_bundle_id, morph_texture)
                 if morph_data is None:
                     continue
-                flex_data = morph_data[:, :, :3].reshape((-1, 3))
-                flex_verts = flex_data[g_vertex_offset:g_vertex_offset + vertex_count]
-                if flex_verts.max() == 0.0 and flex_verts.min() == 0.0:
+                flex = morph_data[:, :, :3].reshape((-1, 3))
+                flex_verts = flex[g_vertex_offset:g_vertex_offset + vertex_count]
+                if not np.any(flex_verts):
                     logging.debug(f'Skipping {flex_name!r} because flex delta is zero')
                     continue
                 shape = mesh_obj.shape_key_add(name=flex_name)
+                co = (positions + flex_verts * import_context.scale).reshape(-1)
+                shape.data.foreach_set("co", co)
 
-                precomputed_data = np.add(flex_verts * import_context.scale, positions)
-                shape.data.foreach_set("co", precomputed_data.reshape(-1))
     g_vertex_offset += vertex_count
     mesh.validate()
 

@@ -1,8 +1,7 @@
 import time
 
 from .extended_enum import ExtendedEnum
-from .file_utils import (Buffer, FileBuffer, MemoryBuffer, Readable,
-                         WritableMemoryBuffer)
+from .file_utils import (Buffer, FileBuffer, MemoryBuffer, MMapBuffer, Readable, WritableMemoryBuffer)
 from .tiny_path import TinyPath
 from .path_utilities import path_stem, backwalk_file_resolver, corrected_path
 from .math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS, SOURCE2_HAMMER_UNIT_TO_METERS
