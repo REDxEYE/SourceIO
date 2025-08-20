@@ -131,7 +131,7 @@ class AbstractEntityHandler:
 
 
 
-    @timed
+
     def _load_brush_model(self, model_id, model_name):
         def _get_string(string_id):
             strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings

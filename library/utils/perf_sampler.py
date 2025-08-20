@@ -48,7 +48,7 @@ def print_stats():
 
 
 if __name__ == '__main__':
-    @timed
+
     def test():
         time.sleep(2)
 

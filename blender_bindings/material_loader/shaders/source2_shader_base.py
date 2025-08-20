@@ -31,7 +31,7 @@ class Source2ShaderBase(ShaderBase):
             return self._material_resource.has_child_resource(texture_path, self.content_manager)
         return None
 
-    @timed
+
     def _get_texture(self, slot_name: str, default_color: tuple[float, float, float, float],
                      is_data=False,
                      invert_y: bool = False):

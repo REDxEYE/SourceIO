@@ -199,7 +199,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         for child in self.children:
             yield from child.glob(pattern)
 
-    @timed
+
     def find_file(self, filepath: TinyPath, do_not_cache=False) -> Buffer | None:
         """Find and optionally cache file buffers with owner/exists LRU metadata."""
         if filepath.is_absolute():

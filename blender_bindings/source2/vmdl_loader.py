@@ -431,7 +431,6 @@ def create_mesh(content_manager: ContentManager, model_resource: CompiledModelRe
     return objects
 
 
-@timed
 def import_scene_object(content_manager: ContentManager, data_block, g_vertex_offset, import_context, index_buffers,
                         mesh_id, mesh_name,
                         mesh_resource, model_resource, morph_block, morph_texture, objects, scene_object,
@@ -478,7 +477,6 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer], mesh_resource: Co
     return combined_array, VertexBuffer(vertex_buffers[0].vertex_count, 0, MemoryBuffer(b""), all_attrs)
 
 
-@timed
 def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
                     mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
                     extra_vertex_buffers):

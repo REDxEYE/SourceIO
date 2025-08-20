@@ -60,7 +60,6 @@ def _legacy_block_decompress(in_buffer: Buffer) -> Buffer:
     return out_buffer
 
 
-@timed
 def read_valve_keyvalue3(buffer: Buffer) -> AnyKVType:
     sig = buffer.read(4)
     if not KV3Signatures.is_valid(sig):
@@ -364,7 +363,6 @@ def split_buffer(data_buffer: Buffer, bytes_count: int, short_count: int, int_co
     return KV3Buffers(bytes_buffer, shorts_buffer, ints_buffer, doubles_buffer)
 
 
-@timed
 def read_legacy(encoding: bytes, buffer: Buffer):
     if not KV3Encodings.is_valid(encoding):
         raise BufferError(f'Buffer contains unknown encoding: {encoding!r}')
@@ -401,7 +399,6 @@ def read_legacy(encoding: bytes, buffer: Buffer):
     return root
 
 
-@timed
 def read_v1(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
 
@@ -443,7 +440,6 @@ def read_v1(encoding: bytes, buffer: Buffer):
     return root
 
 
-@timed
 def read_v2(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -569,7 +565,6 @@ def read_v2(encoding: bytes, buffer: Buffer):
     return root
 
 
-@timed
 def read_v3(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -659,7 +654,6 @@ def read_v3(encoding: bytes, buffer: Buffer):
     return root
 
 
-@timed
 def read_v4(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -754,7 +748,6 @@ def read_v4(encoding: bytes, buffer: Buffer):
     return root
 
 
-@timed
 def read_v5(encoding: bytes, buffer: Buffer):
     compression_method = buffer.read_uint32()
     compression_dict_id = buffer.read_uint16()
@@ -850,7 +843,6 @@ def read_v5(encoding: bytes, buffer: Buffer):
             assert buffer.read_uint32() == 0xFFEEDD00
         blocks_buffer = MemoryBuffer(block_data)
 
-    @timed
     def _read_type(context: KV3ContextNew):
         t = context.types_buffer.read_int8()
         mask = 63
@@ -880,17 +872,14 @@ def read_v5(encoding: bytes, buffer: Buffer):
     return root
 
 
-@timed
 def zstd_decompress_stream_wrp(data):
     return zstd_decompress_stream(data)
 
 
-@timed
 def lz4_decompress_wrp(data, decomp_size):
     return lz4_decompress(data, decomp_size)
 
 
-@timed
 def decompress_lz4_chain(buffer: Buffer, decompressed_block_sizes: list[int], compressed_block_sizes: list[int],
                          compression_frame_size: int):
     block_data = b""

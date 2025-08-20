@@ -49,7 +49,7 @@ class IndexBuffer:
                            data.get('m_bCompressedZSTD', False)
                            )
 
-    @timed
+
     def get_indices(self,mesh_resource:CompiledResource) -> np.ndarray:
         index_dtype = np.uint32 if self.index_size == 4 else np.uint16
 

@@ -119,7 +119,7 @@ class CompiledTextureResource(CompiledResource):
         data = self._decompress_texture(face_data, height, pixel_format, width)
         return data, (width, height)
 
-    @timed
+
     def get_texture_data(self, mip_level: int = 0):
         logger.info(f'Loading texture {self._filepath.as_posix()!r}')
         info_block = None
@@ -166,7 +166,7 @@ class CompiledTextureResource(CompiledResource):
         data = self._decompress_texture(data, height, pixel_format, width)
         return data, (width, height)
 
-    @timed
+
     def _decompress_texture(self, data: bytes, height, pixel_format, width):
         resource_info_block = (self.get_block(ResourceEditInfo, block_name="REDI") or
                                self.get_block(ResourceEditInfo2, block_name="RED2"))

@@ -6,7 +6,7 @@ from SourceIO.library.utils.perf_sampler import timed
 def lerp(a, b, f):
     return (a * (1.0 - f)) + (b * f)
 
-@timed
+
 def convert_normals(input_array: np.ndarray):
     # X Y Z
     input_array = input_array.astype(np.int32)
@@ -37,7 +37,7 @@ def convert_normals(input_array: np.ndarray):
     output[:, 2] *= lerp(1, -1, np.abs(z_signs))
     return output
 
-@timed
+
 def convert_normals_2(input_array: np.ndarray):
     # X Y Z
     input_array = input_array.ravel()

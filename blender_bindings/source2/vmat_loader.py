@@ -6,7 +6,7 @@ from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
-@timed
+
 def load_material(content_manager: ContentManager, material_resource: CompiledMaterialResource, material_path: TinyPath,
                   tinted: bool = False):
     material = get_or_create_material(material_path.stem, material_path.as_posix())

@@ -27,7 +27,7 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
 
 
-@timed
+
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,

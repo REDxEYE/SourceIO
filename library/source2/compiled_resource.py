@@ -29,7 +29,7 @@ class CompiledResource:
     def name(self):
         return self._filepath.stem
 
-    @timed
+
     def _get_block(self, block_class: Type[BlockT] | None, info_block: BlockInfo) -> BlockT | None:
         from SourceIO.library.source2.blocks.all_blocks import guess_block_type
         self._buffer.seek(info_block.absolute_offset)
@@ -94,7 +94,7 @@ class CompiledResource:
         return False
 
     @classmethod
-    @timed
+
     def from_buffer(cls, buffer: Buffer, filename: TinyPath):
         inmemory_buffer = MemoryBuffer(buffer.read())
         header = CompiledHeader.from_buffer(inmemory_buffer)

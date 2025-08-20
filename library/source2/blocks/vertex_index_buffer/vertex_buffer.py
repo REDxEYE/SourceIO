@@ -162,8 +162,7 @@ class VertexBuffer:
             struct.append((attr.name, *attr.get_numpy_type()))
         return np.dtype(struct)
 
-    @timed
-    def get_vertices(self, mesh_resource:CompiledResource):
+    def get_vertices(self, mesh_resource: CompiledResource):
         np_dtype = self.generate_numpy_dtype()
         if not self.data:
             block = mesh_resource.get_block(BinaryBlob, block_id=self.block_id)

@@ -70,7 +70,7 @@ def import_bsp(map_path: TinyPath, buffer: Buffer, content_manager: ContentManag
     import_disp(bsp, settings, master_collection, logger)
 
 
-@timed
+
 def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
                     master_collection: bpy.types.Collection, logger: SLogger):
     steam_id = bsp.steam_app_id
@@ -114,7 +114,7 @@ def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Sou
     entity_handler.load_entities(settings)
 
 
-@timed
+
 def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                     logger: SLogger):
     if not settings.import_cubemaps:
@@ -135,7 +135,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         parent_collection.objects.link(obj)
 
 
-@timed
+
 def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                         logger: SLogger):
     gamelump: Optional[GameLump] = bsp.get_lump('LUMP_GAME_LUMP')
@@ -169,7 +169,7 @@ def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_colle
                 parent_collection.objects.link(placeholder)
 
 
-@timed
+
 def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
     if not settings.import_textures:
         return
@@ -250,7 +250,7 @@ def get_texture_data(tex_info: TextureInfo, bsp: BSPFile) -> Optional[TextureDat
     return None
 
 
-@timed
+
 def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
                 master_collection: bpy.types.Collection, logger: SLogger):
     disp_info_lump: Optional[DispInfoLump] = bsp.get_lump('LUMP_DISPINFO')

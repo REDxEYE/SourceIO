@@ -39,7 +39,6 @@ class MorphBlock(KVBlock):
         if bundle_name in self.bundles:
             return self.bundles.index(bundle_name)
 
-    @timed
     def get_morph_data(self, flex_name: str, bundle_id: int, texture):
         bundle_data = self._morph_datas[bundle_id]
         if flex_name in bundle_data:

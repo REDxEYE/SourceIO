@@ -47,7 +47,7 @@ def find_layer_collection(layer_collection, name):
             return found
 
 
-@timed
+
 def add_material(material, model_ob):
     md = model_ob.data
     for i, ob_material in enumerate(md.materials):
@@ -60,7 +60,7 @@ def add_material(material, model_ob):
         return len(md.materials) - 1
 
 
-@timed
+
 def get_or_create_material(name: str, full_path: str):
     for mat in bpy.data.materials:
         if (fp := mat.get('full_path', None)) is None:
