@@ -697,7 +697,7 @@ class SourceIOColorSpaceNode(SourceIOTextureTreeNode):
     )
     clamp_result: bpy.props.BoolProperty(name="Clamp 0..1", default=True)
 
-    def _sync_io(self):
+    def _sync_io_visibility(self):
         t = self.inputs.get("texture")
         c = self.inputs.get("channel")
         ot = self.outputs.get("texture")
@@ -729,7 +729,7 @@ class SourceIOColorSpaceNode(SourceIOTextureTreeNode):
         self.inputs.new('SourceIOTextureChannelSocket', "channel")
         self.outputs.new('SourceIOTextureSocket', "texture")
         self.outputs.new('SourceIOTextureChannelSocket', "channel")
-        self._sync_io()
+        self._sync_io_visibility()
 
     def process(self, inputs: dict) -> dict | None:
         kind = self._resolve_kind()
