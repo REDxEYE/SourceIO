@@ -1,15 +1,16 @@
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem
 
-from . import nodes, sockets
-from .model_tree_nodes import *
-from .nodes import materials as material_nodes
+from SourceIO.blender_bindings.ui.export_nodes import nodes, sockets
+from SourceIO.blender_bindings.ui.export_nodes.model_tree_nodes import SourceIO_NT_ModelTree, \
+    SourceIO_OP_EvaluateNodeTree
+from SourceIO.blender_bindings.ui.export_nodes.nodes.textures.texture_preview import SourceIO_OP_EvaluatePreview
+
 
 ### Node Categories ###
 # Node categories are a python system for automatically
 # extending the Add menu, toolbar panels and search operator.
 # For more examples see release/scripts/startup/nodeitems_builtins.py
-
 
 
 # our own base class with an appropriate poll function,
@@ -42,6 +43,21 @@ node_categories = [
     ]),
     SourceIONodeCategory("Materials", "Materials", items=[
         NodeItem("SourceIOVertexLitGenericNode")
+    ]),
+    SourceIONodeCategory("Textures", "Textures", items=[
+        NodeItem("SourceIOTextureInputNode"),
+        NodeItem("SourceIOTextureInvertChannelsNode"),
+        NodeItem("SourceIOTextureSplitChannelsNode"),
+        NodeItem("SourceIOTextureCombineChannelsNode"),
+        NodeItem("SourceIOTextureBrightnessContrastNode"),
+        NodeItem("SourceIOTextureMathNode"),
+        NodeItem("SourceIOChannelRemapNode"),
+        NodeItem("SourceIONormalOpsNode"),
+        NodeItem("SourceIOHeightToNormalNode"),
+        NodeItem("SourceIONormalBlendNode"),
+        NodeItem("SourceIOColorSpaceNode"),
+        NodeItem("SourceIOTexturePreviewNode"),
+        NodeItem("SourceIOTextureToVTFNode")
     ])
 ]
 
@@ -56,7 +72,21 @@ classes = (
     nodes.SourceIOSkinNode,
     nodes.SourceIOSkingroupNode,
 
-    material_nodes.SourceIOVertexLitGenericNode,
+    nodes.SourceIOVertexLitGenericNode,
+
+    nodes.SourceIOTextureInputNode,
+    nodes.SourceIOTextureToVTFNode,
+    nodes.SourceIOTextureInvertChannelsNode,
+    nodes.SourceIOTextureSplitChannelsNode,
+    nodes.SourceIOTextureCombineChannelsNode,
+    nodes.SourceIOTextureBrightnessContrastNode,
+    nodes.SourceIOTexturePreviewNode,
+    nodes.SourceIOTextureMathNode,
+    nodes.SourceIOChannelRemapNode,
+    nodes.SourceIONormalOpsNode,
+    nodes.SourceIOHeightToNormalNode,
+    nodes.SourceIONormalBlendNode,
+    nodes.SourceIOColorSpaceNode,
 
     sockets.SourceIOObjectSocket,
     sockets.SourceIOBodygroupSocket,
@@ -64,8 +94,12 @@ classes = (
     sockets.SourceIOSkinSocket,
     sockets.SourceIOSkinGroupSocket,
     sockets.SourceIOTextureSocket,
+    sockets.SourceIOTextureVtfSocket,
+    sockets.SourceIOTextureChannelSocket,
 
-    SourceIO_OP_EvaluateNodeTree
+
+    SourceIO_OP_EvaluateNodeTree,
+    SourceIO_OP_EvaluatePreview
 )
 
 

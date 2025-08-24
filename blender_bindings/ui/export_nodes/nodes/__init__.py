@@ -4,3 +4,5 @@ from .input_object_node import SourceIOObjectNode
 from .output_model_node import SourceIOModelNode
 from .skingroup_node import (SourceIOSkingroupNode, SourceIOSkinGroupProto,
                              SourceIOSkinNode, SourceIOSkinProto)
+from .materials import SourceIOVertexLitGenericNode
+from .textures import *

@@ -17,6 +17,7 @@ class SourceIOModelNode(Node, SourceIOModelTreeNode):
         self.inputs.new('SourceIOObjectSocket', "Objects").link_limit = 32
         self.inputs.new('SourceIOBodygroupSocket', "Bodygroups").link_limit = 32
         self.inputs.new('SourceIOSkinSocket', "Skin")
+        self.inputs.new('SourceIOTextureVtfSocket', "Textures")
 
     def draw_buttons(self, context, layout):
         layout.operator("SourceIO.evaluate_nodetree")

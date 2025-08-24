@@ -46,6 +46,7 @@ class LooseFilesContentProvider(ContentProvider):
         file = backwalk_file_resolver(self.filepath, filepath)
         if file and file.is_file():
             return FileBuffer(file)
+        return None
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
         yield from glob_generic(self.root, pattern)

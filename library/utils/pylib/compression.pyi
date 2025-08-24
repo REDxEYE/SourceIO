@@ -21,6 +21,26 @@ class LZ4ChainDecoder:
         """
         ...
 
+class LZ4ChainEncoder:
+    """
+    Chain encoder for raw LZ4 blocks with dependent-block dictionary.
+    """
+    block_size: Any
+    extra_blocks: Any
+
+    def __init__(self, block_size, extra_blocks) -> Any:
+        """
+        Initialize self.  See help(type(self)) for accurate signature.
+        """
+        ...
+
+    def compress(self: Any, src: Any, accel: Any = ...) -> Any:
+        """
+        Compress one uncompressed block 'src' using the rolling dictionary.
+        Returns compressed bytes. 'accel' is LZ4 acceleration (1=faster&denser, higher=faster&weaker).
+        """
+        ...
+
 def lz4_compress(data: Any) -> Any:
     """
     Compress data using LZ4 compression.

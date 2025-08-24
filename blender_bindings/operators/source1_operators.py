@@ -182,11 +182,11 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
 
     filename_ext = ".vtf"
 
-    filter_glob: StringProperty(default="*.vtf", options={'HIDDEN'})
+    filter_glob: bpy.props.StringProperty(default="*.vtf", options={'HIDDEN'})
     filepath: StringProperty(
         subtype='FILE_PATH',
     )
-    filename: StringProperty(
+    filename: bpy.props.StringProperty(
         name="File Name",
         description="Name used by the exported file",
         maxlen=512,
@@ -196,7 +196,7 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
     img_format: bpy.props.EnumProperty(name="Texture format", description="Texture format", items=get_formats(),
                                        default=ImageFormat.RGBA8888.name)
 
-    generate_mipmaps: BoolProperty(
+    generate_mipmaps: bpy.props.BoolProperty(
         name="Generate Mipmaps",
         description="Generate mipmaps for the texture",
         default=True,
@@ -206,14 +206,14 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
     mip_filter: bpy.props.EnumProperty(name="Mipmap filter", description="Mipmap filter", items=get_filters(),
                                        default=MipFilter.CATROM.name)
 
-    flip_green: BoolProperty(
+    flip_green: bpy.props.BoolProperty(
         name="Flip Green Channel",
         description="Flip the green channel of the texture (for normal maps)",
         default=False,
         options={'SKIP_SAVE'},
     )
 
-    resize_to_pow2: EnumProperty(
+    resize_to_pow2: bpy.props.EnumProperty(
         name="Resize to power of two",
         description="Resize the exported texture to the nearest power of two",
         items=(
@@ -225,21 +225,21 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
         options={'SKIP_SAVE'},
     )
 
-    limit_resolution: BoolProperty(
+    limit_resolution: bpy.props.BoolProperty(
         name="Limit resolution",
         description="Limit the resolution of the exported texture",
         default=False,
         options={'SKIP_SAVE'},
     )
 
-    keep_aspect_ratio: BoolProperty(
+    keep_aspect_ratio: bpy.props.BoolProperty(
         name="Keep aspect ratio",
         description="Keep the aspect ratio of the exported texture when limiting resolution",
         default=True,
         options={'SKIP_SAVE'},
     )
 
-    limit_resolution_x: EnumProperty(
+    limit_resolution_x: bpy.props.EnumProperty(
         name="Limit resolution X",
         description="Limit the X resolution of the exported texture",
         items=(
@@ -253,7 +253,7 @@ class SOURCEIO_OT_VTFExport(bpy.types.Operator, ExportHelper):
         default='4096',
         options={'SKIP_SAVE'},
     )
-    limit_resolution_y: EnumProperty(
+    limit_resolution_y: bpy.props.EnumProperty(
         name="Limit resolution Y",
         description="Limit the Y resolution of the exported texture",
         items=(

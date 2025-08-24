@@ -150,7 +150,7 @@ class VTFFile:
         """
         ...
 
-    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., image_format: Any = ..., filter_mode: Any = ..., flags: Any = ..., generate_mipmaps: Any = ..., generate_thumbnail: Any = ..., resize_to_pow2: Any = ..., resolution_limit_x: Any = ..., resolution_limit_y: Any = ...) -> Any:
+    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., src_image_format:Any = ..., dst_image_format: Any = ..., filter_mode: Any = ..., flags: Any = ..., generate_mipmaps: Any = ..., generate_thumbnail: Any = ..., resize_to_pow2: Any = ..., resolution_limit_x: Any = ..., resolution_limit_y: Any = ...) -> Any:
         """
         Create a new VTF image from raw bytes.
         
