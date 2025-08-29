@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import numpy as np
 
 from SourceIO.library.utils import Buffer, MemoryBuffer
-from SourceIO.library.utils.perf_sampler import timed
 from .enums import DxgiFormat, SlotType
 from SourceIO.library.utils.pylib.mesh import decode_vertex_buffer
 from SourceIO.library.utils.pylib.compression import zstd_decompress
@@ -22,7 +21,7 @@ class VertexAttribute:
     instance_step_rate: int
 
     def __post_init__(self):
-        if self.name == "blendweight":
+        if self._name == "blendweight":
             self._name = "BLENDWEIGHT"
 
     @property
@@ -96,6 +95,8 @@ class VertexBuffer:
     meshopt_index_sequence: bool = False
     zstd_compressed: bool = False
 
+    was_kv: bool = False
+
     @classmethod
     def from_buffer(cls, buffer: Buffer) -> 'VertexBuffer':
         vertex_count, vertex_size = buffer.read_fmt('II')
@@ -125,6 +126,28 @@ class VertexBuffer:
                     _vertex_buffer = MemoryBuffer(decode_vertex_buffer(data, vertex_size, vertex_count))
         return cls(vertex_count, vertex_size, _vertex_buffer, attributes)
 
+    def to_buffer(self, buffer: Buffer):
+        if not self.was_kv:
+            buffer.write_fmt('II', self.vertex_count, self.vertex_size | (0x8000000 if self.zstd_compressed else 0))
+            attr_offset = buffer.new_label("attr_offset", 4)
+            buffer.write_uint32(len(self.attributes))
+            data_offset = buffer.new_label("data_offset", 4)
+            if self.zstd_compressed:
+                data = zstd_decompress(self.data.data, self.vertex_size * self.vertex_count)
+            else:
+                data = self.data.data
+            buffer.write_uint32(len(data))
+
+            attr_offset.write("I", buffer.tell() - attr_offset.offset)
+            for attribute in self.attributes:
+                buffer.write_fmt('32s6I', attribute.name.encode('utf-8'), attribute.index, attribute.format.value,
+                                 attribute.offset, attribute.slot, attribute.slot_type.value, attribute.instance_step_rate)
+
+            data_offset.write("I", buffer.tell() - data_offset.offset)
+            buffer.write(data)
+        else:
+            raise NotImplementedError("Writing VertexBuffer as KV3 is not implemented yet")
+
     @classmethod
     def from_kv(cls, data: dict) -> 'VertexBuffer':
         elements = []
@@ -140,7 +163,8 @@ class VertexBuffer:
                             data.get("m_nBlockIndex", -1),
                             data.get('m_bMeshoptCompressed', False),
                             data.get('m_bMeshoptIndexSequence', False),
-                            data.get('m_bCompressedZSTD', False)
+                            data.get('m_bCompressedZSTD', False),
+                            True
                             )
 
     def has_attribute(self, attribute_name: str):

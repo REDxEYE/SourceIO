@@ -5,13 +5,14 @@ import numpy as np
 import numpy.typing as npt
 
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
+from SourceIO.library.source2.keyvalues3.enums import KV3Signature, KV3Format
 from SourceIO.library.source2.keyvalues3.types import AnyKVType
 
 
 class MorphBlock(KVBlock):
 
-    def __init__(self, data: dict[str, AnyKVType] = None):
-        super().__init__(data or {})
+    def __init__(self, data: dict[str, AnyKVType] = None, version: KV3Signature = KV3Signature.KV3_V3, format:KV3Format = KV3Format.generic):
+        super().__init__(data or {}, version, format)
         self._morph_datas: dict[int, dict[str, npt.NDArray[np.float32]]] = defaultdict(dict)
         self._morph_name_map: dict[str, AnyKVType] = {}
         self._vmorf_texture = None

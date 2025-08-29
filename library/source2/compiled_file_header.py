@@ -36,13 +36,21 @@ class CompiledHeader:
         header_version = buffer.read_uint16()
         resource_version = buffer.read_uint16()
         assert header_version == 0x0000000c
-        buffer.skip(4)
+        block_offset = buffer.tell() + buffer.read_uint32()
         block_count = buffer.read_uint32()
         info_blocks = []
         if block_count:
-            buffer.seek(4 * 4)
+            buffer.seek(block_offset)
             for n in range(block_count):
                 block_info = BlockInfo.from_buffer(buffer)
                 info_blocks.append(block_info)
 
         return cls(file_size, header_version, resource_version, info_blocks)
+
+    def to_buffer(self, buffer: Buffer):
+        buffer.new_label("file_size", 4, lambda f, l: (f.seek(l.offset), f.write_uint32(f.size())))
+        buffer.write_uint16(self.header_version)
+        if self.resource_version == 0: # Update resource version if it's 0
+            self.resource_version = 1
+        buffer.write_uint16(self.resource_version)
+        buffer.write_uint32(buffer.tell())

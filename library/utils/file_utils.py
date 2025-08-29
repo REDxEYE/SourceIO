@@ -1,3 +1,4 @@
+from __future__ import annotations
 import abc
 import binascii
 import contextlib
@@ -6,9 +7,11 @@ import os
 import struct
 import sys
 import array
+import typing
+from dataclasses import dataclass, field
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import Optional, Protocol, Union, TypeVar, Type
+from typing import Optional, Protocol, Union, TypeVar, Type, Callable, Any
 
 try:
     from SourceIO.library.utils.tiny_path import TinyPath
@@ -18,10 +21,39 @@ except ImportError:
 NATIVE_LITTLE = "<" if (sys.byteorder == "little") else ">"
 
 
+@dataclass(slots=True)
+class Label:
+    name: str
+    buffer: Buffer
+    offset: int
+    size: int
+    callback: Callable[[Buffer, Label], ...]
+
+    extra_data: dict[str, Any] = field(default_factory=dict)
+
+    def write(self, fmt: str, *value: Any):
+        if self.size < calcsize(fmt):
+            raise BufferError(f"Not enough space left in label '{self.name}' ({self.size} bytes left) to write {fmt}")
+        with self.buffer.read_from_offset(self.offset):
+            size = self.buffer.write_fmt(fmt, *value)
+            self.size -= size
+            self.offset += size
+
+    def __setitem__(self, key: str, value: Any):
+        self.extra_data[key] = value
+
+    def __getitem__(self, key: str) -> Any:
+        return self.extra_data.get(key, None)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.extra_data.get(key, default)
+
+
 class Buffer(abc.ABC, io.RawIOBase):
     def __init__(self):
         io.RawIOBase.__init__(self)
         self._endian = '<'
+        self._labels: list[Label] = []
 
     @contextlib.contextmanager
     def save_current_offset(self):
@@ -72,8 +104,23 @@ class Buffer(abc.ABC, io.RawIOBase):
             return
         self.seek(padding, io.SEEK_CUR)
 
+    def align_pad_to(self, size: int):
+        """Align the current position to the next multiple of `size`."""
+        if not self.writable():
+            raise BufferError("Buffer is not writable.")
+        if size <= 0:
+            raise ValueError("Alignment size must be greater than zero.")
+        current_position = self.tell()
+        padding = (size - (current_position % size)) % size
+        self.seek(padding, io.SEEK_CUR)
+
     def skip(self, size):
         self.seek(size, io.SEEK_CUR)
+
+    @abc.abstractmethod
+    def ro_view(self, offset: int = -1, size: int = -1) -> memoryview:
+        """Create a read-only memoryview of the current buffer's data."""
+        pass
 
     def read_fmt(self, fmt):
         return unpack(self._endian + fmt, self.read(calcsize(self._endian + fmt)))
@@ -121,7 +168,7 @@ class Buffer(abc.ABC, io.RawIOBase):
     def read_array(self, fmt: str, count: int):
         pass
 
-    def read_nt_string(self):
+    def read_nt_string(self, encoding="latin1"):
         buffer = bytearray()
 
         while True:
@@ -136,14 +183,14 @@ class Buffer(abc.ABC, io.RawIOBase):
                 buffer += chunk
             if chunk_end >= 0:
                 self.seek(-(len(chunk) - chunk_end - 1), io.SEEK_CUR)
-                return buffer.decode('latin', errors='replace')
+                return buffer.decode(encoding, errors='replace')
 
-    def read_ascii_string(self, length: Optional[int] = None):
+    def read_ascii_string(self, length: Optional[int] = None, encoding="latin1"):
         if length is not None:
             buffer = self.read(length).strip(b'\x00').rstrip(b'\x00')
             if b'\x00' in buffer:
                 buffer = buffer[:buffer.index(b'\x00')]
-            return buffer.decode('latin', errors='replace')
+            return buffer.decode(encoding, errors='replace')
 
         return self.read_nt_string()
 
@@ -151,52 +198,54 @@ class Buffer(abc.ABC, io.RawIOBase):
         return self.read_ascii_string(4)
 
     def write_fmt(self, fmt: str, *values):
-        self.write(pack(self._endian + fmt, *values))
+        return self.write(pack(self._endian + fmt, *values))
 
     def write_uint64(self, value):
-        self.write_fmt('Q', value)
+        return self.write_fmt('Q', value)
 
     def write_int64(self, value):
-        self.write_fmt('q', value)
+        return self.write_fmt('q', value)
 
     def write_uint32(self, value):
-        self.write_fmt('I', value)
+        return self.write_fmt('I', value)
 
     def write_int32(self, value):
-        self.write_fmt('i', value)
+        return self.write_fmt('i', value)
 
     def write_uint16(self, value):
-        self.write_fmt('H', value)
+        return self.write_fmt('H', value)
 
     def write_int16(self, value):
-        self.write_fmt('h', value)
+        return self.write_fmt('h', value)
 
     def write_uint8(self, value):
-        self.write_fmt('B', value)
+        return self.write_fmt('B', value)
 
     def write_int8(self, value):
-        self.write_fmt('b', value)
+        return self.write_fmt('b', value)
 
     def write_float(self, value):
-        self.write_fmt('f', value)
+        return self.write_fmt('f', value)
 
     def write_double(self, value):
-        self.write_fmt('d', value)
+        return self.write_fmt('d', value)
 
-    def write_ascii_string(self, string, zero_terminated=False, length=-1):
+    def write_ascii_string(self, string, zero_terminated=False, length=-1, encoding="latin1"):
         pos = self.tell()
-        for c in string:
-            self.write(c.encode('ascii'))
+        self.write(string.encode(encoding))
         if zero_terminated:
             self.write(b'\x00')
+            return len(string) + 1
         elif length != -1:
             to_fill = length - (self.tell() - pos)
             if to_fill > 0:
                 for _ in range(to_fill):
                     self.write_uint8(0)
+            return length
+        return len(string)
 
     def write_fourcc(self, fourcc):
-        self.write_ascii_string(fourcc)
+        return self.write_ascii_string(fourcc)
 
     def peek_uint32(self):
         with self.save_current_offset():
@@ -232,6 +281,12 @@ class Buffer(abc.ABC, io.RawIOBase):
             object_list.append(obj)
         return object_list
 
+    def new_label(self, name: str, size: int, callback: Callable[[Buffer, Label], ...] | None = None) -> Label:
+        label = Label(name, self, self.tell(), size, callback)
+        self._labels.append(label)
+        self.write(b'\x00' * size)  # Preallocate space for the label
+        return label
+
 
 class MemoryBuffer(Buffer):
 
@@ -242,6 +297,9 @@ class MemoryBuffer(Buffer):
         self._struct_cache_le: dict[str, struct.Struct] = {}
         self._struct_cache_be: dict[str, struct.Struct] = {}
         self._struct_cache = self._struct_cache_le
+
+    def new_label(self, name: str, size: int, callback: Callable[[Buffer, Label], ...] | None = None) -> Label:
+        raise NotImplementedError("Labels are not supported in MemoryBuffer")
 
     @property
     def data(self) -> memoryview:
@@ -314,6 +372,15 @@ class MemoryBuffer(Buffer):
     def read_half(self):
         return (self._read_struct(self._half_le) if self._endian == "<" else self._read_struct(self._half_be))[0]
 
+    def ro_view(self, offset: int = -1, size: int = -1) -> memoryview:
+        if offset == -1:
+            offset = self._offset
+        if size == -1:
+            size = self.size() - offset
+        if offset < 0 or offset + size > self.size():
+            raise ValueError("Offset and size must be within the bounds of the buffer")
+        return self._buffer[offset:offset + size]
+
     def _read(self, fmt: str):
         return self._read_struct(self._get_struct(fmt))[0]
 
@@ -338,6 +405,10 @@ class MemoryBuffer(Buffer):
         return len(_b)
 
     def read(self, _size: int = -1) -> Optional[bytes]:
+        if self._offset + _size > self.size():
+            raise BufferError(
+                f'Read exceeds buffer size: buffer has {self.remaining()} bytes left, tried to read {_size}')
+
         if _size == -1:
             data = self._buffer[self._offset:]
             self._offset += len(data)
@@ -374,7 +445,7 @@ class MemoryBuffer(Buffer):
     def close(self) -> None:
         self._buffer = None
 
-    def read_nt_string(self):
+    def read_nt_string(self, encoding="latin1"):
         obj = self._buffer.obj
         try:
             end = obj.find(b"\x00", self._offset)
@@ -383,7 +454,7 @@ class MemoryBuffer(Buffer):
         buffer_size = len(self._buffer)
         if end == -1:
             end = buffer_size
-        s = bytes(self._buffer[self._offset:end]).decode("utf8", "replace")
+        s = bytes(self._buffer[self._offset:end]).decode(encoding, "replace")
         self._offset = end + (1 if end < buffer_size else 0)
         return s
 
@@ -441,6 +512,22 @@ class WritableMemoryBuffer(io.BytesIO, Buffer):
             a.byteswap()
         return a
 
+    def ro_view(self, offset: int = -1, size: int = -1) -> memoryview:
+        if offset == -1:
+            offset = self.tell()
+        if size == -1:
+            size = self.size() - offset
+        if offset < 0 or offset + size > self.size():
+            raise ValueError("Offset and size must be within the bounds of the buffer")
+        return self.getbuffer()[offset:offset + size]
+
+    def __del__(self):
+        for label in self._labels:
+            if label.callback is not None:
+                label.callback(self, label)
+        self._labels.clear()
+        self.close()
+
 
 class FileBuffer(io.FileIO, Buffer):
 
@@ -450,6 +537,13 @@ class FileBuffer(io.FileIO, Buffer):
         Buffer.__init__(self)
         self._cached_size = None
         self._is_read_only = mode == "r" or mode == "rb"
+
+    def close(self):
+        for label in self._labels:
+            if label.callback is not None:
+                label.callback(self, label)
+        self._labels.clear()
+        super().close()
 
     def size(self):
         if self._is_read_only:
@@ -480,6 +574,18 @@ class FileBuffer(io.FileIO, Buffer):
             a.byteswap()
         return a
 
+    def ro_view(self, offset: int = -1, size: int = -1) -> memoryview:
+        """Not very efficient; reads data into bytes first, but there is nothing else you can do with simple file objects."""
+        if offset == -1:
+            offset = self.tell()
+        if size == -1:
+            size = self.size() - offset
+        if offset < 0 or offset + size > self.size():
+            raise ValueError("Offset and size must be within the bounds of the buffer")
+        with self.save_current_offset():
+            self.seek(offset)
+            return memoryview(self.read(size))
+
     def __str__(self) -> str:
         return f'<FileBuffer: {self.name!r} {self.tell()}/{self.size()}>'
 
@@ -499,14 +605,13 @@ class MMapBuffer(MemoryBuffer):
         fd = os.open(os.fspath(path), os.O_RDONLY)
         mm = mmap.mmap(fd, 0, access=mmap.ACCESS_READ)
         os.close(fd)
-        super().__init__(mm)
+        super().__init__(typing.cast(memoryview,mm))
         self._mm = mm
 
     def close(self):
         if self._mm is not None:
             self._mm.close()
             self._mm = None
-
 
 
 class MemorySlice(MemoryBuffer):
@@ -527,4 +632,5 @@ class Readable(Protocol):
         ...
 
 
-__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'MMapBuffer', 'MemorySlice', 'Readable']
+__all__ = ['Buffer', 'MemoryBuffer', 'WritableMemoryBuffer', 'FileBuffer', 'MMapBuffer', 'MemorySlice', 'Readable',
+           'Label']

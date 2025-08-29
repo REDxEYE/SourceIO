@@ -8,6 +8,11 @@ from SourceIO.library.source2.blocks.kv3_block import custom_type_kvblock
 
 class CompiledModelResource(CompiledResource):
 
+
+
+    def get_data_block_type(self):
+        return custom_type_kvblock("PermModelData_t")
+
     def get_name(self):
         data = self.get_block(custom_type_kvblock("PermModelData_t"), block_id=DATA_BLOCK)
         return data['m_name']

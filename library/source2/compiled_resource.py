@@ -10,7 +10,6 @@ from SourceIO.library.source2.blocks.resource_introspection_manifest.manifest im
 from SourceIO.library.source2.compiled_file_header import CompiledHeader, BlockInfo
 from SourceIO.library.source2.utils.ntro_reader import NTROBuffer
 from SourceIO.library.utils import Buffer, MemoryBuffer, TinyPath
-from SourceIO.library.utils.perf_sampler import timed
 
 CompiledResourceT = TypeVar("CompiledResourceT", bound="CompiledResource")
 BlockT = TypeVar("BlockT", bound="BaseBlock")
@@ -29,11 +28,13 @@ class CompiledResource:
     def name(self):
         return self._filepath.stem
 
+    def get_data_block_type(self):
+        return None
 
     def _get_block(self, block_class: Type[BlockT] | None, info_block: BlockInfo) -> BlockT | None:
         from SourceIO.library.source2.blocks.all_blocks import guess_block_type
         self._buffer.seek(info_block.absolute_offset)
-        block_class = block_class or guess_block_type(info_block.name)
+        block_class = block_class or (self.get_data_block_type() if info_block.name=="DATA" else None) or guess_block_type(info_block.name)
         if block_class is None:
             warnings.warn(f"Block of type {info_block.name} is not supported")
             return None
@@ -70,9 +71,13 @@ class CompiledResource:
             self._blocks[block_id] = data_block
             return data_block
         elif block_name is not None:
-            for block in self._header.blocks:
+            for block_id, block in enumerate(self._header.blocks):
                 if block.name == block_name:
-                    return self._get_block(block_class, block)
+                    if data_block := self._blocks.get(block_id):
+                        return data_block
+                    block = self._get_block(block_class, block)
+                    self._blocks[block_id] = block
+                    return block
             return None
         else:
             raise ValueError("Either block_id or block_name must be provided")
@@ -92,13 +97,6 @@ class CompiledResource:
             if block.name == block_name:
                 return True
         return False
-
-    @classmethod
-
-    def from_buffer(cls, buffer: Buffer, filename: TinyPath):
-        inmemory_buffer = MemoryBuffer(buffer.read())
-        header = CompiledHeader.from_buffer(inmemory_buffer)
-        return cls(inmemory_buffer, filename, header)
 
     def has_child_resource(self, name_or_id: str | int, cm: ContentManager):
         resource_path = self.get_child_resource_path(name_or_id)
@@ -138,3 +136,44 @@ class CompiledResource:
             path = TinyPath(dep.name)
             deps.append(path.with_suffix(path.suffix + "_c"))
         return deps
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, filename: TinyPath):
+        inmemory_buffer = MemoryBuffer(buffer.read())
+        header = CompiledHeader.from_buffer(inmemory_buffer)
+        return cls(inmemory_buffer, filename, header)
+
+    def to_buffer(self, buffer: Buffer):
+        self._header.to_buffer(buffer)
+
+        blocks_to_write = []
+        for block in self._blocks.values():
+            if isinstance(block, ResourceIntrospectionManifest): # Drop NTRO since it's very legacy and not supported rn
+                continue
+            blocks_to_write.append(block)
+
+
+        buffer.write_uint32(len(blocks_to_write))
+        block_labels = []
+        for block in blocks_to_write:
+            block_name = block.custom_name or block.__class__.__name__
+            label = buffer.new_label(f"{block_name} info", 12, None)
+            label["block_name"] = block_name
+            label["offset"] = buffer.tell()-8
+            block_labels.append(label)
+        buffer.seek(12, 1)
+
+        for block, label in zip(blocks_to_write, block_labels):
+            if block is None:
+                continue
+            start = buffer.tell()
+            label["offset"] = start - label["offset"]
+            try:
+                block.to_buffer(buffer)
+            except NotImplementedError:
+                warnings.warn(f"Block {label['block_name']} does not support serialization, skipping.")
+            label["size"] = buffer.tell() - start
+
+        for label in block_labels:
+            label.write("4s", label["block_name"].encode('ascii'))
+            label.write("II", label["offset"], label["size"])

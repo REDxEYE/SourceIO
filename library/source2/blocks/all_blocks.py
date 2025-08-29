@@ -50,6 +50,8 @@ def guess_block_type(name) -> Type[BaseBlock]:
         return VertexIndexBuffer
     elif name == 'VBIB':
         return VertexIndexBuffer
+    elif name == 'TBUF':
+        return VertexIndexBuffer
     elif name == 'MVTX':
         return BinaryBlob
     elif name == "MIDX":

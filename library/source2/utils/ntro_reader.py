@@ -133,7 +133,7 @@ class ResourceIntrospectionInfo:
             KeyValueDataType.UINTEGER: KV3Type.UINT32,
             KeyValueDataType.INT64: KV3Type.INT64,
             KeyValueDataType.UINT64: KV3Type.UINT64,
-            KeyValueDataType.FLOAT: KV3Type.DOUBLE,
+            KeyValueDataType.FLOAT: KV3Type.FLOAT,
 
             KeyValueDataType.VECTOR2: KV3Type.ARRAY_TYPED,
             KeyValueDataType.VECTOR3: KV3Type.ARRAY_TYPED,
