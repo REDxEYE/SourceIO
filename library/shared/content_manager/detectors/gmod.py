@@ -11,20 +11,24 @@ from SourceIO.library.utils import backwalk_file_resolver, TinyPath
 
 class GModDetector(Source1Detector):
 
-
     @classmethod
     def game(cls) -> str:
         return "Garry's Mod"
 
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        gmod_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         gmod_dir = backwalk_file_resolver(path, 'garrysmod/dupes')
         if gmod_dir is not None:
-            gmod_root = gmod_dir.parent
+            return gmod_dir.parent
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        gmod_root = cls.find_game_root(path)
         if gmod_root is None:
             return None, None
-        gmod_dir = gmod_dir.parent
+        gmod_dir = gmod_root / 'garrysmod'
+
         providers = {}
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:

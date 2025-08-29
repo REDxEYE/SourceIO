@@ -13,13 +13,16 @@ class Left4DeadDetector(Source1Detector):
     def game(cls) -> str:
         return "Left 4 Dead"
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        l4d_exe = backwalk_file_resolver(path, 'left4dead.exe')
+        if l4d_exe is not None:
+            return l4d_exe.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
-        game_exe = backwalk_file_resolver(path, 'left4dead.exe')
-        if game_exe is not None:
-            game_root = game_exe.parent
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
         providers = set()
@@ -32,10 +35,10 @@ class Left4DeadDetector(Source1Detector):
                     continue
             cls.add_provider(VPKContentProvider(vpk_path), providers)
 
-        portal2_mod_gi_path = game_root / "left4dead/gameinfo.txt"
-        if initial_mod_gi_path != portal2_mod_gi_path:
-            cls.add_provider(Source1GameInfoProvider(portal2_mod_gi_path), providers)
-        for vpk_path in portal2_mod_gi_path.parent.glob("*.vpk"):
+        mod_gi_path = game_root / "left4dead/gameinfo.txt"
+        if initial_mod_gi_path != mod_gi_path:
+            cls.add_provider(Source1GameInfoProvider(mod_gi_path), providers)
+        for vpk_path in mod_gi_path.parent.glob("*.vpk"):
             with vpk_path.open("rb") as f:
                 if f.read(4) != b"\x34\x12\xAA\x55":
                     continue

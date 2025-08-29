@@ -20,6 +20,14 @@ class Source1Detector(ContentDetector):
     def game(cls) -> str:
         return 'Source 1 Engine game'
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        is_source = backwalk_file_resolver(path, 'platform') and backwalk_file_resolver(path, 'bin')
+        if is_source:
+            backup_root_path = backwalk_file_resolver(path, 'platform') or backwalk_file_resolver(path, 'bin')
+            if backup_root_path is not None:
+                return backup_root_path.parent
+        return None
 
     @classmethod
     def scan_for_vpk(cls, root_dir: TinyPath, content_providers: dict[str, ContentProvider]):

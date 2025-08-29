@@ -12,13 +12,16 @@ class VampireDetector(Source1Detector):
     def game(cls) -> str:
         return 'Vampire: The Masquerade - Bloodlines'
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        game_exe = backwalk_file_resolver(path, r'dlls/vampire.dll')
+        if game_exe is not None:
+            return game_exe.parent.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
-        game_exe = backwalk_file_resolver(path, r'dlls/vampire.dll')
-        if game_exe is not None:
-            game_root = game_exe.parent.parent
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
         content_providers = set()

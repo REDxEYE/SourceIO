@@ -12,13 +12,16 @@ class VindictusDetector(Source1Detector):
     def game(cls) -> str:
         return 'Vindictus'
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        game_exe = backwalk_file_resolver(path, 'Vindictus.exe')
+        if game_exe is not None:
+            return game_exe.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
-        game_exe = backwalk_file_resolver(path, 'Vindictus.exe')
-        if game_exe is not None:
-            game_root = game_exe.parent
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
         hfs_provider = HFS2ContentProvider(game_root / 'hfs')

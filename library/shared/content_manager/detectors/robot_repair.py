@@ -13,13 +13,16 @@ class RobotRepairDetector(Source2Detector):
     def game(cls) -> str:
         return "Robot Repair"
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        p2imp_folder = backwalk_file_resolver(path, 'portal2_imported')
+        if p2imp_folder is not None:
+            return p2imp_folder.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
-        p2imp_folder = backwalk_file_resolver(path, 'portal2_imported')
-        if p2imp_folder is not None:
-            game_root = p2imp_folder.parent
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
         providers = set()

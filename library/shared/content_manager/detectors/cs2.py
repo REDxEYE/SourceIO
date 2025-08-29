@@ -14,11 +14,15 @@ class CS2Detector(Source2Detector):
         return "Counter-Strike 2"
 
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         cs2_client_dll = backwalk_file_resolver(path, r'game\bin\win64\cs2.exe')
         if cs2_client_dll is not None:
-            game_root = cs2_client_dll.parent.parent.parent
+            return cs2_client_dll.parent.parent.parent
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
         providers = set()

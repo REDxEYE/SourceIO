@@ -17,6 +17,12 @@ class Portal2Detector(Source1Detector):
     def game(cls) -> str:
         return "Portal 2"
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        portal2_exe = backwalk_file_resolver(path, 'portal2.exe')
+        if portal2_exe is not None:
+            return portal2_exe.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:

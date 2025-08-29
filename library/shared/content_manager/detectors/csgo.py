@@ -15,11 +15,15 @@ class CSGODetector(Source1Detector):
         return "Counter-Strike: Global Offensive"
 
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         csgo_client_dll = backwalk_file_resolver(path, 'csgo.exe')
         if csgo_client_dll is not None:
-            game_root = csgo_client_dll.parent
+            return csgo_client_dll.parent
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
         providers = {}

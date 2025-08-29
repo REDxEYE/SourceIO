@@ -14,11 +14,15 @@ class DeadlockDetector(Source2Detector):
         return "Deadlock"
 
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        game_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         deadlock_folder = backwalk_file_resolver(path, 'citadel')
         if deadlock_folder is not None:
-            game_root = deadlock_folder.parent
+            return deadlock_folder.parent
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
 

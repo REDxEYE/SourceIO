@@ -14,11 +14,15 @@ class InfraDetector(Source1Detector):
         return "Infra"
 
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        infra_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         infra_exe = backwalk_file_resolver(path, 'infra.exe')
         if infra_exe is not None:
-            infra_root = infra_exe.parent
+            return infra_exe.parent
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        infra_root = cls.find_game_root(path)
         if infra_root is None:
             return None, None
         providers = set()

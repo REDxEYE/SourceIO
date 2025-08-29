@@ -13,10 +13,13 @@ class IDTech3Detector(Source1Detector):
     def game(cls) -> str:
         return 'idtech3 game'
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        return backwalk_file_resolver(path, 'base')
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        base_dir = backwalk_file_resolver(path, 'base')
+        base_dir = cls.find_game_root(path)
         if base_dir is None:
             return None, None
         providers = set()

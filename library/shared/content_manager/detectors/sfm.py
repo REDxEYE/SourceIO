@@ -13,13 +13,16 @@ class SFMDetector(Source1Detector):
     def game(cls) -> str:
         return "Source Filmmaker"
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        sfm_exe = backwalk_file_resolver(path, "sfm.exe")
+        if sfm_exe is not None:
+            return sfm_exe.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        sfm_root = None
-        sfm_exe = backwalk_file_resolver(path, "sfm.exe")
-        if sfm_exe is not None:
-            sfm_root = sfm_exe.parent
+        sfm_root = cls.find_game_root(path)
         if sfm_root is None:
             return None, None
         providers = {}

@@ -13,13 +13,16 @@ class SBoxDetector(Source2Detector):
     def game(cls) -> str:
         return 'S&Box'
 
+    @classmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        sbox_exe = backwalk_file_resolver(path, 'sbox.exe')
+        if sbox_exe is not None:
+            return sbox_exe.parent
+        return None
 
     @classmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        sbox_root = None
-        sbox_exe = backwalk_file_resolver(path, 'sbox.exe')
-        if sbox_exe is not None:
-            sbox_root = sbox_exe.parent
+        sbox_root = cls.find_game_root(path)
         if sbox_root is None:
             return None, None
         providers = {}

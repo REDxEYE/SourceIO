@@ -15,6 +15,11 @@ class ContentDetector(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
+        raise NotImplementedError("Implement me")
+
+    @classmethod
+    @abc.abstractmethod
     def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
         raise NotImplementedError("Implement me")
 

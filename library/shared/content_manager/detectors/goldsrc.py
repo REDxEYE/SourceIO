@@ -15,11 +15,15 @@ class GoldSrcDetector(ContentDetector):
         return "Half-Life"
 
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        hl_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         hl_exe = backwalk_file_resolver(path, 'hl.exe')
         if hl_exe is not None:
-            hl_root = hl_exe.parent
+            return hl_exe.parent
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        hl_root = cls.find_game_root(path)
         if hl_root is None:
             return None, None
         mod_name = path.relative_to(hl_root).parts[0]

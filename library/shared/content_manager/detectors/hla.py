@@ -14,16 +14,19 @@ class HLADetector(Source2Detector):
     def game(cls) -> str:
         return 'Half-Life: Alyx'
 
-
     @classmethod
-    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
-        hla_root = None
+    def find_game_root(cls, path: TinyPath) -> TinyPath | None:
         hlvr_folder = backwalk_file_resolver(path, 'hlvr')
         if hlvr_folder is not None:
             hla_root = hlvr_folder.parent
+            if (hla_root / 'hlvr_addons').exists():
+                return hla_root
+        return None
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
+        hla_root = cls.find_game_root(path)
         if hla_root is None:
-            return None, None
-        if not (hla_root / 'hlvr_addons').exists():
             return None, None
 
         providers = set()
