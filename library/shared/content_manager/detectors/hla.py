@@ -1,3 +1,5 @@
+from typing import Collection
+
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.detectors.source2 import Source2Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
@@ -9,17 +11,22 @@ from SourceIO.library.utils import backwalk_file_resolver, TinyPath
 class HLADetector(Source2Detector):
 
     @classmethod
-    def scan(cls, path: TinyPath) -> list[ContentProvider]:
+    def game(cls) -> str:
+        return 'Half-Life: Alyx'
+
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
         hla_root = None
         hlvr_folder = backwalk_file_resolver(path, 'hlvr')
         if hlvr_folder is not None:
             hla_root = hlvr_folder.parent
         if hla_root is None:
-            return []
+            return None, None
         if not (hla_root / 'hlvr_addons').exists():
-            return []
+            return None, None
 
-        providers = {}
+        providers = set()
 
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.gi")
         if initial_mod_gi_path is not None:
@@ -32,4 +39,4 @@ class HLADetector(Source2Detector):
             if folder.stem.startswith('.') or folder.is_file():
                 continue
             cls.add_provider(LooseFilesContentProvider(folder, SteamAppId.HALF_LIFE_ALYX), providers)
-        return list(providers.values())
+        return providers, hla_root

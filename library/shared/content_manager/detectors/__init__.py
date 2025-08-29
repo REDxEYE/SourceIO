@@ -1,3 +1,4 @@
+from SourceIO.library.shared.content_manager.detectors.content_detector import ContentDetector
 from SourceIO.library.shared.content_manager.detectors.cs2 import CS2Detector
 from SourceIO.library.shared.content_manager.detectors.csgo import CSGODetector
 from SourceIO.library.shared.content_manager.detectors.deadlock import DeadlockDetector
@@ -20,18 +21,23 @@ from SourceIO.library.shared.content_manager.detectors.vindictus import Vindictu
 from SourceIO.library.shared.content_manager.detectors.vampire import VampireDetector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.logger import SourceLogMan
 
+log_manager = SourceLogMan()
+logger = log_manager.get_logger('game_detector')
 
-def detect_game(path: TinyPath) -> list[ContentProvider]:
-    detector_addons = [GoldSrcDetector(),
+def detect_game(path: TinyPath) -> set[ContentProvider]:
+    detector_addons:list[ContentDetector] = [GoldSrcDetector(),
                        SFMDetector(), GModDetector(), InfraDetector(), Left4DeadDetector(), Portal2Detector(),
                        Portal2RevolutionDetector(), SourceMod(), CSGODetector(),
                        # VindictusDetector(), TitanfallDetector(),
                        SBoxDetector(), CS2Detector(), HLADetector(), RobotRepairDetector(),
                        DeadlockDetector(), Source1Detector(), Source2Detector(), IDTech3Detector(),
                        VampireDetector()]
-
+    content_providers = set()
     for detector in detector_addons:
-        results = detector.scan(path)
+        results, root_path = detector.scan(path)
         if results:
-            return results
+            logger.info(f"Detected {detector.game()} game: {root_path}")
+            content_providers.update(results)
+    return content_providers or None

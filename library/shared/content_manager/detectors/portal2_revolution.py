@@ -1,3 +1,5 @@
+from typing import Collection
+
 from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
@@ -10,14 +12,20 @@ logger = log_manager.get_logger('Portal2RevolutionDetector')
 
 
 class Portal2RevolutionDetector(Source1Detector):
+
     @classmethod
-    def scan(cls, path: TinyPath) -> list[ContentProvider]:
+    def game(cls) -> str:
+        return "Portal 2 Revolution"
+
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
         portal2_root = None
         portal2_exe = backwalk_file_resolver(path, r'bin\win64\revolution.exe')
         if portal2_exe is not None:
             portal2_root = portal2_exe.parent.parent.parent
         if portal2_root is None:
-            return []
+            return None, None
         providers = {}
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
@@ -38,4 +46,4 @@ class Portal2RevolutionDetector(Source1Detector):
             cls.add_provider(VPKContentProvider(vpk_path), providers)
 
         cls.register_common(portal2_root, providers)
-        return list(providers.values())
+        return providers, portal2_root

@@ -1,24 +1,27 @@
+from typing import Collection
+
 from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from SourceIO.library.utils import backwalk_file_resolver, TinyPath
-from SourceIO.logger import SourceLogMan
-
-log_manager = SourceLogMan()
-logger = log_manager.get_logger('InfraDetector')
 
 
 class InfraDetector(Source1Detector):
+
     @classmethod
-    def scan(cls, path: TinyPath) -> list[ContentProvider]:
+    def game(cls) -> str:
+        return "Infra"
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
         infra_root = None
         infra_exe = backwalk_file_resolver(path, 'infra.exe')
         if infra_exe is not None:
             infra_root = infra_exe.parent
         if infra_root is None:
-            return []
-        providers = {}
+            return None, None
+        providers = set()
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
             cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
@@ -38,4 +41,4 @@ class InfraDetector(Source1Detector):
             cls.add_provider(VPKContentProvider(vpk_path), providers)
 
         cls.register_common(infra_root, providers)
-        return list(providers.values())
+        return providers, infra_root

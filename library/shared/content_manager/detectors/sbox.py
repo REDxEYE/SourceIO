@@ -1,19 +1,27 @@
+from typing import Collection
+
 from SourceIO.library.shared.content_manager.detectors.source2 import Source2Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
-from SourceIO.library.shared.content_manager.providers.sbox_content_provider import SBoxAddonProvider, SBoxDownloadsProvider
+from SourceIO.library.shared.content_manager.providers.sbox_content_provider import SBoxAddonProvider, \
+    SBoxDownloadsProvider
 from SourceIO.library.utils import backwalk_file_resolver, TinyPath
 
 
 class SBoxDetector(Source2Detector):
 
     @classmethod
-    def scan(cls, path: TinyPath) -> list[ContentProvider]:
+    def game(cls) -> str:
+        return 'S&Box'
+
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
         sbox_root = None
         sbox_exe = backwalk_file_resolver(path, 'sbox.exe')
         if sbox_exe is not None:
             sbox_root = sbox_exe.parent
         if sbox_root is None:
-            return []
+            return None, None
         providers = {}
         for folder in (sbox_root / 'addons').iterdir():
             if folder.stem.startswith('.'):
@@ -30,4 +38,4 @@ class SBoxDetector(Source2Detector):
                 for addon in folder.iterdir():
                     for version in addon.iterdir():
                         cls.add_provider(SBoxDownloadsProvider(version), providers)
-        return list(providers.values())
+        return providers, sbox_root

@@ -1,3 +1,5 @@
+from typing import Collection
+
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager.detectors.source1 import Source1Detector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
@@ -9,13 +11,17 @@ from SourceIO.library.utils import backwalk_file_resolver, TinyPath
 class CSGODetector(Source1Detector):
 
     @classmethod
-    def scan(cls, path: TinyPath) -> list[ContentProvider]:
+    def game(cls)->str:
+        return "Counter-Strike: Global Offensive"
+
+    @classmethod
+    def scan(cls, path: TinyPath) -> tuple[Collection[ContentProvider] | None, TinyPath | None]:
         game_root = None
-        csgo_client_dll = backwalk_file_resolver(path, r'csgo.exe')
+        csgo_client_dll = backwalk_file_resolver(path, 'csgo.exe')
         if csgo_client_dll is not None:
             game_root = csgo_client_dll.parent
         if game_root is None:
-            return []
+            return None, None
         providers = {}
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
@@ -28,4 +34,4 @@ class CSGODetector(Source1Detector):
                 cls.add_provider(VPKContentProvider(vpk, SteamAppId.COUNTER_STRIKE_GO), providers)
 
             cls.add_provider(Source1GameInfoProvider(user_mod_gi_path), providers)
-        return list(providers.values())
+        return providers, game_root
