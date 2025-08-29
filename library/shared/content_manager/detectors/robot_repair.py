@@ -30,7 +30,4 @@ class RobotRepairDetector(Source2Detector):
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.gi")
         if initial_mod_gi_path is not None:
             cls.add_provider(Source2GameInfoProvider(initial_mod_gi_path, SteamAppId.ROBOT_REPAIR), providers)
-        user_mod_gi_path = game_root / "csgo/gameinfo.gi"
-        if initial_mod_gi_path != user_mod_gi_path:
-            cls.add_provider(Source2GameInfoProvider(user_mod_gi_path, SteamAppId.ROBOT_REPAIR), providers)
         return providers, game_root
