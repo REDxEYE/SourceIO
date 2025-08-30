@@ -74,3 +74,8 @@ class TextureData(BaseBlock):
                             extra_data[extra_type] = extra_buffer
 
         return cls(texture_info, extra_data)
+
+    def to_buffer(self, buffer: Buffer) -> None:
+        raise NotImplementedError('TextureData.to_buffer is not implemented yet')
+        # self.texture_info.to_buffer(buffer)
+
