@@ -26,7 +26,7 @@ class CSGODetector(Source1Detector):
         game_root = cls.find_game_root(path)
         if game_root is None:
             return None, None
-        providers = {}
+        providers = set()
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
             for vpk in initial_mod_gi_path.glob("*_dir.vpk"):

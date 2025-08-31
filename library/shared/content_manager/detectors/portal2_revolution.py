@@ -29,7 +29,7 @@ class Portal2RevolutionDetector(Source1Detector):
         portal2_root = cls.find_game_root(path)
         if portal2_root is None:
             return None, None
-        providers = {}
+        providers = set()
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
             cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)

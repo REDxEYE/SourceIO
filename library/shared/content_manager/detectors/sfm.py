@@ -5,7 +5,10 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
 from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider import Source1GameInfoProvider
 from SourceIO.library.utils import backwalk_file_resolver, TinyPath
+from SourceIO.logger import SourceLogMan
 
+log_manager = SourceLogMan()
+logger = log_manager.get_logger('SFMDetector')
 
 class SFMDetector(Source1Detector):
 
@@ -25,7 +28,7 @@ class SFMDetector(Source1Detector):
         sfm_root = cls.find_game_root(path)
         if sfm_root is None:
             return None, None
-        providers = {}
+        providers = set()
 
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:

@@ -25,7 +25,7 @@ class SBoxDetector(Source2Detector):
         sbox_root = cls.find_game_root(path)
         if sbox_root is None:
             return None, None
-        providers = {}
+        providers = set()
         for folder in (sbox_root / 'addons').iterdir():
             if folder.stem.startswith('.'):
                 continue

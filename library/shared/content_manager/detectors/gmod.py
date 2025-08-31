@@ -29,7 +29,7 @@ class GModDetector(Source1Detector):
             return None, None
         gmod_dir = gmod_root / 'garrysmod'
 
-        providers = {}
+        providers = set()
         initial_mod_gi_path = backwalk_file_resolver(path, "gameinfo.txt")
         if initial_mod_gi_path is not None:
             cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
