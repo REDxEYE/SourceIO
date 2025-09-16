@@ -3,8 +3,6 @@ import math
 import bpy
 from mathutils import Euler
 
-from .....library.source1.bsp.bsp_file import BSPFile
-from .....library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from .base_entity_handler import BaseEntityHandler
 from .tf_entity_classes import dispenser_touch_trigger
 from .tf_entity_classes import entity_class_handle as tf2_entity_handlers

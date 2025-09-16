@@ -402,6 +402,8 @@ class BaseEntityHandler(AbstractEntityHandler):
         light.cycles.use_multiple_importance_sampling = True
         light.color = color
         light.energy = brightness * scale * self.light_power_multiplier * self.scale * self.light_scale
+        light.shadow_soft_size = 52.49343832020997 * self.scale
+
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
         self._set_location(obj, entity.origin)
@@ -675,7 +677,7 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         # start/end in world scale
         point_start = (*location_start, 1)
-        point_end   = (*location_end,   1)
+        point_end = (*location_end, 1)
 
         # compute midpoint and drop it by slack (in world units)
         mid_vec = list(lerp_vec(point_start, point_end, 0.5))
@@ -710,7 +712,8 @@ class BaseEntityHandler(AbstractEntityHandler):
         top_parent_raw = entity_raw
         visited = set()
         while True:
-            parent = next((e for e in self._entites if e.get('target', None) == top_parent.targetname and e['classname'] == 'path_track'), None)
+            parent = next((e for e in self._entites if
+                           e.get('target', None) == top_parent.targetname and e['classname'] == 'path_track'), None)
             if parent and parent['targetname'] not in visited:
                 visited.add(parent['targetname'])
                 top_parent, top_parent_raw = self._get_entity_by_name(parent['targetname'])
@@ -777,7 +780,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             ]
             scaled_origin = origin * self.scale
             for direction in ray_directions:
-                hit, location, normal, _ = world_geometry_eval.ray_cast(scaled_origin, direction, distance=closest_distance, depsgraph=depsgraph)
+                hit, location, normal, _ = world_geometry_eval.ray_cast(scaled_origin, direction,
+                                                                        distance=closest_distance, depsgraph=depsgraph)
                 if hit:
                     distance = (scaled_origin - location).length
                     if distance < closest_distance:

@@ -96,7 +96,7 @@ class Portal2EntityHandler(PortalEntityHandler):
         color, brightness = srgb_to_linear(entity.lightcolor)
 
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
-        light.cycles.use_multiple_importance_sampling = False
+        light.cycles.use_multiple_importance_sampling = True
         light.color = color
         light.energy = brightness * self.light_power_multiplier * self.scale * self.light_scale
         light.spot_size = 2 * math.radians(entity.lightfov)
