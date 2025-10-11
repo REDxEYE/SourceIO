@@ -263,7 +263,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
             elif path.endswith('.txt'):
                 try:
                     provider = Source1GameInfoProvider(t_path)
-                except ValueError as ex:
+                except (ValueError, FileNotFoundError) as ex:
                     logger.exception(f"Failed to parse gameinfo for {t_path}", ex)
                     continue
                 if provider not in self.children:
