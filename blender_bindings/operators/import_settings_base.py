@@ -40,3 +40,14 @@ class ModelOptions(SharedOptions, Source1SharedSettings):
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
+
+
+    @classmethod
+    def default(cls):
+        defaults = cls()
+        #Collect annotation from MRO and set default values
+        for base in reversed(cls.__mro__):
+            if hasattr(base, '__annotations__'):
+                for key, prop in base.__annotations__.items():
+                    setattr(defaults, key, prop.keywords['default'])
+        return defaults
