@@ -1,1 +1,1 @@
-from SourceIO.library.source1.bsp.lump import Lump, LumpInfo, LumpTag, lump_tag
+from SourceIO.library.source1.bsp.lump import Lump, ValveLumpInfo, LumpTag, lump_tag

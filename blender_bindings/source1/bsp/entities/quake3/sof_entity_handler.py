@@ -1,22 +1,21 @@
 import re
 from typing import Optional
 
-import bmesh
 import bpy
 import numpy as np
 from mathutils import Vector, geometry
 
-from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
-from .abstract_entity_handlers import _srgb2lin
-from .base_entity_classes import *
-from .base_entity_handler import BaseEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.quake3.quake3_entity_handler import QuakeEntityHandler, \
+    _tessellate_face_patch
+from SourceIO.blender_bindings.source1.bsp.entities.abstract_entity_handlers import _srgb2lin
+from SourceIO.blender_bindings.source1.bsp.entities.base_entity_classes import *
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
-from SourceIO.library.source1.bsp.datatypes.plane import RavenPlane
-from SourceIO.library.source1.bsp.lumps import RavenModelLump, RavenFaceLump, VertexLump, ShadersLump, RavenBrushLump, \
-    RavenBrushSidesLump
-from SourceIO.library.source1.bsp.lumps.plane_lump import RavenPlaneLump
-from SourceIO.library.source1.bsp.lumps.surf_edge_lump import RavenIndicesLump
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.source1.bsp.bsp_file import RavenBSPFile, IBSPFile
+from SourceIO.library.source1.bsp.datatypes.model import QuakeBspModel
+from SourceIO.library.source1.bsp.datatypes.plane import Quake3Plane
+from SourceIO.library.source1.bsp.lumps import RavenFaceLump, VertexLump, ShadersLump
+from SourceIO.library.source1.bsp.lumps.surf_edge_lump import Quake3IndicesLump
 from SourceIO.library.utils.math_utilities import ensure_length, SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.logger import SourceLogMan
@@ -39,7 +38,7 @@ def srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
     return final_color, scale
 
 
-def plane_to_point_normal(plane: RavenPlane):
+def plane_to_point_normal(plane: Quake3Plane):
     """Convert plane normal and dist to a point on the plane and its normal vector."""
     return Vector(plane.normal).normalized() * plane.dist, Vector(plane.normal)
 
@@ -77,8 +76,9 @@ def compute_brush_geometry(planes):
     return unique_vertices
 
 
-class SOFEntityHandler(BaseEntityHandler):
-    entity_lookup_table = {
+class RavenQ3EntityHandler(QuakeEntityHandler):
+    entity_lookup_table = QuakeEntityHandler.entity_lookup_table.copy()
+    entity_lookup_table.update({
         "worldspawn": Base,
         "pickup_ammo_556": Base,
         "pickup_ammo_9mm": Base,
@@ -111,12 +111,13 @@ class SOFEntityHandler(BaseEntityHandler):
         "trigger_hurt": Base,
         "light": Base,
         "misc_model": Base,
-    }
+    })
     light_power_multiplier = 100
 
-    def __init__(self, bsp_file: BSPFile, parent_collection, world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS,
+    def __init__(self, bsp_file: RavenBSPFile, content_manager: ContentManager,
+                 parent_collection, world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS,
                  light_scale: float = 1.0):
-        super().__init__(bsp_file, parent_collection, world_scale, light_scale)
+        super().__init__(bsp_file, content_manager, parent_collection, world_scale, light_scale)
         for name in ["pickup_ammo_556",
                      "pickup_ammo_9mm",
                      "pickup_ammo_45",
@@ -227,109 +228,96 @@ class SOFEntityHandler(BaseEntityHandler):
             self._set_rotation(obj, parse_float_vector(entity_raw.get("angles", "0 0 0")))
         self._put_into_collection('misc_model', obj, 'props')
 
-    def _load_brush_model(self, model_id, model_name):
-        bsp = self._bsp
-        models_lump: Optional[RavenModelLump] = bsp.get_lump("LUMP_MODELS")
-        faces_lump: Optional[RavenFaceLump] = bsp.get_lump("LUMP_FACES")
-        vertices_lump: Optional[VertexLump] = bsp.get_lump("LUMP_DRAWVERTS")
-        indices_lump: Optional[RavenIndicesLump] = bsp.get_lump("LUMP_DRAWINDEXES")
-        brushes_lump: Optional[RavenBrushLump] = bsp.get_lump("LUMP_BRUSHES")
-        brush_sides_lump: Optional[RavenBrushSidesLump] = bsp.get_lump("LUMP_BRUSHSIDES")
-        planes_lump: Optional[RavenPlaneLump] = bsp.get_lump("LUMP_PLANES")
-        shaders_lump: Optional[ShadersLump] = bsp.get_lump("LUMP_SHADERS")
-        if not all((faces_lump, vertices_lump, indices_lump, indices_lump,
-                    brushes_lump, brush_sides_lump, planes_lump)):
-            self.logger.warn("No LUMP_MODELS or LUMP_FACES found!")
-            return None
-        model = models_lump.models[model_id]
+    # def _load_brush_model(self, model_id, model_name):
+    #     bsp = self._bsp
+    #     models_lump: Optional[Quake3ModelLump] = bsp.get_lump("LUMP_MODELS")
+    #     faces_lump: Optional[RavenFaceLump] = bsp.get_lump("LUMP_FACES")
+    #     vertices_lump: Optional[VertexLump] = bsp.get_lump("LUMP_DRAWVERTS")
+    #     indices_lump: Optional[Quake3IndicesLump] = bsp.get_lump("LUMP_DRAWINDEXES")
+    #     brushes_lump: Optional[Quake3BrushLump] = bsp.get_lump("LUMP_BRUSHES")
+    #     brush_sides_lump: Optional[RavenBrushSidesLump] = bsp.get_lump("LUMP_BRUSHSIDES")
+    #     planes_lump: Optional[Quake3PlaneLump] = bsp.get_lump("LUMP_PLANES")
+    #     shaders_lump: Optional[ShadersLump] = bsp.get_lump("LUMP_SHADERS")
+    #     if not all((faces_lump, vertices_lump, indices_lump, indices_lump,
+    #                 brushes_lump, brush_sides_lump, planes_lump)):
+    #         self.logger.warn("No LUMP_MODELS or LUMP_FACES found!")
+    #         return None
+    #     model = models_lump.models[model_id]
+    #     unique_materials = []
+    #     material_ids = []
+    #     vertices = []
+    #     indices = []
+
+    def _handle_face_brush_model(self, bsp: IBSPFile, model: QuakeBspModel, model_name) -> bpy.types.Object | None:
         unique_materials = []
         material_ids = []
         vertices = []
         indices = []
-        if model.face_count:
-            for face in faces_lump.faces[model.face_offset:model.face_offset + model.face_count]:
-                if face.indices_count == 0:
-                    continue
-                if face.shader_id not in unique_materials:
-                    unique_materials.append(face.shader_id)
-                face_indices = indices_lump.indices[face.index_offset:face.index_offset + face.indices_count]
-                indices.extend(face_indices + len(vertices))
-                face_vertices = vertices_lump.vertices[face.vertex_offset:face.vertex_offset + face.vertex_count]
+
+        faces_lump: Optional[RavenFaceLump] = bsp.get_lump("LUMP_FACES")
+        vertices_lump: Optional[VertexLump] = bsp.get_lump("LUMP_DRAWVERTS")
+        indices_lump: Optional[Quake3IndicesLump] = bsp.get_lump("LUMP_DRAWINDEXES")
+        shaders_lump: Optional[ShadersLump] = bsp.get_lump("LUMP_SHADERS")
+        faces = faces_lump.faces[model.face_offset:model.face_offset + model.face_count]
+        for face in faces:
+            if face.texture_id not in unique_materials:
+                unique_materials.append(face.texture_id)
+            vertex_offset = face.vertex_offset
+            vertex_count = face.vertex_count
+            mesh_vert_offset = face.index_offset
+            mesh_vert_count = face.indices_count
+            face_vertices = vertices_lump.vertices[vertex_offset:vertex_offset + vertex_count]
+            if face.surface_type == 1:
+                face_indices = indices_lump.indices[mesh_vert_offset:mesh_vert_offset + mesh_vert_count].reshape(-1,
+                                                                                                                 3)
+                indices.extend((face_indices + len(vertices)).tolist())
                 vertices.extend(face_vertices)
-                material_ids.extend([unique_materials.index(face.shader_id)] * (face.indices_count // 3))
+                material_ids.extend([unique_materials.index(face.texture_id)] * face_indices.shape[0])
+            elif face.surface_type == 2:
+                tess = 5
+                patch_verts, patch_tris = _tessellate_face_patch(face_vertices, (face.size[0], face.size[1]), tess)
+                indices.extend((patch_tris + len(vertices)).tolist())
+                vertices.extend(patch_verts)
+                material_ids.extend([unique_materials.index(face.texture_id)] * patch_tris.shape[0])
+            elif face.surface_type == 3:
+                face_indices = indices_lump.indices[mesh_vert_offset:mesh_vert_offset + mesh_vert_count].reshape(-1,
+                                                                                                                 3)
+                indices.extend((face_indices + len(vertices)).tolist())
+                vertices.extend(face_vertices)
+                material_ids.extend([unique_materials.index(face.texture_id)] * face_indices.shape[0])
+            else:
+                # self.logger.warn(f"Unsupported face type {face.type} in model")
+                continue
 
-            indices = np.asarray(indices).reshape((-1, 3))
-            vertices = np.asarray(vertices)
-            if len(indices) == 0:
-                return None
-            mesh_data = FastMesh.new(f"{model_name}_MESH")
-            mesh_obj = bpy.data.objects.new(model_name, mesh_data)
-
-            mesh_data.from_pydata(vertices["pos"] * self.scale, [], indices)
-
-            for mat_id in unique_materials:
-                shader = shaders_lump.shaders[mat_id]
-                material = get_or_create_material(path_stem(shader.name), shader.name)
-                add_material(material, mesh_obj)
-            mesh_data.polygons.foreach_set('material_index', material_ids)
-
-            mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
-            mesh_data.normals_split_custom_set_from_vertices(vertices['normal'])
-
-            vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
-            mesh_data.loops.foreach_get('vertex_index', vertex_indices)
-
-            for i in range(4):
-                vc = mesh_data.vertex_colors.new()
-                colors = vertices["color"][vertex_indices, i].astype(np.float32) / 255
-                vc.data.foreach_set('color', colors.flatten())
-
-            uv_data = mesh_data.uv_layers.new()
-            uvs = vertices['st']
-            uvs[:, 1] = 1 - uvs[:, 1]
-            uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
-            mesh_data.validate()
-        elif model.brush_count:
-            def join_bmesh(target_bm, source_bm):
-                source_bm.verts.layers.int.new('index')
-                idx_layer = source_bm.verts.layers.int['index']
-
-                for face in source_bm.faces:
-                    new_verts = []
-                    for old_vert in face.verts:
-                        if not old_vert.tag:
-                            new_vert = target_bm.verts.new(old_vert.co)
-                            target_bm.verts.index_update()
-                            old_vert[idx_layer] = new_vert.index
-                            old_vert.tag = True
-
-                        target_bm.verts.ensure_lookup_table()
-                        idx = old_vert[idx_layer]
-                        new_verts.append(target_bm.verts[idx])
-
-                    target_bm.faces.new(new_verts)
-                return target_bm
-
-            mesh = bpy.data.meshes.new(model_name)
-            mesh_obj = bpy.data.objects.new(model_name, mesh)
-            bmeshes = []
-            for brush in brushes_lump.brushes[model.brush_offset:model.brush_offset + model.brush_count]:
-                planes = []
-                for side in brush_sides_lump.brush_sides[brush.side_offset:brush.side_offset + brush.side_count]:
-                    planes.append(planes_lump.planes[side.plane_id])
-
-                vertices = compute_brush_geometry(planes)
-                bm = bmesh.new()
-                for v in vertices:
-                    bm.verts.new(v * self.scale)
-                bm.verts.ensure_lookup_table()
-                bmesh.ops.convex_hull(bm, input=bm.verts)
-                bmeshes.append(bm)
-            bm = bmesh.new()
-            for t in bmeshes:
-                join_bmesh(bm, t)
-            bm.to_mesh(mesh)
-            bm.free()
-        else:
+        indices = np.asarray(indices).reshape((-1, 3))
+        vertices = np.asarray(vertices)
+        if len(indices) == 0:
             return None
+        mesh_data = bpy.data.meshes.new(f"{model_name}_MESH")
+        mesh_obj = bpy.data.objects.new(model_name, mesh_data)
+
+        mesh_data.from_pydata(vertices["pos"] * self.scale, [], indices)
+
+        for mat_id in unique_materials:
+            shader = shaders_lump.shaders[mat_id]
+            material = get_or_create_material(path_stem(shader.name), shader.name)
+            add_material(material, mesh_obj)
+        mesh_data.polygons.foreach_set('material_index', material_ids)
+
+        mesh_data.polygons.foreach_set("use_smooth", np.ones(len(mesh_data.polygons), np.uint32))
+        mesh_data.normals_split_custom_set_from_vertices(vertices['normal'] * -1)
+
+        vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
+        mesh_data.loops.foreach_get('vertex_index', vertex_indices)
+
+        for i in range(4):
+            vc = mesh_data.vertex_colors.new()
+            colors = vertices["color"][vertex_indices, i].astype(np.float32) / 255
+            vc.data.foreach_set('color', colors.flatten())
+
+        uv_data = mesh_data.uv_layers.new()
+        uvs = vertices['st']
+        uvs[:, 1] = 1 - uvs[:, 1]
+        uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
+        mesh_data.validate()
         return mesh_obj

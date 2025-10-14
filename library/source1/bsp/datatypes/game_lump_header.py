@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from SourceIO.library.utils.file_utils import Buffer
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 
 
 @dataclass
@@ -13,7 +13,7 @@ class GameLumpHeader:
     size: int = 0
 
     @staticmethod
-    def from_buffer(reader: Buffer, bsp: BSPFile):
+    def from_buffer(reader: Buffer, bsp: VBSPFile):
         id = reader.read_fourcc()[::-1]
         flags = reader.read_uint16()
         version = reader.read_uint16()
@@ -27,7 +27,7 @@ class GameLumpHeader:
 @dataclass
 class DMGameLumpHeader(GameLumpHeader):
     @staticmethod
-    def read(reader: Buffer, bsp: BSPFile):
+    def read(reader: Buffer, bsp: VBSPFile):
         reader.skip(4)
         id = reader.read_fourcc()[::-1]
         flags = reader.read_uint16()
@@ -39,7 +39,7 @@ class DMGameLumpHeader(GameLumpHeader):
 @dataclass
 class VindictusGameLumpHeader(GameLumpHeader):
     @staticmethod
-    def read(reader: Buffer, bsp: BSPFile):
+    def read(reader: Buffer, bsp: VBSPFile):
         id = reader.read_fourcc()[::-1]
         flags = reader.read_uint32()
         version = reader.read_uint32()

@@ -5,20 +5,26 @@ from SourceIO.library.utils.file_utils import Buffer
 
 
 @dataclass(slots=True)
-class RavenBrush:
+class Quake3Brush:
     side_offset: int
     side_count: int
-    shader_id: int
+    texture_id: int
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(*buffer.read_fmt("3i"))
 
+@dataclass(slots=True)
+class Quake3BrushSide:
+    plane_id: int
+    texture_id: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+        return cls(*buffer.read_fmt("2i"))
 
 @dataclass(slots=True)
-class RavenBrushSide:
-    plane_id: int
-    shader_id: int
+class RavenBrushSide(Quake3BrushSide):
     face_id: int
 
     @classmethod

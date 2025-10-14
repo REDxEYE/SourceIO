@@ -49,9 +49,10 @@ class CitadelEnvironmentLayer(Source2ShaderBase):
             return image
         return None
 
+
     @property
     def color(self):
-        return self._material_resource.get_vector_property('g_vColorTint', np.ones(4, dtype=np.float32))
+        return self._material_resource.get_vector_property('g_vColorTint1', np.ones(4, dtype=np.float32))
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)

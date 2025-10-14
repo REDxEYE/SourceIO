@@ -6,23 +6,25 @@ import bpy
 import numpy as np
 
 from SourceIO.blender_bindings.source1.bsp.entities.abstract_entity_handlers import AbstractEntityHandler
-from SourceIO.blender_bindings.source1.bsp.entities.sof_entity_handler import SOFEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.quake3.quake3_entity_handler import QuakeEntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.quake3.sof_entity_handler import RavenQ3EntityHandler
 from SourceIO.blender_bindings.material_loader.shaders.idtech3.idtech3 import IdTech3Shader
 from SourceIO.blender_bindings.operators.import_settings_base import Source1BSPSettings
+from SourceIO.blender_bindings.source1.bsp.entities.quake3.swjk2 import StarWarsJediKnights2
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.source1.bsp.bsp_file import open_bsp, BSPFile
+from SourceIO.library.source1.bsp.bsp_file import open_bsp, VBSPFile
 from SourceIO.library.source1.bsp.datatypes.static_prop_lump import StaticPropLump
 from SourceIO.library.source1.bsp.datatypes.face import Face
 from SourceIO.library.source1.bsp.datatypes.texture_data import TextureData
 from SourceIO.library.source1.bsp.datatypes.texture_info import TextureInfo
 from SourceIO.library.source1.bsp.lumps import *
+from SourceIO.library.source1.bsp.lumps.texture_lump import Quake3TextureInfoLump
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils import Buffer, TinyPath, path_stem, SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.idtech3_shader_parser import parse_shader_materials
 from SourceIO.library.utils.math_utilities import convert_rotation_source1_to_blender
-from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.logger import SourceLogMan, SLogger
 from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
@@ -70,10 +72,10 @@ def import_bsp(map_path: TinyPath, buffer: Buffer, content_manager: ContentManag
     import_disp(bsp, settings, master_collection, logger)
 
 
-
-def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
+def import_entities(bsp: VBSPFile, content_manager: ContentManager, settings: Source1BSPSettings,
                     master_collection: bpy.types.Collection, logger: SLogger):
-    steam_id = bsp.steam_app_id
+    info = bsp.info
+    steam_id = info.steam_app_id
 
     handler_class: Type[AbstractEntityHandler]
     if steam_id == SteamAppId.TEAM_FORTRESS_2:
@@ -86,26 +88,30 @@ def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Sou
         handler_class = CSGOEntityHandler
     elif steam_id == SteamAppId.LEFT_4_DEAD_2:
         handler_class = Left4dead2EntityHandler
-    elif steam_id == SteamAppId.VAMPIRE_THE_MASQUERADE_BLOODLINES or bsp.version == 17:
+    elif steam_id == SteamAppId.VAMPIRE_THE_MASQUERADE_BLOODLINES or info.version == 17:
         handler_class = VampireEntityHandler
-    elif steam_id == SteamAppId.PORTAL_2 and bsp.version == 29:  # Titanfall
+    elif steam_id == SteamAppId.PORTAL_2 and info.version == 29:  # Titanfall
         handler_class = TitanfallEntityHandler
     elif steam_id == SteamAppId.PORTAL:
         handler_class = PortalEntityHandler
     elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
-          and bsp.version != 29):  # Portal 2
+          and info.version != 29):  # Portal 2
         handler_class = Portal2EntityHandler
     elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
         handler_class = HalfLifeEntityHandler
     elif steam_id == SteamAppId.VINDICTUS:
         handler_class = VindictusEntityHandler
-    elif steam_id == SteamAppId.SOLDIERS_OF_FORTUNE2:
-        handler_class = SOFEntityHandler
+    elif steam_id == SteamAppId.QUAKE3:
+        handler_class = QuakeEntityHandler
+    elif steam_id == SteamAppId.STAR_WARS_JEDI_KNIGHTS2:
+        handler_class = StarWarsJediKnights2
+    elif steam_id == SteamAppId.RAVEN_Q3_ENGINE:
+        handler_class = RavenQ3EntityHandler
     else:
         logger.warn("Unrecognized game! Using default behaviour for handing entities, this may not work!")
         handler_class = BaseEntityHandler
     logger.info(f"Using {handler_class.__name__} entity handler")
-    entity_handler = handler_class(bsp, master_collection, settings.scale, settings.light_scale)
+    entity_handler = handler_class(bsp, content_manager, master_collection, settings.scale, settings.light_scale)
 
     entity_lump: Optional[EntityLump] = bsp.get_lump('LUMP_ENTITIES')
     if entity_lump:
@@ -114,8 +120,7 @@ def import_entities(bsp: BSPFile, content_manager: ContentManager, settings: Sou
     entity_handler.load_entities(settings)
 
 
-
-def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
+def import_cubemaps(bsp: VBSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                     logger: SLogger):
     if not settings.import_cubemaps:
         return
@@ -135,8 +140,7 @@ def import_cubemaps(bsp: BSPFile, settings: Source1BSPSettings, master_collectio
         parent_collection.objects.link(obj)
 
 
-
-def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
+def import_static_props(bsp: VBSPFile, settings: Source1BSPSettings, master_collection: bpy.types.Collection,
                         logger: SLogger):
     gamelump: Optional[GameLump] = bsp.get_lump('LUMP_GAME_LUMP')
     if gamelump and settings.load_static_props:
@@ -169,14 +173,14 @@ def import_static_props(bsp: BSPFile, settings: Source1BSPSettings, master_colle
                 parent_collection.objects.link(placeholder)
 
 
-
-def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
+def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: Source1BSPSettings, logger: SLogger):
     if not settings.import_textures:
         return
     Source1ShaderBase.use_bvlg(settings.use_bvlg)
 
     strings_lump: Optional[StringsLump] = bsp.get_lump('LUMP_TEXDATA_STRING_TABLE')
     texture_data_lump: Optional[TextureDataLump] = bsp.get_lump('LUMP_TEXDATA')
+    texture_info_lump: Optional[Quake3TextureInfoLump | TextureInfoLump] = bsp.get_lump('LUMP_TEXINFO')
     shaders_lump: Optional[ShadersLump] = bsp.get_lump('LUMP_SHADERS')
 
     def import_source1_materials():
@@ -224,25 +228,55 @@ def import_materials(bsp: BSPFile, content_manager: ContentManager, settings: So
             logger.info(f"Loading {material_name} material")
 
             if material_name in material_definitions:
-                loader = IdTech3Shader(content_manager)
-                loader.create_nodes(mat, material_definitions[material_name])
+                material_params = material_definitions[material_name]
             else:
-                logger.error(f'Failed to find {material_name} texture')
+                material_params = {'textures': [{"map": material_name}]}
+            if mat.get('source1_loaded'):
+                logger.debug(
+                    f'Skipping loading of {material_name} as it already loaded')
+                continue
+            logger.info(f"Loading {material_name} material")
+
+            loader = IdTech3Shader(content_manager)
+            loader.create_nodes(mat, material_params)
+
+    def import_quake3_materials():
+        material_definitions = {}
+        for _, buffer in content_manager.glob("*.shader"):
+            materials = parse_shader_materials(buffer.read(-1).decode("utf-8"))
+            material_definitions.update(materials)
+
+        for texture in texture_info_lump.texture_info:
+            material_name = texture.name
+            mat = get_or_create_material(path_stem(material_name), material_name)
+            if material_name in material_definitions:
+                material_params = material_definitions[material_name]
+            else:
+                material_params = {'textures': [{"map": material_name}]}
+            if mat.get('source1_loaded'):
+                logger.debug(
+                    f'Skipping loading of {material_name} as it already loaded')
+                continue
+            logger.info(f"Loading {material_name} material")
+
+            loader = IdTech3Shader(content_manager)
+            loader.create_nodes(mat, material_params)
 
     if strings_lump and texture_data_lump:
         import_source1_materials()
     elif shaders_lump:
         import_idtech3_materials()
+    elif texture_info_lump and isinstance(texture_info_lump, Quake3TextureInfoLump):
+        import_quake3_materials()
 
-
-def get_tex_info(face: Face, bsp: BSPFile):
+def get_tex_info(face: Face, bsp: VBSPFile):
     tex_info_lump: TextureInfoLump = bsp.get_lump('LUMP_TEXINFO')
     if tex_info_lump:
         return tex_info_lump.texture_info[face.tex_info_id]
     return None
 
 
-def get_texture_data(tex_info: TextureInfo, bsp: BSPFile) -> Optional[TextureData]:
+def get_texture_data(tex_info: TextureInfo, bsp: VBSPFile) -> Optional[TextureData]:
     tex_data_lump: TextureDataLump = bsp.get_lump('LUMP_TEXDATA')
     if tex_data_lump:
         tex_datas = tex_data_lump.texture_data
@@ -250,8 +284,7 @@ def get_texture_data(tex_info: TextureInfo, bsp: BSPFile) -> Optional[TextureDat
     return None
 
 
-
-def import_disp(bsp: BSPFile, settings: Source1BSPSettings,
+def import_disp(bsp: VBSPFile, settings: Source1BSPSettings,
                 master_collection: bpy.types.Collection, logger: SLogger):
     disp_info_lump: Optional[DispInfoLump] = bsp.get_lump('LUMP_DISPINFO')
     if not disp_info_lump or not disp_info_lump.infos:

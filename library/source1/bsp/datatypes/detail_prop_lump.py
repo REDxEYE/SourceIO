@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from SourceIO.library.shared.types import Vector2, Vector3
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.source1.bsp.datatypes.game_lump_header import GameLumpHeader
 from SourceIO.library.utils.file_utils import Buffer
 
@@ -13,7 +13,7 @@ class DetailPropLump:
         self.sprites: list[DetailSprite] = []
         self.detail_props: list[DetailProp] = []
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         for _ in range(buffer.read_int32()):
             self.model_names.append(buffer.read_ascii_string(128))
         if self._glump_info.version == 4:
@@ -31,7 +31,7 @@ class DetailSprite:
     lower_right_uv: Vector2[float]
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         return cls(buffer.read_fmt('2f'), buffer.read_fmt('2f'),
                    buffer.read_fmt('2f'), buffer.read_fmt('2f'))
 
@@ -53,7 +53,7 @@ class DetailProp:
     scale: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         origin = buffer.read_fmt('3f')
         rotation = buffer.read_fmt('3f')
         model_id, leaf_id = buffer.read_fmt('2H')

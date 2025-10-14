@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from SourceIO.library.shared.types import Vector3
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile, RavenBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 
 
@@ -15,12 +15,13 @@ class Model:
     face_count: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("3i"))
 
 
+
 @dataclass(slots=True)
-class RavenModel:
+class QuakeBspModel:
     mins: Vector3[float]
     maxs: Vector3[float]
     face_offset: int
@@ -29,7 +30,7 @@ class RavenModel:
     brush_count: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: RavenBSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("4i"))
 
 
@@ -38,7 +39,7 @@ class DMModel(Model):
     unk: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         head = buffer.read_fmt('3f'), buffer.read_fmt('3f'), buffer.read_fmt('3f')
         unk, *rest = buffer.read_fmt("4i")
         return cls(*head, *rest, unk)
@@ -52,5 +53,5 @@ class RespawnModel:
     mesh_count: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_fmt('3f'), *buffer.read_fmt("2I"))

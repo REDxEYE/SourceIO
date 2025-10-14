@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 
 
@@ -27,7 +27,7 @@ class Mesh:
     flags: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         triangle_start = buffer.read_uint32()  # 0-4
         triangle_count = buffer.read_uint16()  # 4-6
         unk1_offset = buffer.read_uint16()

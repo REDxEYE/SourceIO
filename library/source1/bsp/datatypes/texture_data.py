@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from SourceIO.library.shared.types import Vector3
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import BSPFile,RespawnBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 
 
@@ -30,7 +30,7 @@ class RespawnTextureData(TextureData):
     unk1: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: RespawnBSPFile):
         reflectivity = buffer.read_fmt('3f')
         name_id = buffer.read_int32()
         width = buffer.read_int32()

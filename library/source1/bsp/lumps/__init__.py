@@ -2,12 +2,12 @@ from SourceIO.library.source1.bsp.lumps.vertex_lump import VertexLump, UnLitVert
     R7VertexLump, LitVertexFlatLump, UnlitTSVertexLump, BlinnPhongVertexLump
 from SourceIO.library.source1.bsp.lumps.game_lump import GameLump, GameLump21, GameLump204, VGameLump, GameLumpHeader, \
     VindictusGameLumpHeader, DMGameLumpHeader
-from SourceIO.library.source1.bsp.lumps.model_lump import ModelLump, RavenModelLump
-from SourceIO.library.source1.bsp.lumps.brush_lump import RavenBrushLump, RavenBrushSidesLump
+from SourceIO.library.source1.bsp.lumps.model_lump import ModelLump, Quake3ModelLump
+from SourceIO.library.source1.bsp.lumps.brush_lump import Quake3BrushLump, RavenBrushSidesLump
 from SourceIO.library.source1.bsp.lumps.edge_lump import EdgeLump, VEdgeLump
 from SourceIO.library.source1.bsp.lumps.pak_lump import PakLump
 from SourceIO.library.source1.bsp.lumps.face_lump import VFaceLump1, OriginalFaceLump, VOriginalFaceLump, VFaceLump2, \
-    FaceLump, RavenFaceLump
+    FaceLump, RavenFaceLump, Quake3FaceLump
 from SourceIO.library.source1.bsp.lumps.vertex_normal_lump import VertexNormalLump, VertexNormalIndicesLump
 from SourceIO.library.source1.bsp.lumps.node_lump import VNodeLump, NodeLump
 from SourceIO.library.source1.bsp.lumps.plane_lump import PlaneLump

@@ -1,6 +1,6 @@
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp import Lump, ValveLumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.source1.bsp.datatypes.detail_prop_lump import DetailPropLump
 from SourceIO.library.source1.bsp.datatypes.game_lump_header import (GameLumpHeader, VindictusGameLumpHeader,
                                                                      DMGameLumpHeader)
@@ -10,13 +10,13 @@ from SourceIO.library.utils import Buffer
 
 @lump_tag(35, 'LUMP_GAME_LUMP')
 class GameLump(Lump):
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: ValveLumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0
         self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
             lump = GameLumpHeader.from_buffer(buffer, bsp)
@@ -59,13 +59,13 @@ class GameLump21(GameLump):
 
 @lump_tag(35, 'LUMP_GAME_LUMP', bsp_version=(20, 4))
 class GameLump204(Lump):
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: ValveLumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0
         self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
             lump = DMGameLumpHeader.from_buffer(buffer, bsp)
@@ -103,13 +103,13 @@ class GameLump204(Lump):
 
 @lump_tag(35, 'LUMP_GAME_LUMP', steam_id=SteamAppId.VINDICTUS)
 class VGameLump(Lump):
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: ValveLumpInfo):
         super().__init__(lump_info)
         self.lump_count = 0
         self.game_lumps_info: list[GameLumpHeader] = []
         self.game_lumps = {}
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         self.lump_count = buffer.read_uint32()
         for _ in range(self.lump_count):
             lump = VindictusGameLumpHeader.from_buffer(buffer, bsp)

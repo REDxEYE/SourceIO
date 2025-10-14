@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 
 from SourceIO.library.shared.types import Vector2, Vector3
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 
 
@@ -65,7 +65,7 @@ class Overlay:
         return dst_pos, dst_uv
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         id = buffer.read_int32()
         tex_info = buffer.read_int16()
         face_count_and_render_order = buffer.read_uint16()
@@ -79,7 +79,7 @@ class Overlay:
 
 class VOverlay(Overlay):
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         id = buffer.read_int32()
         tex_info = buffer.read_int32()
         face_count_and_render_order = buffer.read_uint32()

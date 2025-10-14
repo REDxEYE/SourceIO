@@ -6,20 +6,20 @@ from SourceIO.library.utils.file_utils import Buffer
 
 
 @dataclass(slots=True)
-class Plane:
-    normal: Vector3[float]
-    dist: float
-    type: int
-
-    @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
-        return cls(buffer.read_fmt('fff'), buffer.read_float(), buffer.read_int32())
-
-@dataclass(slots=True)
-class RavenPlane:
+class Quake3Plane:
     normal: Vector3[float]
     dist: float
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         return cls(buffer.read_fmt('3f'), buffer.read_float())
+
+
+@dataclass(slots=True)
+class ValvePlane(Quake3Plane):
+    type: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+        return cls(buffer.read_fmt('fff'), buffer.read_float(), buffer.read_int32())
+

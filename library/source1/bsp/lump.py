@@ -1,4 +1,7 @@
+from __future__ import annotations
 import lzma
+import typing
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, Type, Union
 
@@ -6,6 +9,10 @@ from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.utils.file_utils import Buffer, MemoryBuffer
 from SourceIO.library.utils.math_utilities import sizeof_fmt
 
+if typing.TYPE_CHECKING:
+    from SourceIO.library.source1.bsp.bsp_file import BSPFile
+else:
+    BSPFile = object
 
 
 @dataclass(slots=True)
@@ -13,22 +20,24 @@ class LumpTag:
     lump_id: int
     lump_name: str
     lump_version: Optional[int] = field(default=None)
+    bsp_ident: Optional[str] = field(default=None)
     bsp_version: Optional[Union[int, tuple[int, int]]] = field(default=None)
     steam_id: Optional[SteamAppId] = field(default=None)
 
 
 def lump_tag(lump_id, lump_name,
              lump_version: Optional[int] = None,
+             bsp_ident: Optional[str] = None,
              bsp_version: Optional[Union[int, tuple[int, int]]] = None,
              steam_id: Optional[SteamAppId] = None):
     def loader(klass: Type[Lump]) -> Type[Lump]:
         if not klass.tags:
             klass.tags = []
         if bsp_version is not None and isinstance(bsp_version, int):
-            bsp_version_ = (bsp_version,0)
+            bsp_version_ = (bsp_version, 0)
         else:
             bsp_version_ = bsp_version
-        klass.tags.append(LumpTag(lump_id, lump_name, lump_version, bsp_version_, steam_id))
+        klass.tags.append(LumpTag(lump_id, lump_name, lump_version, bsp_ident, bsp_version_, steam_id))
         return klass
 
     return loader
@@ -50,15 +59,15 @@ class AbstractLump:
 
 
 @dataclass(slots=True)
-class RavenLumpInfo(AbstractLump):
+class Quake3LumpInfo(AbstractLump):
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, lump_type: int, is_l4d2: bool = False):
-        return RavenLumpInfo(lump_type, buffer.read_int32(), buffer.read_int32(), 0)
+    def from_buffer(cls, buffer: Buffer, lump_type: int):
+        return Quake3LumpInfo(lump_type, buffer.read_int32(), buffer.read_int32(), 0)
 
 
 @dataclass(slots=True)
-class LumpInfo(AbstractLump):
+class ValveLumpInfo(AbstractLump):
     decompressed_size: int
 
     @property
@@ -80,7 +89,7 @@ class LumpInfo(AbstractLump):
         return cls(lump_type, offset, size, version, decompressed_size)
 
 
-class Lump:
+class Lump(ABC):
     tags: list[LumpTag]
 
     def __init_subclass__(cls, **kwargs):
@@ -95,11 +104,12 @@ class Lump:
     def all_subclasses(cls):
         return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in c.all_subclasses()])
 
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: AbstractLump):
         self._info = lump_info
 
-    # def parse(self, buffer: Buffer, bsp: 'BSPFile'):
-    #     return self
+    @abstractmethod
+    def parse(self, buffer: Buffer, bsp: BSPFile):
+        return self
 
     # noinspection PyUnresolvedReferences,PyProtectedMember
     @staticmethod

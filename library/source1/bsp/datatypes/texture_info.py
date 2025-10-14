@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import IntFlag
 
 from SourceIO.library.shared.types import Vector4
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import BSPFile, IBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 
 
@@ -33,8 +33,20 @@ class TextureInfo:
     def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
         texture_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
         lightmap_vectors = (buffer.read_fmt('4f'), buffer.read_fmt('4f'))
-        if bsp.version == (20, 4):
+        if bsp.info.version == (20, 4):
             buffer.skip(24)
         flags = SurfaceInfo(buffer.read_uint32())
         texture_data_id = buffer.read_int32()
         return cls(texture_vectors, lightmap_vectors, flags, texture_data_id)
+
+
+@dataclass(slots=True)
+class QuakeTextureInfo:
+    name: str
+    flags: int
+    content: int
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: IBSPFile):
+        name = buffer.read_ascii_string(64)
+        return cls(name, *buffer.read_fmt("2i"))

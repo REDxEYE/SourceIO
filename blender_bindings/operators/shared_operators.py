@@ -91,6 +91,8 @@ class SourceIO_OT_LoadEntity(Operator):
                         self.load_vmdl(content_manager, context, obj)
                     elif model_type in ('.mdl', ".md3"):
                         self.load_mdl(content_manager, context, obj)
+                    elif model_type == ".glm":
+                        self.load_glm(content_manager, context, obj)
         win.progress_end()
 
         return {'FINISHED'}
@@ -231,6 +233,74 @@ class SourceIO_OT_LoadEntity(Operator):
         #
         # bpy.data.objects.remove(obj)
 
+    def load_glm(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
+        use_collections = context.scene.use_instances
+        import_materials = context.scene.import_materials
+        replace_entity = context.scene.replace_entity and not use_collections
+        master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
+                                                              bpy.context.scene.collection)
+        parent = obj.users_collection[0]
+
+        custom_prop_data: dict[str, Any] = dict(obj['entity_data'])
+        prop_path = TinyPath(custom_prop_data['prop_path'])
+
+        instance_collection = get_collection(prop_path)
+        if instance_collection and use_collections:
+            collection = bpy.data.collections.get(instance_collection, None)
+            if collection is not None:
+                obj.instance_type = 'COLLECTION'
+                obj.instance_collection = collection
+                obj["entity_data"]["prop_path"] = None
+                obj["entity_data"]["imported"] = True
+                return
+
+        mdl_file = content_manager.find_file(TinyPath(prop_path))
+        if not mdl_file:
+            self.report({"WARNING"},
+                        f"Failed to find MDL file for prop {prop_path}")
+            return
+        steamapp_id = content_manager.get_steamid_from_asset(prop_path)
+        options = ModelOptions()
+        options.import_textures = import_materials
+        options.import_physics = False
+        options.create_flex_drivers = False
+        options.scale = 1.0
+        options.use_bvlg = context.scene.use_bvlg
+        options.bodygroup_grouping = False
+        options.import_animations = False
+        options.import_physics = context.scene.import_physics
+        try:
+            model_container = import_model(prop_path, mdl_file,
+                                           content_manager, options, steamapp_id)
+        except RequiredFileNotFound as e:
+            self.report({"ERROR"}, e.message)
+            return
+        if model_container is None:
+            self.report({"WARNING"}, f"Failed to load MDL file for prop {prop_path}")
+            return
+
+        obj["entity_data"]["prop_path"] = None
+        obj["entity_data"]["imported"] = True
+        if use_collections:
+            s1_put_into_collections(model_container, prop_path.parent.stem, master_instance_collection, False)
+            add_collection(prop_path, model_container.master_collection)
+
+            obj.instance_type = 'COLLECTION'
+            obj.instance_collection = model_container.master_collection
+            return
+
+        imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
+        s1_put_into_collections(model_container, prop_path.stem, imported_collection, False)
+
+        if replace_entity:
+            self.replace_placeholder(model_container, obj, True)
+        else:
+            if model_container.armature:
+                model_container.armature.parent = obj
+            else:
+                for o in model_container.objects:
+                    o.parent = obj
+
     def load_vmdl(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
         use_collections = context.scene.use_instances
         import_materials = context.scene.import_materials
@@ -273,31 +343,45 @@ class SourceIO_OT_LoadEntity(Operator):
 
             fragments = custom_prop_data["fragments"]
             get_draw_call = operator.itemgetter("draw_call")
-            draw_calls = {draw_call: [Matrix(d["matrix"]) for d in matrices] for (draw_call, matrices) in
+            draw_calls = {draw_call: [(Matrix(d["matrix"]), list(d["tint_color"])) for d in matrices] for (draw_call, matrices) in
                           itertools.groupby(sorted(fragments, key=get_draw_call), key=get_draw_call)}
             _preload_draw_calls([d for d, m in draw_calls.items() if len(m) > 1])
-            for draw_call, matrices in draw_calls.items():
-                if len(matrices) > 1:
+            for draw_call, matrices_tints in draw_calls.items():
+                if len(matrices_tints) > 1:
                     instance_collection = get_collection(prop_path, str(draw_call))
                     if instance_collection is None:
                         raise ValueError("Failed to get draw call collection")
-                    for matrix in matrices:
+                    for matrix, tint in matrices_tints:
                         if instance_collection:
                             collection = bpy.data.collections.get(instance_collection, None)
                             if collection is not None:
                                 obj.matrix_world @= matrix
                                 obj.instance_type = 'COLLECTION'
                                 obj.instance_collection = collection
+                                color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
+                                if tint!=[255,255,255]:
+                                    tint = [c / 255.0 for c in tint]
+                                    tint.append(1.0)  # Ensure alpha is 1.0
+                                    color = [c * t for c, t in zip(color, tint)]
+                                obj.color = color
                                 obj["entity_data"]["prop_path"] = None
                                 obj["entity_data"]["imported"] = True
                                 return
                 else:
-                    matrix = Matrix(matrices[0])
+                    matrix, tint = matrices_tints[0]
+                    matrix = Matrix(matrix)
                     import_context.draw_call_index = draw_call
                     container = load_model(content_manager, model_resource, import_context)
                     imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
                     s2_put_into_collections(container, model_resource.name, imported_collection,
                                             bodygroup_grouping=False)
+                    for ob in container.objects:
+                        color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
+                        if tint != [255, 255, 255]:
+                            tint = [c / 255.0 for c in tint]
+                            tint.append(1.0)  # Ensure alpha is 1.0
+                            color = [c * t for c, t in zip(color, tint)]
+                        ob.color = color
                     # self.add_matrix(container, matrix)
                     obj.matrix_world @= matrix
                     self.replace_placeholder(container, obj, False)
@@ -323,9 +407,13 @@ class SourceIO_OT_LoadEntity(Operator):
             if replace_entity:
                 imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
                 s2_put_into_collections(container, model_resource.name, imported_collection)
+                for ob in container.objects:
+                    ob.color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
             else:
                 prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
                 s2_put_into_collections(container, model_resource.name, prop_collection)
+                for ob in container.objects:
+                    ob.color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
             obj["entity_data"]["prop_path"] = None
             obj["entity_data"]["imported"] = True
 
@@ -334,6 +422,7 @@ class SourceIO_OT_LoadEntity(Operator):
 
                 obj.instance_type = 'COLLECTION'
                 obj.instance_collection = container.master_collection
+                obj.color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
                 return
             if replace_entity:
                 self.replace_placeholder(container, obj)

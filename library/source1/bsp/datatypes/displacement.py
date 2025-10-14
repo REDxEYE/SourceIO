@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from SourceIO.library.shared.types import Vector3
 from SourceIO.library.utils.file_utils import Buffer
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.source1.bsp.lumps.face_lump import FaceLump
 
 DISP_INFO_FLAG_HAS_MULTIBLEND = 0x40000000
@@ -28,7 +28,7 @@ class DispInfo:
         return ((self.min_tess + DISP_INFO_FLAG_MAGIC) & DISP_INFO_FLAG_HAS_MULTIBLEND) != 0
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         start_position = buffer.read_fmt('3f')
         if version == 1:
             (disp_vert_start,
@@ -55,7 +55,7 @@ class DispInfo:
         return cls(start_position, disp_vert_start, disp_tri_start, power, min_tess, smoothing_angle, contents,
                    map_face, lightmap_alpha_start, lightmap_sample_position_start, allowed_verts)
 
-    def get_source_face(self, bsp: BSPFile):
+    def get_source_face(self, bsp: VBSPFile):
         lump: FaceLump = bsp.get_lump('LUMP_FACES')
         if lump:
             return lump.faces[self.map_face]
@@ -66,7 +66,7 @@ class DispInfo:
 class VDispInfo(DispInfo):
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         start_position = buffer.read_fmt('3f')
         (disp_vert_start,
          disp_tri_start,
@@ -85,7 +85,7 @@ class VDispInfo(DispInfo):
 @dataclass(slots=True)
 class StrataDispInfo(DispInfo):
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         start_position = buffer.read_fmt('3f')
         (disp_vert_start,
          disp_tri_start,

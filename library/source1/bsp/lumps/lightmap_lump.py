@@ -1,18 +1,18 @@
 import numpy as np
 
-from SourceIO.library.source1.bsp import Lump, LumpInfo, lump_tag
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp import Lump, ValveLumpInfo, lump_tag
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils import Buffer
 
 
 @lump_tag(0x62, 'LUMP_LIGHTMAP_DATA_SKY')
 class LightmapDataSkyLump(Lump):
 
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: ValveLumpInfo):
         super().__init__(lump_info)
         self.lightmap_data = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         self.lightmap_data = np.frombuffer(buffer.read(), np.uint8).reshape((-1, 4))
         return self
 
@@ -28,11 +28,11 @@ lightmap_dtype = np.dtype([
 @lump_tag(0x8, 'LUMP_LIGHTING')
 class LightmapDataLump(Lump):
 
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: ValveLumpInfo):
         super().__init__(lump_info)
         self.lightmap_data = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         self.lightmap_data = np.frombuffer(buffer.read(), lightmap_dtype)
         return self
 
@@ -40,11 +40,11 @@ class LightmapDataLump(Lump):
 @lump_tag(53, 'LUMP_LIGHTING_HDR')
 class LightmapDataHDRLump(Lump):
 
-    def __init__(self, lump_info: LumpInfo):
+    def __init__(self, lump_info: ValveLumpInfo):
         super().__init__(lump_info)
         self.lightmap_data = np.array([])
 
-    def parse(self, buffer: Buffer, bsp: BSPFile):
+    def parse(self, buffer: Buffer, bsp: VBSPFile):
         self.lightmap_data = np.frombuffer(buffer.read(), lightmap_dtype)
         return self
 

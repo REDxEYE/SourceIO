@@ -10,6 +10,7 @@ from SourceIO.blender_bindings.source1.bsp.entities.base_entity_classes import *
 from SourceIO.blender_bindings.source1.vtf import import_texture
 from SourceIO.blender_bindings.operators.import_settings_base import Source1BSPSettings
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_collection, get_or_create_material
+from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.bsp.bsp_file import BSPFile
 from SourceIO.library.source1.bsp.datatypes.face import Face
 from SourceIO.library.source1.bsp.datatypes.model import Model
@@ -68,11 +69,11 @@ def _set_uv(mesh_data, uv_data, uvs_per_face):
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file: BSPFile, parent_collection,
+    def __init__(self, bsp_file: BSPFile, content_manager:ContentManager, parent_collection,
                  world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
-        self.content_manager = bsp_file.content_manager
+        self.content_manager = content_manager
         self.scale = world_scale
         self.light_scale = light_scale
         self.parent_collection = parent_collection
@@ -302,6 +303,10 @@ class AbstractEntityHandler:
         obj.rotation_euler.rotate(Euler((math.radians(angles[2]),
                                          math.radians(angles[0]),
                                          math.radians(angles[1]))))
+
+    @staticmethod
+    def _set_single_angle(obj, angle:float):
+        obj.rotation_euler.rotate(Euler((0, 0, math.radians(angle))))
 
     @staticmethod
     def _set_parent_if_exist(obj, parent_name):

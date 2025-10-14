@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from SourceIO.library.shared.types import Vector3
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 
 
@@ -16,7 +16,7 @@ class Node:
     area: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         plane_index = buffer.read_int32()
         childes_id = buffer.read_fmt('2i')
         if version == 1:
@@ -33,7 +33,7 @@ class Node:
 
 class VNode(Node):
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         plane_index = buffer.read_int32()
         childes_id = buffer.read_fmt('2i')
         b_min = buffer.read_fmt('3i')

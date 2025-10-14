@@ -1,7 +1,7 @@
 from enum import IntFlag
 
 from SourceIO.library.shared.app_id import SteamAppId
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.source1.bsp.datatypes.game_lump_header import GameLumpHeader
 from SourceIO.library.utils.file_utils import Buffer
 from SourceIO.logger import SourceLogMan
@@ -259,7 +259,7 @@ class StaticPropLump:
         self.leafs: list[int] = []
         self.static_props: list[StaticProp] = []
 
-    def parse(self, reader: Buffer, bsp: BSPFile):
+    def parse(self, reader: Buffer, bsp: VBSPFile):
         for _ in range(reader.read_int32()):
             self.model_names.append(reader.read_ascii_string(128))
         if self._glump_info.version < 13:
@@ -272,7 +272,7 @@ class StaticPropLump:
             unk1 = reader.read_int32()
             unk2 = reader.read_int32()
         prop_scaling = {}
-        if bsp.steam_app_id == SteamAppId.VINDICTUS:
+        if bsp.info.steam_app_id == SteamAppId.VINDICTUS:
             for _ in range(reader.read_uint32()):
                 prop_id = reader.read_int32()
                 prop_scaling[prop_id] = reader.read_fmt('3f')
@@ -283,7 +283,7 @@ class StaticPropLump:
         prop_size = reader.remaining() // prop_count
         for i in range(prop_count):
             prop = StaticProp()
-            prop.parse(reader, self._glump_info.version, bsp.version, prop_size, bsp.steam_app_id)
+            prop.parse(reader, self._glump_info.version, bsp.info.version, prop_size, bsp.info.steam_app_id)
             self.static_props.append(prop)
         if prop_scaling:
             for prop_id, scale in prop_scaling.items():

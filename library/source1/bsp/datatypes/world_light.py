@@ -4,7 +4,7 @@ from enum import IntEnum
 
 from SourceIO.library.shared.types import Vector3
 from SourceIO.library.utils.file_utils import Buffer
-from SourceIO.library.source1.bsp.bsp_file import BSPFile
+from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 
 
 class EmitType(IntEnum):
@@ -84,11 +84,11 @@ class WorldLight:
     owner: int
 
     @classmethod
-    def from_buffer(cls, buffer: Buffer, version: int, bsp: BSPFile):
+    def from_buffer(cls, buffer: Buffer, version: int, bsp: VBSPFile):
         origin = buffer.read_fmt('3f')
         intensity = Color32.from_array(buffer.read_fmt('3f'))
         normal = buffer.read_fmt('3f')
-        if bsp.version[0] > 20:
+        if bsp.info.version[0] > 20:
             shadow_cast_offset = buffer.read_fmt('3f')
         else:
             shadow_cast_offset = (0, 0, 0)
