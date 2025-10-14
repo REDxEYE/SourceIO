@@ -21,7 +21,7 @@ logger = log_manager.get_logger('MDL loader')
 
 @register_model_importer(b"IDST", 36)
 def import_mdl36(model_path: TinyPath, buffer: Buffer,
-                 content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
+                 content_manager: ContentManager, options: ModelOptions) -> ModelContainer | None:
     mdl = MdlV36.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
     if vtx_buffer is None:

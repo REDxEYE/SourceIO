@@ -27,7 +27,7 @@ logger = log_manager.get_logger('MDL loader')
 @register_model_importer(b"IDST", 48)
 @register_model_importer(b"IDST", 49)
 def import_mdl49(model_path: TinyPath, buffer: Buffer,
-                 content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
+                 content_manager: ContentManager, options: ModelOptions) -> ModelContainer | None:
     mdl = MdlV49.from_buffer(buffer)
     vtx_buffer = find_vtx_cm(model_path, content_manager)
     vvd_buffer = content_manager.find_file(model_path.with_suffix(".vvd"))

@@ -11,7 +11,7 @@ from .import_mdl import import_model
 
 @register_model_importer(b"IDST", 10)
 def import_mdl10(model_path: TinyPath, buffer: Buffer,
-                 content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
+                 content_manager: ContentManager, options: ModelOptions) -> ModelContainer | None:
     texture_mdl = content_manager.find_file(model_path.with_name(model_path.stem + "t.mdl"))
 
     return import_model(buffer, texture_mdl, options)

@@ -24,7 +24,7 @@ logger = log_manager.get_logger('IDTech3::ModelLoader')
 
 @register_model_importer(b"IDP3", 15)
 def import_md3_15(model_path: TinyPath, buffer: Buffer,
-                  content_manager: ContentManager, options: ModelOptions) -> Optional[ModelContainer]:
+                  content_manager: ContentManager, options: ModelOptions) -> ModelContainer | None:
     model = read_md3_model(buffer)
     model_name = model_path.stem
 
@@ -55,14 +55,14 @@ def import_md3_15(model_path: TinyPath, buffer: Buffer,
         uvs[:, 1] = 1 - uvs[:, 1]
         uv_data.data.foreach_set('uv', uvs[vertex_indices].flatten())
 
-        model_mesh.normals_split_custom_set_from_vertices(surface.normals())
+        model_mesh.normals_split_custom_set_from_vertices(surface.normals()*-1)
         model_object.shape_key_add(name='base')
         for i, frame in enumerate(surface.frames[1:]):
             shape_key = model_object.shape_key_add(name=f"frame_{i}")
 
             shape_key.data.foreach_set("co", surface.positions(i + 1).ravel() * options.scale)
         model_mesh.validate()
-        material_name = surface.shaders[0].name
+        material_name = TinyPath(surface.shaders[0].name).with_suffix("")
         mat = get_or_create_material(TinyPath(material_name).stem, material_name)
         add_material(mat, model_object)
 
@@ -73,10 +73,23 @@ def import_md3_15(model_path: TinyPath, buffer: Buffer,
         logger.info(f"Loading {material_name} material")
 
         if material_name in material_definitions:
-            loader = IdTech3Shader(content_manager)
-            loader.create_nodes(mat, material_definitions[material_name])
+            material_params = material_definitions[material_name]
         else:
-            logger.error(f'Failed to find {material_name} texture')
+            material_params = {'textures': [{"map": material_name}]}
+
+        loader = IdTech3Shader(content_manager)
+        loader.create_nodes(mat, material_params)
+
+        # if ".tga" in material_name or ".png" in material_name or ".jpg" in material_name or ".jpeg" in material_name:
+        #     mat['source1_loaded'] = True
+        #     loader = IdTech3Shader(content_manager)
+        #     material_name = TinyPath(material_name).with_suffix("").as_posix()
+        #     loader.create_nodes(mat, {'textures': [{"map":material_name}]})
+        # elif material_name in material_definitions:
+        #     loader = IdTech3Shader(content_manager)
+        #     loader.create_nodes(mat, material_definitions[material_name])
+        # else:
+        #     logger.error(f'Failed to find {material_name} texture')
 
     attachments = []
 

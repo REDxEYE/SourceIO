@@ -18,7 +18,7 @@ def import_model(model_path: TinyPath, buffer: Buffer,
                  content_provider: ContentManager,
                  options: ModelOptions,
                  override_steam_id: Optional[SteamAppId] = None,
-                 ) -> Optional[ModelContainer]:
+                 ) -> ModelContainer | None:
     ident, version = buffer.read_fmt("4sI")
     logger.info(f"Trying to load model: {model_path}")
     logger.info(f"Detected magic: {ident!r}, version:{version}")
@@ -26,7 +26,7 @@ def import_model(model_path: TinyPath, buffer: Buffer,
     handler = choose_model_importer(ident, version, (override_steam_id or steam_id or None))
     if handler is None:
         logger.error(f"No handler found for ident {ident} version: {version}")
-        return None
+        raise ValueError(f"No handler found for ident {ident} version: {version}")
     buffer.seek(0)
     container = handler(model_path, buffer, content_provider, options)
     return container

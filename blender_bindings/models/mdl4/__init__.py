@@ -11,5 +11,5 @@ from .import_mdl import import_model
 
 @register_model_importer(b"IDST", 4)
 def import_mdl4(model_path: TinyPath, buffer: Buffer,
-                content_manager: ContentProvider, options: ModelOptions) -> Optional[ModelContainer]:
+                content_manager: ContentProvider, options: ModelOptions) -> ModelContainer | None:
     return import_model(model_path.stem, buffer, options)
