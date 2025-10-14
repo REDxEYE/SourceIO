@@ -58,6 +58,17 @@ class DeadlockEntityHandler(CS2EntityHandler):
     entity_lookup_table['citadel_point_talker'] = Base
     entity_lookup_table['citadel_trigger_interior'] = Base
     entity_lookup_table['trigger_catapult'] = Base
+    entity_lookup_table['citadel_trigger_hideout'] = Base
+    entity_lookup_table['citadel_hideout_button'] = Base
+    entity_lookup_table['info_citadel_matchmaking_status'] = Base
+    entity_lookup_table['point_pulse'] = Base
+    entity_lookup_table['citadel_hideout_clock'] = Base
+    entity_lookup_table['citadel_snd_obb'] = Base
+    entity_lookup_table['citadel_snd_stack_field_obb'] = Base
+    entity_lookup_table['citadel_hideout_shootable_target_spawner'] = Base
+    entity_lookup_table['info_landmark'] = Base
+    entity_lookup_table['citadel_trigger_hideout_teleport'] = Base
+    entity_lookup_table['citadel_trigger_hotel_exit'] = Base
 
     def load_entities(self):
         for entity in self._entities:
@@ -265,9 +276,48 @@ class DeadlockEntityHandler(CS2EntityHandler):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection("citadel_item_powerup_spawner", obj, 'props')
 
-    def handle_trigger_modifier(self, entity: Base, entity_raw: dict):
+    def handle_citadel_item_pickup_rejuv_herotest_infospawn(self, entity: Base, entity_raw: dict):
         obj = self._handle_entity_with_model(entity, entity_raw)
         self._put_into_collection("citadel_item_pickup_rejuv_herotest_infospawn", obj, 'props')
+
+    def handle_citadel_trigger_hideout(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("citadel_trigger_hideout", obj, 'triggers')
+
+    def handle_citadel_hideout_button(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("citadel_hideout_button", obj, 'props')
+
+    def handle_info_citadel_matchmaking_status(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"info_citadel_matchmaking_status", "info")
+
+    def handle_point_pulse(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"point_pulse", "logic")
+
+    def handle_citadel_hideout_clock(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"citadel_hideout_clock", "info")
+
+    def handle_citadel_snd_obb(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"citadel_snd_obb", "environment")
+
+    def handle_citadel_snd_stack_field_obb(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"citadel_snd_stack_field_obb", "environment")
+
+    def handle_citadel_hideout_shootable_target_spawner(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"citadel_hideout_shootable_target_spawner", "info")
+
+    def handle_info_landmark(self, entity: Base, entity_raw: dict):
+        self._handle_point_entity(entity,entity_raw,"info_landmark", "info")
+
+    def handle_citadel_trigger_hideout_teleport(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("citadel_trigger_hideout_teleport", obj, 'triggers')
+
+    def handle_citadel_trigger_hotel_exit(self, entity: Base, entity_raw: dict):
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._put_into_collection("citadel_trigger_hotel_exit", obj, 'triggers')
+
+
 
     # TODO: light color stored as RGBA rather than RGB, which numpy divide doesn't like.
     # Odd dynamic light entity which has regular light and "media" light keyvalues.
