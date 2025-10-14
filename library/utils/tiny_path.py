@@ -163,6 +163,9 @@ class TinyPath(str, PathLike):
             return other.as_posix().lower() == self.as_posix().lower()
         return other.as_posix() == self.as_posix()
 
+    def __add__(self, value):
+        return TinyPath(str(self) + str(value))
+
     def __hash__(self):
         return hash(str(self))
 
