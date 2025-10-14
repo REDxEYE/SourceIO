@@ -150,7 +150,7 @@ class TinyPath(str, PathLike):
     def __truediv__(self, other: PathTypes):
         if self.is_absolute() and TinyPath(other).is_absolute():
             raise ValueError(f"Cannot join absolute paths: {self!r}|{other!r}.")
-        return TinyPath(self + "/" + str(other))
+        return TinyPath(self + ("/" + str(other)))
 
     def __rtruediv__(self, other: PathTypes):
         if self.is_absolute():
