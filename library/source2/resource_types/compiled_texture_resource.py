@@ -200,7 +200,7 @@ class CompiledTextureResource(CompiledResource):
             data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.BC6H:
             t_data = decode_texture(data, width, height, "BC6H")
-            tmp = np.frombuffer(t_data, np.float32, width * height * 3).reshape((width, height, 3))
+            tmp = np.frombuffer(t_data, np.float16, width * height * 3).reshape((width, height, 3))
             data = np.ones((width, height, 4), dtype=np.float32)
             data[:, :, :3] = tmp
         elif pixel_format == VTexFormat.BC7:

@@ -441,9 +441,9 @@ def import_scene_object(content_manager: ContentManager, data_block, g_vertex_of
     else:
         draw_calls = scene_object["m_drawCalls"]
     for draw_call in draw_calls:
-        import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
-                        mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
-                        extra_vertex_buffers)
+        import_drawcall(content_manager, import_context, draw_call, mesh_id, mesh_name, mesh_resource, model_resource,
+                        data_block, g_vertex_offset, extra_vertex_buffers, morph_block, morph_texture, index_buffers,
+                        vertex_buffers, objects)
 
 
 def combine_vertex_buffers(vertex_buffers: list[VertexBuffer], mesh_resource: CompiledMeshResource):
@@ -478,9 +478,11 @@ def combine_vertex_buffers(vertex_buffers: list[VertexBuffer], mesh_resource: Co
     return combined_array, VertexBuffer(vertex_buffers[0].vertex_count, 0, MemoryBuffer(b""), all_attrs)
 
 
-def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, import_context, index_buffers, mesh_id,
-                    mesh_name, mesh_resource, model_resource, morph_block, morph_texture, objects, vertex_buffers,
-                    extra_vertex_buffers):
+def import_drawcall(content_manager: ContentManager, import_context: ImportContext, draw_call: dict, mesh_id: int,
+                    mesh_name: str, mesh_resource: CompiledMeshResource, model_resource: CompiledModelResource,
+                    data_block: KVBlock, g_vertex_offset: int, extra_vertex_buffers: list[VertexBuffer],
+                    morph_block: MorphBlock, morph_texture: CompiledTextureResource, index_buffers: list[IndexBuffer],
+                    vertex_buffers: list[VertexBuffer], objects: list):
     assert draw_call['m_nPrimitiveType'] in [5, 'RENDER_PRIM_TRIANGLES']
     index_buffer_info = draw_call['m_indexBuffer']
 
@@ -555,8 +557,24 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
     if overlay and normals is not None:
         positions += normals * 0.01
 
-    mesh.from_pydata(positions, np.empty(0), new_indices.reshape((-1, 3)))
-    mesh.update()
+    def filter_collapsed_point_tris(verts: np.ndarray, tris: np.ndarray):
+        v0 = verts[tris[:, 0]]
+        v1 = verts[tris[:, 1]]
+        v2 = verts[tris[:, 2]]
+
+        dup01 = np.all(v0 == v1, axis=1)
+        dup12 = np.all(v1 == v2, axis=1)
+        dup20 = np.all(v2 == v0, axis=1)
+
+        keep = ~(dup01 | dup12 | dup20)
+        return keep
+
+    new_indices = new_indices.reshape((-1, 3))
+    keep = filter_collapsed_point_tris(positions, new_indices)
+
+    new_indices = new_indices[keep]
+
+    mesh.from_pydata(positions, np.empty(0), new_indices)
 
     material = get_or_create_material(material_stem, TinyPath(material_name).as_posix())
     add_material(material, mesh_obj)
@@ -616,7 +634,6 @@ def import_drawcall(content_manager, data_block, draw_call, g_vertex_offset, imp
 
     if normals is not None:
         mesh.polygons.foreach_set("use_smooth", np.ones(len(mesh.polygons), dtype=np.bool_))
-        print("Print setting normals")
         mesh.normals_split_custom_set_from_vertices(normals)
         if not is_blender_4_1():
             mesh.use_auto_smooth = True

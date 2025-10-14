@@ -1,9 +1,8 @@
+from typing import Any
+
 import bpy
 import numpy as np
 from bpy.types import Mesh
-
-from SourceIO.library.utils.perf_sampler import timed
-
 
 class FastMesh(Mesh):
     __slots__ = ()
@@ -14,48 +13,14 @@ class FastMesh(Mesh):
         mesh.__class__ = cls
         return mesh
 
-
     def from_pydata(self,
                     vertices: np.ndarray,
-                    edges: np.ndarray,
-                    faces: np.ndarray,
+                    edges: Any | None,
+                    faces: Any | None,
                     shade_flat=True):
-        """
-        Make a mesh from a list of vertices/edges/faces
-        Until we have a nicer way to make geometry, use this.
 
-        :arg vertices:
-
-           float triplets each representing (X, Y, Z)
-           eg: [(0.0, 1.0, 0.5), ...].
-
-        :type vertices: iterable object
-        :arg edges:
-
-           int pairs, each pair contains two indices to the
-           *vertices* argument. eg: [(1, 2), ...]
-
-           When an empty iterable is passed in, the edges are inferred from the polygons.
-
-        :type edges: iterable object
-        :arg faces:
-
-           iterator of faces, each faces contains three or more indices to
-           the *vertices* argument. eg: [(5, 6, 8, 9), (1, 2, 3), ...]
-
-        :type faces: iterable object
-
-        .. warning::
-
-           Invalid mesh data
-           *(out of range indices, edges with matching indices,
-           2 sided faces... etc)* are **not** prevented.
-           If the data used for mesh creation isn't known to be valid,
-           run :class:`Mesh.validate` after this function.
-        """
-
-        has_faces = len(faces) > 0
-        has_edges = len(edges) > 0
+        has_faces = faces is not None and len(faces) > 0
+        has_edges = edges is not None and len(edges) > 0
         vertices_len = len(vertices)
         self.vertices.add(vertices_len)
 
@@ -90,7 +55,6 @@ class FastMesh(Mesh):
                 # Flag loose edges.
                 calc_edges_loose=has_faces,
             )
-
 
     def update(self, calc_edges: bool = False, calc_edges_loose: bool = False) -> None:
         return super().update(calc_edges=calc_edges, calc_edges_loose=calc_edges_loose)
