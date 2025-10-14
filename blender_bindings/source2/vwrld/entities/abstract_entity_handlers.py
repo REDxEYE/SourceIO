@@ -118,10 +118,14 @@ class AbstractEntityHandler:
         if hasattr(entity, 'targetname') and entity.targetname:
             return str(entity.targetname)
         else:
-            hammerniqueid_ = entity._entity_data.get("hammeruniqueid", None)
-            if hammerniqueid_ is None:
-                hammerniqueid_ = entity._entity_data.get("hammerUniqueId", None)
-            return f'{entity._entity_data["classname"]}_{hammerniqueid_}'
+            entity_data = entity._entity_data
+            name = entity_data.get("targetname", None)
+            if name is None:
+                hammerniqueid_ = entity_data.get("hammeruniqueid", None)
+                if hammerniqueid_ is None:
+                    hammerniqueid_ = entity_data.get("hammerUniqueId", None)
+                return f'{entity_data["classname"]}_{hammerniqueid_}'
+            return name
 
     def _put_into_collection(self, name, obj, grouping_collection_name=None):
         if grouping_collection_name is not None:

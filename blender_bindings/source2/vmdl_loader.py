@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from itertools import chain
 from struct import pack, unpack
-from typing import Any, Mapping, Optional
+from typing import Optional
 
 import bpy
 import numpy as np
@@ -29,7 +29,6 @@ from SourceIO.library.utils.math_utilities import SOURCE2_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.source2.compiled_resource import DATA_BLOCK
 from SourceIO.library.utils.tiny_path import TinyPath
-from SourceIO.library.utils.perf_sampler import timed
 from .vmat_loader import load_material
 from .vphy_loader import load_physics
 from ..utils.fast_mesh import FastMesh
