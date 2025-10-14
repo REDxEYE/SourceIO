@@ -19,6 +19,7 @@ def parse_shader_materials(shader_data: str):
             line = line[slit_point + 1:]
         else:
             lines.append(line)
+    lines = list(filter(lambda a:a!="", lines))
 
     def skip_comments_and_whitespace():
         while lines:
@@ -75,15 +76,17 @@ def parse_shader_materials(shader_data: str):
 
             key = get_next()
             value = get_until("\n")
-            material[key] = value
+            material[key.lower()] = value
         return material
 
     materials = {}
-    while lines:
-        mat_name = get_next()
-        must("{", True)
+    skip_comments_and_whitespace()
+    if lines:
+        while lines:
+            mat_name = get_next()
+            must("{", True)
 
-        materials[mat_name] = parse_block(True)
-        skip_comments_and_whitespace()
+            materials[mat_name] = parse_block(True)
+            skip_comments_and_whitespace()
     CACHE[hash_key] = materials
     return materials
