@@ -554,7 +554,7 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
                 normals = convert_normals(normals)
 
     if overlay and normals is not None:
-        positions += normals * 0.01
+        positions += normals * 0.0001
 
     def filter_collapsed_point_tris(verts: np.ndarray, tris: np.ndarray):
         v0 = verts[tris[:, 0]]
