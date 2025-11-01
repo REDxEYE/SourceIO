@@ -283,9 +283,10 @@ class SOURCEIO_OT_DMXCameraImport(ImportOperatorHelper):
     bl_options = {'UNDO'}
 
     filter_glob: StringProperty(default="*.dmx", options={'HIDDEN'})
+    scale: FloatProperty(name="World scale", default=SOURCE2_HAMMER_UNIT_TO_METERS, precision=6)
 
     def execute(self, context):
         directory = self.get_directory()
         for file in self.files:
-            load_camera(directory / file.name)
+            load_camera(directory / file.name, self.scale)
         return {'FINISHED'}
