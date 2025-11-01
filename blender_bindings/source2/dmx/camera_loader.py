@@ -6,7 +6,7 @@ from mathutils import Euler, Quaternion, Vector
 from SourceIO.library.utils.datamodel import load
 
 
-def load_camera(dmx_camera_path):
+def load_camera(dmx_camera_path, scale):
     camera_data = load(dmx_camera_path)
     scene = camera_data.root
     camera_info = scene['camera']
@@ -35,7 +35,7 @@ def load_camera(dmx_camera_path):
             for time, value in zip(value_layer['times'], value_layer['values']):
                 frame = math.ceil(time * fps)
                 pos = Vector([value[1], -value[0], value[2]])
-                camera_obj.location = pos
+                camera_obj.location = pos * scale
                 camera_obj.keyframe_insert(data_path="location", frame=frame)
         elif channel.name.endswith('_o'):
             for time, value in zip(value_layer['times'], value_layer['values']):
