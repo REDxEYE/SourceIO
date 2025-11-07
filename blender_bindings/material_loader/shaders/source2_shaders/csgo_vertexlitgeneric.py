@@ -98,6 +98,9 @@ class CSGOVertexLitGeneric(Source2ShaderBase):
         if self.tinted:
             object_color = self.create_node(Nodes.ShaderNodeObjectInfo)
             self.connect_nodes(object_color.outputs["Color"], shader.inputs["m_vColorTint"])
+        else:
+            object_info_node = self.create_node(Nodes.ShaderNodeObjectInfo)
+            self.connect_nodes(object_info_node.outputs["Color"], shader.inputs["m_vColorTint"])
 
         shader.inputs["g_flModelTintAmount"].default_value = material_data.get_float_property(
             "g_flModelTintAmount", 0.0)

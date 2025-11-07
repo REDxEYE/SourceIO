@@ -362,7 +362,7 @@ class SourceIO_OT_LoadEntity(Operator):
                                 if tint!=[255,255,255]:
                                     tint = [c / 255.0 for c in tint]
                                     tint.append(1.0)  # Ensure alpha is 1.0
-                                    color = [c * t for c, t in zip(color, tint)]
+                                    color = [c * (t**2.2) for c, t in zip(color, tint)]
                                 obj.color = color
                                 obj["entity_data"]["prop_path"] = None
                                 obj["entity_data"]["imported"] = True
@@ -606,6 +606,15 @@ class SOURCEIO_PT_EntityInfo(UITools, Panel):
 
             box = self.layout.box()
             for k1, v1 in entity_raw_data.items():
+                self.draw_recursive(context, box, k1, v1, "")
+
+        self.layout.separator()
+        self.layout.label(text="Total info")
+        if obj.get("entity_data", None):
+            entity_data = obj['entity_data']
+
+            box = self.layout.box()
+            for k1, v1 in entity_data.items():
                 self.draw_recursive(context, box, k1, v1, "")
 
     def draw_recursive(self, context, layout: bpy.types.UILayout, key: str, value: Any, parent_key: str,

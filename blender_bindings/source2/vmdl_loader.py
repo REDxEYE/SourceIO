@@ -554,7 +554,7 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
                 normals = convert_normals(normals)
 
     if overlay and normals is not None:
-        positions += normals * 0.0001
+        positions += normals * 0.001
 
     def filter_collapsed_point_tris(verts: np.ndarray, tris: np.ndarray):
         v0 = verts[tris[:, 0]]
@@ -601,6 +601,7 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
         vc = mesh.vertex_colors.get('TINT', False) or mesh.vertex_colors.new(name='TINT')
         vc_data = vc.data
         c = np.ones(4, dtype=np.float32)
+        tint = [t**2.2 for t in tint]
         c[:3] = np.asarray(tint, dtype=np.float32)[:3]
         c[:3] = np.sqrt(c[:3])
         vc_data.foreach_set('color', np.broadcast_to(c, (vertex_indices.size, 4)).reshape(-1))

@@ -81,6 +81,9 @@ class CSGOComplex(Source2ShaderBase):
             vcolor_node = self.create_node(Nodes.ShaderNodeVertexColor)
             vcolor_node.layer_name = "TINT"
             self.connect_nodes(vcolor_node.outputs[0], shader.inputs["m_vColorTint"])
+        else:
+            object_info_node = self.create_node(Nodes.ShaderNodeObjectInfo)
+            self.connect_nodes(object_info_node.outputs["Color"], shader.inputs["m_vColorTint"])
 
         shader.inputs["g_flModelTintAmount"].default_value = material_data.get_float_property("g_flModelTintAmount",
                                                                                               0.0)
