@@ -105,7 +105,7 @@ def import_world(world_resource: CompiledWorldResource, map_resource: CompiledMa
                         fragment = {
                             "draw_call": draw_info["m_nDrawCallIndex"],
                             "tint_color": draw_info.get('m_vTintColor', [255, 255, 255]),
-                            "matrix": matrix
+                            "matrix": list(matrix)
                         }
                         fragments.append(fragment)
                     create_aggregate_prop_placeholder(scene_object, proper_path, fragments, collection, scale, uv_scale)
