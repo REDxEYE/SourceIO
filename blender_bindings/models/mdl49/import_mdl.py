@@ -4,6 +4,7 @@ from collections import defaultdict
 import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
+from math import atan
 
 from SourceIO.blender_bindings.models.common import merge_meshes
 from SourceIO.blender_bindings.models.mdl44.import_mdl import create_armature
@@ -30,19 +31,17 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      content_manager)
+    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths, content_manager)
 
     objects = []
     bodygroups = defaultdict(list)
     attachments = []
     desired_lod = 0
     all_vertices = vvd.lod_data[desired_lod]
-
+    extra_stuff = []
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
     vertex_anim_cache = preprocess_vertex_animation(mdl, vvd)
-
     if not static_prop:
         armature = create_armature(mdl, scale, load_refpose)
 
@@ -55,21 +54,21 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
             mesh_name = f'{mdl.header.name}_{body_part.name}_{object_name}_MESH'
             mesh_data = FastMesh.new(mesh_name)
             mesh_obj = bpy.data.objects.new(object_name, mesh_data)
-            if getattr(mdl, 'material_mapper', None):
-                material_mapper = mdl.material_mapper
-                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for
-                                    (n, group) in enumerate(mdl.skin_groups)}
-                for key, value in true_skin_groups.items():
-                    while None in value:
-                        value.remove(None)
-                try:
-                    mesh_obj['skin_groups'] = true_skin_groups
-                except:
-                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
-                                               enumerate(mdl.skin_groups)}
-            else:
-                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
-                                           enumerate(mdl.skin_groups)}
+            #if getattr(mdl, 'material_mapper', None):
+            #    material_mapper = mdl.material_mapper
+            #    true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for
+            #                        (n, group) in enumerate(mdl.skin_groups)}
+            #    for key, value in true_skin_groups.items():
+            #        while None in value:
+            #            value.remove(None)
+            #    try:
+            #        mesh_obj['skin_groups'] = true_skin_groups
+            #    except:
+            #        mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
+            #                                   enumerate(mdl.skin_groups)}
+            #else:
+            #    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
+            #                               enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
 
@@ -96,8 +95,12 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
             for mat_id in np.unique(material_indices_array):
                 mat_name = mdl.materials[mat_id].name
                 material = get_or_create_material(mat_name, full_material_names[mat_name])
+                mdl.materials[mat_id].bpy_material = material
                 material_remapper[mat_id] = add_material(material, mesh_obj)
-
+            if getattr(mdl, 'blender_materials_imported', None):
+                skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            #print(skin_groups)
+                mesh_obj['skin_groups'] = skin_groups
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]])
 
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
@@ -170,8 +173,102 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                     if create_drivers:
                         create_flex_drivers(mesh_obj, mdl)
                 mesh_data.validate()
+        
+            if model.has_eyeballs:
+                eyeballs = model.eyeballs
+
+                for mesh in model.meshes:
+                    if mesh.material_type != 1:
+                        continue
+                    eyeball = eyeballs[mesh.material_param]
+                    eyeball_name = eyeball.name or f'eye_{mesh.material_param}'
+                    forward = Vector(eyeball.forward)
+                    up = Vector(eyeball.up)
+                    eyeball_obj = bpy.data.objects.new(eyeball_name, None)
+                    #eyeball_obj['forward_debug'] = forward
+                    #eyeball_obj['up_debug'] = up
+                    eyeball_obj.show_in_front = True
+                    extra_stuff.append(eyeball_obj)
+
+                    eyeball_pos = Vector(eyeball.org) * scale
+                    eyeball_matrix_rotation = Matrix([forward.cross(up),
+                                                      forward,
+                                                      up])
+                    
+                    eyeball_obj.location = eyeball_pos
+                    eyeball_obj.rotation_mode = 'QUATERNION'
+                    eyeball_obj.rotation_quaternion = eyeball_matrix_rotation.to_quaternion()
+                    eyeball_obj.scale = [scale]*3
+                    eyeball_obj.empty_display_type = 'SPHERE'
+
+                    bone_parent = armature.data.bones[mdl.bones[eyeball.bone_index].name]
+                    con = eyeball_obj.constraints.new('CHILD_OF')
+                    con.target = armature
+                    con.subtarget = mdl.bones[eyeball.bone_index].name
+                    con.inverse_matrix.identity()
+                    eye_material = mdl.materials[mesh.material_index].bpy_material
+                    eye_material['target'] = eyeball_obj
+                    eyeball_obj['user'] = eye_material
+                    #eyeball_obj['user'] = eye_material
+                    #eyeball_obj['material_test'] = blender_material
+
+                    locs, rots, scales = ['LOC_X', 'LOC_Y', 'LOC_Z'], ['ROT_W', 'ROT_X', 'ROT_Y', 'ROT_Z'], ['SCALE_X', 'SCALE_Y', 'SCALE_Z']
+
+                    prop_loc = eyeball_name + '_loc'
+                    prop_rot = eyeball_name + '_rot'
+                    prop_scale = eyeball_name + '_scale'
+                    mesh_obj[prop_loc] = [0.0]*3
+                    mesh_obj[prop_rot] = [0.0]*4 # quaternion
+                    mesh_obj[prop_scale] = [0.0]*3
+                    drivers_loc = mesh_obj.driver_add(f'["{prop_loc}"]')
+                    drivers_rot = mesh_obj.driver_add(f'["{prop_rot}"]')
+                    drivers_scale = mesh_obj.driver_add(f'["{prop_scale}"]')
+
+                    def get_obj_transforms_driver(drivers, transform_type, do_quaternion=False):
+                        for driver, transform_type in zip(drivers, transform_type):
+                            driver = driver.driver
+                            driver.type = 'AVERAGE'
+                            var = driver.variables.new()
+                            var.type = 'TRANSFORMS'
+                            var.targets[0].id = eyeball_obj
+                            if do_quaternion:
+                                var.targets[0].rotation_mode = 'QUATERNION'
+                            var.targets[0].transform_type = transform_type
+                            
+                    get_obj_transforms_driver(drivers_loc, locs)
+                    get_obj_transforms_driver(drivers_rot, rots, True)
+                    get_obj_transforms_driver(drivers_scale, scales)
+
+                    mesh_obj[eyeball_name+'_iris_scale'] = 1/eyeball.iris_scale
+                    eyeball_obj.empty_display_size = 1/eyeball.iris_scale
+                    mesh_obj[eyeball_name+'_z_offset'] = atan(eyeball.z_offset)
+
+                    if (nodes := getattr(eye_material.node_tree, 'nodes', None)):
+                        if nodes.get('!EYE_LOC'):
+                            nodes['!EYE_LOC'].attribute_name = prop_loc
+                        if nodes.get('!EYE_ROT'):
+                            nodes['!EYE_ROT'].attribute_name = prop_rot
+                        if nodes.get('!EYE_LOC'):
+                            nodes['!EYE_SCALE'].attribute_name = prop_scale
+                        if nodes.get('!EYE_Z'):
+                            nodes['!EYE_Z'].attribute_name = eyeball_name + '_z_offset'
+                        if nodes.get('!EYE_IRIS_SCALE'):
+                            nodes['!EYE_IRIS_SCALE'].attribute_name = eyeball_name + '_iris_scale'
+
+                pass
+
+    for body_part in mdl.body_parts:
+        for model in body_part.models:
+            if not model.has_eyeballs: continue
+            eyeballs = model.eyeballs
+
+            for mesh in model.meshes:
+                if mesh.material_type != 1: continue
+
+
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
+    attachments.extend(extra_stuff)
 
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
 

@@ -246,21 +246,28 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
 def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
     # print(mdl.type)
-    if (material_mapper := getattr(mdl, 'material_mapper', None)) == None:
-        material_mapper = dict()
+    #if (material_mapper := getattr(mdl, 'material_mapper', None)) == None:
+    #    material_mapper = dict()
     for material in mdl.materials:
         material_path = None
         material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
-            if material_file:
-                material_path = TinyPath(mat_path) / material.name
-                break
+        material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
+        if material_file:
+            material_path = TinyPath(material.name)
+        else:
+            for mat_path in mdl.materials_paths:
+                #material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
+                #if material_file:
+                #    material_path = TinyPath(material.name)
+                #    break
+                material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
+                if material_file:
+                    material_path = TinyPath(mat_path) / material.name
+                    break
         if material_path is None:
             logger.info(f'Material {material.name} not found')
             continue
         mat = get_or_create_material(material.name, material_path.as_posix())
-        material_mapper[material.material_pointer] = mat
 
         if mat.get('source1_loaded', False):
             logger.info(f'Skipping loading of {mat} as it already loaded')
@@ -269,9 +276,13 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
         if material_path:
             Source1ShaderBase.use_bvlg(use_bvlg)
             vmt = VMT(material_file, material_path, content_manager)
-            ShaderRegistry.source1_create_nodes(content_manager, mat, vmt,{})
+            mat = ShaderRegistry.source1_create_nodes(content_manager, mat, vmt,{})
 
-        mdl.material_mapper = material_mapper
+        material.bpy_material = mat
+        mdl.blender_materials_imported = True
+        #material_mapper[material.material_pointer] = mat
+
+        #mdl.material_mapper = material_mapper
         # print(mdl.material_mapper, mdl.skin_groups)
 
 

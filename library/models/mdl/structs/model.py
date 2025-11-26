@@ -63,7 +63,7 @@ class Model:
         return any(len(mesh.flexes) > 0 for mesh in self.meshes)
 
     @property
-    def has_eyebals(self):
+    def has_eyeballs(self):
         return len(self.eyeballs) > 0
 
 
