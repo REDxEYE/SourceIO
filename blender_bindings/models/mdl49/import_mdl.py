@@ -32,6 +32,8 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths, content_manager)
+    [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
+    # ensure all MaterialV49 has its bpy_material counterpart
 
     objects = []
     bodygroups = defaultdict(list)
@@ -54,23 +56,10 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
             mesh_name = f'{mdl.header.name}_{body_part.name}_{object_name}_MESH'
             mesh_data = FastMesh.new(mesh_name)
             mesh_obj = bpy.data.objects.new(object_name, mesh_data)
-            #if getattr(mdl, 'material_mapper', None):
-            #    material_mapper = mdl.material_mapper
-            #    true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for
-            #                        (n, group) in enumerate(mdl.skin_groups)}
-            #    for key, value in true_skin_groups.items():
-            #        while None in value:
-            #            value.remove(None)
-            #    try:
-            #        mesh_obj['skin_groups'] = true_skin_groups
-            #    except:
-            #        mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
-            #                                   enumerate(mdl.skin_groups)}
-            #else:
-            #    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
-            #                               enumerate(mdl.skin_groups)}
+
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
+            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
 
             objects.append(mesh_obj)
             bodygroups[body_part.name].append(mesh_obj)
@@ -97,10 +86,13 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                 material = get_or_create_material(mat_name, full_material_names[mat_name])
                 mdl.materials[mat_id].bpy_material = material
                 material_remapper[mat_id] = add_material(material, mesh_obj)
-            if getattr(mdl, 'blender_materials_imported', None):
-                skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
-            #print(skin_groups)
+
+            skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            try:
                 mesh_obj['skin_groups'] = skin_groups
+            except:
+                mesh_obj['skin_groups'] = default_skin_groups
+
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]])
 
             vertex_indices = np.zeros((len(mesh_data.loops, )), dtype=np.uint32)
@@ -201,14 +193,12 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                     eyeball_obj.scale = [scale]*3
                     eyeball_obj.empty_display_type = 'SPHERE'
 
-                    bone_parent = armature.data.bones[mdl.bones[eyeball.bone_index].name]
                     con = eyeball_obj.constraints.new('CHILD_OF')
                     con.target = armature
                     con.subtarget = mdl.bones[eyeball.bone_index].name
                     con.inverse_matrix.identity()
                     eye_material = mdl.materials[mesh.material_index].bpy_material
                     eye_material['target'] = eyeball_obj
-                    eyeball_obj['user'] = eye_material
                     #eyeball_obj['user'] = eye_material
                     #eyeball_obj['material_test'] = blender_material
 
@@ -254,17 +244,6 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                             nodes['!EYE_Z'].attribute_name = eyeball_name + '_z_offset'
                         if nodes.get('!EYE_IRIS_SCALE'):
                             nodes['!EYE_IRIS_SCALE'].attribute_name = eyeball_name + '_iris_scale'
-
-                pass
-
-    for body_part in mdl.body_parts:
-        for model in body_part.models:
-            if not model.has_eyeballs: continue
-            eyeballs = model.eyeballs
-
-            for mesh in model.meshes:
-                if mesh.material_type != 1: continue
-
 
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)

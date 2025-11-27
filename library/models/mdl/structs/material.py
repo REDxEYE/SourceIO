@@ -65,7 +65,6 @@ class MaterialV49(Material):
         used = buffer.read_uint32()
         unused1 = buffer.read_uint32()
         material_pointer = buffer.read_uint32()
-        material_pointer = str(uuid4())
         # hey REDxEYE
         # this works to store all skin groups as material IDs instead of str. using the buffer doesn't work anyways.
         client_material_pointer = buffer.read_uint32()
