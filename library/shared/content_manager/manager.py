@@ -58,11 +58,13 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
 
     def __init__(self):
         super().__init__(TinyPath("."))
-        self.children: list[ContentProvider] = []
+        self.children: set[ContentProvider] = set()
         self._steam_id = -1
         self._cache: _LRU[TinyPath, Buffer] = _LRU(MAX_CACHE_SIZE)
         self._exists_cache: _LRU[TinyPath, bool] = _LRU(META_CACHE_SIZE)
         self._owner_cache: _LRU[TinyPath, ContentProvider] = _LRU(META_CACHE_SIZE)
+        self.first_import: TinyPath = None
+        self.priority_list: list[ContentProvider] = None
 
     @property
     def root(self) -> TinyPath:
@@ -151,7 +153,8 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         if providers:
             for provider in providers:
                 logger.info(f"Mounted: {provider}")
-            self.children.extend(providers)
+            self.children.update(set(providers))
+            pass
             return
         self._find_steam_appid(scan_path)
         if scan_path.suffix == '.vpk':
@@ -186,11 +189,12 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
             else:
                 root_path = root_path.parent
                 self.add_child(LooseFilesContentProvider(root_path))
+        pass
 
     def add_child(self, child: ContentProvider):
         """Mount a child provider and invalidate metadata caches."""
         if child not in self.children:
-            self.children.append(child)
+            self.children.add(child)
             self._clear_meta_caches()
 
     def glob(self, pattern: str) -> Iterator[tuple[TinyPath, Buffer]]:
@@ -222,7 +226,26 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 return file
             self._owner_cache.pop(k, None)
             self._exists_cache.pop(k, None)
-        for child in self.children:
+
+        children = self.priority_list or set(self.children)
+
+        if (self.first_import is not None) and (self.priority_list is None):
+            for child in children:
+                if not isinstance(child, (Source1GameInfoProvider, Source2GameInfoProvider, LooseFilesContentProvider)):
+                    continue
+                provider_path = child.filepath
+                if provider_path.is_file():
+                    provider_path = provider_path.parent
+                
+                if self.first_import.as_posix().startswith(provider_path.as_posix()):
+                    priority = child
+                    children.discard(child)
+                    self.priority_list = [priority, *children]
+                    break
+            else:
+                self.priority_list = False # we tried. no point to keep trying any further
+
+        for child in children:
             file = child.find_file(k)
             if file is not None:
                 logger.debug(f'Found in {child}!')
@@ -255,11 +278,11 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
             if path.endswith('.vpk'):
                 provider = VPKContentProvider(t_path)
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             elif path.endswith('.pk3'):
                 provider = ZIPContentProvider(t_path)
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             elif path.endswith('.txt'):
                 try:
                     provider = Source1GameInfoProvider(t_path)
@@ -267,11 +290,11 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                     logger.exception(f"Failed to parse gameinfo for {t_path}", ex)
                     continue
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             elif path.endswith('.gi'):
                 provider = Source2GameInfoProvider(t_path)
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             elif path.endswith('.bsp'):
                 from ...source1.bsp.bsp_file import open_bsp
                 if t_path.is_absolute():
@@ -283,19 +306,19 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                     bsp = open_bsp(t_path, f, self)
                     provider = bsp.get_lump('LUMP_PAK')
                 if provider and provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             elif path.endswith('.hfs'):
                 provider = HFS1ContentProvider(t_path)
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             elif name == 'hfs':
                 provider = HFS2ContentProvider(t_path)
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
             else:
                 provider = LooseFilesContentProvider(t_path)
                 if provider not in self.children:
-                    self.children.append(register_provider(provider))
+                    self.children.add(register_provider(provider))
 
     def clean(self):
         """Reset mounts and caches."""

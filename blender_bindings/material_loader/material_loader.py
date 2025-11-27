@@ -53,7 +53,8 @@ class ShaderRegistry:
                              vmt: VMT,
                              extra_parameters: dict[ExtraMaterialParameters, Any]):
         if not cls._initial_setup(material):
-            return
+            return material
+        
         shader = vmt.shader
         if shader not in cls._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')

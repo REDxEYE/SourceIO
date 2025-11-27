@@ -252,14 +252,12 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
         material_path = None
         material_file = None
         material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
+        if '/' in material.name: # good chance the material name has the full path
+            material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
         if material_file:
             material_path = TinyPath(material.name)
         else:
             for mat_path in mdl.materials_paths:
-                #material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
-                #if material_file:
-                #    material_path = TinyPath(material.name)
-                #    break
                 material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
                 if material_file:
                     material_path = TinyPath(mat_path) / material.name
