@@ -74,6 +74,10 @@ class EyeRefract(Source1ShaderBase):
         return self._vmt.get_int('$raytracesphere', 1)
     
     @property
+    def spheretexkillcombo(self):
+        return self._vmt.get_int('$spheretexkillcombo', 1)
+    
+    @property
     def irisu(self):
         mask, _ = self._vmt.get_vector('$irisu', (0.0, 1.0, 0.0, 0.0))
         return mask[:3]
@@ -109,6 +113,7 @@ class EyeRefract(Source1ShaderBase):
         nodes['$ParallaxStrength'].outputs[0].default_value = self.parallaxstrength
         nodes['$CorneaBumpStrength'].outputs[0].default_value = self.corneabumpstrength
         nodes['$RaytraceSphere'].outputs[0].default_value = self.raytracesphere
+        nodes['$SphereTexkillCombo'].outputs[0].default_value = self.spheretexkillcombo
         nodes['$IrisU'].outputs[0].default_value = self.irisu
         nodes['$IrisV'].outputs[0].default_value = self.irisv
         
