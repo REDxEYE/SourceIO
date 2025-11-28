@@ -35,7 +35,7 @@ class HLADetector(Source2Detector):
         if initial_mod_gi_path is not None:
             cls.add_provider(Source2GameInfoProvider(initial_mod_gi_path, SteamAppId.HALF_LIFE_ALYX), providers)
         user_mod_gi_path = hla_root / "hlvr/gameinfo.gi"
-        if initial_mod_gi_path != user_mod_gi_path:
+        if initial_mod_gi_path != user_mod_gi_path and user_mod_gi_path.exists():
             cls.add_provider(Source2GameInfoProvider(user_mod_gi_path, SteamAppId.HALF_LIFE_ALYX), providers)
 
         for folder in (hla_root / 'hlvr_addons').iterdir():
