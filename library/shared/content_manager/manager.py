@@ -237,7 +237,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 if provider_path.is_file():
                     provider_path = provider_path.parent
                 
-                if self.first_import.as_posix().startswith(provider_path.as_posix()):
+                if self.first_import.as_posix().startswith(provider_path.as_posix()+'/'):
                     priority = child
                     children.discard(child)
                     self.priority_list = [priority, *children]
