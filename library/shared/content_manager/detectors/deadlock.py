@@ -32,6 +32,6 @@ class DeadlockDetector(Source2Detector):
         if initial_mod_gi_path is not None:
             cls.add_provider(Source2GameInfoProvider(initial_mod_gi_path, SteamAppId.DEADLOCK), providers)
         user_mod_gi_path = game_root / "citadel/gameinfo.gi"
-        if initial_mod_gi_path != user_mod_gi_path:
+        if initial_mod_gi_path != user_mod_gi_path and user_mod_gi_path.exists():
             cls.add_provider(Source2GameInfoProvider(user_mod_gi_path, SteamAppId.DEADLOCK), providers)
         return providers, game_root
