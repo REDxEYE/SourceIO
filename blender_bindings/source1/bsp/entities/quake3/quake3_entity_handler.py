@@ -58,11 +58,11 @@ def _eval_patch_attrs(control_3x3: np.ndarray, tess: int) -> np.ndarray:
         color_ = control_3x3["color"]
         vertex_count = color_.shape[0], color_.shape[1]
         layer_count = color_.shape[2]
-        comp_count = color_.shape[3]
+        comp_count = color_.shape[3] if len(color_.shape)==4 else 1
         c = eval_field(color_.reshape(*vertex_count, layer_count * comp_count).astype(np.float32))
         c = np.clip(np.rint(c), 0, 255).astype(np.uint8)
         c = c.reshape(U * V, layer_count, comp_count)
-        out["color"] = c
+        out["color"] = c.reshape(out["color"].shape)
 
     return out
 
