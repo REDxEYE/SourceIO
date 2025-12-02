@@ -1,4 +1,9 @@
 import sys
+from pathlib import Path
+
+if "SourceIO" not in sys.modules:
+    sys.modules['SourceIO'] = sys.modules[Path(__file__).parent.stem]
+
 if sys.version_info <= (3, 10, 0):
     raise Exception("SourceIO requires python 3.10+ or Blender 4.0.0+")
 
@@ -11,10 +16,6 @@ try:
 except ImportError:
     bpy = ...
 
-import sys
-import warnings
-from pathlib import Path
-
 bl_info = {
     "name": "SourceIO",
     "author": "RED_EYE, ShadelessFox, Syborg64",
@@ -25,9 +26,9 @@ bl_info = {
                    "Notice that you cannot delete this addon via blender UI, remove it manually from addons folder",
     "category": "Import-Export"
 }
+
+import warnings
 warnings.simplefilter("always", DeprecationWarning)
-if "SourceIO" not in sys.modules:
-    sys.modules['SourceIO'] = sys.modules[Path(__file__).parent.stem]
 
 from SourceIO.library import loaded_as_addon, running_in_blender
 
