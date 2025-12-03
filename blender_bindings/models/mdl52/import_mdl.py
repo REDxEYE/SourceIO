@@ -144,8 +144,10 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
                         partner_name = mdl.flex_names[flex_desc.partner_index]
                         partner_shape_key = (mesh_data.shape_keys.key_blocks.get(partner_name, None) or
                                              mesh_obj.shape_key_add(name=partner_name))
+                        partner_shape_key.value = 0.0
                         shape_key = (mesh_data.shape_keys.key_blocks.get(flex_name, None) or
                                      mesh_obj.shape_key_add(name=flex_name))
+                        shape_key.value = 0.0
 
                         balance = model_vertices[:, 0]
                         balance_width = (model_vertices.max() - model_vertices.min()) * (1 - (99.3 / 100))
@@ -160,6 +162,7 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
                     else:
                         shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
                             name=flex_name)
+                        shape_key.value = 0.0
 
                         shape_key.data.foreach_set("co", (flex_delta + model_vertices).reshape(-1))
                 if create_drivers:

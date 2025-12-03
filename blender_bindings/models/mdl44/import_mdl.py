@@ -180,6 +180,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
                     for flex_name in flex_names:
                         shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
                             name=flex_name)
+                        shape_key.value = 0.0
                         vertex_animation = vertex_anim_cache[flex_name]
 
                         model_vertices = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
@@ -200,7 +201,8 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
 def create_flex_drivers(obj, mdl: MdlV44):
     all_exprs = mdl.rebuild_flex_rules()
     for controller in mdl.flex_controllers:
-        obj.shape_key_add(name=controller.name)
+        shape_key = obj.shape_key_add(name=controller.name)
+        shape_key.value = 0.0
 
     def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
         if issubclass(type(expr), (FetchController, FetchFlex)):
@@ -223,6 +225,7 @@ def create_flex_drivers(obj, mdl: MdlV44):
     for target, expr in all_exprs.items():
         shape_key_block = obj.data.shape_keys
         shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
+        shape_key.value = 0.0
 
         shape_key.driver_remove("value")
         fcurve = shape_key.driver_add("value")

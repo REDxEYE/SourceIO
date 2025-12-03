@@ -178,6 +178,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
                         flex_name = mdl.flex_names[flex.flex_desc_index]
                         shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
                             name=flex_name)
+                        shape_key.value = 0.0
                         flex_vertices = model_vertices["vertex"].copy()
                         if model.vtype > 0:
                             flex_vertices = (
