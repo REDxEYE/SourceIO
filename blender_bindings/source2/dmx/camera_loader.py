@@ -23,7 +23,7 @@ def load_camera(dmx_camera_path, scale):
 
     bpy.context.scene.collection.objects.link(camera_obj)
 
-    camera_obj.location = Vector(camera_info['transform']['position'])
+    camera_obj.location = Vector(camera_info['transform']['position']) * scale
     camera_obj.rotation_quaternion = Quaternion(camera_info['transform']['orientation'])
     camera.lens = 0.5 * 36 / math.tan(math.radians(fov) / 2)
     camera_obj.rotation_mode = 'QUATERNION'
