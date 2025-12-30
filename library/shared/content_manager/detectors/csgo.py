@@ -33,7 +33,7 @@ class CSGODetector(Source1Detector):
                 cls.add_provider(VPKContentProvider(vpk, SteamAppId.COUNTER_STRIKE_GO), providers)
             cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
         user_mod_gi_path = game_root / "csgo/gameinfo.txt"
-        if initial_mod_gi_path != user_mod_gi_path:
+        if initial_mod_gi_path != user_mod_gi_path and user_mod_gi_path.exists():
             for vpk in user_mod_gi_path.glob("*_dir.vpk"):
                 cls.add_provider(VPKContentProvider(vpk, SteamAppId.COUNTER_STRIKE_GO), providers)
 

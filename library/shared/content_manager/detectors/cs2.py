@@ -30,6 +30,6 @@ class CS2Detector(Source2Detector):
         if initial_mod_gi_path is not None:
             cls.add_provider(Source2GameInfoProvider(initial_mod_gi_path, SteamAppId.COUNTER_STRIKE_GO), providers)
         user_mod_gi_path = game_root / "csgo/gameinfo.gi"
-        if initial_mod_gi_path != user_mod_gi_path:
+        if initial_mod_gi_path != user_mod_gi_path and user_mod_gi_path.exists():
             cls.add_provider(Source2GameInfoProvider(user_mod_gi_path, SteamAppId.COUNTER_STRIKE_GO), providers)
         return providers, game_root

@@ -34,7 +34,7 @@ class SFMDetector(Source1Detector):
         if initial_mod_gi_path is not None:
             cls.add_provider(Source1GameInfoProvider(initial_mod_gi_path), providers)
         user_mod_gi_path = sfm_root / "usermod/gameinfo.txt"
-        if initial_mod_gi_path != user_mod_gi_path:
+        if initial_mod_gi_path != user_mod_gi_path and user_mod_gi_path.exists():
             cls.add_provider(Source1GameInfoProvider(user_mod_gi_path), providers)
         cls.register_common(sfm_root, providers)
         for folder in sfm_root.iterdir():
