@@ -73,7 +73,7 @@ def put_into_collections(model_container: ModelContainer, model_name,
     return master_collection
 
 def create_eyeballs(mdl: Mdl, armature: bpy.types.Object, mesh_obj: bpy.types.Object, model: Model, scale: float, extra_stuff: list):
-    from math import atan, radians
+    from math import atan
     from mathutils import Matrix, Vector
 
     eyeballs = model.eyeballs
@@ -85,15 +85,19 @@ def create_eyeballs(mdl: Mdl, armature: bpy.types.Object, mesh_obj: bpy.types.Ob
         forward = Vector(eyeball.forward)
         up = Vector(eyeball.up)
         eyeball_obj = bpy.data.objects.new(eyeball_name, None)
-        eyeball_obj['forward_debug'] = forward
-        eyeball_obj['up_debug'] = up
+        #eyeball_obj['forward_debug'] = forward
+        #eyeball_obj['up_debug'] = up
         eyeball_obj.show_in_front = True
         extra_stuff.append(eyeball_obj)
 
         eyeball_pos = Vector(eyeball.org) * scale
-        eyeball_matrix_rotation = Matrix([up.cross(forward),
-                                        forward,
-                                        up])
+        eyeball_matrix_rotation = Matrix(
+            [
+                forward.cross(up),
+                forward,
+                up
+            ]
+        ).transposed()
         
         eyeball_obj.location = eyeball_pos
         eyeball_obj.rotation_mode = 'QUATERNION'
@@ -105,12 +109,10 @@ def create_eyeballs(mdl: Mdl, armature: bpy.types.Object, mesh_obj: bpy.types.Ob
         con.subtarget = mdl.bones[eyeball.bone_index].name
         con.inverse_matrix.identity()
         eye_material = mdl.materials[mesh.material_index].bpy_material
-        eye_material['target'] = eyeball_obj
-        #eyeball_obj['user'] = eye_material
+        eye_material['eye_source'] = eyeball_obj
+        eyeball_obj['eye_material'] = eye_material
 
-        bone_parent = armature.data.bones[mdl.bones[eyeball.bone_index].name]
-
-        eyeball_obj.rotation_quaternion = bone_parent.matrix_local.to_quaternion().inverted() @ eyeball_matrix_rotation.to_quaternion() @ Matrix.Rotation(radians(-90), 3, 'Y').to_quaternion()
+        eyeball_obj.rotation_quaternion = eyeball_matrix_rotation.to_quaternion()
 
         locs, rots, scales = ['LOC_X', 'LOC_Y', 'LOC_Z'], ['ROT_W', 'ROT_X', 'ROT_Y', 'ROT_Z'], ['SCALE_X', 'SCALE_Y', 'SCALE_Z']
 
