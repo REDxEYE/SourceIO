@@ -665,6 +665,7 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
                     logging.debug(f'Skipping {flex_name!r} because flex delta is zero')
                     continue
                 shape = mesh_obj.shape_key_add(name=flex_name)
+                shape.value = 0.0
                 co = (positions + flex_verts * import_context.scale).reshape(-1)
                 shape.data.foreach_set("co", co)
 

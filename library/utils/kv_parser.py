@@ -212,7 +212,7 @@ class ValveKeyValueLexer:
         return (symbol.isprintable() or symbol in '\t\x7f\x1b') and symbol not in '$%{}[]"\'\n\r'
 
     def _is_valid_quoted_symbol(self, symbol):
-        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?'
+        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?\n'
 
     def _is_escaped_symbol(self):
         return self.next_symbol in '\'"\\'
@@ -235,6 +235,20 @@ class ValveKeyValueLexer:
         terminator = self.advance()
         string_buffer = ""
 
+        if terminator in "\"'" and self.symbol == "\n":
+            # Scan forward till we find the ending quote with newline
+            start = self._offset
+            while self:
+                if self.symbol==terminator and self.next_symbol == "\n":
+                    break
+                self.advance()
+            if self.symbol == terminator and self.next_symbol == "\n":
+                self.advance()
+                return self.buffer[start:self._offset-1].strip().rstrip()
+            else:
+                self._offset = start - 1
+                self._column -= (self._offset - start + 1)
+
         while True:
             symbol = self.symbol
             if symbol == "\\" and self.next_symbol == "x":
@@ -243,7 +257,10 @@ class ValveKeyValueLexer:
                 self.advance()
             # if symbol == '\\' and self.next_symbol in '\'"ntr':
             #     self.advance()
-            if not self._is_valid_quoted_symbol(symbol) or symbol in terminator + '\n':
+            # if string_buffer=="" and symbol == "\n":
+            #     self.advance()
+            #     continue
+            if not self._is_valid_quoted_symbol(symbol) or symbol in terminator:
                 break
 
             string_buffer += self.advance()

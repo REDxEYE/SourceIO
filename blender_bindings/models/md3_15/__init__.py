@@ -61,6 +61,7 @@ def import_md3_15(model_path: TinyPath, buffer: Buffer,
             shape_key = model_object.shape_key_add(name=f"frame_{i}")
 
             shape_key.data.foreach_set("co", surface.positions(i + 1).ravel() * options.scale)
+            shape_key.value = 0.0
         model_mesh.validate()
         material_name = TinyPath(surface.shaders[0].name).with_suffix("")
         mat = get_or_create_material(TinyPath(material_name).stem, material_name)
