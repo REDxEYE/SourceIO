@@ -62,10 +62,11 @@ def add_material(material, model_ob):
 
 
 def get_or_create_material(name: str, full_path: str):
+    full_path = full_path.lstrip('/').casefold()
     for mat in bpy.data.materials:
-        if (fp := mat.get('full_path', None)) is None:
-            continue
-        if TinyPath(fp.lower()) == TinyPath(full_path.lower()):
+        #if (fp := mat.get('full_path', None)) is None:
+        #    continue
+        if TinyPath(mat.get('full_path', '').casefold()) == TinyPath(full_path):
             return mat
     mat = bpy.data.materials.new(name)
     mat["full_path"] = full_path

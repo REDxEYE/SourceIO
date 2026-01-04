@@ -20,7 +20,7 @@ from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegi
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.library.models.vtx.v107.vtx import Vtx
 from SourceIO.library.models.vvc import Vvc
-from ..common import merge_meshes
+from ..common import merge_meshes, create_eyeballs
 from SourceIO.logger import SourceLogMan
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -72,10 +72,13 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_manager)
+    [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
+    # ensure all MaterialV49 has its bpy_material counterpart
     objects = []
     bodygroups = defaultdict(list)
     attachments = []
     desired_lod = 0
+    extra_stuff = []
 
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
@@ -91,18 +94,9 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
             mesh_name = f'{body_part.name}_{model.name}'
             mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-            if getattr(mdl, 'material_mapper', None):
-                material_mapper = mdl.material_mapper
-                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for (n, group) in enumerate(mdl.skin_groups)}
-                for key, value in true_skin_groups.items():
-                    while None in value:
-                        value.remove(None)
-                try:
-                    mesh_obj['skin_groups'] = true_skin_groups
-                except:
-                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
-            else:
-                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            
+            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)
@@ -148,6 +142,13 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
                 mat_name = mdl.materials[mat_id].name
                 material = get_or_create_material(mat_name, full_material_names[mat_name])
                 material_remapper[mat_id] = add_material(material, mesh_obj)
+
+            
+            skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            try:
+                mesh_obj['skin_groups'] = skin_groups
+            except:
+                mesh_obj['skin_groups'] = default_skin_groups
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].ravel())
 
@@ -196,8 +197,13 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
 
                 if create_drivers:
                     create_flex_drivers(mesh_obj, mdl)
+            
+            if model.has_eyeballs:
+                create_eyeballs(mdl, armature, mesh_obj, model, scale, extra_stuff)
+
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
+    attachments.extend(extra_stuff)
 
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
 

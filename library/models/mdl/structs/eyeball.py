@@ -7,7 +7,7 @@ from SourceIO.library.utils import Buffer
 @dataclass(slots=True)
 class Eyeball:
     name: str
-    bone_index = 0
+    bone_index: int
     org: Vector3[float]
     z_offset: float
     radius: float
@@ -54,5 +54,5 @@ class Eyeball:
             buffer.skip(3 * 4)
         else:
             eyeball_is_non_facs = None
-        return cls(name, org, z_offset, radius, up, forward, material_id, iris_scale, upper_flex_desc, lower_flex_desc,
+        return cls(name, bone_index, org, z_offset, radius, up, forward, material_id, iris_scale, upper_flex_desc, lower_flex_desc,
                    upper_target, lower_target, upper_lid_flex_desc, lower_lid_flex_desc, eyeball_is_non_facs)

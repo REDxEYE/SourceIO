@@ -48,6 +48,8 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
         else:
             deserialize_mounted_content(content_manager)
 
+        content_manager.first_import = directory
+
         for file in self.files:
             mdl_path = directory / file.name
             with FileBuffer(mdl_path) as f:
@@ -64,6 +66,8 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
             #     from ...library.source1.qc.qc import generate_qc
             #     qc_file = bpy.data.texts.new('{}.qc'.format(TinyPath(file.name).stem))
             #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
+        content_manager.first_import = None
+        content_manager.priority_list = None
         return {'FINISHED'}
 
 
@@ -90,6 +94,7 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
     def execute(self, context):
         content_manager = ContentManager()
         filepath = TinyPath(self.filepath)
+        content_manager.first_import = filepath
         if self.discover_resources:
             content_manager.scan_for_content(filepath)
         else:
@@ -100,6 +105,9 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
 
         if self.discover_resources:
             serialize_mounted_content(content_manager)
+
+        content_manager.first_import = None
+        content_manager.priority_list = None
 
         return {'FINISHED'}
 
@@ -360,6 +368,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
     def execute(self, context):
         directory = self.get_directory()
         content_manager = ContentManager()
+        content_manager.first_import = directory
         if self.discover_resources:
             content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
@@ -368,6 +377,10 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
         for file in self.files:
             skybox_name = path_stem(file.name)
             load_skybox_texture(skybox_name[:-2], content_manager, int(self.resolution))
+        
+        content_manager.first_import = None
+        content_manager.priority_list = None
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -391,6 +404,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
     def execute(self, context):
         directory = self.get_directory()
         content_manager = ContentManager()
+        content_manager.first_import = directory
         if self.discover_resources:
             content_manager.scan_for_content(directory)
             serialize_mounted_content(content_manager)
@@ -412,7 +426,11 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
                 else:
                     self.report({'INFO'}, '{} material already exists')
             ShaderRegistry.source1_create_nodes(content_manager, mat, vmt, {})
-        content_manager.clean()
+            
+        # content_manager.clean() # lets keep cache just in case
+        
+        content_manager.first_import = None
+        content_manager.priority_list = None
         return {'FINISHED'}
 
     # # noinspection PyUnresolvedReferences,PyPep8Naming

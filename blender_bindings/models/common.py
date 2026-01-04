@@ -6,6 +6,7 @@ from SourceIO.blender_bindings.utils.bpy_utils import get_new_unique_collection
 from SourceIO.library.models.mdl.structs.model import Model
 from SourceIO.library.models.vtx.v7.structs.lod import ModelLod as VtxModel
 from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
+from SourceIO.library.models.mdl import Mdl
 
 
 def merge_strip_groups(vtx_mesh: VtxMesh):
@@ -70,3 +71,88 @@ def put_into_collections(model_container: ModelContainer, model_name,
             physics_collection.objects.link(physics)
     model_container.master_collection = master_collection
     return master_collection
+
+def create_eyeballs(mdl: Mdl, armature: bpy.types.Object, mesh_obj: bpy.types.Object, model: Model, scale: float, extra_stuff: list):
+    from math import atan
+    from mathutils import Matrix, Vector
+
+    eyeballs = model.eyeballs
+    for mesh in model.meshes:
+        if mesh.material_type != 1:
+            continue
+        eyeball = eyeballs[mesh.material_param]
+        eyeball_name = eyeball.name or f'eye_{mesh.material_param}'
+        forward = Vector(eyeball.forward)
+        up = Vector(eyeball.up)
+        eyeball_obj = bpy.data.objects.new(eyeball_name, None)
+        #eyeball_obj['forward_debug'] = forward
+        #eyeball_obj['up_debug'] = up
+        eyeball_obj.show_in_front = True
+        extra_stuff.append(eyeball_obj)
+
+        eyeball_pos = Vector(eyeball.org) * scale
+        eyeball_matrix_rotation = Matrix(
+            [
+                forward.cross(up),
+                forward,
+                up
+            ]
+        ).transposed()
+        
+        eyeball_obj.location = eyeball_pos
+        eyeball_obj.rotation_mode = 'QUATERNION'
+        eyeball_obj.scale = [scale]*3
+        eyeball_obj.empty_display_type = 'SPHERE'
+
+        con = eyeball_obj.constraints.new('CHILD_OF')
+        con.target = armature
+        con.subtarget = mdl.bones[eyeball.bone_index].name
+        con.inverse_matrix.identity()
+        eye_material = mdl.materials[mesh.material_index].bpy_material
+        eye_material['eye_source'] = eyeball_obj
+        eyeball_obj['eye_material'] = eye_material
+
+        eyeball_obj.rotation_quaternion = eyeball_matrix_rotation.to_quaternion()
+
+        locs, rots, scales = ['LOC_X', 'LOC_Y', 'LOC_Z'], ['ROT_W', 'ROT_X', 'ROT_Y', 'ROT_Z'], ['SCALE_X', 'SCALE_Y', 'SCALE_Z']
+
+        prop_loc = eyeball_name + '_loc'
+        prop_rot = eyeball_name + '_rot'
+        prop_scale = eyeball_name + '_scale'
+        mesh_obj[prop_loc] = [0.0]*3
+        mesh_obj[prop_rot] = [0.0]*4 # quaternion
+        mesh_obj[prop_scale] = [0.0]*3
+        drivers_loc = mesh_obj.driver_add(f'["{prop_loc}"]')
+        drivers_rot = mesh_obj.driver_add(f'["{prop_rot}"]')
+        drivers_scale = mesh_obj.driver_add(f'["{prop_scale}"]')
+
+        def get_obj_transforms_driver(drivers, transform_type, do_quaternion=False):
+            for driver, transform_type in zip(drivers, transform_type):
+                driver = driver.driver
+                driver.type = 'AVERAGE'
+                var = driver.variables.new()
+                var.type = 'TRANSFORMS'
+                var.targets[0].id = eyeball_obj
+                if do_quaternion:
+                    var.targets[0].rotation_mode = 'QUATERNION'
+                var.targets[0].transform_type = transform_type
+                
+        get_obj_transforms_driver(drivers_loc, locs)
+        get_obj_transforms_driver(drivers_rot, rots, True)
+        get_obj_transforms_driver(drivers_scale, scales)
+
+        mesh_obj[eyeball_name+'_iris_scale'] = 1/eyeball.iris_scale
+        eyeball_obj.empty_display_size = 1/eyeball.iris_scale
+        mesh_obj[eyeball_name+'_z_offset'] = atan(eyeball.z_offset)
+
+        if (nodes := getattr(eye_material.node_tree, 'nodes', None)):
+            if nodes.get('!EYE_LOC'):
+                nodes['!EYE_LOC'].attribute_name = prop_loc
+            if nodes.get('!EYE_ROT'):
+                nodes['!EYE_ROT'].attribute_name = prop_rot
+            if nodes.get('!EYE_LOC'):
+                nodes['!EYE_SCALE'].attribute_name = prop_scale
+            if nodes.get('!EYE_Z'):
+                nodes['!EYE_Z'].attribute_name = eyeball_name + '_z_offset'
+            if nodes.get('!EYE_IRIS_SCALE'):
+                nodes['!EYE_IRIS_SCALE'].attribute_name = eyeball_name + '_iris_scale'

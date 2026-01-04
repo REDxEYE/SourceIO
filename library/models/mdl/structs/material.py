@@ -55,6 +55,7 @@ class MaterialV49(Material):
     unused1: int
     material_pointer: int
     client_material_pointer: int
+    bpy_material: None
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):
@@ -64,9 +65,6 @@ class MaterialV49(Material):
         used = buffer.read_uint32()
         unused1 = buffer.read_uint32()
         material_pointer = buffer.read_uint32()
-        material_pointer = str(uuid4())
-        # hey REDxEYE
-        # this works to store all skin groups as material IDs instead of str. using the buffer doesn't work anyways.
         client_material_pointer = buffer.read_uint32()
         buffer.skip((10 if version < 53 else 5) * 4)
-        return cls(name, flags, used, unused1, material_pointer, client_material_pointer)
+        return cls(name, flags, used, unused1, material_pointer, client_material_pointer, None)

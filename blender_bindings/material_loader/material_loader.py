@@ -53,7 +53,8 @@ class ShaderRegistry:
                              vmt: VMT,
                              extra_parameters: dict[ExtraMaterialParameters, Any]):
         if not cls._initial_setup(material):
-            return
+            return material
+        
         shader = vmt.shader
         if shader not in cls._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')
@@ -61,14 +62,20 @@ class ShaderRegistry:
         handler: Source1ShaderBase = cls._handlers.get(shader, Source1ShaderBase)(content_manager, vmt)
         handler.bpy_material = material
         try:
-            handler.create_nodes(material, extra_parameters)
+            new_material = handler.create_nodes(material, extra_parameters) or material # support material templates
+            if not isinstance(new_material, bpy.types.Material):
+                new_material = material
+            material = new_material
+
         except Exception as e:
             logger.error(f'Failed to load material, due to {e} error')
             traceback.print_exc()
             logger.debug(f'Failed material: {material.name}')
         # params = handler._vmt.data.to_dict()
         material['vmt_parameters'] = vmt.data.to_dict()
-        handler.align_nodes()
+        if handler.do_arrange:
+            handler.align_nodes()
+        return material
 
     @classmethod
     def source2_create_nodes(cls, content_manager: ContentManager,

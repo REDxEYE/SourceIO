@@ -8,7 +8,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
-from SourceIO.blender_bindings.models.common import merge_meshes
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
@@ -69,11 +69,14 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_manager)
+    [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
+    # ensure all MaterialV49 has its bpy_material counterpart
 
     desired_lod = 0
     objects = []
     bodygroups = defaultdict(list)
     attachments = []
+    extra_stuff = []
 
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
@@ -88,21 +91,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
             mesh_name = f'{body_part.name}_{model.name}'
             mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-            if getattr(mdl, 'material_mapper', None):
-                material_mapper = mdl.material_mapper
-                true_skin_groups = {str(n): list(map(lambda a: material_mapper.get(a.material_pointer), group)) for
-                                    (n, group) in enumerate(mdl.skin_groups)}
-                for key, value in true_skin_groups.items():
-                    while None in value:
-                        value.remove(None)
-                try:
-                    mesh_obj['skin_groups'] = true_skin_groups
-                except:
-                    mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
-                                               enumerate(mdl.skin_groups)}
-            else:
-                mesh_obj['skin_groups'] = {str(n): list(map(lambda a: a.name, group)) for (n, group) in
-                                           enumerate(mdl.skin_groups)}
+            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)
@@ -130,6 +119,12 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
                 mat_name = mdl.materials[mat_id].name
                 material = get_or_create_material(mat_name, full_material_names[mat_name])
                 material_remapper[mat_id] = add_material(material, mesh_obj)
+
+            skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            try:
+                mesh_obj['skin_groups'] = skin_groups
+            except:
+                mesh_obj['skin_groups'] = default_skin_groups
 
             mesh_data.polygons.foreach_set('material_index', material_remapper[material_indices_array[::-1]].ravel())
 
@@ -176,8 +171,14 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
                     create_flex_drivers(mesh_obj, mdl)
 
                 mesh_data.validate()
+                
+            if model.has_eyeballs:
+                create_eyeballs(mdl, armature, mesh_obj, model, scale, extra_stuff)
+
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
+    attachments.extend(extra_stuff)
+
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
 
 
@@ -247,22 +248,24 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
 
 def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
-    # print(mdl.type)
-    if (material_mapper := getattr(mdl, 'material_mapper', None)) == None:
-        material_mapper = dict()
     for material in mdl.materials:
         material_path = None
         material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
-            if material_file:
-                material_path = TinyPath(mat_path) / material.name
-                break
+        material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
+        if '/' in material.name: # good chance the material name has the full path
+            material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
+        if material_file:
+            material_path = TinyPath(material.name)
+        else:
+            for mat_path in mdl.materials_paths:
+                material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
+                if material_file:
+                    material_path = TinyPath(mat_path) / material.name
+                    break
         if material_path is None:
             logger.info(f'Material {material.name} not found')
             continue
         mat = get_or_create_material(material.name, material_path.as_posix())
-        material_mapper[material.material_pointer] = mat
 
         if mat.get('source1_loaded', False):
             logger.info(f'Skipping loading of {mat} as it already loaded')
@@ -271,11 +274,10 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
         if material_path:
             Source1ShaderBase.use_bvlg(use_bvlg)
             vmt = VMT(material_file, material_path, content_manager)
-            ShaderRegistry.source1_create_nodes(content_manager, mat, vmt,{})
+            mat = ShaderRegistry.source1_create_nodes(content_manager, mat, vmt,{})
 
-        mdl.material_mapper = material_mapper
-        # print(mdl.material_mapper, mdl.skin_groups)
-
+        material.bpy_material = mat
+        mdl.blender_materials_imported = True
 
 def __swap_components(vec, mp):
     __pat = 'XYZ'
