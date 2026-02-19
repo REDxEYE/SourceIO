@@ -156,6 +156,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
                     for flex in mesh.flexes:
                         shape_key = mesh_data.shape_keys.key_blocks.get(flex.name, None) or mesh_obj.shape_key_add(
                             name=flex.name)
+                        shape_key.value = 0.0
 
                         # model_vertices = get_slice(model.vertices, model.vertex_offset, model.vertex_count)
                         flex_vertices = model_vertices['vertex'] * scale
@@ -210,6 +211,7 @@ def create_flex_drivers(obj, mdl: MdlV36):
     for target, expr in all_exprs.items():
         shape_key_block = obj.data.shape_keys
         shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
+        shape_key.value = 0.0
 
         shape_key.driver_remove("value")
         fcurve = shape_key.driver_add("value")

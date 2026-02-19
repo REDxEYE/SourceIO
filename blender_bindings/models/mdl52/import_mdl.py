@@ -176,6 +176,7 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
                             shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
                                 name=flex_name)
                             shape_key.data.foreach_set("co", (flex_delta*side + model_vertices).ravel())
+                            shape_key.value = 0.0
 
                             if flex_desc.vertex_anim_type == 1:
                                 mesh_data: bpy.types.Mesh

@@ -116,13 +116,13 @@ class AbstractEntityHandler:
             entity_class_obj = self._get_class(entity_class)
             entity_object = entity_class_obj(entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
-            try:
-                handler_function(entity_object, entity_data)
-            except ValueError as e:
-                import traceback
-                self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
-                self.logger.error(traceback.format_exc())
-                return False
+            # try:
+            handler_function(entity_object, entity_data)
+            # except ValueError as e:
+            #     import traceback
+            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
+            #     self.logger.error(traceback.format_exc())
+            #     return False
             return True
         return False
 
