@@ -251,6 +251,6 @@ class VertAnimWrinkleV49(VertAnimV49):
             ('side', np.uint8, (1,)),
             ('vertex_delta', np.float16, (3,)),
             ('normal_delta', np.float16, (3,)),
-            ('wrinkle_delta', np.float16, (1,)),
+            ('wrinkle_delta', np.int16, (1,)),
         ]
     )

@@ -12,7 +12,8 @@ DELTA_DTYPE = np.dtype([
     # ("index", np.int32, (1,)),
     ("pos", np.float32, (3,)),
     ("normal", np.float32, (3,)),
-    ("wrinkle", np.float32, (1,)),
+    ("wrinkle", np.int16, (1,)),
+    ("side", np.float32, (1,)),
 ])
 
 
@@ -33,8 +34,12 @@ def preprocess_vertex_animation(mdl: MdlV44, vvd: Vvd) -> dict[str, DELTA_DTYPE]
             index_ = flex.vertex_animations['index'].astype(np.uint32).reshape(-1)
             vertex_indices = index_ + mesh.vertex_index_start + vertex_offset
             vertex_data = vertex_cache[flex_name]
+            #vertex_data["side"][:] = 1.0
             vertex_data["pos"][vertex_indices] = flex.vertex_animations['vertex_delta']
             vertex_data["normal"][vertex_indices] = flex.vertex_animations['normal_delta']
+            vertex_data["side"][vertex_indices] = flex.vertex_animations["side"] / 255
+            if flex.vertex_anim_type == 1:
+                vertex_data['wrinkle'][vertex_indices] = flex.vertex_animations['wrinkle_delta']
 
     for body_part in mdl.body_parts:
         for model in body_part.models:
