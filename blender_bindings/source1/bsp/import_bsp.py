@@ -193,7 +193,7 @@ def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: S
 
             mat = get_or_create_material(path_stem(tmp), tmp)
 
-            if mat.get('source1_loaded'):
+            if mat.get('source_loaded'):
                 logger.debug(
                     f'Skipping loading of {tmp} as it already loaded')
                 continue
@@ -221,7 +221,7 @@ def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: S
             material_name = shaders.name
             mat = get_or_create_material(path_stem(material_name), material_name)
 
-            if mat.get('source1_loaded'):
+            if mat.get('source_loaded'):
                 logger.debug(
                     f'Skipping loading of {material_name} as it already loaded')
                 continue
@@ -231,7 +231,7 @@ def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: S
                 material_params = material_definitions[material_name]
             else:
                 material_params = {'textures': [{"map": material_name}]}
-            if mat.get('source1_loaded'):
+            if mat.get('source_loaded'):
                 logger.debug(
                     f'Skipping loading of {material_name} as it already loaded')
                 continue
@@ -253,7 +253,7 @@ def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: S
                 material_params = material_definitions[material_name]
             else:
                 material_params = {'textures': [{"map": material_name}]}
-            if mat.get('source1_loaded'):
+            if mat.get('source_loaded'):
                 logger.debug(
                     f'Skipping loading of {material_name} as it already loaded')
                 continue

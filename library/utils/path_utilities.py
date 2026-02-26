@@ -3,6 +3,10 @@ import platform
 from typing import Optional
 
 from SourceIO.library.utils import TinyPath
+from SourceIO.logger import SourceLogMan
+
+_log_manager = SourceLogMan()
+_logger = _log_manager.get_logger('PathUtilities')
 
 
 def pop_path_back(path: TinyPath):
@@ -120,5 +124,6 @@ def collect_full_material_names(material_names: list[str], material_search_paths
                 full_mat_names[material_name] = (material_path / material_name).as_posix().lstrip('/')
     for material_name in material_names:
         if material_name not in full_mat_names:
+            _logger.warn(f'Material VMT not found for "{material_name}" in any search path')
             full_mat_names[material_name] = material_name
     return full_mat_names

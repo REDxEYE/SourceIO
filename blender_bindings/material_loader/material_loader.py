@@ -54,24 +54,26 @@ class ShaderRegistry:
                              extra_parameters: dict[ExtraMaterialParameters, Any]):
         if not cls._initial_setup(material):
             return material
-        
+
         shader = vmt.shader
         if shader not in cls._handlers:
-            logger.error(f'Shader "{shader}" not currently supported by SourceIO')
+            logger.error(f'Shader "{shader}" not currently supported by SourceIO, using fallback')
 
         handler: Source1ShaderBase = cls._handlers.get(shader, Source1ShaderBase)(content_manager, vmt)
         handler.bpy_material = material
         try:
-            new_material = handler.create_nodes(material, extra_parameters) or material # support material templates
+            new_material = handler.create_nodes(material, extra_parameters) or material
             if not isinstance(new_material, bpy.types.Material):
                 new_material = material
             material = new_material
+            material['source_loaded'] = True
 
         except Exception as e:
-            logger.error(f'Failed to load material, due to {e} error')
+            logger.error(f'Failed to load material "{material.name}", due to {e} error')
             traceback.print_exc()
-            logger.debug(f'Failed material: {material.name}')
-        # params = handler._vmt.data.to_dict()
+            # Allow retry by not setting source_loaded
+            if 'source_loaded' in material:
+                del material['source_loaded']
         material['vmt_parameters'] = vmt.data.to_dict()
         if handler.do_arrange:
             handler.align_nodes()
@@ -96,10 +98,12 @@ class ShaderRegistry:
         handler.bpy_material = material
         try:
             handler.create_nodes(material, extra_parameters)
+            material['source_loaded'] = True
         except Exception as e:
-            logger.error(f'Failed to load material, due to {e} error')
+            logger.error(f'Failed to load material "{material.name}", due to {e} error')
             traceback.print_exc()
-            logger.debug(f'Failed material: {material.name}')
+            if 'source_loaded' in material:
+                del material['source_loaded']
         cls.align_nodes(material)
         for unused_texture in handler.unused_textures.copy():
             texture_path = material_resource.get_texture_property(unused_texture, None)
@@ -112,8 +116,6 @@ class ShaderRegistry:
         if material.get('source_loaded', False):
             return False
 
-        material.use_nodes = True
-        material['source_loaded'] = True
         material.use_nodes = True
         cls._clean_nodes(material)
         if not is_blender_4_3():

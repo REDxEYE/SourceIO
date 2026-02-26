@@ -67,7 +67,7 @@ def import_md3_15(model_path: TinyPath, buffer: Buffer,
         mat = get_or_create_material(TinyPath(material_name).stem, material_name)
         add_material(mat, model_object)
 
-        if mat.get('source1_loaded'):
+        if mat.get('source_loaded'):
             logger.debug(
                 f'Skipping loading of {material_name} as it already loaded')
             continue
@@ -82,7 +82,7 @@ def import_md3_15(model_path: TinyPath, buffer: Buffer,
         loader.create_nodes(mat, material_params)
 
         # if ".tga" in material_name or ".png" in material_name or ".jpg" in material_name or ".jpeg" in material_name:
-        #     mat['source1_loaded'] = True
+        #     mat['source_loaded'] = True
         #     loader = IdTech3Shader(content_manager)
         #     material_name = TinyPath(material_name).with_suffix("").as_posix()
         #     loader.create_nodes(mat, {'textures': [{"map":material_name}]})

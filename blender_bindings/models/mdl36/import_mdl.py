@@ -267,7 +267,7 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
             continue
         mat = get_or_create_material(material.name, material_path.as_posix())
 
-        if mat.get('source1_loaded', False):
+        if mat.get('source_loaded', False):
             logger.info(f'Skipping loading of {mat} as it already loaded')
             continue
 

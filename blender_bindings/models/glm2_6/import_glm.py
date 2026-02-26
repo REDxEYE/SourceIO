@@ -111,7 +111,7 @@ def import_model(name: str, mdl_buffer: Buffer, options: ModelOptions, content_m
             material_params = material_definitions[material_name]
         else:
             material_params = {'textures': [{"map": material_name}]}
-        if mat.get('source1_loaded'):
+        if mat.get('source_loaded'):
             continue
         loader = IdTech3Shader(content_manager)
         loader.create_nodes(mat, material_params)

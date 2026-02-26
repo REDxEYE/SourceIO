@@ -1,7 +1,9 @@
+from typing import Any
+
 import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase
+from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase, Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.source1.vtf import import_texture
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
@@ -16,11 +18,36 @@ class Source1ShaderBase(ShaderBase):
         self.content_manager = content_manager
         self.load_bvlg_nodes()
         if (dx90 := (vmt.get('>=dx90') or vmt.get('>=DX90'))):
-            # unravel it, because we want dx90 properties
             for key, value in dx90.items():
                 vmt[key] = value
         self._vmt: VMT = vmt
         self.textures = {}
+
+    def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+        """Fallback shader: creates a basic Principled BSDF with $basetexture if available."""
+        self.logger.warn(f'Using fallback shader for "{self._vmt.shader}", creating basic Principled BSDF')
+        material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
+        material_output.location = [250, 0]
+        shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, 'Fallback BSDF')
+        self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
+
+        texture_path = self._vmt.get_string('$basetexture', None)
+        if texture_path is not None:
+            basetexture = self.load_texture_or_default(texture_path, (0.5, 0.5, 0.5, 1.0))
+            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
+            basetexture_node.image = basetexture
+            self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Base Color'])
+
+        bumpmap_path = self._vmt.get_string('$bumpmap', None)
+        if bumpmap_path is not None:
+            bumpmap = self.load_texture_or_default(bumpmap_path, (0.5, 0.5, 1.0, 1.0))
+            bumpmap.colorspace_settings.is_data = True
+            bumpmap.colorspace_settings.name = 'Non-Color'
+            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap')
+            bumpmap_node.image = bumpmap
+            normalmap_node = self.create_node(Nodes.ShaderNodeNormalMap)
+            self.connect_nodes(bumpmap_node.outputs['Color'], normalmap_node.inputs['Color'])
+            self.connect_nodes(normalmap_node.outputs['Normal'], shader.inputs['Normal'])
 
     def load_texture(self, texture_name: str, texture_path: TinyPath):
         image = check_texture_cache(texture_path / texture_name)
