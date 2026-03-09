@@ -749,12 +749,17 @@ class BaseEntityHandler(AbstractEntityHandler):
             vmt = VMT(material_file, material_path, self.content_manager)
             ShaderRegistry.source1_create_nodes(self.content_manager, mat, vmt, {})
             tex_name = vmt.get('$basetexture', None)
+            decal_scale_string = vmt.get('$decalscale', None)
+            if decal_scale_string is not None:
+                decal_scale = float(decal_scale_string)
+            else:
+                decal_scale = 0.25
             if tex_name:
                 tex_name = TinyPath(tex_name).name
                 img = bpy.data.images.get(tex_name)
                 if img:
                     size = list(img.size)
-        x_cor, z_cor = size[0] / 8, size[1] / 8
+        x_cor, z_cor = (size[0] * decal_scale) / 2, (size[1] * decal_scale) / 2
         verts = [
             [-x_cor, 0, -z_cor],
             [x_cor, 0, -z_cor],
