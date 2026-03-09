@@ -3,34 +3,30 @@ import numpy as np
 
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.library.models.mdl.v36 import MdlV36
-from SourceIO.library.models.phy.phy import ConvexLeaf, Phy, TreeNode
+from SourceIO.library.models.phy.phy import ConvexLeaf, Phy, CompactLedgetreeNode
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.math_utilities import vector_transform_v
 from SourceIO.library.utils.path_utilities import path_stem
 
 
-def _collect_meshes(node: TreeNode, meshes: list[ConvexLeaf]):
-    unique_vertices = set()
+def _collect_meshes(node: CompactLedgetreeNode, meshes: list[ConvexLeaf]):
     if node.convex_leaf is not None:
         meshes.append(node.convex_leaf)
-        unique_vertices.update(node.convex_leaf.unique_vertices)
     if node.left_node is not None:
-        unique_vertices.update(_collect_meshes(node.left_node, meshes))
+        _collect_meshes(node.left_node, meshes)
     if node.right_node is not None:
-        unique_vertices.update(_collect_meshes(node.right_node, meshes))
-    return unique_vertices
+        _collect_meshes(node.right_node, meshes)
 
 
-def import_physics(phy: Phy, phy_buffer: Buffer, mdl: MdlV36, container: ModelContainer, scale: float = 1.0):
+def import_physics(phy: Phy, mdl: MdlV36, container: ModelContainer, scale: float = 1.0):
     mesh_name = path_stem(mdl.header.name)
 
     for i, solid in enumerate(phy.solids):
         meshes: list[ConvexLeaf] = []
-        vertex_count = len(_collect_meshes(solid.collision_model.root_tree, meshes))
+        _collect_meshes(solid.compact_surface.root_tree, meshes)
 
-        vertex_data = solid.collision_model.get_vertex_data(phy_buffer,
-                                                            solid.collision_model.root_tree.convex_leaf,
-                                                            vertex_count)
+        vertex_data = solid.compact_surface.vertices
+
         for j, mesh in enumerate(meshes):
             used_vertices_ids, _, new_indices = np.unique(mesh.triangles, return_index=True, return_inverse=True)
             vertices = vertex_data[used_vertices_ids]

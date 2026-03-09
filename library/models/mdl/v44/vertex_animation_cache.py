@@ -3,6 +3,7 @@ import numpy as np
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.structs.mesh import Mesh
 from SourceIO.library.models.vvd import Vvd
+from SourceIO.library.shared.intermediate_data import VertexAttributesName
 from SourceIO.logger import SourceLogMan
 from .mdl_file import MdlV44
 
@@ -28,7 +29,7 @@ def preprocess_vertex_animation(mdl: MdlV44, vvd: Vvd) -> dict[str, DELTA_DTYPE]
         for flex in mesh.flexes:
             flex_name = mdl.flex_names[flex.flex_desc_index]
             if flex_name not in vertex_cache:
-                vertex_cache[flex_name] = np.zeros(desired_lod_['vertex'].shape[0], DELTA_DTYPE)
+                vertex_cache[flex_name] = np.zeros(desired_lod_[VertexAttributesName.POSITION].shape[0], DELTA_DTYPE)
             # Convert array to uint32 because uint16 could overflow on big models
             index_ = flex.vertex_animations['index'].astype(np.uint32).reshape(-1)
             vertex_indices = index_ + mesh.vertex_index_start + vertex_offset

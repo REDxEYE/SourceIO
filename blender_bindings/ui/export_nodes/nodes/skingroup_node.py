@@ -29,18 +29,19 @@ class SourceIOSkingroupNode(Node, SourceIOModelTreeNode):
         self.outputs.new('SourceIOSkinGroupSocket', "Skingroup")
 
     def update(self, ):
-        unused_count = 0
-        total_inputs = 0
-        for o in self.inputs:  # type:SourceIOMaterialSocket
-            if (not o.is_linked and o.material is None) and o.bl_idname == "SourceIOMaterialSocket":
-                unused_count += 1
-            else:
-                total_inputs += 1
-        while unused_count >= 1:
-            self.inputs.remove(self.inputs[-1])
-            unused_count -= 1
-        if not unused_count == 0 and total_inputs <= 32:
+        to_remove = []
+        for inp in self.inputs:
+            if inp.is_linked or inp.material is not None:
+                continue
+            to_remove.append(inp)
+        for r in to_remove[:-1]:
+            self.inputs.remove(r)
+        if len(self.inputs) == 0:
             self.inputs.new("SourceIOMaterialSocket", "Material")
+
+        if len(self.inputs) == len(list(filter(lambda i: i.is_linked or i.material is not None, self.inputs))):
+            if len(self.inputs) < 32:
+                self.inputs.new("SourceIOMaterialSocket", "Material")
 
     def draw_buttons(self, context, layout):
         self.update()
@@ -55,6 +56,12 @@ class SourceIOSkingroupNode(Node, SourceIOModelTreeNode):
                 if input_socket.material:
                     proto.materials.append(input_socket.material)
         return proto
+
+    def process(self, inputs: dict) -> dict | None:
+        print(inputs)
+        return {
+            "skin_groups": []
+        }
 
 
 class SourceIOSkinProto:
@@ -98,3 +105,7 @@ class SourceIOSkinNode(Node, SourceIOModelTreeNode):
                 obj_node: SourceIOMaterialNode = input_socket.links[0].from_node
                 proto.skins.append(obj_node.get_value())
         return proto
+
+    def process(self, inputs: dict) -> dict | None:
+        print(inputs)
+

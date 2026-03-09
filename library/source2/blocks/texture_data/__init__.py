@@ -31,6 +31,14 @@ class TextureInfo:
         mip, pic = buffer.read_fmt('BI')
         return cls(version, flags, reflectivity, width, height, depth, pixel_format, mip, pic)
 
+    def to_buffer(self, buffer:Buffer):
+        buffer.write_fmt('H', self.version)
+        buffer.write_fmt('H', self.flags)
+        buffer.write_fmt('4f', *self.reflectivity)
+        buffer.write_fmt('3H', self.width, self.height, self.depth)
+        buffer.write_fmt('B', self.pixel_format)
+        buffer.write_fmt('BI', self.mip_count, self.picmip_resolution)
+
 
 @dataclass(slots=True)
 class CompressedMip:
@@ -43,6 +51,9 @@ class CompressedMip:
     def from_buffer(cls, buffer: Buffer) -> 'CompressedMip':
         compressed, unk, mip_count = buffer.read_fmt('3I')
         return cls(compressed, unk, mip_count, [])
+
+    def to_buffer(self, buffer:Buffer):
+        buffer.write_fmt('3I', int(self.compressed), self.unk, self.mip_count)
 
 
 @dataclass(slots=True)
@@ -76,6 +87,9 @@ class TextureData(BaseBlock):
         return cls(texture_info, extra_data)
 
     def to_buffer(self, buffer: Buffer) -> None:
+        self.texture_info.to_buffer(buffer)
+
+
+
         raise NotImplementedError('TextureData.to_buffer is not implemented yet')
-        # self.texture_info.to_buffer(buffer)
 

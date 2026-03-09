@@ -49,6 +49,143 @@ class Label:
         return self.extra_data.get(key, default)
 
 
+class TextReader(io.TextIOWrapper):
+    def __init__(self, buffer: Buffer, encoding: str = 'latin1'):
+        raw = io.BufferedReader(buffer)
+        super().__init__(raw, encoding=encoding)
+        self._skip_comments = True
+
+    def skip_c_comments(self):
+        """Skip C/C++ style comments in the text stream."""
+        while True:
+            pos = self.tell()
+            line = self.readline()
+            if not line:
+                break
+            stripped = line.lstrip()
+            if stripped.startswith('//') or stripped.startswith('/*'):
+                continue
+            else:
+                self.seek(pos)
+                break
+
+    def skip_whitespace(self):
+        """Skip whitespace characters in the text stream."""
+        while True:
+            pos = self.tell()
+            char = self.read(1)
+            if not char or not char.isspace():
+                self.seek(pos)
+                break
+
+    def read_until(self, terminators: str = '\n', max_size: int = 1024 * 1024) -> str:
+        buffer = []
+        while len(buffer) < max_size:
+            char = self.read(1)
+            if not char or char in terminators:
+                break
+            buffer.append(char)
+        return ''.join(buffer)
+
+    @contextlib.contextmanager
+    def save_current_offset(self):
+        entry = self.tell()
+        yield
+        self.seek(entry)
+
+    def peek(self, size: int):
+        with self.save_current_offset():
+            return self.read(size)
+
+    def seek(self, offset:int, whence=0, /):
+        if whence == io.SEEK_CUR:
+            super().seek(self.tell()+offset, io.SEEK_SET)
+        else:
+            super().seek(offset, whence)
+
+    def expect_string(self, expected: str):
+        if self._skip_comments:
+            self.skip_c_comments()
+        self.skip_whitespace()
+        actual = self.peek(len(expected))
+        if actual != expected:
+            raise ValueError(f"Expected string {expected!r}, but found {actual!r}")
+        self.seek(len(expected), io.SEEK_CUR)
+
+    def match_string(self, *candidates:str) -> str | None:
+        if self._skip_comments:
+            self.skip_c_comments()
+        self.skip_whitespace()
+        longest = max(len(c) for c in candidates)
+        match = None
+        with self.save_current_offset():
+            data = self.read(longest)
+            for candidate in candidates:
+                if data.startswith(candidate):
+                    match = candidate
+                    break
+        if match:
+            self.seek(len(match), io.SEEK_CUR)
+        return match
+
+    def read_int(self):
+        if self._skip_comments:
+            self.skip_c_comments()
+        self.skip_whitespace()
+        buffer = []
+        while True:
+            char = self.read(1)
+            if not char or not char.isdigit() and char not in ('-', '+'):
+                self.seek(-1, io.SEEK_CUR)
+                break
+            buffer.append(char)
+        return int(''.join(buffer))
+
+    def read_float(self):
+        if self._skip_comments:
+            self.skip_c_comments()
+        self.skip_whitespace()
+        buffer = []
+        while True:
+            char = self.read(1)
+            if not char or (not char.isdigit() and char not in ('-', '+', '.', 'e', 'E')):
+                self.seek(-1, io.SEEK_CUR)
+                break
+            buffer.append(char)
+        return float(''.join(buffer))
+
+    def read_quoted_string(self):
+        if self._skip_comments:
+            self.skip_c_comments()
+        self.skip_whitespace()
+        quote_char = self.read(1)
+        if quote_char not in ('"', "'"):
+            raise ValueError(f"Expected quote character, but found {quote_char!r}")
+        buffer = []
+        while True:
+            char = self.read(1)
+            if not char:
+                raise ValueError("Unexpected end of file while reading quoted string")
+            if char == quote_char:
+                break
+            if char == '\\':
+                next_char = self.read(1)
+                if next_char in ('n', 't', '\\', '"', "'"):
+                    escape_sequences = {'n': '\n', 't': '\t', '\\': '\\', '"': '"', "'": "'"}
+                    buffer.append(escape_sequences[next_char])
+                else:
+                    buffer.append(next_char)
+            else:
+                buffer.append(char)
+        return ''.join(buffer)
+
+    def enable_skip_comments(self):
+        self._skip_comments = True
+
+    def disable_skip_comments(self):
+        self._skip_comments = False
+
+
 class Buffer(abc.ABC, io.RawIOBase):
     def __init__(self):
         io.RawIOBase.__init__(self)
@@ -287,6 +424,18 @@ class Buffer(abc.ABC, io.RawIOBase):
         self.write(b'\x00' * size)  # Preallocate space for the label
         return label
 
+    def read_until(self, terminators: bytes = b'\x00', max_size: int = 1024 * 1024) -> bytes:
+        buffer = bytearray()
+        while len(buffer) < max_size:
+            byte = self.read(1)
+            if not byte or byte in terminators:
+                break
+            buffer += byte
+        return bytes(buffer)
+
+    def to_text_reader(self) -> TextReader:
+        return TextReader(self)
+
 
 class MemoryBuffer(Buffer):
 
@@ -476,6 +625,18 @@ class MemoryBuffer(Buffer):
         self._endian = '<'
         self._struct_cache = self._struct_cache_le
 
+    def read_until(self, terminators: bytes = b'\x00', max_size: int = 1024 * 1024) -> bytes:
+        offset = -1
+        for terminator in terminators:
+            offset = self._buffer.tobytes().find(terminator, self._offset, self._offset + max_size)
+            if offset != -1:
+                break
+        if offset == -1:
+            offset = min(self._offset + max_size, self.size())
+        s = bytes(self._buffer[self._offset:offset])
+        self._offset = offset + (1 if offset < self.size() else 0)
+        return s
+
 
 class WritableMemoryBuffer(io.BytesIO, Buffer):
     def __init__(self, initial_bytes=None):
@@ -605,7 +766,7 @@ class MMapBuffer(MemoryBuffer):
         fd = os.open(os.fspath(path), os.O_RDONLY)
         mm = mmap.mmap(fd, 0, access=mmap.ACCESS_READ)
         os.close(fd)
-        super().__init__(typing.cast(memoryview,mm))
+        super().__init__(typing.cast(memoryview, mm))
         self._mm = mm
 
     def close(self):

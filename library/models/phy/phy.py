@@ -25,21 +25,48 @@ class Header:
 
 
 @dataclass(slots=True)
-class ConvexTriangle:
-    pad: int
-    edges: tuple[int, ...]
+class CompactEdge:
+    start_point: int
+    opposite_index: int
+    is_virtual: bool
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
-        pad, *edges = buffer.read_fmt('i6h')
-        return cls(pad, edges)
+        bit_field = buffer.read_uint32()
+        start_point_index = (bit_field & 0xFFFF)
+        opposite_index = ((bit_field >> 16) & 0x7FFF)
+        if opposite_index & 0x4000:
+            opposite_index = opposite_index - 0x8000
+        else:
+            opposite_index = opposite_index
+        is_virtual = (bit_field >> 31) != 0
+        return cls(start_point_index, opposite_index, is_virtual)
 
-    def get_vertex_id(self, index):
-        return self.edges[index * 2]
+
+@dataclass(slots=True)
+class CompactTriangle:
+    edges: list[CompactEdge]
+    triangle_index: int
+    pierce_index: int
+    material_index: int
+    is_virtual: bool
+
+    @classmethod
+    def from_buffer(cls, buffer: Buffer):
+        bit_field = buffer.read_uint32()
+
+        edges = [CompactEdge.from_buffer(buffer), CompactEdge.from_buffer(buffer), CompactEdge.from_buffer(buffer)]
+
+        triangle_index = (bit_field & 0xFFF)
+        pierce_index = ((bit_field >> 12) & 0xFFF)
+        material_index = ((bit_field >> 24) & 0x7F)
+        is_virtual = (bit_field >> 31) != 0
+
+        return cls(edges, triangle_index, pierce_index, material_index, is_virtual)
 
     @property
     def vertex_ids(self):
-        return self.edges[::2]
+        return [e.start_point for e in self.edges]
 
 
 @dataclass(slots=True)
@@ -51,6 +78,7 @@ class ConvexLeaf:
     flags: int = 0
     triangle_count: int = 0
     unused: int = 0
+    compact_triangles: list[CompactTriangle] = field(default_factory=list)
     triangles: list = field(default_factory=list)
     unique_vertices: set = field(default_factory=set)
 
@@ -61,18 +89,14 @@ class ConvexLeaf:
             '3i2h')
         triangles = []
         unique_vertices = set()
+        compact_triangles = []
         for _ in range(triangle_count):
-            tri = ConvexTriangle.from_buffer(buffer)
+            tri = CompactTriangle.from_buffer(buffer)
             triangles.append(tri.vertex_ids)
             unique_vertices.update(tri.vertex_ids)
-        return cls(is_root, entry, vertex_offset, bone_id, flags, triangle_count, unused, triangles, unique_vertices)
-
-    def child_node(self, buffer: Buffer):
-        if self.has_children:
-            with buffer.save_current_offset():
-                buffer.seek(self._entry + self.bone_id)
-                child = TreeNode.from_buffer(buffer)
-            return child
+            compact_triangles.append(tri)
+        return cls(is_root, entry, vertex_offset, bone_id, flags, triangle_count,
+                   unused, compact_triangles, triangles, unique_vertices)
 
     @property
     def has_children(self):
@@ -83,12 +107,12 @@ class ConvexLeaf:
         return (self.flags >> 2) & 3
 
     @property
-    def dummy(self):
-        return (self.flags >> 4) & 15
+    def padding(self):
+        return (self.flags >> 4) & 0xF
 
     @property
     def size_div_16(self):
-        return (self.flags >> 8) & 0xFF_FF_FF_FF
+        return (self.flags >> 8) & 0xFFFFFF
 
     @property
     def vertex_data_offset(self):
@@ -96,53 +120,91 @@ class ConvexLeaf:
 
 
 @dataclass(slots=True)
-class TreeNode:
+class CompactLedgetreeNode:
     center: Vector3[float]
     radius: float
-    bbox_size: Vector4[int]
-    left_node: Optional['TreeNode'] = field(default=None)
-    right_node: Optional['TreeNode'] = field(default=None)
+    bbox_size: Vector3[int]
+    free: int
+    left_node: Optional['CompactLedgetreeNode'] = field(default=None)
+    right_node: Optional['CompactLedgetreeNode'] = field(default=None)
     convex_leaf: ConvexLeaf | None = field(default=None)
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
         entry_offset = buffer.tell()
-        right_node_offset, convex_offset, *center, radius = buffer.read_fmt('2i4f')
-        bbox_size = buffer.read_fmt('4B')
+        right_node_offset, compact_ledge_offset, *center, radius = buffer.read_fmt('2i4f')
+        bbox_size = Vector3(*buffer.read_fmt('3B'))
+        free = buffer.read_uint8()
         is_leaf = right_node_offset == 0
         convex_leaf: ConvexLeaf | None = None
         with buffer.save_current_offset():
-            if convex_offset:
+            if compact_ledge_offset:
                 with buffer.save_current_offset():
-                    buffer.seek(entry_offset + convex_offset)
+                    buffer.seek(entry_offset + compact_ledge_offset)
                     convex_leaf = ConvexLeaf.from_buffer(buffer, not is_leaf)
                 if is_leaf:
-                    return cls(center, radius, bbox_size, None, None, convex_leaf)
-            left_node = TreeNode.from_buffer(buffer)
+                    return cls(center, radius, bbox_size, free, None, None, convex_leaf)
+            left_node = CompactLedgetreeNode.from_buffer(buffer)
             with buffer.save_current_offset():
                 buffer.seek(entry_offset + right_node_offset)
-                right_node = TreeNode.from_buffer(buffer)
-        return cls(center, radius, bbox_size, left_node, right_node, convex_leaf)
+                right_node = CompactLedgetreeNode.from_buffer(buffer)
+        return cls(center, radius, bbox_size, free, left_node, right_node, convex_leaf)
 
 
 @dataclass(slots=True)
-class CollisionModel:
-    values: tuple[float, ...]
-    surface: int
-    offset_tree: int
-    root_tree: TreeNode
+class CompactSurface:
+    mass_center: Vector3[float]
+    rotation_inertia: Vector3[float]
+    upper_limit_radius: float
+    max_factor_surface_deviation: int
+    byte_size: int
+    ledge_tree_root_offset: int
+    root_tree: CompactLedgetreeNode
+
+    unique_vertices: set[int]
+    vertices: np.ndarray
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
-        entry_offset = buffer.tell()
-        values = buffer.read_fmt('7f')
-        surface, offset_tree, *_ = buffer.read_fmt('4I')
+        entry = buffer.tell()
+        mass_center = Vector3.from_buffer(buffer)
+        rotation_inertia = Vector3.from_buffer(buffer)
+        upper_limit_radius = buffer.read_float()
+        bit_field = buffer.read_uint32()
+        max_factor_surface_deviation = bit_field & 0xFF
+        byte_size = bit_field >> 8
+        assert byte_size >= 1
+        ledge_tree_root_offset = buffer.read_uint32()
+        dummies = buffer.read_fmt("2I")
+        assert dummies[0] == 0
+        assert dummies[1] == 0
         ivps_magic = buffer.read_fourcc()
         assert ivps_magic == 'IVPS'
-        with buffer.save_current_offset():
-            buffer.seek(entry_offset + offset_tree)
-            root_tree = TreeNode.from_buffer(buffer)
-        return cls(values, surface, offset_tree, root_tree)
+
+        with buffer.read_from_offset(entry + ledge_tree_root_offset):
+            ledge_tree_root = CompactLedgetreeNode.from_buffer(buffer)
+
+        def traverse(node: CompactLedgetreeNode):
+            unique_vertices_ = set()
+            if node.convex_leaf is not None:
+                unique_vertices_.update(node.convex_leaf.unique_vertices)
+            if node.left_node is not None:
+                unique_vertices_.update(traverse(node.left_node))
+            if node.right_node is not None:
+                unique_vertices_.update(traverse(node.right_node))
+            return unique_vertices_
+
+        unique_vertices = traverse(ledge_tree_root)
+        with buffer.read_from_offset(ledge_tree_root.convex_leaf.vertex_data_offset):
+            vertices = np.frombuffer(buffer.read(4 * 4 * len(unique_vertices)), np.float32).copy()
+            vertices = vertices.reshape((-1, 4))[:, :3]
+            y = vertices[:, 1].copy()
+            z = vertices[:, 2].copy()
+            vertices[:, 1] = z
+            vertices[:, 2] = y
+
+        return cls(mass_center, rotation_inertia, upper_limit_radius, max_factor_surface_deviation, byte_size,
+                   ledge_tree_root_offset, ledge_tree_root, unique_vertices, vertices)
 
     @staticmethod
     def get_vertex_data(buffer: Buffer, convex_leaf: ConvexLeaf, vertex_count):
@@ -160,36 +222,35 @@ class CollisionModel:
 
 
 @dataclass(slots=True)
-class SolidHeader:
-    solid_size: int
+class CompactSurfaceHeader:
+    size: int
     version: int
     type: int
-    size: int
-    areas: Vector3[float]
+    surface_size: int
+    drag_axis_areas: Vector3[float]
     axis_map_size: int
-    collision_model: CollisionModel
+    compact_surface: CompactSurface | None
 
     @classmethod
     def from_buffer(cls, buffer: Buffer):
-        solid_size = buffer.read_uint32()
+        size = buffer.read_uint32()
         ident = buffer.read_fourcc()
         assert ident == 'VPHY'
         version = buffer.read_uint16()
-        type = buffer.read_uint16()
-        size = buffer.read_uint32()
-        areas = buffer.read_fmt('3f')
+        model_type = buffer.read_uint16()
+        surface_size = buffer.read_uint32()
+        drag_axis_areas = buffer.read_fmt('3f')
         axis_map_size = buffer.read_uint32()
-        collision_model = CollisionModel.from_buffer(buffer)
-        return cls(solid_size, version, type, size, areas, axis_map_size, collision_model)
+        return cls(size, version, model_type, surface_size, drag_axis_areas, axis_map_size, None)
 
     def end(self):
-        return self.solid_size + 4
+        return self.size + 4
 
 
 @dataclass(slots=True)
 class Phy:
     header: Header
-    solids: list[SolidHeader]
+    solids: list[CompactSurfaceHeader]
     kv: str
 
     @classmethod
@@ -201,12 +262,13 @@ class Phy:
         header = Header.from_buffer(buffer)
         buffer.seek(header.size)
         solids = []
-        solid_start = buffer.tell()
         for _ in range(header.solid_count):
-            solid = SolidHeader.from_buffer(buffer)
-            buffer.seek(solid_start + solid.end())
             solid_start = buffer.tell()
-            solids.append(solid)
+            surface_header = CompactSurfaceHeader.from_buffer(buffer)
+            compact_surface = CompactSurface.from_buffer(buffer)
+            buffer.seek(solid_start + surface_header.size + 4)
+            surface_header.compact_surface = compact_surface
+            solids.append(surface_header)
         # if solids:
         #     buffer.seek(solid_start + solids[-1].end())
         kv = buffer.read_ascii_string()

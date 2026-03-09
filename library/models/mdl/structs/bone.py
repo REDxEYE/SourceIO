@@ -4,6 +4,7 @@ from enum import IntEnum, IntFlag
 import numpy as np
 import numpy.typing as npt
 
+from SourceIO.library.shared.intermediate_data import Matrix4x4, Quaternion
 from SourceIO.library.shared.types import Vector3, Vector4
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.math_utilities import quat_to_matrix
@@ -155,20 +156,22 @@ class Bone:
     procedural_rule: AxisInterpRule | JiggleRule | QuatInterpRule | None
 
     @property
-    def matrix(self):
-        r_matrix = quat_to_matrix(self.quat)
-        tmp = np.identity(4)
-        tmp[0, :3] = r_matrix[0]
-        tmp[1, :3] = r_matrix[1]
-        tmp[2, :3] = r_matrix[2]
-        t_matrix = np.array([
-            [1, 0, 0, self.position[0]],
-            [0, 1, 0, self.position[1]],
-            [0, 0, 1, self.position[2]],
-            [0, 0, 0, 1],
-        ], dtype=np.float32)
+    def matrix(self)->Matrix4x4:
+        return Matrix4x4.from_trs(self.position, self.rotation, Vector3.one() )
 
-        return np.identity(4) @ t_matrix @ tmp
+        # r_matrix = quat_to_matrix(self.quat)
+        # tmp = np.identity(4)
+        # tmp[0, :3] = r_matrix[0]
+        # tmp[1, :3] = r_matrix[1]
+        # tmp[2, :3] = r_matrix[2]
+        # t_matrix = np.array([
+        #     [1, 0, 0, self.position[0]],
+        #     [0, 1, 0, self.position[1]],
+        #     [0, 0, 1, self.position[2]],
+        #     [0, 0, 0, 1],
+        # ], dtype=np.float32)
+        #
+        # return np.identity(4) @ t_matrix @ tmp
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):
@@ -176,24 +179,24 @@ class Bone:
         name = buffer.read_source1_string(start_offset) or "NO_NAME"
         parent_bone_id = buffer.read_int32()
         bone_controller_ids = buffer.read_fmt('6f')
-        position = buffer.read_fmt('3f')
-        quat: Vector4 = (0, 0, 0, 1)
+        position = Vector3.from_buffer(buffer)
+        quat = Quaternion(0, 0, 0, 1)
         if version > 36 or version == 2531:
-            quat = buffer.read_fmt('4f')
-        rotation: Vector3 = (0, 0, 0)
+            quat = Quaternion.from_buffer(buffer)
+        rotation = Vector3(0, 0, 0)
         if version != 2531:
-            rotation = buffer.read_fmt('3f')
-        position_scale = buffer.read_fmt('3f')
+            rotation = Vector3.from_buffer(buffer)
+        position_scale = Vector3.from_buffer(buffer)
         if version == 2531:
-            rotation_scale = buffer.read_fmt('4f')
+            rotation_scale = Vector4.from_buffer(buffer)
         else:
-            rotation_scale = buffer.read_fmt('3f')
+            rotation_scale = Vector3.from_buffer(buffer)
 
         pose_to_bone = np.array(buffer.read_fmt('12f'), np.float32).reshape((3, 4)).transpose()
 
-        q_alignment: Vector4 = (0, 0, 0, 1)
+        q_alignment  = Vector4(0, 0, 0, 1)
         if version != 2531:
-            q_alignment = buffer.read_fmt('4f')
+            q_alignment = Vector4.from_buffer(buffer)
 
         flags = BoneFlags(buffer.read_uint32())
         procedural_rule_type = buffer.read_uint32()
@@ -201,7 +204,7 @@ class Bone:
         physics_bone_index = buffer.read_uint32()
         surface_prop = buffer.read_source1_string(start_offset)
         if version == 36:
-            quat = buffer.read_fmt('4f')
+            quat = Quaternion.from_buffer(buffer)
         contents = Contents(buffer.read_uint32())
         if version == 36:
             buffer.skip(3 * 4)

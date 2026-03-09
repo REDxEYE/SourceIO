@@ -70,8 +70,8 @@ class Model:
 @dataclass(slots=True)
 class ModelV2531(Model):
     vtype: int
-    voffset: Vector3
-    vscale: Vector3
+    voffset: Vector3[float]
+    vscale: Vector3[float]
 
     @classmethod
     def from_buffer(cls, buffer: Buffer, version: int):

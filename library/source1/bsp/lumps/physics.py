@@ -1,4 +1,4 @@
-from SourceIO.library.models.phy.phy import SolidHeader
+from SourceIO.library.models.phy.phy import CompactSurfaceHeader
 from SourceIO.library.source1.bsp import Lump, ValveLumpInfo, lump_tag
 from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils import Buffer
@@ -13,7 +13,7 @@ class SolidBlock:
         data_size, script_size, solid_count = buffer.read_fmt("3I")
 
         for _ in range(solid_count):
-            solid = SolidHeader.from_buffer(buffer)
+            solid = CompactSurfaceHeader.from_buffer(buffer)
             self.solids.append(solid)
         self.kv = buffer.read_ascii_string(script_size)
 

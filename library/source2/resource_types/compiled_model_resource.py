@@ -1,6 +1,6 @@
 import numpy as np
 
-from SourceIO.library.shared.intermidiate_data.bone import Bone, BoneFlags
+from SourceIO.library.shared.intermediate_data.bone import Bone, BoneFlags
 from SourceIO.library.source2.exceptions import MissingBlock
 from SourceIO.library.source2.compiled_resource import CompiledResource, DATA_BLOCK
 from SourceIO.library.source2.blocks.kv3_block import custom_type_kvblock

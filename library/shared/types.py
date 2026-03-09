@@ -1,7 +1,2 @@
 from typing import TypeVar
-
-T = TypeVar("T", float, int)
-
-Vector4 = tuple[T, T, T, T]
-Vector3 = tuple[T, T, T]
-Vector2 = tuple[T, T]
+from SourceIO.library.shared.intermediate_data.common import Vector2,Vector3,Vector4,Quaternion

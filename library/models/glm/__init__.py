@@ -6,7 +6,9 @@ from typing import Sequence
 
 import numpy as np
 
-from SourceIO.library.utils import Buffer
+from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.shared.intermediate_data import Model, Matrix4x4, Bone, BoneFlags
+from SourceIO.library.utils import Buffer, TinyPath
 
 
 @dataclass
@@ -90,14 +92,6 @@ class GLMMesh:
 
     @staticmethod
     def _unpack_glm_vertices(packed: np.ndarray) -> np.ndarray:
-        """
-        Convert an array of GLMVertex (with packed_data and byte weights)
-        into GLMVertexUnpacked (bone_indices and bone_weights).
-        Weight count = ((packed_data >> 30) & 3) + 1.
-        For the first N-1 weights, use ((w8 | (overflow<<8)) / 1023).
-        The Nth weight is 1 - sum(first N-1). Unused slots are zeroed.
-        Bone indices are 5-bit fields starting at bit 0 in packed_data.
-        """
         n = packed.shape[0]
         out = np.empty(n, dtype=GLMVertexUnpacked)
 
@@ -310,3 +304,23 @@ class GLASkeleton:
         assert header.compressed_bone_pool == buffer.tell(), f"Expected compressed bone pool at {header.compressed_bone_pool}, got {buffer.tell()}"
         compressed_bones = [BoneFrame.from_buffer(buffer) for _ in range(bone_indices.max() + 1)]
         return cls(header, bones, bone_indices, compressed_bones)
+
+
+def load_glm_model(buffer: Buffer, content_manager: ContentManager) -> Model:
+    glm_model = GLMModel.from_buffer(buffer)
+
+    skeleton_buffer = content_manager.find_file(TinyPath(glm_model.header.anim_file_name + ".gla"))
+    bones: list[Bone] = []
+    if skeleton_buffer is not None:
+        skeleton_data = GLASkeleton.from_buffer(skeleton_buffer)
+        for gla_bone in skeleton_data.bones:
+            bone = Bone(gla_bone.name, skeleton_data.bones[gla_bone.parent_id].name, BoneFlags.NO_BONE_FLAGS,
+                        Matrix4x4(gla_bone.matrix))
+            bones.append(bone)
+    meshes = []
+    for glm_mesh in glm_model.hier:
+        pass
+
+    model = Model(glm_model.header.name, meshes, bones, [], Matrix4x4())
+
+    return model

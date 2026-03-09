@@ -1,4 +1,3 @@
-
 import bpy
 from bpy.types import Node
 
@@ -23,3 +22,14 @@ class SourceIOVertexLitGenericNode(Node, SourceIOModelTreeNode):
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "mat")
+
+    def process(self, inputs: dict) -> dict | None:
+        return {
+            "Material": {
+                "material_name": self.mat.name if self.mat else "no_name",
+                "base_texture": inputs.get("Base texture", None),
+                "normal_texture": inputs.get("Normal texture", None),
+                "phong_boost": inputs.get("Phong boost", 0.0),
+                "phong_exponent": inputs.get("Phong exponent", 0.0),
+            }
+        }

@@ -54,7 +54,7 @@ def import_mdl52(model_path: TinyPath, buffer: Buffer,
             logger.error(f"Could not find PHY file for {model_path}")
         else:
             phy = Phy.from_buffer(phy_buffer)
-            import_physics(phy, phy_buffer, mdl, container, options.scale)
+            import_physics(phy, mdl, container, options.scale)
 
     
     return container

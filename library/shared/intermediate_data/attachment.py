@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Annotated, Collection, Optional
+from typing import Sequence
 
-from SourceIO.library.shared.intermidiate_data.common import Quaternion, Vector3
+from SourceIO.library.shared.intermediate_data.common import Quaternion, Vector3
 
 
 @dataclass
@@ -15,4 +15,4 @@ class WeightedParent:
 @dataclass
 class Attachment:
     name: str
-    parents: Annotated[Collection[Optional[WeightedParent]], 3]
+    parents: Sequence[WeightedParent] | None

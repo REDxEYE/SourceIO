@@ -1,7 +1,6 @@
 import os
 import sys
 
-
 def running_in_blender():
     from SourceIO.library.utils.tiny_path import TinyPath
     exe_name = TinyPath(sys.argv[0]).stem.lower()
