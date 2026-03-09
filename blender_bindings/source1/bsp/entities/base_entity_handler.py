@@ -743,6 +743,7 @@ class BaseEntityHandler(AbstractEntityHandler):
         size = [128, 128]
         mat = None
         material_file = self.content_manager.find_file(material_path)
+        decal_scale = 0.25
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
             mat = get_or_create_material(path_stem(material_name), material_name)
@@ -752,8 +753,6 @@ class BaseEntityHandler(AbstractEntityHandler):
             decal_scale_string = vmt.get('$decalscale', None)
             if decal_scale_string is not None:
                 decal_scale = float(decal_scale_string)
-            else:
-                decal_scale = 0.25
             if tex_name:
                 tex_name = TinyPath(tex_name).name
                 img = bpy.data.images.get(tex_name)
