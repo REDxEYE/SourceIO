@@ -740,7 +740,8 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
         material_name = TinyPath(entity.texture).name
         material_path = TinyPath("materials") / (entity.texture + ".vmt")
-        size = [128, 128]
+        size = [64, 64] # More reasonable than 128x128, based off of what I've seen for decal resolutions across Source 1
+        decal_scale = 1
         mat = None
         material_file = self.content_manager.find_file(material_path)
         if material_file:
@@ -753,11 +754,11 @@ class BaseEntityHandler(AbstractEntityHandler):
             if decal_scale_string is not None:
                 decal_scale = float(decal_scale_string)
             else:
-                decal_scale = 0.25
+                pass
             if tex_name:
                 tex_name = TinyPath(tex_name).name
                 img = bpy.data.images.get(tex_name)
-                if img:
+                if img and img.size[0] > 0 and img.size[1] > 0:
                     size = list(img.size)
         x_cor, z_cor = (size[0] * decal_scale) / 2, (size[1] * decal_scale) / 2
         verts = [
