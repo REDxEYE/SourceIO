@@ -744,7 +744,6 @@ class BaseEntityHandler(AbstractEntityHandler):
         decal_scale = 1
         mat = None
         material_file = self.content_manager.find_file(material_path)
-        decal_scale = 0.25
         if material_file:
             material_name = strip_patch_coordinates.sub("", material_name)
             mat = get_or_create_material(path_stem(material_name), material_name)
