@@ -73,7 +73,10 @@ class Nodes:
     ShaderNodeRGBToBW = 'ShaderNodeRGBToBW'
     ShaderNodeScript = 'ShaderNodeScript'
     ShaderNodeSeparateHSV = 'ShaderNodeSeparateHSV'
-    ShaderNodeSeparateRGB = 'ShaderNodeSeparateRGB'
+    if bpy.app.version < (4,0,0):
+        ShaderNodeSeparateRGB = 'ShaderNodeSeparateRGB'
+    else:
+        ShaderNodeSeparateRGB = 'ShaderNodeSeparateColor'
     ShaderNodeSeparateXYZ = 'ShaderNodeSeparateXYZ'
     ShaderNodeShaderToRGB = 'ShaderNodeShaderToRGB'
     ShaderNodeSqueeze = 'ShaderNodeSqueeze'

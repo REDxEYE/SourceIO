@@ -141,4 +141,4 @@ def load(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd) -> Mo
             body_parts.append(BodyPart(body_model_name, lods))
         body_groups.append(BodyGroup(body_group_name, body_parts))
 
-    return Model(mdl.header.name, body_groups, bones, attachments, materials, Matrix4x4())
+    return Model(mdl.header.name, body_groups, bones, attachments, materials, [], Matrix4x4())

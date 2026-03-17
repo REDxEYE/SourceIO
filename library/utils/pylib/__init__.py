@@ -27,12 +27,12 @@ def _load_native_and_alias():
             globals()[name] = getattr(native, name)
 
     # Alias native submodules under our *current* package path
-    # so 'from my_addon.sub1.sub2.pylib.compression import ...' works.
     for sub in ("compression", "image", "mesh", "vtf"):
         submod = getattr(native, sub, None)
         if submod is None:
             continue
         setattr(sys.modules[__name__], sub, submod)
+        globals()[sub] = getattr(native, sub)
         sys.modules[f"{__name__}.{sub}"] = submod
 
 _load_native_and_alias()
