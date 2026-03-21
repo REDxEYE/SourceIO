@@ -107,7 +107,8 @@ class WorldVertexTransition(DetailSupportMixin, Source1ShaderBase):
             bs_socket2 = bs_node2.outputs[0]
 
             if self.blendmodulatetexture != None:
-                SEPrgb = self.create_node(Nodes.ShaderNodeSeparateRGB)
+                SEPrgb = self.create_node(Nodes.ShaderNodeSeparateColor)
+                SEPrgb.mode = "RGB"
                 sub = self.create_node(Nodes.ShaderNodeMath)
                 sub.operation = 'SUBTRACT'
                 add = self.create_node(Nodes.ShaderNodeMath)
