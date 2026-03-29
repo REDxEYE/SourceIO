@@ -69,6 +69,8 @@ class VertexAttribute:
             return np.uint16, (4,)
         elif self.format == DxgiFormat.R16G16B16A16_UNORM:
             return np.uint16, (4,)
+        elif self.format == DxgiFormat.R16G16B16A16_FLOAT:
+            return np.float16, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_SNORM:
             return np.int8, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_UNORM:
