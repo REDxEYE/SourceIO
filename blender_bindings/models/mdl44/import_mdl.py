@@ -79,7 +79,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
-                 scale=1.0, create_drivers=False, load_refpose=False):
+                 scale=1.0, create_drivers=False, load_refpose=False, *, debug_stereo_balance=False):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_manager)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
@@ -95,7 +95,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
     vertex_anim_cache = preprocess_vertex_animation(mdl, vvd)
-
+    vert_anim_fixed_point_scale = mdl.header.vert_anim_fixed_point_scale if (mdl.header.flags & StudioHDRFlags.VERT_ANIM_FIXED_POINT_SCALE !=0 ) else 1/4096
     if not static_prop:
         armature = create_armature(mdl, scale)
 
@@ -167,23 +167,68 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
                             bone_name = mdl.bones[bone_index].name
                             weight_groups[bone_name].add([n], weight, 'REPLACE')
 
-                flex_names = []
+                flexes = []
                 for mesh in model.meshes:
                     if mesh.flexes:
-                        flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
+                        flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
-                if flex_names:
+                if flexes:
                     mesh_obj.shape_key_add(name='base')
-                    for flex_name in flex_names:
-                        shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
-                            name=flex_name)
-                        shape_key.value = 0.0
+
+                    if debug_stereo_balance:
+                        # debug tool to get stereo flex balances. i'll leave it here just in case
+                        side_right = mesh_obj.vertex_groups.new(name='blendright')
+                        side_left = mesh_obj.vertex_groups.new(name='blendleft')
+                        side_all = np.zeros(model.vertex_count, dtype=np.float32)
+
+                        for flex_name, flex_desc in flexes:
+                            vertex_animation = vertex_anim_cache[flex_name]
+                            side = get_slice(vertex_animation['side'], model.vertex_offset, model.vertex_count).ravel()
+                            side_all = np.maximum(side_all, side)
+                        side_all = side_all[vtx_vertices] + 0.0
+
+                        for n, vert in enumerate(vtx_vertices):
+                            side_right.add([n], side_all[n], 'REPLACE')
+                            side_left.add([n], 1-side_all[n], 'REPLACE')
+
+                    for flex_name, flex_desc in flexes:
                         vertex_animation = vertex_anim_cache[flex_name]
+                        flex_delta = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
+                        flex_delta = flex_delta[vtx_vertices] * scale
 
-                        model_vertices = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
-                        flex_vertices = model_vertices[vtx_vertices] * scale
+                        side = get_slice(vertex_animation["side"], model.vertex_offset, model.vertex_count)
+                        side = side[vtx_vertices] + 0.0
+                        wrinkle = get_slice(vertex_animation["wrinkle"], model.vertex_offset, model.vertex_count)
+                        wrinkle = wrinkle[vtx_vertices] + 0.0 # this will have to be explained to me :P
+                        # model.vertex_count and vtx_vertices can differ in size, so doing something like this just makes it work?
+                        # apparently vtx_vertices has duplicate indicies, which can be observed by turning it into a set.
+                        # i'm just following here
+                        # -hisanimations
+                        
+                        model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
+                        model_vertices = model_vertices[vtx_vertices] * scale
 
-                        shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
+                        if flex_desc.partner_index:
+                            partner_name = mdl.flex_names[flex_desc.partner_index]
+                            flexes, sides = [flex_name, partner_name], [1-side, side] if not debug_stereo_balance else [1.0, 1.0]
+                        else:
+                            flexes, sides = [flex_name], [1.0]
+
+                        for flex_name, side in zip(flexes, sides):
+                            shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
+                                name=flex_name)
+                            shape_key.data.foreach_set("co", (flex_delta*side + model_vertices).ravel())
+                            shape_key.value = 0.0
+
+                            if flex_desc.vertex_anim_type == 1:
+                                mesh_data: bpy.types.Mesh
+                                if wrinkle.max() > 0:
+                                    wrinkle_name = f'WR.{flex_name}.S'
+                                if wrinkle.min() < 0:
+                                    wrinkle_name = f'WR.{flex_name}.C'
+                                attr: bpy.types.Attribute = mesh_data.attributes.get(wrinkle_name, None) or mesh_data.attributes.new(wrinkle_name, 'FLOAT', 'POINT')
+                                wrinkle_data = (abs(wrinkle) * vert_anim_fixed_point_scale) * side
+                                attr.data.foreach_set('value', wrinkle_data.ravel())
 
                     if create_drivers:
                         create_flex_drivers(mesh_obj, mdl)

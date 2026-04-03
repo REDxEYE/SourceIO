@@ -41,6 +41,8 @@ class ModelOptions(SharedOptions, Source1SharedSettings):
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
+    debug_stereo_balance: BoolProperty(name='Debug Stereo Flex Balance', description='Add vertex groups to show how stereo flexes blend. If enabled, the balance will not be mixed into shape keys.', default=False, subtype='UNSIGNED')
+
 
     @classmethod
     def default(cls):
