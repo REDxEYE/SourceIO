@@ -542,11 +542,18 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
     if tint is not None:
         mesh_obj.color = list(tint) + [1.0]
 
-    positions = used_vertices['POSITION'] * import_context.scale
+    if 'position' in used_vertices.dtype.names:
+        positions = used_vertices['position'] * import_context.scale
+    else:
+        positions = used_vertices['POSITION'] * import_context.scale
 
     normals = None
-    if vertex_buffer.has_attribute('NORMAL'):
+    if vertex_buffer.has_attribute('normal'):
+        normals = used_vertices['normal']
+    elif vertex_buffer.has_attribute('NORMAL'):
         normals = used_vertices['NORMAL']
+
+    if normals is not None:
         if use_compressed_normals(draw_call):
             if normals.dtype == np.uint32:
                 normals = convert_normals_2(normals)
