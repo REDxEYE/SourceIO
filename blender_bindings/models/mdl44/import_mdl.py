@@ -180,10 +180,12 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
                         shape_key.value = 0.0
                         vertex_animation = vertex_anim_cache[flex_name]
 
-                        model_vertices = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
-                        flex_vertices = model_vertices[vtx_vertices] * scale
+                        flex_delta = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
+                        flex_delta = flex_delta[vtx_vertices] * scale
+                        model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
+                        model_vertices = model_vertices[vtx_vertices] * scale
 
-                        shape_key.data.foreach_set("co", flex_vertices.reshape(-1))
+                        shape_key.data.foreach_set("co", (flex_delta + model_vertices).ravel())
 
                     if create_drivers:
                         create_flex_drivers(mesh_obj, mdl)
