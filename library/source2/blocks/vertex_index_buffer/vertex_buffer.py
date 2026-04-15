@@ -19,6 +19,7 @@ class VertexAttribute:
     slot: int
     slot_type: SlotType
     instance_step_rate: int
+    shader_semantic: str
 
     def __post_init__(self):
         if self._name == "blendweight":
@@ -157,7 +158,7 @@ class VertexBuffer:
             elements.append(VertexAttribute(element["m_pSemanticName"], element["m_nSemanticIndex"],
                                             DxgiFormat(element["m_Format"]), element["m_nOffset"], element["m_nSlot"],
                                             SlotType.from_kv(element["m_nSlotType"]),
-                                            element.get("m_nInstanceStepRate", -1)))
+                                            element.get("m_nInstanceStepRate", -1), element["m_szShaderSemantic"]))
         return VertexBuffer(data["m_nElementCount"],
                             data["m_nElementSizeInBytes"],
                             MemoryBuffer(data["m_pData"].tobytes()) if "m_pData" in data else None,
