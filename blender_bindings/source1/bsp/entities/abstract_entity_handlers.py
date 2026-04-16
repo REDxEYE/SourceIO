@@ -52,14 +52,6 @@ def gather_vertex_ids(model: Model, faces: list[Face], surf_edges: np.ndarray, e
     return vertex_ids, material_ids
 
 
-def _srgb2lin(s: float) -> float:
-    if s <= 0.0404482362771082:
-        lin = s / 12.92
-    else:
-        lin = pow(((s + 0.055) / 1.055), 2.4)
-    return lin
-
-
 def _set_uv(mesh_data, uv_data, uvs_per_face):
     for poly in mesh_data.polygons:
         for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):

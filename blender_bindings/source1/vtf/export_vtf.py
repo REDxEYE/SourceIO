@@ -5,6 +5,7 @@ import numpy as np
 
 from SourceIO.library.utils import TinyPath
 from SourceIO.library.utils.pylib.vtf import VTFFile, ImageFormat, MipFilter, TextureFlags, SharpenFilter
+from SourceIO.library.utils.math_utilities import srgb_to_linear, linear_to_srgb
 
 
 @dataclass
@@ -20,50 +21,6 @@ class VTFExportOptions:
     keep_aspect_ratio: bool = True
     resolution_limit_x: int = 4096
     resolution_limit_y: int = 4096
-
-
-def srgb_to_linear(image, in_range=255):
-    """
-    Convert SRGB image to linear color space.
-
-    Args:
-        image: NumPy array of SRGB values
-        in_range: Maximum value in input (255 for uint8, 1.0 for float)
-
-    Returns:
-        Linear space image with same shape as input
-    """
-    # Normalize to 0-1 range
-    img = image / in_range
-
-    # Apply SRGB to linear conversion
-    mask = img <= 0.04045
-    linear = np.zeros_like(img, dtype=np.float32)
-    linear[mask] = img[mask] / 12.92
-    linear[~mask] = ((img[~mask] + 0.055) / 1.055) ** 2.4
-
-    return linear
-
-
-def linear_to_srgb(image, out_range=255):
-    """
-    Convert linear image to SRGB color space.
-
-    Args:
-        image: NumPy array of linear values (0-1 range)
-        out_range: Maximum value in output (255 for uint8, 1.0 for float)
-
-    Returns:
-        SRGB space image with same shape as input
-    """
-    # Apply linear to SRGB conversion
-    mask = image <= 0.0031308
-    srgb = np.zeros_like(image, dtype=np.float32)
-    srgb[mask] = image[mask] * 12.92
-    srgb[~mask] = 1.055 * (image[~mask] ** (1 / 2.4)) - 0.055
-
-    # Scale to desired range
-    return srgb * out_range
 
 
 def export_texture(blender_texture: bpy.types.Image, export_path: TinyPath,
