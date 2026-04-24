@@ -4,7 +4,7 @@ import numpy as np
 
 from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase, Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.source2.vtex_loader import import_texture
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3, is_blender_5
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2.resource_types import CompiledMaterialResource, CompiledTextureResource
@@ -24,6 +24,9 @@ class Source2ShaderBase(ShaderBase):
         self._material_resource = source2_material
         self.unused_textures = set(self._material_resource.get_used_textures().keys())
         self.tinted = tinted
+
+        if is_blender_5():
+            self.load_source2_nodes_blender5_0()
 
     def _have_texture(self, slot_name: str) -> Optional[bpy.types.Node]:
         texture_path = self._material_resource.get_texture_property(slot_name, None)
