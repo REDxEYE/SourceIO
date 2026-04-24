@@ -245,3 +245,52 @@ def vector_normalize(v):
     if norm == 0:
         norm = np.finfo(v.dtype).eps
     return v / norm
+
+
+def ensure_f32(a):
+    """Return a contiguous float32 view/copy."""
+    return np.ascontiguousarray(a, dtype=np.float32)
+
+
+def srgb_to_linear(color, in_range=255):
+    """
+    Convert SRGB color or image to linear color space.
+
+        Args:
+        color: NumPy array of SRGB values
+        in_range: Maximum value in input (255 for uint8, 1.0 for float)
+
+    Returns:
+        Linear space color/image with same shape as input
+    """
+    color = ensure_f32(color)
+    # Normalize to 0-1 range
+    color /= in_range
+
+    # Apply SRGB to linear conversion
+    a = color <= 0.04045
+    linear = np.empty_like(color, dtype=np.float32)
+    linear[a] = color[a] / 12.92
+    linear[~a] = ((color[~a] + 0.055) / 1.055) ** 2.4
+    return linear
+
+
+def linear_to_srgb(color, out_range=255):
+    """
+    Convert linear color or image to SRGB color space.
+
+    Args:
+        color: NumPy array of linear values (0-1 range)
+        out_range: Maximum value in output (255 for uint8, 1.0 for float)
+
+    Returns:
+        SRGB space color/image with same shape as input
+    """
+    # Apply linear to SRGB conversion
+    color = ensure_f32(color)
+    a = color <= 0.0031308
+    srgb = np.empty_like(color, dtype=np.float32)
+    srgb[a] = color[a] * 12.92
+    srgb[~a] = 1.055 * (color[~a] ** (1.0 / 2.4)) - 0.055
+    # Scale to desired range
+    return srgb * out_range

@@ -3,9 +3,12 @@ import math
 import bpy
 from mathutils import Euler
 
-from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
+import numpy as np
+
+from .abstract_entity_handlers import AbstractEntityHandler
 from .bms_entity_classes import *
 from .halflife2_entity_handler import HalfLifeEntityHandler
+from SourceIO.library.utils.math_utilities import srgb_to_linear
 
 local_entity_lookup_table = HalfLifeEntityHandler.entity_lookup_table.copy()
 local_entity_lookup_table.update(entity_class_handle)
@@ -18,12 +21,7 @@ class BlackMesaEntityHandler(HalfLifeEntityHandler):
     def handle_newLight_Point(self, entity: newLight_Point, entity_raw: dict):
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
         light.cycles.use_multiple_importance_sampling = True
-        color = [_srgb2lin(c / 255) for c in entity.LightColor]
-        if len(color) == 4:
-            *color, _ = color
-        else:
-            color = [color[0], color[0], color[0]]
-        light.color = color
+        light.color = srgb_to_linear(entity.LightColor[:3])
         light.energy = entity.Intensity * self.light_scale * 0.2
         # TODO: possible to convert constant-linear-quadratic attenuation into blender?
         obj: bpy.types.Object = bpy.data.objects.new(self._get_entity_name(entity), object_data=light)
@@ -34,13 +32,7 @@ class BlackMesaEntityHandler(HalfLifeEntityHandler):
     def handle_newLight_Spot(self, entity: newLight_Spot, entity_raw: dict):
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = True
-        color = [_srgb2lin(c / 255) for c in entity.LightColor]
-        if len(color) == 4:
-            *color, _ = color
-        else:
-            color = [color[0], color[0], color[0]]
-
-        light.color = color
+        light.color = srgb_to_linear(entity.LightColor[:3])
         light.energy = entity.Intensity * self.light_scale * 0.3
         light.spot_size = math.radians(entity.phi)
         light.spot_blend = 1 - (entity.theta / entity.phi)

@@ -365,7 +365,8 @@ class HeroesArmor(Source1ShaderBase):
             elif self.phongexponenttexture is not None:
                 phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
                 phongexponenttexture_node.image = phongexponenttexture
-                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
+                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
+                phongexponenttexture_split_node.mode = "RGB"
                 self.connect_nodes(phongexponenttexture_node.outputs['Color'],
                                    phongexponenttexture_split_node.inputs['Image'])
 

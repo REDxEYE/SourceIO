@@ -3,8 +3,7 @@ import math
 import bpy
 from mathutils import Euler
 
-from .abstract_entity_handlers import _srgb2lin
-from .base_entity_handler import srgb_to_linear
+from .base_entity_handler import _srgb_to_linear
 from .portal2_entity_classes import *
 from .portal_entity_handlers import PortalEntityHandler
 
@@ -93,7 +92,7 @@ class Portal2EntityHandler(PortalEntityHandler):
         self._put_into_collection('prop_exploding_futbol_spawner', obj, 'props')
 
     def handle_env_projectedtexture(self, entity: env_projectedtexture, entity_raw: dict):
-        color, brightness = srgb_to_linear(entity.lightcolor)
+        color, brightness = _srgb_to_linear(entity.lightcolor)
 
         light: bpy.types.SpotLight = bpy.data.lights.new(self._get_entity_name(entity), 'SPOT')
         light.cycles.use_multiple_importance_sampling = True

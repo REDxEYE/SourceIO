@@ -14,6 +14,7 @@ from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import (add_material, find_layer_collection,
                                                        get_new_unique_collection, get_or_create_material,
                                                        is_blender_4_1)
+from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import (CompiledMaterialResource, CompiledModelResource, CompiledMorphResource,
                                       CompiledPhysicsResource, CompiledTextureResource, CompiledMeshResource)
@@ -598,13 +599,11 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
     mesh.loops.foreach_get('vertex_index', vertex_indices)
 
     if tint is not None:
-        vc = mesh.vertex_colors.get('TINT', False) or mesh.vertex_colors.new(name='TINT')
-        vc_data = vc.data
+        vc = mesh.color_attributes.get('TINT', False) or mesh.color_attributes.new('TINT', 'FLOAT_COLOR', 'CORNER')
+
         c = np.ones(4, dtype=np.float32)
-        tint = [t**2.2 for t in tint]
         c[:3] = np.asarray(tint, dtype=np.float32)[:3]
-        c[:3] = np.sqrt(c[:3])
-        vc_data.foreach_set('color', np.broadcast_to(c, (vertex_indices.size, 4)).reshape(-1))
+        vc.data.foreach_set('color', np.broadcast_to(c, (vertex_indices.size, 4)).ravel())
 
     for uv_id in range(16):
         attrib_name = "TEXCOORD" if uv_id == 0 else f"TEXCOORD_{uv_id}"

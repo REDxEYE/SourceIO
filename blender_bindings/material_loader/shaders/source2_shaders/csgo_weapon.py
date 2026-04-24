@@ -37,7 +37,8 @@ class CSGOWeapon(Source2ShaderBase):
         self.connect_nodes(normal_texture.outputs[1], shader.inputs["Specular"])
 
         metalness_texture = self._get_texture("g_tMetalness", (1, 1, 1, 1), True)
-        metalness_conv = self.create_node(Nodes.ShaderNodeSeparateRGB)
+        metalness_conv = self.create_node(Nodes.ShaderNodeSeparateColor)
+        metalness_conv.mode = "RGB"
         self.connect_nodes(metalness_texture.outputs[0], metalness_conv.inputs[0])
         self.connect_nodes(metalness_conv.outputs[0], shader.inputs["Roughness"])
         self.connect_nodes(metalness_conv.outputs[1], shader.inputs["Metallic"])

@@ -7,7 +7,6 @@ from mathutils import Vector, geometry
 
 from SourceIO.blender_bindings.source1.bsp.entities.quake3.quake3_entity_handler import QuakeEntityHandler, \
     _tessellate_face_patch
-from SourceIO.blender_bindings.source1.bsp.entities.abstract_entity_handlers import _srgb2lin
 from SourceIO.blender_bindings.source1.bsp.entities.base_entity_classes import *
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
 from SourceIO.library.shared.content_manager import ContentManager
@@ -22,20 +21,6 @@ from SourceIO.logger import SourceLogMan
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SourceLogMan()
-
-
-def srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
-    final_color = []
-    if len(srgb) == 4:
-        scale = srgb[3] / 255
-    else:
-        scale = 1
-    for component in srgb[:3]:
-        component = _srgb2lin(component / 255)
-        final_color.append(component)
-    if len(final_color) == 1:
-        return ensure_length(final_color, 3, final_color[0]), 1
-    return final_color, scale
 
 
 def plane_to_point_normal(plane: Quake3Plane):
