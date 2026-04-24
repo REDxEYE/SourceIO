@@ -202,7 +202,7 @@ class ShaderBase:
         else:
             image = bpy.data.images.new(texture_name, width=512, height=512, alpha=False)
             image_data = np.full((512 * 512, 4), fill_color, np.float32).flatten()
-            image.pixels[:] = image_data
+            image.pixels.foreach_set(image_data.ravel())
             return image
 
     def load_texture(self, texture_name, texture_path) -> Optional[bpy.types.Image]:

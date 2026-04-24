@@ -612,7 +612,7 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
             continue
 
         attribute = vertex_buffer.get_attribute(attrib_name)
-        invert_v = False if attribute.shader_semantic == 'VertexPaintBlendParams' else True
+        invert_v = attribute.shader_semantic != 'VertexPaintBlendParams'
 
         uv = used_vertices[attrib_name]
         if uv.shape[1] < 2:
