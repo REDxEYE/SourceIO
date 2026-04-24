@@ -70,7 +70,8 @@ class VrComplex(Source2ShaderBase):
         tint_mask_output = None
         if self._check_flag("F_TINT_MASK"):
             tint_mask_node = self._get_texture("g_tTintMask", (1.0, 1.0, 1.0, 1.0), True)
-            split_rgb_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
+            split_rgb_node = self.create_node(Nodes.ShaderNodeSeparateColor)
+            split_rgb_node.mode = "RGB"
             self.connect_nodes(tint_mask_node.outputs['Color'], split_rgb_node.inputs[0])
             tint_mask_output = split_rgb_node.outputs[0]
 

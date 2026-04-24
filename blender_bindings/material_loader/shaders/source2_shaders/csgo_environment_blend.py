@@ -51,13 +51,15 @@ class CSGOEnvironmentBlend(Source2ShaderBase):
 
         if self._have_texture("g_tHeight1"):
             color_texture = self._get_texture("g_tHeight1", (1, 1, 1, 1), True)
-            split = self.create_node(Nodes.ShaderNodeSeparateRGB)
+            split = self.create_node(Nodes.ShaderNodeSeparateColor)
+            split.mode = "RGB"
             self.connect_nodes(color_texture.outputs[0], split.inputs[0])
             self.connect_nodes(split.outputs[0], shader.inputs["V0"])
 
         if self._have_texture("g_tHeight2"):
             color_texture = self._get_texture("g_tHeight2", (1, 1, 1, 1), True)
-            split = self.create_node(Nodes.ShaderNodeSeparateRGB)
+            split = self.create_node(Nodes.ShaderNodeSeparateColor)
+            split.mode = "RGB"
             self.connect_nodes(color_texture.outputs[0], split.inputs[0])
             self.connect_nodes(split.outputs[0], shader.inputs["V1"])
 
