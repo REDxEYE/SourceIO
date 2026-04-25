@@ -610,24 +610,28 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
         if not vertex_buffer.has_attribute(attrib_name):
             continue
 
+        invert_v = vertex_buffer.get_attribute(attrib_name).shader_semantic != 'VertexPaintBlendParams'
+
         uv = used_vertices[attrib_name]
         if uv.shape[1] < 2:
             continue
         if uv.shape[1] == 4:
             uv0 = convert_to_float32(uv[:, :2])
             uv1 = convert_to_float32(uv[:, 2:])
-            np.multiply(uv0[:, 1], -1.0, out=uv0[:, 1])
-            np.add(uv0[:, 1], 1.0, out=uv0[:, 1])
-            np.multiply(uv1[:, 1], -1.0, out=uv1[:, 1])
-            np.add(uv1[:, 1], 1.0, out=uv1[:, 1])
+            if invert_v:
+                np.multiply(uv0[:, 1], -1.0, out=uv0[:, 1])
+                np.add(uv0[:, 1], 1.0, out=uv0[:, 1])
+                np.multiply(uv1[:, 1], -1.0, out=uv1[:, 1])
+                np.add(uv1[:, 1], 1.0, out=uv1[:, 1])
             data = mesh.uv_layers.new(name=attrib_name).data
             data.foreach_set('uv', uv0[vertex_indices].reshape(-1))
             data = mesh.uv_layers.new(name=attrib_name + "_2").data
             data.foreach_set('uv', uv1[vertex_indices].reshape(-1))
         else:
             uv2 = convert_to_float32(uv[:, :2])
-            np.multiply(uv2[:, 1], -1.0, out=uv2[:, 1])
-            np.add(uv2[:, 1], 1.0, out=uv2[:, 1])
+            if invert_v:
+                np.multiply(uv2[:, 1], -1.0, out=uv2[:, 1])
+                np.add(uv2[:, 1], 1.0, out=uv2[:, 1])
             data = mesh.uv_layers.new(name=attrib_name).data
             data.foreach_set('uv', uv2[vertex_indices].reshape(-1))
 
@@ -640,15 +644,18 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
     for i in range(8):
         name = "COLOR" if i == 0 else f"COLOR_{i}"
         if not vertex_buffer.has_attribute(name):
-            continue
-        # According to blender, "byte" color is just a color stored as float that is capped at 1.
-        color = used_vertices[name].astype(np.float32) / 255
+            # HACK: Output a 0s array for COLOR0, since blender uses (0,0,0,1) as a fallback for missing vertex colors, but S2 default is (0,0,0,0)
+            if i == 0:
+                color = np.broadcast_to(np.zeros(4, dtype=np.float32), (vertex_indices.size, 4))
+            else:
+                continue
+        else:
+            # According to blender, "byte" color is just a color stored as float that is capped at 1.
+            color = used_vertices[name].astype(np.float32) / 255
+
         vc = mesh.color_attributes.get(name, False) or mesh.color_attributes.new(name, 'BYTE_COLOR', 'CORNER')
         # Deadlock stores vertex colors as SRGB
-        if content_manager.steam_id == SteamAppId.DEADLOCK:
-            vc.data.foreach_set('color_srgb', color[vertex_indices].ravel())
-        else:
-            vc.data.foreach_set('color', color[vertex_indices].ravel())
+        vc.data.foreach_set('color_srgb' if content_manager.steam_id == SteamAppId.DEADLOCK else 'color', color[vertex_indices].ravel())
 
     _add_vertex_groups(model_resource, vertex_buffer, mesh_id, used_vertices, mesh_obj)
     objects.append(mesh_obj)

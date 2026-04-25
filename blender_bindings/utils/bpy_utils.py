@@ -38,6 +38,10 @@ def is_blender_4_3():
     return bpy.app.version >= (4, 3, 0)
 
 
+def is_blender_5():
+    return bpy.app.version >= (5, 0, 0)
+
+
 def find_layer_collection(layer_collection, name):
     if layer_collection.name == name:
         return layer_collection
