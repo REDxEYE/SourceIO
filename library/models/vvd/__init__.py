@@ -93,11 +93,15 @@ class Vvd:
             extra_header = ExtraData(*buffer.read_fmt('2i'))
             if extra_header.total_bytes<=buffer.remaining():
                 for buffer_id in range(extra_header.count):
-                    extra_attribute = ExtraVertexAttribute(ExtraAttributeTypes(buffer.read_uint32()),
-                                                           *buffer.read_fmt('2i'))
+                    try:
+                        extra_attribute = ExtraVertexAttribute(ExtraAttributeTypes(buffer.read_uint32()),
+                                                               *buffer.read_fmt('2i'))
+                    except ValueError:
+                        break
                     buffer.seek(extra_data_start + extra_attribute.offset)
                     extra_data[extra_attribute.type] = np.frombuffer(
-                        buffer.read(extra_attribute.item_size * hdr.lod_vertex_count[0]), np.float32)
+                        buffer.read(extra_attribute.item_size * header.lod_vertex_count[0]), np.float32)
+
         # assert not buffer
 
         return cls(header, lod_datas, extra_data)
