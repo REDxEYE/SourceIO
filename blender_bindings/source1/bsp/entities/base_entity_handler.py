@@ -659,6 +659,8 @@ class BaseEntityHandler(AbstractEntityHandler):
             already_visited.add(entity.targetname)
             entity = next_entity
             entity_raw = next_raw
+            if "nextkey" not in entity_raw:
+                break
             next_entity, next_raw = self._get_entity_by_name(entity.NextKey)
 
     def _create_rope_part(self, start_entity: move_rope, start_entity_raw: dict, end_entity: dict):
