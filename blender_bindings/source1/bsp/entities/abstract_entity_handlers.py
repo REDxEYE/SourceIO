@@ -1,3 +1,4 @@
+from array import array
 import math
 import re
 from pprint import pformat
@@ -19,7 +20,6 @@ from SourceIO.library.source1.bsp.datatypes.texture_info import TextureInfo
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
-from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -53,15 +53,60 @@ def gather_vertex_ids(model: Model, faces: list[Face], surf_edges: np.ndarray, e
 
 
 def _set_uv(mesh_data, uv_data, uvs_per_face):
+    loop_count = len(mesh_data.loops)
+    flat_uvs = np.empty((loop_count, 2), dtype=np.float32)
+
     for poly in mesh_data.polygons:
-        for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-            uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+        face_uvs = np.asarray(uvs_per_face[poly.index], dtype=np.float32)
+
+        if len(face_uvs) != poly.loop_total:
+            raise ValueError(f"UV size mismatch for polygon {poly.index}: {len(face_uvs)} UVs, {poly.loop_total} loops")
+
+        start = poly.loop_start
+        end = start + poly.loop_total
+        flat_uvs[start:end] = face_uvs
+
+    uv_data.foreach_set("uv", flat_uvs.ravel())
+
+
+def corner_hash(vertex_id, uv, luv, ndigits=6):
+    return hash((
+        int(vertex_id),
+        tuple(round(x, ndigits) for x in uv),
+        tuple(round(x, ndigits) for x in luv),
+    ))
+
+
+def remove_dupe_face_vertices(face_vertex_ids, face_uvs, face_luvs):
+    cleaned_ids = array("I")
+    cleaned_uvs = array("f")
+    cleaned_luvs = array("f")
+    seen_hashes = set()
+
+    for vertex_id, uv, luv in zip(face_vertex_ids, face_uvs, face_luvs):
+        key = corner_hash(vertex_id, uv, luv)
+
+        if key in seen_hashes:
+            continue
+
+        seen_hashes.add(key)
+
+        cleaned_ids.append(int(vertex_id))
+
+        cleaned_uvs.extend((float(uv[0]), float(uv[1])))
+        cleaned_luvs.extend((float(luv[0]), float(luv[1])))
+
+    ids = np.frombuffer(cleaned_ids, dtype=np.uint32).copy()
+    uvs = np.frombuffer(cleaned_uvs, dtype=np.float32).reshape((-1, 2)).copy()
+    luvs = np.frombuffer(cleaned_luvs, dtype=np.float32).reshape((-1, 2)).copy()
+
+    return ids, uvs, luvs
 
 
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file: BSPFile, content_manager:ContentManager, parent_collection,
+    def __init__(self, bsp_file: BSPFile, content_manager: ContentManager, parent_collection,
                  world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
@@ -108,13 +153,13 @@ class AbstractEntityHandler:
             entity_class_obj = self._get_class(entity_class)
             entity_object = entity_class_obj(entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
-            # try:
-            handler_function(entity_object, entity_data)
-            # except ValueError as e:
-            #     import traceback
-            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
-            #     self.logger.error(traceback.format_exc())
-            #     return False
+            try:
+                handler_function(entity_object, entity_data)
+            except ValueError as e:
+                import traceback
+                self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
+                self.logger.error(traceback.format_exc())
+                return False
             return True
         return False
 
@@ -128,9 +173,6 @@ class AbstractEntityHandler:
         entity_obj = entity_class(entity)
         return entity_obj, entity
 
-
-
-
     def _load_brush_model(self, model_id, model_name):
         def _get_string(string_id):
             strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
@@ -139,8 +181,6 @@ class AbstractEntityHandler:
         model = self._bsp.get_lump("LUMP_MODELS").models[model_id]
         mesh_data = bpy.data.meshes.new(f"{model_name}_MESH")
         mesh_obj = bpy.data.objects.new(model_name, mesh_data)
-        faces = []
-        material_indices = []
 
         bsp_surf_edges: np.ndarray = self._bsp.get_lump('LUMP_SURFEDGES').surf_edges
         bsp_vertices: np.ndarray = self._bsp.get_lump('LUMP_VERTICES').vertices
@@ -178,56 +218,85 @@ class AbstractEntityHandler:
             material = get_or_create_material(path_stem(material_name), material_name)
             material_lookup_table[texture_data.name_id] = add_material(material, mesh_obj)
 
+        faces = []
         uvs_per_face = []
         luvs_per_face = []
+        material_indices = []
 
         for map_face in bsp_faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
+
             if map_face.tex_info_id in skippable_materials:
                 continue
 
-            uvs = {}
-            luvs = {}
-            face = []
-            first_edge = map_face.first_edge
-            edge_count = map_face.edge_count
+            used_surf_edges = bsp_surf_edges[map_face.first_edge:map_face.first_edge + map_face.edge_count]
 
-            used_surf_edges = bsp_surf_edges[first_edge:first_edge + edge_count]
-            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = bsp_edges[np.abs(used_surf_edges)]
-            tmp = np.arange(len(used_edges))
-            face_vertex_ids = used_edges[tmp, reverse]
-            # face_vertex_ids = np.array(list(dict.fromkeys(face_vertex_ids)))
+            reverse = (used_surf_edges < 0).astype(np.uint8)
+
+            face_vertex_ids = used_edges[np.arange(len(used_edges)), reverse]
+
+            if len(face_vertex_ids) < 3:
+                continue
 
             uv_vertices = bsp_vertices[face_vertex_ids]
 
             texture_info = bsp_textures_info[map_face.tex_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
+
             tv1, tv2 = texture_info.texture_vectors
             lv1, lv2 = texture_info.lightmap_vectors
 
-            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / (texture_data.width or 512)
-            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / (texture_data.height or 512))
+            tex_w = texture_data.width or 512
+            tex_h = texture_data.height or 512
 
-            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / (texture_data.width or 512)
-            lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / (texture_data.height or 512))
+            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / tex_w
+            v = 1.0 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / tex_h)
 
-            v_uvs = np.dstack([u, v]).reshape((-1, 2))
-            l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
+            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / tex_w
+            lv = 1.0 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / tex_h)
 
-            for vertex_id, uv, luv in zip(face_vertex_ids, v_uvs, l_uvs):
-                new_vertex_id = remapped[vertex_id]
+            face_uvs = np.stack([u, v], axis=1)
+            face_luvs = np.stack([lu, lv], axis=1)
+
+            face_vertex_ids, face_uvs, face_luvs = remove_dupe_face_vertices(
+                face_vertex_ids,
+                face_uvs,
+                face_luvs,
+            )
+
+            if len(face_vertex_ids) < 3:
+                continue
+
+            face = []
+            remapped_face_uvs = []
+            remapped_face_luvs = []
+
+            for vertex_id, uv, luv in zip(face_vertex_ids, face_uvs, face_luvs):
+                new_vertex_id = remapped[int(vertex_id)]
+
                 face.append(new_vertex_id)
-                uvs[new_vertex_id] = uv
-                luvs[new_vertex_id] = luv
+                remapped_face_uvs.append(uv)
+                remapped_face_luvs.append(luv)
 
-            material_indices.append(material_lookup_table[texture_data.name_id])
-            uvs_per_face.append(uvs)
-            luvs_per_face.append(luvs)
-            faces.append(face[::-1])
+            face = face[::-1]
+            remapped_face_uvs = remapped_face_uvs[::-1]
+            remapped_face_luvs = remapped_face_luvs[::-1]
+
+            if len(face) < 3:
+                print("Got invalid face len < 3")
+                continue
+
+            material_index = material_lookup_table[texture_data.name_id]
+
+            faces.append(face)
+            uvs_per_face.append(remapped_face_uvs)
+            luvs_per_face.append(remapped_face_luvs)
+            material_indices.append(material_index)
 
         mesh_data.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
+        mesh_data.update()
         mesh_data.polygons.foreach_set('material_index', material_indices)
 
         main_uv = mesh_data.uv_layers.new()
@@ -237,7 +306,7 @@ class AbstractEntityHandler:
         lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
         uv_data = lightmap_uv.data
         _set_uv(mesh_data, uv_data, luvs_per_face)
-        if mesh_data.validate():
+        if mesh_data.validate(verbose=True):
             self.logger.warn(f"Mesh(*{model_id}) had some invalid geometry")
         return mesh_obj
 
@@ -297,7 +366,7 @@ class AbstractEntityHandler:
                                          math.radians(angles[1]))))
 
     @staticmethod
-    def _set_single_angle(obj, angle:float):
+    def _set_single_angle(obj, angle: float):
         obj.rotation_euler.rotate(Euler((0, 0, math.radians(angle))))
 
     @staticmethod
