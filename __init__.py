@@ -11,7 +11,7 @@ from SourceIO.library import loaded_as_addon, running_in_blender
 
 try:
     import bpy
-    if bpy.app.version < (3, 6, 0):
+    if bpy.app.version < (4, 0, 0):
         raise Exception("SourceIO only support blender 4.0.0 and above")
 except ImportError:
     bpy = ...
