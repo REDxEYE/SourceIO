@@ -22,8 +22,7 @@ class VertexAttribute:
     shader_semantic: str
 
     def __post_init__(self):
-        if self._name == "blendweight":
-            self._name = "BLENDWEIGHT"
+        self._name = self._name.upper()
 
     @property
     def name(self):
@@ -37,7 +36,7 @@ class VertexAttribute:
         name = buffer.read_ascii_string(32)
         index, fmt, offset, slot, slot_type, instance_step_rate = buffer.read_fmt('6I')
         return cls(name.upper(), index, DxgiFormat(fmt),
-                   offset, slot, SlotType(slot_type), instance_step_rate)
+                   offset, slot, SlotType(slot_type), instance_step_rate, "")
 
     def get_numpy_type(self):
         if self.format == DxgiFormat.R32G32B32_FLOAT:

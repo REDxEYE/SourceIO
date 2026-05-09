@@ -543,6 +543,8 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
     if tint is not None:
         mesh_obj.color = list(tint) + [1.0]
 
+    logging.info(f"Mesh attributes: {used_vertices.dtype.names}")
+
     positions = used_vertices['POSITION'] * import_context.scale
 
     normals = None
