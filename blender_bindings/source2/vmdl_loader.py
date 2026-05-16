@@ -162,6 +162,9 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
     lod_mask = unpack("Q", pack("q", import_contex.lod_mask))[0]
     data = model_resource.get_block(custom_type_kvblock("PermModelData_t"), block_name='DATA')
     ctrl = model_resource.get_block(KVBlock, block_name='CTRL')
+    if not ctrl:
+        logging.error(f'Failed to find ctrl block for {model_resource.name}')
+        return []
     group_masks = {}
     lod_count = len(data['m_lodGroupSwitchDistances'])
 
@@ -196,8 +199,12 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
                     mesh_resource = model_resource.get_child_resource(mesh, content_manager, CompiledMeshResource)
                 if mesh_resource is None:
                     logging.error(f'Failed to find vmesh file for {model_resource.name}')
+                    continue
                 sub_meshes = load_external_mesh(content_manager, model_resource, container, i, mesh_resource,
                                                 import_contex)
+            if not sub_meshes:
+                continue
+
             object_groups.extend(sub_meshes)
             for sub_mesh in sub_meshes:
                 for lod in range(lod_count):
@@ -212,6 +219,8 @@ def create_meshes(content_manager: ContentManager, model_resource: CompiledModel
             mesh_mask = int(data['m_refMeshGroupMasks'][i])
             lod_id = int(data['m_refLODGroupMasks'][i])
             sub_meshes = load_internal_mesh(content_manager, model_resource, container, mesh_info, import_contex)
+            if not sub_meshes:
+                continue
             object_groups.extend(sub_meshes)
             for sub_mesh in sub_meshes:
                 for lod in range(lod_count):
@@ -291,7 +300,7 @@ def load_external_mesh(content_manager: ContentManager, model_resource: Compiled
         index_buffers = [IndexBuffer.from_kv(buf) for buf in data_block['m_indexBuffers']]
         return create_mesh(content_manager, model_resource, container, data_block, index_buffers, vertex_buffers, [],
                            texture, morph_block, mesh_id, mesh_resource, import_context)
-    return None
+    return []
 
 
 def _add_vertex_groups(model_resource: CompiledModelResource,
