@@ -193,14 +193,15 @@ class PBR(Source2ShaderBase):
                 uv_mapping = self.setup_uv_transform(self.selfillum_texcoord_offset1, self.selfillum_texcoord_scale1)
                 if uv_mapping:
                     self.connect_nodes(uv_mapping.outputs[0], selfillum_mask_node.inputs[0])
-                split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
-                self.connect_nodes(selfillum_mask_node.outputs[0], split_node.inputs[0])
+                split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
+                split_node.mode = "RGB"
+                self.connect_nodes(selfillum_mask_node.outputs[0], split_node.inputs["Image"])
                 if self.selfillum_scale == 1.0:
-                    self.connect_nodes(split_node.outputs[0], shader.inputs["Emission Strength"])
+                    self.connect_nodes(split_node.outputs["R"], shader.inputs["Emission Strength"])
                 else:
                     math_node = self.create_node(Nodes.ShaderNodeMath)
                     math_node.operation = "MULTIPLY"
-                    self.connect_nodes(split_node.outputs[0], math_node.inputs[0])
+                    self.connect_nodes(split_node.outputs["R"], math_node.inputs[0])
                     math_node.inputs[1].default_value = self.selfillum_scale
                     self.connect_nodes(math_node.outputs[0], shader.inputs["Emission Strength"])
 
