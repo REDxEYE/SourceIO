@@ -195,7 +195,7 @@ class PBR(Source2ShaderBase):
                     self.connect_nodes(uv_mapping.outputs[0], selfillum_mask_node.inputs[0])
                 split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
                 split_node.mode = "RGB"
-                self.connect_nodes(selfillum_mask_node.outputs[0], split_node.inputs["Image"])
+                self.connect_nodes(selfillum_mask_node.outputs[0], split_node.inputs[0])
                 if self.selfillum_scale == 1.0:
                     self.connect_nodes(split_node.outputs["R"], shader.inputs["Emission Strength"])
                 else:
