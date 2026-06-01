@@ -24,6 +24,32 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return None
 
     @property
+    def compress(self):
+        texture_path = self._vmt.get_string('$compress', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
+            image = self.convert_normalmap(image)
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
+        return None
+
+    @property
+    def stretch(self):
+        texture_path = self._vmt.get_string('$stretch', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
+            image = self.convert_normalmap(image)
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
+        return None
+
+    @property
     def basetexture(self):
         texture_path = self._vmt.get_string('$basetexture', None)
         if texture_path is not None:
@@ -284,6 +310,17 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             if hasattr(self.bpy_material, 'surface_render_method'):
                 self.bpy_material.surface_render_method = 'BLENDED'
         uv = None
+
+        compress = self.compress
+        if compress:
+            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$compress')
+            basetexture_node.image = compress
+
+        stretch = self.stretch
+        if stretch:
+            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$stretch')
+            basetexture_node.image = stretch
+
         if self.use_bvlg_status:
             self.do_arrange = True
 
