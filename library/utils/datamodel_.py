@@ -45,11 +45,11 @@ def bi_contains(lst, item):
     return (item._id <= lst[-1]._id) and (lst[bisect_left(lst, item)]._id == item._id)
 
 
-header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
-header_format_regex = header_format.replace("{:d}", "([0-9]+)").replace("{:s}", "(\S+)")
+header_format = r"<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
+header_format_regex = header_format.replace(r"{:d}", r"([0-9]+)").replace("{:s}", r"(\S+)")
 
-header_proto2 = "<!-- DMXVersion binary_v{:d} -->"
-header_proto2_regex = header_proto2.replace("{:d}", "([0-9]+)")
+header_proto2 = r"<!-- DMXVersion binary_v{:d} -->"
+header_proto2_regex = header_proto2.replace(r"{:d}", r"([0-9]+)")
 
 int_size = calcsize("i")
 short_size = calcsize("H")
