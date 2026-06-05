@@ -7,6 +7,7 @@ from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base impor
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 from .detail import DetailSupportMixin
 
+
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
 
@@ -55,7 +56,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         if texture_path is not None:
             return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
         return None
-    
+
     @property
     def lightwarptexture(self):
         texture_path = self._vmt.get_string('$lightwarptexture', None)
@@ -69,8 +70,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def basetexturetransform(self):
         return self._vmt.get_transform_matrix('$basetexturetransform',
-                                                {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
-                                                'translate': (0, 0, 0)})
+                                              {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+                                               'translate': (0, 0, 0)})
 
     @property
     def selfillummask(self):
@@ -113,7 +114,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         if len(color_value) == 1:
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
-    
+
     @property
     def colortint_base(self):
         color_value, value_type = self._vmt.get_vector('$colortint_base', None)
@@ -136,7 +137,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def alphatestreference(self):
         return self._vmt.get_float('$alphatestreference', 0.5)
-    
+
     @property
     def selfillummaskscale(self):
         return self._vmt.get_float('$selfillummaskscale', 1.0)
@@ -156,7 +157,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def selfillum(self):
         return self._vmt.get_int('$selfillum', 0) == 1
-    
+
     @property
     def selfillumtint(self):
         color_value, value_type = self._vmt.get_vector('$selfillumtint', None)
@@ -245,19 +246,19 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def phongalbedotint(self):
         return self._vmt.get_int('$phongalbedotint', 1) == 1
-    
+
     @property
     def blendtintbybasealpha(self):
         return self._vmt.get_float('$blendtintbybasealpha', 0)
-    
+
     @property
     def blendtintcoloroverbase(self):
         return self._vmt.get_float('$blendtintcoloroverbase', 0)
-    
+
     @property
     def nocull(self):
         return self._vmt.get_int('$nocull', 0) == 1
-    
+
     @property
     def phongtint(self):
         color_value, value_type = self._vmt.get_vector('$phongtint', None)
@@ -269,7 +270,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             color_value = [color_value[0], color_value[0], color_value[0]]
         return self.ensure_length(color_value, 4, 1.0)
 
-    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+    def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         sio_diffuse = None
         selfillum = False
 
@@ -293,7 +294,6 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                         if src2_var not in self._vmt:
                             continue
                         self._vmt[result_var] = self._vmt[src2_var]
-
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
@@ -338,7 +338,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             var.targets[0].data_path = 'use_backface_culling'
 
             final = group_node.outputs[0]
-            
+
             if self.basetexture:
                 basetexture_node = self.create_and_connect_texture_node(self.basetexture,
                                                                         group_node.inputs['$basetexture [texture]'],
@@ -353,7 +353,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 if self.basemapalphaphongmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
-                #if self.alphatest or self.translucent:
+                # if self.alphatest or self.translucent:
                 #    self.connect_nodes(basetexture_node.outputs['Alpha'],
                 #                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
@@ -492,7 +492,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     self.connect_nodes(final, add.inputs[1])
                     self.connect_nodes(transparent.outputs[0], add.inputs[0])
                     final = add.outputs[0]
-                    
+
             if self.alphatest or self.translucent:
                 alphatest_node = self.create_node_group("$alphatest", [250, 0])
                 material_output.location = [450, 0]
@@ -500,7 +500,8 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
                 alphatest_node.inputs['$translucent'].default_value = self.translucent
                 if self.basetexture:
-                    self.connect_nodes(basetexture_node.outputs[1], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                    self.connect_nodes(basetexture_node.outputs[1],
+                                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
                 self.connect_nodes(final, alphatest_node.inputs[0])
                 final = alphatest_node.outputs[0]
                 if sio_diffuse:
@@ -510,15 +511,15 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
                     alphatest_node.inputs['$translucent'].default_value = self.translucent
                     if self.basetexture:
-                        self.connect_nodes(basetexture_node.outputs[1], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                        self.connect_nodes(basetexture_node.outputs[1],
+                                           alphatest_node.inputs['Alpha [basemap texture alpha]'])
                     self.connect_nodes(final_cycles, alphatest_node.inputs[0])
                     final_cycles = alphatest_node.outputs[0]
-            
+
             # Finalize outputs
             self.connect_nodes(final, material_output.inputs[0])
             if sio_diffuse:
                 self.connect_nodes(final_cycles, cycles_output.inputs[0])
-
 
             '''
             END OF BVLG
@@ -608,12 +609,12 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
                 phongexponenttexture_split_node.mode = "RGB"
                 self.connect_nodes(phongexponenttexture_node.outputs['Color'],
-                                   phongexponenttexture_split_node.inputs['Image'])
+                                   phongexponenttexture_split_node.inputs[0])
 
                 phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-                self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
+                self.connect_nodes(phongexponenttexture_split_node.outputs[0],
                                    phongexponenttexture_r_invert_node.inputs['Color'])
-                self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
+                self.connect_nodes(phongexponenttexture_split_node.outputs[1],
                                    shader.inputs['Metallic'])
 
                 self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])
