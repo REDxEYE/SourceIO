@@ -672,8 +672,7 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
     objects.append(mesh_obj)
 
     if morph_block and morph_supported and morph_texture is not None:
-        pos_bundle_id = morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED') or \
-                        morph_block.get_bundle_id('BUNDLE_TYPE_POSITION_SPEED')
+        pos_bundle_id = morph_block.get_bundle_id('MORPH_BUNDLE_TYPE_POSITION_SPEED', 'BUNDLE_TYPE_POSITION_SPEED')
         if pos_bundle_id is not None:
             mesh_obj.shape_key_add(name='base')
             for flex_name_ in morph_block['m_FlexDesc']:

@@ -33,9 +33,10 @@ class MorphBlock(KVBlock):
     def bundles(self) -> list[str]:
         return self['m_bundleTypes']
 
-    def get_bundle_id(self, bundle_name):
-        if bundle_name in self.bundles:
-            return self.bundles.index(bundle_name)
+    def get_bundle_id(self, *bundle_names: str):
+        for name in bundle_names:
+            if name in self.bundles:
+                return self.bundles.index(name)
         return None
 
     def get_morph_data(self, flex_name: str, bundle_id: int, texture):
@@ -52,8 +53,8 @@ class MorphBlock(KVBlock):
         height = self['m_nHeight']
 
         name_map = self._morph_name_map
-        if name_map is None:
-            name_map = {md['m_name']: md for md in self['m_morphDatas']}
+        if not name_map:
+            name_map = {md['m_name']: md for md in self['m_morphDatas'] if md['m_name']}
             self._morph_name_map = name_map
 
         morph_data = name_map.get(flex_name)

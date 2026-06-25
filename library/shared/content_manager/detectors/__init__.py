@@ -2,6 +2,7 @@ from SourceIO.library.shared.content_manager.detectors.content_detector import C
 from SourceIO.library.shared.content_manager.detectors.cs2 import CS2Detector
 from SourceIO.library.shared.content_manager.detectors.csgo import CSGODetector
 from SourceIO.library.shared.content_manager.detectors.deadlock import DeadlockDetector
+from SourceIO.library.shared.content_manager.detectors.dota2 import Dota2Detector
 from SourceIO.library.shared.content_manager.detectors.gmod import GModDetector
 from SourceIO.library.shared.content_manager.detectors.goldsrc import GoldSrcDetector
 from SourceIO.library.shared.content_manager.detectors.hla import HLADetector
@@ -35,7 +36,7 @@ def detect_game(path: TinyPath) -> set[ContentProvider]:
         Portal2Detector(),
         Portal2RevolutionDetector(), CSGODetector(), SourceMod(), Source1Detector(),
         # VindictusDetector(), TitanfallDetector(),
-        SBoxDetector(), CS2Detector(), HLADetector(),
+        SBoxDetector(), CS2Detector(), HLADetector(), Dota2Detector(),
         RobotRepairDetector(), DeadlockDetector(), Source2Detector(),
         StarWarsJediKnights2Detector(), QuakeIDTech3Detector(),
         VampireDetector()
