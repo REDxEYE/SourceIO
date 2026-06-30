@@ -29,7 +29,7 @@ class Source2GameInfoProvider(ContentProvider):
         for search_path_type, search_paths in self.filesystem.get("searchpaths", {}).items():
             if isinstance(search_paths, str):
                 search_paths = [search_paths]
-            if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk", "addonroot", "game_lowviolence", "officialaddonroot"]:
+            if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk", "addonroot", "officialaddonroot"]:
                 logger.debug(
                     f"Skipping mounting {search_paths!r} as is not one of supported mount types: {search_path_type}")
                 continue
