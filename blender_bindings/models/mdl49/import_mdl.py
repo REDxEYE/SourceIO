@@ -1,3 +1,4 @@
+import itertools
 import warnings
 from collections import defaultdict
 
@@ -9,7 +10,7 @@ from math import atan
 from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
 from SourceIO.blender_bindings.models.mdl44.import_mdl import create_armature
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material, ActionCurveFactory
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v44.vertex_animation_cache import preprocess_vertex_animation
@@ -441,7 +442,7 @@ def import_animations(cm: ContentProvider, mdl: MdlV49, armature: bpy.types.Obje
         animation_data = mdl.animations[n]
         action = bpy.data.actions.new(anim.name)
         action.use_fake_user = True
-        armature.animation_data.action = action
+        factory = ActionCurveFactory(action, armature)
         curve_per_bone = {}
 
         for bone in mdl.bones:
@@ -449,26 +450,26 @@ def import_animations(cm: ContentProvider, mdl: MdlV49, armature: bpy.types.Obje
             bl_bone = armature.pose.bones.get(bone_name)
             bl_bone.rotation_mode = 'QUATERNION'
             bone_string = f'pose.bones["{bone_name}"].'
-            group = action.groups.new(name=bone_name)
+            group = factory.new_group(bone_name)
             pos_curves = []
             rot_curves = []
             for i in range(3):
-                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                pos_curve.keyframe_points.add(anim.frame_count)
+                pos_curve = factory.new_fcurve(data_path=bone_string + "location", index=i, group=group)
+                pos_curve.keyframe_points.add(count=anim.frame_count)
                 pos_curve.auto_smoothing = "CONT_ACCEL"
                 pos_curves.append(pos_curve)
-                pos_curve.group = group
             for i in range(4):
-                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                rot_curve.keyframe_points.add(anim.frame_count)
+                rot_curve = factory.new_fcurve(data_path=bone_string + "rotation_quaternion", index=i, group=group)
+                rot_curve.keyframe_points.add(count=anim.frame_count)
                 rot_curve.auto_smoothing = "CONT_ACCEL"
                 rot_curves.append(rot_curve)
-                rot_curve.group = group
             curve_per_bone[bone_name] = pos_curves, rot_curves
         for bone_id, bone in enumerate(mdl.bones):
+            pos_curves, rot_curves = curve_per_bone[bone.name]
+            for curve in itertools.chain(pos_curves, rot_curves):
+                curve.keyframe_points.add(count=anim.frame_count)
+            bl_bone = armature.pose.bones.get(bone.name)
             for frame_id in range(anim.frame_count):
-                bl_bone = armature.pose.bones.get(bone.name)
-                pos_curves, rot_curves = curve_per_bone[bone.name]
                 anim_data = animation_data[frame_id, bone_id]
                 bl_bone.matrix_basis.identity()
                 pos = Vector(anim_data["pos"]) * scale

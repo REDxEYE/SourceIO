@@ -1,7 +1,9 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntFlag
 
 import numpy as np
+import numpy.typing as npt
 
 from SourceIO.library.shared.types import Vector4, Vector3
 from SourceIO.library.utils.math_utilities import euler_to_quat
@@ -138,79 +140,134 @@ class StudioAnimDesc:
                 section.append(StudioAnimationSection.from_buffer(buffer))
         return section
 
-    def read_animations(self, buffer: Buffer, bones: list[Bone]):
+    def read_animations(self, buffer: Buffer, bones: list[Bone],
+                        ani_buffer: Buffer | None = None,
+                        block_table: list | None = None) -> dict[str, npt.NDArray] | None:
+        """
+        Read animation frames.
+
+        Args:
+            buffer: MDL file buffer (for inline data and section table)
+            bones: bone list for frame allocation
+            ani_buffer: opened .ani file buffer (for external blocks)
+            block_table: list of AnimBlockEntry from the MDL header
+        """
         frames_per_section = self.section_frame_count
         sections = self.get_sections(buffer)
 
-        frame_buffer = np.zeros((self.frame_count, len(bones)), ANIM_DTYPE)
         if sections:
+            frame_buffer = defaultdict(lambda: np.zeros((self.frame_count,), ANIM_DTYPE))
             frame_offset = 0
             for section_id, section in enumerate(sections):
+                if section_id < len(sections) - 2:
+                    section_frame_count = frames_per_section
+                else:
+                    section_frame_count = self.frame_count - (len(sections) - 2) * frames_per_section
+
+                if frame_offset >= self.frame_count:
+                    break
+
                 if section.anim_block == 0:
                     adjusted_anim_offset = section.anim_offset + (self.animblock_offset - sections[0].anim_offset)
-
-                    if section_id < len(sections) - 2:
-                        section_frame_count = frames_per_section
-                    else:
-                        section_frame_count = self.frame_count - (len(sections) - 2) * frames_per_section
-
                     buffer.seek(self._entry_offset + adjusted_anim_offset)
-                    if frame_offset == self.frame_count:
-                        break
                     animation_section = self._read_animation_frames(buffer, bones, section_frame_count)
-                    frame_buffer[frame_offset:frame_offset + section_frame_count, :] = animation_section
+                    if not animation_section:
+                        print("No animation in embedded anim block")
+                        continue
+                    for key, data in animation_section.items():
+                        frame_buffer[key][frame_offset:frame_offset + section_frame_count] = data
                     frame_offset += section_frame_count
+                elif ani_buffer is not None and block_table is not None:
+                    block_entry = block_table[section.anim_block]
+                    ani_buffer.seek(block_entry.data_offset + section.anim_offset)
+                    animation_section = self._read_animation_frames(ani_buffer, bones, section_frame_count)
+                    if not animation_section:
+                        print("No animation in external anim block with block table")
+                        continue
+                    for key, data in animation_section.items():
+                        frame_buffer[key][frame_offset:frame_offset + section_frame_count] = data
+                    frame_offset += section_frame_count
+                elif ani_buffer is not None:
+                    ani_buffer.seek(section.anim_offset)
+                    animation_section = self._read_animation_frames(ani_buffer, bones, section_frame_count)
+                    if not animation_section:
+                        print("No animation in external anim block")
+                        continue
+                    for key, data in animation_section.items():
+                        frame_buffer[key][frame_offset:frame_offset + section_frame_count] = data
+                    frame_offset += section_frame_count
+            return frame_buffer
         elif self.animblock_id == 0:
             buffer.seek(self._entry_offset + self.animblock_offset)
-            frame_buffer[:, :] = self._read_animation_frames(buffer, bones, self.frame_count)
-        else:
-            pass
-        return frame_buffer
+            return self._read_animation_frames(buffer, bones, self.frame_count)
+        elif ani_buffer is not None and block_table is not None:
+            block_entry = block_table[self.animblock_id]
+            ani_buffer.seek(block_entry.data_offset + self.animblock_offset)
+            return self._read_animation_frames(ani_buffer, bones, self.frame_count)
+        elif ani_buffer is not None:
+            ani_buffer.seek(self.animblock_offset)
+            return self._read_animation_frames(ani_buffer, bones, self.frame_count)
+        return None
 
-    def _read_animation_frames(self, buffer: Buffer, bones: list[Bone], section_frame_count: int):
+    def _read_animation_frames(self, buffer: Buffer, bones: list[Bone], section_frame_count: int) \
+            -> dict[str, npt.NDArray] | None:
         if self.flags & AnimDescFlags.FRAMEANIM:
             return self._read_frame_animations(buffer, bones, section_frame_count)
         else:
             return self._read_mdl_animations(buffer, bones, section_frame_count)
 
-    def _read_frame_animations(self, buffer: Buffer, bones: list[Bone], section_frame_count: int):
+    def _read_frame_animations(self, buffer: Buffer, bones: list[Bone], section_frame_count: int) \
+            -> dict[str, npt.NDArray] | None:
         entry_offset = buffer.tell()
         frame_anim = StudioFrameAnim.from_buffer(buffer)
         bone_flags = [AniBoneFlags(buffer.read_uint8()) for _ in bones]
-        constant_info = np.zeros((1, len(bones),), ANIM_DTYPE)
         if frame_anim.constant_offset > 0:
             assert frame_anim.frame_length == 0
+            constant_anim_data: dict[str, npt.NDArray] = dict()
             buffer.seek(entry_offset + frame_anim.constant_offset)
             for bone in bones:
+                bone_anim_data = np.zeros(1, ANIM_DTYPE)
+
                 flag = bone_flags[bone.bone_id]
+                has_data = False
                 if flag & AniBoneFlags.CONST_ROT2:
-                    constant_info[0, bone.bone_id]["rot"] = Quat48S.read(buffer)
+                    has_data = True
+                    bone_anim_data[0]["rot"] = Quat48S.read(buffer)
                 if flag & AniBoneFlags.RAW_ROT:
-                    constant_info[0, bone.bone_id]["rot"] = Quat48.read(buffer)
+                    has_data = True
+                    bone_anim_data[0]["rot"] = Quat48.read(buffer)
                 if flag & AniBoneFlags.RAW_POS:
-                    constant_info[0, bone.bone_id]["pos"] = buffer.read_fmt("3e")
+                    has_data = True
+                    bone_anim_data[0]["pos"] = buffer.read_fmt("3e")
                 if flag & AniBoneFlags.CONST_POS2:
-                    constant_info[0, bone.bone_id]["pos"] = buffer.read_fmt("3f")
-            return constant_info
+                    has_data = True
+                    bone_anim_data[0]["pos"] = buffer.read_fmt("3f")
+
+                if not has_data:
+                    continue
+                constant_anim_data[bone.name] = bone_anim_data
+            return constant_anim_data
 
         elif frame_anim.frame_offset != 0 and frame_anim.frame_length > 0:
-            section_frame_buffer = np.zeros((section_frame_count, len(bones)), ANIM_DTYPE)
+            anim_data = defaultdict(lambda: np.zeros((section_frame_count,), ANIM_DTYPE))
 
             assert frame_anim.constant_offset == 0
             buffer.seek(entry_offset + frame_anim.frame_offset)
             for frame_id in range(section_frame_count):
                 for bone in bones:
                     bone_flag = bone_flags[bone.bone_id]
-
                     if bone_flag & AniBoneFlags.ANIM_ROT2:
-                        section_frame_buffer[frame_id, bone.bone_id]["rot"] = Quat48S.read(buffer)
+                        anim_data[bone.name][frame_id]["rot"] = Quat48S.read(buffer)
                     if bone_flag & AniBoneFlags.ANIM_ROT:
-                        section_frame_buffer[frame_id, bone.bone_id]["rot"] = Quat48.read(buffer)
+                        anim_data[bone.name][frame_id]["rot"] = Quat48.read(buffer)
                     if bone_flag & AniBoneFlags.ANIM_POS:
-                        section_frame_buffer[frame_id, bone.bone_id]["pos"] = buffer.read_fmt("3e")
+                        anim_data[bone.name][frame_id]["pos"] = buffer.read_fmt("3e")
                     if bone_flag & AniBoneFlags.FULL_ANIM_POS:
-                        section_frame_buffer[frame_id, bone.bone_id]["pos"] = buffer.read_fmt("3f")
-            return section_frame_buffer
+                        anim_data[bone.name][frame_id]["pos"] = buffer.read_fmt("3f")
+
+            return anim_data
+        print("frame_anim.constant_offset == 0 && (frame_anim.frame_offset == 0 || frame_anim.frame_length == 0)")
+        return None
 
     def _read_anim_rot_value(self, buffer: Buffer, flags: AnimBoneFlags, frame_count: int, base_quat: Vector4,
                              base_rot: Vector3, rot_scale: Vector3) -> list[Vector4]:
@@ -245,6 +302,7 @@ class StudioAnimDesc:
             anim_rot = anim_rot + base_rot
 
             return euler_to_quat(anim_rot)
+        return None
 
     def _read_anim_pos_value(self, buffer: Buffer, flags: AnimBoneFlags, frame_count: int, base_pos: Vector3,
                              pos_scale: Vector3) -> list[Vector3]:
@@ -279,12 +337,7 @@ class StudioAnimDesc:
     def _read_mdl_animations(self, buffer: Buffer, bones: list[Bone], section_frame_count: int):
         animation_sections = []
 
-        section_frame_buffer = np.zeros((section_frame_count, len(bones)), ANIM_DTYPE)
-
-        for bone in bones:
-            section_frame_buffer[:, bone.bone_id]["rot"] = bone.quat
-            section_frame_buffer[:, bone.bone_id]["pos"] = bone.position
-
+        anim_data = defaultdict(lambda: np.zeros((section_frame_count,), ANIM_DTYPE))
         for _ in bones:
             bone_entry = buffer.tell()
             bone_index = buffer.read_uint8()
@@ -294,7 +347,7 @@ class StudioAnimDesc:
                 break
 
             assert bone_index < len(bones)
-            used_bone = bones[bone_index]
+            used_bone: Bone = bones[bone_index]
 
             flags = AnimBoneFlags(buffer.read_uint8())
 
@@ -305,18 +358,18 @@ class StudioAnimDesc:
 
             value = self._read_anim_rot_value(buffer, flags, section_frame_count, used_bone.quat, used_bone.rotation,
                                               used_bone.rotation_scale)
-            section_frame_buffer[:, bone_index]["rot"] = value
+            anim_data[used_bone.name]["rot"] = value
 
             value = self._read_anim_pos_value(buffer, flags, section_frame_count, used_bone.position,
                                               used_bone.position_scale)
-            section_frame_buffer[:, bone_index]["pos"] = value
+            anim_data[used_bone.name]["pos"] = value
 
             if next_offset > 0:
                 buffer.seek(bone_entry + next_offset)
                 continue
             break
 
-        return section_frame_buffer
+        return anim_data
 
     def _read_rle_compressed_data(self, buffer: Buffer, frame_count: int):
         valid, total = buffer.read_fmt("2B")

@@ -42,6 +42,45 @@ def is_blender_5():
     return bpy.app.version >= (5, 0, 0)
 
 
+class ActionCurveFactory:
+    """Compatibility wrapper for creating FCurves across Blender 4.x and 5.x.
+
+    In Blender 5.0+ action.fcurves and action.groups were removed in favor of
+    the slotted channelbag API.
+    """
+
+    def __init__(self, action: bpy.types.Action, armature_obj: bpy.types.Object):
+        self.action = action
+        self._armature = armature_obj
+        self._use_channelbag = is_blender_5()
+        adt = armature_obj.animation_data
+        if adt is None:
+            adt = armature_obj.animation_data_create()
+        if self._use_channelbag:
+            slot = action.slots.new(id_type='OBJECT', name=armature_obj.name)
+            adt.action = action
+            adt.action_slot = slot
+            layer = action.layers.new(name="Layer")
+            strip = layer.strips.new(type='KEYFRAME')
+            self._channelbag = strip.channelbags.new(slot=slot)
+        else:
+            adt.action = action
+
+    def new_group(self, name: str):
+        if self._use_channelbag:
+            return self._channelbag.groups.new(name=name)
+        return self.action.groups.new(name=name)
+
+    def new_fcurve(self, data_path: str, index: int = 0, group=None):
+        if self._use_channelbag:
+            curve = self._channelbag.fcurves.new(data_path=data_path, index=index)
+        else:
+            curve = self.action.fcurves.new(data_path=data_path, index=index)
+        if group is not None:
+            curve.group = group
+        return curve
+
+
 def find_layer_collection(layer_collection, name):
     if layer_collection.name == name:
         return layer_collection

@@ -13,6 +13,7 @@ from SourceIO.library.models.mdl.v4.structs.texture import StudioTexture
 from SourceIO.library.utils import Buffer
 from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import \
     GoldSrcShader
+from SourceIO.blender_bindings.utils.bpy_utils import ActionCurveFactory
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
 from SourceIO.library.utils.path_utilities import path_stem
@@ -168,26 +169,24 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
 
         action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
         action.use_fake_user = True
-        armature.animation_data.action = action
+        factory = ActionCurveFactory(action, armature)
 
         curve_per_bone = {}
 
         for n, bone in enumerate(mdl.bones):
             bone_name = f'Bone_{n}'
             bone_string = f'pose.bones["{bone_name}"].'
-            group = action.groups.new(name=bone_name)
+            group = factory.new_group(bone_name)
             pos_curves = []
             rot_curves = []
             for i in range(3):
-                pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                pos_curve.keyframe_points.add(sequence.frame_count)
+                pos_curve = factory.new_fcurve(data_path=bone_string + "location", index=i, group=group)
+                pos_curve.keyframe_points.add(count=sequence.frame_count)
                 pos_curves.append(pos_curve)
-                pos_curve.group = group
             for i in range(4):
-                rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                rot_curve.keyframe_points.add(sequence.frame_count)
+                rot_curve = factory.new_fcurve(data_path=bone_string + "rotation_quaternion", index=i, group=group)
+                rot_curve.keyframe_points.add(count=sequence.frame_count)
                 rot_curves.append(rot_curve)
-                rot_curve.group = group
             curve_per_bone[bone_name] = pos_curves, rot_curves
 
         for bone_id, bone in enumerate(mdl.bones):
@@ -202,10 +201,10 @@ def load_animations(mdl: Mdl, armature, model_name, scale):
                     rx, ry, rz = root_motion
                     root_motion = Vector([rx, ry, rz]) * scale
                     for i in range(3):
-                        pos_curves[i].keyframe_points.add(1)
+                        pos_curves[i].keyframe_points.add(count=1)
                         pos_curves[i].keyframe_points[-1].co = (n, root_motion[i])
                     motion += Vector(root_motion)
                 for i in range(4):
-                    rot_curves[i].keyframe_points.add(1)
+                    rot_curves[i].keyframe_points.add(count=1)
                     rot_curves[i].keyframe_points[-1].co = (n, frame[i])
     bpy.ops.object.mode_set(mode='OBJECT')
