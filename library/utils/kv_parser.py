@@ -32,7 +32,7 @@ class KVDataProxy(Mapping):
     def __iter__(self) -> Iterator:
         return iter(a[0] for a in self.data)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item)->'KVDataProxy|list[KVDataProxy]|int|float|str':
         value = self.get(item)
         if value is not None:
             return self._wrap_value(value)
@@ -44,6 +44,9 @@ class KVDataProxy(Mapping):
             if item[0] == name:
                 self.data.remove(item)
                 return
+
+    def __repr__(self):
+        return f"<KVDataProxy {self.data!r}>"
 
     def items(self):
         for key, value in self.data:

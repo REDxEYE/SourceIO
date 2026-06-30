@@ -20,7 +20,7 @@ from .shaders.source2_shaders.dummy import DummyShader
 from .shaders import source1_shaders, source2_shaders, goldsrc_shaders
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from SourceIO.library.utils.perf_sampler import timed
-from ..utils.bpy_utils import is_blender_4_3
+from ..utils.bpy_utils import is_blender_4_3, is_blender_5
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
@@ -54,7 +54,7 @@ class ShaderRegistry:
                              extra_parameters: dict[ExtraMaterialParameters, Any]):
         if not cls._initial_setup(material):
             return material
-        
+
         shader = vmt.shader
         if shader not in cls._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')
@@ -62,7 +62,7 @@ class ShaderRegistry:
         handler: Source1ShaderBase = cls._handlers.get(shader, Source1ShaderBase)(content_manager, vmt)
         handler.bpy_material = material
         try:
-            new_material = handler.create_nodes(material, extra_parameters) or material # support material templates
+            new_material = handler.create_nodes(material, extra_parameters) or material  # support material templates
             if not isinstance(new_material, bpy.types.Material):
                 new_material = material
             material = new_material
@@ -112,9 +112,9 @@ class ShaderRegistry:
         if material.get('source_loaded', False):
             return False
 
-        material.use_nodes = True
         material['source_loaded'] = True
-        material.use_nodes = True
+        if not is_blender_5():
+            material.use_nodes = True
         cls._clean_nodes(material)
         if not is_blender_4_3():
             material.blend_method = 'OPAQUE'

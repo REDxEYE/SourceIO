@@ -6,7 +6,7 @@ from SourceIO.library.shared.content_manager.providers import register_provider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from SourceIO.library.utils import Buffer, TinyPath
-from SourceIO.library.utils.s1_keyvalues import KVParser
+from SourceIO.library.utils.kv_parser import ValveKeyValueParser
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -16,19 +16,20 @@ logger = log_manager.get_logger('GameInfoProvider')
 class Source2GameInfoProvider(ContentProvider):
     def __init__(self, filepath: TinyPath, steamapp_id: SteamAppId = SteamAppId.UNKNOWN):
         super().__init__(filepath)
-        with filepath.open('r', encoding="utf8") as f:
-            header, gameinfo_data = KVParser(filepath, f.read()).parse()
-            assert header == "gameinfo"
-            self.data = gameinfo_data
-        if header != "gameinfo":
-            raise ValueError("Invalid gameinfo header")
-        self.filesystem: dict[str, Any] = gameinfo_data["filesystem"]
+
+        parser = ValveKeyValueParser(filepath)
+        parser.parse()
+        root = parser.tree
+        self.data = root["gameinfo"]
+        self.filesystem: dict[str, Any] = self.data["filesystem"]
         self._steamapp_id = steamapp_id
         self.mount: list[ContentProvider] = []
 
         mods_folder = self.root.parent
         for search_path_type, search_paths in self.filesystem.get("searchpaths", {}).items():
-            if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk", "addonroot"]:
+            if isinstance(search_paths, str):
+                search_paths = [search_paths]
+            if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk", "addonroot", "game_lowviolence", "officialaddonroot"]:
                 logger.debug(
                     f"Skipping mounting {search_paths!r} as is not one of supported mount types: {search_path_type}")
                 continue

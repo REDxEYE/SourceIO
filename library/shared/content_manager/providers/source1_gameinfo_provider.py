@@ -5,8 +5,8 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider, is
 from SourceIO.library.shared.content_manager.providers import register_provider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
-from SourceIO.library.utils import Buffer, FileBuffer, TinyPath
-from SourceIO.library.utils.s1_keyvalues import KVParser
+from SourceIO.library.utils import Buffer, TinyPath
+from SourceIO.library.utils.kv_parser import ValveKeyValueParser
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -16,11 +16,15 @@ logger = log_manager.get_logger('GameInfoProvider')
 class Source1GameInfoProvider(ContentProvider):
     def __init__(self, filepath: TinyPath):
         super().__init__(filepath)
-        with FileBuffer(filepath, "r") as f:
-            header, gameinfo_data = KVParser(filepath, f.read_ascii_string()).parse()
-        if header != "gameinfo":
+        parser = ValveKeyValueParser(filepath)
+        parser.parse()
+        root = parser.tree
+
+        if "gameinfo" not in root:
             raise ValueError("Invalid gameinfo header")
-        self.filesystem: dict[str, Any] = gameinfo_data["filesystem"]
+        self.data = root["gameinfo"]
+        self.filesystem: dict[str, Any] = self.data["filesystem"]
+
         self._steamapp_id = SteamAppId(int(self.filesystem.get("steamappid", 0)))
         self.mount: list[ContentProvider] = []
 

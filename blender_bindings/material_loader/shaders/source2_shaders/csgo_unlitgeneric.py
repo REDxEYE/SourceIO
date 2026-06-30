@@ -1,6 +1,9 @@
 from pprint import pformat
+from typing import Any
 
-from SourceIO.blender_bindings.material_loader.shader_base import Nodes
+import bpy
+
+from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source2_shader_base import Source2ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
