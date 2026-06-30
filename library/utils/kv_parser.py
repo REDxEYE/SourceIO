@@ -430,19 +430,42 @@ class ValveKeyValueParser:
                 key = self.advance()[1]
                 self._skip_newlines()
                 if self.match(VKVToken.LBRACE, True):
+
                     new_tree_node = []
-                    node_stack[-1].append((key.lower(), new_tree_node))
+                    if "+" in key:
+                        parts = key.lower().split("+")
+                        for part in parts:
+                            node_stack[-1].append((part, new_tree_node))
+                    else:
+                        node_stack[-1].append((key.lower(), new_tree_node))
                     node_stack.append(new_tree_node)
                 elif self.match(VKVToken.STRING):
                     value = self.advance()
                     if self.match(VKVToken.LBRACKET, True):
                         condition = self._parse_expression()
-                        node_stack[-1].append((key.lower(), (value[1], condition)))
+                        value = (value[1], condition)
+                        if "+" in key:
+                            parts = key.lower().split("+")
+                            for part in parts:
+                                node_stack[-1].append((part, value))
+                        else:
+                            node_stack[-1].append((key.lower(), value))
                     else:
-                        node_stack[-1].append((key.lower(), value[1]))
+                        value = value[1]
+                        if "+" in key:
+                            parts = key.lower().split("+")
+                            for part in parts:
+                                node_stack[-1].append((part, value))
+                        else:
+                            node_stack[-1].append((key.lower(), value))
                     while not self.match(VKVToken.NEWLINE):
-                        value = self.advance()
-                        node_stack[-1].append((key.lower(), value[1]))
+                        value = self.advance()[1]
+                        if "+" in key:
+                            parts = key.lower().split("+")
+                            for part in parts:
+                                node_stack[-1].append((part, value))
+                        else:
+                            node_stack[-1].append((key.lower(), value))
                     self.expect(VKVToken.NEWLINE)
             elif self._array_of_blocks and self.match(VKVToken.LBRACE, True):
                 new_tree_node = []
