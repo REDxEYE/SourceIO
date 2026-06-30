@@ -174,7 +174,7 @@ class AbstractEntityHandler:
         return entity_obj, entity
 
     def _load_brush_model(self, model_id, model_name):
-        def _get_string(string_id):
+        def _get_string(string_id:int) -> str:
             strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
             return strings[string_id] or "NO_NAME"
 
@@ -201,6 +201,7 @@ class AbstractEntityHandler:
             texture_info = bsp_textures_info[texture_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = _get_string(texture_data.name_id)
+            material_name = material_name.rstrip("/\\").lstrip("/\\")
             if self.settings and self.settings.import_textures:
                 material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
                 if material_file:
@@ -210,6 +211,7 @@ class AbstractEntityHandler:
                         skippable_materials.add(texture_info_id)
                 else:
                     material_name = strip_patch_coordinates.sub("", material_name)
+                    material_name = material_name.rstrip("/\\").lstrip("/\\")
                     material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
                     if material_file:
                         vmt = VMT(material_file, material_name, self.content_manager)
