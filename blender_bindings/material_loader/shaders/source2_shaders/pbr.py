@@ -193,7 +193,7 @@ class PBR(Source2ShaderBase):
                 uv_mapping = self.setup_uv_transform(self.selfillum_texcoord_offset1, self.selfillum_texcoord_scale1)
                 if uv_mapping:
                     self.connect_nodes(uv_mapping.outputs[0], selfillum_mask_node.inputs[0])
-                split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
+                split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
                 self.connect_nodes(selfillum_mask_node.outputs[0], split_node.inputs[0])
                 if self.selfillum_scale == 1.0:
                     self.connect_nodes(split_node.outputs[0], shader.inputs["Emission Strength"])

@@ -183,11 +183,11 @@ class MdlV44(Mdl):
                 for op in rule.flex_ops:
                     flex_op = op.op
                     if flex_op == FlexOpType.CONST:
-                        stack.append(Value(round(op.value, 4)))
+                        stack.append(Value(op.value))
                     elif flex_op == FlexOpType.FETCH1:
                         inputs.append((self.flex_controllers[op.value].name, 'fetch1'))
                         fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                        stack.append(FetchController(self.flex_controllers[op.value].name, fc_ui.stereo))
+                        stack.append(FetchController(fc_ui.name, fc_ui.stereo))
                     elif flex_op == FlexOpType.FETCH2:
                         inputs.append((self.flex_names[op.value], 'fetch2'))
                         stack.append(FetchFlex(self.flex_names[op.value]))
@@ -212,16 +212,17 @@ class MdlV44(Mdl):
                     elif flex_op == FlexOpType.TWO_WAY_0:
                         inputs.append((self.flex_controllers[op.value].name, '2WAY0'))
                         fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                        stack.append(TwoWay0(FetchController(self.flex_controllers[op.value].name, fc_ui.stereo)))
+                        stack.append(RClamp(FetchController(fc_ui.name, fc_ui.stereo),
+                                            -1, 0, 1, 0))
                     elif flex_op == FlexOpType.TWO_WAY_1:
                         inputs.append((self.flex_controllers[op.value].name, '2WAY1'))
                         fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                        stack.append(TwoWay1(FetchController(self.flex_controllers[op.value].name, fc_ui.stereo)))
+                        stack.append(Clamp(FetchController(fc_ui.name, fc_ui.stereo), 0, 1), )
                     elif flex_op == FlexOpType.NWAY:
 
                         inputs.append((self.flex_controllers[op.value].name, 'NWAY'))
                         fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                        flex_cnt = FetchController(self.flex_controllers[op.value].name, fc_ui.stereo)
+                        flex_cnt = FetchController(fc_ui.name, fc_ui.stereo)
 
                         flex_cnt_value = int(stack.pop(-1).value)
                         inputs.append((self.flex_controllers[flex_cnt_value].name, 'NWAY'))
@@ -238,14 +239,26 @@ class MdlV44(Mdl):
                     elif flex_op == FlexOpType.DME_UPPER_EYELID:
                         close_lid_v_controller = self.flex_controllers[op.value]
                         inputs.append((close_lid_v_controller.name, 'DUE'))
-                        close_lid_v = FetchController(close_lid_v_controller.name)
+                        close_lid_v = RClamp(FetchController(close_lid_v_controller.name),
+                                             close_lid_v_controller.min, close_lid_v_controller.max,
+                                             0, 1)
 
                         flex_cnt_value = int(stack.pop(-1).value)
                         close_lid_controller = self.flex_controllers[flex_cnt_value]
                         inputs.append((close_lid_controller.name, 'DUE'))
-                        close_lid = FetchController(close_lid_controller.name)
+                        close_lid = RClamp(FetchController(close_lid_controller.name),
+                                           close_lid_controller.min, close_lid_controller.max,
+                                           0, 1)
 
                         blink_index = int(stack.pop(-1).value)
+                        # blink = Value(0.0)
+                        # if blink_index >= 0:
+                        #     blink_controller = self.flex_controllers[blink_index]
+                        #     inputs.append((blink_controller.name, 'DUE'))
+                        #     blink_fetch = FetchController(blink_controller.name)
+                        #     blink = CustomFunction('rclamped', blink_fetch,
+                        #                            blink_controller.min, blink_controller.max,
+                        #                            0, 1)
 
                         eye_up_down_index = int(stack.pop(-1).value)
                         eye_up_down = Value(0.0)
@@ -253,20 +266,34 @@ class MdlV44(Mdl):
                             eye_up_down_controller = self.flex_controllers[eye_up_down_index]
                             inputs.append((eye_up_down_controller.name, 'DUE'))
                             eye_up_down_fetch = FetchController(eye_up_down_controller.name)
-                            eye_up_down = eye_up_down_fetch
+                            eye_up_down = RClamp(eye_up_down_fetch,
+                                                 eye_up_down_controller.min, eye_up_down_controller.max,
+                                                 -1, 1)
 
-                        stack.append(UpperEye(eye_up_down, close_lid_v, close_lid))
+                        stack.append(CustomFunction('upper_eyelid_case', eye_up_down, close_lid_v, close_lid))
                     elif flex_op == FlexOpType.DME_LOWER_EYELID:
                         close_lid_v_controller = self.flex_controllers[op.value]
                         inputs.append((close_lid_v_controller.name, 'DUE'))
-                        close_lid_v = FetchController(close_lid_v_controller.name)
+                        close_lid_v = RClamp(FetchController(close_lid_v_controller.name),
+                                             close_lid_v_controller.min, close_lid_v_controller.max,
+                                             0, 1)
 
                         flex_cnt_value = int(stack.pop(-1).value)
                         close_lid_controller = self.flex_controllers[flex_cnt_value]
                         inputs.append((close_lid_controller.name, 'DUE'))
-                        close_lid = FetchController(close_lid_controller.name)
+                        close_lid = RClamp(FetchController(close_lid_controller.name),
+                                           close_lid_controller.min, close_lid_controller.max,
+                                           0, 1)
 
                         blink_index = int(stack.pop(-1).value)
+                        # blink = Value(0.0)
+                        # if blink_index >= 0:
+                        #     blink_controller = self.flex_controllers[blink_index]
+                        #     inputs.append((blink_controller.name, 'DUE'))
+                        #     blink_fetch = FetchController(blink_controller.name)
+                        #     blink = CustomFunction('rclamped', blink_fetch,
+                        #                            blink_controller.min, blink_controller.max,
+                        #                            0, 1)
 
                         eye_up_down_index = int(stack.pop(-1).value)
                         eye_up_down = Value(0.0)
@@ -274,9 +301,11 @@ class MdlV44(Mdl):
                             eye_up_down_controller = self.flex_controllers[eye_up_down_index]
                             inputs.append((eye_up_down_controller.name, 'DUE'))
                             eye_up_down_fetch = FetchController(eye_up_down_controller.name)
-                            eye_up_down = eye_up_down_fetch
+                            eye_up_down = RClamp(eye_up_down_fetch,
+                                                 eye_up_down_controller.min, eye_up_down_controller.max,
+                                                 -1, 1)
 
-                        stack.append(LowerEye(eye_up_down, close_lid_v, close_lid))
+                        stack.append(CustomFunction('lower_eyelid_case', eye_up_down, close_lid_v, close_lid))
                     elif flex_op == FlexOpType.OPEN:
                         continue
                     else:

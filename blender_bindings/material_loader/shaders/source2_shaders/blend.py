@@ -141,7 +141,7 @@ class Blend(Source2ShaderBase):
         self.connect_nodes(transform_node.outputs[0], normal2_node.inputs[0])
         self.connect_nodes(transform_node.outputs[0], mask_node.inputs[0])
 
-        split_mask = self.create_node(Nodes.ShaderNodeSeparateRGB)
+        split_mask = self.create_node(Nodes.ShaderNodeSeparateColor)
         self.connect_nodes(mask_node.outputs[0], split_mask.inputs[0])
         mask_output = split_mask.outputs[0]
 

@@ -53,6 +53,8 @@ def put_into_collections(model_container: ModelContainer, model_name,
                 body_part_collection = master_collection
 
             for mesh in meshes:
+                if mesh == None:
+                    continue
                 body_collection = get_new_unique_collection(mesh.name, body_part_collection)
                 body_collection.objects.link(mesh)
     else:
@@ -156,3 +158,149 @@ def create_eyeballs(mdl: Mdl, armature: bpy.types.Object, mesh_obj: bpy.types.Ob
                 nodes['!EYE_Z'].attribute_name = eyeball_name + '_z_offset'
             if nodes.get('!EYE_IRIS_SCALE'):
                 nodes['!EYE_IRIS_SCALE'].attribute_name = eyeball_name + '_iris_scale'
+
+def make_bodygroup_selectors(mdl: Mdl, armature: bpy.types.Object, bodygroups: dict[str, list[bpy.types.Object]]):
+    from string import ascii_lowercase
+
+    def add_vis_drivers(
+        controller: bpy.types.Object,
+        subject: bpy.types.Object,
+        data_path: str,
+        index: int
+    ):
+        controller.update_tag()
+        for path in ['hide_viewport', 'hide_render']:
+            subject.driver_remove(path)
+            curve = subject.driver_add(path)
+            driver = curve.driver
+            driver.type = 'SCRIPTED'
+            var = driver.variables.new()
+            targs = var.targets[0]
+            targs.id_type = 'OBJECT'
+            targs.id = controller
+            targs.data_path = f'["{data_path}"]'
+            driver.expression = f'var != {index}'
+
+    bg_name_map = dict()
+    tally = iter(range(999))
+
+    def tally():
+        for i in range(999):
+            yield ''.join(map(lambda a: ascii_lowercase[int(a)], f'{i}'))
+    tally = tally()
+
+    for n, body_part in enumerate(mdl.body_parts):
+        if len(body_part.models) < 2:
+            continue
+
+        enum_items = []
+        bg_name = body_part.name
+        bg_name_suffix = 'BG' + ' ' + next(tally) + ' ' + bg_name
+        bg_name_map[bg_name] = bg_name_suffix
+
+        armature[bg_name_suffix] = 0
+
+        for index, (bpy_model, model) in enumerate(zip(bodygroups[bg_name], body_part.models)):
+            enum_items.append((
+                f'{n}',
+                model.name,
+                ''
+            ))
+            if bpy_model == None:
+                continue
+            add_vis_drivers(
+                armature,
+                bpy_model,
+                bg_name_suffix,
+                index
+            )
+        
+        ui_settings = armature.id_properties_ui(bg_name_suffix)
+        ui_settings.update(
+            min=0,
+            max=len(enum_items),
+            items=enum_items
+        )
+    
+    armature['bodygroup_name_map'] = bg_name_map
+
+
+def generate_wrinkle_map_node_group(obj: bpy.types.Object):
+    data: bpy.types.Mesh = obj.data
+    shape_keys = data.shape_keys
+
+    compress = list(filter(lambda a: a.name.startswith('WR.') and a.name.endswith('.C'), data.attributes))
+    stretch = list(filter(lambda a: a.name.startswith('WR.') and a.name.endswith('.S'), data.attributes))
+
+    if not len(compress) + len(stretch):
+        return
+
+    node_group: bpy.types.GeometryNodeTree = bpy.data.node_groups.new(f'wrinkles_{obj.name}'[:63], 'GeometryNodeTree')
+    nodes = node_group.nodes
+    links = node_group.links
+    mod: bpy.types.NodesModifier = obj.modifiers.new('Wrinkle Map Data', 'NODES')
+    mod.node_group = node_group
+    if bpy.app.version >= (4, 0, 0):
+        node_group.interface.new_socket(name='Output', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+        node_group.interface.new_socket(name='Input', in_out='INPUT', socket_type='NodeSocketGeometry')
+    else:
+        node_group.inputs.new('NodeSocketGeometry', 'Input')
+        node_group.outputs.new('NodeSocketGeometry', 'Output')
+    
+    input = nodes.new('NodeGroupInput')
+    input.location = [400, 100]
+    output = nodes.new('NodeGroupOutput')
+    output.location = [800, 0]
+    combine = nodes.new('ShaderNodeCombineXYZ')
+    combine.location = [400, 0]
+    store = nodes.new('GeometryNodeStoreNamedAttribute')
+    store.data_type = 'FLOAT2'
+    store.domain = 'POINT'
+    store.inputs[2].default_value = 'tension'
+    store.location = [600, 0]
+
+    links.new(combine.outputs[0], store.inputs[3])
+    links.new(input.outputs[0], store.inputs[0])
+    links.new(store.outputs[0], output.inputs[0])
+
+
+    loc_compress = [0, 0]
+    loc_stretch = [200, 0]
+    
+    for n, attr in [*enumerate(compress), *enumerate(stretch)]:
+        loc, index = (loc_compress, 0) if attr.name.endswith('.C') else (loc_stretch, 1)
+        shape_name = attr.name.split('.')[1]
+        
+        wrinkle = nodes.new('GeometryNodeInputNamedAttribute')
+        wrinkle.inputs[0].default_value = attr.name
+        wrinkle.location = loc
+        wrinkle.name = 'WRINKLE MAP'
+        wrinkle.label = shape_name
+
+        mult = nodes.new('ShaderNodeMath')
+        mult.operation = 'MULTIPLY'
+        mult.location = loc
+        mult.name = 'SHAPEKEY VALUE'
+        mult.label = shape_name
+        driver = mult.inputs[1].driver_add('default_value')
+        var = driver.driver.variables.new()
+        targ = var.targets[0]
+        targ.id_type = 'KEY'
+        targ.id = shape_keys
+        targ.data_path = shape_keys.key_blocks[shape_name].path_from_id('value')
+        driver.driver.type = 'AVERAGE'
+
+        links.new(wrinkle.outputs[0], mult.inputs[0])
+
+        if n == 0:
+            last = mult.outputs[0]
+            links.new(last, combine.inputs[index])
+            continue
+        maximum = nodes.new('ShaderNodeMath')
+        maximum.name = 'MAXIMUM'
+        maximum.operation = 'MAXIMUM'
+        maximum.location = loc
+        links.new(last, maximum.inputs[0])
+        links.new(mult.outputs[0], maximum.inputs[1])
+        links.new(maximum.outputs[0], combine.inputs[index])
+        last = maximum.outputs[0]

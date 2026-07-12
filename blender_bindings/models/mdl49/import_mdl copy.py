@@ -6,7 +6,7 @@ import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 from math import atan
 
-from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group
 from SourceIO.blender_bindings.models.mdl44.import_mdl import create_armature
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
@@ -24,7 +24,6 @@ from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.logger import SourceLogMan
-from string import ascii_lowercase
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -35,8 +34,8 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                  options: ModelOptions):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths, content_manager)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
-    skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
     # ensure all MaterialV49 has its bpy_material counterpart
+
     objects = []
     bodygroups = defaultdict(list)
     attachments = []
@@ -60,7 +59,6 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
         for vtx_model, model in zip(vtx_body_part.models, body_part.models):
 
             if model.vertex_count == 0:
-                bodygroups[body_part.name].append(None)
                 continue
             object_name = model.name
             mesh_name = f'{mdl.header.name}_{body_part.name}_{object_name}_MESH'
@@ -97,6 +95,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                 mdl.materials[mat_id].bpy_material = material
                 material_remapper[mat_id] = add_material(material, mesh_obj)
 
+            skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
             try:
                 mesh_obj['skin_groups'] = skin_groups
             except:
@@ -215,8 +214,6 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
 
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
-    if not static_prop:
-        make_bodygroup_selectors(mdl, armature, bodygroups)
     attachments.extend(extra_stuff)
 
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
@@ -224,284 +221,11 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
 
 def create_flex_drivers(obj, mdl: MdlV49):
     from ...operators.flex_operators import SourceIO_PG_FlexController
-    from SourceIO.library.models.mdl.structs.flex import FlexController, FlexControllerUI, FlexOpType, FlexRule
     if not obj.data.shape_keys:
         return
-    
-    nway_expr = 'max(min(({0}-{1})/({2}-{1}),({4}-{0})/({4}-{3})),0)'
-    two_way_0_expr = 'clamp({}*-1)'
-    two_way_1_expr = 'clamp({})'
-    upper_eye_expr = '(1-abs(min({}, 0)))*{}*{}'
-    lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
-    
-    def number_format(x):
-        return ''.join((map(lambda a: ascii_lowercase[int(a)], f'{x:03d}'))) + '_'
-
     all_exprs = mdl.rebuild_flex_rules()
-    bpy.types.Scene.t = all_exprs
-    data: bpy.types.Mesh = obj.data
-    shape_keys = data.shape_keys
-    kb = shape_keys.key_blocks
-
-    def make_custom_property(name, min, max, default=0.0):
-        obj.data[name] = default
-        prop = obj.data.id_properties_ui(name)
-        prop.update(min=min, max=max)
-
-    #tally = iter(range(999))
-    def tally():
-        for i in range(999):
-            yield ''.join(map(lambda a: ascii_lowercase[int(a)], f'{i:03d}'))
-    tally = tally()
-
-    flexcontrollers = dict()
-    flexmap = dict()
-    
-    flexmap['flex_scale'] = flex_sort = f'{next(tally)}_fs'
-    flex = dict()
-    flex['controller'] = 'flex_scale'
-    flex['type'] = 0b00
-    make_custom_property(flex_sort, -10, 10, 1.0)
-
-    flexcontrollers['Flex Scale'] = flex
-
-    for flex_controller_ui in mdl.flex_ui_controllers:
-        flex = dict()
-        
-        if flex_controller_ui.stereo:
-            flex['type'] = 0b01
-            left_controller = next(
-                filter(lambda a: a.name == flex_controller_ui.left_controller, mdl.flex_controllers)
-            )
-            right_controller = next(
-                filter(lambda a: a.name == flex_controller_ui.right_controller, mdl.flex_controllers)
-            )
-            flexmap[left_controller.name] = left_sort = f'{next(tally)}_{left_controller.name}'
-            flexmap[right_controller.name] = right_sort = f'{next(tally)}_{right_controller.name}'
-            flex['left'] = left_controller.name
-            flex['right'] = right_controller.name
-            make_custom_property(left_sort, left_controller.min, left_controller.max)
-            make_custom_property(right_sort, right_controller.min, right_controller.max)
-        else:
-            flex['type'] = 0b00
-            controller = next(filter(lambda a: a.name == flex_controller_ui.controller, mdl.flex_controllers))
-            flexmap[controller.name] = controller_sort = f'{next(tally)}_{controller.name}'
-            flex['controller'] = controller.name
-            make_custom_property(controller_sort, controller.min, controller.max)
-        
-        if flex_controller_ui.nway_controller:
-            flex['type'] += 0b10
-            nway = next(filter(lambda a: a.name == flex_controller_ui.nway_controller, mdl.flex_controllers))
-            flexmap[nway.name] = nway_sort = f'{next(tally)}_{nway.name}'
-            flex['nway'] = nway.name
-            make_custom_property(nway_sort, nway.min, nway.max)
-
-        flexcontrollers[flex_controller_ui.name] = flex
-    
-    obj.data['flexmap'] = flexmap
-    obj.data['flexcontrollers'] = flexcontrollers
-
-    def var_tally():
-        for i in range(999):
-            yield 'V'+str(i)
-    def dom_tally():
-        for i in range(999):
-            yield 'D'+str(i)
-
-    shape_keys = obj.data.shape_keys
-
-    for name, (expr, inputs) in all_exprs.items():
-        expr = expr.as_simple()
-        vtally = var_tally()
-        #dtally = dom_tally()
-        if kb.get(name):
-            kb[name].driver_remove('value')
-            driv = kb[name].driver_add('value')
-        else:
-            shape_keys[name] = 0.0
-            driv = shape_keys.driver_add(f'["{name}"]')
-        [driv.modifiers.remove(mod) for mod in driv.modifiers]
-        driv = driv.driver
-        for input, type in set(inputs):
-            var = driv.variables.new()
-            var.name = next(vtally)
-            var.type = 'SINGLE_PROP'
-            targ = var.targets[0]
-            if type == 'fetch2':
-                if kb.get(input):
-                    data_path = kb[input].path_from_id('value')
-                elif shape_keys.get(input):
-                    data_path = f'["{input}"]'
-                else:
-                    shape_keys[input] = 0.0
-                    data_path = f'["{input}"]'
-
-                targ.id_type = 'KEY'
-                targ.id = shape_keys
-                targ.data_path = data_path
-            else:
-                targ.id_type = 'MESH'
-                targ.id = data
-                targ.data_path = f'["{flexmap[input]}"]'
-            
-            expr = expr.replace(input, var.name)
-            
-            
-        var = driv.variables.new()
-        var.name = 'FS'
-        var.type = 'SINGLE_PROP'
-        targ = var.targets[0]
-        targ.id_type = 'MESH'
-        targ.id = data
-        targ.data_path = '["{}"]'.format(flexmap['flex_scale'])
-        assert len(expr) < 256
-        driv.expression = expr.replace('--', '+') + '*FS'
-
-    return
-    int_to_flex = {n: flexmap[mdl.flex_controllers[n].name] for n, flex in enumerate(mdl.flex_controllers)}
-
-
-    for rule in mdl.flex_rules:
-        vtally = var_tally()
-        dtally = dom_tally()
-        expr = ''
-        stack = []
-
-        op_count = len(rule.flex_ops)
-
-        for n, op in enumerate(rule.flex_ops):
-            last = (n + 1) == op_count
-            flex_op = op.op
-            if flex_op == FlexOpType.CONST:
-                stack.append(Value(op.value))
-            elif flex_op == FlexOpType.FETCH1:
-                inputs.append((self.flex_controllers[op.value].name, 'fetch1'))
-                fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                stack.append(FetchController(fc_ui.name, fc_ui.stereo))
-            elif flex_op == FlexOpType.FETCH2:
-                inputs.append((self.flex_names[op.value], 'fetch2'))
-                stack.append(FetchFlex(self.flex_names[op.value]))
-            elif flex_op == FlexOpType.ADD:
-                stack.append(Add(stack.pop(-1), stack.pop(-1)))
-            elif flex_op == FlexOpType.SUB:
-                stack.append(Sub(stack.pop(-1), stack.pop(-1)))
-            elif flex_op == FlexOpType.MUL:
-                stack.append(Mul(stack.pop(-1), stack.pop(-1)))
-            elif flex_op == FlexOpType.DIV:
-                stack.append(Div(stack.pop(-1), stack.pop(-1)))
-            elif flex_op == FlexOpType.NEG:
-                stack.append(Neg(stack.pop(-1)))
-            elif flex_op == FlexOpType.MAX:
-                stack.append(Max(stack.pop(-1), stack.pop(-1)))
-            elif flex_op == FlexOpType.MIN:
-                stack.append(Min(stack.pop(-1), stack.pop(-1)))
-            elif flex_op == FlexOpType.COMBO:
-                stack.append(Combo(*[stack.pop(-1) for _ in range(op.value)]))
-            elif flex_op == FlexOpType.DOMINATE:
-                stack.append(Dominator(*[stack.pop(-1) for _ in range(op.value + 1)]))
-            elif flex_op == FlexOpType.TWO_WAY_0:
-                inputs.append((self.flex_controllers[op.value].name, '2WAY0'))
-                fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                stack.append(RClamp(FetchController(fc_ui.name, fc_ui.stereo),
-                                    -1, 0, 1, 0))
-            elif flex_op == FlexOpType.TWO_WAY_1:
-                inputs.append((self.flex_controllers[op.value].name, '2WAY1'))
-                fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                stack.append(Clamp(FetchController(fc_ui.name, fc_ui.stereo), 0, 1), )
-            elif flex_op == FlexOpType.NWAY:
-
-                inputs.append((self.flex_controllers[op.value].name, 'NWAY'))
-                fc_ui = flex_controllers[self.flex_controllers[op.value].name]
-                flex_cnt = FetchController(fc_ui.name, fc_ui.stereo)
-
-                flex_cnt_value = int(stack.pop(-1).value)
-                inputs.append((self.flex_controllers[flex_cnt_value].name, 'NWAY'))
-                fc_ui = flex_controllers[self.flex_controllers[flex_cnt_value].name]
-                multi_cnt = FetchController(fc_ui.nway_controller, fc_ui.stereo)
-
-                # Reversed the order, revert back if it wont help
-                f_w = stack.pop(-1)
-                f_z = stack.pop(-1)
-                f_y = stack.pop(-1)
-                f_x = stack.pop(-1)
-                final_expr = NWay(multi_cnt, flex_cnt, f_x, f_y, f_z, f_w)
-                stack.append(final_expr)
-            elif flex_op == FlexOpType.DME_UPPER_EYELID:
-                close_lid_v_controller = self.flex_controllers[op.value]
-                inputs.append((close_lid_v_controller.name, 'DUE'))
-                close_lid_v = RClamp(FetchController(close_lid_v_controller.name),
-                                        close_lid_v_controller.min, close_lid_v_controller.max,
-                                        0, 1)
-
-                flex_cnt_value = int(stack.pop(-1).value)
-                close_lid_controller = self.flex_controllers[flex_cnt_value]
-                inputs.append((close_lid_controller.name, 'DUE'))
-                close_lid = RClamp(FetchController(close_lid_controller.name),
-                                    close_lid_controller.min, close_lid_controller.max,
-                                    0, 1)
-
-                blink_index = int(stack.pop(-1).value)
-                # blink = Value(0.0)
-                # if blink_index >= 0:
-                #     blink_controller = self.flex_controllers[blink_index]
-                #     inputs.append((blink_controller.name, 'DUE'))
-                #     blink_fetch = FetchController(blink_controller.name)
-                #     blink = CustomFunction('rclamped', blink_fetch,
-                #                            blink_controller.min, blink_controller.max,
-                #                            0, 1)
-
-                eye_up_down_index = int(stack.pop(-1).value)
-                eye_up_down = Value(0.0)
-                if eye_up_down_index >= 0:
-                    eye_up_down_controller = self.flex_controllers[eye_up_down_index]
-                    inputs.append((eye_up_down_controller.name, 'DUE'))
-                    eye_up_down_fetch = FetchController(eye_up_down_controller.name)
-                    eye_up_down = RClamp(eye_up_down_fetch,
-                                            eye_up_down_controller.min, eye_up_down_controller.max,
-                                            -1, 1)
-
-                stack.append(CustomFunction('upper_eyelid_case', eye_up_down, close_lid_v, close_lid))
-            elif flex_op == FlexOpType.DME_LOWER_EYELID:
-                close_lid_v_controller = self.flex_controllers[op.value]
-                inputs.append((close_lid_v_controller.name, 'DUE'))
-                close_lid_v = RClamp(FetchController(close_lid_v_controller.name),
-                                        close_lid_v_controller.min, close_lid_v_controller.max,
-                                        0, 1)
-
-                flex_cnt_value = int(stack.pop(-1).value)
-                close_lid_controller = self.flex_controllers[flex_cnt_value]
-                inputs.append((close_lid_controller.name, 'DUE'))
-                close_lid = RClamp(FetchController(close_lid_controller.name),
-                                    close_lid_controller.min, close_lid_controller.max,
-                                    0, 1)
-
-                blink_index = int(stack.pop(-1).value)
-                # blink = Value(0.0)
-                # if blink_index >= 0:
-                #     blink_controller = self.flex_controllers[blink_index]
-                #     inputs.append((blink_controller.name, 'DUE'))
-                #     blink_fetch = FetchController(blink_controller.name)
-                #     blink = CustomFunction('rclamped', blink_fetch,
-                #                            blink_controller.min, blink_controller.max,
-                #                            0, 1)
-
-                eye_up_down_index = int(stack.pop(-1).value)
-                eye_up_down = Value(0.0)
-                if eye_up_down_index >= 0:
-                    eye_up_down_controller = self.flex_controllers[eye_up_down_index]
-                    inputs.append((eye_up_down_controller.name, 'DUE'))
-                    eye_up_down_fetch = FetchController(eye_up_down_controller.name)
-                    eye_up_down = RClamp(eye_up_down_fetch,
-                                            eye_up_down_controller.min, eye_up_down_controller.max,
-                                            -1, 1)
-
-                stack.append(CustomFunction('lower_eyelid_case', eye_up_down, close_lid_v, close_lid))
-            elif flex_op == FlexOpType.OPEN:
-                continue
-            else:
-                print("Unknown OP", op)
-
-    return
+    data = obj.data
+    shape_key_block = data.shape_keys
 
     def _parse_simple_flex(missing_flex_name: str):
         flexes = missing_flex_name.split('_')

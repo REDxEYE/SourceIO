@@ -31,6 +31,46 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return None
     
     @property
+    def compress(self):
+        texture_path = self._vmt.get_string('$compress', None)
+        if texture_path is not None:
+            return self.load_texture_or_default(texture_path, (0.3, 0.0, 0.3, 1.0))
+        return None
+    
+    @property
+    def stretch(self):
+        texture_path = self._vmt.get_string('$stretch', None)
+        if texture_path is not None:
+            return self.load_texture_or_default(texture_path, (0.3, 0.0, 0.3, 1.0))
+        return None
+    
+    @property
+    def bumpcompress(self):
+        texture_path = self._vmt.get_string('$bumpcompress', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
+            image = self.convert_normalmap(image)
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
+        return None
+    
+    @property
+    def bumpstretch(self):
+        texture_path = self._vmt.get_string('$bumpstretch', None)
+        if texture_path is not None:
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
+            image = self.convert_normalmap(image)
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
+        return None
+
+    @property
     def lightwarptexture(self):
         texture_path = self._vmt.get_string('$lightwarptexture', None)
         if texture_path is not None:
@@ -245,7 +285,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         sio_diffuse = None
-        selfillum = False
+        tension = None
 
         # print(f"BVLG: {self.use_bvlg_status}")
 
@@ -322,6 +362,24 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
                 if self.detail:
                     albedo, detail = self.handle_detail(group_node.inputs['$basetexture [texture]'], albedo, uv_node=uv)
+                if self.compress and self.stretch:
+                    attr = self.create_node(Nodes.ShaderNodeAttribute)
+                    attr.attribute_name = 'tension'
+                    tension = self.create_node(Nodes.ShaderNodeSeparateXYZ)
+                    self.connect_nodes(attr.outputs[1], tension.inputs[0])
+                    compress = self.create_texture_node(self.compress)
+                    stretch = self.create_texture_node(self.stretch)
+                    mix_default_compress = self.create_node(Nodes.ShaderNodeMixRGB)
+                    mix_compress_stretch = self.create_node(Nodes.ShaderNodeMixRGB)
+
+                    self.connect_nodes(tension.outputs[0], mix_default_compress.inputs[0])
+                    self.connect_nodes(tension.outputs[1], mix_compress_stretch.inputs[0])
+                    self.connect_nodes(albedo, mix_default_compress.inputs[1])
+                    self.connect_nodes(compress.outputs[0], mix_default_compress.inputs[2])
+                    self.connect_nodes(mix_default_compress.outputs[0], mix_compress_stretch.inputs[1])
+                    self.connect_nodes(stretch.outputs[0], mix_compress_stretch.inputs[2])
+                    self.connect_nodes(mix_compress_stretch.outputs[0], group_node.inputs['$basetexture [texture]'])
+
             elif self.color:
                 group_node.inputs['$basetexture [texture]'].default_value = self.color
 
@@ -344,6 +402,24 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 elif self.normalmapalphaphongmask and not self.basemapalphaphongmask:
                     self.connect_nodes(bumpmap_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
+                    
+                if self.bumpcompress and self.bumpstretch:
+                    if not tension:
+                        attr = self.create_node(Nodes.ShaderNodeAttribute)
+                        tension = self.create_node(Nodes.ShaderNodeSeparateXYZ)
+                        self.connect_nodes(attr.outputs[1], tension.inputs[0])
+                    compress = self.create_texture_node(self.bumpcompress)
+                    stretch = self.create_texture_node(self.bumpstretch)
+                    mix_default_compress = self.create_node(Nodes.ShaderNodeMixRGB)
+                    mix_compress_stretch = self.create_node(Nodes.ShaderNodeMixRGB)
+
+                    self.connect_nodes(tension.outputs[0], mix_default_compress.inputs[0])
+                    self.connect_nodes(tension.outputs[1], mix_compress_stretch.inputs[0])
+                    self.connect_nodes(bumpmap_node.outputs[0], mix_default_compress.inputs[1])
+                    self.connect_nodes(compress.outputs[0], mix_default_compress.inputs[2])
+                    self.connect_nodes(mix_default_compress.outputs[0], mix_compress_stretch.inputs[1])
+                    self.connect_nodes(stretch.outputs[0], mix_compress_stretch.inputs[2])
+                    self.connect_nodes(mix_compress_stretch.outputs[0], group_node.inputs['$bumpmap [texture]'])
 
             if self.rimlight:
                 group_node.inputs['$rimlight [bool]'].default_value = self.rimlight
@@ -568,7 +644,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             elif self.phongexponenttexture is not None:
                 phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
                 phongexponenttexture_node.image = phongexponenttexture
-                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateRGB)
+                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
                 self.connect_nodes(phongexponenttexture_node.outputs['Color'],
                                    phongexponenttexture_split_node.inputs['Image'])
 

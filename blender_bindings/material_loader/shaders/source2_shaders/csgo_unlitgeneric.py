@@ -29,7 +29,7 @@ class CSGOUnlitGeneric(Source2ShaderBase):
         self.connect_nodes(normal_texture.outputs[1], shader.inputs["Roughness"])
 
         # metalness_texture = self._get_texture("g_tMetalness", (1, 1, 1, 1), True)
-        # metalness_conv = self.create_node(Nodes.ShaderNodeSeparateRGB)
+        # metalness_conv = self.create_node(Nodes.ShaderNodeSeparateColor)
         # self.connect_nodes(metalness_texture.outputs[0], metalness_conv.inputs[0])
         # roughness_override = self._material_resource.get_vector_property("TextureNormal", None)
         # if roughness_override is not None:

@@ -37,12 +37,12 @@ class ModelOptions(SharedOptions, Source1SharedSettings):
     load_refpose: BoolProperty(name="Load Ref pose", default=False, subtype='UNSIGNED')
     import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
 
-    create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=False, subtype='UNSIGNED')
+    create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=True, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
     debug_stereo_balance: BoolProperty(name='Debug Stereo Flex Balance', description='Add vertex groups to show how stereo flexes blend. If enabled, the balance will not be mixed into shape keys.', default=False, subtype='UNSIGNED')
-
+    generate_wrinkle_map_node_group: BoolProperty(name='Generate Wrinkle Map Nodes', description='Generates a node group that stores wrinkle map information, which you can access in the Shader Editor with the "tension" attribute.', default=True, subtype='UNSIGNED')
 
     @classmethod
     def default(cls):

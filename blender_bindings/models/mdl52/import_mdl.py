@@ -3,9 +3,10 @@ from collections import defaultdict
 import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group
 from SourceIO.blender_bindings.models.mdl49.import_mdl import create_armature, create_attachments, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
@@ -24,7 +25,7 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: Vvd, vvc: Vvc,
-                 scale=1.0, create_drivers=False, load_refpose=False, *, debug_stereo_balance=False):
+                 options: ModelOptions):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_provider)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
@@ -41,6 +42,10 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     vert_anim_fixed_point_scale = mdl.header.vert_anim_fixed_point_scale if (mdl.header.flags & StudioHDRFlags.VERT_ANIM_FIXED_POINT_SCALE !=0 ) else 1/4096
     armature = None
+
+    scale = options.scale
+    create_drivers = options.create_flex_drivers
+    debug_stereo_balance = options.debug_stereo_balance
 
     if not static_prop:
         armature = create_armature(mdl, scale)
@@ -188,13 +193,15 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
                                 attr: bpy.types.Attribute = mesh_data.attributes.get(wrinkle_name, None) or mesh_data.attributes.new(wrinkle_name, 'FLOAT', 'POINT')
                                 wrinkle_data = (abs(wrinkle) * vert_anim_fixed_point_scale) * side
                                 attr.data.foreach_set('value', wrinkle_data.ravel())
+                    if create_drivers:
+                        create_flex_drivers(mesh_obj, mdl)
+                    if options.generate_wrinkle_map_node_group:
+                        generate_wrinkle_map_node_group(mesh_obj)
 
-                if create_drivers:
-                    create_flex_drivers(mesh_obj, mdl)
             mesh_data.validate()
 
-        if model.has_eyeballs:
-            create_eyeballs(mdl, armature, mesh_obj, model, scale, extra_stuff)
+            if model.has_eyeballs:
+                create_eyeballs(mdl, armature, mesh_obj, model, scale, extra_stuff)
 
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)

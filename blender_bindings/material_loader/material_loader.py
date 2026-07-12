@@ -112,7 +112,6 @@ class ShaderRegistry:
         if material.get('source_loaded', False):
             return False
 
-        material.use_nodes = True
         material['source_loaded'] = True
         material.use_nodes = True
         cls._clean_nodes(material)

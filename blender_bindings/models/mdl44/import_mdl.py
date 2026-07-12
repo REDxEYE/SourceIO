@@ -6,8 +6,9 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
-from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
@@ -79,7 +80,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
-                 scale=1.0, create_drivers=False, load_refpose=False, *, debug_stereo_balance=False):
+                 options: ModelOptions):
     full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
                                                       content_manager)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
@@ -96,6 +97,11 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
     armature = None
     vertex_anim_cache = preprocess_vertex_animation(mdl, vvd)
     vert_anim_fixed_point_scale = mdl.header.vert_anim_fixed_point_scale if (mdl.header.flags & StudioHDRFlags.VERT_ANIM_FIXED_POINT_SCALE !=0 ) else 1/4096
+
+    scale = options.scale
+    create_drivers = options.create_flex_drivers
+    debug_stereo_balance = options.debug_stereo_balance
+
     if not static_prop:
         armature = create_armature(mdl, scale)
 
@@ -233,7 +239,10 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
                     if create_drivers:
                         create_flex_drivers(mesh_obj, mdl)
 
-                mesh_data.validate()
+                    if options.generate_wrinkle_map_node_group:
+                        generate_wrinkle_map_node_group(mesh_obj)
+
+            mesh_data.validate()
                 
             if model.has_eyeballs:
                 create_eyeballs(mdl, armature, mesh_obj, model, scale, extra_stuff)
