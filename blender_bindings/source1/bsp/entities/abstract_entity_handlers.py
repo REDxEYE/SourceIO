@@ -174,7 +174,7 @@ class AbstractEntityHandler:
         return entity_obj, entity
 
     def _load_brush_model(self, model_id, model_name):
-        def _get_string(string_id:int) -> str:
+        def _get_string(string_id: int) -> str:
             strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
             return strings[string_id] or "NO_NAME"
 
@@ -343,11 +343,24 @@ class AbstractEntityHandler:
     @staticmethod
     def _apply_light_rotation(obj, entity):
         obj.rotation_euler = Euler((0, math.radians(-90), 0))
-        obj.rotation_euler.rotate(Euler((
-            math.radians(entity.angles[2]),
-            math.radians(-entity.pitch),
-            math.radians(entity.angles[1])
-        )))
+        if len(entity.angles) == 1:
+            obj.rotation_euler.rotate(Euler((
+                math.radians(0),
+                math.radians(-entity.pitch),
+                math.radians(0)
+            )))
+        elif len(entity.angles) == 2:
+            obj.rotation_euler.rotate(Euler((
+                math.radians(0),
+                math.radians(-entity.pitch),
+                math.radians(entity.angles[1])
+            )))
+        else:
+            obj.rotation_euler.rotate(Euler((
+                math.radians(entity.angles[2]),
+                math.radians(-entity.pitch),
+                math.radians(entity.angles[1])
+            )))
 
     def _set_location_and_scale(self, obj, location, additional_scale=1.0):
         scale = self.scale * additional_scale
