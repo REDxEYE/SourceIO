@@ -139,7 +139,7 @@ class AbstractEntityHandler:
         scale = self.scale * additional_scale
         obj.location = location
         obj.location = np.asarray(obj.location) * scale
-        obj.scale *= scale
+        obj.scale = np.asarray(obj.scale) * scale
 
     def _set_location(self, obj, location):
         obj.location = location
