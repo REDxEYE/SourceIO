@@ -22,6 +22,46 @@ class Source1ShaderBase(ShaderBase):
         self._vmt: VMT = vmt
         self.textures = {}
 
+    def _color_property(self, name: str, default=None, length: int = 4, filler: float = 1.0):
+        """Read a VMT vector/color property.
+
+        Integer-syntax values (``{255 128 0}``) are normalized to 0..1, single
+        floats are broadcast to greyscale, and the result is padded/truncated to
+        ``length``. Returns ``None`` when the property is absent and no default
+        was supplied.
+        """
+        value, value_type = self._vmt.get_vector(name, default)
+        if value is None:
+            return None
+        divider = 255 if value_type is int else 1
+        value = [component / divider for component in value]
+        if len(value) == 1:
+            value = [value[0]] * 3
+        return self.ensure_length(value, length, filler)
+
+    def _texture_property(self, name: str, default_color: tuple[float, float, float, float],
+                          *, is_data: bool = False, normal_map: bool = False, ssbump: bool = False):
+        """Load a VMT texture property, or ``None`` if it is not set.
+
+        ``normal_map`` flips the green channel, ``ssbump`` converts from
+        self-shadowed bump space; both imply non-color data.
+        """
+        texture_path = self._vmt.get_string(name, None)
+        if texture_path is None:
+            return None
+        image = self.load_texture_or_default(texture_path, default_color)
+        if ssbump:
+            image = self.convert_ssbump(image)
+        if normal_map:
+            image = self.convert_normalmap(image)
+        if is_data or normal_map or ssbump:
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+        return image
+
+    def _bool_property(self, name: str, default: int = 0) -> bool:
+        return self._vmt.get_int(name, default) == 1
+
     def load_texture(self, texture_name: TinyPath, texture_path: TinyPath | None = None):
         if texture_path is None or texture_path == texture_name:
             full_path = texture_name

@@ -8,169 +8,121 @@ from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
 
 
 class HeroesArmor(Source1ShaderBase):
+    """Shared implementation for the Dota 2 ``heroes_*`` shader family.
+
+    ``heroes_faceskin`` uses it verbatim; ``heroes_pbs`` and ``heroes_hair`` only
+    add one extra texture slot each via :attr:`EXTRA_TEXTURE`.
+    """
     SHADER: str = 'heroes_armor'
+
+    #: Optional ``(vmt_key, node_name)`` for a family-specific texture slot.
+    EXTRA_TEXTURE: tuple[str, str] | None = None
 
     @property
     def bumpmap(self):
-        texture_path = self._vmt.get_string('$bumpmap', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
-            image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._texture_property('$bumpmap', (0.5, 0.5, 1.0, 1.0), normal_map=True)
 
     @property
     def basetexture(self):
-        texture_path = self._vmt.get_string('$basetexture', None)
-        if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
-        return None
+        return self._texture_property('$basetexture', (0.3, 0, 0.3, 1.0))
 
     @property
     def selfillummask(self):
-        texture_path = self._vmt.get_string('$selfillummask', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.0, 0.0, 0.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._texture_property('$selfillummask', (0.0, 0.0, 0.0, 1.0), is_data=True)
 
     @property
     def phongexponenttexture(self):
-        texture_path = self._vmt.get_string('$phongexponenttexture', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.5, 0.0, 0.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._texture_property('$phongexponenttexture', (0.5, 0.0, 0.0, 1.0), is_data=True)
+
+    @property
+    def envmapmask(self):
+        return self._texture_property('$envmapmask', (1, 1, 1, 1.0), is_data=True)
+
+    @property
+    def extra_texture(self):
+        if self.EXTRA_TEXTURE is None:
+            return None
+        return self._texture_property(self.EXTRA_TEXTURE[0], (0.3, 0, 0.3, 1.0))
 
     @property
     def color2(self):
-        color_value, value_type = self._vmt.get_vector('$color2', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$color2')
 
     @property
     def color(self):
-        color_value, value_type = self._vmt.get_vector('$color', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$color')
+
+    @property
+    def envmaptint(self):
+        return self._color_property('$envmaptint', [1, 1, 1])
+
+    @property
+    def phongtint(self):
+        return self._color_property('$phongtint')
+
+    @property
+    def phongfresnelranges(self):
+        return self._color_property('$phongfresnelranges', length=3, filler=0.1)
 
     @property
     def translucent(self):
-        return self._vmt.get_int('$translucent', 0) == 1
+        return self._bool_property('$translucent')
 
     @property
     def alphatest(self):
-        return self._vmt.get_int('$alphatest', 0) == 1
-
-    @property
-    def alphatestreference(self):
-        return self._vmt.get_float('$alphatestreference', 0.5)
+        return self._bool_property('$alphatest')
 
     @property
     def allowalphatocoverage(self):
-        return self._vmt.get_int('$allowalphatocoverage', 0) == 1
+        return self._bool_property('$allowalphatocoverage')
 
     @property
     def additive(self):
-        return self._vmt.get_int('$additive', 0) == 1
+        return self._bool_property('$additive')
 
     @property
     def phong(self):
-        return self._vmt.get_int('$phong_enable', 0) == 1
+        return self._bool_property('$phong_enable')
 
     @property
     def selfillum(self):
-        return self._vmt.get_int('$selfillum', 0) == 1
+        return self._bool_property('$selfillum')
 
     @property
     def basealphaenvmapmask(self):
-        return self._vmt.get_int('$basealphaenvmapmask', 1) == 1
+        return self._bool_property('$basealphaenvmapmask', 1)
 
     @property
     def basemapalphaphongmask(self):
-        return self._vmt.get_int('$basemapalphaphongmask', 0) == 1
+        return self._bool_property('$basemapalphaphongmask')
 
     @property
     def normalmapalphaphongmask(self):
-        return self._vmt.get_int('$normalmapalphaphongmask', 1) == 1
+        return self._bool_property('$normalmapalphaphongmask', 1)
 
     @property
     def normalmapalphaenvmapmask(self):
-        return self._vmt.get_int('$normalmapalphaenvmapmask', 0) == 1
+        return self._bool_property('$normalmapalphaenvmapmask')
+
+    @property
+    def phongalbedotint(self):
+        return self._bool_property('$phongalbedotint', 1)
 
     @property
     def envmap(self):
         return self._vmt.get_string('$envmap', None) is not None
 
     @property
-    def envmapmask(self):
-        texture_path = self._vmt.get_string('$envmapmask', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (1, 1, 1, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
-
-    @property
-    def envmaptint(self):
-        color_value, value_type = self._vmt.get_vector('$envmaptint', [1, 1, 1])
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-
-        return self.ensure_length(color_value, 4, 1.0)
-
-    @property
-    def phongfresnelranges(self):
-        value, value_type = self._vmt.get_vector('$phongfresnelranges', None)
-        if value is not None:
-            divider = 255 if value_type is int else 1
-            value = list(map(lambda a: a / divider, value))
-            return self.ensure_length(value, 3, 0.1)
-        return None
+    def alphatestreference(self):
+        return self._vmt.get_float('$alphatestreference', 0.5)
 
     @property
     def phongexponent(self):
-        value = self._vmt.get_float('$phongexponent', None)
-        return value
+        return self._vmt.get_float('$phongexponent', None)
 
     @property
     def phongboost(self):
-        value = self._vmt.get_float('$phongboost', 1)
-        return value
-
-    @property
-    def phongalbedotint(self):
-        return self._vmt.get_int('$phongalbedotint', 1) == 1
-
-    @property
-    def phongtint(self):
-        color_value, value_type = self._vmt.get_vector('$phongtint', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._vmt.get_float('$phongboost', 1)
 
     def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         if self._vmt.get('proxies', None):
@@ -325,6 +277,9 @@ class HeroesArmor(Source1ShaderBase):
                     self.connect_nodes(basetexture_invert_node.outputs['Color'], shader.inputs['Transmission'])
                     self.connect_nodes(basetexture_invert_node.outputs['Color'],
                                        basetexture_additive_mix_node.inputs['Fac'])
+
+            if self.EXTRA_TEXTURE is not None and (extra_texture := self.extra_texture):
+                self.create_texture_node(extra_texture, self.EXTRA_TEXTURE[1])
 
             bumpmap = self.bumpmap
             if bumpmap:

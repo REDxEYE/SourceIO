@@ -53,21 +53,11 @@ class Water(Source1ShaderBase):
 
     @property
     def refracttint(self):
-        color_value, value_type = self._vmt.get_vector('$refracttint', [0.85, 0.9, 0.95])
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$refracttint', [0.85, 0.9, 0.95])
 
     @property
     def reflecttint(self):
-        color_value, value_type = self._vmt.get_vector('$reflecttint', [1, 1, 1])
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$reflecttint', [1, 1, 1])
 
     @property
     def abovewater(self):

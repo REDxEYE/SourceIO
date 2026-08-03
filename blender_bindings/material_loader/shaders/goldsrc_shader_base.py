@@ -3,7 +3,7 @@ from typing import Optional, Any
 import bpy
 
 from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ShaderBase, ExtraMaterialParameters
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3, is_blender_5
 from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
 
 
@@ -18,7 +18,8 @@ class GoldSrcShaderBase(ShaderBase):
             return 'LOADED'
         self.logger.info(f'Creating material {repr(material.name)}')
 
-        self.bpy_material.use_nodes = True
+        if not is_blender_5():
+            self.bpy_material.use_nodes = True
         self.clean_nodes()
         if not is_blender_4_3():
             self.bpy_material.blend_method = 'OPAQUE'

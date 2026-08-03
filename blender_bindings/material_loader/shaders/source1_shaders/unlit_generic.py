@@ -19,25 +19,11 @@ class UnlitGeneric(Source1ShaderBase):
 
     @property
     def color2(self):
-        color_value, value_type = self._vmt.get_vector('$color2', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$color2')
 
     @property
     def color(self):
-        color_value, value_type = self._vmt.get_vector('$color', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$color')
 
     @property
     def translucent(self):

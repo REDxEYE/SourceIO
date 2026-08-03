@@ -34,18 +34,34 @@ class MaterialLoaderBase:
         pass
 
 
-class ShaderRegistry:
-    _handlers: dict[str, Type[Source1ShaderBase]] = dict()
+def _collect_handlers(*bases) -> dict[str, Type[ShaderBase]]:
+    """Map ``SHADER`` name -> handler class for every concrete shader subclass.
 
-    for sub in Source1ShaderBase.all_subclasses():
-        logger.info(f'Registered Source1 material handler for {sub.__name__} shader')
-        _handlers[sub.SHADER] = sub
-    for sub in GoldSrcShaderBase.all_subclasses():
-        logger.info(f'Registered goldsrc material handler for {sub.__name__} shader')
-        _handlers[sub.SHADER] = sub
-    for sub in Source2ShaderBase.all_subclasses():
-        logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
-        _handlers[sub.SHADER] = sub
+    Classes that never override ``SHADER`` (mixins and intermediate bases) are
+    skipped, and duplicate shader names are reported instead of silently
+    overwriting each other.
+    """
+    handlers: dict[str, Type[ShaderBase]] = {}
+    for base in bases:
+        engine = base.__name__
+        for sub in base.all_subclasses():
+            shader = sub.SHADER
+            if shader == ShaderBase.SHADER:  # mixin / abstract helper, not a real shader
+                logger.debug(f'Skipping {sub.__name__}: no SHADER name declared')
+                continue
+            if shader in handlers:
+                logger.warning(f'Shader name {shader!r} is claimed by both '
+                               f'{handlers[shader].__name__} and {sub.__name__}; keeping the former')
+                continue
+            logger.info(f'Registered {engine} material handler for {shader} shader')
+            handlers[shader] = sub
+    return handlers
+
+
+class ShaderRegistry:
+    _handlers: dict[str, Type[ShaderBase]] = _collect_handlers(
+        Source1ShaderBase, GoldSrcShaderBase, Source2ShaderBase
+    )
 
     @classmethod
     def source1_create_nodes(cls, content_manager: ContentManager,

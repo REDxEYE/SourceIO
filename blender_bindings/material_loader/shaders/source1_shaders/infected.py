@@ -75,12 +75,7 @@ class Infected(DetailSupportMixin, Source1ShaderBase):
     
     @property
     def phongfresnelranges(self):
-        value, value_type = self._vmt.get_vector('$phongfresnelranges', None)
-        if value is not None:
-            divider = 255 if value_type is int else 1
-            value = list(map(lambda a: a / divider, value))
-            return self.ensure_length(value, 3, 0.1)
-        return None
+        return self._color_property('$phongfresnelranges', length=3, filler=0.1)
 
     @property
     def phongexponent(self):
@@ -129,12 +124,7 @@ class Infected(DetailSupportMixin, Source1ShaderBase):
     
     @property
     def bloodmaskrange(self):
-        value, value_type = self._vmt.get_vector('$bloodmaskrange', None)
-        if value is not None:
-            divider = 255 if value_type is int else 1
-            value = list(map(lambda a: a / divider, value))
-            return self.ensure_length(value, 3, 0.0)
-        return None
+        return self._color_property('$bloodmaskrange', length=3, filler=0.0)
     
     ###############
 
@@ -185,14 +175,42 @@ class Infected(DetailSupportMixin, Source1ShaderBase):
         return value
 
     @property
-    def eyeglowflashlightboost(self):
-        value = self._vmt.get_float('$eyeglowflashlightboost', 1.0)
-        return value
-
-    @property
     def disablevariation(self):
         value = self._vmt.get_int('$disablevariation', 0)
         return value
+
+    # Used by the non-BVLG (Principled BSDF) fallback path below.
+    @property
+    def color(self):
+        return self._color_property('$color')
+
+    @property
+    def color2(self):
+        return self._color_property('$color2')
+
+    @property
+    def selfillummask(self):
+        return self._texture_property('$selfillummask', (0.0, 0.0, 0.0, 1.0), is_data=True)
+
+    @property
+    def translucent(self):
+        return self._bool_property('$translucent')
+
+    @property
+    def alphatest(self):
+        return self._bool_property('$alphatest')
+
+    @property
+    def additive(self):
+        return self._bool_property('$additive')
+
+    @property
+    def selfillum(self):
+        return self._bool_property('$selfillum')
+
+    @property
+    def normalmapalphaenvmapmask(self):
+        return self._bool_property('$normalmapalphaenvmapmask')
 
     def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         self.do_arrange = False
