@@ -235,18 +235,11 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
-        if not is_blender_4_3() and (self.alphatest or self.translucent):
-            if self.translucent:
-                self.bpy_material.blend_method = 'BLEND'
-                if hasattr(self.bpy_material, 'surface_render_method'):
-                    self.bpy_material.surface_render_method = 'BLENDED'
-            else:
-                self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'HASHED'
+        if self.alphatest or self.translucent:
+            self.set_blend_mode('BLEND' if self.translucent else 'HASHED',
+                                alpha_threshold=self.alphatestreference if self.alphatest else None)
         if self.additive:
-            self.bpy_material.blend_method = 'BLEND'
-            if hasattr(self.bpy_material, 'surface_render_method'):
-                self.bpy_material.surface_render_method = 'BLENDED'
+            self.set_blend_mode('BLEND')
         uv = None
 
         compress = self.compress
@@ -352,7 +345,11 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                                      phongexponent_group_node.inputs[
                                                                                          'alpha'],
                                                                                      name='$phongexponenttexture',
-                                                                                     uv_out=uv.output[0])
+                                                                                     # `uv` only exists when
+                                                                                     # $basetexturetransform built one;
+                                                                                     # it is also `.outputs`, not
+                                                                                     # `.output`.
+                                                                                     uv_out=uv.outputs[0] if uv else None)
                     phongexponenttexture_node.location = [-800, -470]
 
                     if self.phongalbedotint is not None and not self.phongtint:
@@ -377,8 +374,9 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             if self.selfillum:
                 group_node.inputs['$selfillum [bool]'].default_value = 1
                 if self.selfillummask:
-                    selfillummask_node = self.create_and_connect_texture_node(self.selfillummask, group_node.inputs[
-                        '$selfillummask [texture alpha]'], uv_out=uv.output[0])
+                    selfillummask_node = self.create_and_connect_texture_node(
+                        self.selfillummask, group_node.inputs['$selfillummask [texture alpha]'],
+                        uv_out=uv.outputs[0] if uv else None)
                     selfillummask_node.location = [-500, -510]
                 elif basetexture is not None:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],

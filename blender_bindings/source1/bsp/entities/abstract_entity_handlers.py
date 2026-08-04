@@ -103,8 +103,84 @@ def remove_dupe_face_vertices(face_vertex_ids, face_uvs, face_luvs):
     return ids, uvs, luvs
 
 
+def register_entity_handlers(handler_class):
+    """Generate ``handle_<class>`` methods from a handler's declarative tables.
+
+    ``handle_entity`` dispatches on ``handle_<classname>`` existing, so every
+    supported entity needs a method -- but the overwhelming majority of them are
+    one of four fixed shapes (brush model, studio model, point empty, or an
+    intentional no-op). Declaring those in
+    :attr:`~AbstractEntityHandler.BRUSH_ENTITIES` and friends keeps the
+    hand-written methods for entities that genuinely need custom work, instead of
+    hundreds of identical five-line copies.
+
+    Never overwrites an existing method, so a table entry can be promoted to a
+    real implementation just by writing one.
+    """
+    _ensure_lookup_entries(handler_class)
+    for class_name, group in handler_class.BRUSH_ENTITIES.items():
+        _add_generated_handler(handler_class, class_name,
+                               lambda self, e, raw, n=class_name, g=group:
+                               self._handle_brush_entity(n, g, e, raw))
+    for class_name, group in handler_class.MODEL_ENTITIES.items():
+        _add_generated_handler(handler_class, class_name,
+                               lambda self, e, raw, n=class_name, g=group:
+                               self._handle_model_entity(n, g, e, raw))
+    for class_name, group in handler_class.POINT_ENTITIES.items():
+        _add_generated_handler(handler_class, class_name,
+                               lambda self, e, raw, n=class_name, g=group:
+                               self._handle_point_entity(n, g, e, raw))
+    for class_name in handler_class.NOOP_ENTITIES:
+        # Claimed so `load_entities` stops logging them as unhandled; these carry
+        # no importable world presence.
+        _add_generated_handler(handler_class, class_name, lambda self, e, raw: None)
+    return handler_class
+
+
+def _ensure_lookup_entries(handler_class):
+    """Give every declared entity a lookup-table entry.
+
+    ``handle_entity`` requires one in addition to the method, and the tables are
+    generated from what real maps contain -- which includes classes absent from the
+    FGDs the ``*_entity_classes`` modules were generated from (e.g. HL2's
+    ``func_train`` and ``item_box_*``). Fall back to ``Base``, which parses the
+    shared keyvalues (``origin``, ``angles``, ``targetname``) that the generated
+    handlers actually read.
+    """
+    declared = set(handler_class.BRUSH_ENTITIES) | set(handler_class.MODEL_ENTITIES) | \
+               set(handler_class.POINT_ENTITIES) | set(handler_class.NOOP_ENTITIES)
+    missing = declared - set(handler_class.entity_lookup_table)
+    if not missing:
+        return
+    # Copy first: the table is often shared with the parent class.
+    handler_class.entity_lookup_table = dict(handler_class.entity_lookup_table)
+    for class_name in missing:
+        handler_class.entity_lookup_table[class_name] = Base
+
+
+def _add_generated_handler(handler_class, class_name: str, function):
+    method_name = f'handle_{class_name}'
+    if method_name in vars(handler_class):
+        return  # hand-written implementation wins
+    function.__name__ = method_name
+    function.__qualname__ = f'{handler_class.__name__}.{method_name}'
+    setattr(handler_class, method_name, function)
+
+
 class AbstractEntityHandler:
     entity_lookup_table = {}
+
+    #: ``classname -> collection group`` for entities whose ``model`` is a brush
+    #: model (``*N``) stored in the BSP.
+    BRUSH_ENTITIES: dict[str, str] = {}
+    #: ``classname -> collection group`` for entities that reference a ``.mdl``.
+    MODEL_ENTITIES: dict[str, str] = {}
+    #: ``classname -> collection group`` for entities that are only a point in
+    #: space; imported as an empty so their placement survives the round trip.
+    POINT_ENTITIES: dict[str, str] = {}
+    #: Entities deliberately not imported. Listed so they are not reported as
+    #: unhandled -- they have no world presence to represent.
+    NOOP_ENTITIES: frozenset[str] = frozenset()
 
     def __init__(self, bsp_file: BSPFile, content_manager: ContentManager, parent_collection,
                  world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
@@ -321,6 +397,103 @@ class AbstractEntityHandler:
         self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection(class_name, mesh_object, group)
+
+    def _handle_brush_entity(self, class_name: str, group: str, entity, entity_raw: dict):
+        """Import a brush-model entity, matching the hand-written handlers.
+
+        Those use ``entity.origin`` and ``_set_location`` rather than
+        ``_handle_brush_model``'s ``_set_location_and_scale``: brush vertices are
+        already scaled by :meth:`_load_brush_model`, so scaling the object too
+        would apply it twice.
+        """
+        model = entity_raw.get('model', '')
+        if not model.startswith('*'):
+            # Brush entities can also be pointed at a studio model (e.g. a
+            # func_breakable with a gib model); fall back rather than crash on
+            # int('') below.
+            if model:
+                self._handle_model_entity(class_name, group, entity, entity_raw)
+            return
+        mesh_object = self._load_brush_model(int(model[1:]), self._get_entity_name(entity))
+        self._set_location(mesh_object, parse_float_vector(entity_raw.get('origin', '0 0 0')))
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection(class_name, mesh_object, group)
+
+    def _handle_model_entity(self, class_name: str, group: str, entity, entity_raw: dict):
+        """Import a studio-model entity as a placeholder for the model loader."""
+        model = entity_raw.get('model', '')
+        if model.endswith('.vmt') or model.endswith('.spr'):
+            # Sprite entities (e.g. env_sprite_clientside) put a material in
+            # `model`, not a studio model. Handing that to the model loader would
+            # fail, so keep the placement as an empty instead.
+            self._handle_point_entity(class_name, group, entity, entity_raw)
+            return
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._post_process_entity(obj, entity, entity_raw)
+        self._put_into_collection(class_name, obj, group)
+
+    def _post_process_entity(self, obj, entity, entity_raw: dict):
+        """Hook for work that has to happen after the object exists.
+
+        Applies the keyvalues that are common enough to be worth doing for every
+        generated entity. A subclass needing more can either override this or write
+        a full ``handle_<class>`` method -- a hand-written method always takes
+        precedence over the generated one.
+        """
+        skin = entity_raw.get('skin')
+        if skin not in (None, ''):
+            obj['skin'] = parse_source_value(skin)
+        # `$scale` on sprites and prop_scalable; `modelscale` is already applied by
+        # `_handle_entity_with_model`.
+        if 'scale' in entity_raw and entity_raw['scale'] not in (None, ''):
+            try:
+                scale = float(entity_raw['scale'])
+            except (TypeError, ValueError):
+                scale = 0.0
+            if scale > 0.0:
+                obj.scale *= scale
+
+    #: Directory holding Hammer's editor-only helper models (axis/cone/camera
+    #: gizmos). Entities default to these so they are visible while editing; they are
+    #: not part of the map and must not be imported as geometry.
+    EDITOR_MODEL_PREFIX = 'models/editor/'
+
+    def _entity_default_model(self, entity) -> str | None:
+        """A game model the entity class supplies rather than the map.
+
+        Some entities never write a ``model`` keyvalue because the game hardcodes it
+        -- Portal 2's ``prop_button`` is always ``props/switch001.mdl``, its turrets
+        always ``props/turret_01.mdl``. The FGD-generated classes record these as
+        ``model_``/``viewport_model``, so a class default means the entity has real
+        geometry even though the map is silent about it.
+        """
+        for attribute in ('model_', 'viewport_model'):
+            model = getattr(entity, attribute, None)
+            if not isinstance(model, str) or not model.endswith('.mdl'):
+                continue
+            if model.lower().startswith(self.EDITOR_MODEL_PREFIX):
+                continue  # Hammer gizmo, not map geometry
+            return model
+        return None
+
+    def _handle_point_entity(self, class_name: str, group: str, entity, entity_raw: dict):
+        """Import a point entity as an empty, preserving placement and keyvalues.
+
+        Uses ``_set_location_and_scale``: ``_create_empty`` sizes the empty in Hammer
+        units, so without the world scale applied the empties dwarf the map.
+        """
+        if 'model' not in entity_raw and self._entity_default_model(entity):
+            # The class knows a model even though the map does not; import it as one.
+            self._handle_model_entity(class_name, group, entity, entity_raw)
+            return
+        obj = self._create_empty(self._get_entity_name(entity))
+        self._set_location_and_scale(obj, parse_float_vector(entity_raw.get('origin', '0 0 0')))
+        self._set_rotation(obj, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._post_process_entity(obj, entity, entity_raw)
+        self._put_into_collection(class_name, obj, group)
 
     def _set_entity_data(self, obj, entity_raw: dict):
         obj['entity_data'] = entity_raw

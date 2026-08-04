@@ -22,6 +22,7 @@ from SourceIO.library.shared.content_manager.detectors.swjk2 import StarWarsJedi
 from SourceIO.library.shared.content_manager.detectors.titanfall1 import TitanfallDetector
 from SourceIO.library.shared.content_manager.detectors.vindictus import VindictusDetector
 from SourceIO.library.shared.content_manager.detectors.vampire import VampireDetector
+from SourceIO.library.shared.content_manager.detectors.workshop import WorkshopDetector
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
@@ -30,20 +31,29 @@ log_manager = SourceLogMan()
 logger = log_manager.get_logger('game_detector')
 
 
+#: Detectors tried against every scanned path, most specific first.
+#:
+#: Module-level so a detector can delegate to the others -- WorkshopDetector needs
+#: to run the real game's detector once it has resolved which game an item belongs
+#: to. It is listed first because a workshop path also lives under a Steam library
+#: that the generic detectors would otherwise claim.
+GAME_DETECTORS: list[ContentDetector] = [
+    WorkshopDetector(),
+    GoldSrcDetector(),
+    SFMDetector(), GModDetector(), InfraDetector(), Left4DeadDetector(),
+    Portal2Detector(),
+    Portal2RevolutionDetector(), Portal2CommunityEditionDetector(), CSGODetector(), SourceMod(), Source1Detector(),
+    # VindictusDetector(), TitanfallDetector(),
+    SBoxDetector(), CS2Detector(), HLADetector(), Dota2Detector(),
+    RobotRepairDetector(), DeadlockDetector(), Source2Detector(),
+    StarWarsJediKnights2Detector(), QuakeIDTech3Detector(),
+    VampireDetector()
+]
+
+
 def detect_game(path: TinyPath) -> set[ContentProvider]:
-    detector_addons: list[ContentDetector] = [
-        GoldSrcDetector(),
-        SFMDetector(), GModDetector(), InfraDetector(), Left4DeadDetector(),
-        Portal2Detector(), Portal2RevolutionDetector(), Portal2CommunityEditionDetector(),
-        CSGODetector(), SourceMod(), Source1Detector(),
-        # VindictusDetector(), TitanfallDetector(),
-        SBoxDetector(), CS2Detector(), HLADetector(), Dota2Detector(),
-        RobotRepairDetector(), DeadlockDetector(), Source2Detector(),
-        StarWarsJediKnights2Detector(), QuakeIDTech3Detector(),
-        VampireDetector()
-    ]
     content_providers = set()
-    for detector in detector_addons:
+    for detector in GAME_DETECTORS:
         results, root_path = detector.scan(path)
         if results:
             logger.info(f"Detected {detector.game()} game: {root_path}")

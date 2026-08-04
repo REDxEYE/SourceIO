@@ -144,13 +144,13 @@ class VTFFile:
         """
         ...
 
-    def create(self: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., format: Any = ..., thumbnail: Any = ..., mipmaps: Any = ...) -> Any:
+    def create(*args: Any, **kwargs: Any) -> Any:
         """
         Create a new VTF image with the given dimensions, layout and format.
         """
         ...
 
-    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., src_image_format:Any = ..., dst_image_format: Any = ..., filter_mode: Any = ..., flags: Any = ..., generate_mipmaps: Any = ..., generate_thumbnail: Any = ..., resize_to_pow2: Any = ..., resolution_limit_x: Any = ..., resolution_limit_y: Any = ...) -> Any:
+    def create_from_data(*args: Any, **kwargs: Any) -> Any:
         """
         Create a new VTF image from raw bytes.
         
@@ -186,7 +186,7 @@ class VTFFile:
         """
         ...
 
-    def generate_mipmaps(self: Any, mipmap_filter: Any = ..., sharpen_filter: Any = ...) -> Any:
+    def generate_mipmaps(*args: Any, **kwargs: Any) -> Any:
         """
         Generate mipmaps using the selected filters.
         """
@@ -247,9 +247,63 @@ class VTFFile:
         """
         ...
 
-def load_vtf_texture(input_data: Any) -> Any:
+def load_vtf_texture(input_data: Any, frame: int = ..., face: int = ..., mip: int = ...) -> Any:
     """
-    Load VTF texture from input data.
+    Load VTF texture from input data, converted to RGBA8888 (or
+    RGBA32323232F for float formats).
+    
+    Parameters
+    ----------
+    input_data : bytes
+        Raw .vtf file contents.
+    frame : int, optional
+        Animation frame to decode; defaults to 0. Use ``VTFFile.frame_count``
+        to enumerate the frames of an animated texture.
+    face : int, optional
+        Cubemap face to decode; defaults to 0.
+    mip : int, optional
+        Mipmap level to decode; defaults to 0 (full resolution).
+    
+    Returns
+    -------
+    tuple
+        ``(pixel_data, width, height, is_float)``, where width/height are
+        those of the requested mip level.
+    
+    Raises
+    ------
+    IndexError
+        If frame, face or mip is out of range for this texture.
+    """
+    ...
+
+def load_vtf_texture_frames(input_data: bytes, face: int = ..., mip: int = ...) -> list[Any]:
+    """
+    Load every animation frame of a VTF texture in one pass.
+    
+    Equivalent to calling ``load_vtf_texture`` once per frame, but parses
+    the file a single time instead of re-parsing it for each frame.
+    
+    Parameters
+    ----------
+    input_data : bytes
+        Raw .vtf file contents.
+    face : int, optional
+        Cubemap face to decode; defaults to 0.
+    mip : int, optional
+        Mipmap level to decode; defaults to 0 (full resolution).
+    
+    Returns
+    -------
+    tuple
+        ``(frames, width, height, is_float)`` where ``frames`` is a list of
+        bytes objects, one per animation frame, each already converted to
+        RGBA8888 (or RGBA32323232F for float formats).
+    
+    Raises
+    ------
+    IndexError
+        If face or mip is out of range for this texture.
     """
     ...
 

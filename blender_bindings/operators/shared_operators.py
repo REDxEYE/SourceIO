@@ -1,5 +1,6 @@
 import itertools
 import operator
+import traceback
 from hashlib import md5
 from itertools import chain
 from typing import Any, MutableMapping, Iterable
@@ -15,6 +16,7 @@ from mathutils import Matrix
 from .import_settings_base import ModelOptions
 from SourceIO.blender_bindings.models import import_model
 from SourceIO.blender_bindings.models.common import put_into_collections as s1_put_into_collections
+from SourceIO.blender_bindings.models.prop_animations import pose_prop
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.source2.vmdl_loader import load_model, ImportContext
@@ -24,6 +26,7 @@ from SourceIO.blender_bindings.utils.bpy_utils import (get_or_create_collection,
 from SourceIO.blender_bindings.utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledModelResource
+from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -97,6 +100,31 @@ class SourceIO_OT_LoadEntity(Operator):
 
         return {'FINISHED'}
 
+    def apply_prop_pose(self, content_manager: ContentManager, model_container, prop_path: TinyPath,
+                        default_anim: str | None, mdl_file: Buffer):
+        """Pose an imported prop at its authored sequence.
+
+        ``defaultanim`` names the sequence the prop is meant to sit in; without it,
+        the model's own first sequence is used, which is the pose it was authored
+        with. Doing nothing leaves animated props in their bind pose -- doors flat
+        open, panels retracted.
+
+        The applied sequence is recorded on the armature as ``prop_animation``,
+        mirroring how ``prop_path`` is stored, so the pose can be identified after
+        the fact.
+        """
+        armature = model_container.armature
+        if armature is None:
+            return
+        try:
+            applied = pose_prop(content_manager, armature, prop_path, mdl_file, default_anim)
+        except Exception:
+            self.report({"WARNING"}, f"Failed to pose {prop_path}")
+            traceback.print_exc()
+            return
+        armature['prop_animation'] = applied or ''
+        armature['prop_animation_requested'] = default_anim or ''
+
     def load_mdl(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
         use_collections = context.scene.use_instances
         import_materials = context.scene.import_materials
@@ -109,6 +137,12 @@ class SourceIO_OT_LoadEntity(Operator):
         prop_path = TinyPath(custom_prop_data['prop_path'])
 
         default_anim = custom_prop_data["entity"].get("defaultanim", None)
+        # A prop with its own sequence gets an entity-specific pose, so it cannot
+        # share a collection with other instances of the same model; import it as a
+        # real object instead. Props without one are posed at their model's default
+        # sequence, which is identical for every instance and safe to share.
+        if default_anim:
+            use_collections = False
 
         instance_collection = get_collection(prop_path, default_anim)
         if instance_collection and use_collections:
@@ -147,6 +181,11 @@ class SourceIO_OT_LoadEntity(Operator):
 
         obj["entity_data"]["prop_path"] = None
         obj["entity_data"]["imported"] = True
+
+        # Pose before the collection is registered, so every instance that links to
+        # it inherits the pose.
+        self.apply_prop_pose(content_manager, model_container, prop_path, default_anim, mdl_file)
+
         if use_collections:
             s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
             add_collection(prop_path, model_container.master_collection, default_anim)
@@ -157,14 +196,6 @@ class SourceIO_OT_LoadEntity(Operator):
 
         imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
         s1_put_into_collections(model_container, prop_path.stem, imported_collection, False)
-
-        # if default_anim is not None and model_container.armature is not None:
-        #     try:
-        #         import_static_animations(content_manager, model_container.mdl, default_anim,
-        #                                  model_container.armature, 1.0)
-        #     except RuntimeError:
-        #         self.report({"WARNING"}, "Failed to load animation")
-        #         traceback.print_exc()
 
         if replace_entity:
             self.replace_placeholder(model_container, obj, True)

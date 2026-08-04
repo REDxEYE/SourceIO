@@ -5,7 +5,7 @@ from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase
 from SourceIO.blender_bindings.source1.vtf import import_texture
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.blender_bindings.source1.vtf import import_texture, import_texture_tth
+from SourceIO.blender_bindings.source1.vtf import import_animated_texture, import_texture, import_texture_tth
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils.tiny_path import TinyPath
 
@@ -61,6 +61,41 @@ class Source1ShaderBase(ShaderBase):
 
     def _bool_property(self, name: str, default: int = 0) -> bool:
         return self._vmt.get_int(name, default) == 1
+
+    def load_animated_texture(self, name: str, default_color: tuple[float, float, float, float],
+                              *, is_data: bool = False, normal_map: bool = False):
+        """Load a VTF property as an image sequence: ``(image, frame_count)``.
+
+        Falls back to a still image (``frame_count == 1``) when the texture has a
+        single frame or cannot be found, so callers only need to branch on the
+        count to decide whether to animate.
+
+        ``normal_map`` is applied while decoding rather than afterwards, since a
+        sequence datablock cannot be edited in place. ``$ssbump`` is deliberately
+        not supported here: its conversion is a per-pixel basis transform that
+        would have to run on every frame, and no shipped animated texture uses it.
+        """
+        texture_path = self._vmt.get_string(name, None)
+        if texture_path is None:
+            return None, 0
+
+        path = TinyPath(texture_path.lstrip('/'))
+        asset_path = TinyPath("materials") / (path.as_posix() + ".vtf")
+        texture_file = self.content_manager.find_file(asset_path)
+        if texture_file is None:
+            image = self._texture_property(name, default_color, is_data=is_data, normal_map=normal_map)
+            return image, (1 if image is not None else 0)
+
+        image, frame_count = import_animated_texture(path, texture_file, self.content_manager, asset_path,
+                                                     invert_y=normal_map)
+        if image is None:
+            image = self._texture_property(name, default_color, is_data=is_data, normal_map=normal_map)
+            return image, (1 if image is not None else 0)
+
+        if is_data or normal_map:
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+        return image, frame_count
 
     def load_texture(self, texture_name: TinyPath, texture_path: TinyPath | None = None):
         if texture_path is None or texture_path == texture_name:

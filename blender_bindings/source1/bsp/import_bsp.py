@@ -97,7 +97,12 @@ def import_entities(bsp: VBSPFile, content_manager: ContentManager, settings: So
     elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
           and info.version != 29):  # Portal 2
         handler_class = Portal2EntityHandler
-    elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
+    elif steam_id in (SteamAppId.HALF_LIFE_2, SteamAppId.HALF_LIFE_2_EP_1, SteamAppId.HALF_LIFE_2_EP_2,
+                      SteamAppId.HALF_LIFE_2_LOST_COAST, SteamAppId.HALF_LIFE_2_DEATHMATCH,
+                      SteamAppId.COUNTER_STRIKE_SOURCE, SteamAppId.GARRYS_MOD):
+        # HL2 and everything built directly on it: Lost Coast, HL2:DM, CS:S and
+        # Garry's Mod all ship HL2's entities and previously fell through to
+        # BaseEntityHandler with an "unrecognized game" warning.
         handler_class = HalfLifeEntityHandler
     elif steam_id == SteamAppId.VINDICTUS:
         handler_class = VindictusEntityHandler
@@ -372,18 +377,20 @@ def import_disp(bsp: VBSPFile, settings: Source1BSPSettings,
         disp_uv[:, 1] = 1 - ((np.dot(disp_vertices / settings.scale, tv2[:3]) + tv2[3]) / (texture_data.view_height))
 
         disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices] / 255
-        final_vertex_colors['vertex_alpha'] = np.concatenate(
-            (np.hstack([disp_vertices_alpha, disp_vertices_alpha, disp_vertices_alpha]),
-             np.ones((disp_vertices_alpha.shape[0], 1))), axis=1)
+        final_vertex_colors['vertex_alpha'] = np.ones((disp_vertices_alpha.shape[0],4))
+        final_vertex_colors['vertex_alpha'][:, 3:] = disp_vertices_alpha.reshape((disp_vertices_alpha.shape[0], 1))
 
         if disp_multiblend and disp_info.has_multiblend:
             multiblend_layers = disp_multiblend.blends[multiblend_offset:multiblend_offset + subdiv_vert_count]
+            # m_vMultiBlend is (w1, w2, w3, w4) and maps straight onto RGBA. CS:GO's
+            # lightmapped_4wayblend_ps20b.fxc reads only .g/.b/.a for layers 2/3/4:
+            #     blendfactor1 = i.vertexBlend.g * lum + i.vertexBlend.g;   // layer 2
+            #     blendfactor2 = i.vertexBlend.b * lum + i.vertexBlend.b;   // layer 3
+            #     blendfactor3 = i.vertexBlend.a * lum + i.vertexBlend.a;   // layer 4
+            # .r (layer 1) is never sampled -- layer 1 is the base that the lerp
+            # chain starts from. Swapping R and A here used to overwrite the layer-4
+            # weight with the unused layer-1 one, so layer 4 never blended in.
             final_vertex_colors['multiblend'] = multiblend_layers['multiblend'].copy()
-            red = final_vertex_colors['multiblend'][:, 0].copy()
-            alpha = final_vertex_colors['multiblend'][:, 3].copy()
-
-            final_vertex_colors['multiblend'][:, 3] = red
-            final_vertex_colors['multiblend'][:, 0] = alpha
 
             final_vertex_colors['alphablend'] = multiblend_layers['alphablend']
             miltiblend_color_layer = multiblend_layers['multiblend_colors']

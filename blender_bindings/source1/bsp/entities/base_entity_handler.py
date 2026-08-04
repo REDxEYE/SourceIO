@@ -16,7 +16,7 @@ from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec, srgb_
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from .abstract_entity_handlers import AbstractEntityHandler
+from .abstract_entity_handlers import AbstractEntityHandler, register_entity_handlers
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
 
@@ -36,12 +36,68 @@ def _srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
     return final_color, scale
 
 
+@register_entity_handlers
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
     light_power_multiplier = 100000
 
     # pointlight_power_multiplier = 100
     # spotlight_power_multiplier = 100
+
+    BRUSH_ENTITIES = {
+        'func_tank':               'brushes',
+        'momentary_rot_button':    'brushes',
+        'func_rot_button':         'brushes',
+        'func_tanktrain':          'brushes',
+        'trigger_weapon_strip':    'brushes',
+        'color_correction_volume': 'brushes',
+    }
+
+    MODEL_ENTITIES: dict[str, str] = {}
+
+    POINT_ENTITIES = {
+        'env_spark':                 'environment',
+        'env_shooter':               'environment',
+        'phys_ballsocket':           'physics',
+        'phys_constraint':           'physics',
+        'point_teleport':            'logic',
+        'phys_hinge':                'physics',
+        'env_ar2explosion':          'environment',
+        'point_camera':              'logic',
+        'npc_enemyfinder':           'npc',
+        'phys_ragdollconstraint':    'physics',
+        'env_microphone':            'environment',
+        'phys_lengthconstraint':     'physics',
+        'point_viewcontrol':         'logic',
+        'info_teleport_destination': 'logic',
+        'light_dynamic':             'lights',
+        'phys_motor':                'physics',
+        'phys_spring':               'physics',
+    }
+
+    NOOP_ENTITIES = frozenset({
+        'ai_script_conditions',
+        'env_global',
+        'env_texturetoggle',
+        'env_viewpunch',
+        'filter_damage_type',
+        'filter_multi',
+        'game_gib_manager',
+        'game_text',
+        'info_lighting_relative',
+        'logic_autosave',
+        'logic_collision_pair',
+        'logic_compare',
+        'logic_playerproxy',
+        'material_modify_control',
+        'math_remap',
+        'phys_constraintsystem',
+        'player_loadsaved',
+        'player_speedmod',
+        'player_weaponstrip',
+        'point_anglesensor',
+        'point_servercommand',
+    })
 
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:

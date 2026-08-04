@@ -79,17 +79,32 @@ def load_animations_from_mdl(mdl, mdl_buffer: Buffer,
     return results
 
 
-def load_all_animations(mdl:MdlV49, mdl_buffer: Buffer,
+def load_all_animations(mdl: MdlV49, mdl_buffer: Buffer,
                         content_manager: ContentManager,
                         model_path: TinyPath | None = None) -> list[AnimationData]:
     """
     Load animations from the main MDL and all its include_models.
     This gives the complete animation set for a character.
     """
-    all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
+    animations, _ = load_all_animations_with_models(mdl, mdl_buffer, content_manager, model_path)
+    return animations
 
-    if not hasattr(mdl, 'include_models') or not mdl.include_models:
-        return all_animations
+
+def load_all_animations_with_models(mdl: MdlV49, mdl_buffer: Buffer,
+                                    content_manager: ContentManager,
+                                    model_path: TinyPath | None = None
+                                    ) -> tuple[list[AnimationData], list[MdlV49]]:
+    """As :func:`load_all_animations`, but also returns the models involved.
+
+    An animation's *sequence* table lives in whichever MDL defines it, so a caller
+    resolving a sequence name needs the include models too -- and they are already
+    parsed here, so hand them back rather than making the caller re-read them.
+    """
+    all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
+    mdls = [mdl]
+
+    if not mdl.include_models:
+        return all_animations, mdls
 
     for include_path in mdl.include_models:
         inc_buffer = content_manager.find_file(TinyPath(include_path))
@@ -102,11 +117,12 @@ def load_all_animations(mdl:MdlV49, mdl_buffer: Buffer,
             inc_anims = load_animations_from_mdl(
                 inc_mdl, inc_buffer, content_manager, TinyPath(include_path))
             all_animations.extend(inc_anims)
+            mdls.append(inc_mdl)
         except Exception as ex:
             logger.error(f"Failed to load include model '{include_path}': {ex}")
             continue
 
-    return all_animations
+    return all_animations, mdls
 
 
 def _resolve_ani_file(mdl, content_manager: ContentManager,

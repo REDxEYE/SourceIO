@@ -3,145 +3,147 @@ from typing import Any
 import bpy
 from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4
+
+#: Vertex-colour layer written by the BSP importer for displacements that carry a
+#: LUMP_DISP_MULTIBLEND. ``m_vMultiBlend`` is ``(w1, w2, w3, w4)`` mapped straight
+#: onto RGBA; CS:GO's pixel shader reads only ``.g``/``.b``/``.a`` for layers 2/3/4
+#: and never samples ``.r``, because layer 1 is the base the lerp chain starts from.
+MULTIBLEND_LAYER = 'multiblend'
 
 
 class Lightmapped4WayBlend(Source1ShaderBase):
+    """lightmapped_4wayblend -- CS:GO four-texture displacement blend.
+
+    Absent from Source SDK 2013, but ``lightmapped_4wayblend_ps20b.fxc`` exists in
+    public CS:GO source mirrors. Per layer, the vertex weight is *gained* by a
+    luminance term and then smoothstepped, applied as a sequential lerp chain::
+
+        lumN         = smoothstep($textureN_lumstart, $textureN_lumend, Luminance(baseColorN))
+        lum          = lerp(1 - lumPrev, lumN, $lumblendfactorN)
+        blendfactorN = smoothstep($textureN_blendstart, $textureN_blendend, w * (1 + lum))
+        baseColor    = lerp(baseColor, baseColorN, blendfactorN)
+
+    Note ``w * (1 + lum)`` -- a gain in ``[w, 2w]``, not a multiply. There is no
+    ``$blendmodulatetexture``; the luminance system replaces it. The bundled
+    ``4wayBlend`` node group implements these curves.
+    """
     SHADER = 'lightmapped_4wayblend'
 
     @property
     def basetexture(self):
-        texture_path = self._vmt.get_string('$basetexture', None)
-        if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0.0, 0.3, 1.0))
-        return None
+        return self._texture_property('$basetexture', (0.3, 0.0, 0.3, 1.0))
 
     @property
     def basetexture2(self):
-        texture_path = self._vmt.get_string('$basetexture2', None)
-        if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
-        return None
+        return self._texture_property('$basetexture2', (0.3, 0.3, 0.0, 1.0))
 
     @property
     def basetexture3(self):
-        texture_path = self._vmt.get_string('$basetexture3', None)
-        if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
-        return None
+        return self._texture_property('$basetexture3', (0.3, 0.3, 0.0, 1.0))
 
     @property
     def basetexture4(self):
-        texture_path = self._vmt.get_string('$basetexture4', None)
-        if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
-        return None
-    
-    @property
-    def detail(self):
-        texture_path = self._vmt.get_string('$detail', None)
-        if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0.3, 0.0, 1.0))
-        return None
-    
-    @property
-    def texture1_uvscale(self):
-        vector, _ = self._vmt.get_vector('$texture1_uvscale', None)
-        if vector:
-            vector = list(vector)
-            return self.ensure_length(vector, 3, vector[0])
-        return vector
+        return self._texture_property('$basetexture4', (0.3, 0.3, 0.0, 1.0))
 
     @property
-    def texture2_uvscale(self):
-        vector, _ = self._vmt.get_vector('$texture2_uvscale', None)
-        if vector:
-            vector = list(vector)
-            return self.ensure_length(vector, 3, vector[0])
-        return vector
-    
-    @property
-    def texture3_uvscale(self):
-        vector, _ = self._vmt.get_vector('$texture3_uvscale', None)
-        if vector:
-            vector = list(vector)
-            return self.ensure_length(vector, 3, vector[0])
-        return vector
-    
-    @property
-    def texture4_uvscale(self):
-        vector, _ = self._vmt.get_vector('$texture4_uvscale', None)
-        if vector:
-            vector = list(vector)
-            return self.ensure_length(vector, 3, vector[0])
-        return vector
-    
-    @property
-    def detailscale(self):
-        vector, _ = self._vmt.get_vector('$detailscale', None)
-        #print(vector)
-        if vector:
-            vector = list(vector)
-            vector = self.ensure_length(vector, 3, vector[0])
-            print(vector)
-            return vector
-        return vector
+    def detail(self):
+        return self._texture_property('$detail', (0.3, 0.3, 0.0, 1.0))
 
     @property
     def ssbump(self):
-        return self._vmt.get_int('$ssbump', 0) == 1
+        return self._bool_property('$ssbump')
+
+    def _uvscale(self, key: str):
+        """Per-layer ``$textureN_uvscale``, broadcast to a 3-component vector.
+
+        CS:GO samples layer 1 with raw coords and has no ``$texture1_uvscale``
+        uniform (``common_4wayblend_fxc.h`` scales only layers 2-4), but the key
+        appears in real VMTs and other tools honour it, so it is applied anyway.
+        """
+        vector, _ = self._vmt.get_vector(key, None)
+        if not vector:
+            return vector
+        vector = list(vector)
+        return self.ensure_length(vector, 3, vector[0])
+
+    @property
+    def texture1_uvscale(self):
+        return self._uvscale('$texture1_uvscale')
+
+    @property
+    def texture2_uvscale(self):
+        return self._uvscale('$texture2_uvscale')
+
+    @property
+    def texture3_uvscale(self):
+        return self._uvscale('$texture3_uvscale')
+
+    @property
+    def texture4_uvscale(self):
+        return self._uvscale('$texture4_uvscale')
+
+    @property
+    def detailscale(self):
+        return self._uvscale('$detailscale')
+
+    def _normal(self, *keys: str):
+        """First present normal map among ``keys``, decoded as a normal/ssbump."""
+        for key in keys:
+            if self._vmt.get_string(key, None):
+                return self._texture_property(key, (0.5, 0.5, 1.0, 1.0),
+                                              normal_map=True, ssbump=self.ssbump)
+        return None
 
     @property
     def bumpmap(self):
-        texture_path = self._vmt.get_string('$bumpmap', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
-            if self.ssbump:
-                image = self.convert_ssbump(image)
-            image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._normal('$bumpmap')
 
     @property
     def bumpmap2(self):
-        texture_path = self._vmt.get_string('$bumpmap2', None) or self._vmt.get_string(
-            '$basenormalmap2', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
-            if self.ssbump:
-                image = self.convert_ssbump(image)
-            image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._normal('$bumpmap2', '$basenormalmap2')
 
     @property
     def bumpmap3(self):
-        texture_path = self._vmt.get_string('$basenormalmap3', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
-            if self.ssbump:
-                image = self.convert_ssbump(image)
-            image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._normal('$basenormalmap3')
 
     @property
     def bumpmap4(self):
-        texture_path = self._vmt.get_string('$basenormalmap4', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.6, 0.0, 0.6, 1.0))
-            if self.ssbump:
-                image = self.convert_ssbump(image)
-            image = self.convert_normalmap(image)
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._normal('$basenormalmap4')
+
+    def _bind_blend_weights(self, group: bpy.types.ShaderNodeGroup):
+        """Point the group's Color Attribute node at the real multiblend layer.
+
+        The bundled node group ships with ``layer_name = 'Col'``, a name the BSP
+        importer never creates, so every weight reads as the fallback value and the
+        four layers blend incorrectly. Retarget the node tree's own attribute
+        lookup to :data:`MULTIBLEND_LAYER`.
+
+        The node tree is shared between all materials using this shader, so this is
+        a one-time fixup rather than per-material state.
+        """
+        node_tree = group.node_tree
+        if node_tree is None:
+            self.logger.error('4wayBlend node group is missing from the asset library')
+            return
+        retargeted = 0
+        for node in node_tree.nodes:
+            if node.type == 'VERTEX_COLOR' and node.layer_name != MULTIBLEND_LAYER:
+                node.layer_name = MULTIBLEND_LAYER
+                retargeted += 1
+        if retargeted:
+            self.logger.info(f'Retargeted {retargeted} blend-weight lookup(s) to {MULTIBLEND_LAYER!r}')
+
+    def _add_uv_scale(self, texture_node, scale, name: str):
+        """Feed ``texture_node`` from UVs multiplied by a per-layer ``$textureN_uvscale``."""
+        if not scale:
+            return
+        uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
+        scaler = self.create_node(Nodes.ShaderNodeVectorMath, name=name, location=[-580, -700])
+        scaler.operation = 'MULTIPLY'
+        scaler.inputs[1].default_value = scale
+        self.connect_nodes(uv.outputs[0], scaler.inputs[0])
+        self.connect_nodes(scaler.outputs[0], texture_node.inputs[0])
 
     def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         self.do_arrange = True
@@ -175,115 +177,50 @@ class Lightmapped4WayBlend(Source1ShaderBase):
 
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
-        if bpy.app.version >= (4, 0, 0):
-            shader.inputs['Specular IOR Level'].default_value = 0.0
-        else:
-            shader.inputs['Specular'].default_value = 0.0
+        shader.inputs['Specular IOR Level' if is_blender_4() else 'Specular'].default_value = 0.0
         self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
         Fway: bpy.types.ShaderNodeGroup
         Fway = self.create_node_group('4wayBlend')
-        self.connect_nodes(Fway.outputs[0], shader.inputs['Base Color'])
+        self._bind_blend_weights(Fway)
+        self.connect_nodes(Fway.outputs['Albedo'], shader.inputs['Base Color'])
         normalMap = self.create_node(Nodes.ShaderNodeNormalMap)
-        self.connect_nodes(Fway.outputs[1], normalMap.inputs['Color'])
-        self.connect_nodes(Fway.outputs[2], normalMap.inputs['Strength'])
-        self.connect_nodes(normalMap.outputs[0], shader.inputs['Normal'])
+        self.connect_nodes(Fway.outputs['Normal'], normalMap.inputs['Color'])
+        self.connect_nodes(Fway.outputs['Normal Strength'], normalMap.inputs['Strength'])
+        self.connect_nodes(normalMap.outputs['Normal'], shader.inputs['Normal'])
 
-        basetexture1 = self.basetexture
-        basetexture2 = self.basetexture2
-        basetexture3 = self.basetexture3
-        basetexture4 = self.basetexture4
-        normal_texture1 = self.bumpmap
-        normal_texture2 = self.bumpmap2
         bases = [None, None, None, None]
         normals = [None, None]
-        if basetexture1:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture1')
-            basetexture_node.image = basetexture1
-            bases[0] = basetexture_node
-            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture'])
-            scale = self.texture1_uvscale
-            #print('scale1', scale)
-            if scale:
-                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
-                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture1_uvscale', location=[-580, -700])
-                scaler.inputs[1].default_value = scale
-                scaler.operation = 'MULTIPLY'
 
-                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
-                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
-
-        if basetexture2:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture2')
-            basetexture_node.image = basetexture2
-            bases[1] = basetexture_node
-            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture2'])
-            scale = self.texture2_uvscale
-            #print('scale2', scale)
-            if scale:
-                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
-                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture2_uvscale', location=[-580, -700])
-                scaler.inputs[1].default_value = scale
-                scaler.operation = 'MULTIPLY'
-
-                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
-                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
-
-        if basetexture3:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture3')
-            basetexture_node.image = basetexture3
-            bases[2] = basetexture_node
-            scale = self.texture3_uvscale
-            #print('scale3', scale)
-            if scale:
-                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
-                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture3_uvscale', location=[-580, -700])
-                scaler.inputs[1].default_value = scale
-                scaler.operation = 'MULTIPLY'
-
-                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
-                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
-
-            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture3'])
-        if basetexture4:
-            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture4')
-            basetexture_node.image = basetexture4
-            bases[3] = basetexture_node
-            self.connect_nodes(basetexture_node.outputs[0], Fway.inputs['$basetexture4'])
-            scale = self.texture4_uvscale
-            #print('scale4', scale)
-            if scale:
-                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
-                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$texture4_uvscale', location=[-580, -700])
-                scaler.inputs[1].default_value = scale
-                scaler.operation = 'MULTIPLY'
-
-                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
-                self.connect_nodes(scaler.outputs[0], basetexture_node.inputs[0])
+        # $basetexture .. $basetexture4 -> the group's four albedo inputs.
+        for idx, (image, socket, scale_var) in enumerate((
+                (self.basetexture,  '$basetexture',  '$texture1_uvscale'),
+                (self.basetexture2, '$basetexture2', '$texture2_uvscale'),
+                (self.basetexture3, '$basetexture3', '$texture3_uvscale'),
+                (self.basetexture4, '$basetexture4', '$texture4_uvscale'),
+        )):
+            if image is None:
+                continue
+            node = self.create_texture_node(image, f'$basetexture{idx + 1}')
+            bases[idx] = node
+            self.connect_nodes(node.outputs['Color'], Fway.inputs[socket])
+            self._add_uv_scale(node, getattr(self, f'texture{idx + 1}_uvscale'), scale_var)
 
         if self.detail:
-            detailtexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$detail')
-            detailtexture_node.image = self.detail
-            self.connect_nodes(detailtexture_node.outputs[0], Fway.inputs['$detail'])
+            detail_node = self.create_texture_node(self.detail, '$detail')
+            self.connect_nodes(detail_node.outputs['Color'], Fway.inputs['$detail'])
+            self._add_uv_scale(detail_node, self.detailscale, '$detailscale')
 
-            if self.detailscale:
-                uv = self.create_node(Nodes.ShaderNodeUVMap, name='UV Map', location=[-760, -700])
-                scaler = self.create_node(Nodes.ShaderNodeVectorMath, name='$detailscale', location=[-580, -700])
-                scaler.inputs[1].default_value = self.detailscale
-                scaler.operation = 'MULTIPLY'
-
-                self.connect_nodes(uv.outputs[0], scaler.inputs[0])
-                self.connect_nodes(scaler.outputs[0], detailtexture_node.inputs[0])
-
-        if normal_texture1:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap1')
-            bumpmap_node.image = normal_texture1
-            normals[0] = bumpmap_node
-            self.connect_nodes(bumpmap_node.outputs[0], Fway.inputs['$bumpmap'])
-        if normal_texture2:
-            bumpmap_node = self.create_node(Nodes.ShaderNodeTexImage, '$bumpmap2')
-            bumpmap_node.image = normal_texture2
-            normals[1] = bumpmap_node
-            self.connect_nodes(bumpmap_node.outputs[0], Fway.inputs['$bumpmap2'])
+        # Only two bump slots exist on the group; $basenormalmap3/4 are parsed but
+        # have nowhere to go, so their blend factors act on these two.
+        for idx, (image, socket) in enumerate(((self.bumpmap, '$bumpmap'),
+                                               (self.bumpmap2, '$bumpmap2'))):
+            if image is None:
+                continue
+            node = self.create_texture_node(image, f'$bumpmap{idx + 1}')
+            normals[idx] = node
+            self.connect_nodes(node.outputs['Color'], Fway.inputs[socket])
+            self._add_uv_scale(node, getattr(self, f'texture{idx + 1}_uvscale'),
+                               f'$texture{idx + 1}_uvscale')
 
         for var in vars:
             value = self._vmt.get_float(var, 0)

@@ -6,7 +6,7 @@ from typing import Optional, Any
 import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.utils.bpy_utils import append_blend, is_blender_4_3
+from SourceIO.blender_bindings.utils.bpy_utils import append_blend
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 from .node_arranger import nodes_iterate
@@ -247,6 +247,41 @@ class ShaderBase:
         old_name = TinyPath(old_name)
         return f'{old_name.with_name(old_name.stem)}_{suffix}.{ext}'
 
+    def set_blend_mode(self, mode: str, alpha_threshold: float | None = None):
+        """Configure material transparency across Blender 4.0 - 5.2.
+
+        The relevant API changed twice:
+
+        * 4.2 added ``surface_render_method`` (DITHERED/BLENDED) and made
+          ``blend_method`` a deprecated no-op for rendering -- setting it alone has
+          no visible effect from 4.2 onwards.
+        * 4.3 removed ``shadow_method`` entirely (absent in 5.x).
+
+        ``mode`` is one of ``'OPAQUE'``, ``'CLIP'``, ``'HASHED'`` or ``'BLEND'``
+        using the legacy vocabulary; it is translated to whichever API the running
+        Blender actually honours.
+        """
+        material = self.bpy_material
+
+        # 4.2+: the only property that actually affects rendering.
+        # DITHERED covers OPAQUE/CLIP/HASHED (stochastic), BLENDED is true alpha
+        # blending. Feature-detect rather than trusting the version alone, since
+        # these properties were added/removed independently of each other.
+        if hasattr(material, 'surface_render_method'):
+            material.surface_render_method = 'BLENDED' if mode == 'BLEND' else 'DITHERED'
+
+        # Pre-4.2 this is what EEVEE honoured; on 4.2+ it is a deprecated alias
+        # that is harmless to keep in sync.
+        if hasattr(material, 'blend_method'):
+            material.blend_method = mode
+
+        # Removed in 4.3.
+        if hasattr(material, 'shadow_method'):
+            material.shadow_method = 'OPAQUE' if mode == 'OPAQUE' else 'HASHED'
+
+        if alpha_threshold is not None and hasattr(material, 'alpha_threshold'):
+            material.alpha_threshold = alpha_threshold
+
     def clean_nodes(self):
         for node in self.bpy_material.node_tree.nodes:
             self.bpy_material.node_tree.nodes.remove(node)
@@ -314,7 +349,6 @@ class ShaderBase:
 
     def handle_transform(self, transform: tuple, socket: bpy.types.NodeSocket, loc=None, *, uv_node=None,
                          uv_layer_name=None):
-        sys.stdout.write(repr(transform))
         if loc is None:
             loc = socket.node.location
         if uv_node is not None:

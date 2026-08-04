@@ -3,6 +3,7 @@ import math
 import bpy
 from mathutils import Euler
 
+from .abstract_entity_handlers import register_entity_handlers
 from .base_entity_handler import BaseEntityHandler
 from .halflife2_entity_classes import *
 
@@ -11,8 +12,175 @@ local_entity_lookup_table.update(entity_class_handle)
 local_entity_lookup_table["env_particle"] = Base
 
 
+@register_entity_handlers
 class HalfLifeEntityHandler(BaseEntityHandler):
     entity_lookup_table = local_entity_lookup_table
+
+    BRUSH_ENTITIES = {
+        'func_vehicleclip':          'brushes',
+        'trigger_vphysics_motion':   'brushes',
+        'trigger_physics_trap':      'brushes',
+        'func_combine_ball_spawner': 'brushes',
+        'func_precipitation':        'brushes',
+        'trigger_playermovement':    'brushes',
+        'trigger_waterydeath':       'brushes',
+        'trigger_remove':            'brushes',
+        'env_bubbles':               'brushes',
+        'trigger_serverragdoll':     'brushes',
+        'func_dustmotes':            'brushes',
+        'func_train':                'brushes',
+        'trigger_wind':              'brushes',
+        'func_dustcloud':            'brushes',
+        'func_tank_combine_cannon':  'brushes',
+        'func_wall_toggle':          'brushes',
+        'npc_heli_avoidbox':         'brushes',
+        'npc_heli_nobomb':           'brushes',
+        'func_tankairboatgun':       'brushes',
+        'func_tankrocket':           'brushes',
+        'info_apc_missile_hint':     'brushes',
+        'trigger_weapon_dissolve':   'brushes',
+        'func_platrot':              'brushes',
+        'func_tankmortar':           'brushes',
+        'env_embers':            'brushes',  # CS:S / HL2:DM / GMod
+        'func_bomb_target':      'brushes',  # CS:S / HL2:DM / GMod
+        'func_buyzone':          'brushes',  # CS:S / HL2:DM / GMod
+        'func_footstep_control': 'brushes',  # CS:S / HL2:DM / GMod
+        'func_hostage_rescue':   'brushes',  # CS:S / HL2:DM / GMod
+        'func_reflective_glass': 'brushes',  # CS:S / HL2:DM / GMod
+        'trigger_soundscape':    'brushes',  # CS:S / HL2:DM / GMod
+    }
+
+    MODEL_ENTITIES = {
+        'npc_furniture':         'props',
+        'cycler':                'props',
+        'prop_vehicle_jeep':     'props',
+        'env_particlescript':    'props',
+        'prop_scalable':         'props',
+        'prop_thumper':          'props',
+        'monster_generic':       'props',
+        'physics_cannister':     'props',
+        'env_effectscript':      'props',
+        'phys_magnet':           'props',
+        'prop_vehicle_crane':    'props',
+        'npc_puppet':            'props',
+        'prop_dynamic_ornament': 'props',
+        'func_fish_pool':           'props',  # CS:S / HL2:DM / GMod
+        'hostage_entity':           'props',  # CS:S / HL2:DM / GMod
+        'prop_physics_respawnable': 'props',  # CS:S / HL2:DM / GMod
+        'ai_battle_line': 'npc',  # model comes from the entity class, not the map
+    }
+
+    POINT_ENTITIES = {
+        'info_hint':                      'logic',
+        'env_beam':                       'environment',
+        'info_node_air_hint':             'logic',
+        'info_node_link':                 'logic',
+        'info_npc_spawn_destination':     'logic',
+        'env_citadel_energy_core':        'environment',
+        'point_devshot_camera':           'logic',
+        'npc_heli_avoidsphere':           'npc',
+        'phys_ragdollmagnet':             'physics',
+        'info_snipertarget':              'logic',
+        'npc_antlion_template_maker':     'npc',
+        'env_headcrabcanister':           'environment',
+        'env_dustpuff':                   'environment',
+        'env_smokestack':                 'environment',
+        'env_gunfire':                    'environment',
+        'npc_combinedropship':            'npc',
+        'point_tesla':                    'logic',
+        'env_flare':                      'environment',
+        'info_target_vehicle_transition': 'logic',
+        'env_rotorshooter':               'environment',
+        'info_node_climb':                'logic',
+        'env_alyxemp':                    'environment',
+        'phys_slideconstraint':           'physics',
+        'phys_pulleyconstraint':          'physics',
+        'phys_thruster':                  'physics',
+        'env_muzzleflash':                'environment',
+        'item_ar2_grenade':               'weapons',
+        'point_combine_ball_launcher':    'logic',
+        'phys_torque':                    'physics',
+        'env_spritetrail':                'environment',
+        'item_box_srounds':               'weapons',
+        'env_funnel':                     'environment',
+        'env_projectedtexture':           'environment',
+        'env_starfield':                  'environment',
+        'npc_hunter_maker':               'npc',
+        'item_box_lrounds':               'weapons',
+        'item_box_mrounds':               'weapons',
+        'npc_enemyfinder_combinecannon':  'npc',
+        'point_flesh_effect_target':      'logic',
+        'point_playermoveconstraint':     'logic',
+        'env_laser':                      'environment',
+        'env_rotorwash_emitter':          'environment',
+        'info_observer_point':          'logic',  # CS:S / HL2:DM / GMod
+        'info_player_combine':          'logic',  # CS:S / HL2:DM / GMod
+        'info_player_counterterrorist': 'logic',  # CS:S / HL2:DM / GMod
+        'info_player_deathmatch':       'logic',  # CS:S / HL2:DM / GMod
+        'info_player_logo':             'logic',  # CS:S / HL2:DM / GMod
+        'info_player_rebel':            'logic',  # CS:S / HL2:DM / GMod
+        'info_player_terrorist':        'logic',  # CS:S / HL2:DM / GMod
+        'weapon_slam':                  'weapons',  # CS:S / HL2:DM / GMod
+    }
+
+    NOOP_ENTITIES = frozenset({
+        'ai_ally_manager',
+        'ai_changehintgroup',
+        'ai_citizen_response_system',
+        'ai_goal_actbusy_queue',
+        'ai_goal_assault',
+        'ai_goal_follow',
+        'ai_goal_lead',
+        'ai_goal_lead_weapon',
+        'ai_goal_police',
+        'ai_npc_eventresponsesystem',
+        'ai_sound',
+        'ai_speechfilter',
+        'assault_assaultpoint',
+        'assault_rallypoint',
+        'env_credits',
+        'env_entity_dissolver',
+        'env_entity_igniter',
+        'env_firesensor',
+        'env_firesource',
+        'env_message',
+        'env_player_surface_trigger',
+        'env_screeneffect',
+        'env_screenoverlay',
+        'env_soundscape_triggerable',
+        'env_zoom',
+        'filter_combineball_type',
+        'filter_enemy',
+        'game_ragdoll_manager',
+        'game_weapon_manager',
+        'hammer_updateignorelist',
+        'info_camera_link',
+        'info_constraint_anchor',
+        'info_darknessmode_lightsource',
+        'info_ladder',
+        'info_mass_center',
+        'info_radar_target',
+        'info_radial_link_controller',
+        'info_teleporter_countdown',
+        'logic_active_autosave',
+        'logic_measure_movement',
+        'logic_scene_list_manager',
+        'math_colorblend',
+        'multisource',
+        'phys_convert',
+        'point_angularvelocitysensor',
+        'point_antlion_repellant',
+        'point_bugbait',
+        'point_enable_motion_fixup',
+        'point_message',
+        'point_velocitysensor',
+        'script_intro',
+        'env_detail_controller',  # CS:S / HL2:DM / GMod
+        'env_skypaint',  # CS:S / HL2:DM / GMod
+        'info_map_parameters',  # CS:S / HL2:DM / GMod
+        'lua_run',  # CS:S / HL2:DM / GMod
+        'point_surroundtest',  # CS:S / HL2:DM / GMod
+    })
 
     def _handle_item(self, entity: Item, entity_raw: dict):
         return self._handle_entity_with_model(entity, entity_raw)

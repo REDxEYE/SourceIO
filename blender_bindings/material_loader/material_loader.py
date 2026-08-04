@@ -74,6 +74,7 @@ class ShaderRegistry:
         shader = vmt.shader
         if shader not in cls._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')
+            return material
 
         handler: Source1ShaderBase = cls._handlers.get(shader, Source1ShaderBase)(content_manager, vmt)
         handler.bpy_material = material
