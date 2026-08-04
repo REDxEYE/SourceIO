@@ -8,26 +8,19 @@ from SourceIO.library.shared.types import Vector3
 from SourceIO.library.utils import Buffer
 
 
-def euler_to_quat(euler):
-    eulerd = euler[2] * 0.5
-    v8 = math.sin(eulerd)
-    v9 = math.cos(eulerd)
-    eulerd = euler[1] * 0.5
-    v12 = math.sin(eulerd)
-    v10 = math.cos(eulerd)
-    eulerd = euler[0] * 0.5
-    v11 = math.sin(eulerd)
-    eulerd = math.cos(eulerd)
-    v4 = v11 * v10
-    v5 = eulerd * v12
-    x = v9 * v4 - v8 * v5
-    y = v4 * v8 + v5 * v9
-    v6 = v10 * eulerd
-    v7 = v11 * v12
-    z = v8 * v6 - v9 * v7
-    w = v7 * v8 + v9 * v6
-    quat = w, x, y, z
-    return quat
+def euler_to_quat(euler: tuple[float, float, float]):
+    rx, ry, rz = euler
+
+    sx, cx = math.sin(rx * 0.5), math.cos(rx * 0.5)
+    sy, cy = math.sin(ry * 0.5), math.cos(ry * 0.5)
+    sz, cz = math.sin(rz * 0.5), math.cos(rz * 0.5)
+
+    return (
+        cx * cy * cz + sx * sy * sz,  # w
+        sx * cy * cz - cx * sy * sz,  # x
+        cx * sy * cz + sx * cy * sz,  # y
+        cx * cy * sz - sx * sy * cz,  # z
+    )
 
 
 @dataclass(slots=True)
@@ -35,7 +28,7 @@ class SequenceFrame:
     global_frame_id: float
     unk: tuple[int, ...]
     root_motion: Vector3[float]
-    animation_per_bone_rot: npt.NDArray[np.float32]
+    animation_per_bone_rot: np.ndarray
 
     @classmethod
     def from_buffer(cls, reader: Buffer, bone_count: int):
