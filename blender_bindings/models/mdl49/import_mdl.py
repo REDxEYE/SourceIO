@@ -478,7 +478,6 @@ def import_animations(cm: ContentProvider, mdl: MdlV49, armature: bpy.types.Obje
                 mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
 
                 if bl_bone.parent:
-
                     mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
                     bl_bone.matrix = mat
                     pos, rot = bl_bone.location, bl_bone.rotation_quaternion
