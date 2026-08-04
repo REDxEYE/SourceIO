@@ -1,3 +1,4 @@
+import re
 import traceback
 from math import radians
 from typing import Union
@@ -113,25 +114,56 @@ class VMT:
             return [float(raw_value)], float
 
         values = raw_value[1:-1].split()
-        return tuple(map(converter, values)), converter
+        try:
+            return tuple(map(converter, values)), converter
+        except ValueError:
+            # Braces denote the 0-255 range, but some materials write those values
+            # as floats -- e.g. Portal 2's `models/player/chell_nodraw` has
+            # ``$color "{0.0 0.0 0.0}"``. Parse leniently while keeping `int` as the
+            # reported type so callers still divide by 255.
+            return tuple(float(value) for value in values), converter
 
     def get_string(self, name, default='invalid'):
         raw_value = self.get(name, default)
         return str(raw_value) if raw_value is not None else None
 
+    @staticmethod
+    def _first_number(raw_value: str):
+        """Best-effort scalar extraction from a hand-authored VMT value.
+
+        Shipped materials contain typos and vectors where a scalar is expected --
+        e.g. ``$detailblendfactor .4```` (stray backtick, Portal 2
+        ``nature/dirtfloor004d``) or ``$alpha ".5 .5 .5"``. Pull the first numeric
+        token out instead of raising, so one bad key cannot fail the whole material.
+        """
+        match = re.search(r'[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?', raw_value)
+        return float(match.group(0)) if match else None
+
     def get_int(self, name, default=0):
         raw_value = self.get(name, None)
         if raw_value is None:
             return default
-        if raw_value and '.' in raw_value:
-            return int(float(raw_value))
-        return int(raw_value)
+        try:
+            return int(float(raw_value)) if '.' in raw_value else int(raw_value)
+        except (TypeError, ValueError):
+            number = self._first_number(str(raw_value))
+            if number is None:
+                logger.warn(f'Cannot read {name!r} as int: {raw_value!r}')
+                return default
+            return int(number)
 
     def get_float(self, name, default=0.0):
         raw_value = self.get(name, None)
         if raw_value is None:
             return default
-        return float(raw_value.replace("[", "").replace("]", ""))
+        try:
+            return float(raw_value.replace("[", "").replace("]", ""))
+        except (AttributeError, TypeError, ValueError):
+            number = self._first_number(str(raw_value))
+            if number is None:
+                logger.warn(f'Cannot read {name!r} as float: {raw_value!r}')
+                return default
+            return number
 
     def get_transform_matrix(self, name, default=None):
         if default is None:
@@ -142,17 +174,50 @@ class VMT:
             return None
         matrix = default
         tokens = raw_value.split()
+
+        def take_numbers(count: int) -> list[float]:
+            """Pop up to ``count`` leading numeric tokens.
+
+            Hand-authored transforms are not always fully specified -- e.g.
+            ``$bumptransform "center 0 0 scale 5.25 rotate 90 translate 0 0"`` gives
+            ``scale`` a single uniform value. Popping a fixed number of tokens would
+            swallow the next keyword, so stop as soon as a non-number appears and let
+            the caller broadcast what it got.
+            """
+            values = []
+            while len(values) < count and tokens:
+                try:
+                    values.append(float(tokens[0]))
+                except ValueError:
+                    break
+                tokens.pop(0)
+            return values
+
         while tokens:
             name = tokens.pop(0)
             if name == 'center':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0.0
+                values = take_numbers(2)
+                if values:
+                    x = values[0]
+                    y = values[1] if len(values) > 1 else x
+                    matrix[name] = x, y, 0.0
             elif name == 'scale':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 1.0
+                values = take_numbers(2)
+                if values:
+                    x = values[0]
+                    y = values[1] if len(values) > 1 else x
+                    matrix[name] = x, y, 1.0
             elif name == 'rotate':
-                matrix[name] = 0, 0, radians(float(tokens.pop(0)))
+                values = take_numbers(1)
+                if values:
+                    matrix[name] = 0, 0, radians(values[0])
             elif name == 'translate':
-                matrix[name] = float(tokens.pop(0)), float(tokens.pop(0)), 0.0
+                values = take_numbers(2)
+                if values:
+                    x = values[0]
+                    y = values[1] if len(values) > 1 else x
+                    matrix[name] = x, y, 0.0
             else:
-                print(f'Unhandled {name}')
+                logger.warn(f'Unhandled transform component {name!r} in {raw_value!r}')
 
         return matrix
