@@ -37,6 +37,12 @@ class BPYLoggingManager(metaclass=SingletonMeta):
         [logger.set_logging_level(level) for logger in self.loggers.values()]
 
 
+class BPYSafeStreamHandler(StreamHandler):
+
+    def flush(self):
+        pass
+
+
 class BPYLogger:
     class Filter(Filter):
         def __init__(self):
@@ -76,7 +82,7 @@ class BPYLogger:
         if new:
             self._logger.handlers.clear()
             if self._bpy_logger is None:
-                self._bpy_logger = StreamHandler(self._bpy_file)
+                self._bpy_logger = BPYSafeStreamHandler(self._bpy_file)
                 self._bpy_logger.setFormatter(self._formatter)
             self._logger.addHandler(self._bpy_logger)
 
@@ -113,3 +119,4 @@ class BPYLogger:
         self._add_bpy_file_logger()
         self._filter.function = self._filter.function or _get_caller_function()
         self._logger.exception(message, exc_info=exception)
+
