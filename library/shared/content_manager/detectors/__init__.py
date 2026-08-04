@@ -6,6 +6,7 @@ from SourceIO.library.shared.content_manager.detectors.dota2 import Dota2Detecto
 from SourceIO.library.shared.content_manager.detectors.gmod import GModDetector
 from SourceIO.library.shared.content_manager.detectors.goldsrc import GoldSrcDetector
 from SourceIO.library.shared.content_manager.detectors.hla import HLADetector
+from SourceIO.library.shared.content_manager.detectors.portal2_ce import Portal2CommunityEditionDetector
 from SourceIO.library.shared.content_manager.detectors.quake3 import QuakeIDTech3Detector
 from SourceIO.library.shared.content_manager.detectors.infra import InfraDetector
 from SourceIO.library.shared.content_manager.detectors.left4dead import Left4DeadDetector
@@ -33,8 +34,8 @@ def detect_game(path: TinyPath) -> set[ContentProvider]:
     detector_addons: list[ContentDetector] = [
         GoldSrcDetector(),
         SFMDetector(), GModDetector(), InfraDetector(), Left4DeadDetector(),
-        Portal2Detector(),
-        Portal2RevolutionDetector(), CSGODetector(), SourceMod(), Source1Detector(),
+        Portal2Detector(), Portal2RevolutionDetector(), Portal2CommunityEditionDetector(),
+        CSGODetector(), SourceMod(), Source1Detector(),
         # VindictusDetector(), TitanfallDetector(),
         SBoxDetector(), CS2Detector(), HLADetector(), Dota2Detector(),
         RobotRepairDetector(), DeadlockDetector(), Source2Detector(),
