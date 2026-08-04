@@ -26,3 +26,4 @@ from SourceIO.library.source1.bsp.lumps.physics import PhysicsLump
 from SourceIO.library.source1.bsp.lumps.overlay_lump import VOverlayLump, OverlayLump
 from SourceIO.library.source1.bsp.lumps.material_sort_lump import MaterialSortLump
 from SourceIO.library.source1.bsp.lumps.lightmap_lump import LightmapDataLump, LightmapDataSkyLump, LightmapDataHDRLump
+from SourceIO.library.source1.bsp.lumps.occlusion_lump import OcclusionLump
