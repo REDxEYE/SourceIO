@@ -54,6 +54,25 @@ class TinyPath(str, PathLike):
         return self
 
     @property
+    def parents(self):
+        """Ancestors of this path, nearest first.
+
+        ``TinyPath("a/b/c").parents`` is ``("a/b", "a")``. Two deliberate
+        divergences from ``pathlib.PurePath``, both following from :attr:`parent`
+        being plain string slicing: a relative path has no trailing ``"."`` entry,
+        and an absolute one ends at ``""`` rather than ``"/"``.
+        """
+        result = []
+        current = self
+        while "/" in current:
+            parent = current.parent
+            if parent == current:  # e.g. the root "/" is its own parent
+                break
+            result.append(parent)
+            current = parent
+        return tuple(result)
+
+    @property
     def parts(self):
         return self.split("/")
 
