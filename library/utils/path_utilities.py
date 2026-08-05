@@ -58,28 +58,36 @@ def backwalk_file_resolver(current_path, file_to_find) -> Optional[TinyPath]:
     return None
 
 
-def corrected_path(path: TinyPath):
-    if platform.system() == "Windows" or path.exists():  # Shortcut for windows
+def corrected_path(path: TinyPath) -> TinyPath:
+    if platform.system() == "Windows" or path.exists():
         return path
-    if len(path.parts) < 3:
+
+    parts = path.parts
+    if not parts:
         return path
-    root, *parts, fname = path.parts
 
-    if root == "":
-        root = TinyPath("/")
+    current = TinyPath("/") if parts[0] == "" else TinyPath(parts[0])
 
-    new_path = TinyPath(root)
-    for part in parts:
-        for dir_name in new_path.iterdir():
-            if dir_name.is_file():
-                continue
-            if dir_name.name.lower() == part.lower():
-                new_path = dir_name
-                break
-    for file_name in new_path.iterdir():
-        if file_name.is_file() and file_name.name.lower() == fname.lower():
-            return file_name
-    return path
+    for component in parts[1:]:
+        target = component.casefold()
+
+        try:
+            match = next(
+                (
+                    entry
+                    for entry in current.iterdir()
+                    if entry.name.casefold() == target
+                ),
+                None,
+            )
+        except (FileNotFoundError, NotADirectoryError, PermissionError):
+            return path
+
+        if match is None:
+            return path
+        current = match
+
+    return current
 
 
 def get_mod_path(path: TinyPath) -> TinyPath:
@@ -117,7 +125,7 @@ def collect_full_material_names(material_names: list[str], material_search_paths
             if material_name in full_mat_names:
                 continue
             material_path = TinyPath(material_path)
-            if material_path.is_absolute(): # Absolute paths shouldn't even be here! This path is invalid
+            if material_path.is_absolute():  # Absolute paths shouldn't even be here! This path is invalid
                 continue
             real_material_path = content_manager.find_file("materials" / material_path / (material_name + ".vmt"))
             if real_material_path is not None:

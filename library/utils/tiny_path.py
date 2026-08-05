@@ -157,6 +157,7 @@ class TinyPath(str, PathLike):
             return []
         for item in Path(self).iterdir():
             yield TinyPath(item.as_posix())
+        return None
 
     def with_name(self, name: str):
         suffix = self.suffix
