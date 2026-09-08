@@ -10,7 +10,7 @@ def register_props():
 
     bpy.types.Scene.use_bvlg = bpy.props.BoolProperty(
         name="Use BVLG",
-        default=True
+        default=False
     )
     bpy.types.Scene.use_instances = bpy.props.BoolProperty(
         name="Use instances",
