@@ -1,3 +1,4 @@
+from SourceIO.blender_bindings.models.materials import get_model_material_names
 import math
 from collections import defaultdict
 from typing import Union
@@ -22,7 +23,7 @@ from SourceIO.library.models.vvd import Vvd
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.common import get_slice
-from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -80,8 +81,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      content_manager)
+    full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
 
@@ -108,7 +108,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
 
             mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            default_skin_groups = {str(n): list(map(lambda a: a.bpy_material.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)

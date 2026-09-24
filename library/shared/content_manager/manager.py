@@ -219,6 +219,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         if owner is not None:
             file = owner.find_file(k)
             if file is not None:
+                logger.debug(f'Found in {owner}! (cached provider)')
                 self._note_hit(k, owner)
                 if do_not_cache:
                     return file
@@ -255,6 +256,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 self._cache.set(k, file)
                 return file
         self._note_miss(k)
+        logger.debug(f'Not found: {k}')
         return None
 
     # TODO: MAYBE DEPRECATED

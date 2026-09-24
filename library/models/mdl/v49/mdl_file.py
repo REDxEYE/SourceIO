@@ -54,16 +54,6 @@ class MdlV49(MdlV44):
                 skin_group.append(materials[texture_index])
             skin_groups.append(skin_group)
 
-        diff_start = 0
-        for skin_info in skin_groups[1:]:
-            for n, (a, b) in enumerate(zip(skin_groups[0], skin_info)):
-                if a == b:
-                    diff_start = max(n, diff_start)
-                    break
-
-        for n, skin_info in enumerate(skin_groups):
-            skin_groups[n] = skin_info[:diff_start]
-
         flex_names = []
         buffer.seek(header.flex_desc_offset)
         for _ in range(header.flex_desc_count):

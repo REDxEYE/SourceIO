@@ -604,14 +604,24 @@ def import_drawcall(content_manager: ContentManager, import_context: ImportConte
             mat_id = default_skin['m_materials'].index(material_name)
             mat_groups = {}
             for skin_group in data_block['m_materialGroups']:
-                mat_groups[skin_group['m_name']] = skin_group['m_materials'][mat_id]
+                if mat_id >= len(skin_group['m_materials']):
+                    continue
+                skin_material = skin_group['m_materials'][mat_id]
+                mat_groups[skin_group['m_name']] = skin_material
+                get_or_create_material(path_stem(skin_material), TinyPath(skin_material).as_posix())
+                if import_context.import_materials and skin_material != material_name:
+                    skin_resource = model_resource.get_child_resource(skin_material, content_manager,
+                                                                      CompiledMaterialResource)
+                    if skin_resource is not None:
+                        load_material(content_manager, skin_resource, TinyPath(skin_material),
+                                      tint is not None and all(a != 1.0 for a in tint))
 
-            mesh_obj['active_skin'] = 'default'
+            mesh_obj['active_skin'] = default_skin['m_name']
             mesh_obj['skin_groups'] = mat_groups
     else:
         mesh_obj['active_skin'] = 'default'
         mesh_obj['skin_groups'] = []
-    mesh_obj['model_type'] = 'S2'
+    mesh_obj['model_type'] = 's2'
 
     vertex_indices = np.zeros(len(mesh.loops), dtype=np.uint32)
     mesh.loops.foreach_get('vertex_index', vertex_indices)
@@ -866,7 +876,7 @@ def get_physics_block(content_manager: ContentManager, model_resource: CompiledM
 #                         mesh_obj = mesh_obj_original.copy()
 #                         mesh_obj['skin_groups'] = mesh_obj_original['skin_groups']
 #                         mesh_obj['active_skin'] = mesh_obj_original['active_skin']
-#                         mesh_obj['model_type'] = 'S2'
+#                         mesh_obj['model_type'] = 's2'
 #                         mesh_obj.data = model_mesh
 #                         used_copy = True
 #

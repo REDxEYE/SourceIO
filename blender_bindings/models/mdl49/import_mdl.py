@@ -1,3 +1,4 @@
+from SourceIO.blender_bindings.models.materials import get_model_material_names
 import itertools
 import warnings
 from collections import defaultdict
@@ -21,7 +22,7 @@ from SourceIO.library.models.vvd import Vvd
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.common import get_slice
-from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -31,7 +32,7 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths, content_manager)
+    full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
 
@@ -59,7 +60,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
 
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
-            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            default_skin_groups = {str(n): list(map(lambda a: a.bpy_material.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
 
             objects.append(mesh_obj)
             bodygroups[body_part.name].append(mesh_obj)

@@ -117,8 +117,8 @@ def collect_full_material_names(material_names: list[str], material_search_paths
     full_mat_names = {}
     for material_name in material_names:
         if material_name in full_mat_names: continue
-        real_material_path = content_manager.find_file('materials' / TinyPath((material_name + '.vmt')))
-        if real_material_path is not None:
+        material_exists = content_manager.check('materials' / TinyPath((material_name + '.vmt')))
+        if material_exists:
             full_mat_names[material_name] = material_name
     for material_path in material_search_paths:
         for material_name in material_names:
@@ -127,8 +127,8 @@ def collect_full_material_names(material_names: list[str], material_search_paths
             material_path = TinyPath(material_path)
             if material_path.is_absolute():  # Absolute paths shouldn't even be here! This path is invalid
                 continue
-            real_material_path = content_manager.find_file("materials" / material_path / (material_name + ".vmt"))
-            if real_material_path is not None:
+            material_exists = content_manager.check("materials" / material_path / (material_name + ".vmt"))
+            if material_exists:
                 full_mat_names[material_name] = (material_path / material_name).as_posix().lstrip('/')
     for material_name in material_names:
         if material_name not in full_mat_names:

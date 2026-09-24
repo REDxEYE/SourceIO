@@ -170,7 +170,7 @@ def import_static_props(bsp: VBSPFile, settings: Source1BSPSettings, master_coll
                     'origin': '{} {} {}'.format(*prop.origin),
                     'angles': '{} {} {}'.format(*prop.rotation),
                     'scale': '{} {} {}'.format(*prop.scaling),
-                    'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
+                    'skin': str(prop.skin),
                 }
 
                 if prop.diffuse_modulation:
@@ -181,7 +181,7 @@ def import_static_props(bsp: VBSPFile, settings: Source1BSPSettings, master_coll
                                               'prop_path': model_name,
                                               'scale': settings.scale,
                                               'type': 'static_props',
-                                              'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
+                                              'skin': str(prop.skin),
                                               'entity': entity
                                               }
                 parent_collection.objects.link(placeholder)
