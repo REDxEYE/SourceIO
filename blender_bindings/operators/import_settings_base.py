@@ -39,6 +39,7 @@ class ModelOptions(SharedOptions, Source1SharedSettings):
 
     create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=True, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
+    bodygroup_vis_switches: BoolProperty(name='Drive visibility for bodygroups', description='Toggle the visibility of body groups driven by a custom property switch on the armature', default=True, subtype='UNSIGNED')
     import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
     debug_stereo_balance: BoolProperty(name='Debug Stereo Flex Balance', description='Add vertex groups to show how stereo flexes blend. If enabled, the balance will not be mixed into shape keys.', default=False, subtype='UNSIGNED')

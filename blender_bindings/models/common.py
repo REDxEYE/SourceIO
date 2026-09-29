@@ -182,7 +182,6 @@ def make_bodygroup_selectors(mdl: Mdl, armature: bpy.types.Object, bodygroups: d
             driver.expression = f'var != {index}'
 
     bg_name_map = dict()
-    tally = iter(range(999))
 
     def tally():
         for i in range(999):
@@ -304,3 +303,207 @@ def generate_wrinkle_map_node_group(obj: bpy.types.Object):
         links.new(mult.outputs[0], maximum.inputs[1])
         links.new(maximum.outputs[0], combine.inputs[index])
         last = maximum.outputs[0]
+
+def create_flex_drivers(obj, mdl):
+    from string import ascii_lowercase
+    from SourceIO.library.models.mdl.structs.flex import FlexController, FlexControllerUI, FlexOpType, FlexRule
+    if not obj.data.shape_keys:
+        return
+    
+    #nway_expr = 'max(min(({0}-{1})/({2}-{1}),({4}-{0})/({4}-{3})),0)'
+    #two_way_0_expr = 'clamp({}*-1)'
+    #two_way_1_expr = 'clamp({})'
+    #upper_eye_expr = '(1-abs(min({}, 0)))*{}*{}'
+    #lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
+
+    all_exprs: dict[str, tuple] = mdl.rebuild_flex_rules()
+    bpy.types.Scene.t = all_exprs
+    data: bpy.types.Mesh = obj.data
+    shape_keys = data.shape_keys
+    kb = shape_keys.key_blocks
+
+    def make_custom_property(name, min, max, default=0.0):
+        obj.data[name] = default
+        prop = obj.data.id_properties_ui(name)
+        prop.update(min=min, max=max)
+
+    def tally():
+        for i in range(999):
+            yield ''.join(
+                map(
+                    lambda a: ascii_lowercase[int(a)],
+                    f'{i:03d}'
+                )
+            )
+    tally = tally()
+
+    flexcontrollers = dict()
+    flexmap = dict()
+    
+    flexmap['flex_scale'] = flex_sort = f'{next(tally)}_fs'
+    flex = dict()
+    flex['controller'] = 'flex_scale'
+    flex['type'] = 0b00
+    make_custom_property(flex_sort, -10, 10, 1.0)
+
+    flexcontrollers['Flex Scale'] = flex
+
+    for flex_controller_ui in mdl.flex_ui_controllers:
+        flex = dict()
+        
+        if flex_controller_ui.stereo:
+            flex['type'] = 0b01
+            left_controller = next(
+                filter(lambda a: a.name == flex_controller_ui.left_controller,
+                       mdl.flex_controllers
+                )
+            )
+            right_controller = next(
+                filter(lambda a: a.name == flex_controller_ui.right_controller,
+                       mdl.flex_controllers
+                )
+            )
+            flexmap[left_controller.name] = left_sort = f'{next(tally)}_{left_controller.name}'
+            flexmap[right_controller.name] = right_sort = f'{next(tally)}_{right_controller.name}'
+            flex['left'] = left_controller.name
+            flex['right'] = right_controller.name
+            make_custom_property(left_sort, left_controller.min, left_controller.max)
+            make_custom_property(right_sort, right_controller.min, right_controller.max)
+        else:
+            flex['type'] = 0b00
+            controller = next(filter(lambda a: a.name == flex_controller_ui.controller, mdl.flex_controllers))
+            flexmap[controller.name] = controller_sort = f'{next(tally)}_{controller.name}'
+            flex['controller'] = controller.name
+            make_custom_property(controller_sort, controller.min, controller.max)
+        
+        if flex_controller_ui.nway_controller:
+            flex['type'] |= 0b10
+            nway = next(
+                filter(
+                    lambda a: a.name == flex_controller_ui.nway_controller,
+                    mdl.flex_controllers
+                )
+            )
+            flexmap[nway.name] = nway_sort = f'{next(tally)}_{nway.name}'
+            flex['nway'] = nway.name
+            make_custom_property(nway_sort, nway.min, nway.max)
+
+        flexcontrollers[flex_controller_ui.name] = flex
+    
+    obj.data['flexmap'] = flexmap
+    obj.data['flexcontrollers'] = flexcontrollers
+
+    def var_tally():
+        for i in range(999):
+            yield 'V'+str(i)
+
+    shape_keys = obj.data.shape_keys
+
+    for name, (expr, inputs) in all_exprs.items():
+        expr = expr.as_simple()
+        vtally = var_tally()
+        if kb.get(name):
+            kb[name].driver_remove('value')
+            driv = kb[name].driver_add('value')
+        else:
+            shape_keys[name] = 0.0
+            driv = shape_keys.driver_add(f'["{name}"]')
+
+        [driv.modifiers.remove(mod) for mod in driv.modifiers]
+        driv = driv.driver
+
+        if '_' in name: # likely a combo expression
+            match name[-1]:
+                case 'R':
+                    side = 'R'
+                case 'L':
+                    side = 'L'
+                case _:
+                    side = ''
+                
+            combo_inputs = set()
+            combo_flexes = name.rstrip(side).split('_')
+            expr_inputs = set(inputs)
+
+            for combo in combo_flexes:
+                combo += side
+                combo = all_exprs.get(combo, False)
+                if not combo: break
+                combo_inputs.update(set(combo[1]))
+
+            if combo_inputs == expr_inputs: # all inputs match, most likely a product of the results of all mentioned flexes. take a shortcut instead
+                all_vars = []
+                for combo in combo_flexes:
+                    combo += side
+                    var = driv.variables.new()
+                    var.name = next(vtally); all_vars.append(var.name)
+                    var.type = 'SINGLE_PROP'
+                    targ = var.targets[0]
+
+                    if kb.get(combo):
+                        data_path = kb[combo].path_from_id('value')
+                    elif shape_keys.get(combo):
+                        data_path = f'["{combo}"]'
+                    else:
+                        shape_keys[combo] = 0.0
+                        data_path = f'["{combo}"]'
+
+                    targ.id_type = 'KEY'
+                    targ.id = shape_keys
+                    targ.data_path = data_path
+
+                expr = f'({"*".join(all_vars)})/(pow(FS, {len(all_vars)-1})+1e-16)'
+
+                var = driv.variables.new()
+                var.name = 'FS'
+                var.type = 'SINGLE_PROP'
+                targ = var.targets[0]
+                targ.id_type = 'MESH'
+                targ.id = data
+                targ.data_path = '["{}"]'.format(flexmap['flex_scale'])
+
+                driv.expression = expr
+
+                continue
+        
+        for input, type in set(inputs):
+            var = driv.variables.new()
+            var.name = next(vtally)
+            var.type = 'SINGLE_PROP'
+            targ = var.targets[0]
+            if type == 'fetch2':
+                if kb.get(input):
+                    data_path = kb[input].path_from_id('value')
+                elif shape_keys.get(input):
+                    data_path = f'["{input}"]'
+                else:
+                    shape_keys[input] = 0.0
+                    data_path = f'["{input}"]'
+
+                targ.id_type = 'KEY'
+                targ.id = shape_keys
+                targ.data_path = data_path
+            else:
+                targ.id_type = 'MESH'
+                targ.id = data
+                targ.data_path = f'["{flexmap[input]}"]'
+            
+            expr = expr.replace(input, var.name)
+            
+            
+        var = driv.variables.new()
+        var.name = 'FS'
+        var.type = 'SINGLE_PROP'
+        targ = var.targets[0]
+        targ.id_type = 'MESH'
+        targ.id = data
+        targ.data_path = '["{}"]'.format(flexmap['flex_scale'])
+        #print(expr)
+        try:
+            assert len(expr) < 256
+        except:
+            print(expr)
+            print(name)
+        driv.expression = expr.replace('--', '+') + '*FS'
+
+    return

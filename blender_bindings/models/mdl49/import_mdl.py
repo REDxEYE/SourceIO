@@ -6,7 +6,7 @@ import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 from math import atan
 
-from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors, create_flex_drivers
 from SourceIO.blender_bindings.models.mdl44.import_mdl import create_armature
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
@@ -24,7 +24,7 @@ from SourceIO.library.utils.common import get_slice
 from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
 from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.logger import SourceLogMan
-from string import ascii_lowercase
+#from string import ascii_lowercase
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::ModelLoader')
@@ -186,6 +186,8 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
                                 name=flex_name)
                             shape_key.data.foreach_set("co", (flex_delta*side + model_vertices).ravel())
                             shape_key.value = 0.0
+                            shape_key.slider_min = -10.0
+                            shape_key.slider_max = 10.0
                             if flex_desc.partner_index and debug_stereo_balance:
                                 if n == 0: shape_key.vertex_group = side_left.name
                                 else: shape_key.vertex_group = side_right.name
@@ -216,26 +218,24 @@ def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vv
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
     if not static_prop:
-        make_bodygroup_selectors(mdl, armature, bodygroups)
+        if options.bodygroup_vis_switches:
+            make_bodygroup_selectors(mdl, armature, bodygroups)
     attachments.extend(extra_stuff)
 
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
 
 
-def create_flex_drivers(obj, mdl: MdlV49):
+def create_flex_drivers_old(obj, mdl: MdlV49):
     from ...operators.flex_operators import SourceIO_PG_FlexController
     from SourceIO.library.models.mdl.structs.flex import FlexController, FlexControllerUI, FlexOpType, FlexRule
     if not obj.data.shape_keys:
         return
     
-    nway_expr = 'max(min(({0}-{1})/({2}-{1}),({4}-{0})/({4}-{3})),0)'
-    two_way_0_expr = 'clamp({}*-1)'
-    two_way_1_expr = 'clamp({})'
-    upper_eye_expr = '(1-abs(min({}, 0)))*{}*{}'
-    lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
-    
-    def number_format(x):
-        return ''.join((map(lambda a: ascii_lowercase[int(a)], f'{x:03d}'))) + '_'
+    #nway_expr = 'max(min(({0}-{1})/({2}-{1}),({4}-{0})/({4}-{3})),0)'
+    #two_way_0_expr = 'clamp({}*-1)'
+    #two_way_1_expr = 'clamp({})'
+    #upper_eye_expr = '(1-abs(min({}, 0)))*{}*{}'
+    #lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
 
     all_exprs = mdl.rebuild_flex_rules()
     bpy.types.Scene.t = all_exprs
@@ -251,7 +251,12 @@ def create_flex_drivers(obj, mdl: MdlV49):
     #tally = iter(range(999))
     def tally():
         for i in range(999):
-            yield ''.join(map(lambda a: ascii_lowercase[int(a)], f'{i:03d}'))
+            yield ''.join(
+                map(
+                    lambda a: ascii_lowercase[int(a)],
+                    f'{i:03d}'
+                )
+            )
     tally = tally()
 
     flexcontrollers = dict()
@@ -271,10 +276,14 @@ def create_flex_drivers(obj, mdl: MdlV49):
         if flex_controller_ui.stereo:
             flex['type'] = 0b01
             left_controller = next(
-                filter(lambda a: a.name == flex_controller_ui.left_controller, mdl.flex_controllers)
+                filter(lambda a: a.name == flex_controller_ui.left_controller,
+                       mdl.flex_controllers
+                )
             )
             right_controller = next(
-                filter(lambda a: a.name == flex_controller_ui.right_controller, mdl.flex_controllers)
+                filter(lambda a: a.name == flex_controller_ui.right_controller,
+                       mdl.flex_controllers
+                )
             )
             flexmap[left_controller.name] = left_sort = f'{next(tally)}_{left_controller.name}'
             flexmap[right_controller.name] = right_sort = f'{next(tally)}_{right_controller.name}'
@@ -290,8 +299,13 @@ def create_flex_drivers(obj, mdl: MdlV49):
             make_custom_property(controller_sort, controller.min, controller.max)
         
         if flex_controller_ui.nway_controller:
-            flex['type'] += 0b10
-            nway = next(filter(lambda a: a.name == flex_controller_ui.nway_controller, mdl.flex_controllers))
+            flex['type'] |= 0b10
+            nway = next(
+                filter(
+                    lambda a: a.name == flex_controller_ui.nway_controller,
+                    mdl.flex_controllers
+                )
+            )
             flexmap[nway.name] = nway_sort = f'{next(tally)}_{nway.name}'
             flex['nway'] = nway.name
             make_custom_property(nway_sort, nway.min, nway.max)
@@ -320,7 +334,9 @@ def create_flex_drivers(obj, mdl: MdlV49):
         else:
             shape_keys[name] = 0.0
             driv = shape_keys.driver_add(f'["{name}"]')
+
         [driv.modifiers.remove(mod) for mod in driv.modifiers]
+        
         driv = driv.driver
         for input, type in set(inputs):
             var = driv.variables.new()

@@ -117,14 +117,12 @@ class Div(Expr):
     def __repr__(self):
         arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
         arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        #return f'{arg2}/{arg1}'
-        return f'{arg2}/max(abs({arg1}),.001)*copysign(1, {arg1})'
-        return f'{arg2}/1 if {arg1}==0 else {arg1}'
+        return f'{arg2}/{arg1}'
 
     def as_simple(self):
         arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
         arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'{arg2}/.001 if isclose({arg1}, 0) else {arg1}'
+        return f'{arg2}/({arg1}+1e-16)' # avoid division by zero
 
 
 class Function:

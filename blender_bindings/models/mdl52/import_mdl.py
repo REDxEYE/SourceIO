@@ -3,7 +3,7 @@ from collections import defaultdict
 import bpy
 import numpy as np
 
-from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors
 from SourceIO.blender_bindings.models.mdl49.import_mdl import create_armature, create_attachments, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
@@ -206,5 +206,9 @@ def import_model(content_provider: ContentProvider, mdl: MdlV52, vtx: Vtx, vvd: 
     if mdl.attachments:
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
     attachments.extend(extra_stuff)
+
+    if not static_prop:
+        if options.bodygroup_vis_switches:
+            make_bodygroup_selectors(mdl, armature, bodygroups)
 
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
