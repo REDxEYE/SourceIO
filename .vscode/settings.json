@@ -1,3 +1,6 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python.analysis.extraPaths": [
+        "C:/Users/matth/AppData/Roaming/Blender Foundation/Blender/5.2/scripts/addons"
+    ]
 }

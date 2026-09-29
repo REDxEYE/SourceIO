@@ -7,6 +7,7 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
+from SourceIO.blender_bindings.models.common import create_flex_drivers
 from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegistry
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
@@ -182,46 +183,46 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
 
 
-def create_flex_drivers(obj, mdl: MdlV36):
-    all_exprs = mdl.rebuild_flex_rules()
-    for controller in mdl.flex_controllers:
-        obj.shape_key_add(name=controller.name)
-
-    def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
-        if expr.__class__ in [FetchController, FetchFlex]:
-            expr: Value = expr
-            logger.info(f"Parsing {expr} value")
-            if driver.variables.get(expr.value, None) is not None:
-                return
-            var = driver.variables.new()
-            var.name = expr.value
-            var.targets[0].id_type = 'KEY'
-            var.targets[0].id = shape_key_block
-            var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
-
-        elif issubclass(expr.__class__, Expr):
-            expr: Expr = expr
-            parse_expr(expr.right, driver, shape_key_block)
-            parse_expr(expr.left, driver, shape_key_block)
-        elif issubclass(expr.__class__, Function):
-            expr: Function = expr
-            for var in expr.values:
-                parse_expr(var, driver, shape_key_block)
-
-    for target, expr in all_exprs.items():
-        shape_key_block = obj.data.shape_keys
-        shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
-        shape_key.value = 0.0
-
-        shape_key.driver_remove("value")
-        fcurve = shape_key.driver_add("value")
-        fcurve.modifiers.remove(fcurve.modifiers[0])
-
-        driver = fcurve.driver
-        driver.type = 'SCRIPTED'
-        parse_expr(expr, driver, shape_key_block)
-        driver.expression = str(expr)
-        logger.debug(f'{target} {expr}')
+#def create_flex_drivers(obj, mdl: MdlV36):
+#    all_exprs = mdl.rebuild_flex_rules()
+#    for controller in mdl.flex_controllers:
+#        obj.shape_key_add(name=controller.name)
+#
+#    def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
+#        if expr.__class__ in [FetchController, FetchFlex]:
+#            expr: Value = expr
+#            logger.info(f"Parsing {expr} value")
+#            if driver.variables.get(expr.value, None) is not None:
+#                return
+#            var = driver.variables.new()
+#            var.name = expr.value
+#            var.targets[0].id_type = 'KEY'
+#            var.targets[0].id = shape_key_block
+#            var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
+#
+#        elif issubclass(expr.__class__, Expr):
+#            expr: Expr = expr
+#            parse_expr(expr.right, driver, shape_key_block)
+#            parse_expr(expr.left, driver, shape_key_block)
+#        elif issubclass(expr.__class__, Function):
+#            expr: Function = expr
+#            for var in expr.values:
+#                parse_expr(var, driver, shape_key_block)
+#
+#    for target, expr in all_exprs.items():
+#        shape_key_block = obj.data.shape_keys
+#        shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
+#        shape_key.value = 0.0
+#
+#        shape_key.driver_remove("value")
+#        fcurve = shape_key.driver_add("value")
+#        fcurve.modifiers.remove(fcurve.modifiers[0])
+#
+#        driver = fcurve.driver
+#        driver.type = 'SCRIPTED'
+#        parse_expr(expr, driver, shape_key_block)
+#        driver.expression = str(expr)
+#        logger.debug(f'{target} {expr}')
 
 
 def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):

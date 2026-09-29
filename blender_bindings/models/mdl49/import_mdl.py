@@ -33,9 +33,9 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
-    #             options: ModelOptions):
+                 options: ModelOptions):
     #full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths, content_manager)
-                 scale=1.0, create_drivers=False, load_refpose=False):
+                 #scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}

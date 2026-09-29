@@ -9,7 +9,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.operators.import_settings_base import ModelOption
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material, ActionCurveFactory
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
@@ -81,10 +81,10 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
-    #            options: ModelOptions):
+                options: ModelOptions):
     #full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
     #                                                  content_manager)
-                 scale=1.0, create_drivers=False, load_refpose=False):
+    #             scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
