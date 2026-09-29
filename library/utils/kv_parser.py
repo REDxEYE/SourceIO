@@ -17,7 +17,9 @@ class KVDataProxy(Mapping):
                         '$LINUX': False,
                         '$POSIX': False,
                         '>=dx90_20b': True,
-                        '<dx90_20b': False
+                        '<dx90_20b': False,
+                        'gpu>=1' : True,
+                        'gpu>1' : True,
                         }
 
     def __init__(self, data: list[KeyValuePair]):
@@ -32,7 +34,7 @@ class KVDataProxy(Mapping):
     def __iter__(self) -> Iterator:
         return iter(a[0] for a in self.data)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item)->'KVDataProxy|list[KVDataProxy]|int|float|str':
         value = self.get(item)
         if value is not None:
             return self._wrap_value(value)
@@ -44,6 +46,9 @@ class KVDataProxy(Mapping):
             if item[0] == name:
                 self.data.remove(item)
                 return
+
+    def __repr__(self):
+        return f"<KVDataProxy {self.data!r}>"
 
     def items(self):
         for key, value in self.data:
@@ -212,7 +217,7 @@ class ValveKeyValueLexer:
         return (symbol.isprintable() or symbol in '\t\x7f\x1b') and symbol not in '$%{}[]"\'\n\r'
 
     def _is_valid_quoted_symbol(self, symbol):
-        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?\n'
+        return self._is_valid_symbol(symbol) or symbol in '$%.,\'\\/<>=![]{}?\n\x1f\x1b'
 
     def _is_escaped_symbol(self):
         return self.next_symbol in '\'"\\'
@@ -427,19 +432,44 @@ class ValveKeyValueParser:
                 key = self.advance()[1]
                 self._skip_newlines()
                 if self.match(VKVToken.LBRACE, True):
+
                     new_tree_node = []
-                    node_stack[-1].append((key.lower(), new_tree_node))
+                    if "+" in key:
+                        parts = key.lower().split("+")
+                        for part in parts:
+                            node_stack[-1].append((part, new_tree_node))
+                    else:
+                        node_stack[-1].append((key.lower(), new_tree_node))
                     node_stack.append(new_tree_node)
                 elif self.match(VKVToken.STRING):
                     value = self.advance()
                     if self.match(VKVToken.LBRACKET, True):
                         condition = self._parse_expression()
-                        node_stack[-1].append((key.lower(), (value[1], condition)))
+                        value = (value[1], condition)
+                        if "+" in key:
+                            parts = key.lower().split("+")
+                            for part in parts:
+                                node_stack[-1].append((part, value))
+                        else:
+                            node_stack[-1].append((key.lower(), value))
                     else:
-                        node_stack[-1].append((key.lower(), value[1]))
+                        value = value[1]
+                        if "+" in key:
+                            parts = key.lower().split("+")
+                            for part in parts:
+                                node_stack[-1].append((part, value))
+                        else:
+                            node_stack[-1].append((key.lower(), value))
                     while not self.match(VKVToken.NEWLINE):
-                        value = self.advance()
-                        node_stack[-1].append((key.lower(), value[1]))
+                        if self.peek()[0] == VKVToken.EOF:
+                            break
+                        value = self.advance()[1]
+                        if "+" in key:
+                            parts = key.lower().split("+")
+                            for part in parts:
+                                node_stack[-1].append((part, value))
+                        else:
+                            node_stack[-1].append((key.lower(), value))
                     self.expect(VKVToken.NEWLINE)
             elif self._array_of_blocks and self.match(VKVToken.LBRACE, True):
                 new_tree_node = []
@@ -456,29 +486,22 @@ class ValveKeyValueParser:
 
 
 if __name__ == '__main__':
-    data = """"EyeRefract"
+    data = r""""EyeRefract"
 {
-	"$Iris"               "models/wn/citizens/eyes/eye-iris-green" //"models/bloocobalt/l4d/riot/eyeball_l_green"			  // Iris color in RGB with cornea noise in A
-	"$AmbientOcclTexture" "models/wn/citizens/eyes/eyeball_l_ambient"				  // Ambient occlusion in RGB, A unused
-	"$Envmap"             "models/wn/citizens/eyes/eye-reflection-cubemap"    // Reflection environment map
-	"$CorneaTexture"      "models/wn/citizens/eyes/eye-cornea"                 // Special texture that has 2D cornea normal in RG and other data in BA
+	"$Iris"               "models\Domibun\Characters\Leo\eye"			  // Iris color in RGB with cornea noise in A
+	"$AmbientOcclTexture" "models\Domibun\Characters\Leo\pupil_ambient"		// Ambient occlusion in RGB, A unused
+	"$Envmap"             "models\Domibun\Characters\Leo\eye-reflection-cubemap-"    // Reflection environment map
+	"$CorneaTexture"      "models\Domibun\Characters\Leo\eye-cornea"                 // Special texture that has 2D cornea normal in RG and other data in BA
 
-	"$EyeballRadius" "0.5"				// Default 0.5
-	"$AmbientOcclColor" "[0.36 0.25 0.2]"	// Default 0.33, 0.33, 0.33
-	"$Dilation" "0.5"					// Default 0.5
-	"$ParallaxStrength" "0.25"          // Default 0.25
-	"$CorneaBumpStrength" "1.25"			// Default 1.0
-
-	"$halflambert" "1"
-	"$nodecal" "1"
-
+	"$EyeballRadius" "0.1"// Default 0.5
+	"$AmbientOcclColor" "[0.1 0.1 0.1]"// Default 0.33, 0.33, 0.33
+	"$Dilation" "0.5 "// Default 0.5
+	"$ParallaxStrength" "0.05"          // Default 0.25
+	"$CorneaBumpStrength" "0.5"// Default 1.0
+	
 	// These effects are only available in ps.2.0b and later
-	"$RaytraceSphere" "1"				// Default 1 - Enables raytracing in the pixel shader to make the eyeball look round
-	"$SphereTexkillCombo" "0"			// Default 1 - Enables killing pixels that don't ray-intersect the sphere
-
-
-}
-    """
+	"$RaytraceSphere" "0"// Default 1 - Enables raytracing in the pixel shader to make the eyeball look round
+	"$SphereTexkillCombo" "0"// Default 1 - Enables killing pixels that don't ray-intersect the sphere"""
 
     tmp = ValveKeyValueParser(None, (data, ""),True)
     parse = tmp.parse()

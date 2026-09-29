@@ -4,9 +4,10 @@ import numpy as np
 
 from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase, Nodes, ExtraMaterialParameters
 from SourceIO.blender_bindings.source2.vtex_loader import import_texture
-from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4_3, is_blender_5
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.source2.keyvalues3.types import NullObject
 from SourceIO.library.source2.resource_types import CompiledMaterialResource, CompiledTextureResource
 from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
@@ -25,6 +26,9 @@ class Source2ShaderBase(ShaderBase):
         self.unused_textures = set(self._material_resource.get_used_textures().keys())
         self.tinted = tinted
 
+        if is_blender_5():
+            self.load_source2_nodes_blender5_0()
+
     def _have_texture(self, slot_name: str) -> Optional[bpy.types.Node]:
         texture_path = self._material_resource.get_texture_property(slot_name, None)
         if texture_path is not None:
@@ -38,7 +42,7 @@ class Source2ShaderBase(ShaderBase):
         if slot_name in self.unused_textures:
             self.unused_textures.remove(slot_name)
         texture_path = self._material_resource.get_texture_property(slot_name, None)
-        if texture_path is not None:
+        if texture_path is not None and not isinstance(texture_path, NullObject):
             image = self.load_texture_or_default(texture_path, default_color, invert_y)
             if is_data:
                 image.colorspace_settings.is_data = True

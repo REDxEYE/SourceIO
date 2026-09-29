@@ -1,6 +1,5 @@
 import traceback
 from dataclasses import dataclass, field
-from typing import Mapping
 
 import numpy.typing as npt
 
@@ -15,7 +14,7 @@ from SourceIO.library.models.mdl.structs.material import MaterialV49
 from SourceIO.library.models.mdl.structs.sequence import StudioSequence
 from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.utils import Buffer
-from SourceIO.library.utils.kv_parser import ValveKeyValueParser
+from SourceIO.library.utils import kv1
 
 
 class _AnimBlocks:
@@ -47,7 +46,7 @@ class MdlV44(Mdl):
     animations: list[npt.NDArray] = field(repr=False)
 
     key_values_raw: str
-    key_values: Mapping
+    key_values: kv1.KV1Block
 
     include_models: list[str]
 
@@ -81,16 +80,6 @@ class MdlV44(Mdl):
                 texture_index = buffer.read_uint16()
                 skin_group.append(materials[texture_index])
             skin_groups.append(skin_group)
-
-        diff_start = 0
-        for skin_info in skin_groups[1:]:
-            for n, (a, b) in enumerate(zip(skin_groups[0], skin_info)):
-                if a == b:
-                    diff_start = max(n, diff_start)
-                    break
-
-        for n, skin_info in enumerate(skin_groups):
-            skin_groups[n] = skin_info[:diff_start]
 
         flex_names = []
         buffer.seek(header.flex_desc_offset)
@@ -129,12 +118,8 @@ class MdlV44(Mdl):
 
         buffer.seek(header.key_value_offset)
         key_values_raw = buffer.read(header.key_value_size).strip(b'\x00').decode('latin1')
-        if key_values_raw:
-            parser = ValveKeyValueParser(buffer_and_name=(key_values_raw, 'memory'), self_recover=True)
-            parser.parse()
-            key_values = parser.tree
-        else:
-            key_values = {}
+        key_values = kv1.loads(key_values_raw, 'mdl keyvalues') if key_values_raw \
+            else kv1.KV1Block()
 
         local_animations = []
         buffer.seek(header.local_animation_offset)

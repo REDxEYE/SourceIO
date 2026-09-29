@@ -50,7 +50,7 @@ class StaticProp:
         self.min_gpu_level = 0
         self.max_gpu_level = 0
 
-        self.diffuse_modulation = []
+        self.diffuse_modulation:list[int] = []
         self.disable_x360 = 0
         self.flags_ex = 0
         self.uniform_scale = 0.0

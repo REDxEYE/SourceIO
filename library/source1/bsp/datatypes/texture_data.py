@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from SourceIO.library.shared.types import Vector3
+from SourceIO.library.shared.vector_types import Vector3
 from SourceIO.library.source1.bsp.bsp_file import BSPFile,RespawnBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 

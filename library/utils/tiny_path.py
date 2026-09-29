@@ -24,6 +24,8 @@ class TinyPath(str, PathLike):
         value = str(value)
         if "\\" in value:
             value = value.replace("\\", "/")
+        if value == "/":
+            return super().__new__(cls, value)
         return super().__new__(cls, value.rstrip("/"))
 
     @property
@@ -50,6 +52,25 @@ class TinyPath(str, PathLike):
             sep_index = self.rindex("/")
             return TinyPath(self[:sep_index])
         return self
+
+    @property
+    def parents(self):
+        """Ancestors of this path, nearest first.
+
+        ``TinyPath("a/b/c").parents`` is ``("a/b", "a")``. Two deliberate
+        divergences from ``pathlib.PurePath``, both following from :attr:`parent`
+        being plain string slicing: a relative path has no trailing ``"."`` entry,
+        and an absolute one ends at ``""`` rather than ``"/"``.
+        """
+        result = []
+        current = self
+        while "/" in current:
+            parent = current.parent
+            if parent == current:  # e.g. the root "/" is its own parent
+                break
+            result.append(parent)
+            current = parent
+        return tuple(result)
 
     @property
     def parts(self):
@@ -136,6 +157,7 @@ class TinyPath(str, PathLike):
             return []
         for item in Path(self).iterdir():
             yield TinyPath(item.as_posix())
+        return None
 
     def with_name(self, name: str):
         suffix = self.suffix

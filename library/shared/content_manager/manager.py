@@ -12,7 +12,7 @@ from SourceIO.library.shared.content_manager.providers.source1_gameinfo_provider
 from SourceIO.library.shared.content_manager.providers.source2_gameinfo_provider import Source2GameInfoProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
 from SourceIO.library.shared.content_manager.providers.zip_content_provider import ZIPContentProvider
-from SourceIO.library.utils import Buffer, FileBuffer, TinyPath, backwalk_file_resolver
+from SourceIO.library.utils import Buffer, FileBuffer, TinyPath, backwalk_file_resolver, corrected_path
 from SourceIO.library.utils.path_utilities import get_mod_path
 from SourceIO.library.utils.singleton import SingletonMeta
 from SourceIO.logger import SourceLogMan
@@ -154,7 +154,6 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
             for provider in providers:
                 logger.info(f"Mounted: {provider}")
             self.children.update(set(providers))
-            pass
             return
         self._find_steam_appid(scan_path)
         if scan_path.suffix == '.vpk':
@@ -206,6 +205,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
     def find_file(self, filepath: TinyPath, do_not_cache=False) -> Buffer | None:
         """Find and optionally cache file buffers with owner/exists LRU metadata."""
         if filepath.is_absolute():
+            filepath = corrected_path(filepath)
             if filepath.exists():
                 return FileBuffer(filepath)
             return None
@@ -219,6 +219,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
         if owner is not None:
             file = owner.find_file(k)
             if file is not None:
+                logger.debug(f'Found in {owner}! (cached provider)')
                 self._note_hit(k, owner)
                 if do_not_cache:
                     return file
@@ -255,13 +256,21 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 self._cache.set(k, file)
                 return file
         self._note_miss(k)
+        logger.debug(f'Not found: {k}')
         return None
 
     # TODO: MAYBE DEPRECATED
     def serialize(self):
-        """Serialize mounted providers."""
+        """Serialize mounted providers.
+
+        Maps are emitted last. A ``.bsp`` entry is stored by path and, when that
+        path is relative, can only be resolved on load through a provider that is
+        already mounted -- so it has to come after the game directories and
+        archives that might contain it. ``self.children`` is a set, so the ordering
+        is imposed here rather than inherited.
+        """
         serialized = {}
-        for provider in self.children:
+        for provider in sorted(self.children, key=lambda p: str(p.filepath).endswith('.bsp')):
             name = provider.unique_name.replace('\'', '').replace('\"', '').replace(' ', '_')
             info = {"name": name, "path": str(provider.filepath)}
             serialized[md5(name.encode("utf8")).hexdigest()] = info
@@ -270,7 +279,14 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
 
     # TODO: MAYBE DEPRECATED
     def deserialize(self, data: dict[str, Union[str, dict]]):
-        """Recreate mounts from serialized data."""
+        """Recreate mounts from serialized data.
+
+        Maps are mounted last: a ``.bsp`` recorded with a relative path can only be
+        located through an already-mounted provider, and ``data`` is an unordered
+        dict, so processing it inline would resolve or fail depending on iteration
+        order.
+        """
+        deferred_maps = []
         for name, item in data.items():
             name = item["name"]
             path = item["path"]
@@ -296,17 +312,7 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 if provider not in self.children:
                     self.children.add(register_provider(provider))
             elif path.endswith('.bsp'):
-                from ...source1.bsp.bsp_file import open_bsp
-                if t_path.is_absolute():
-                    full_path = t_path
-                else:
-                    prov = self.get_content_provider_from_asset_path(t_path)
-                    full_path = prov.root / t_path
-                with FileBuffer(full_path) as f:
-                    bsp = open_bsp(t_path, f, self)
-                    provider = bsp.get_lump('LUMP_PAK')
-                if provider and provider not in self.children:
-                    self.children.add(register_provider(provider))
+                deferred_maps.append(t_path)
             elif path.endswith('.hfs'):
                 provider = HFS1ContentProvider(t_path)
                 if provider not in self.children:
@@ -319,6 +325,31 @@ class ContentManager(ContentProvider, metaclass=SingletonMeta):
                 provider = LooseFilesContentProvider(t_path)
                 if provider not in self.children:
                     self.children.add(register_provider(provider))
+
+        for t_path in deferred_maps:
+            self._mount_map_pak(t_path)
+
+    def _mount_map_pak(self, map_path: TinyPath):
+        """Mount a map's embedded PAK lump, if the map can still be found."""
+        from ...source1.bsp.bsp_file import open_bsp
+        if map_path.is_absolute():
+            full_path = map_path
+        else:
+            provider = self.get_content_provider_from_asset_path(map_path)
+            if provider is None or provider.root is None:
+                # Nothing mounted contains this map -- e.g. the game directory it
+                # came from is no longer mounted. The embedded PAK only holds
+                # map-local overrides, so carry on without it.
+                logger.warn(f'Cannot resolve {map_path} to a mounted provider, skipping its embedded PAK')
+                return
+            full_path = provider.root / map_path
+        if not full_path.exists():
+            logger.warn(f'Map {full_path} no longer exists, skipping its embedded PAK')
+            return
+        with FileBuffer(full_path) as f:
+            pak_lump = open_bsp(map_path, f, self).get_lump('LUMP_PAK')
+        if pak_lump and pak_lump not in self.children:
+            self.children.add(register_provider(pak_lump))
 
     def clean(self):
         """Reset mounts and caches."""

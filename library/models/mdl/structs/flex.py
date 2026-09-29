@@ -4,7 +4,7 @@ from enum import IntEnum
 import numpy as np
 import numpy.typing as npt
 
-from SourceIO.library.shared.types import Vector4
+from SourceIO.library.shared.vector_types import Vector4
 from SourceIO.library.utils import Buffer
 
 

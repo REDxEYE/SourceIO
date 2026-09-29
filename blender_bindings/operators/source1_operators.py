@@ -399,7 +399,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
     discover_resources: BoolProperty(name="Mount discovered content", default=True)
     filter_glob: StringProperty(default="*.vmt", options={'HIDDEN'})
     override: BoolProperty(default=False, name='Override existing?')
-    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=True, subtype='UNSIGNED')
+    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=False, subtype='UNSIGNED')
 
     def execute(self, context):
         directory = self.get_directory()

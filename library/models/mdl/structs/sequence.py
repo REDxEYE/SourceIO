@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from .event import Event
-from SourceIO.library.shared.types import Vector3
+from SourceIO.library.shared.vector_types import Vector3
 from SourceIO.library.utils import Buffer
 
 

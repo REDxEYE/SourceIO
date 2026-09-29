@@ -181,23 +181,23 @@ class env_fire(Targetname):
         return parse_source_value(self._raw_data.get('damagescale', 1.0))
 
     @property
-    def LightRadiusScale(self):
+    def lightradiusscale(self):
         return parse_source_value(self._raw_data.get('lightradiusscale', 1.0))
 
     @property
-    def LightBrightness(self):
+    def lightbrightness(self):
         return parse_source_value(self._raw_data.get('lightbrightness', 1))
 
     @property
-    def LightColor(self):
+    def lightcolor(self):
         return parse_int_vector(self._raw_data.get('lightcolor', "255 255 255"))
 
     @property
-    def LoopSound(self):
+    def loopsound(self):
         return self._raw_data.get('loopsound', "d1_town.LargeFireLoop")
 
     @property
-    def IgniteSound(self):
+    def ignitesound(self):
         return self._raw_data.get('ignitesound', "ASW_Flare.IgniteFlare")
 
 
@@ -280,7 +280,7 @@ class BasePropPhysics(Targetname, Angles):
         return parse_source_value(self._raw_data.get('physdamagescale', 0.1))
 
     @property
-    def Damagetype(self):
+    def damagetype(self):
         return self._raw_data.get('damagetype', "0")
 
     @property
@@ -288,11 +288,11 @@ class BasePropPhysics(Targetname, Angles):
         return self._raw_data.get('nodamageforces', "0")
 
     @property
-    def inertiaScale(self):
+    def inertiascale(self):
         return parse_source_value(self._raw_data.get('inertiascale', 1.0))
 
     @property
-    def massScale(self):
+    def massscale(self):
         return parse_source_value(self._raw_data.get('massscale', 0))
 
     @property
@@ -323,7 +323,7 @@ class prop_physics(BasePropPhysics):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def BulletForceImmune(self):
+    def bulletforceimmune(self):
         return self._raw_data.get('bulletforceimmune', "0")
 
 
@@ -342,11 +342,11 @@ class info_node_link(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def StartNode(self):
+    def startnode(self):
         return parse_source_value(self._raw_data.get('startnode', None))
 
     @property
-    def EndNode(self):
+    def endnode(self):
         return parse_source_value(self._raw_data.get('endnode', None))
 
     @property
@@ -358,15 +358,15 @@ class info_node_link(Targetname):
         return self._raw_data.get('linktype', "1")
 
     @property
-    def AllowUse(self):
+    def allowuse(self):
         return self._raw_data.get('allowuse', None)
 
     @property
-    def InvertAllow(self):
+    def invertallow(self):
         return self._raw_data.get('invertallow', "0")
 
     @property
-    def preciseMovement(self):
+    def precisemovement(self):
         return self._raw_data.get('precisemovement', "0")
 
     @property
@@ -378,15 +378,15 @@ class info_node_link(Targetname):
 class TalkNPC(Base):
 
     @property
-    def UseSentence(self):
+    def usesentence(self):
         return self._raw_data.get('usesentence', None)
 
     @property
-    def UnUseSentence(self):
+    def unusesentence(self):
         return self._raw_data.get('unusesentence', None)
 
     @property
-    def DontUseSpeechSemaphore(self):
+    def dontusespeechsemaphore(self):
         return self._raw_data.get('dontusespeechsemaphore', "0")
 
 
@@ -394,15 +394,15 @@ class TalkNPC(Base):
 class PlayerCompanion(Base):
 
     @property
-    def AlwaysTransition(self):
+    def alwaystransition(self):
         return self._raw_data.get('alwaystransition', "No")
 
     @property
-    def DontPickupWeapons(self):
+    def dontpickupweapons(self):
         return self._raw_data.get('dontpickupweapons', "No")
 
     @property
-    def GameEndAlly(self):
+    def gameendally(self):
         return self._raw_data.get('gameendally', "No")
 
 
@@ -485,7 +485,7 @@ class trigger_weapon_dissolve(Base):
 class trigger_weapon_strip(Base):
 
     @property
-    def KillWeapons(self):
+    def killweapons(self):
         return self._raw_data.get('killweapons', "No")
 
 
@@ -575,7 +575,7 @@ class npc_turret_floor(Targetname, Angles):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def SkinNumber(self):
+    def skinnumber(self):
         return parse_source_value(self._raw_data.get('skinnumber', 0))
 
 
@@ -657,7 +657,7 @@ class npc_sniper(Base):
         return parse_source_value(self._raw_data.get('beambrightness', 100))
 
     @property
-    def shootZombiesInChest(self):
+    def shootzombiesinchest(self):
         return self._raw_data.get('shootzombiesinchest', "0")
 
     @property
@@ -669,11 +669,11 @@ class npc_sniper(Base):
         return parse_source_value(self._raw_data.get('shieldradius', 48))
 
     @property
-    def PaintInterval(self):
+    def paintinterval(self):
         return parse_source_value(self._raw_data.get('paintinterval', 1))
 
     @property
-    def PaintIntervalVariance(self):
+    def paintintervalvariance(self):
         return parse_source_value(self._raw_data.get('paintintervalvariance', 0.75))
 
 
@@ -736,7 +736,7 @@ class prop_thumper(Targetname, Angles):
         return self._raw_data.get('dustscale', "Small Thumper")
 
     @property
-    def EffectRadius(self):
+    def effectradius(self):
         return parse_source_value(self._raw_data.get('effectradius', 1000))
 
 
@@ -850,7 +850,7 @@ class npc_stalker(Base):
     model_ = "models/Stalker.mdl"
 
     @property
-    def BeamPower(self):
+    def beampower(self):
         return self._raw_data.get('beampower', "Low")
 
 
@@ -879,15 +879,15 @@ class npc_bullseye(Base):
 class npc_enemyfinder(Base):
 
     @property
-    def FieldOfView(self):
+    def fieldofview(self):
         return self._raw_data.get('fieldofview', "0.2")
 
     @property
-    def MinSearchDist(self):
+    def minsearchdist(self):
         return parse_source_value(self._raw_data.get('minsearchdist', 0))
 
     @property
-    def MaxSearchDist(self):
+    def maxsearchdist(self):
         return parse_source_value(self._raw_data.get('maxsearchdist', 2048))
 
     @property
@@ -911,7 +911,7 @@ class npc_enemyfinder(Base):
         return parse_source_value(self._raw_data.get('freepass_peektime', 0))
 
     @property
-    def StartOn(self):
+    def starton(self):
         return self._raw_data.get('starton', "1")
 
 
@@ -919,19 +919,19 @@ class npc_enemyfinder(Base):
 class npc_enemyfinder_combinecannon(Base):
 
     @property
-    def FieldOfView(self):
+    def fieldofview(self):
         return self._raw_data.get('fieldofview', "0.2")
 
     @property
-    def MinSearchDist(self):
+    def minsearchdist(self):
         return parse_source_value(self._raw_data.get('minsearchdist', 0))
 
     @property
-    def MaxSearchDist(self):
+    def maxsearchdist(self):
         return parse_source_value(self._raw_data.get('maxsearchdist', 2048))
 
     @property
-    def SnapToEnt(self):
+    def snaptoent(self):
         return self._raw_data.get('snaptoent', "")
 
     @property
@@ -955,7 +955,7 @@ class npc_enemyfinder_combinecannon(Base):
         return parse_source_value(self._raw_data.get('freepass_peektime', 0))
 
     @property
-    def StartOn(self):
+    def starton(self):
         return self._raw_data.get('starton', "1")
 
 
@@ -987,7 +987,7 @@ class npc_citizen(PlayerCompanion, TalkNPC):
         return self._raw_data.get('model', "models/humans/group01/male_01.mdl")
 
     @property
-    def ExpressionOverride(self):
+    def expressionoverride(self):
         return self._raw_data.get('expressionoverride', None)
 
     @property
@@ -1008,7 +1008,7 @@ class npc_fisherman(Base):
     model_ = "models/Barney.mdl"
 
     @property
-    def ExpressionOverride(self):
+    def expressionoverride(self):
         return self._raw_data.get('expressionoverride', None)
 
 
@@ -1021,7 +1021,7 @@ class npc_barney(PlayerCompanion, TalkNPC):
         return self._raw_data.get('additionalequipment', "weapon_pistol")
 
     @property
-    def ExpressionOverride(self):
+    def expressionoverride(self):
         return self._raw_data.get('expressionoverride', None)
 
 
@@ -1033,11 +1033,11 @@ class BaseCombine(RappelNPC):
         return self._raw_data.get('additionalequipment', "weapon_smg1")
 
     @property
-    def NumGrenades(self):
+    def numgrenades(self):
         return self._raw_data.get('numgrenades', "5")
 
     @property
-    def TeleportGrenades(self):
+    def teleportgrenades(self):
         return self._raw_data.get('teleportgrenades', "0")
 
 
@@ -1066,91 +1066,91 @@ class npc_launcher(Base):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def StartOn(self):
+    def starton(self):
         return self._raw_data.get('starton', "0")
 
     @property
-    def MissileModel(self):
+    def missilemodel(self):
         return self._raw_data.get('missilemodel', "models/Weapons/wscanner_grenade.mdl")
 
     @property
-    def LaunchSound(self):
+    def launchsound(self):
         return self._raw_data.get('launchsound', "npc/waste_scanner/grenade_fire.wav")
 
     @property
-    def FlySound(self):
+    def flysound(self):
         return self._raw_data.get('flysound', "ambient/objects/machine2.wav")
 
     @property
-    def SmokeTrail(self):
+    def smoketrail(self):
         return self._raw_data.get('smoketrail', "1")
 
     @property
-    def LaunchSmoke(self):
+    def launchsmoke(self):
         return self._raw_data.get('launchsmoke', "1")
 
     @property
-    def LaunchDelay(self):
+    def launchdelay(self):
         return parse_source_value(self._raw_data.get('launchdelay', 8))
 
     @property
-    def LaunchSpeed(self):
+    def launchspeed(self):
         return self._raw_data.get('launchspeed', "200")
 
     @property
-    def PathCornerName(self):
+    def pathcornername(self):
         return self._raw_data.get('pathcornername', "")
 
     @property
-    def HomingSpeed(self):
+    def homingspeed(self):
         return self._raw_data.get('homingspeed', "0")
 
     @property
-    def HomingStrength(self):
+    def homingstrength(self):
         return parse_source_value(self._raw_data.get('homingstrength', 10))
 
     @property
-    def HomingDelay(self):
+    def homingdelay(self):
         return self._raw_data.get('homingdelay', "0")
 
     @property
-    def HomingRampUp(self):
+    def homingrampup(self):
         return self._raw_data.get('homingrampup', "0.5")
 
     @property
-    def HomingDuration(self):
+    def homingduration(self):
         return self._raw_data.get('homingduration', "5")
 
     @property
-    def HomingRampDown(self):
+    def homingrampdown(self):
         return self._raw_data.get('homingrampdown', "1.0")
 
     @property
-    def Gravity(self):
+    def gravity(self):
         return self._raw_data.get('gravity', "1.0")
 
     @property
-    def MinRange(self):
+    def minrange(self):
         return parse_source_value(self._raw_data.get('minrange', 100))
 
     @property
-    def MaxRange(self):
+    def maxrange(self):
         return parse_source_value(self._raw_data.get('maxrange', 2048))
 
     @property
-    def SpinMagnitude(self):
+    def spinmagnitude(self):
         return self._raw_data.get('spinmagnitude', "0")
 
     @property
-    def SpinSpeed(self):
+    def spinspeed(self):
         return self._raw_data.get('spinspeed', "0")
 
     @property
-    def Damage(self):
+    def damage(self):
         return self._raw_data.get('damage', "50")
 
     @property
-    def DamageRadius(self):
+    def damageradius(self):
         return self._raw_data.get('damageradius', "200")
 
 
@@ -1159,7 +1159,7 @@ class npc_hunter(Base):
     model_ = "models/hunter.mdl"
 
     @property
-    def FollowTarget(self):
+    def followtarget(self):
         return self._raw_data.get('followtarget', "")
 
 
@@ -1269,51 +1269,51 @@ class env_headcrabcanister(Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def HeadcrabType(self):
+    def headcrabtype(self):
         return self._raw_data.get('headcrabtype', "0")
 
     @property
-    def HeadcrabCount(self):
+    def headcrabcount(self):
         return parse_source_value(self._raw_data.get('headcrabcount', 6))
 
     @property
-    def FlightSpeed(self):
+    def flightspeed(self):
         return parse_source_value(self._raw_data.get('flightspeed', 3000))
 
     @property
-    def FlightTime(self):
+    def flighttime(self):
         return parse_source_value(self._raw_data.get('flighttime', 5))
 
     @property
-    def StartingHeight(self):
+    def startingheight(self):
         return parse_source_value(self._raw_data.get('startingheight', 0))
 
     @property
-    def MinSkyboxRefireTime(self):
+    def minskyboxrefiretime(self):
         return parse_source_value(self._raw_data.get('minskyboxrefiretime', 0))
 
     @property
-    def MaxSkyboxRefireTime(self):
+    def maxskyboxrefiretime(self):
         return parse_source_value(self._raw_data.get('maxskyboxrefiretime', 0))
 
     @property
-    def SkyboxCannisterCount(self):
+    def skyboxcannistercount(self):
         return parse_source_value(self._raw_data.get('skyboxcannistercount', 1))
 
     @property
-    def Damage(self):
+    def damage(self):
         return parse_source_value(self._raw_data.get('damage', 150))
 
     @property
-    def DamageRadius(self):
+    def damageradius(self):
         return parse_source_value(self._raw_data.get('damageradius', 750))
 
     @property
-    def SmokeLifetime(self):
+    def smokelifetime(self):
         return parse_source_value(self._raw_data.get('smokelifetime', 30))
 
     @property
-    def LaunchPositionName(self):
+    def launchpositionname(self):
         return self._raw_data.get('launchpositionname', "")
 
 
@@ -1325,11 +1325,11 @@ class npc_vortigaunt(PlayerCompanion, TalkNPC):
         return self._raw_data.get('model', "models/vortigaunt.mdl")
 
     @property
-    def ArmorRechargeEnabled(self):
+    def armorrechargeenabled(self):
         return self._raw_data.get('armorrechargeenabled', "1")
 
     @property
-    def HealthRegenerateEnabled(self):
+    def healthregenerateenabled(self):
         return self._raw_data.get('healthregenerateenabled', "0")
 
 
@@ -1341,23 +1341,23 @@ class npc_spotlight(Base):
         return parse_source_value(self._raw_data.get('health', 100))
 
     @property
-    def YawRange(self):
+    def yawrange(self):
         return parse_source_value(self._raw_data.get('yawrange', 90))
 
     @property
-    def PitchMin(self):
+    def pitchmin(self):
         return parse_source_value(self._raw_data.get('pitchmin', 35))
 
     @property
-    def PitchMax(self):
+    def pitchmax(self):
         return parse_source_value(self._raw_data.get('pitchmax', 50))
 
     @property
-    def IdleSpeed(self):
+    def idlespeed(self):
         return parse_source_value(self._raw_data.get('idlespeed', 2))
 
     @property
-    def AlertSpeed(self):
+    def alertspeed(self):
         return parse_source_value(self._raw_data.get('alertspeed', 5))
 
     @property

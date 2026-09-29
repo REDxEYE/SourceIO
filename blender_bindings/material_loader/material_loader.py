@@ -20,7 +20,7 @@ from .shaders.source2_shaders.dummy import DummyShader
 from .shaders import source1_shaders, source2_shaders, goldsrc_shaders
 from SourceIO.library.source2.blocks.kv3_block import KVBlock
 from SourceIO.library.utils.perf_sampler import timed
-from ..utils.bpy_utils import is_blender_4_3
+from ..utils.bpy_utils import is_blender_4_3, is_blender_5
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('MaterialLoader')
@@ -34,18 +34,34 @@ class MaterialLoaderBase:
         pass
 
 
-class ShaderRegistry:
-    _handlers: dict[str, Type[Source1ShaderBase]] = dict()
+def _collect_handlers(*bases) -> dict[str, Type[ShaderBase]]:
+    """Map ``SHADER`` name -> handler class for every concrete shader subclass.
 
-    for sub in Source1ShaderBase.all_subclasses():
-        logger.info(f'Registered Source1 material handler for {sub.__name__} shader')
-        _handlers[sub.SHADER] = sub
-    for sub in GoldSrcShaderBase.all_subclasses():
-        logger.info(f'Registered goldsrc material handler for {sub.__name__} shader')
-        _handlers[sub.SHADER] = sub
-    for sub in Source2ShaderBase.all_subclasses():
-        logger.info(f'Registered Source2 material handler for {sub.__name__} shader')
-        _handlers[sub.SHADER] = sub
+    Classes that never override ``SHADER`` (mixins and intermediate bases) are
+    skipped, and duplicate shader names are reported instead of silently
+    overwriting each other.
+    """
+    handlers: dict[str, Type[ShaderBase]] = {}
+    for base in bases:
+        engine = base.__name__
+        for sub in base.all_subclasses():
+            shader = sub.SHADER
+            if shader == ShaderBase.SHADER:  # mixin / abstract helper, not a real shader
+                logger.debug(f'Skipping {sub.__name__}: no SHADER name declared')
+                continue
+            if shader in handlers:
+                logger.warning(f'Shader name {shader!r} is claimed by both '
+                               f'{handlers[shader].__name__} and {sub.__name__}; keeping the former')
+                continue
+            logger.info(f'Registered {engine} material handler for {shader} shader')
+            handlers[shader] = sub
+    return handlers
+
+
+class ShaderRegistry:
+    _handlers: dict[str, Type[ShaderBase]] = _collect_handlers(
+        Source1ShaderBase, GoldSrcShaderBase, Source2ShaderBase
+    )
 
     @classmethod
     def source1_create_nodes(cls, content_manager: ContentManager,
@@ -54,15 +70,16 @@ class ShaderRegistry:
                              extra_parameters: dict[ExtraMaterialParameters, Any]):
         if not cls._initial_setup(material):
             return material
-        
+
         shader = vmt.shader
         if shader not in cls._handlers:
             logger.error(f'Shader "{shader}" not currently supported by SourceIO')
+            return material
 
         handler: Source1ShaderBase = cls._handlers.get(shader, Source1ShaderBase)(content_manager, vmt)
         handler.bpy_material = material
         try:
-            new_material = handler.create_nodes(material, extra_parameters) or material # support material templates
+            new_material = handler.create_nodes(material, extra_parameters) or material  # support material templates
             if not isinstance(new_material, bpy.types.Material):
                 new_material = material
             material = new_material
@@ -113,7 +130,8 @@ class ShaderRegistry:
             return False
 
         material['source_loaded'] = True
-        material.use_nodes = True
+        if not is_blender_5():
+            material.use_nodes = True
         cls._clean_nodes(material)
         if not is_blender_4_3():
             material.blend_method = 'OPAQUE'

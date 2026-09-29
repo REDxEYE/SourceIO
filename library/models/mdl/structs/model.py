@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
-from SourceIO.library.shared.types import Vector3
+from SourceIO.library.shared.vector_types import Vector3
 from SourceIO.library.utils import Buffer
 from .eyeball import Eyeball
 from .mesh import Mesh, MeshV2531, MeshV36Plus

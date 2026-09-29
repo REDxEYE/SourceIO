@@ -36,14 +36,6 @@ def parse_float_vector(string):
     return [float(val) for val in string.replace('  ', ' ').split(' ')]
 
 
-def _srgb2lin(s: float) -> float:
-    if s <= 0.0404482362771082:
-        lin = s / 12.92
-    else:
-        lin = pow(((s + 0.055) / 1.055), 2.4)
-    return lin
-
-
 def get_origin(entity_raw: dict):
     return parse_float_vector(entity_raw.get('origin', '0 0 0'))
 
@@ -144,9 +136,10 @@ class AbstractEntityHandler:
         )))
 
     def _set_location_and_scale(self, obj, location, additional_scale: float | np.ndarray = 1.0):
+        scale = self.scale * additional_scale
         obj.location = location
-        obj.location *= additional_scale * self.scale
-        obj.scale *= additional_scale
+        obj.location = np.asarray(obj.location) * scale
+        obj.scale = np.asarray(obj.scale) * scale
 
     def _set_location(self, obj, location):
         obj.location = location

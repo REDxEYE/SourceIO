@@ -19,10 +19,10 @@ class VertexAttribute:
     slot: int
     slot_type: SlotType
     instance_step_rate: int
+    shader_semantic: str
 
     def __post_init__(self):
-        if self._name == "blendweight":
-            self._name = "BLENDWEIGHT"
+        self._name = self._name.upper()
 
     @property
     def name(self):
@@ -36,7 +36,7 @@ class VertexAttribute:
         name = buffer.read_ascii_string(32)
         index, fmt, offset, slot, slot_type, instance_step_rate = buffer.read_fmt('6I')
         return cls(name.upper(), index, DxgiFormat(fmt),
-                   offset, slot, SlotType(slot_type), instance_step_rate)
+                   offset, slot, SlotType(slot_type), instance_step_rate, "")
 
     def get_numpy_type(self):
         if self.format == DxgiFormat.R32G32B32_FLOAT:
@@ -69,6 +69,8 @@ class VertexAttribute:
             return np.uint16, (4,)
         elif self.format == DxgiFormat.R16G16B16A16_UNORM:
             return np.uint16, (4,)
+        elif self.format == DxgiFormat.R16G16B16A16_FLOAT:
+            return np.float16, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_SNORM:
             return np.int8, (4,)
         elif self.format == DxgiFormat.R8G8B8A8_UNORM:
@@ -155,7 +157,7 @@ class VertexBuffer:
             elements.append(VertexAttribute(element["m_pSemanticName"], element["m_nSemanticIndex"],
                                             DxgiFormat(element["m_Format"]), element["m_nOffset"], element["m_nSlot"],
                                             SlotType.from_kv(element["m_nSlotType"]),
-                                            element.get("m_nInstanceStepRate", -1)))
+                                            element.get("m_nInstanceStepRate", -1), element["m_szShaderSemantic"]))
         return VertexBuffer(data["m_nElementCount"],
                             data["m_nElementSizeInBytes"],
                             MemoryBuffer(data["m_pData"].tobytes()) if "m_pData" in data else None,

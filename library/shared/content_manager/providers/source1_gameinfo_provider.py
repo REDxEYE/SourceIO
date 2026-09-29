@@ -5,8 +5,8 @@ from SourceIO.library.shared.content_manager.provider import ContentProvider, is
 from SourceIO.library.shared.content_manager.providers import register_provider
 from SourceIO.library.shared.content_manager.providers.loose_files import LooseFilesContentProvider
 from SourceIO.library.shared.content_manager.providers.vpk_provider import VPKContentProvider
-from SourceIO.library.utils import Buffer, FileBuffer, TinyPath
-from SourceIO.library.utils.s1_keyvalues import KVParser
+from SourceIO.library.utils import Buffer, TinyPath
+from SourceIO.library.utils import kv1
 from SourceIO.logger import SourceLogMan
 
 log_manager = SourceLogMan()
@@ -16,11 +16,13 @@ logger = log_manager.get_logger('GameInfoProvider')
 class Source1GameInfoProvider(ContentProvider):
     def __init__(self, filepath: TinyPath):
         super().__init__(filepath)
-        with FileBuffer(filepath, "r") as f:
-            header, gameinfo_data = KVParser(filepath, f.read_ascii_string()).parse()
-        if header != "gameinfo":
+        root = kv1.load(filepath)
+
+        if "gameinfo" not in root:
             raise ValueError("Invalid gameinfo header")
-        self.filesystem: dict[str, Any] = gameinfo_data["filesystem"]
+        self.data = root["gameinfo"]
+        self.filesystem: dict[str, Any] = self.data["filesystem"]
+
         self._steamapp_id = SteamAppId(int(self.filesystem.get("steamappid", 0)))
         self.mount: list[ContentProvider] = []
 
@@ -28,46 +30,42 @@ class Source1GameInfoProvider(ContentProvider):
         self._owner_cache: dict[TinyPath, ContentProvider] = {}
 
         mods_folder = self.root.parent
-        for search_path_type, search_paths in self.filesystem.get("searchpaths", {}).items():
-            if isinstance(search_paths, str):
-                search_paths = [search_paths]
+        for search_path_type, search_path in self.filesystem.get("searchpaths", {}).items():
             if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk"]:
-                logger.debug(
-                    f"Skipping mounting {search_paths!r} as is not one of supported mount types: {search_path_type}")
+                logger.debug(f"Skipping mounting {search_path!r} as is not one of supported mount types: {search_path_type}")
                 continue
-            for search_path in search_paths:
-                if "all_source_engine_paths" in search_path.lower():
-                    search_path = search_path.lower().replace("|all_source_engine_paths|", "")
-                elif "gameinfo_path" in search_path.lower():
-                    search_path = TinyPath(search_path.replace("|gameinfo_path|", self.root.stem + "/"))
-                elif search_path.endswith("*"):
-                    logger.warn(f"Wildcard search path is not supported: {search_path}")
-                    continue
-                if search_path.endswith(".vpk"):
-                    tmp = TinyPath(search_path)
-                    if (mods_folder / tmp.with_name(tmp.stem + "_dir")).resolve().exists():
-                        search_path = tmp.with_name(tmp.stem + "_dir")
-                    else:
-                        search_path = TinyPath(search_path)
-                search_path = TinyPath(search_path)
-                if search_path.is_absolute():
-                    mod_folder = search_path
+            if "all_source_engine_paths" in search_path.lower():
+                search_path = search_path.lower().replace("|all_source_engine_paths|", "")
+            elif "gameinfo_path" in search_path.lower():
+                search_path = TinyPath(search_path.replace("|gameinfo_path|", self.root.stem + "/"))
+            elif search_path.endswith("*"):
+                logger.warn(f"Wildcard search path is not supported: {search_path}")
+                continue
+            if search_path.endswith(".vpk"):
+                tmp = TinyPath(search_path)
+                if (mods_folder / tmp.with_name(tmp.stem + "_dir")).resolve().exists():
+                    search_path = tmp.with_name(tmp.stem + "_dir")
                 else:
-                    mod_folder = (mods_folder / search_path).resolve()
-                if mod_folder.exists():
-                    if mod_folder.is_file():
-                        if mod_folder.suffix == ".vpk":
-                            mod_provider = register_provider(VPKContentProvider(mod_folder, self._steamapp_id))
-                            self._add_mount(mod_provider)
-                        else:
-                            logger.warn("Only VPK/HFS/GMA supported to be mounted as files")
-                            continue
-                    else:
-                        mod_provider = register_provider(LooseFilesContentProvider(mod_folder, self._steamapp_id))
+                    search_path = TinyPath(search_path)
+            search_path = TinyPath(search_path)
+            if search_path.is_absolute():
+                mod_folder = search_path
+            else:
+                mod_folder = (mods_folder / search_path).resolve()
+            if mod_folder.exists():
+                if mod_folder.is_file():
+                    if mod_folder.suffix == ".vpk":
+                        mod_provider = register_provider(VPKContentProvider(mod_folder, self._steamapp_id))
                         self._add_mount(mod_provider)
-                        for vpk in mod_folder.glob("*_dir.vpk"):
-                            vpk_provider = register_provider(VPKContentProvider(vpk, self._steamapp_id))
-                            self._add_mount(vpk_provider)
+                    else:
+                        logger.warn("Only VPK/HFS/GMA supported to be mounted as files")
+                        continue
+                else:
+                    mod_provider = register_provider(LooseFilesContentProvider(mod_folder, self._steamapp_id))
+                    self._add_mount(mod_provider)
+                    for vpk in mod_folder.glob("*_dir.vpk"):
+                        vpk_provider = register_provider(VPKContentProvider(vpk, self._steamapp_id))
+                        self._add_mount(vpk_provider)
 
     def _add_mount(self, mod_provider):
         if mod_provider not in self.mount:

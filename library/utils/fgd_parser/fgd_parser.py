@@ -175,7 +175,7 @@ class FGDParser:
     def __init__(self, path: TinyPath = None, buffer_and_name: tuple[str, str] = None):
         if path is not None:
             self._path = TinyPath(path)
-            with self._path.open() as f:
+            with self._path.open(encoding="latin1") as f:
                 self._lexer = FGDLexer(f.read(), str(self._path))
         elif buffer_and_name is not None:
             self._lexer = FGDLexer(*buffer_and_name)

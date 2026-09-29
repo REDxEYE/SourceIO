@@ -123,7 +123,7 @@ class CompiledTextureResource(CompiledResource):
         return data, (width, height)
 
 
-    def get_texture_data(self, mip_level: int = 0):
+    def get_texture_data(self, mip_level: int = 0) -> tuple[npt.NDArray, tuple[int, int]]:
         logger.info(f'Loading texture {self._filepath.as_posix()!r}')
         info_block = None
         for block in self._header.blocks:
@@ -170,7 +170,7 @@ class CompiledTextureResource(CompiledResource):
         return data, (width, height)
 
 
-    def _decompress_texture(self, data: bytes, height, pixel_format, width):
+    def _decompress_texture(self, data: bytes, height, pixel_format, width)-> npt.NDArray:
         resource_info_block = (self.get_block(ResourceEditInfo, block_name="REDI") or
                                self.get_block(ResourceEditInfo2, block_name="RED2"))
 
@@ -197,17 +197,17 @@ class CompiledTextureResource(CompiledResource):
                     y_co_cg = True
 
         if pixel_format == VTexFormat.RGBA8888:
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+            pixel_data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.BC6H:
             t_data = decode_texture(data, width, height, "BC6H")
             tmp = np.frombuffer(t_data, np.float16, width * height * 3).reshape((width, height, 3))
-            data = np.ones((width, height, 4), dtype=np.float32)
-            data[:, :, :3] = tmp
+            pixel_data = np.ones((width, height, 4), dtype=np.float32)
+            pixel_data[:, :, :3] = tmp
         elif pixel_format == VTexFormat.BC7:
-            data = decode_texture(data, width, height, "BC7")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            output = data.copy()
-            del data
+            pixel_data = decode_texture(data, width, height, "BC7")
+            pixel_data = np.frombuffer(pixel_data, np.uint8).reshape((width, height, 4))
+            output = pixel_data.copy()
+            del pixel_data
             if hemi_oct_aniso_roughness:
                 output = self._hemi_oct_aniso_roughness(output)
             if hemi_oct_normal:
@@ -215,36 +215,36 @@ class CompiledTextureResource(CompiledResource):
             if invert:
                 output[:, :, 1] = np.invert(output[:, :, 1])
 
-            data = output.astype(np.float32) / 255
+            pixel_data = output.astype(np.float32) / 255
         elif pixel_format == VTexFormat.ATI1N:
-            data = decode_texture(data, width, height, "ATI1N")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 1)).astype(np.float32) / 255
+            pixel_data = decode_texture(data, width, height, "ATI1N")
+            pixel_data = np.frombuffer(pixel_data, np.uint8).reshape((width, height, 1)).astype(np.float32) / 255
             output = np.zeros((width, height, 4), dtype=np.float32)
-            output[..., 0] = data[..., 0]
+            output[..., 0] = pixel_data[..., 0]
             output[..., 3] = 1
-            data = output
+            pixel_data = output
         elif pixel_format == VTexFormat.ATI2N:
-            data = decode_texture(data, width, height, "ATI2N")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 2))
+            pixel_data = decode_texture(data, width, height, "ATI2N")
+            pixel_data = np.frombuffer(pixel_data, np.uint8).reshape((width, height, 2))
             output = np.zeros((width, height, 4), dtype=np.uint8)
-            output[..., :2] = data[..., :2]
+            output[..., :2] = pixel_data[..., :2]
             output[..., 3] = 255
-            data = output
+            pixel_data = output
             if normalize:
-                data = self._normalize(data)
+                pixel_data = self._normalize(pixel_data)
             if hemi_oct_aniso_roughness:
-                data = self._hemi_oct_aniso_roughness(data)
+                pixel_data = self._hemi_oct_aniso_roughness(pixel_data)
             if invert:
-                data[:, :, 1] = np.invert(data[:, :, 1])
+                pixel_data[:, :, 1] = np.invert(pixel_data[:, :, 1])
 
-            data = data.astype(np.float32) / 255
+            pixel_data = pixel_data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.DXT1:
-            data = decode_texture(data, width, height, "DXT1")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
+            pixel_data = decode_texture(data, width, height, "DXT1")
+            pixel_data = np.frombuffer(pixel_data, np.uint8).reshape((width, height, 4)).astype(np.float32) / 255
         elif pixel_format == VTexFormat.DXT5:
-            data = decode_texture(data, width, height, "DXT5")
-            data = np.frombuffer(data, np.uint8).reshape((width, height, 4))
-            output = data.copy()
+            pixel_data = decode_texture(data, width, height, "DXT5")
+            pixel_data = np.frombuffer(pixel_data, np.uint8).reshape((width, height, 4))
+            output = pixel_data.copy()
             if y_co_cg:
                 output = self._y_co_cg(output)
             if normalize:
@@ -255,19 +255,19 @@ class CompiledTextureResource(CompiledResource):
             if invert:
                 output[:, :, 1] = 1 - output[:, :, 1]
 
-            data = output
-            data = data.astype(np.float32) / 255
+            pixel_data = output
+            pixel_data = pixel_data.astype(np.float32) / 255
         elif pixel_format == VTexFormat.RGBA16161616F:
-            data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32).reshape((width, height, 4))
+            pixel_data = np.frombuffer(data, np.float16, width * height * 4).astype(np.float32).reshape((width, height, 4))
         elif pixel_format == VTexFormat.I8:
             r = np.frombuffer(data, np.uint8)[:, None]
-            data = np.repeat(r, 4, axis=1).astype(np.float32) / 255
-            data[:, 3] = 1
-            data.reshape((width, height, 4))
+            pixel_data = np.repeat(r, 4, axis=1).astype(np.float32) / 255
+            pixel_data[:, 3] = 1
+            pixel_data.reshape((width, height, 4))
         else:
             logger.warning(f"Unsupported texture format: {pixel_format!r}")
-            data = np.frombuffer(data, np.float32).reshape((width, height, 4)).astype(np.float32) / 255
-        return data
+            pixel_data = np.frombuffer(data, np.float32).reshape((width, height, 4)).astype(np.float32) / 255
+        return pixel_data
 
     @staticmethod
     def _hemi_oct_normal(output: np.ndarray) -> np.ndarray:

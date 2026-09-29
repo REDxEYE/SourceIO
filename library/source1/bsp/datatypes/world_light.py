@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass, field
 from enum import IntEnum
 
-from SourceIO.library.shared.types import Vector3
+from SourceIO.library.shared.vector_types import Vector3
 from SourceIO.library.utils.file_utils import Buffer
 from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 

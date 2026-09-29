@@ -1,3 +1,4 @@
+from array import array
 import math
 import re
 from pprint import pformat
@@ -19,13 +20,22 @@ from SourceIO.library.source1.bsp.datatypes.texture_info import TextureInfo
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 from SourceIO.library.utils.path_utilities import path_stem
-from SourceIO.library.utils.perf_sampler import timed
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
 strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SourceLogMan()
 
+def get_origin(entity_raw: dict):
+    return parse_float_vector(entity_raw.get('origin', '0 0 0'))
+
+
+def get_angles(entity_raw: dict):
+    return parse_float_vector(entity_raw.get('angles', '0 0 0'))
+
+
+def get_scale(entity_raw: dict):
+    return parse_float_vector(entity_raw.get('scales', '0 0 0'))
 
 def gather_vertex_ids(model: Model, faces: list[Face], surf_edges: np.ndarray, edges: np.ndarray):
     vertex_offset = 0
@@ -52,24 +62,137 @@ def gather_vertex_ids(model: Model, faces: list[Face], surf_edges: np.ndarray, e
     return vertex_ids, material_ids
 
 
-def _srgb2lin(s: float) -> float:
-    if s <= 0.0404482362771082:
-        lin = s / 12.92
-    else:
-        lin = pow(((s + 0.055) / 1.055), 2.4)
-    return lin
-
-
 def _set_uv(mesh_data, uv_data, uvs_per_face):
+    loop_count = len(mesh_data.loops)
+    flat_uvs = np.empty((loop_count, 2), dtype=np.float32)
+
     for poly in mesh_data.polygons:
-        for loop_index in range(poly.loop_start, poly.loop_start + poly.loop_total):
-            uv_data[loop_index].uv = uvs_per_face[poly.index][mesh_data.loops[loop_index].vertex_index]
+        face_uvs = np.asarray(uvs_per_face[poly.index], dtype=np.float32)
+
+        if len(face_uvs) != poly.loop_total:
+            raise ValueError(f"UV size mismatch for polygon {poly.index}: {len(face_uvs)} UVs, {poly.loop_total} loops")
+
+        start = poly.loop_start
+        end = start + poly.loop_total
+        flat_uvs[start:end] = face_uvs
+
+    uv_data.foreach_set("uv", flat_uvs.ravel())
+
+
+def corner_hash(vertex_id, uv, luv, ndigits=6):
+    return hash((
+        int(vertex_id),
+        tuple(round(x, ndigits) for x in uv),
+        tuple(round(x, ndigits) for x in luv),
+    ))
+
+
+def remove_dupe_face_vertices(face_vertex_ids, face_uvs, face_luvs):
+    cleaned_ids = array("I")
+    cleaned_uvs = array("f")
+    cleaned_luvs = array("f")
+    seen_hashes = set()
+
+    for vertex_id, uv, luv in zip(face_vertex_ids, face_uvs, face_luvs):
+        key = corner_hash(vertex_id, uv, luv)
+
+        if key in seen_hashes:
+            continue
+
+        seen_hashes.add(key)
+
+        cleaned_ids.append(int(vertex_id))
+
+        cleaned_uvs.extend((float(uv[0]), float(uv[1])))
+        cleaned_luvs.extend((float(luv[0]), float(luv[1])))
+
+    ids = np.frombuffer(cleaned_ids, dtype=np.uint32).copy()
+    uvs = np.frombuffer(cleaned_uvs, dtype=np.float32).reshape((-1, 2)).copy()
+    luvs = np.frombuffer(cleaned_luvs, dtype=np.float32).reshape((-1, 2)).copy()
+
+    return ids, uvs, luvs
+
+
+def register_entity_handlers(handler_class):
+    """Generate ``handle_<class>`` methods from a handler's declarative tables.
+
+    ``handle_entity`` dispatches on ``handle_<classname>`` existing, so every
+    supported entity needs a method -- but the overwhelming majority of them are
+    one of four fixed shapes (brush model, studio model, point empty, or an
+    intentional no-op). Declaring those in
+    :attr:`~AbstractEntityHandler.BRUSH_ENTITIES` and friends keeps the
+    hand-written methods for entities that genuinely need custom work, instead of
+    hundreds of identical five-line copies.
+
+    Never overwrites an existing method, so a table entry can be promoted to a
+    real implementation just by writing one.
+    """
+    _ensure_lookup_entries(handler_class)
+    for class_name, group in handler_class.BRUSH_ENTITIES.items():
+        _add_generated_handler(handler_class, class_name,
+                               lambda self, e, raw, n=class_name, g=group:
+                               self._handle_brush_entity(n, g, e, raw))
+    for class_name, group in handler_class.MODEL_ENTITIES.items():
+        _add_generated_handler(handler_class, class_name,
+                               lambda self, e, raw, n=class_name, g=group:
+                               self._handle_model_entity(n, g, e, raw))
+    for class_name, group in handler_class.POINT_ENTITIES.items():
+        _add_generated_handler(handler_class, class_name,
+                               lambda self, e, raw, n=class_name, g=group:
+                               self._handle_point_entity(n, g, e, raw))
+    for class_name in handler_class.NOOP_ENTITIES:
+        # Claimed so `load_entities` stops logging them as unhandled; these carry
+        # no importable world presence.
+        _add_generated_handler(handler_class, class_name, lambda self, e, raw: None)
+    return handler_class
+
+
+def _ensure_lookup_entries(handler_class):
+    """Give every declared entity a lookup-table entry.
+
+    ``handle_entity`` requires one in addition to the method, and the tables are
+    generated from what real maps contain -- which includes classes absent from the
+    FGDs the ``*_entity_classes`` modules were generated from (e.g. HL2's
+    ``func_train`` and ``item_box_*``). Fall back to ``Base``, which parses the
+    shared keyvalues (``origin``, ``angles``, ``targetname``) that the generated
+    handlers actually read.
+    """
+    declared = set(handler_class.BRUSH_ENTITIES) | set(handler_class.MODEL_ENTITIES) | \
+               set(handler_class.POINT_ENTITIES) | set(handler_class.NOOP_ENTITIES)
+    missing = declared - set(handler_class.entity_lookup_table)
+    if not missing:
+        return
+    # Copy first: the table is often shared with the parent class.
+    handler_class.entity_lookup_table = dict(handler_class.entity_lookup_table)
+    for class_name in missing:
+        handler_class.entity_lookup_table[class_name] = Base
+
+
+def _add_generated_handler(handler_class, class_name: str, function):
+    method_name = f'handle_{class_name}'
+    if method_name in vars(handler_class):
+        return  # hand-written implementation wins
+    function.__name__ = method_name
+    function.__qualname__ = f'{handler_class.__name__}.{method_name}'
+    setattr(handler_class, method_name, function)
 
 
 class AbstractEntityHandler:
     entity_lookup_table = {}
 
-    def __init__(self, bsp_file: BSPFile, content_manager:ContentManager, parent_collection,
+    #: ``classname -> collection group`` for entities whose ``model`` is a brush
+    #: model (``*N``) stored in the BSP.
+    BRUSH_ENTITIES: dict[str, str] = {}
+    #: ``classname -> collection group`` for entities that reference a ``.mdl``.
+    MODEL_ENTITIES: dict[str, str] = {}
+    #: ``classname -> collection group`` for entities that are only a point in
+    #: space; imported as an empty so their placement survives the round trip.
+    POINT_ENTITIES: dict[str, str] = {}
+    #: Entities deliberately not imported. Listed so they are not reported as
+    #: unhandled -- they have no world presence to represent.
+    NOOP_ENTITIES: frozenset[str] = frozenset()
+
+    def __init__(self, bsp_file: BSPFile, content_manager: ContentManager, parent_collection,
                  world_scale: float = SOURCE1_HAMMER_UNIT_TO_METERS, light_scale: float = 1.0):
         self.logger = log_manager.get_logger(self.__class__.__name__)
         self._bsp: BSPFile = bsp_file
@@ -89,6 +212,7 @@ class AbstractEntityHandler:
         entity_lump = self._bsp.get_lump('LUMP_ENTITIES')
         for entity_data in entity_lump.entities:
             entity_class: str = entity_data['classname']
+            entity_class = entity_class.strip().lower()
             if entity_class.startswith("info_") and not settings.load_info:
                 continue
             elif "decal" in entity_class and not settings.load_decals:
@@ -116,13 +240,13 @@ class AbstractEntityHandler:
             entity_class_obj = self._get_class(entity_class)
             entity_object = entity_class_obj(entity_data)
             handler_function = getattr(self, f'handle_{entity_class}')
-            # try:
-            handler_function(entity_object, entity_data)
-            # except ValueError as e:
-            #     import traceback
-            #     self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
-            #     self.logger.error(traceback.format_exc())
-            #     return False
+            try:
+                handler_function(entity_object, entity_data)
+            except ValueError as e:
+                import traceback
+                self.logger.error(f'Exception during handling {entity_class} entity: {e.__class__.__name__}("{e}")')
+                self.logger.error(traceback.format_exc())
+                return False
             return True
         return False
 
@@ -136,19 +260,14 @@ class AbstractEntityHandler:
         entity_obj = entity_class(entity)
         return entity_obj, entity
 
-
-
-
     def _load_brush_model(self, model_id, model_name):
-        def _get_string(string_id):
+        def _get_string(string_id: int) -> str:
             strings: list[str] = self._bsp.get_lump('LUMP_TEXDATA_STRING_TABLE').strings
             return strings[string_id] or "NO_NAME"
 
         model = self._bsp.get_lump("LUMP_MODELS").models[model_id]
         mesh_data = bpy.data.meshes.new(f"{model_name}_MESH")
         mesh_obj = bpy.data.objects.new(model_name, mesh_data)
-        faces = []
-        material_indices = []
 
         bsp_surf_edges: np.ndarray = self._bsp.get_lump('LUMP_SURFEDGES').surf_edges
         bsp_vertices: np.ndarray = self._bsp.get_lump('LUMP_VERTICES').vertices
@@ -169,6 +288,7 @@ class AbstractEntityHandler:
             texture_info = bsp_textures_info[texture_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
             material_name = _get_string(texture_data.name_id)
+            material_name = material_name.rstrip("/\\").lstrip("/\\")
             if self.settings and self.settings.import_textures:
                 material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
                 if material_file:
@@ -178,6 +298,7 @@ class AbstractEntityHandler:
                         skippable_materials.add(texture_info_id)
                 else:
                     material_name = strip_patch_coordinates.sub("", material_name)
+                    material_name = material_name.rstrip("/\\").lstrip("/\\")
                     material_file = self.content_manager.find_file(TinyPath("materials") / (material_name + ".vmt"))
                     if material_file:
                         vmt = VMT(material_file, material_name, self.content_manager)
@@ -186,56 +307,85 @@ class AbstractEntityHandler:
             material = get_or_create_material(path_stem(material_name), material_name)
             material_lookup_table[texture_data.name_id] = add_material(material, mesh_obj)
 
+        faces = []
         uvs_per_face = []
         luvs_per_face = []
+        material_indices = []
 
         for map_face in bsp_faces[model.first_face:model.first_face + model.face_count]:
             if map_face.disp_info_id != -1:
                 continue
+
             if map_face.tex_info_id in skippable_materials:
                 continue
 
-            uvs = {}
-            luvs = {}
-            face = []
-            first_edge = map_face.first_edge
-            edge_count = map_face.edge_count
+            used_surf_edges = bsp_surf_edges[map_face.first_edge:map_face.first_edge + map_face.edge_count]
 
-            used_surf_edges = bsp_surf_edges[first_edge:first_edge + edge_count]
-            reverse = np.subtract(1, (used_surf_edges > 0).astype(np.uint8))
             used_edges = bsp_edges[np.abs(used_surf_edges)]
-            tmp = np.arange(len(used_edges))
-            face_vertex_ids = used_edges[tmp, reverse]
-            # face_vertex_ids = np.array(list(dict.fromkeys(face_vertex_ids)))
+            reverse = (used_surf_edges < 0).astype(np.uint8)
+
+            face_vertex_ids = used_edges[np.arange(len(used_edges)), reverse]
+
+            if len(face_vertex_ids) < 3:
+                continue
 
             uv_vertices = bsp_vertices[face_vertex_ids]
 
             texture_info = bsp_textures_info[map_face.tex_info_id]
             texture_data = bsp_textures_data[texture_info.texture_data_id]
+
             tv1, tv2 = texture_info.texture_vectors
             lv1, lv2 = texture_info.lightmap_vectors
 
-            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / (texture_data.width or 512)
-            v = 1 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / (texture_data.height or 512))
+            tex_w = texture_data.width or 512
+            tex_h = texture_data.height or 512
 
-            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / (texture_data.width or 512)
-            lv = 1 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / (texture_data.height or 512))
+            u = (np.dot(uv_vertices, tv1[:3]) + tv1[3]) / tex_w
+            v = 1.0 - ((np.dot(uv_vertices, tv2[:3]) + tv2[3]) / tex_h)
 
-            v_uvs = np.dstack([u, v]).reshape((-1, 2))
-            l_uvs = np.dstack([lu, lv]).reshape((-1, 2))
+            lu = (np.dot(uv_vertices, lv1[:3]) + lv1[3]) / tex_w
+            lv = 1.0 - ((np.dot(uv_vertices, lv2[:3]) + lv2[3]) / tex_h)
 
-            for vertex_id, uv, luv in zip(face_vertex_ids, v_uvs, l_uvs):
-                new_vertex_id = remapped[vertex_id]
+            face_uvs = np.stack([u, v], axis=1)
+            face_luvs = np.stack([lu, lv], axis=1)
+
+            face_vertex_ids, face_uvs, face_luvs = remove_dupe_face_vertices(
+                face_vertex_ids,
+                face_uvs,
+                face_luvs,
+            )
+
+            if len(face_vertex_ids) < 3:
+                continue
+
+            face = []
+            remapped_face_uvs = []
+            remapped_face_luvs = []
+
+            for vertex_id, uv, luv in zip(face_vertex_ids, face_uvs, face_luvs):
+                new_vertex_id = remapped[int(vertex_id)]
+
                 face.append(new_vertex_id)
-                uvs[new_vertex_id] = uv
-                luvs[new_vertex_id] = luv
+                remapped_face_uvs.append(uv)
+                remapped_face_luvs.append(luv)
 
-            material_indices.append(material_lookup_table[texture_data.name_id])
-            uvs_per_face.append(uvs)
-            luvs_per_face.append(luvs)
-            faces.append(face[::-1])
+            face = face[::-1]
+            remapped_face_uvs = remapped_face_uvs[::-1]
+            remapped_face_luvs = remapped_face_luvs[::-1]
+
+            if len(face) < 3:
+                print("Got invalid face len < 3")
+                continue
+
+            material_index = material_lookup_table[texture_data.name_id]
+
+            faces.append(face)
+            uvs_per_face.append(remapped_face_uvs)
+            luvs_per_face.append(remapped_face_luvs)
+            material_indices.append(material_index)
 
         mesh_data.from_pydata(bsp_vertices[unique_vertex_ids] * self.scale, [], faces)
+        mesh_data.update()
         mesh_data.polygons.foreach_set('material_index', material_indices)
 
         main_uv = mesh_data.uv_layers.new()
@@ -245,7 +395,7 @@ class AbstractEntityHandler:
         lightmap_uv = mesh_data.uv_layers.new(name='lightmap')
         uv_data = lightmap_uv.data
         _set_uv(mesh_data, uv_data, luvs_per_face)
-        if mesh_data.validate():
+        if mesh_data.validate(verbose=True):
             self.logger.warn(f"Mesh(*{model_id}) had some invalid geometry")
         return mesh_obj
 
@@ -259,13 +409,113 @@ class AbstractEntityHandler:
         self._set_entity_data(mesh_object, {'entity': entity_raw})
         self._put_into_collection(class_name, mesh_object, group)
 
+    def _handle_brush_entity(self, class_name: str, group: str, entity, entity_raw: dict):
+        """Import a brush-model entity, matching the hand-written handlers.
+
+        Those use ``entity.origin`` and ``_set_location`` rather than
+        ``_handle_brush_model``'s ``_set_location_and_scale``: brush vertices are
+        already scaled by :meth:`_load_brush_model`, so scaling the object too
+        would apply it twice.
+        """
+        model = entity_raw.get('model', '')
+        if not model.startswith('*'):
+            # Brush entities can also be pointed at a studio model (e.g. a
+            # func_breakable with a gib model); fall back rather than crash on
+            # int('') below.
+            if model:
+                self._handle_model_entity(class_name, group, entity, entity_raw)
+            return
+        mesh_object = self._load_brush_model(int(model[1:]), self._get_entity_name(entity))
+        self._set_location(mesh_object, parse_float_vector(entity_raw.get('origin', '0 0 0')))
+        self._set_rotation(mesh_object, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_entity_data(mesh_object, {'entity': entity_raw})
+        self._put_into_collection(class_name, mesh_object, group)
+
+    def _handle_model_entity(self, class_name: str, group: str, entity, entity_raw: dict):
+        """Import a studio-model entity as a placeholder for the model loader."""
+        model = entity_raw.get('model', '')
+        if model.endswith('.vmt') or model.endswith('.spr'):
+            # Sprite entities (e.g. env_sprite_clientside) put a material in
+            # `model`, not a studio model. Handing that to the model loader would
+            # fail, so keep the placement as an empty instead.
+            self._handle_point_entity(class_name, group, entity, entity_raw)
+            return
+        obj = self._handle_entity_with_model(entity, entity_raw)
+        self._post_process_entity(obj, entity, entity_raw)
+        self._put_into_collection(class_name, obj, group)
+
+    def _post_process_entity(self, obj, entity, entity_raw: dict):
+        """Hook for work that has to happen after the object exists.
+
+        Applies the keyvalues that are common enough to be worth doing for every
+        generated entity. A subclass needing more can either override this or write
+        a full ``handle_<class>`` method -- a hand-written method always takes
+        precedence over the generated one.
+        """
+        skin = entity_raw.get('skin')
+        if skin not in (None, ''):
+            obj['skin'] = parse_source_value(skin)
+        # `$scale` on sprites and prop_scalable; `modelscale` is already applied by
+        # `_handle_entity_with_model`.
+        if 'scale' in entity_raw and entity_raw['scale'] not in (None, ''):
+            try:
+                scale = float(entity_raw['scale'])
+            except (TypeError, ValueError):
+                scale = 0.0
+            if scale > 0.0:
+                obj.scale *= scale
+
+    #: Directory holding Hammer's editor-only helper models (axis/cone/camera
+    #: gizmos). Entities default to these so they are visible while editing; they are
+    #: not part of the map and must not be imported as geometry.
+    EDITOR_MODEL_PREFIX = 'models/editor/'
+
+    def _entity_default_model(self, entity) -> str | None:
+        """A game model the entity class supplies rather than the map.
+
+        Some entities never write a ``model`` keyvalue because the game hardcodes it
+        -- Portal 2's ``prop_button`` is always ``props/switch001.mdl``, its turrets
+        always ``props/turret_01.mdl``. The FGD-generated classes record these as
+        ``model_``/``viewport_model``, so a class default means the entity has real
+        geometry even though the map is silent about it.
+        """
+        for attribute in ('model_', 'viewport_model'):
+            model = getattr(entity, attribute, None)
+            if not isinstance(model, str) or not model.endswith('.mdl'):
+                continue
+            if model.lower().startswith(self.EDITOR_MODEL_PREFIX):
+                continue  # Hammer gizmo, not map geometry
+            return model
+        return None
+
+    def _handle_point_entity(self, class_name: str, group: str, entity, entity_raw: dict):
+        """Import a point entity as an empty, preserving placement and keyvalues.
+
+        Uses ``_set_location_and_scale``: ``_create_empty`` sizes the empty in Hammer
+        units, so without the world scale applied the empties dwarf the map.
+        """
+        if 'model' not in entity_raw and self._entity_default_model(entity):
+            # The class knows a model even though the map does not; import it as one.
+            self._handle_model_entity(class_name, group, entity, entity_raw)
+            return
+        obj = self._create_empty(self._get_entity_name(entity))
+        self._set_location_and_scale(obj, parse_float_vector(entity_raw.get('origin', '0 0 0')))
+        self._set_rotation(obj, parse_float_vector(entity_raw.get('angles', '0 0 0')))
+        self._set_icon_if_present(obj, entity)
+        self._set_entity_data(obj, {'entity': entity_raw})
+        self._post_process_entity(obj, entity, entity_raw)
+        self._put_into_collection(class_name, obj, group)
+
     def _set_entity_data(self, obj, entity_raw: dict):
         obj['entity_data'] = entity_raw
 
     @staticmethod
     def _get_entity_name(entity: Base):
+        raw_data = entity._raw_data
         if hasattr(entity, 'targetname') and entity.targetname:
             return str(entity.targetname)
+        elif "targetname" in raw_data:
+            return str(raw_data["targetname"])
         else:
             return f'{entity.class_name}_{entity.hammer_id}'
 
@@ -280,11 +530,24 @@ class AbstractEntityHandler:
     @staticmethod
     def _apply_light_rotation(obj, entity):
         obj.rotation_euler = Euler((0, math.radians(-90), 0))
-        obj.rotation_euler.rotate(Euler((
-            math.radians(entity.angles[2]),
-            math.radians(-entity.pitch),
-            math.radians(entity.angles[1])
-        )))
+        if len(entity.angles) == 1:
+            obj.rotation_euler.rotate(Euler((
+                math.radians(0),
+                math.radians(-entity.pitch),
+                math.radians(0)
+            )))
+        elif len(entity.angles) == 2:
+            obj.rotation_euler.rotate(Euler((
+                math.radians(0),
+                math.radians(-entity.pitch),
+                math.radians(entity.angles[1])
+            )))
+        else:
+            obj.rotation_euler.rotate(Euler((
+                math.radians(entity.angles[2]),
+                math.radians(-entity.pitch),
+                math.radians(entity.angles[1])
+            )))
 
     def _set_location_and_scale(self, obj, location, additional_scale=1.0):
         scale = self.scale * additional_scale
@@ -305,7 +568,7 @@ class AbstractEntityHandler:
                                          math.radians(angles[1]))))
 
     @staticmethod
-    def _set_single_angle(obj, angle:float):
+    def _set_single_angle(obj, angle: float):
         obj.rotation_euler.rotate(Euler((0, 0, math.radians(angle))))
 
     @staticmethod

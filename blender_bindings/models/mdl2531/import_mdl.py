@@ -1,3 +1,4 @@
+from SourceIO.blender_bindings.models.materials import get_model_material_names, resolve_model_material
 from typing import Union
 from collections import defaultdict
 
@@ -6,7 +7,7 @@ import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.structs.model import ModelV2531
 from SourceIO.library.models.mdl.v2531.mdl_file import MdlV2531
@@ -70,8 +71,7 @@ def create_armature(mdl: MdlV2531, scale=1.0):
 
 def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      content_manager)
+    full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
     objects = []
@@ -95,7 +95,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV2531, vtx: Vtx,
             mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
             
-            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            default_skin_groups = {str(n): list(map(lambda a: a.bpy_material.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
 
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
@@ -274,13 +274,7 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
 def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
     for material in mdl.materials:
-        material_path = None
-        material_file = None
-        for mat_path in mdl.materials_paths:
-            material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
-            if material_file:
-                material_path = TinyPath(mat_path) / material.name
-                break
+        material_path = resolve_model_material(content_manager, mdl, material.name)
         if material_path is None:
             logger.info(f'Material {material.name} not found')
             continue
@@ -288,6 +282,11 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
 
         if mat.get('source1_loaded', False):
             logger.info(f'Skipping loading of {mat} as it already loaded')
+            continue
+
+        material_file = content_manager.find_file('materials' / TinyPath(material_path.as_posix() + '.vmt'))
+        if material_file is None:
+            logger.info(f'Material {material.name} could not be opened')
             continue
 
         if material_path:

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from SourceIO.library.shared.types import Vector3
+from SourceIO.library.shared.vector_types import Vector3
 from SourceIO.library.utils import Buffer
 from .event import StudioEvent
 from .pivot import StudioPivot

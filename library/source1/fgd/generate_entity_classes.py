@@ -2,9 +2,9 @@ import os
 from valvefgd import Fgd, FgdEntity, FgdParse
 
 from SourceIO.library.utils.tiny_path import TinyPath
+from SourceIO.library.shared.content_manager.manager import ContentManager
 
 os.environ['NO_BPY'] = '1'
-from ...content_manager import ContentManager
 
 
 def parse_int_vector(string):

@@ -73,7 +73,7 @@ class Targetname(Base):
 class ResponseContext(Base):
 
     @property
-    def ResponseContext(self):
+    def responsecontext(self):
         return self._raw_data.get('responsecontext', "")
 
 
@@ -221,23 +221,23 @@ class light_environment(Angles):
         return parse_int_vector(self._raw_data.get('_ambient', "255 255 255 20"))
 
     @property
-    def _lightHDR(self):
+    def _lighthdr(self):
         return parse_int_vector(self._raw_data.get('_lighthdr', "-1 -1 -1 1"))
 
     @property
-    def _lightscaleHDR(self):
+    def _lightscalehdr(self):
         return parse_source_value(self._raw_data.get('_lightscalehdr', 1))
 
     @property
-    def _ambientHDR(self):
+    def _ambienthdr(self):
         return parse_int_vector(self._raw_data.get('_ambienthdr', "-1 -1 -1 1"))
 
     @property
-    def _AmbientScaleHDR(self):
+    def _ambientscalehdr(self):
         return parse_source_value(self._raw_data.get('_ambientscalehdr', 1))
 
     @property
-    def SunSpreadAngle(self):
+    def sunspreadangle(self):
         return parse_source_value(self._raw_data.get('sunspreadangle', 0))
 
 

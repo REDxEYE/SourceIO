@@ -142,7 +142,8 @@ class IdTech3Shader(ShaderBase):
             if isinstance(s, float):
                 gs.outputs[0].default_value = (s, s, s, 1.0)
             else:
-                sep = self.create_node(Nodes.ShaderNodeCombineRGB)
+                sep = self.create_node(Nodes.ShaderNodeCombineColor)
+                sep.mode = "RGB"
                 self.connect_nodes(s, sep.inputs['R'])
                 self.connect_nodes(s, sep.inputs['G'])
                 self.connect_nodes(s, sep.inputs['B'])

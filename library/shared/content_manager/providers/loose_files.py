@@ -42,7 +42,7 @@ class LooseFilesContentProvider(ContentProvider):
         self._override_steamid = override_steamid
         super().__init__(filepath)
 
-    def find_file(self, filepath: Union[str, TinyPath]) -> Optional[Buffer]:
+    def find_file(self, filepath: str | TinyPath) -> Optional[Buffer]:
         file = backwalk_file_resolver(self.filepath, filepath)
         if file and file.is_file():
             return FileBuffer(file)

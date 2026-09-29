@@ -8,6 +8,7 @@ from SourceIO.library.utils import TinyPath
 from SourceIO.library.utils.pylib.vtf import load_vtf_texture
 from SourceIO.logger import SourceLogMan
 from SourceIO.library.utils.thirdparty.equilib.cube2equi_numpy import run as convert_to_eq
+from SourceIO.library.utils.pylib.vtf import load_vtf_texture_frames
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('Source1::VTF')
@@ -26,6 +27,99 @@ def load_texture(file_object):
         logger.error('Caught exception "{}" '.format(ex))
 
     return None, 0, 0
+
+
+def load_texture_frames(file_object) -> tuple[list[np.ndarray], int, int]:
+    """Decode every animation frame of a VTF as float RGBA arrays.
+
+    ``load_texture`` only ever returns the first frame. Multi-frame VTFs back
+    Source's ``AnimatedTexture`` proxy -- e.g. HL2's 29-frame
+    ``dev/water_normal`` -- so animated materials need all of them.
+
+    Returns ``([frame, ...], height, width)``; for a single-frame texture the one
+    frame is bit-identical to :func:`load_texture`.
+    """
+    data = file_object.read()
+    try:
+        frames, width, height, is_float = load_vtf_texture_frames(data)
+    except Exception as ex:
+        logger.error('Caught exception "{}" '.format(ex))
+        return [], 0, 0
+
+    decoded = []
+    for frame in frames:
+        if is_float:
+            pixels = np.frombuffer(frame, dtype=np.float32).reshape(height, width, 4)
+        else:
+            pixels = np.frombuffer(frame, dtype=np.uint8).reshape(height, width, 4).astype(np.float32) / 255
+        decoded.append(pixels)
+    return decoded, height, width
+
+
+def load_texture_frames(file_object) -> tuple[list[np.ndarray], int, int]:
+    """Decode every animation frame of a VTF as float RGBA arrays.
+
+    ``load_texture`` only ever returns the first frame. Multi-frame VTFs back
+    Source's ``AnimatedTexture`` proxy -- e.g. HL2's 29-frame
+    ``dev/water_normal`` -- so animated materials need all of them.
+
+    Returns ``([frame, ...], height, width)``; for a single-frame texture the one
+    frame is bit-identical to :func:`load_texture`.
+    """
+    data = file_object.read()
+    if load_vtf_texture_frames is None:
+        logger.warn('pylib is too old to extract animation frames, using first frame only')
+        rgba_data, height, width = load_texture(MemoryBuffer(data))
+        if rgba_data is None:
+            return [], 0, 0
+        return [rgba_data.reshape(height, width, -1)], height, width
+    try:
+        frames, width, height, is_float = load_vtf_texture_frames(data)
+    except Exception as ex:
+        logger.error('Caught exception "{}" '.format(ex))
+        return [], 0, 0
+
+    decoded = []
+    for frame in frames:
+        if is_float:
+            pixels = np.frombuffer(frame, dtype=np.float32).reshape(height, width, 4)
+        else:
+            pixels = np.frombuffer(frame, dtype=np.uint8).reshape(height, width, 4).astype(np.float32) / 255
+        decoded.append(pixels)
+    return decoded, height, width
+
+
+def load_texture_frames(file_object) -> tuple[list[np.ndarray], int, int]:
+    """Decode every animation frame of a VTF as float RGBA arrays.
+
+    ``load_texture`` only ever returns the first frame. Multi-frame VTFs back
+    Source's ``AnimatedTexture`` proxy -- e.g. HL2's 29-frame
+    ``dev/water_normal`` -- so animated materials need all of them.
+
+    Returns ``([frame, ...], height, width)``; for a single-frame texture the one
+    frame is bit-identical to :func:`load_texture`.
+    """
+    data = file_object.read()
+    if load_vtf_texture_frames is None:
+        logger.warn('pylib is too old to extract animation frames, using first frame only')
+        rgba_data, height, width = load_texture(MemoryBuffer(data))
+        if rgba_data is None:
+            return [], 0, 0
+        return [rgba_data.reshape(height, width, -1)], height, width
+    try:
+        frames, width, height, is_float = load_vtf_texture_frames(data)
+    except Exception as ex:
+        logger.error('Caught exception "{}" '.format(ex))
+        return [], 0, 0
+
+    decoded = []
+    for frame in frames:
+        if is_float:
+            pixels = np.frombuffer(frame, dtype=np.float32).reshape(height, width, 4)
+        else:
+            pixels = np.frombuffer(frame, dtype=np.uint8).reshape(height, width, 4).astype(np.float32) / 255
+        decoded.append(pixels)
+    return decoded, height, width
 
 
 def load_texture_tth(header_file: Buffer, data_file: Buffer):

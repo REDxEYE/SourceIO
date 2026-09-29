@@ -1,3 +1,4 @@
+from SourceIO.blender_bindings.models.materials import get_model_material_names
 import math
 from collections import defaultdict
 from typing import Union
@@ -8,8 +9,8 @@ from mathutils import Euler, Matrix, Quaternion, Vector
 
 from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOption
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material, ActionCurveFactory
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v2531 import MdlV2531
@@ -23,7 +24,7 @@ from SourceIO.library.models.vvd import Vvd
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.shared.content_manager.provider import ContentProvider
 from SourceIO.library.utils.common import get_slice
-from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -80,9 +81,11 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
-                 options: ModelOptions):
-    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      content_manager)
+    #            options: ModelOptions):
+    #full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
+    #                                                  content_manager)
+                 scale=1.0, create_drivers=False, load_refpose=False):
+    full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
 
@@ -114,7 +117,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
 
             mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            default_skin_groups = {str(n): list(map(lambda a: a.bpy_material.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)
@@ -415,7 +418,7 @@ def import_animations(mdl: MdlV44, armature, scale):
             for anim_desc in mdl.anim_descs:
                 anim_name = f'pos_{var_pos}_rot_{var_rot}_{anim_desc.name}'
                 action = bpy.data.actions.new(anim_name)
-                armature.animation_data.action = action
+                factory = ActionCurveFactory(action, armature)
                 curve_per_bone = {}
                 for bone in anim_desc.anim_bones:
                     if bone.bone_id == -1:
@@ -423,20 +426,17 @@ def import_animations(mdl: MdlV44, armature, scale):
                     bone_name = mdl.bones[bone.bone_id].name
 
                     bone_string = f'pose.bones["{bone_name}"].'
-                    group = action.groups.new(name=bone_name)
+                    group = factory.new_group(bone_name)
                     pos_curves = []
                     rot_curves = []
                     for i in range(3):
-                        pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                        pos_curve.keyframe_points.add(anim_desc.frame_count)
+                        pos_curve = factory.new_fcurve(data_path=bone_string + "location", index=i, group=group)
+                        pos_curve.keyframe_points.add(count=anim_desc.frame_count)
                         pos_curves.append(pos_curve)
-                        pos_curve.group = group
                     for i in range(3):
-                        # rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                        rot_curve = action.fcurves.new(data_path=bone_string + "rotation_euler", index=i)
-                        rot_curve.keyframe_points.add(anim_desc.frame_count)
+                        rot_curve = factory.new_fcurve(data_path=bone_string + "rotation_euler", index=i, group=group)
+                        rot_curve.keyframe_points.add(count=anim_desc.frame_count)
                         rot_curves.append(rot_curve)
-                        rot_curve.group = group
                     curve_per_bone[bone_name] = pos_curves, rot_curves
 
                 for bone in anim_desc.anim_bones:
@@ -469,7 +469,7 @@ def import_animations(mdl: MdlV44, armature, scale):
                         pos = __swap_components(pos_frame, var_pos)
 
                         for i in range(3):
-                            pos_curves[i].keyframe_points.add(1)
+                            pos_curves[i].keyframe_points.add(count=1)
                             pos_curves[i].keyframe_points[-1].co = (n, pos[i])
 
                     for n, rot_frame in enumerate(rot_frames):
@@ -491,7 +491,7 @@ def import_animations(mdl: MdlV44, armature, scale):
                         fixed_rot = (
                                 fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
                         for i in range(3):
-                            rot_curves[i].keyframe_points.add(1)
+                            rot_curves[i].keyframe_points.add(count=1)
                             rot_curves[i].keyframe_points[-1].co = (n, fixed_rot[i])
 
                         bpy.ops.object.mode_set(mode='OBJECT')

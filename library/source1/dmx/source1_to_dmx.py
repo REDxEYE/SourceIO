@@ -4,7 +4,7 @@ from typing import Optional, Type
 import numpy as np
 
 from SourceIO.library.utils.tiny_path import TinyPath
-from SourceIO.library.shared.types import Vector3, Vector4
+from SourceIO.library.shared.vector_types import Vector3, Vector4
 from SourceIO.library.utils import datamodel
 
 

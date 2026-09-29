@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 
-from SourceIO.library.shared.types import Vector2
+from SourceIO.library.shared.vector_types import Vector2
 from SourceIO.library.utils import Buffer
 
 

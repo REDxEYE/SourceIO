@@ -28,7 +28,7 @@ class LZ4ChainEncoder:
     block_size: Any
     extra_blocks: Any
 
-    def __init__(self, block_size, extra_blocks) -> Any:
+    def __init__(self: Any, *args: Any, **kwargs: Any) -> Any:
         """
         Initialize self.  See help(type(self)) for accurate signature.
         """

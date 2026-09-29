@@ -5,13 +5,17 @@ from SourceIO.blender_bindings.material_loader.shader_base import ShaderBase
 from SourceIO.blender_bindings.source1.vtf import import_texture
 from SourceIO.blender_bindings.utils.texture_utils import check_texture_cache
 from SourceIO.library.shared.content_manager import ContentManager
-from SourceIO.blender_bindings.source1.vtf import import_texture, import_texture_tth
+from SourceIO.blender_bindings.source1.vtf import import_animated_texture, import_texture, import_texture_tth
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
 class Source1ShaderBase(ShaderBase):
-    def __init__(self, content_manager: ContentManager, vmt):
+
+    _DEFAULT_TRANSFORM = {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1),
+                          'rotate': (0, 0, 0), 'translate': (0, 0, 0)}
+
+    def __init__(self, content_manager: ContentManager, vmt: VMT):
         super().__init__()
         self.content_manager = content_manager
         self.load_bvlg_nodes()
@@ -22,21 +26,100 @@ class Source1ShaderBase(ShaderBase):
         self._vmt: VMT = vmt
         self.textures = {}
 
-    def load_texture(self, texture_name: str, texture_path: TinyPath):
-        image = check_texture_cache(texture_path / texture_name)
+    def _color_property(self, name: str, default=None, length: int = 4, filler: float = 1.0):
+        """Read a VMT vector/color property.
+
+        Integer-syntax values (``{255 128 0}``) are normalized to 0..1, single
+        floats are broadcast to greyscale, and the result is padded/truncated to
+        ``length``. Returns ``None`` when the property is absent and no default
+        was supplied.
+        """
+        value, value_type = self._vmt.get_vector(name, default)
+        if value is None:
+            return None
+        divider = 255 if value_type is int else 1
+        value = [component / divider for component in value]
+        if len(value) == 1:
+            value = [value[0]] * 3
+        return self.ensure_length(value, length, filler)
+
+    def _texture_property(self, name: str, default_color: tuple[float, float, float, float],
+                          *, is_data: bool = False, normal_map: bool = False, ssbump: bool = False):
+        """Load a VMT texture property, or ``None`` if it is not set.
+
+        ``normal_map`` flips the green channel, ``ssbump`` converts from
+        self-shadowed bump space; both imply non-color data.
+        """
+        texture_path = self._vmt.get_string(name, None)
+        if texture_path is None:
+            return None
+        image = self.load_texture_or_default(texture_path, default_color)
+        if ssbump:
+            image = self.convert_ssbump(image)
+        if normal_map:
+            image = self.convert_normalmap(image)
+        if is_data or normal_map or ssbump:
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+        return image
+
+    def _bool_property(self, name: str, default: int = 0) -> bool:
+        return self._vmt.get_int(name, default) == 1
+
+    def load_animated_texture(self, name: str, default_color: tuple[float, float, float, float],
+                              *, is_data: bool = False, normal_map: bool = False):
+        """Load a VTF property as an image sequence: ``(image, frame_count)``.
+
+        Falls back to a still image (``frame_count == 1``) when the texture has a
+        single frame or cannot be found, so callers only need to branch on the
+        count to decide whether to animate.
+
+        ``normal_map`` is applied while decoding rather than afterwards, since a
+        sequence datablock cannot be edited in place. ``$ssbump`` is deliberately
+        not supported here: its conversion is a per-pixel basis transform that
+        would have to run on every frame, and no shipped animated texture uses it.
+        """
+        texture_path = self._vmt.get_string(name, None)
+        if texture_path is None:
+            return None, 0
+
+        path = TinyPath(texture_path.lstrip('/'))
+        asset_path = TinyPath("materials") / (path.as_posix() + ".vtf")
+        texture_file = self.content_manager.find_file(asset_path)
+        if texture_file is None:
+            image = self._texture_property(name, default_color, is_data=is_data, normal_map=normal_map)
+            return image, (1 if image is not None else 0)
+
+        image, frame_count = import_animated_texture(path, texture_file, self.content_manager, asset_path,
+                                                     invert_y=normal_map)
+        if image is None:
+            image = self._texture_property(name, default_color, is_data=is_data, normal_map=normal_map)
+            return image, (1 if image is not None else 0)
+
+        if is_data or normal_map:
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+        return image, frame_count
+
+    def load_texture(self, texture_name: TinyPath, texture_path: TinyPath | None = None):
+        if texture_path is None or texture_path == texture_name:
+            full_path = texture_name
+        else:
+            full_path = texture_path / texture_name
+        image = check_texture_cache(full_path)
         if image is not None:
             return image
-        if texture_path.is_absolute(): # Absolute paths shouldn't even be here! This path is invalid
+        if texture_path is not None and texture_path.is_absolute():  # Absolute paths shouldn't even be here! This path is invalid
             return None
-        texture_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".vtf"))
+        texture_file = self.content_manager.find_file("materials" / (full_path + ".vtf"))
 
         if texture_file is not None:
-            return import_texture(texture_path / texture_name, texture_file)
+            return import_texture(full_path, texture_file)
 
-        texture_header_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".tth"))
-        texture_data_file = self.content_manager.find_file("materials" / texture_path / (texture_name + ".ttz"))
+        texture_header_file = self.content_manager.find_file("materials"  / (full_path + ".tth"))
+        texture_data_file = self.content_manager.find_file("materials" /  (full_path + ".ttz"))
         if texture_header_file is not None and texture_data_file is not None:
-            return import_texture_tth(texture_path / texture_name, texture_header_file, texture_data_file)
+            return import_texture_tth(full_path, texture_header_file, texture_data_file)
         return None
 
     @staticmethod

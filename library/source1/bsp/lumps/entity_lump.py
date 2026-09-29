@@ -3,8 +3,7 @@ import charset_normalizer
 from SourceIO.library.source1.bsp import Lump, ValveLumpInfo, lump_tag
 from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils import Buffer
-from SourceIO.library.utils.kv_parser import ValveKeyValueParser
-from SourceIO.library.utils.s1_keyvalues import KVParser
+from SourceIO.library.utils import kv1
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -26,10 +25,8 @@ class EntityLump(Lump):
         buffer = buffer.decode("utf8", "replace")
         buffer = buffer.translate(str.maketrans({chr(i): " " for i in range(0xA)}))
         buffer = buffer.translate(str.maketrans({chr(65533): " "}))
-        parser = ValveKeyValueParser(buffer_and_name=(buffer, 'EntityLump'), self_recover=True, array_of_blocks=True)
-        parser.parse()
-        for ent in parser.tree:
-            self.entities.append(ent.to_dict())
+        for entity in kv1.loads_blocks(buffer, 'EntityLump'):
+            self.entities.append(entity.to_dict())
         return self
 
 
@@ -48,10 +45,7 @@ class EntityPartitionsLump(Lump):
                 with ent_path.open('r') as f:
                     magic = f.read(11).strip()
                     assert magic == 'ENTITIES01', 'Invalid ent file'
-                    parser = KVParser(TinyPath('EntityLump'), f.read(-1))
-                    entity = parser.parse_value()
-                    while entity is not None:
-                        self.entities.append(entity)
-                        entity = parser.parse_value()
+                    for entity in kv1.loads_blocks(f.read(-1), str(ent_path)):
+                        self.entities.append(entity.to_dict())
 
         return self

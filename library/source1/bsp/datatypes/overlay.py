@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
 
-from SourceIO.library.shared.types import Vector2, Vector3
+from SourceIO.library.shared.vector_types import Vector2, Vector3
 from SourceIO.library.source1.bsp.bsp_file import VBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 

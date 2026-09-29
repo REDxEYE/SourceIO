@@ -37,10 +37,4 @@ class Mdl:
                 for _ in range(header.bone_count):
                     sequence_animations.append(StudioAnimation.from_buffer(buffer, sequence.frame_count))
             animations.append(sequence_animations)
-        # sequence = self.sequences[0]
-        # for n, bone in enumerate(self.bones):
-        #     bone: StudioBone
-        #     frame = sequence.frame_per_bone[n]
-        #     bone.pos = frame[0][0].tolist()
-        #     bone.rot = frame[0][1].tolist()
         return cls(header, bones, bodyparts, sequences, textures, animations)

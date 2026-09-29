@@ -37,6 +37,7 @@ from SourceIO.blender_bindings.source1.bsp.entities.csgo_entity_handlers import 
 from SourceIO.blender_bindings.source1.bsp.entities.halflife2_entity_handler import HalfLifeEntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.left4dead2_entity_handlers import Left4dead2EntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.portal2_entity_handlers import Portal2EntityHandler
+from SourceIO.blender_bindings.source1.bsp.entities.p2ce_entity_handlers import Portal2CEEntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.portal_entity_handlers import PortalEntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.tf2_entity_handler import TF2EntityHandler
 from SourceIO.blender_bindings.source1.bsp.entities.titanfall_entity_handler import TitanfallEntityHandler
@@ -97,7 +98,14 @@ def import_entities(bsp: VBSPFile, content_manager: ContentManager, settings: So
     elif (steam_id in [SteamAppId.PORTAL_2, SteamAppId.THINKING_WITH_TIME_MACHINE, SteamAppId.PORTAL_STORIES_MEL]
           and info.version != 29):  # Portal 2
         handler_class = Portal2EntityHandler
-    elif steam_id in [220, 380, 420]:  # Half-life2 and episodes
+    elif steam_id == SteamAppId.PORTAL_2_CE:
+        handler_class = Portal2CEEntityHandler
+    elif steam_id in (SteamAppId.HALF_LIFE_2, SteamAppId.HALF_LIFE_2_EP_1, SteamAppId.HALF_LIFE_2_EP_2,
+                      SteamAppId.HALF_LIFE_2_LOST_COAST, SteamAppId.HALF_LIFE_2_DEATHMATCH,
+                      SteamAppId.COUNTER_STRIKE_SOURCE, SteamAppId.GARRYS_MOD):
+        # HL2 and everything built directly on it: Lost Coast, HL2:DM, CS:S and
+        # Garry's Mod all ship HL2's entities and previously fell through to
+        # BaseEntityHandler with an "unrecognized game" warning.
         handler_class = HalfLifeEntityHandler
     elif steam_id == SteamAppId.VINDICTUS:
         handler_class = VindictusEntityHandler
@@ -157,18 +165,24 @@ def import_static_props(bsp: VBSPFile, settings: Source1BSPSettings, master_coll
                 placeholder.scale *= settings.scale
                 placeholder.empty_display_size = 16
 
+                entity = {
+                    'type': 'static_prop',
+                    'origin': '{} {} {}'.format(*prop.origin),
+                    'angles': '{} {} {}'.format(*prop.rotation),
+                    'scale': '{} {} {}'.format(*prop.scaling),
+                    'skin': str(prop.skin),
+                }
+
+                if prop.diffuse_modulation:
+                    tint = [a / 255.0 for a in prop.diffuse_modulation]
+                    entity['tint'] = f'{tint[0]} {tint[1]} {tint[2]} {1.0}'
+
                 placeholder['entity_data'] = {'parent_path': str(bsp.filepath.parent),
                                               'prop_path': model_name,
                                               'scale': settings.scale,
                                               'type': 'static_props',
-                                              'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
-                                              'entity': {
-                                                  'type': 'static_prop',
-                                                  'origin': '{} {} {}'.format(*prop.origin),
-                                                  'angles': '{} {} {}'.format(*prop.rotation),
-                                                  'scale': '{} {} {}'.format(*prop.scaling),
-                                                  'skin': str(prop.skin - 1 if prop.skin != 0 else 0),
-                                              }
+                                              'skin': str(prop.skin),
+                                              'entity': entity
                                               }
                 parent_collection.objects.link(placeholder)
 
@@ -189,6 +203,7 @@ def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: S
             content_manager.add_child(pak_lump)
         for texture_data in texture_data_lump.texture_data:
             material_name = strings_lump.strings[texture_data.name_id] or "NO_NAME"
+            material_name = material_name.lstrip("/\\")
             tmp = strip_patch_coordinates.sub("", material_name)
 
             mat = get_or_create_material(path_stem(tmp), tmp)
@@ -268,6 +283,7 @@ def import_materials(bsp: VBSPFile, content_manager: ContentManager, settings: S
         import_idtech3_materials()
     elif texture_info_lump and isinstance(texture_info_lump, Quake3TextureInfoLump):
         import_quake3_materials()
+
 
 def get_tex_info(face: Face, bsp: VBSPFile):
     tex_info_lump: TextureInfoLump = bsp.get_lump('LUMP_TEXINFO')
@@ -366,24 +382,24 @@ def import_disp(bsp: VBSPFile, settings: Source1BSPSettings,
 
             for j in range(num_edge_vertices):
                 disp_vertices[(i * num_edge_vertices + j)] = left_end + (left_right_step * j)
-        disp_uv[:, 0] = (np.dot(disp_vertices, tv1[:3]) + tv1[3] * settings.scale) / (
-                texture_data.view_width * settings.scale)
-        disp_uv[:, 1] = 1 - ((np.dot(disp_vertices, tv2[:3]) + tv2[3] * settings.scale) / (
-                texture_data.view_height * settings.scale))
+        disp_uv[:, 0] = (np.dot(disp_vertices / settings.scale, tv1[:3]) + tv1[3]) / (texture_data.view_width )
+        disp_uv[:, 1] = 1 - ((np.dot(disp_vertices / settings.scale, tv2[:3]) + tv2[3]) / (texture_data.view_height))
 
-        disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices]
-        final_vertex_colors['vertex_alpha'] = np.concatenate(
-            (np.hstack([disp_vertices_alpha, disp_vertices_alpha, disp_vertices_alpha]),
-             np.ones((disp_vertices_alpha.shape[0], 1))), axis=1)
+        disp_vertices_alpha = disp_verts_lump.vertices['alpha'][disp_indices] / 255
+        final_vertex_colors['vertex_alpha'] = np.ones((disp_vertices_alpha.shape[0],4))
+        final_vertex_colors['vertex_alpha'][:, 3:] = disp_vertices_alpha.reshape((disp_vertices_alpha.shape[0], 1))
 
         if disp_multiblend and disp_info.has_multiblend:
             multiblend_layers = disp_multiblend.blends[multiblend_offset:multiblend_offset + subdiv_vert_count]
+            # m_vMultiBlend is (w1, w2, w3, w4) and maps straight onto RGBA. CS:GO's
+            # lightmapped_4wayblend_ps20b.fxc reads only .g/.b/.a for layers 2/3/4:
+            #     blendfactor1 = i.vertexBlend.g * lum + i.vertexBlend.g;   // layer 2
+            #     blendfactor2 = i.vertexBlend.b * lum + i.vertexBlend.b;   // layer 3
+            #     blendfactor3 = i.vertexBlend.a * lum + i.vertexBlend.a;   // layer 4
+            # .r (layer 1) is never sampled -- layer 1 is the base that the lerp
+            # chain starts from. Swapping R and A here used to overwrite the layer-4
+            # weight with the unused layer-1 one, so layer 4 never blended in.
             final_vertex_colors['multiblend'] = multiblend_layers['multiblend'].copy()
-            red = final_vertex_colors['multiblend'][:, 0].copy()
-            alpha = final_vertex_colors['multiblend'][:, 3].copy()
-
-            final_vertex_colors['multiblend'][:, 3] = red
-            final_vertex_colors['multiblend'][:, 0] = alpha
 
             final_vertex_colors['alphablend'] = multiblend_layers['alphablend']
             miltiblend_color_layer = multiblend_layers['multiblend_colors']

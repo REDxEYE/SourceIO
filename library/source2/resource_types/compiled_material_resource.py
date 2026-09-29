@@ -17,33 +17,31 @@ class CompiledMaterialResource(CompiledResource):
 
     def get_int_property(self, prop_name, default=None):
         data = self.get_block(KVBlock, block_name='DATA')
-        return self._get_prop(prop_name, data['m_intParams'], 'm_nValue') or default
+        return self._get_prop(prop_name, data['m_intParams'], 'm_nValue', default)
 
     def get_float_property(self, prop_name, default=None):
         data = self.get_block(KVBlock, block_name='DATA')
-        return self._get_prop(prop_name, data['m_floatParams'], 'm_flValue') or default
+        return self._get_prop(prop_name, data['m_floatParams'], 'm_flValue', default)
 
     def get_vector_property(self, prop_name, default=None):
         data = self.get_block(KVBlock, block_name='DATA')
-        value = self._get_prop(prop_name, data['m_vectorParams'], 'm_value')
-        if value is None:
-            return default
-        return value
+        return self._get_prop(prop_name, data['m_vectorParams'], 'm_value', default)
 
     def get_texture_property(self, prop_name, default=None):
         data = self.get_block(KVBlock, block_name='DATA')
-        return self._get_prop(prop_name, data['m_textureParams'], 'm_pValue') or default
+        return self._get_prop(prop_name, data['m_textureParams'], 'm_pValue', default)
 
     def get_dynamic_property(self, prop_name, default=None):
         data = self.get_block(KVBlock, block_name='DATA')
-        return self._get_prop(prop_name, data['m_dynamicParams'], 'error') or default
+        return self._get_prop(prop_name, data['m_dynamicParams'], 'error', default)
 
     def get_dynamic_texture(self, prop_name, default=None):
         data = self.get_block(KVBlock, block_name='DATA')
-        return self._get_prop(prop_name, data['m_dynamicTextureParams'], 'error') or default
+        return self._get_prop(prop_name, data['m_dynamicTextureParams'], 'error', default)
 
     @staticmethod
-    def _get_prop(prop_name: str, prop_array: list[dict], prop_value_name):
+    def _get_prop(prop_name: str, prop_array: list[dict], prop_value_name, default=None):
         for prop in prop_array:
             if prop['m_name'] == prop_name:
                 return prop[prop_value_name]
+        return default

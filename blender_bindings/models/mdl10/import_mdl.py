@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 from typing import Optional
 
@@ -8,10 +9,11 @@ from mathutils import Euler, Matrix, Vector
 from SourceIO.blender_bindings.material_loader.shaders.goldsrc_shaders.goldsrc_shader import GoldSrcShader
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material, ActionCurveFactory
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
-from SourceIO.library.models.mdl.v10.mdl_file import Mdl
+from SourceIO.library.models.mdl.v10.mdl_file import Mdl, Channels
 from SourceIO.library.models.mdl.v10.structs.texture import StudioTexture
+from SourceIO.library.models.mdl.v10.structs.sequence import StudioSequence
 from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.path_utilities import path_stem
 
@@ -28,33 +30,45 @@ def create_armature(mdl: Mdl, scale):
     bpy.context.view_layer.objects.active = armature_obj
     bpy.ops.object.mode_set(mode='EDIT')
 
-    for n, mdl_bone_info in enumerate(mdl.bones):
-        if not mdl_bone_info.name:
-            mdl_bone_info.name = f'Bone_{n}'
-        mdl_bone = armature.edit_bones.new(mdl_bone_info.name)
-        mdl_bone.head = Vector(mdl_bone_info.pos) * scale
-        mdl_bone.tail = (Vector([0, 0, 0.25]) * scale) + mdl_bone.head
-        if mdl_bone_info.parent != -1:
-            mdl_bone.parent = armature.edit_bones.get(mdl.bones[mdl_bone_info.parent].name)
-
-    bpy.ops.object.mode_set(mode='POSE')
-
+    bone_length = 0.25 * scale
+    edit_bones = []
     mdl_bone_transforms = []
 
-    for mdl_bone_info in mdl.bones:
-        mdl_bone = armature_obj.pose.bones.get(mdl_bone_info.name)
-        mdl_bone_pos = Vector(mdl_bone_info.pos) * scale
-        mdl_bone_rot = Euler(mdl_bone_info.rot).to_matrix().to_4x4()
-        mdl_bone_mat = Matrix.Translation(mdl_bone_pos) @ mdl_bone_rot
-        mdl_bone.matrix.identity()
-        mdl_bone.matrix = mdl_bone.parent.matrix @ mdl_bone_mat if mdl_bone.parent else mdl_bone_mat
+    # Create bones and calculate their armature-space transforms.
+    for index, mdl_bone_info in enumerate(mdl.bones):
+        if not mdl_bone_info.name:
+            mdl_bone_info.name = f"Bone_{index}"
 
-        if mdl_bone.parent:
-            mdl_bone_transforms.append(mdl_bone_transforms[mdl_bone_info.parent] @ mdl_bone_mat)
+        edit_bone = armature.edit_bones.new(mdl_bone_info.name)
+
+        mdl_bone_info.name = edit_bone.name
+
+        edit_bone.head = Vector((0.0, 0.0, 0.0))
+        edit_bone.tail = Vector((0.0, bone_length, 0.0))
+
+        local_position = Vector(mdl_bone_info.pos) * scale
+        local_rotation = Euler(mdl_bone_info.rot).to_matrix().to_4x4()
+        local_matrix = Matrix.Translation(local_position) @ local_rotation
+
+        if mdl_bone_info.parent != -1:
+            armature_matrix = mdl_bone_transforms[mdl_bone_info.parent] @ local_matrix
         else:
-            mdl_bone_transforms.append(mdl_bone_mat)
+            armature_matrix = local_matrix
 
-    bpy.ops.pose.armature_apply()
+        edit_bones.append(edit_bone)
+        mdl_bone_transforms.append(armature_matrix)
+
+    for index, mdl_bone_info in enumerate(mdl.bones):
+        edit_bone = edit_bones[index]
+
+        if mdl_bone_info.parent != -1:
+            edit_bone.parent = edit_bones[mdl_bone_info.parent]
+            edit_bone.use_connect = False
+
+        edit_bone.matrix = mdl_bone_transforms[index]
+
+        edit_bone.length = bone_length
+
     bpy.ops.object.mode_set(mode='OBJECT')
     return armature_obj, mdl_bone_transforms
 
@@ -69,7 +83,6 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
     objects = []
     bodygroups = defaultdict(list)
     armature, bone_transforms = create_armature(mdl, options.scale)
-    bpy.context.scene.collection.objects.unlink(armature)
 
     for body_part in mdl.bodyparts:
         for body_part_model in body_part.models:
@@ -139,7 +152,7 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
                 remap[model_material_index] = load_material(path_stem(mdl.header.name), model_texture_info,
                                                             model_object)
 
-            model_mesh.from_pydata(model_vertices, [], np.asarray(model_indices,np.uint32))
+            model_mesh.from_pydata(model_vertices, [], np.asarray(model_indices, np.uint32))
             model_mesh.update()
             model_mesh.polygons.foreach_set("use_smooth", np.ones(len(model_mesh.polygons), np.uint32))
             model_mesh.polygons.foreach_set('material_index', [remap[a] for a in model_materials])
@@ -171,6 +184,10 @@ def import_model(mdl_file: Buffer, mdl_texture_file: Optional[Buffer], options: 
                     model_mesh.vertices[vertex].co = vertex_group_transform @ model_mesh.vertices[vertex].co
                     # model_mesh.vertices[vertex].normal = vertex_group_transform @ model_mesh.vertices[vertex].normal
             model_mesh.validate()
+
+    load_animations(mdl, armature, path_stem(mdl.header.name), options.scale)
+    bpy.context.scene.collection.objects.unlink(armature)
+
     return ModelContainer(objects, bodygroups, [], [], armature)
 
 
@@ -182,3 +199,166 @@ def load_material(model_name: str, model_texture_info: StudioTexture, model_obje
     bpy_material.create_nodes(material, model_name=model_name)
     bpy_material.align_nodes()
     return mat_id
+
+
+def write_smd(mdl: Mdl, sequence: StudioSequence, animation: list[Channels]):
+    with open(sequence.name + ".smd", "w") as f:
+        f.write("version 1\n")
+        f.write("nodes\n")
+        for i, bone in enumerate(mdl.bones):
+            f.write(f"  {i} \"{bone.name}\" {bone.parent}\n")
+        f.write("end\n")
+        f.write("skeleton\n")
+        for frame in range(sequence.frame_count):
+            f.write(f"  time {frame}\n")
+            for i, bone in enumerate(mdl.bones):
+                animation_channels = animation[i]
+
+                pos = Vector((bone.pos[0], bone.pos[1], bone.pos[2]))
+                rot = Vector((bone.rot[0], bone.rot[1], bone.rot[2]))
+
+                if animation_channels.pos_x is not None:
+                    pos.x = animation_channels.pos_x[frame] * bone.pos_scale[0] + bone.pos[0]
+
+                if animation_channels.pos_y is not None:
+                    pos.y = animation_channels.pos_y[frame] * bone.pos_scale[1] + bone.pos[1]
+
+                if animation_channels.pos_z is not None:
+                    pos.z = animation_channels.pos_z[frame] * bone.pos_scale[2] + bone.pos[2]
+
+                if animation_channels.rot_x is not None:
+                    rot.x = animation_channels.rot_x[frame] * bone.rot_scale[0] + bone.rot[0]
+
+                if animation_channels.rot_y is not None:
+                    rot.y = animation_channels.rot_y[frame] * bone.rot_scale[1] + bone.rot[1]
+
+                if animation_channels.rot_z is not None:
+                    rot.z = animation_channels.rot_z[frame] * bone.rot_scale[2] + bone.rot[2]
+
+                if bone.parent == -1:
+                    tmp = pos[0]
+                    pos[0] = pos[1]
+                    pos[1] = -tmp
+
+                    rot[2] += math.radians(-90)
+
+                f.write(f"    {i} ")
+                f.write(f"{0 + pos[0]:.06f} ")
+                f.write(f"{0 + pos[1]:.06f} ")
+                f.write(f"{0 + pos[2]:.06f} ")
+                f.write(f"{0 + rot[0]:.06f} ")
+                f.write(f"{0 + rot[1]:.06f} ")
+                f.write(f"{0 + rot[2]:.06f}")
+
+                f.write("\n")
+        f.write("end\n")
+
+
+def load_animations(mdl: Mdl, armature, model_name, scale):
+    # animation_zero = mdl.animations[0]
+    bpy.ops.object.select_all(action="DESELECT")
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    if not armature.animation_data:
+        armature.animation_data_create()
+
+    for bone in armature.pose.bones:
+        bone.rotation_mode = 'XYZ'
+
+    for sequence_id, sequence in enumerate(mdl.sequences):
+        if sequence.group_index != 0:
+            continue
+        if sequence.name != "walk1":
+            continue
+
+        animation = mdl.animations[sequence_id]
+        # write_smd(mdl, sequence, animation[0])
+
+        action = bpy.data.actions.new(f'{model_name}_{sequence.name}')
+        action.use_fake_user = True
+        factory = ActionCurveFactory(action, armature)
+
+        curve_per_bone = {}
+
+        for bone in mdl.bones:
+            bone_string = f'pose.bones["{bone.name}"].'
+            group = factory.new_group(bone.name)
+            pos_curves = []
+            rot_curves = []
+            for i in range(3):
+                pos_curve = factory.new_fcurve(data_path=bone_string + "location", index=i, group=group)
+                pos_curve.keyframe_points.add(count=sequence.frame_count)
+                pos_curves.append(pos_curve)
+            for i in range(3):
+                rot_curve = factory.new_fcurve(data_path=bone_string + "rotation_euler", index=i, group=group)
+                rot_curve.keyframe_points.add(count=sequence.frame_count)
+                rot_curves.append(rot_curve)
+            curve_per_bone[bone.name] = pos_curves, rot_curves
+
+        blend0_animation = animation[0]
+
+        for bone_id, bone in enumerate(mdl.bones):
+            pos_curves, rot_curves = curve_per_bone[bone.name]
+            bone_pos_scale = [x * scale for x in bone.pos_scale]
+            bone_rot_scale = bone.rot_scale
+
+            animation_channels = blend0_animation[bone_id]
+
+            def apply_animation(curve, values: np.ndarray):
+                for n in range(values.size):
+                    curve.keyframe_points[n].co = (n, values[n])
+
+            if bone.parent == -1:
+                if animation_channels.pos_y is not None:
+                    apply_animation(pos_curves[0], bone.pos[0] + animation_channels.pos_y * bone_pos_scale[1])
+
+                if animation_channels.pos_x is not None:
+                    apply_animation(pos_curves[1], -(bone.pos[1] + animation_channels.pos_x * bone_pos_scale[0]))
+
+                if animation_channels.pos_z is not None:
+                    apply_animation(pos_curves[2], bone.pos[2] + animation_channels.pos_z * bone_pos_scale[2])
+
+                if animation_channels.rot_x is not None:
+                    apply_animation(rot_curves[0], bone.rot[0] + animation_channels.rot_x * bone_rot_scale[0])
+
+                if animation_channels.rot_y is not None:
+                    apply_animation(rot_curves[1], bone.rot[1] + animation_channels.rot_y * bone_rot_scale[1])
+
+                if animation_channels.rot_z is not None:
+                    apply_animation(rot_curves[2], (bone.rot[2] + animation_channels.rot_z * bone_rot_scale[2]))
+
+            else:
+                if animation_channels.pos_x is not None:
+                    apply_animation(pos_curves[0], bone.pos[0] + animation_channels.pos_x * bone_pos_scale[0])
+
+                if animation_channels.pos_y is not None:
+                    apply_animation(pos_curves[1], bone.pos[1] + animation_channels.pos_y * bone_pos_scale[1])
+
+                if animation_channels.pos_z is not None:
+                    apply_animation(pos_curves[2], bone.pos[2] + animation_channels.pos_z * bone_pos_scale[2])
+
+                if animation_channels.rot_x is not None:
+                    apply_animation(rot_curves[0], bone.rot[0] + animation_channels.rot_x * bone_rot_scale[0])
+
+                if animation_channels.rot_y is not None:
+                    apply_animation(rot_curves[1], bone.rot[1] + animation_channels.rot_y * bone_rot_scale[1])
+
+                if animation_channels.rot_z is not None:
+                    apply_animation(rot_curves[2], bone.rot[2] + animation_channels.rot_z * bone_rot_scale[2])
+
+            # for n, frame in enumerate(bone_animations.frames):
+            #     # print(zero_anim[0], zero_anim[1])
+            #     # print(frame[0], frame[1])
+            #     bone_pos = Vector((frame[0]).tolist()) * scale
+            #     bone_rot = Euler((frame[1]).tolist())
+            #     # if bone.parent == -1:
+            #     #     bone_pos.x, bone_pos.y = bone_pos.y, bone_pos.x
+            #     #     bone_rot.z += math.radians(-90)
+            #     for i in range(3):
+            #         pos_curves[i].keyframe_points.add(count=1)
+            #         pos_curves[i].keyframe_points[-1].co = (n, bone_pos[i])
+            #     for i in range(3):
+            #         rot_curves[i].keyframe_points.add(count=1)
+            #         rot_curves[i].keyframe_points[-1].co = (n, bone_rot[i])
+    bpy.ops.object.mode_set(mode='OBJECT')

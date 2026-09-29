@@ -1,5 +1,6 @@
 import itertools
 import operator
+import traceback
 from hashlib import md5
 from itertools import chain
 from typing import Any, MutableMapping, Iterable
@@ -15,16 +16,18 @@ from mathutils import Matrix
 from .import_settings_base import ModelOptions
 from SourceIO.blender_bindings.models import import_model
 from SourceIO.blender_bindings.models.common import put_into_collections as s1_put_into_collections
+from SourceIO.blender_bindings.models.prop_animations import pose_prop
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.shared.skins import prop_skin, set_skin, set_model_skin
 from SourceIO.blender_bindings.source2.vmdl_loader import load_model, ImportContext
 from SourceIO.blender_bindings.source2.vmdl_loader import put_into_collections as s2_put_into_collections
-from SourceIO.blender_bindings.utils.bpy_utils import (get_or_create_collection, find_layer_collection,
+from SourceIO.blender_bindings.utils.bpy_utils import (get_or_create_collection, get_new_unique_collection, find_layer_collection,
                                                        pause_view_layer_update)
 from SourceIO.blender_bindings.utils.resource_utils import deserialize_mounted_content, serialize_mounted_content
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source2 import CompiledModelResource
-from SourceIO.library.utils.path_utilities import path_stem
+from SourceIO.library.utils import Buffer
 from SourceIO.library.utils.tiny_path import TinyPath
 
 
@@ -97,6 +100,31 @@ class SourceIO_OT_LoadEntity(Operator):
 
         return {'FINISHED'}
 
+    def apply_prop_pose(self, content_manager: ContentManager, model_container, prop_path: TinyPath,
+                        default_anim: str | None, mdl_file: Buffer):
+        """Pose an imported prop at its authored sequence.
+
+        ``defaultanim`` names the sequence the prop is meant to sit in; without it,
+        the model's own first sequence is used, which is the pose it was authored
+        with. Doing nothing leaves animated props in their bind pose -- doors flat
+        open, panels retracted.
+
+        The applied sequence is recorded on the armature as ``prop_animation``,
+        mirroring how ``prop_path`` is stored, so the pose can be identified after
+        the fact.
+        """
+        armature = model_container.armature
+        if armature is None:
+            return
+        try:
+            applied = pose_prop(content_manager, armature, prop_path, mdl_file, default_anim)
+        except Exception:
+            self.report({"WARNING"}, f"Failed to pose {prop_path}")
+            traceback.print_exc()
+            return
+        armature['prop_animation'] = applied or ''
+        armature['prop_animation_requested'] = default_anim or ''
+
     def load_mdl(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
         use_collections = context.scene.use_instances
         import_materials = context.scene.import_materials
@@ -109,8 +137,15 @@ class SourceIO_OT_LoadEntity(Operator):
         prop_path = TinyPath(custom_prop_data['prop_path'])
 
         default_anim = custom_prop_data["entity"].get("defaultanim", None)
+        # A prop with its own sequence gets an entity-specific pose, so it cannot
+        # share a collection with other instances of the same model; import it as a
+        # real object instead. Props without one are posed at their model's default
+        # sequence, which is identical for every instance and safe to share.
+        if default_anim:
+            use_collections = False
 
-        instance_collection = get_collection(prop_path, default_anim)
+        skin = prop_skin(obj, '0')
+        instance_collection = get_collection(prop_path, default_anim, f'skin={skin}')
         if instance_collection and use_collections:
             collection = bpy.data.collections.get(instance_collection, None)
             if collection is not None:
@@ -147,91 +182,44 @@ class SourceIO_OT_LoadEntity(Operator):
 
         obj["entity_data"]["prop_path"] = None
         obj["entity_data"]["imported"] = True
+
+        # Pose before the collection is registered, so every instance that links to
+        # it inherits the pose.
+        self.apply_prop_pose(content_manager, model_container, prop_path, default_anim, mdl_file)
+        set_model_skin(model_container, skin)
+
+        entity_ = obj["entity_data"]["entity"]
+
+        def apply_tint(o):
+            if "tint" in entity_:
+                tint_ = [float(a) for a in entity_["tint"].split(" ")]
+                o.color = tint_
+
         if use_collections:
             s1_put_into_collections(model_container, prop_path.stem, master_instance_collection, False)
-            add_collection(prop_path, model_container.master_collection, default_anim)
+            add_collection(prop_path, model_container.master_collection, default_anim, f'skin={skin}')
 
             obj.instance_type = 'COLLECTION'
             obj.instance_collection = model_container.master_collection
+            apply_tint(obj)
             return
 
         imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
         s1_put_into_collections(model_container, prop_path.stem, imported_collection, False)
 
-        # if default_anim is not None and model_container.armature is not None:
-        #     try:
-        #         import_static_animations(content_manager, model_container.mdl, default_anim,
-        #                                  model_container.armature, 1.0)
-        #     except RuntimeError:
-        #         self.report({"WARNING"}, "Failed to load animation")
-        #         traceback.print_exc()
-
         if replace_entity:
             self.replace_placeholder(model_container, obj, True)
+            for o in model_container.objects:
+                apply_tint(o)
+
         else:
             if model_container.armature:
                 model_container.armature.parent = obj
             else:
                 for o in model_container.objects:
                     o.parent = obj
-
-        # entity_data_holder = bpy.data.objects.new(model_container.mdl.header.name, None)
-        # entity_data_holder['entity_data'] = {}
-        # entity_data_holder['entity_data']['entity'] = obj['entity_data']['entity']
-        #
-        # master_collection = s1_put_into_collections(model_container, prop_path.stem, collection, False)
-        # master_collection.objects.link(entity_data_holder)
-        #
-        # if model_container.armature is not None:
-        #     armature = model_container.armature
-        #     armature.rotation_mode = "XYZ"
-        #     entity_data_holder.parent = armature
-        #
-        #     bpy.context.view_layer.update()
-        #     armature.parent = obj.parent
-        #     armature.matrix_world = obj.matrix_world.copy()
-        #     armature.rotation_euler[2] += math.radians(90)
-        # else:
-        #     if model_container.objects:
-        #         entity_data_holder.parent = model_container.objects[0]
-        #     else:
-        #         entity_data_holder.location = obj.location
-        #         entity_data_holder.rotation_euler = obj.rotation_euler
-        #         entity_data_holder.scale = obj.scale
-        #     for mesh_obj in model_container.objects:
-        #         mesh_obj.rotation_mode = "XYZ"
-        #         bpy.context.view_layer.update()
-        #         mesh_obj.parent = obj.parent
-        #         mesh_obj.matrix_world = obj.matrix_world.copy()
-        #
-        # for mesh_obj in model_container.objects:
-        #     mesh_obj['prop_path'] = prop_path
-        # if container is None:
-        #     import_materials(model_container.mdl, unique_material_names=unique_material_names)
-        # skin = custom_prop_data.get('skin', None)
-        # if skin:
-        #     for model in model_container.objects:
-        #         if str(skin) in model['skin_groups']:
-        #             skin = str(skin)
-        #             skin_materials = model['skin_groups'][skin]
-        #             current_materials = model['skin_groups'][model['active_skin']]
-        #             print(skin_materials, current_materials)
-        #             for skin_material, current_material in zip(skin_materials, current_materials):
-        #                 if unique_material_names:
-        #                     skin_material = f"{TinyPath(model_container.mdl.header.name).stem}_{skin_material[:63]}"[
-        #                                     -63:]
-        #                     current_material = f"{TinyPath(model_container.mdl.header.name).stem}_{current_material[:63]}"[
-        #                                        -63:]
-        #                 else:
-        #                     skin_material = skin_material[:63]
-        #                     current_material = current_material[:63]
-        #
-        #                 swap_materials(model, skin_material, current_material)
-        #             model['active_skin'] = skin
-        #         else:
-        #             print(f'Skin {skin} not found')
-        #
-        # bpy.data.objects.remove(obj)
+            for o in model_container.objects:
+                apply_tint(o)
 
     def load_glm(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
         use_collections = context.scene.use_instances
@@ -312,6 +300,7 @@ class SourceIO_OT_LoadEntity(Operator):
         custom_prop_data: dict[str, Any] = dict(obj['entity_data'])
         prop_path = TinyPath(custom_prop_data['prop_path'])
         prop_type = custom_prop_data['type']
+        skin = prop_skin(obj, 'default')
 
         import_context = ImportContext(
             scale=custom_prop_data["scale"],
@@ -335,11 +324,12 @@ class SourceIO_OT_LoadEntity(Operator):
                 for draw_call in draw_calls:
                     import_context.draw_call_index = draw_call
                     container = load_model(content_manager, model_resource, import_context)
-                    prop_collection = get_or_create_collection(prop_path.stem + f"_{draw_call}",
+                    set_model_skin(container, skin)
+                    prop_collection = get_new_unique_collection(prop_path.stem + f"_{draw_call}",
                                                                master_instance_collection
                                                                )
                     s2_put_into_collections(container, model_resource.name, prop_collection)
-                    add_collection(prop_path, container.master_collection, str(draw_call))
+                    add_collection(prop_path, container.master_collection, str(draw_call), f'skin={skin}')
 
             fragments = custom_prop_data["fragments"]
             get_draw_call = operator.itemgetter("draw_call")
@@ -348,7 +338,7 @@ class SourceIO_OT_LoadEntity(Operator):
             _preload_draw_calls([d for d, m in draw_calls.items() if len(m) > 1])
             for draw_call, matrices_tints in draw_calls.items():
                 if len(matrices_tints) > 1:
-                    instance_collection = get_collection(prop_path, str(draw_call))
+                    instance_collection = get_collection(prop_path, str(draw_call), f'skin={skin}')
                     if instance_collection is None:
                         raise ValueError("Failed to get draw call collection")
                     for matrix, tint in matrices_tints:
@@ -372,6 +362,7 @@ class SourceIO_OT_LoadEntity(Operator):
                     matrix = Matrix(matrix)
                     import_context.draw_call_index = draw_call
                     container = load_model(content_manager, model_resource, import_context)
+                    set_model_skin(container, skin)
                     imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
                     s2_put_into_collections(container, model_resource.name, imported_collection,
                                             bodygroup_grouping=False)
@@ -388,7 +379,7 @@ class SourceIO_OT_LoadEntity(Operator):
             bpy.data.objects.remove(obj)
             return
 
-        instance_collection = get_collection(prop_path)
+        instance_collection = get_collection(prop_path, f'skin={skin}')
 
         if instance_collection and use_collections:
             collection = bpy.data.collections.get(instance_collection, None)
@@ -401,16 +392,16 @@ class SourceIO_OT_LoadEntity(Operator):
 
         vmld_file = content_manager.find_file(prop_path)
         if vmld_file:
-            # skin = custom_prop_data.get('skin', None)
             model_resource = CompiledModelResource.from_buffer(vmld_file, prop_path)
             container = load_model(content_manager, model_resource, import_context)
+            set_model_skin(container, skin)
             if replace_entity:
                 imported_collection = get_or_create_collection(f"IMPORTED_{parent.name}", parent)
                 s2_put_into_collections(container, model_resource.name, imported_collection)
                 for ob in container.objects:
                     ob.color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
             else:
-                prop_collection = get_or_create_collection(prop_path.stem, master_instance_collection)
+                prop_collection = get_new_unique_collection(prop_path.stem, master_instance_collection)
                 s2_put_into_collections(container, model_resource.name, prop_collection)
                 for ob in container.objects:
                     ob.color = custom_prop_data.get("tint_color", [1.0, 1.0, 1.0, 1.0])
@@ -418,7 +409,7 @@ class SourceIO_OT_LoadEntity(Operator):
             obj["entity_data"]["imported"] = True
 
             if use_collections:
-                add_collection(prop_path, container.master_collection)
+                add_collection(prop_path, container.master_collection, f'skin={skin}')
 
                 obj.instance_type = 'COLLECTION'
                 obj.instance_collection = container.master_collection
@@ -479,51 +470,16 @@ class SOURCEIO_OT_ChangeSkin(Operator):
 
     skin_name: bpy.props.StringProperty(name="skin_name", default="default")
 
-    def execute(self, context):
+    @classmethod
+    def poll(cls, context):
         obj = context.active_object
-        if obj.get('model_type', False):
-            model_type = obj['model_type']
-            if model_type == 's1':
-                self.handle_s1(obj)
-            elif model_type == 's2':
-                self.handle_s2(obj)
-            else:
-                self.handle_s2(obj)
+        return obj is not None and obj.type == 'MESH' and bool(obj.get('skin_groups'))
 
-        obj['active_skin'] = self.skin_name
+    def execute(self, context):
+        if not set_skin(context.active_object, self.skin_name):
+            self.report({'WARNING'}, f"Skin '{self.skin_name}' is unavailable")
+            return {'CANCELLED'}
         return {'FINISHED'}
-
-    def handle_s1(self, obj):
-        prop_path = TinyPath(obj['prop_path'])
-        skin_materials = obj['skin_groups'][self.skin_name]
-        old_skins = obj['skin_groups'][obj['active_skin']]
-
-        remap = {old: new for old, new in zip(old_skins, skin_materials)}
-
-        for n, mat in enumerate(obj.data.materials):
-            if (replacement := remap.get(mat)) == None: continue
-            obj.data.materials[n] = replacement
-
-        del remap
-
-    def handle_s2(self, obj):
-        skin_material = obj['skin_groups'][self.skin_name]
-        current_material = obj['skin_groups'][obj['active_skin']]
-
-        mat_name = path_stem(skin_material)
-        current_mat_name = path_stem(current_material)
-        swap_materials(obj, mat_name, current_mat_name)
-
-
-def swap_materials(obj, new_material_name, target_name):
-    mat = bpy.data.materials.get(new_material_name, None) or bpy.data.materials.new(name=new_material_name)
-    print(f'Swapping {target_name} with {new_material_name}')
-    for n, obj_mat in enumerate(obj.data.materials):
-        print(target_name, obj_mat.name)
-        if obj_mat.name == target_name:
-            print(obj_mat.name, "->", mat.name)
-            obj.data.materials[n] = mat
-            break
 
 
 class UITools:

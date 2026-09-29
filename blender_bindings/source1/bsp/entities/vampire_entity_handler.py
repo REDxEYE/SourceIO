@@ -78,25 +78,25 @@ class VampireEntityHandler(HalfLifeEntityHandler):
     def handle_prop_doorknob_electronic(self, entity: Base, entity_raw: dict):
         self._handle_entity_with_model(entity, entity_raw)
 
-    def handle_npc_VHumanCombatant(self, entity: Base, entity_raw: dict):
+    def handle_npc_vhumancombatant(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
-    def handle_npc_VRat(self, entity: Base, entity_raw: dict):
+    def handle_npc_vrat(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
-    def handle_npc_VPedestrian(self, entity: Base, entity_raw: dict):
+    def handle_npc_vpedestrian(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
-    def handle_npc_VTaxiDriver(self, entity: Base, entity_raw: dict):
+    def handle_npc_vtaxidriver(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
-    def handle_npc_VVampire(self, entity: Base, entity_raw: dict):
+    def handle_npc_vvampire(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
-    def handle_npc_VDialogPedestrian(self, entity: Base, entity_raw: dict):
+    def handle_npc_vdialogpedestrian(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
-    def handle_npc_VCop(self, entity: Base, entity_raw: dict):
+    def handle_npc_vcop(self, entity: Base, entity_raw: dict):
         self._handle_npc(entity, entity_raw)
 
     def handle_npc_payphone(self, entity: Base, entity_raw: dict):

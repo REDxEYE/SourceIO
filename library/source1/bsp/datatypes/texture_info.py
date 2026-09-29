@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import IntFlag
 
-from SourceIO.library.shared.types import Vector4
+from SourceIO.library.shared.vector_types import Vector4
 from SourceIO.library.source1.bsp.bsp_file import BSPFile, IBSPFile
 from SourceIO.library.utils.file_utils import Buffer
 

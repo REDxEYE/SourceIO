@@ -1,3 +1,4 @@
+from SourceIO.blender_bindings.models.materials import get_model_material_names, resolve_model_material
 import math
 from collections import defaultdict
 from typing import Union
@@ -10,7 +11,7 @@ from SourceIO.blender_bindings.material_loader.material_loader import ShaderRegi
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
-from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material
+from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material, ActionCurveFactory
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
 from SourceIO.library.models.mdl.v36.mdl_file import MdlV36
@@ -18,7 +19,7 @@ from SourceIO.library.models.mdl.v49.flex_expressions import *
 from SourceIO.library.models.vtx.v6.vtx import Vtx
 from SourceIO.library.shared.content_manager import ContentManager
 from SourceIO.library.source1.vmt import VMT
-from SourceIO.library.utils.path_utilities import path_stem, collect_full_material_names
+from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
 
@@ -67,8 +68,7 @@ def create_armature(mdl: MdlV36, scale=1.0):
 
 def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
                  scale=1.0, create_drivers=False, load_refpose=False):
-    full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-                                                      content_manager)
+    full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
 
@@ -91,7 +91,7 @@ def import_model(content_manager: ContentManager, mdl: MdlV36, vtx: Vtx,
             mesh_name = f'{body_part.name}_{model.name}'
             mesh_data = FastMesh.new(f'{mesh_name}_MESH')
             mesh_obj = bpy.data.objects.new(mesh_name, mesh_data)
-            default_skin_groups = {str(n): list(map(lambda a: a.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
+            default_skin_groups = {str(n): list(map(lambda a: a.bpy_material.name, group)) for (n, group) in enumerate(mdl.skin_groups)}
             mesh_obj['active_skin'] = '0'
             mesh_obj['model_type'] = 's1'
             objects.append(mesh_obj)
@@ -249,26 +249,20 @@ def create_attachments(mdl: MdlV36, armature: bpy.types.Object, scale):
 
 def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
     for material in mdl.materials:
-        material_path = None
-        material_file = None
-        material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
-        if '/' in material.name: # good chance the material name has the full path
-            material_file = content_manager.find_file(TinyPath("materials") / (material.name + ".vmt"))
-        if material_file:
-            material_path = TinyPath(material.name)
-        else:
-            for mat_path in mdl.materials_paths:
-                material_file = content_manager.find_file(TinyPath("materials") / mat_path / (material.name + ".vmt"))
-                if material_file:
-                    material_path = TinyPath(mat_path) / material.name
-                    break
+        material_path = resolve_model_material(content_manager, mdl, material.name)
         if material_path is None:
             logger.info(f'Material {material.name} not found')
             continue
         mat = get_or_create_material(material.name, material_path.as_posix())
 
+        material.bpy_material = mat
         if mat.get('source1_loaded', False):
             logger.info(f'Skipping loading of {mat} as it already loaded')
+            continue
+
+        material_file = content_manager.find_file('materials' / TinyPath(material_path.as_posix() + '.vmt'))
+        if material_file is None:
+            logger.info(f'Material {material.name} could not be opened')
             continue
 
         if material_path:
@@ -278,103 +272,3 @@ def import_materials(content_manager: ContentManager, mdl, use_bvlg=False):
 
         material.bpy_material = mat
         mdl.blender_materials_imported = True
-
-def __swap_components(vec, mp):
-    __pat = 'XYZ'
-    return [vec[__pat.index(k)] for k in mp]
-
-
-def import_animations(mdl: MdlV36, armature, scale):
-    bpy.ops.object.select_all(action="DESELECT")
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = armature
-    bpy.ops.object.mode_set(mode='POSE')
-    if not armature.animation_data:
-        armature.animation_data_create()
-    # for var_pos in ['XYZ', 'YXZ', ]:
-    #     for var_rot in ['XYZ', 'XZY', 'YZX', 'ZYX', 'YXZ', 'ZXY', ]:
-    for var_pos in ['XYZ']:
-        for var_rot in ['XYZ']:
-            for anim_desc in mdl.anim_descs:
-                anim_name = f'pos_{var_pos}_rot_{var_rot}_{anim_desc.name}'
-                action = bpy.data.actions.new(anim_name)
-                armature.animation_data.action = action
-                curve_per_bone = {}
-                for bone in anim_desc.anim_bones:
-                    if bone.bone_id == -1:
-                        continue
-                    bone_name = mdl.bones[bone.bone_id].name
-
-                    bone_string = f'pose.bones["{bone_name}"].'
-                    group = action.groups.new(name=bone_name)
-                    pos_curves = []
-                    rot_curves = []
-                    for i in range(3):
-                        pos_curve = action.fcurves.new(data_path=bone_string + "location", index=i)
-                        pos_curve.keyframe_points.add(anim_desc.frame_count)
-                        pos_curves.append(pos_curve)
-                        pos_curve.group = group
-                    for i in range(3):
-                        # rot_curve = action.fcurves.new(data_path=bone_string + "rotation_quaternion", index=i)
-                        rot_curve = action.fcurves.new(data_path=bone_string + "rotation_euler", index=i)
-                        rot_curve.keyframe_points.add(anim_desc.frame_count)
-                        rot_curves.append(rot_curve)
-                        rot_curve.group = group
-                    curve_per_bone[bone_name] = pos_curves, rot_curves
-
-                for bone in anim_desc.anim_bones:
-                    if bone.bone_id == -1:
-                        continue
-                    mdl_bone = mdl.bones[bone.bone_id]
-
-                    bl_bone = armature.pose.bones.get(mdl_bone.name)
-                    bl_bone.rotation_mode = 'XYZ'
-
-                    pos_scale = mdl_bone.position_scale
-                    rot_scale = mdl_bone.rotation_scale
-                    if bone.is_raw_pos:
-                        pos_frames = [Vector(np.multiply(np.multiply(bone.pos, pos_scale), scale))]
-                    elif bone.is_anim_pos:
-                        pos_frames = [Vector(np.multiply(np.multiply(pos, pos_scale), scale)) for pos in
-                                      bone.pos_anim]
-                    else:
-                        pos_frames = []
-
-                    if bone.is_raw_rot:
-                        rot_frames = [Euler(np.multiply(Quaternion(bone.quat).to_euler('XYZ'), rot_scale))]
-                    elif bone.is_anim_rot:
-                        rot_frames = [Euler(np.multiply(rot, rot_scale)) for rot in bone.vec_rot_anim]
-                    else:
-                        rot_frames = []
-
-                    pos_curves, rot_curves = curve_per_bone[mdl_bone.name]
-                    for n, pos_frame in enumerate(pos_frames):
-                        pos = __swap_components(pos_frame, var_pos)
-
-                        for i in range(3):
-                            pos_curves[i].keyframe_points.add(1)
-                            pos_curves[i].keyframe_points[-1].co = (n, pos[i])
-
-                    for n, rot_frame in enumerate(rot_frames):
-                        fixed_rot = rot_frame
-                        if mdl_bone.parent_bone_index == -1:
-                            fixed_rot.x += math.radians(-90)
-                            fixed_rot.y += math.radians(180)
-                            fixed_rot.z += math.radians(-90)
-                        fixed_rot = Euler(__swap_components(fixed_rot, var_rot))
-                        # qx = Quaternion([1, 0, 0], fixed_rot[0])
-                        # qy = Quaternion([0, 1, 0], -fixed_rot[1])
-                        # qz = Quaternion([0, 0, 1], -fixed_rot[2])
-                        # fixed_rot: Euler = (qx @ qy @ qz).to_euler()
-                        # fixed_rot.x += mdl_bone.rotation[0]
-                        # fixed_rot.y += mdl_bone.rotation[1]
-                        # fixed_rot.z += mdl_bone.rotation[2]
-                        fixed_rot.rotate(Euler([math.radians(90), math.radians(0), math.radians(0)]))
-                        fixed_rot.rotate(Euler([math.radians(0), math.radians(0), math.radians(90)]))
-                        fixed_rot = (
-                                fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
-                        for i in range(3):
-                            rot_curves[i].keyframe_points.add(1)
-                            rot_curves[i].keyframe_points[-1].co = (n, fixed_rot[i])
-
-                        bpy.ops.object.mode_set(mode='OBJECT')

@@ -48,6 +48,7 @@ class Label:
     def get(self, key: str, default: Any = None) -> Any:
         return self.extra_data.get(key, default)
 
+TReadable = TypeVar('TReadable', bound='Readable')
 
 class Buffer(abc.ABC, io.RawIOBase):
     def __init__(self):
@@ -271,7 +272,7 @@ class Buffer(abc.ABC, io.RawIOBase):
     def slice(self, offset: Optional[int] = None, size: int = -1) -> 'Buffer':
         raise NotImplementedError
 
-    def read_structure_array(self, offset, count, data_class: Type['Readable']):
+    def read_structure_array(self, offset, count, data_class: Type[TReadable]) -> list[TReadable]:
         if count == 0:
             return []
         self.seek(offset)

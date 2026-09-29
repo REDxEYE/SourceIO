@@ -117,7 +117,7 @@ class BaseBrush(Base):
 class EnableDisable(Base):
 
     @property
-    def StartDisabled(self):
+    def startdisabled(self):
         return self._raw_data.get('startdisabled', "0")
 
 
@@ -177,7 +177,7 @@ class SystemLevelChoice(Base):
         return self._raw_data.get('maxgpulevel', "0")
 
     @property
-    def disableX360(self):
+    def disablex360(self):
         return self._raw_data.get('disablex360', "0")
 
 
@@ -217,7 +217,7 @@ class RenderFields(RenderFxChoices, SystemLevelChoice):
 class Inputfilter(Base):
 
     @property
-    def InputFilter(self):
+    def inputfilter(self):
         return self._raw_data.get('inputfilter', "0")
 
 
@@ -253,7 +253,7 @@ class DamageFilter(Base):
 class ResponseContext(Base):
 
     @property
-    def ResponseContext(self):
+    def responsecontext(self):
         return self._raw_data.get('responsecontext', "")
 
 
@@ -261,15 +261,15 @@ class ResponseContext(Base):
 class Breakable(DamageFilter, Shadow, Targetname):
 
     @property
-    def ExplodeDamage(self):
+    def explodedamage(self):
         return parse_source_value(self._raw_data.get('explodedamage', 0))
 
     @property
-    def ExplodeRadius(self):
+    def exploderadius(self):
         return parse_source_value(self._raw_data.get('exploderadius', 0))
 
     @property
-    def PerformanceMode(self):
+    def performancemode(self):
         return self._raw_data.get('performancemode', "0")
 
 
@@ -377,11 +377,11 @@ class info_npc_spawn_destination(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def ReuseDelay(self):
+    def reusedelay(self):
         return parse_source_value(self._raw_data.get('reusedelay', 1))
 
     @property
-    def RenameNPC(self):
+    def renamenpc(self):
         return self._raw_data.get('renamenpc', "")
 
 
@@ -390,15 +390,15 @@ class BaseNPCMaker(Angles, EnableDisable, Targetname):
     icon_sprite = "editor/npc_maker.vmt"
 
     @property
-    def MaxNPCCount(self):
+    def maxnpccount(self):
         return parse_source_value(self._raw_data.get('maxnpccount', 1))
 
     @property
-    def SpawnFrequency(self):
+    def spawnfrequency(self):
         return self._raw_data.get('spawnfrequency', "5")
 
     @property
-    def MaxLiveChildren(self):
+    def maxlivechildren(self):
         return parse_source_value(self._raw_data.get('maxlivechildren', 5))
 
 
@@ -410,27 +410,27 @@ class npc_template_maker(BaseNPCMaker):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def TemplateName(self):
+    def templatename(self):
         return self._raw_data.get('templatename', "")
 
     @property
-    def Radius(self):
+    def radius(self):
         return parse_source_value(self._raw_data.get('radius', 256))
 
     @property
-    def DestinationGroup(self):
+    def destinationgroup(self):
         return self._raw_data.get('destinationgroup', None)
 
     @property
-    def CriterionVisibility(self):
+    def criterionvisibility(self):
         return self._raw_data.get('criterionvisibility', "2")
 
     @property
-    def CriterionDistance(self):
+    def criteriondistance(self):
         return self._raw_data.get('criteriondistance', "2")
 
     @property
-    def MinSpawnDistance(self):
+    def minspawndistance(self):
         return parse_source_value(self._raw_data.get('minspawndistance', 0))
 
 
@@ -438,7 +438,7 @@ class npc_template_maker(BaseNPCMaker):
 class BaseHelicopter(BaseNPC):
 
     @property
-    def InitialSpeed(self):
+    def initialspeed(self):
         return self._raw_data.get('initialspeed', "0")
 
 
@@ -454,11 +454,11 @@ class Light(Base):
         return parse_int_vector(self._raw_data.get('_light', "255 255 255 200"))
 
     @property
-    def _lightHDR(self):
+    def _lighthdr(self):
         return parse_int_vector(self._raw_data.get('_lighthdr', "-1 -1 -1 1"))
 
     @property
-    def _lightscaleHDR(self):
+    def _lightscalehdr(self):
         return parse_source_value(self._raw_data.get('_lightscalehdr', 0.5))
 
     @property
@@ -522,19 +522,19 @@ class HintNode(Node):
         return self._raw_data.get('hintactivity', "")
 
     @property
-    def nodeFOV(self):
+    def nodefov(self):
         return self._raw_data.get('nodefov', "180")
 
     @property
-    def StartHintDisabled(self):
+    def starthintdisabled(self):
         return self._raw_data.get('starthintdisabled', "0")
 
     @property
-    def Group(self):
+    def group(self):
         return self._raw_data.get('group', "")
 
     @property
-    def TargetNode(self):
+    def targetnode(self):
         return parse_source_value(self._raw_data.get('targetnode', -1))
 
     @property
@@ -542,15 +542,15 @@ class HintNode(Node):
         return parse_source_value(self._raw_data.get('radius', 0))
 
     @property
-    def IgnoreFacing(self):
+    def ignorefacing(self):
         return self._raw_data.get('ignorefacing', "2")
 
     @property
-    def MinimumState(self):
+    def minimumstate(self):
         return self._raw_data.get('minimumstate', "1")
 
     @property
-    def MaximumState(self):
+    def maximumstate(self):
         return self._raw_data.get('maximumstate', "3")
 
 
@@ -718,7 +718,7 @@ class ambient_generic(Targetname):
         return self._raw_data.get('radius', "1250")
 
     @property
-    def SourceEntityName(self):
+    def sourceentityname(self):
         return self._raw_data.get('sourceentityname', None)
 
 
@@ -741,11 +741,11 @@ class sound_mix_layer(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MixLayerName(self):
+    def mixlayername(self):
         return self._raw_data.get('mixlayername', "")
 
     @property
-    def Level(self):
+    def level(self):
         return parse_source_value(self._raw_data.get('level', 0.0))
 
 
@@ -753,15 +753,15 @@ class sound_mix_layer(Targetname):
 class func_lod(Targetname):
 
     @property
-    def DisappearMinDist(self):
+    def disappearmindist(self):
         return parse_source_value(self._raw_data.get('disappearmindist', 2000))
 
     @property
-    def DisappearMaxDist(self):
+    def disappearmaxdist(self):
         return parse_source_value(self._raw_data.get('disappearmaxdist', 2200))
 
     @property
-    def Solid(self):
+    def solid(self):
         return self._raw_data.get('solid', "0")
 
 
@@ -772,11 +772,11 @@ class env_zoom(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Rate(self):
+    def rate(self):
         return parse_source_value(self._raw_data.get('rate', 1.0))
 
     @property
-    def FOV(self):
+    def fov(self):
         return parse_source_value(self._raw_data.get('fov', 75))
 
 
@@ -787,83 +787,83 @@ class env_screenoverlay(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def OverlayName1(self):
+    def overlayname1(self):
         return self._raw_data.get('overlayname1', "")
 
     @property
-    def OverlayTime1(self):
+    def overlaytime1(self):
         return parse_source_value(self._raw_data.get('overlaytime1', 1.0))
 
     @property
-    def OverlayName2(self):
+    def overlayname2(self):
         return self._raw_data.get('overlayname2', "")
 
     @property
-    def OverlayTime2(self):
+    def overlaytime2(self):
         return parse_source_value(self._raw_data.get('overlaytime2', 1.0))
 
     @property
-    def OverlayName3(self):
+    def overlayname3(self):
         return self._raw_data.get('overlayname3', "")
 
     @property
-    def OverlayTime3(self):
+    def overlaytime3(self):
         return parse_source_value(self._raw_data.get('overlaytime3', 1.0))
 
     @property
-    def OverlayName4(self):
+    def overlayname4(self):
         return self._raw_data.get('overlayname4', "")
 
     @property
-    def OverlayTime4(self):
+    def overlaytime4(self):
         return parse_source_value(self._raw_data.get('overlaytime4', 1.0))
 
     @property
-    def OverlayName5(self):
+    def overlayname5(self):
         return self._raw_data.get('overlayname5', "")
 
     @property
-    def OverlayTime5(self):
+    def overlaytime5(self):
         return parse_source_value(self._raw_data.get('overlaytime5', 1.0))
 
     @property
-    def OverlayName6(self):
+    def overlayname6(self):
         return self._raw_data.get('overlayname6', "")
 
     @property
-    def OverlayTime6(self):
+    def overlaytime6(self):
         return parse_source_value(self._raw_data.get('overlaytime6', 1.0))
 
     @property
-    def OverlayName7(self):
+    def overlayname7(self):
         return self._raw_data.get('overlayname7', "")
 
     @property
-    def OverlayTime7(self):
+    def overlaytime7(self):
         return parse_source_value(self._raw_data.get('overlaytime7', 1.0))
 
     @property
-    def OverlayName8(self):
+    def overlayname8(self):
         return self._raw_data.get('overlayname8', "")
 
     @property
-    def OverlayTime8(self):
+    def overlaytime8(self):
         return parse_source_value(self._raw_data.get('overlaytime8', 1.0))
 
     @property
-    def OverlayName9(self):
+    def overlayname9(self):
         return self._raw_data.get('overlayname9', "")
 
     @property
-    def OverlayTime9(self):
+    def overlaytime9(self):
         return parse_source_value(self._raw_data.get('overlaytime9', 1.0))
 
     @property
-    def OverlayName10(self):
+    def overlayname10(self):
         return self._raw_data.get('overlayname10', "")
 
     @property
-    def OverlayTime10(self):
+    def overlaytime10(self):
         return parse_source_value(self._raw_data.get('overlaytime10', 1.0))
 
 
@@ -907,11 +907,11 @@ class env_particlelight(Parentname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Color(self):
+    def color(self):
         return parse_int_vector(self._raw_data.get('color', "255 0 0"))
 
     @property
-    def Intensity(self):
+    def intensity(self):
         return parse_source_value(self._raw_data.get('intensity', 5000))
 
     @property
@@ -919,7 +919,7 @@ class env_particlelight(Parentname):
         return self._raw_data.get('directional', "0")
 
     @property
-    def PSName(self):
+    def psname(self):
         return self._raw_data.get('psname', "")
 
 
@@ -966,7 +966,7 @@ class env_sun(Angles, Targetname):
         return self._raw_data.get('overlaymaterial', "sprites/light_glow02_add_noz")
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 0.5))
 
 
@@ -977,15 +977,15 @@ class game_ragdoll_manager(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MaxRagdollCount(self):
+    def maxragdollcount(self):
         return parse_source_value(self._raw_data.get('maxragdollcount', -1))
 
     @property
-    def MaxRagdollCountDX8(self):
+    def maxragdollcountdx8(self):
         return parse_source_value(self._raw_data.get('maxragdollcountdx8', -1))
 
     @property
-    def SaveImportant(self):
+    def saveimportant(self):
         return self._raw_data.get('saveimportant', "0")
 
 
@@ -1028,31 +1028,31 @@ class env_lightglow(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('rendercolor', "255 255 255"))
 
     @property
-    def VerticalGlowSize(self):
+    def verticalglowsize(self):
         return parse_source_value(self._raw_data.get('verticalglowsize', 30))
 
     @property
-    def HorizontalGlowSize(self):
+    def horizontalglowsize(self):
         return parse_source_value(self._raw_data.get('horizontalglowsize', 30))
 
     @property
-    def MinDist(self):
+    def mindist(self):
         return parse_source_value(self._raw_data.get('mindist', 500))
 
     @property
-    def MaxDist(self):
+    def maxdist(self):
         return parse_source_value(self._raw_data.get('maxdist', 2000))
 
     @property
-    def OuterMaxDist(self):
+    def outermaxdist(self):
         return parse_source_value(self._raw_data.get('outermaxdist', 0))
 
     @property
-    def GlowProxySize(self):
+    def glowproxysize(self):
         return parse_source_value(self._raw_data.get('glowproxysize', 2.0))
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 0.5))
 
 
@@ -1067,47 +1067,47 @@ class env_smokestack(Parentname, Angles):
         return self._raw_data.get('targetname', None)
 
     @property
-    def InitialState(self):
+    def initialstate(self):
         return self._raw_data.get('initialstate', "0")
 
     @property
-    def BaseSpread(self):
+    def basespread(self):
         return parse_source_value(self._raw_data.get('basespread', 20))
 
     @property
-    def SpreadSpeed(self):
+    def spreadspeed(self):
         return parse_source_value(self._raw_data.get('spreadspeed', 15))
 
     @property
-    def Speed(self):
+    def speed(self):
         return parse_source_value(self._raw_data.get('speed', 30))
 
     @property
-    def StartSize(self):
+    def startsize(self):
         return parse_source_value(self._raw_data.get('startsize', 20))
 
     @property
-    def EndSize(self):
+    def endsize(self):
         return parse_source_value(self._raw_data.get('endsize', 30))
 
     @property
-    def Rate(self):
+    def rate(self):
         return parse_source_value(self._raw_data.get('rate', 20))
 
     @property
-    def JetLength(self):
+    def jetlength(self):
         return parse_source_value(self._raw_data.get('jetlength', 180))
 
     @property
-    def WindAngle(self):
+    def windangle(self):
         return parse_source_value(self._raw_data.get('windangle', 0))
 
     @property
-    def WindSpeed(self):
+    def windspeed(self):
         return parse_source_value(self._raw_data.get('windspeed', 0))
 
     @property
-    def SmokeMaterial(self):
+    def smokematerial(self):
         return self._raw_data.get('smokematerial', "particle/SmokeStack.vmt")
 
     @property
@@ -1166,7 +1166,7 @@ class env_player_surface_trigger(Targetname):
 class trigger_tonemap(Targetname):
 
     @property
-    def TonemapName(self):
+    def tonemapname(self):
         return self._raw_data.get('tonemapname', None)
 
 
@@ -1209,11 +1209,11 @@ class func_useableladder(Parentname, Targetname):
         return parse_float_vector(self._raw_data.get('point1', None))
 
     @property
-    def StartDisabled(self):
+    def startdisabled(self):
         return self._raw_data.get('startdisabled', "0")
 
     @property
-    def ladderSurfaceProperties(self):
+    def laddersurfaceproperties(self):
         return self._raw_data.get('laddersurfaceproperties', None)
 
 
@@ -1247,23 +1247,23 @@ class func_areaportalwindow(Targetname):
         return self._raw_data.get('target', None)
 
     @property
-    def FadeStartDist(self):
+    def fadestartdist(self):
         return parse_source_value(self._raw_data.get('fadestartdist', 128))
 
     @property
-    def FadeDist(self):
+    def fadedist(self):
         return parse_source_value(self._raw_data.get('fadedist', 512))
 
     @property
-    def TranslucencyLimit(self):
+    def translucencylimit(self):
         return self._raw_data.get('translucencylimit', "0")
 
     @property
-    def BackgroundBModel(self):
+    def backgroundbmodel(self):
         return self._raw_data.get('backgroundbmodel', "")
 
     @property
-    def PortalVersion(self):
+    def portalversion(self):
         return parse_source_value(self._raw_data.get('portalversion', 1))
 
 
@@ -1291,7 +1291,7 @@ class func_brush(Parentname, Inputfilter, Shadow, Global, EnableDisable, Origin,
         return self._raw_data.get('_minlight', None)
 
     @property
-    def Solidity(self):
+    def solidity(self):
         return self._raw_data.get('solidity', "1")
 
     @property
@@ -1404,7 +1404,7 @@ class func_orator(Parentname, Studiomodel, Angles, RenderFields, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def maxThenAnyDispatchDist(self):
+    def maxthenanydispatchdist(self):
         return parse_source_value(self._raw_data.get('maxthenanydispatchdist', 0))
 
 
@@ -1416,7 +1416,7 @@ class gibshooterbase(Parentname, Targetname):
         return self._raw_data.get('angles', "0 0 0")
 
     @property
-    def m_iGibs(self):
+    def m_igibs(self):
         return parse_source_value(self._raw_data.get('m_igibs', 3))
 
     @property
@@ -1432,15 +1432,15 @@ class gibshooterbase(Parentname, Targetname):
         return self._raw_data.get('gibanglevelocity', "0")
 
     @property
-    def m_flVelocity(self):
+    def m_flvelocity(self):
         return parse_source_value(self._raw_data.get('m_flvelocity', 200))
 
     @property
-    def m_flVariance(self):
+    def m_flvariance(self):
         return self._raw_data.get('m_flvariance', "0.15")
 
     @property
-    def m_flGibLife(self):
+    def m_flgiblife(self):
         return self._raw_data.get('m_flgiblife', "4")
 
     @property
@@ -1463,7 +1463,7 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return parse_int_vector(self._raw_data.get('rendercolor', "255 255 255"))
 
     @property
-    def Radius(self):
+    def radius(self):
         return parse_source_value(self._raw_data.get('radius', 256))
 
     @property
@@ -1471,11 +1471,11 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('life', "1")
 
     @property
-    def BoltWidth(self):
+    def boltwidth(self):
         return parse_source_value(self._raw_data.get('boltwidth', 2))
 
     @property
-    def NoiseAmplitude(self):
+    def noiseamplitude(self):
         return parse_source_value(self._raw_data.get('noiseamplitude', 0))
 
     @property
@@ -1483,7 +1483,7 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('texture', "sprites/laserbeam.spr")
 
     @property
-    def TextureScroll(self):
+    def texturescroll(self):
         return parse_source_value(self._raw_data.get('texturescroll', 35))
 
     @property
@@ -1495,7 +1495,7 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return parse_source_value(self._raw_data.get('framestart', 0))
 
     @property
-    def StrikeTime(self):
+    def striketime(self):
         return self._raw_data.get('striketime', "1")
 
     @property
@@ -1503,11 +1503,11 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('damage', "0")
 
     @property
-    def LightningStart(self):
+    def lightningstart(self):
         return self._raw_data.get('lightningstart', "")
 
     @property
-    def LightningEnd(self):
+    def lightningend(self):
         return self._raw_data.get('lightningend', "")
 
     @property
@@ -1515,11 +1515,11 @@ class env_beam(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('decalname', "Bigshot")
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
 
     @property
-    def TouchType(self):
+    def touchtype(self):
         return self._raw_data.get('touchtype', "0")
 
     @property
@@ -1616,11 +1616,11 @@ class env_explosion(Parentname, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def iMagnitude(self):
+    def imagnitude(self):
         return parse_source_value(self._raw_data.get('imagnitude', 100))
 
     @property
-    def iRadiusOverride(self):
+    def iradiusoverride(self):
         return parse_source_value(self._raw_data.get('iradiusoverride', 0))
 
     @property
@@ -1632,11 +1632,11 @@ class env_explosion(Parentname, Targetname):
         return self._raw_data.get('rendermode', "5")
 
     @property
-    def ignoredEntity(self):
+    def ignoredentity(self):
         return self._raw_data.get('ignoredentity', None)
 
     @property
-    def ignoredClass(self):
+    def ignoredclass(self):
         return parse_source_value(self._raw_data.get('ignoredclass', 0))
 
 
@@ -1889,7 +1889,7 @@ class env_fog_controller(Angles, SystemLevelChoice, Targetname):
         return self._raw_data.get('farz', "-1")
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
 
 
@@ -1941,7 +1941,7 @@ class env_steam(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def InitialState(self):
+    def initialstate(self):
         return self._raw_data.get('initialstate', "0")
 
     @property
@@ -1949,23 +1949,23 @@ class env_steam(Parentname, Angles, Targetname):
         return self._raw_data.get('type', "0")
 
     @property
-    def SpreadSpeed(self):
+    def spreadspeed(self):
         return parse_source_value(self._raw_data.get('spreadspeed', 15))
 
     @property
-    def Speed(self):
+    def speed(self):
         return parse_source_value(self._raw_data.get('speed', 120))
 
     @property
-    def StartSize(self):
+    def startsize(self):
         return parse_source_value(self._raw_data.get('startsize', 10))
 
     @property
-    def EndSize(self):
+    def endsize(self):
         return parse_source_value(self._raw_data.get('endsize', 25))
 
     @property
-    def Rate(self):
+    def rate(self):
         return parse_source_value(self._raw_data.get('rate', 26))
 
     @property
@@ -1973,7 +1973,7 @@ class env_steam(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('rendercolor', "255 255 255"))
 
     @property
-    def JetLength(self):
+    def jetlength(self):
         return parse_source_value(self._raw_data.get('jetlength', 80))
 
     @property
@@ -1985,7 +1985,7 @@ class env_steam(Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('rollspeed', 8))
 
     @property
-    def StartNoise(self):
+    def startnoise(self):
         return self._raw_data.get('startnoise', "")
 
 
@@ -1996,7 +1996,7 @@ class env_laser(Parentname, RenderFxChoices, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def LaserTarget(self):
+    def lasertarget(self):
         return self._raw_data.get('lasertarget', None)
 
     @property
@@ -2012,7 +2012,7 @@ class env_laser(Parentname, RenderFxChoices, Targetname):
         return parse_source_value(self._raw_data.get('width', 2))
 
     @property
-    def NoiseAmplitude(self):
+    def noiseamplitude(self):
         return parse_source_value(self._raw_data.get('noiseamplitude', 0))
 
     @property
@@ -2020,11 +2020,11 @@ class env_laser(Parentname, RenderFxChoices, Targetname):
         return self._raw_data.get('texture', "sprites/laserbeam.spr")
 
     @property
-    def EndSprite(self):
+    def endsprite(self):
         return self._raw_data.get('endsprite', "")
 
     @property
-    def TextureScroll(self):
+    def texturescroll(self):
         return parse_source_value(self._raw_data.get('texturescroll', 35))
 
     @property
@@ -2208,7 +2208,7 @@ class env_soundscape_proxy(Parentname, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MainSoundscapeName(self):
+    def mainsoundscapename(self):
         return self._raw_data.get('mainsoundscapename', "")
 
     @property
@@ -2280,15 +2280,15 @@ class env_spark(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MaxDelay(self):
+    def maxdelay(self):
         return self._raw_data.get('maxdelay', "0")
 
     @property
-    def Magnitude(self):
+    def magnitude(self):
         return self._raw_data.get('magnitude', "1")
 
     @property
-    def TrailLength(self):
+    def traillength(self):
         return self._raw_data.get('traillength', "1")
 
 
@@ -2311,11 +2311,11 @@ class env_sprite(RenderFields, Parentname, Targetname):
         return self._raw_data.get('scale', "")
 
     @property
-    def GlowProxySize(self):
+    def glowproxysize(self):
         return parse_source_value(self._raw_data.get('glowproxysize', 2.0))
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 0.7))
 
 
@@ -2393,11 +2393,11 @@ class sky_camera(Angles):
         return self._raw_data.get('use_angles', "0")
 
     @property
-    def clip_3D_skybox_near_to_world_far(self):
+    def clip_3d_skybox_near_to_world_far(self):
         return self._raw_data.get('clip_3d_skybox_near_to_world_far', "0")
 
     @property
-    def clip_3D_skybox_near_to_world_far_offset(self):
+    def clip_3d_skybox_near_to_world_far_offset(self):
         return self._raw_data.get('clip_3d_skybox_near_to_world_far_offset', "0.0")
 
     @property
@@ -2425,7 +2425,7 @@ class sky_camera(Angles):
         return parse_source_value(self._raw_data.get('fogmaxdensity', 1))
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 1.0))
 
 
@@ -2619,11 +2619,11 @@ class point_spotlight(RenderFields, Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('spotlightwidth', 50))
 
     @property
-    def HaloScale(self):
+    def haloscale(self):
         return parse_source_value(self._raw_data.get('haloscale', 60))
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 0.7))
 
 
@@ -2634,11 +2634,11 @@ class point_tesla(Parentname, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def m_SourceEntityName(self):
+    def m_sourceentityname(self):
         return self._raw_data.get('m_sourceentityname', "")
 
     @property
-    def m_SoundName(self):
+    def m_soundname(self):
         return self._raw_data.get('m_soundname', "DoSpark")
 
     @property
@@ -2646,11 +2646,11 @@ class point_tesla(Parentname, Targetname):
         return self._raw_data.get('texture', "sprites/physbeam.vmt")
 
     @property
-    def m_Color(self):
+    def m_color(self):
         return parse_int_vector(self._raw_data.get('m_color', "255 255 255"))
 
     @property
-    def m_flRadius(self):
+    def m_flradius(self):
         return parse_source_value(self._raw_data.get('m_flradius', 200))
 
     @property
@@ -2729,7 +2729,7 @@ class game_ui(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def FieldOfView(self):
+    def fieldofview(self):
         return parse_source_value(self._raw_data.get('fieldofview', -1.0))
 
 
@@ -2748,7 +2748,7 @@ class point_entity_finder(Targetname):
         return self._raw_data.get('referencename', "")
 
     @property
-    def Method(self):
+    def method(self):
         return self._raw_data.get('method', "0")
 
 
@@ -2768,11 +2768,11 @@ class infodecal(Targetname):
         return self._raw_data.get('texture', None)
 
     @property
-    def LowPriority(self):
+    def lowpriority(self):
         return self._raw_data.get('lowpriority', "0")
 
     @property
-    def ApplyEntity(self):
+    def applyentity(self):
         return self._raw_data.get('applyentity', None)
 
 
@@ -2788,7 +2788,7 @@ class info_projecteddecal(Angles, Targetname):
         return self._raw_data.get('texture', None)
 
     @property
-    def Distance(self):
+    def distance(self):
         return parse_source_value(self._raw_data.get('distance', 64))
 
 
@@ -2827,39 +2827,39 @@ class info_overlay(SystemLevelChoice, Targetname):
         return self._raw_data.get('sides', None)
 
     @property
-    def RenderOrder(self):
+    def renderorder(self):
         return parse_source_value(self._raw_data.get('renderorder', 0))
 
     @property
-    def StartU(self):
+    def startu(self):
         return parse_source_value(self._raw_data.get('startu', 0.0))
 
     @property
-    def EndU(self):
+    def endu(self):
         return parse_source_value(self._raw_data.get('endu', 1.0))
 
     @property
-    def StartV(self):
+    def startv(self):
         return parse_source_value(self._raw_data.get('startv', 0.0))
 
     @property
-    def EndV(self):
+    def endv(self):
         return parse_source_value(self._raw_data.get('endv', 1.0))
 
     @property
-    def BasisOrigin(self):
+    def basisorigin(self):
         return parse_float_vector(self._raw_data.get('basisorigin', None))
 
     @property
-    def BasisU(self):
+    def basisu(self):
         return parse_float_vector(self._raw_data.get('basisu', None))
 
     @property
-    def BasisV(self):
+    def basisv(self):
         return parse_float_vector(self._raw_data.get('basisv', None))
 
     @property
-    def BasisNormal(self):
+    def basisnormal(self):
         return parse_float_vector(self._raw_data.get('basisnormal', None))
 
     @property
@@ -2906,31 +2906,31 @@ class info_overlay_transition(Base):
         return self._raw_data.get('sides2', None)
 
     @property
-    def LengthTexcoordStart(self):
+    def lengthtexcoordstart(self):
         return parse_source_value(self._raw_data.get('lengthtexcoordstart', 0.0))
 
     @property
-    def LengthTexcoordEnd(self):
+    def lengthtexcoordend(self):
         return parse_source_value(self._raw_data.get('lengthtexcoordend', 1.0))
 
     @property
-    def WidthTexcoordStart(self):
+    def widthtexcoordstart(self):
         return parse_source_value(self._raw_data.get('widthtexcoordstart', 0.0))
 
     @property
-    def WidthTexcoordEnd(self):
+    def widthtexcoordend(self):
         return parse_source_value(self._raw_data.get('widthtexcoordend', 1.0))
 
     @property
-    def Width1(self):
+    def width1(self):
         return parse_source_value(self._raw_data.get('width1', 25.0))
 
     @property
-    def Width2(self):
+    def width2(self):
         return parse_source_value(self._raw_data.get('width2', 25.0))
 
     @property
-    def DebugDraw(self):
+    def debugdraw(self):
         return parse_source_value(self._raw_data.get('debugdraw', 0))
 
 
@@ -3371,11 +3371,11 @@ class info_node_link(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def StartNode(self):
+    def startnode(self):
         return parse_source_value(self._raw_data.get('startnode', None))
 
     @property
-    def EndNode(self):
+    def endnode(self):
         return parse_source_value(self._raw_data.get('endnode', None))
 
     @property
@@ -3387,11 +3387,11 @@ class info_node_link(Targetname):
         return self._raw_data.get('linktype', "1")
 
     @property
-    def AllowUse(self):
+    def allowuse(self):
         return self._raw_data.get('allowuse', None)
 
     @property
-    def InvertAllow(self):
+    def invertallow(self):
         return self._raw_data.get('invertallow', "0")
 
 
@@ -3418,11 +3418,11 @@ class info_node_link_controller(Targetname):
         return self._raw_data.get('useairlinkradius', "0")
 
     @property
-    def AllowUse(self):
+    def allowuse(self):
         return self._raw_data.get('allowuse', None)
 
     @property
-    def InvertAllow(self):
+    def invertallow(self):
         return self._raw_data.get('invertallow', "0")
 
 
@@ -3481,23 +3481,23 @@ class light_environment(Angles):
         return parse_int_vector(self._raw_data.get('_ambient', "255 255 255 20"))
 
     @property
-    def _lightHDR(self):
+    def _lighthdr(self):
         return parse_int_vector(self._raw_data.get('_lighthdr', "-1 -1 -1 1"))
 
     @property
-    def _lightscaleHDR(self):
+    def _lightscalehdr(self):
         return parse_source_value(self._raw_data.get('_lightscalehdr', 0.7))
 
     @property
-    def _ambientHDR(self):
+    def _ambienthdr(self):
         return parse_int_vector(self._raw_data.get('_ambienthdr', "-1 -1 -1 1"))
 
     @property
-    def _AmbientScaleHDR(self):
+    def _ambientscalehdr(self):
         return parse_source_value(self._raw_data.get('_ambientscalehdr', 0.7))
 
     @property
-    def SunSpreadAngle(self):
+    def sunspreadangle(self):
         return parse_source_value(self._raw_data.get('sunspreadangle', 0))
 
 
@@ -3517,15 +3517,15 @@ class light_directional(Angles):
         return parse_int_vector(self._raw_data.get('_light', "255 255 255 200"))
 
     @property
-    def _lightHDR(self):
+    def _lighthdr(self):
         return parse_int_vector(self._raw_data.get('_lighthdr', "-1 -1 -1 1"))
 
     @property
-    def _lightscaleHDR(self):
+    def _lightscalehdr(self):
         return parse_source_value(self._raw_data.get('_lightscalehdr', 0.7))
 
     @property
-    def SunSpreadAngle(self):
+    def sunspreadangle(self):
         return parse_source_value(self._raw_data.get('sunspreadangle', 0))
 
 
@@ -3656,11 +3656,11 @@ class color_correction(EnableDisable, Targetname):
         return self._raw_data.get('filename', "")
 
     @property
-    def fadeInDuration(self):
+    def fadeinduration(self):
         return parse_source_value(self._raw_data.get('fadeinduration', 0.0))
 
     @property
-    def fadeOutDuration(self):
+    def fadeoutduration(self):
         return parse_source_value(self._raw_data.get('fadeoutduration', 0.0))
 
     @property
@@ -3672,7 +3672,7 @@ class color_correction(EnableDisable, Targetname):
 class color_correction_volume(EnableDisable, Targetname):
 
     @property
-    def fadeDuration(self):
+    def fadeduration(self):
         return parse_source_value(self._raw_data.get('fadeduration', 10.0))
 
     @property
@@ -3688,11 +3688,11 @@ class color_correction_volume(EnableDisable, Targetname):
 class KeyFrame(Base):
 
     @property
-    def NextKey(self):
+    def nextkey(self):
         return self._raw_data.get('nextkey', None)
 
     @property
-    def MoveSpeed(self):
+    def movespeed(self):
         return parse_source_value(self._raw_data.get('movespeed', 64))
 
 
@@ -3700,7 +3700,7 @@ class KeyFrame(Base):
 class Mover(Base):
 
     @property
-    def PositionInterpolator(self):
+    def positioninterpolator(self):
         return self._raw_data.get('positioninterpolator', "0")
 
 
@@ -3764,7 +3764,7 @@ class func_water_analog(Parentname, Origin, Targetname):
         return self._raw_data.get('stopsound', None)
 
     @property
-    def WaveHeight(self):
+    def waveheight(self):
         return self._raw_data.get('waveheight', "3.0")
 
 
@@ -3840,15 +3840,15 @@ class move_keyframed(KeyFrame, Parentname, Mover, Targetname):
 class move_track(KeyFrame, Parentname, Mover, Targetname):
 
     @property
-    def WheelBaseLength(self):
+    def wheelbaselength(self):
         return parse_source_value(self._raw_data.get('wheelbaselength', 50))
 
     @property
-    def Damage(self):
+    def damage(self):
         return parse_source_value(self._raw_data.get('damage', 0))
 
     @property
-    def NoRotate(self):
+    def norotate(self):
         return self._raw_data.get('norotate', "0")
 
 
@@ -3856,47 +3856,47 @@ class move_track(KeyFrame, Parentname, Mover, Targetname):
 class RopeKeyFrame(SystemLevelChoice):
 
     @property
-    def Slack(self):
+    def slack(self):
         return parse_source_value(self._raw_data.get('slack', 25))
 
     @property
-    def Type(self):
+    def type(self):
         return self._raw_data.get('type', "0")
 
     @property
-    def Subdiv(self):
+    def subdiv(self):
         return parse_source_value(self._raw_data.get('subdiv', 2))
 
     @property
-    def Barbed(self):
+    def barbed(self):
         return self._raw_data.get('barbed', "0")
 
     @property
-    def Width(self):
+    def width(self):
         return self._raw_data.get('width', "2")
 
     @property
-    def TextureScale(self):
+    def texturescale(self):
         return self._raw_data.get('texturescale', "1")
 
     @property
-    def Collide(self):
+    def collide(self):
         return self._raw_data.get('collide', "0")
 
     @property
-    def Dangling(self):
+    def dangling(self):
         return self._raw_data.get('dangling', "0")
 
     @property
-    def Breakable(self):
+    def breakable(self):
         return self._raw_data.get('breakable', "0")
 
     @property
-    def UseWind(self):
+    def usewind(self):
         return self._raw_data.get('usewind', "0")
 
     @property
-    def RopeMaterial(self):
+    def ropematerial(self):
         return self._raw_data.get('ropematerial', "cable/cable.vmt")
 
 
@@ -3910,7 +3910,7 @@ class move_rope(KeyFrame, Parentname, RopeKeyFrame, Targetname):
     model_ = "models/editor/axis_helper.mdl"
 
     @property
-    def PositionInterpolator(self):
+    def positioninterpolator(self):
         return self._raw_data.get('positioninterpolator', "2")
 
 
@@ -4284,35 +4284,35 @@ class env_cubemap(Base):
 class BModelParticleSpawner(Base):
 
     @property
-    def StartDisabled(self):
+    def startdisabled(self):
         return self._raw_data.get('startdisabled', "0")
 
     @property
-    def Color(self):
+    def color(self):
         return parse_int_vector(self._raw_data.get('color', "255 255 255"))
 
     @property
-    def SpawnRate(self):
+    def spawnrate(self):
         return parse_source_value(self._raw_data.get('spawnrate', 40))
 
     @property
-    def SpeedMax(self):
+    def speedmax(self):
         return self._raw_data.get('speedmax', "13")
 
     @property
-    def LifetimeMin(self):
+    def lifetimemin(self):
         return self._raw_data.get('lifetimemin', "3")
 
     @property
-    def LifetimeMax(self):
+    def lifetimemax(self):
         return self._raw_data.get('lifetimemax', "5")
 
     @property
-    def DistMax(self):
+    def distmax(self):
         return parse_source_value(self._raw_data.get('distmax', 1024))
 
     @property
-    def Frozen(self):
+    def frozen(self):
         return self._raw_data.get('frozen', "0")
 
 
@@ -4320,15 +4320,15 @@ class BModelParticleSpawner(Base):
 class func_dustmotes(BModelParticleSpawner, Targetname):
 
     @property
-    def SizeMin(self):
+    def sizemin(self):
         return self._raw_data.get('sizemin', "10")
 
     @property
-    def SizeMax(self):
+    def sizemax(self):
         return self._raw_data.get('sizemax', "20")
 
     @property
-    def Alpha(self):
+    def alpha(self):
         return parse_source_value(self._raw_data.get('alpha', 255))
 
 
@@ -4336,11 +4336,11 @@ class func_dustmotes(BModelParticleSpawner, Targetname):
 class func_smokevolume(Targetname):
 
     @property
-    def Color1(self):
+    def color1(self):
         return parse_int_vector(self._raw_data.get('color1', "255 255 255"))
 
     @property
-    def Color2(self):
+    def color2(self):
         return parse_int_vector(self._raw_data.get('color2', "255 255 255"))
 
     @property
@@ -4348,31 +4348,31 @@ class func_smokevolume(Targetname):
         return self._raw_data.get('material', "particle/particle_smokegrenade")
 
     @property
-    def ParticleDrawWidth(self):
+    def particledrawwidth(self):
         return parse_source_value(self._raw_data.get('particledrawwidth', 120))
 
     @property
-    def ParticleSpacingDistance(self):
+    def particlespacingdistance(self):
         return parse_source_value(self._raw_data.get('particlespacingdistance', 80))
 
     @property
-    def DensityRampSpeed(self):
+    def densityrampspeed(self):
         return parse_source_value(self._raw_data.get('densityrampspeed', 1))
 
     @property
-    def RotationSpeed(self):
+    def rotationspeed(self):
         return parse_source_value(self._raw_data.get('rotationspeed', 10))
 
     @property
-    def MovementSpeed(self):
+    def movementspeed(self):
         return parse_source_value(self._raw_data.get('movementspeed', 10))
 
     @property
-    def Density(self):
+    def density(self):
         return parse_source_value(self._raw_data.get('density', 1))
 
     @property
-    def MaxDrawDistance(self):
+    def maxdrawdistance(self):
         return parse_source_value(self._raw_data.get('maxdrawdistance', 0))
 
 
@@ -4380,15 +4380,15 @@ class func_smokevolume(Targetname):
 class func_dustcloud(BModelParticleSpawner, Targetname):
 
     @property
-    def Alpha(self):
+    def alpha(self):
         return parse_source_value(self._raw_data.get('alpha', 30))
 
     @property
-    def SizeMin(self):
+    def sizemin(self):
         return self._raw_data.get('sizemin', "100")
 
     @property
-    def SizeMax(self):
+    def sizemax(self):
         return self._raw_data.get('sizemax', "200")
 
 
@@ -4504,43 +4504,43 @@ class point_posecontroller(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def PropName(self):
+    def propname(self):
         return self._raw_data.get('propname', None)
 
     @property
-    def PoseParameterName(self):
+    def poseparametername(self):
         return self._raw_data.get('poseparametername', None)
 
     @property
-    def PoseValue(self):
+    def posevalue(self):
         return parse_source_value(self._raw_data.get('posevalue', 0.0))
 
     @property
-    def InterpolationTime(self):
+    def interpolationtime(self):
         return parse_source_value(self._raw_data.get('interpolationtime', 0.0))
 
     @property
-    def InterpolationWrap(self):
+    def interpolationwrap(self):
         return self._raw_data.get('interpolationwrap', "0")
 
     @property
-    def CycleFrequency(self):
+    def cyclefrequency(self):
         return parse_source_value(self._raw_data.get('cyclefrequency', 0.0))
 
     @property
-    def FModulationType(self):
+    def fmodulationtype(self):
         return self._raw_data.get('fmodulationtype', "0")
 
     @property
-    def FModTimeOffset(self):
+    def fmodtimeoffset(self):
         return parse_source_value(self._raw_data.get('fmodtimeoffset', 0.0))
 
     @property
-    def FModRate(self):
+    def fmodrate(self):
         return parse_source_value(self._raw_data.get('fmodrate', 0.0))
 
     @property
-    def FModAmplitude(self):
+    def fmodamplitude(self):
         return parse_source_value(self._raw_data.get('fmodamplitude', 0.0))
 
 
@@ -4552,11 +4552,11 @@ class logic_compare(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def InitialValue(self):
+    def initialvalue(self):
         return parse_source_value(self._raw_data.get('initialvalue', None))
 
     @property
-    def CompareValue(self):
+    def comparevalue(self):
         return parse_source_value(self._raw_data.get('comparevalue', None))
 
 
@@ -4568,7 +4568,7 @@ class logic_branch(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def InitialValue(self):
+    def initialvalue(self):
         return parse_source_value(self._raw_data.get('initialvalue', None))
 
 
@@ -4579,67 +4579,67 @@ class logic_branch_listener(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Branch01(self):
+    def branch01(self):
         return self._raw_data.get('branch01', None)
 
     @property
-    def Branch02(self):
+    def branch02(self):
         return self._raw_data.get('branch02', None)
 
     @property
-    def Branch03(self):
+    def branch03(self):
         return self._raw_data.get('branch03', None)
 
     @property
-    def Branch04(self):
+    def branch04(self):
         return self._raw_data.get('branch04', None)
 
     @property
-    def Branch05(self):
+    def branch05(self):
         return self._raw_data.get('branch05', None)
 
     @property
-    def Branch06(self):
+    def branch06(self):
         return self._raw_data.get('branch06', None)
 
     @property
-    def Branch07(self):
+    def branch07(self):
         return self._raw_data.get('branch07', None)
 
     @property
-    def Branch08(self):
+    def branch08(self):
         return self._raw_data.get('branch08', None)
 
     @property
-    def Branch09(self):
+    def branch09(self):
         return self._raw_data.get('branch09', None)
 
     @property
-    def Branch10(self):
+    def branch10(self):
         return self._raw_data.get('branch10', None)
 
     @property
-    def Branch11(self):
+    def branch11(self):
         return self._raw_data.get('branch11', None)
 
     @property
-    def Branch12(self):
+    def branch12(self):
         return self._raw_data.get('branch12', None)
 
     @property
-    def Branch13(self):
+    def branch13(self):
         return self._raw_data.get('branch13', None)
 
     @property
-    def Branch14(self):
+    def branch14(self):
         return self._raw_data.get('branch14', None)
 
     @property
-    def Branch15(self):
+    def branch15(self):
         return self._raw_data.get('branch15', None)
 
     @property
-    def Branch16(self):
+    def branch16(self):
         return self._raw_data.get('branch16', None)
 
 
@@ -4651,67 +4651,67 @@ class logic_case(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Case01(self):
+    def case01(self):
         return self._raw_data.get('case01', None)
 
     @property
-    def Case02(self):
+    def case02(self):
         return self._raw_data.get('case02', None)
 
     @property
-    def Case03(self):
+    def case03(self):
         return self._raw_data.get('case03', None)
 
     @property
-    def Case04(self):
+    def case04(self):
         return self._raw_data.get('case04', None)
 
     @property
-    def Case05(self):
+    def case05(self):
         return self._raw_data.get('case05', None)
 
     @property
-    def Case06(self):
+    def case06(self):
         return self._raw_data.get('case06', None)
 
     @property
-    def Case07(self):
+    def case07(self):
         return self._raw_data.get('case07', None)
 
     @property
-    def Case08(self):
+    def case08(self):
         return self._raw_data.get('case08', None)
 
     @property
-    def Case09(self):
+    def case09(self):
         return self._raw_data.get('case09', None)
 
     @property
-    def Case10(self):
+    def case10(self):
         return self._raw_data.get('case10', None)
 
     @property
-    def Case11(self):
+    def case11(self):
         return self._raw_data.get('case11', None)
 
     @property
-    def Case12(self):
+    def case12(self):
         return self._raw_data.get('case12', None)
 
     @property
-    def Case13(self):
+    def case13(self):
         return self._raw_data.get('case13', None)
 
     @property
-    def Case14(self):
+    def case14(self):
         return self._raw_data.get('case14', None)
 
     @property
-    def Case15(self):
+    def case15(self):
         return self._raw_data.get('case15', None)
 
     @property
-    def Case16(self):
+    def case16(self):
         return self._raw_data.get('case16', None)
 
 
@@ -4723,11 +4723,11 @@ class logic_multicompare(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def IntegerValue(self):
+    def integervalue(self):
         return parse_source_value(self._raw_data.get('integervalue', None))
 
     @property
-    def ShouldComparetoValue(self):
+    def shouldcomparetovalue(self):
         return self._raw_data.get('shouldcomparetovalue', "0")
 
 
@@ -4747,19 +4747,19 @@ class logic_timer(EnableDisable, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def UseRandomTime(self):
+    def userandomtime(self):
         return self._raw_data.get('userandomtime', "0")
 
     @property
-    def LowerRandomBound(self):
+    def lowerrandombound(self):
         return self._raw_data.get('lowerrandombound', None)
 
     @property
-    def UpperRandomBound(self):
+    def upperrandombound(self):
         return self._raw_data.get('upperrandombound', None)
 
     @property
-    def RefireTime(self):
+    def refiretime(self):
         return self._raw_data.get('refiretime', None)
 
 
@@ -4770,67 +4770,67 @@ class hammer_updateignorelist(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def IgnoredName01(self):
+    def ignoredname01(self):
         return self._raw_data.get('ignoredname01', "")
 
     @property
-    def IgnoredName02(self):
+    def ignoredname02(self):
         return self._raw_data.get('ignoredname02', "")
 
     @property
-    def IgnoredName03(self):
+    def ignoredname03(self):
         return self._raw_data.get('ignoredname03', "")
 
     @property
-    def IgnoredName04(self):
+    def ignoredname04(self):
         return self._raw_data.get('ignoredname04', "")
 
     @property
-    def IgnoredName05(self):
+    def ignoredname05(self):
         return self._raw_data.get('ignoredname05', "")
 
     @property
-    def IgnoredName06(self):
+    def ignoredname06(self):
         return self._raw_data.get('ignoredname06', "")
 
     @property
-    def IgnoredName07(self):
+    def ignoredname07(self):
         return self._raw_data.get('ignoredname07', "")
 
     @property
-    def IgnoredName08(self):
+    def ignoredname08(self):
         return self._raw_data.get('ignoredname08', "")
 
     @property
-    def IgnoredName09(self):
+    def ignoredname09(self):
         return self._raw_data.get('ignoredname09', "")
 
     @property
-    def IgnoredName10(self):
+    def ignoredname10(self):
         return self._raw_data.get('ignoredname10', "")
 
     @property
-    def IgnoredName11(self):
+    def ignoredname11(self):
         return self._raw_data.get('ignoredname11', "")
 
     @property
-    def IgnoredName12(self):
+    def ignoredname12(self):
         return self._raw_data.get('ignoredname12', "")
 
     @property
-    def IgnoredName13(self):
+    def ignoredname13(self):
         return self._raw_data.get('ignoredname13', "")
 
     @property
-    def IgnoredName14(self):
+    def ignoredname14(self):
         return self._raw_data.get('ignoredname14', "")
 
     @property
-    def IgnoredName15(self):
+    def ignoredname15(self):
         return self._raw_data.get('ignoredname15', "")
 
     @property
-    def IgnoredName16(self):
+    def ignoredname16(self):
         return self._raw_data.get('ignoredname16', "")
 
 
@@ -4865,11 +4865,11 @@ class env_microphone(Parentname, EnableDisable, Targetname):
         return self._raw_data.get('target', None)
 
     @property
-    def SpeakerName(self):
+    def speakername(self):
         return self._raw_data.get('speakername', "")
 
     @property
-    def ListenFilter(self):
+    def listenfilter(self):
         return self._raw_data.get('listenfilter', "")
 
     @property
@@ -4877,15 +4877,15 @@ class env_microphone(Parentname, EnableDisable, Targetname):
         return self._raw_data.get('speaker_dsp_preset', "0")
 
     @property
-    def Sensitivity(self):
+    def sensitivity(self):
         return parse_source_value(self._raw_data.get('sensitivity', 1))
 
     @property
-    def SmoothFactor(self):
+    def smoothfactor(self):
         return parse_source_value(self._raw_data.get('smoothfactor', 0))
 
     @property
-    def MaxRange(self):
+    def maxrange(self):
         return parse_source_value(self._raw_data.get('maxrange', 240))
 
 
@@ -4992,15 +4992,15 @@ class logic_autosave(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def NewLevelUnit(self):
+    def newlevelunit(self):
         return self._raw_data.get('newlevelunit', "0")
 
     @property
-    def MinimumHitPoints(self):
+    def minimumhitpoints(self):
         return parse_source_value(self._raw_data.get('minimumhitpoints', 0))
 
     @property
-    def MinHitPointsToCommit(self):
+    def minhitpointstocommit(self):
         return parse_source_value(self._raw_data.get('minhitpointstocommit', 0))
 
 
@@ -5011,19 +5011,19 @@ class logic_active_autosave(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MinimumHitPoints(self):
+    def minimumhitpoints(self):
         return parse_source_value(self._raw_data.get('minimumhitpoints', 30))
 
     @property
-    def TriggerHitPoints(self):
+    def triggerhitpoints(self):
         return parse_source_value(self._raw_data.get('triggerhitpoints', 75))
 
     @property
-    def TimeToTrigget(self):
+    def timetotrigget(self):
         return parse_source_value(self._raw_data.get('timetotrigget', 0))
 
     @property
-    def DangerousTime(self):
+    def dangeroustime(self):
         return parse_source_value(self._raw_data.get('dangeroustime', 10))
 
 
@@ -5035,67 +5035,67 @@ class point_template(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Template01(self):
+    def template01(self):
         return self._raw_data.get('template01', None)
 
     @property
-    def Template02(self):
+    def template02(self):
         return self._raw_data.get('template02', None)
 
     @property
-    def Template03(self):
+    def template03(self):
         return self._raw_data.get('template03', None)
 
     @property
-    def Template04(self):
+    def template04(self):
         return self._raw_data.get('template04', None)
 
     @property
-    def Template05(self):
+    def template05(self):
         return self._raw_data.get('template05', None)
 
     @property
-    def Template06(self):
+    def template06(self):
         return self._raw_data.get('template06', None)
 
     @property
-    def Template07(self):
+    def template07(self):
         return self._raw_data.get('template07', None)
 
     @property
-    def Template08(self):
+    def template08(self):
         return self._raw_data.get('template08', None)
 
     @property
-    def Template09(self):
+    def template09(self):
         return self._raw_data.get('template09', None)
 
     @property
-    def Template10(self):
+    def template10(self):
         return self._raw_data.get('template10', None)
 
     @property
-    def Template11(self):
+    def template11(self):
         return self._raw_data.get('template11', None)
 
     @property
-    def Template12(self):
+    def template12(self):
         return self._raw_data.get('template12', None)
 
     @property
-    def Template13(self):
+    def template13(self):
         return self._raw_data.get('template13', None)
 
     @property
-    def Template14(self):
+    def template14(self):
         return self._raw_data.get('template14', None)
 
     @property
-    def Template15(self):
+    def template15(self):
         return self._raw_data.get('template15', None)
 
     @property
-    def Template16(self):
+    def template16(self):
         return self._raw_data.get('template16', None)
 
 
@@ -5106,23 +5106,23 @@ class env_entity_maker(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def EntityTemplate(self):
+    def entitytemplate(self):
         return self._raw_data.get('entitytemplate', "")
 
     @property
-    def PostSpawnSpeed(self):
+    def postspawnspeed(self):
         return parse_source_value(self._raw_data.get('postspawnspeed', 0))
 
     @property
-    def PostSpawnDirection(self):
+    def postspawndirection(self):
         return parse_float_vector(self._raw_data.get('postspawndirection', "0 0 0"))
 
     @property
-    def PostSpawnDirectionVariance(self):
+    def postspawndirectionvariance(self):
         return parse_source_value(self._raw_data.get('postspawndirectionvariance', 0.15))
 
     @property
-    def PostSpawnInheritAngles(self):
+    def postspawninheritangles(self):
         return self._raw_data.get('postspawninheritangles', "0")
 
 
@@ -5130,7 +5130,7 @@ class env_entity_maker(Parentname, Angles, Targetname):
 class BaseFilter(Targetname):
 
     @property
-    def Negated(self):
+    def negated(self):
         return self._raw_data.get('negated', "Allow entities that match criteria")
 
 
@@ -5143,43 +5143,43 @@ class filter_multi(BaseFilter):
         return self._raw_data.get('filtertype', "0")
 
     @property
-    def Filter01(self):
+    def filter01(self):
         return self._raw_data.get('filter01', None)
 
     @property
-    def Filter02(self):
+    def filter02(self):
         return self._raw_data.get('filter02', None)
 
     @property
-    def Filter03(self):
+    def filter03(self):
         return self._raw_data.get('filter03', None)
 
     @property
-    def Filter04(self):
+    def filter04(self):
         return self._raw_data.get('filter04', None)
 
     @property
-    def Filter05(self):
+    def filter05(self):
         return self._raw_data.get('filter05', None)
 
     @property
-    def Filter06(self):
+    def filter06(self):
         return self._raw_data.get('filter06', None)
 
     @property
-    def Filter07(self):
+    def filter07(self):
         return self._raw_data.get('filter07', None)
 
     @property
-    def Filter08(self):
+    def filter08(self):
         return self._raw_data.get('filter08', None)
 
     @property
-    def Filter09(self):
+    def filter09(self):
         return self._raw_data.get('filter09', None)
 
     @property
-    def Filter10(self):
+    def filter10(self):
         return self._raw_data.get('filter10', None)
 
 
@@ -5206,7 +5206,7 @@ class filter_activator_context(BaseFilter):
     icon_sprite = "editor/filter_name.vmt"
 
     @property
-    def ResponseContext(self):
+    def responsecontext(self):
         return self._raw_data.get('responsecontext', None)
 
 
@@ -5355,23 +5355,23 @@ class point_hurt(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def DamageTarget(self):
+    def damagetarget(self):
         return self._raw_data.get('damagetarget', "")
 
     @property
-    def DamageRadius(self):
+    def damageradius(self):
         return parse_source_value(self._raw_data.get('damageradius', 256))
 
     @property
-    def Damage(self):
+    def damage(self):
         return parse_source_value(self._raw_data.get('damage', 5))
 
     @property
-    def DamageDelay(self):
+    def damagedelay(self):
         return parse_source_value(self._raw_data.get('damagedelay', 1))
 
     @property
-    def DamageType(self):
+    def damagetype(self):
         return self._raw_data.get('damagetype', "0")
 
 
@@ -5429,11 +5429,11 @@ class func_physbox(BreakableBrush, Origin, RenderFields):
         return self._raw_data.get('_minlight', None)
 
     @property
-    def Damagetype(self):
+    def damagetype(self):
         return self._raw_data.get('damagetype', "0")
 
     @property
-    def massScale(self):
+    def massscale(self):
         return parse_source_value(self._raw_data.get('massscale', 0))
 
     @property
@@ -5565,7 +5565,7 @@ class info_constraint_anchor(Parentname, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def massScale(self):
+    def massscale(self):
         return parse_source_value(self._raw_data.get('massscale', 1))
 
 
@@ -5634,15 +5634,15 @@ class phys_hinge(TwoObjectPhysics):
         return self._raw_data.get('hingeaxis', None)
 
     @property
-    def SystemLoadScale(self):
+    def systemloadscale(self):
         return parse_source_value(self._raw_data.get('systemloadscale', 1))
 
     @property
-    def minSoundThreshold(self):
+    def minsoundthreshold(self):
         return parse_source_value(self._raw_data.get('minsoundthreshold', 6))
 
     @property
-    def maxSoundThreshold(self):
+    def maxsoundthreshold(self):
         return parse_source_value(self._raw_data.get('maxsoundthreshold', 80))
 
     @property
@@ -5654,27 +5654,27 @@ class phys_hinge(TwoObjectPhysics):
         return self._raw_data.get('slidesoundback', "")
 
     @property
-    def reversalsoundthresholdSmall(self):
+    def reversalsoundthresholdsmall(self):
         return parse_source_value(self._raw_data.get('reversalsoundthresholdsmall', 0))
 
     @property
-    def reversalsoundthresholdMedium(self):
+    def reversalsoundthresholdmedium(self):
         return parse_source_value(self._raw_data.get('reversalsoundthresholdmedium', 0))
 
     @property
-    def reversalsoundthresholdLarge(self):
+    def reversalsoundthresholdlarge(self):
         return parse_source_value(self._raw_data.get('reversalsoundthresholdlarge', 0))
 
     @property
-    def reversalsoundSmall(self):
+    def reversalsoundsmall(self):
         return self._raw_data.get('reversalsoundsmall', "")
 
     @property
-    def reversalsoundMedium(self):
+    def reversalsoundmedium(self):
         return self._raw_data.get('reversalsoundmedium', "")
 
     @property
-    def reversalsoundLarge(self):
+    def reversalsoundlarge(self):
         return self._raw_data.get('reversalsoundlarge', "")
 
 
@@ -5730,15 +5730,15 @@ class phys_slideconstraint(TwoObjectPhysics):
         return parse_source_value(self._raw_data.get('slidefriction', 0))
 
     @property
-    def SystemLoadScale(self):
+    def systemloadscale(self):
         return parse_source_value(self._raw_data.get('systemloadscale', 1))
 
     @property
-    def minSoundThreshold(self):
+    def minsoundthreshold(self):
         return parse_source_value(self._raw_data.get('minsoundthreshold', 6))
 
     @property
-    def maxSoundThreshold(self):
+    def maxsoundthreshold(self):
         return parse_source_value(self._raw_data.get('maxsoundthreshold', 80))
 
     @property
@@ -5750,27 +5750,27 @@ class phys_slideconstraint(TwoObjectPhysics):
         return self._raw_data.get('slidesoundback', "")
 
     @property
-    def reversalsoundthresholdSmall(self):
+    def reversalsoundthresholdsmall(self):
         return parse_source_value(self._raw_data.get('reversalsoundthresholdsmall', 0))
 
     @property
-    def reversalsoundthresholdMedium(self):
+    def reversalsoundthresholdmedium(self):
         return parse_source_value(self._raw_data.get('reversalsoundthresholdmedium', 0))
 
     @property
-    def reversalsoundthresholdLarge(self):
+    def reversalsoundthresholdlarge(self):
         return parse_source_value(self._raw_data.get('reversalsoundthresholdlarge', 0))
 
     @property
-    def reversalsoundSmall(self):
+    def reversalsoundsmall(self):
         return self._raw_data.get('reversalsoundsmall', "")
 
     @property
-    def reversalsoundMedium(self):
+    def reversalsoundmedium(self):
         return self._raw_data.get('reversalsoundmedium', "")
 
     @property
-    def reversalsoundLarge(self):
+    def reversalsoundlarge(self):
         return self._raw_data.get('reversalsoundlarge', "")
 
 
@@ -5937,7 +5937,7 @@ class phys_magnet(Studiomodel, Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('torquelimit', 0))
 
     @property
-    def massScale(self):
+    def massscale(self):
         return parse_source_value(self._raw_data.get('massscale', 0))
 
     @property
@@ -6021,27 +6021,27 @@ class prop_dynamic_base(Parentname, Glow, Studiomodel, Angles, BreakableProp, Gl
         return self._raw_data.get('solid', "6")
 
     @property
-    def DefaultAnim(self):
+    def defaultanim(self):
         return self._raw_data.get('defaultanim', "")
 
     @property
-    def RandomAnimation(self):
+    def randomanimation(self):
         return self._raw_data.get('randomanimation', "0")
 
     @property
-    def MinAnimTime(self):
+    def minanimtime(self):
         return parse_source_value(self._raw_data.get('minanimtime', 5))
 
     @property
-    def MaxAnimTime(self):
+    def maxanimtime(self):
         return parse_source_value(self._raw_data.get('maxanimtime', 10))
 
     @property
-    def SetBodyGroup(self):
+    def setbodygroup(self):
         return parse_source_value(self._raw_data.get('setbodygroup', 0))
 
     @property
-    def LagCompensate(self):
+    def lagcompensate(self):
         return self._raw_data.get('lagcompensate', "0")
 
     @property
@@ -6105,7 +6105,7 @@ class BasePropPhysics(Glow, Studiomodel, Angles, BreakableProp, Global, SystemLe
         return parse_source_value(self._raw_data.get('physdamagescale', 0.1))
 
     @property
-    def Damagetype(self):
+    def damagetype(self):
         return self._raw_data.get('damagetype', "0")
 
     @property
@@ -6113,11 +6113,11 @@ class BasePropPhysics(Glow, Studiomodel, Angles, BreakableProp, Global, SystemLe
         return self._raw_data.get('nodamageforces', "0")
 
     @property
-    def inertiaScale(self):
+    def inertiascale(self):
         return parse_source_value(self._raw_data.get('inertiascale', 1.0))
 
     @property
-    def massScale(self):
+    def massscale(self):
         return parse_source_value(self._raw_data.get('massscale', 0))
 
     @property
@@ -6155,7 +6155,7 @@ class prop_physics(RenderFields, BasePropPhysics):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def BreakableType(self):
+    def breakabletype(self):
         return self._raw_data.get('breakabletype', "0")
 
 
@@ -6177,7 +6177,7 @@ class prop_ragdoll(Studiomodel, Angles, SystemLevelChoice, EnableDisable, BaseFa
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def angleOverride(self):
+    def angleoverride(self):
         return self._raw_data.get('angleoverride', "")
 
 
@@ -6188,7 +6188,7 @@ class prop_dynamic_ornament(prop_dynamic_base):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def InitialOwner(self):
+    def initialowner(self):
         return self._raw_data.get('initialowner', None)
 
 
@@ -6200,11 +6200,11 @@ class func_areaportal(Targetname):
         return self._raw_data.get('target', None)
 
     @property
-    def StartOpen(self):
+    def startopen(self):
         return self._raw_data.get('startopen', "1")
 
     @property
-    def PortalVersion(self):
+    def portalversion(self):
         return parse_source_value(self._raw_data.get('portalversion', 1))
 
 
@@ -6212,7 +6212,7 @@ class func_areaportal(Targetname):
 class func_occluder(Targetname):
 
     @property
-    def StartActive(self):
+    def startactive(self):
         return self._raw_data.get('startactive', "1")
 
 
@@ -6232,7 +6232,7 @@ class func_breakable(RenderFields, BreakableBrush, Origin):
         return parse_source_value(self._raw_data.get('physdamagescale', 1.0))
 
     @property
-    def BreakableType(self):
+    def breakabletype(self):
         return self._raw_data.get('breakabletype', "0")
 
 
@@ -6296,11 +6296,11 @@ class func_precipitation(Parentname, Targetname):
         return self._raw_data.get('preciptype', "0")
 
     @property
-    def minSpeed(self):
+    def minspeed(self):
         return parse_source_value(self._raw_data.get('minspeed', 25))
 
     @property
-    def maxSpeed(self):
+    def maxspeed(self):
         return parse_source_value(self._raw_data.get('maxspeed', 35))
 
 
@@ -6443,19 +6443,19 @@ class BaseTrain(Parentname, Shadow, Global, Origin, RenderFields, Targetname):
         return self._raw_data.get('_minlight', None)
 
     @property
-    def MoveSound(self):
+    def movesound(self):
         return self._raw_data.get('movesound', "")
 
     @property
-    def MovePingSound(self):
+    def movepingsound(self):
         return self._raw_data.get('movepingsound', "")
 
     @property
-    def StartSound(self):
+    def startsound(self):
         return self._raw_data.get('startsound', "")
 
     @property
-    def StopSound(self):
+    def stopsound(self):
         return self._raw_data.get('stopsound', "")
 
     @property
@@ -6463,19 +6463,19 @@ class BaseTrain(Parentname, Shadow, Global, Origin, RenderFields, Targetname):
         return parse_source_value(self._raw_data.get('volume', 10))
 
     @property
-    def MoveSoundMinPitch(self):
+    def movesoundminpitch(self):
         return parse_source_value(self._raw_data.get('movesoundminpitch', 60))
 
     @property
-    def MoveSoundMaxPitch(self):
+    def movesoundmaxpitch(self):
         return parse_source_value(self._raw_data.get('movesoundmaxpitch', 200))
 
     @property
-    def MoveSoundMinTime(self):
+    def movesoundmintime(self):
         return parse_source_value(self._raw_data.get('movesoundmintime', 0))
 
     @property
-    def MoveSoundMaxTime(self):
+    def movesoundmaxtime(self):
         return parse_source_value(self._raw_data.get('movesoundmaxtime', 0))
 
 
@@ -6597,15 +6597,15 @@ class trigger_autosave(Targetname):
         return self._raw_data.get('master', None)
 
     @property
-    def NewLevelUnit(self):
+    def newlevelunit(self):
         return self._raw_data.get('newlevelunit', "0")
 
     @property
-    def DangerousTimer(self):
+    def dangeroustimer(self):
         return parse_source_value(self._raw_data.get('dangeroustimer', 0))
 
     @property
-    def MinimumHitPoints(self):
+    def minimumhitpoints(self):
         return parse_source_value(self._raw_data.get('minimumhitpoints', 0))
 
 
@@ -6717,15 +6717,15 @@ class trigger_look(Trigger):
         return self._raw_data.get('target', None)
 
     @property
-    def LookTime(self):
+    def looktime(self):
         return self._raw_data.get('looktime', "0.5")
 
     @property
-    def FieldOfView(self):
+    def fieldofview(self):
         return self._raw_data.get('fieldofview', "0.9")
 
     @property
-    def Timeout(self):
+    def timeout(self):
         return parse_source_value(self._raw_data.get('timeout', 0))
 
 
@@ -6753,23 +6753,23 @@ class trigger_push(Trigger):
 class trigger_wind(Angles, Trigger):
 
     @property
-    def Speed(self):
+    def speed(self):
         return parse_source_value(self._raw_data.get('speed', 200))
 
     @property
-    def SpeedNoise(self):
+    def speednoise(self):
         return parse_source_value(self._raw_data.get('speednoise', 0))
 
     @property
-    def DirectionNoise(self):
+    def directionnoise(self):
         return parse_source_value(self._raw_data.get('directionnoise', 10))
 
     @property
-    def HoldTime(self):
+    def holdtime(self):
         return parse_source_value(self._raw_data.get('holdtime', 0))
 
     @property
-    def HoldNoise(self):
+    def holdnoise(self):
         return parse_source_value(self._raw_data.get('holdnoise', 0))
 
 
@@ -6777,7 +6777,7 @@ class trigger_wind(Angles, Trigger):
 class trigger_impact(Angles, Origin, Targetname):
 
     @property
-    def Magnitude(self):
+    def magnitude(self):
         return parse_source_value(self._raw_data.get('magnitude', 200))
 
     @property
@@ -6832,11 +6832,11 @@ class ai_speechfilter(ResponseContext, EnableDisable, Targetname):
         return self._raw_data.get('subject', "")
 
     @property
-    def IdleModifier(self):
+    def idlemodifier(self):
         return parse_source_value(self._raw_data.get('idlemodifier', 1.0))
 
     @property
-    def NeverSayHello(self):
+    def neversayhello(self):
         return self._raw_data.get('neversayhello', "0")
 
 
@@ -6867,7 +6867,7 @@ class info_camera_link(Targetname):
         return self._raw_data.get('target', None)
 
     @property
-    def PointCamera(self):
+    def pointcamera(self):
         return self._raw_data.get('pointcamera', None)
 
 
@@ -6878,27 +6878,27 @@ class logic_measure_movement(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MeasureTarget(self):
+    def measuretarget(self):
         return self._raw_data.get('measuretarget', "")
 
     @property
-    def MeasureReference(self):
+    def measurereference(self):
         return self._raw_data.get('measurereference', "")
 
     @property
-    def Target(self):
+    def target(self):
         return self._raw_data.get('target', "")
 
     @property
-    def TargetReference(self):
+    def targetreference(self):
         return self._raw_data.get('targetreference', "")
 
     @property
-    def TargetScale(self):
+    def targetscale(self):
         return parse_source_value(self._raw_data.get('targetscale', 1))
 
     @property
-    def MeasureType(self):
+    def measuretype(self):
         return self._raw_data.get('measuretype', "0")
 
 
@@ -6927,11 +6927,11 @@ class material_modify_control(Parentname, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def materialName(self):
+    def materialname(self):
         return self._raw_data.get('materialname', None)
 
     @property
-    def materialVar(self):
+    def materialvar(self):
         return self._raw_data.get('materialvar', None)
 
 
@@ -6947,7 +6947,7 @@ class point_devshot_camera(Angles):
         return self._raw_data.get('cameraname', "")
 
     @property
-    def FOV(self):
+    def fov(self):
         return parse_source_value(self._raw_data.get('fov', 75))
 
 
@@ -7073,7 +7073,7 @@ class point_gamestats_counter(Targetname, EnableDisable, Origin):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Name(self):
+    def name(self):
         return self._raw_data.get('name', None)
 
 
@@ -7299,67 +7299,67 @@ class logic_script(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Group00(self):
+    def group00(self):
         return self._raw_data.get('group00', None)
 
     @property
-    def Group01(self):
+    def group01(self):
         return self._raw_data.get('group01', None)
 
     @property
-    def Group02(self):
+    def group02(self):
         return self._raw_data.get('group02', None)
 
     @property
-    def Group03(self):
+    def group03(self):
         return self._raw_data.get('group03', None)
 
     @property
-    def Group04(self):
+    def group04(self):
         return self._raw_data.get('group04', None)
 
     @property
-    def Group05(self):
+    def group05(self):
         return self._raw_data.get('group05', None)
 
     @property
-    def Group06(self):
+    def group06(self):
         return self._raw_data.get('group06', None)
 
     @property
-    def Group07(self):
+    def group07(self):
         return self._raw_data.get('group07', None)
 
     @property
-    def Group08(self):
+    def group08(self):
         return self._raw_data.get('group08', None)
 
     @property
-    def Group09(self):
+    def group09(self):
         return self._raw_data.get('group09', None)
 
     @property
-    def Group10(self):
+    def group10(self):
         return self._raw_data.get('group10', None)
 
     @property
-    def Group11(self):
+    def group11(self):
         return self._raw_data.get('group11', None)
 
     @property
-    def Group12(self):
+    def group12(self):
         return self._raw_data.get('group12', None)
 
     @property
-    def Group13(self):
+    def group13(self):
         return self._raw_data.get('group13', None)
 
     @property
-    def Group14(self):
+    def group14(self):
         return self._raw_data.get('group14', None)
 
     @property
-    def Group15(self):
+    def group15(self):
         return self._raw_data.get('group15', None)
 
 
@@ -7370,7 +7370,7 @@ class func_timescale(Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def desiredTimescale(self):
+    def desiredtimescale(self):
         return parse_source_value(self._raw_data.get('desiredtimescale', 1.0))
 
     @property
@@ -7378,11 +7378,11 @@ class func_timescale(Angles, Targetname):
         return parse_source_value(self._raw_data.get('acceleration', 0.05))
 
     @property
-    def minBlendRate(self):
+    def minblendrate(self):
         return parse_source_value(self._raw_data.get('minblendrate', 0.1))
 
     @property
-    def blendDeltaMultiplier(self):
+    def blenddeltamultiplier(self):
         return parse_source_value(self._raw_data.get('blenddeltamultiplier', 3.0))
 
 
@@ -7580,7 +7580,7 @@ class logic_choreographed_scene(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def SceneFile(self):
+    def scenefile(self):
         return self._raw_data.get('scenefile', None)
 
     @property
@@ -7752,11 +7752,11 @@ class player_weaponstrip(Targetname):
 class NavBlocker(Base):
 
     @property
-    def teamToBlock(self):
+    def teamtoblock(self):
         return self._raw_data.get('teamtoblock', "-1")
 
     @property
-    def affectsFlow(self):
+    def affectsflow(self):
         return self._raw_data.get('affectsflow', "0")
 
 
@@ -7866,11 +7866,11 @@ class logic_director_query(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def minAngerRange(self):
+    def minangerrange(self):
         return parse_source_value(self._raw_data.get('minangerrange', 1))
 
     @property
-    def maxAngerRange(self):
+    def maxangerrange(self):
         return parse_source_value(self._raw_data.get('maxangerrange', 10))
 
     @property
@@ -7908,7 +7908,7 @@ class game_scavenge_progress_display(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Max(self):
+    def max(self):
         return parse_source_value(self._raw_data.get('max', 0))
 
 
@@ -7916,15 +7916,15 @@ class game_scavenge_progress_display(Targetname):
 class fog_volume(EnableDisable, Targetname):
 
     @property
-    def FogName(self):
+    def fogname(self):
         return self._raw_data.get('fogname', None)
 
     @property
-    def PostProcessName(self):
+    def postprocessname(self):
         return self._raw_data.get('postprocessname', None)
 
     @property
-    def ColorCorrectionName(self):
+    def colorcorrectionname(self):
         return self._raw_data.get('colorcorrectionname', None)
 
 
@@ -7978,15 +7978,15 @@ class prop_minigun(prop_dynamic_base, EnableDisable):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MaxYaw(self):
+    def maxyaw(self):
         return parse_source_value(self._raw_data.get('maxyaw', 90))
 
     @property
-    def MaxPitch(self):
+    def maxpitch(self):
         return parse_source_value(self._raw_data.get('maxpitch', 60))
 
     @property
-    def MinPitch(self):
+    def minpitch(self):
         return parse_source_value(self._raw_data.get('minpitch', -30))
 
 
@@ -7998,15 +7998,15 @@ class prop_mounted_machine_gun(prop_dynamic_base, EnableDisable):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MaxYaw(self):
+    def maxyaw(self):
         return parse_source_value(self._raw_data.get('maxyaw', 90))
 
     @property
-    def MaxPitch(self):
+    def maxpitch(self):
         return parse_source_value(self._raw_data.get('maxpitch', 60))
 
     @property
-    def MinPitch(self):
+    def minpitch(self):
         return parse_source_value(self._raw_data.get('minpitch', -30))
 
 
@@ -8017,7 +8017,7 @@ class prop_health_cabinet(prop_dynamic_base, EnableDisable):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def HealthCount(self):
+    def healthcount(self):
         return parse_source_value(self._raw_data.get('healthcount', 1))
 
 
@@ -8029,27 +8029,27 @@ class info_survivor_position(Parentname, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def Order(self):
+    def order(self):
         return parse_source_value(self._raw_data.get('order', 1))
 
     @property
-    def SurvivorName(self):
+    def survivorname(self):
         return self._raw_data.get('survivorname', "")
 
     @property
-    def SurvivorIntroSequence(self):
+    def survivorintrosequence(self):
         return self._raw_data.get('survivorintrosequence', "")
 
     @property
-    def GameMode(self):
+    def gamemode(self):
         return self._raw_data.get('gamemode', "")
 
     @property
-    def SurvivorConcept(self):
+    def survivorconcept(self):
         return self._raw_data.get('survivorconcept', "")
 
     @property
-    def HideWeapons(self):
+    def hideweapons(self):
         return self._raw_data.get('hideweapons', "0")
 
 
@@ -8061,7 +8061,7 @@ class info_survivor_rescue(PlayerClass, Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def rescueEyePos(self):
+    def rescueeyepos(self):
         return self._raw_data.get('rescueeyepos', None)
 
     @property
@@ -8084,11 +8084,11 @@ class trigger_finale(Angles, EnableDisable, Targetname):
         return self._raw_data.get('disableshadows', "0")
 
     @property
-    def FirstUseDelay(self):
+    def firstusedelay(self):
         return parse_source_value(self._raw_data.get('firstusedelay', 0))
 
     @property
-    def UseDelay(self):
+    def usedelay(self):
         return parse_source_value(self._raw_data.get('usedelay', 0))
 
     @property
@@ -8096,15 +8096,15 @@ class trigger_finale(Angles, EnableDisable, Targetname):
         return self._raw_data.get('type', "0")
 
     @property
-    def ScriptFile(self):
+    def scriptfile(self):
         return self._raw_data.get('scriptfile', None)
 
     @property
-    def VersusTravelCompletion(self):
+    def versustravelcompletion(self):
         return parse_source_value(self._raw_data.get('versustravelcompletion', 0.2))
 
     @property
-    def IsSacrificeFinale(self):
+    def issacrificefinale(self):
         return self._raw_data.get('issacrificefinale', "0")
 
 
@@ -8123,11 +8123,11 @@ class trigger_standoff(Angles, Targetname):
         return self._raw_data.get('disableshadows', "0")
 
     @property
-    def UseDuration(self):
+    def useduration(self):
         return parse_source_value(self._raw_data.get('useduration', 0))
 
     @property
-    def UseDelay(self):
+    def usedelay(self):
         return parse_source_value(self._raw_data.get('usedelay', 0))
 
 
@@ -8666,79 +8666,79 @@ class info_map_parameters(Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def AmmoDensity(self):
+    def ammodensity(self):
         return parse_source_value(self._raw_data.get('ammodensity', 6.48))
 
     @property
-    def PainPillDensity(self):
+    def painpilldensity(self):
         return parse_source_value(self._raw_data.get('painpilldensity', 6.48))
 
     @property
-    def MolotovDensity(self):
+    def molotovdensity(self):
         return parse_source_value(self._raw_data.get('molotovdensity', 6.48))
 
     @property
-    def PipeBombDensity(self):
+    def pipebombdensity(self):
         return parse_source_value(self._raw_data.get('pipebombdensity', 6.48))
 
     @property
-    def PistolDensity(self):
+    def pistoldensity(self):
         return parse_source_value(self._raw_data.get('pistoldensity', 6.48))
 
     @property
-    def GasCanDensity(self):
+    def gascandensity(self):
         return parse_source_value(self._raw_data.get('gascandensity', 6.48))
 
     @property
-    def OxygenTankDensity(self):
+    def oxygentankdensity(self):
         return parse_source_value(self._raw_data.get('oxygentankdensity', 6.48))
 
     @property
-    def PropaneTankDensity(self):
+    def propanetankdensity(self):
         return parse_source_value(self._raw_data.get('propanetankdensity', 6.48))
 
     @property
-    def MeleeWeaponDensity(self):
+    def meleeweapondensity(self):
         return parse_source_value(self._raw_data.get('meleeweapondensity', 6.48))
 
     @property
-    def AdrenalineDensity(self):
+    def adrenalinedensity(self):
         return parse_source_value(self._raw_data.get('adrenalinedensity', 6.48))
 
     @property
-    def DefibrillatorDensity(self):
+    def defibrillatordensity(self):
         return parse_source_value(self._raw_data.get('defibrillatordensity', 3.0))
 
     @property
-    def VomitJarDensity(self):
+    def vomitjardensity(self):
         return parse_source_value(self._raw_data.get('vomitjardensity', 6.48))
 
     @property
-    def UpgradepackDensity(self):
+    def upgradepackdensity(self):
         return parse_source_value(self._raw_data.get('upgradepackdensity', 1.0))
 
     @property
-    def ChainsawDensity(self):
+    def chainsawdensity(self):
         return parse_source_value(self._raw_data.get('chainsawdensity', 1.0))
 
     @property
-    def ConfigurableWeaponDensity(self):
+    def configurableweapondensity(self):
         return parse_source_value(self._raw_data.get('configurableweapondensity', -1.0))
 
     @property
-    def ConfigurableWeaponClusterRange(self):
+    def configurableweaponclusterrange(self):
         return parse_source_value(self._raw_data.get('configurableweaponclusterrange', 100))
 
     @property
-    def MagnumDensity(self):
+    def magnumdensity(self):
         return parse_source_value(self._raw_data.get('magnumdensity', -1.0))
 
     @property
-    def ItemClusterRange(self):
+    def itemclusterrange(self):
         return parse_source_value(self._raw_data.get('itemclusterrange', 50))
 
     @property
-    def FinaleItemClusterCount(self):
+    def finaleitemclustercount(self):
         return parse_source_value(self._raw_data.get('finaleitemclustercount', 3))
 
 
@@ -8749,79 +8749,79 @@ class info_map_parameters_versus(Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def AmmoDensity(self):
+    def ammodensity(self):
         return parse_source_value(self._raw_data.get('ammodensity', 6.48))
 
     @property
-    def PainPillDensity(self):
+    def painpilldensity(self):
         return parse_source_value(self._raw_data.get('painpilldensity', 6.48))
 
     @property
-    def MolotovDensity(self):
+    def molotovdensity(self):
         return parse_source_value(self._raw_data.get('molotovdensity', 6.48))
 
     @property
-    def PipeBombDensity(self):
+    def pipebombdensity(self):
         return parse_source_value(self._raw_data.get('pipebombdensity', 6.48))
 
     @property
-    def PistolDensity(self):
+    def pistoldensity(self):
         return parse_source_value(self._raw_data.get('pistoldensity', 6.48))
 
     @property
-    def GasCanDensity(self):
+    def gascandensity(self):
         return parse_source_value(self._raw_data.get('gascandensity', 6.48))
 
     @property
-    def OxygenTankDensity(self):
+    def oxygentankdensity(self):
         return parse_source_value(self._raw_data.get('oxygentankdensity', 6.48))
 
     @property
-    def PropaneTankDensity(self):
+    def propanetankdensity(self):
         return parse_source_value(self._raw_data.get('propanetankdensity', 6.48))
 
     @property
-    def MeleeWeaponDensity(self):
+    def meleeweapondensity(self):
         return parse_source_value(self._raw_data.get('meleeweapondensity', 6.48))
 
     @property
-    def AdrenalineDensity(self):
+    def adrenalinedensity(self):
         return parse_source_value(self._raw_data.get('adrenalinedensity', 6.48))
 
     @property
-    def DefibrillatorDensity(self):
+    def defibrillatordensity(self):
         return parse_source_value(self._raw_data.get('defibrillatordensity', 2.50))
 
     @property
-    def VomitJarDensity(self):
+    def vomitjardensity(self):
         return parse_source_value(self._raw_data.get('vomitjardensity', 6.48))
 
     @property
-    def UpgradepackDensity(self):
+    def upgradepackdensity(self):
         return parse_source_value(self._raw_data.get('upgradepackdensity', 1.0))
 
     @property
-    def ChainsawDensity(self):
+    def chainsawdensity(self):
         return parse_source_value(self._raw_data.get('chainsawdensity', 1.0))
 
     @property
-    def ConfigurableWeaponDensity(self):
+    def configurableweapondensity(self):
         return parse_source_value(self._raw_data.get('configurableweapondensity', -1.0))
 
     @property
-    def ConfigurableWeaponClusterRange(self):
+    def configurableweaponclusterrange(self):
         return parse_source_value(self._raw_data.get('configurableweaponclusterrange', 100))
 
     @property
-    def MagnumDensity(self):
+    def magnumdensity(self):
         return parse_source_value(self._raw_data.get('magnumdensity', -1.0))
 
     @property
-    def ItemClusterRange(self):
+    def itemclusterrange(self):
         return parse_source_value(self._raw_data.get('itemclusterrange', 50))
 
     @property
-    def FinaleItemClusterCount(self):
+    def finaleitemclustercount(self):
         return parse_source_value(self._raw_data.get('finaleitemclustercount', 3))
 
 
@@ -8853,7 +8853,7 @@ class beam_spotlight(RenderFields, Parentname, Angles, Targetname):
         return parse_source_value(self._raw_data.get('spotlightwidth', 50))
 
     @property
-    def HDRColorScale(self):
+    def hdrcolorscale(self):
         return parse_source_value(self._raw_data.get('hdrcolorscale', 0.7))
 
 
@@ -8885,7 +8885,7 @@ class info_goal_infected_chase(Parentname, Targetname):
 class func_playerinfected_clip(Parentname, Inputfilter, Shadow, Global, EnableDisable, RenderFields, Targetname):
 
     @property
-    def Solidity(self):
+    def solidity(self):
         return self._raw_data.get('solidity', "2")
 
     @property
@@ -8897,7 +8897,7 @@ class func_playerinfected_clip(Parentname, Inputfilter, Shadow, Global, EnableDi
 class func_playerghostinfected_clip(Parentname, Inputfilter, Shadow, Global, EnableDisable, RenderFields, Targetname):
 
     @property
-    def Solidity(self):
+    def solidity(self):
         return self._raw_data.get('solidity', "2")
 
     @property
@@ -8913,27 +8913,27 @@ class commentary_dummy(Angles, Targetname):
         return self._raw_data.get('model', "models/survivors/survivor_coach.mdl")
 
     @property
-    def EyeHeight(self):
+    def eyeheight(self):
         return parse_source_value(self._raw_data.get('eyeheight', 64))
 
     @property
-    def StartingAnim(self):
+    def startinganim(self):
         return self._raw_data.get('startinganim', "Idle_Calm_Pistol")
 
     @property
-    def StartingWeapons(self):
+    def startingweapons(self):
         return self._raw_data.get('startingweapons', "weapon_pistol")
 
     @property
-    def LookAtPlayers(self):
+    def lookatplayers(self):
         return self._raw_data.get('lookatplayers', "0")
 
     @property
-    def HeadYawPoseParam(self):
+    def headyawposeparam(self):
         return self._raw_data.get('headyawposeparam', "Head_Yaw")
 
     @property
-    def HeadPitchPoseParam(self):
+    def headpitchposeparam(self):
         return self._raw_data.get('headpitchposeparam', "Head_Pitch")
 
 
@@ -9003,7 +9003,7 @@ class env_player_blocker(Targetname):
         return self._raw_data.get('initialstate', "1")
 
     @property
-    def BlockType(self):
+    def blocktype(self):
         return self._raw_data.get('blocktype', "0")
 
 
@@ -9026,7 +9026,7 @@ class env_physics_blocker(Angles, Targetname):
         return self._raw_data.get('initialstate', "1")
 
     @property
-    def BlockType(self):
+    def blocktype(self):
         return self._raw_data.get('blocktype', "0")
 
 
@@ -9041,7 +9041,7 @@ class logic_game_event(Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def eventName(self):
+    def eventname(self):
         return self._raw_data.get('eventname', "")
 
 
@@ -9092,35 +9092,35 @@ class prop_fuel_barrel(Studiomodel, Angles, Targetname):
         return parse_source_value(self._raw_data.get('fadescale', 1))
 
     @property
-    def BasePiece(self):
+    def basepiece(self):
         return self._raw_data.get('basepiece', "models/props_industrial/barrel_fuel_partb.mdl")
 
     @property
-    def FlyingPiece01(self):
+    def flyingpiece01(self):
         return self._raw_data.get('flyingpiece01', "models/props_industrial/barrel_fuel_parta.mdl")
 
     @property
-    def FlyingPiece02(self):
+    def flyingpiece02(self):
         return self._raw_data.get('flyingpiece02', "")
 
     @property
-    def FlyingPiece03(self):
+    def flyingpiece03(self):
         return self._raw_data.get('flyingpiece03', "")
 
     @property
-    def FlyingPiece04(self):
+    def flyingpiece04(self):
         return self._raw_data.get('flyingpiece04', "")
 
     @property
-    def DetonateParticles(self):
+    def detonateparticles(self):
         return self._raw_data.get('detonateparticles', "weapon_pipebomb")
 
     @property
-    def FlyingParticles(self):
+    def flyingparticles(self):
         return self._raw_data.get('flyingparticles', "barrel_fly")
 
     @property
-    def DetonateSound(self):
+    def detonatesound(self):
         return self._raw_data.get('detonatesound', "BaseGrenade.Explode")
 
 
@@ -9140,11 +9140,11 @@ class env_weaponfire(Parentname, Angles, EnableDisable, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def TargetArc(self):
+    def targetarc(self):
         return parse_source_value(self._raw_data.get('targetarc', 40))
 
     @property
-    def TargetRange(self):
+    def targetrange(self):
         return parse_source_value(self._raw_data.get('targetrange', 3600))
 
     @property
@@ -9152,19 +9152,19 @@ class env_weaponfire(Parentname, Angles, EnableDisable, Targetname):
         return self._raw_data.get('filtername', None)
 
     @property
-    def DamageMod(self):
+    def damagemod(self):
         return parse_source_value(self._raw_data.get('damagemod', 1.0))
 
     @property
-    def WeaponType(self):
+    def weapontype(self):
         return self._raw_data.get('weapontype', "1")
 
     @property
-    def TargetTeam(self):
+    def targetteam(self):
         return self._raw_data.get('targetteam', "3")
 
     @property
-    def IgnorePlayers(self):
+    def ignoreplayers(self):
         return self._raw_data.get('ignoreplayers', "0")
 
 
@@ -9176,11 +9176,11 @@ class env_rock_launcher(Angles, Targetname):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def RockTargetName(self):
+    def rocktargetname(self):
         return self._raw_data.get('rocktargetname', None)
 
     @property
-    def RockDamageOverride(self):
+    def rockdamageoverride(self):
         return parse_source_value(self._raw_data.get('rockdamageoverride', 0))
 
 
@@ -9200,15 +9200,15 @@ class prop_minigun_l4d1(prop_dynamic_base, EnableDisable):
         return parse_int_vector(self._raw_data.get('origin', "0 0 0"))
 
     @property
-    def MaxYaw(self):
+    def maxyaw(self):
         return parse_source_value(self._raw_data.get('maxyaw', 90))
 
     @property
-    def MaxPitch(self):
+    def maxpitch(self):
         return parse_source_value(self._raw_data.get('maxpitch', 60))
 
     @property
-    def MinPitch(self):
+    def minpitch(self):
         return parse_source_value(self._raw_data.get('minpitch', -30))
 
 

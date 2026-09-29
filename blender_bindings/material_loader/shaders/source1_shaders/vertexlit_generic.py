@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import bpy
@@ -6,6 +7,17 @@ from SourceIO.blender_bindings.material_loader.shader_base import Nodes, ExtraMa
 from SourceIO.blender_bindings.material_loader.shaders.source1_shader_base import Source1ShaderBase
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_4, is_blender_4_3
 from .detail import DetailSupportMixin
+
+
+def phong_exponent_to_roughness(exponent: float) -> float:
+    """Convert a Source Phong exponent to a Blender GGX roughness.
+
+    Source evaluates ``pow(saturate(dot(R, L)), $phongexponent)``. The standard
+    Blinn-Phong -> microfacet-roughness mapping is ``sqrt(2 / (exponent + 2))``,
+    which is what Blender's GGX lobe expects.
+    """
+    return min(1.0, max(0.0, math.sqrt(2.0 / (max(exponent, 0.0) + 2.0))))
+
 
 class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     SHADER: str = 'vertexlitgeneric'
@@ -24,12 +36,18 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
         return None
 
     @property
-    def basetexture(self):
-        texture_path = self._vmt.get_string('$basetexture', None)
+    def compress(self):
+        texture_path = self._vmt.get_string('$compress', None)
         if texture_path is not None:
-            return self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
+            image = self.convert_normalmap(image)
+            image.colorspace_settings.is_data = True
+            image.colorspace_settings.name = 'Non-Color'
+            return image
         return None
-    
+
     @property
     def compress(self):
         texture_path = self._vmt.get_string('$compress', None)
@@ -74,70 +92,48 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     def lightwarptexture(self):
         texture_path = self._vmt.get_string('$lightwarptexture', None)
         if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.3, 0, 0.3, 1.0))
+            image = self.load_texture_or_default(texture_path, (0.5, 0.5, 1.0, 1.0))
+            if image == self.basetexture:
+                return image
+            image = self.convert_normalmap(image)
             image.colorspace_settings.is_data = True
             image.colorspace_settings.name = 'Non-Color'
             return image
         return None
+
+    @property
+    def basetexture(self):
+        return self._texture_property('$basetexture', (0.3, 0, 0.3, 1.0))
+
+    @property
+    def lightwarptexture(self):
+        return self._texture_property('$lightwarptexture', (0.3, 0, 0.3, 1.0), is_data=True)
 
     @property
     def basetexturetransform(self):
         return self._vmt.get_transform_matrix('$basetexturetransform',
-                                                {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
-                                                'translate': (0, 0, 0)})
+                                              {'center': (0.5, 0.5, 0), 'scale': (1.0, 1.0, 1), 'rotate': (0, 0, 0),
+                                               'translate': (0, 0, 0)})
 
     @property
     def selfillummask(self):
-        texture_path = self._vmt.get_string('$selfillummask', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.0, 0.0, 0.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._texture_property('$selfillummask', (0.0, 0.0, 0.0, 1.0), is_data=True)
 
     @property
     def phongexponenttexture(self):
-        texture_path = self._vmt.get_string('$phongexponenttexture', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (0.5, 0.0, 0.0, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._texture_property('$phongexponenttexture', (0.5, 0.0, 0.0, 1.0), is_data=True)
 
     @property
     def color2(self):
-        color_value, value_type = self._vmt.get_vector('$color2', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$color2')
 
     @property
     def color(self):
-        color_value, value_type = self._vmt.get_vector('$color', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
-    
+        return self._color_property('$color')
+
     @property
     def colortint_base(self):
-        color_value, value_type = self._vmt.get_vector('$colortint_base', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$colortint_base')
 
     @property
     def translucent(self):
@@ -150,7 +146,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def alphatestreference(self):
         return self._vmt.get_float('$alphatestreference', 0.5)
-    
+
     @property
     def selfillummaskscale(self):
         return self._vmt.get_float('$selfillummaskscale', 1.0)
@@ -170,17 +166,10 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def selfillum(self):
         return self._vmt.get_int('$selfillum', 0) == 1
-    
+
     @property
     def selfillumtint(self):
-        color_value, value_type = self._vmt.get_vector('$selfillumtint', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$selfillumtint')
 
     @property
     def basealphaenvmapmask(self):
@@ -204,32 +193,15 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
 
     @property
     def envmapmask(self):
-        texture_path = self._vmt.get_string('$envmapmask', None)
-        if texture_path is not None:
-            image = self.load_texture_or_default(texture_path, (1, 1, 1, 1.0))
-            image.colorspace_settings.is_data = True
-            image.colorspace_settings.name = 'Non-Color'
-            return image
-        return None
+        return self._texture_property('$envmapmask', (1, 1, 1, 1.0), is_data=True)
 
     @property
     def envmaptint(self):
-        color_value, value_type = self._vmt.get_vector('$envmaptint', [1, 1, 1])
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$envmaptint', [1, 1, 1])
 
     @property
     def phongfresnelranges(self):
-        value, value_type = self._vmt.get_vector('$phongfresnelranges', None)
-        if value is not None:
-            divider = 255 if value_type is int else 1
-            value = list(map(lambda a: a / divider, value))
-            return self.ensure_length(value, 3, 0.1)
-        return None
+        return self._color_property('$phongfresnelranges', length=3, filler=0.1)
 
     @property
     def phongexponent(self):
@@ -259,31 +231,24 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
     @property
     def phongalbedotint(self):
         return self._vmt.get_int('$phongalbedotint', 1) == 1
-    
+
     @property
     def blendtintbybasealpha(self):
         return self._vmt.get_float('$blendtintbybasealpha', 0)
-    
+
     @property
     def blendtintcoloroverbase(self):
         return self._vmt.get_float('$blendtintcoloroverbase', 0)
-    
+
     @property
     def nocull(self):
         return self._vmt.get_int('$nocull', 0) == 1
-    
+
     @property
     def phongtint(self):
-        color_value, value_type = self._vmt.get_vector('$phongtint', None)
-        if color_value is None:
-            return None
-        divider = 255 if value_type is int else 1
-        color_value = list(map(lambda a: a / divider, color_value))
-        if len(color_value) == 1:
-            color_value = [color_value[0], color_value[0], color_value[0]]
-        return self.ensure_length(color_value, 4, 1.0)
+        return self._color_property('$phongtint')
 
-    def create_nodes(self, material:bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
+    def create_nodes(self, material: bpy.types.Material, extra_parameters: dict[ExtraMaterialParameters, Any]):
         sio_diffuse = None
         tension = None
 
@@ -308,22 +273,26 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                             continue
                         self._vmt[result_var] = self._vmt[src2_var]
 
-
         material_output = self.create_node(Nodes.ShaderNodeOutputMaterial)
         material_output.location = [250, 0]
-        if not is_blender_4_3() and (self.alphatest or self.translucent):
-            if self.translucent:
-                self.bpy_material.blend_method = 'BLEND'
-                if hasattr(self.bpy_material, 'surface_render_method'):
-                    self.bpy_material.surface_render_method = 'BLENDED'
-            else:
-                self.bpy_material.blend_method = 'HASHED'
-            self.bpy_material.shadow_method = 'HASHED'
+        if self.alphatest or self.translucent:
+            self.set_blend_mode('BLEND' if self.translucent else 'HASHED',
+                                alpha_threshold=self.alphatestreference if self.alphatest else None)
         if self.additive:
-            self.bpy_material.blend_method = 'BLEND'
-            if hasattr(self.bpy_material, 'surface_render_method'):
-                self.bpy_material.surface_render_method = 'BLENDED'
+            self.set_blend_mode('BLEND')
         uv = None
+
+        compress = self.compress
+        if compress:
+            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$compress')
+            basetexture_node.image = compress
+
+        stretch = self.stretch
+        if stretch:
+            basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$stretch')
+            basetexture_node.image = stretch
+
+        basetexture = self.basetexture
         if self.use_bvlg_status:
             self.do_arrange = True
 
@@ -341,9 +310,9 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             var.targets[0].data_path = 'use_backface_culling'
 
             final = group_node.outputs[0]
-            
-            if self.basetexture:
-                basetexture_node = self.create_and_connect_texture_node(self.basetexture,
+
+            if basetexture:
+                basetexture_node = self.create_and_connect_texture_node(basetexture,
                                                                         group_node.inputs['$basetexture [texture]'],
                                                                         name='$basetexture')
                 basetexture_node.location = [-800, 0]
@@ -356,7 +325,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                 if self.basemapalphaphongmask:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['phongmask [bumpmap texture alpha]'])
-                #if self.alphatest or self.translucent:
+                # if self.alphatest or self.translucent:
                 #    self.connect_nodes(basetexture_node.outputs['Alpha'],
                 #                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
 
@@ -452,7 +421,11 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                                                                      phongexponent_group_node.inputs[
                                                                                          'alpha'],
                                                                                      name='$phongexponenttexture',
-                                                                                     UV=uv)
+                                                                                     # `uv` only exists when
+                                                                                     # $basetexturetransform built one;
+                                                                                     # it is also `.outputs`, not
+                                                                                     # `.output`.
+                                                                                     uv_out=uv.outputs[0] if uv else None)
                     phongexponenttexture_node.location = [-800, -470]
 
                     if self.phongalbedotint is not None and not self.phongtint:
@@ -462,7 +435,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                                            phongalbedo_node.inputs['phongalbedotint amount'])
                         self.connect_nodes(phongalbedo_node.outputs['$phongtint [RGB field]'],
                                            group_node.inputs['$phongtint [RGB field]'])
-                        if self.basetexture is not None:
+                        if basetexture is not None:
                             self.connect_nodes(basetexture_node.outputs['Color'],
                                                phongalbedo_node.inputs['$basetexture [texture]'])
                 else:
@@ -477,10 +450,11 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             if self.selfillum:
                 group_node.inputs['$selfillum [bool]'].default_value = 1
                 if self.selfillummask:
-                    selfillummask_node = self.create_and_connect_texture_node(self.selfillummask, group_node.inputs[
-                        '$selfillummask [texture alpha]'], UV=uv)
+                    selfillummask_node = self.create_and_connect_texture_node(
+                        self.selfillummask, group_node.inputs['$selfillummask [texture alpha]'],
+                        uv_out=uv.outputs[0] if uv else None)
                     selfillummask_node.location = [-500, -510]
-                elif self.basetexture is not None:
+                elif basetexture is not None:
                     self.connect_nodes(basetexture_node.outputs['Alpha'],
                                        group_node.inputs['$selfillummask [texture alpha]'])
                 if self.selfillummaskscale:
@@ -531,15 +505,16 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     self.connect_nodes(final, add.inputs[1])
                     self.connect_nodes(transparent.outputs[0], add.inputs[0])
                     final = add.outputs[0]
-                    
+
             if self.alphatest or self.translucent:
                 alphatest_node = self.create_node_group("$alphatest", [250, 0])
                 material_output.location = [450, 0]
                 alphatest_node.inputs['$alphatestreference [value]'].default_value = self.alphatestreference
                 alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
                 alphatest_node.inputs['$translucent'].default_value = self.translucent
-                if self.basetexture:
-                    self.connect_nodes(basetexture_node.outputs[1], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                if basetexture:
+                    self.connect_nodes(basetexture_node.outputs[1],
+                                       alphatest_node.inputs['Alpha [basemap texture alpha]'])
                 self.connect_nodes(final, alphatest_node.inputs[0])
                 final = alphatest_node.outputs[0]
                 if sio_diffuse:
@@ -548,16 +523,16 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     alphatest_node.inputs['$alphatestreference [value]'].default_value = self.alphatestreference
                     alphatest_node.inputs['$allowalphatocoverage [boolean]'].default_value = self.allowalphatocoverage
                     alphatest_node.inputs['$translucent'].default_value = self.translucent
-                    if self.basetexture:
-                        self.connect_nodes(basetexture_node.outputs[1], alphatest_node.inputs['Alpha [basemap texture alpha]'])
+                    if basetexture:
+                        self.connect_nodes(basetexture_node.outputs[1],
+                                           alphatest_node.inputs['Alpha [basemap texture alpha]'])
                     self.connect_nodes(final_cycles, alphatest_node.inputs[0])
                     final_cycles = alphatest_node.outputs[0]
-            
+
             # Finalize outputs
             self.connect_nodes(final, material_output.inputs[0])
             if sio_diffuse:
                 self.connect_nodes(final_cycles, cycles_output.inputs[0])
-
 
             '''
             END OF BVLG
@@ -567,7 +542,7 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
             shader = self.create_node(Nodes.ShaderNodeBsdfPrincipled, self.SHADER)
             self.connect_nodes(shader.outputs['BSDF'], material_output.inputs['Surface'])
 
-            basetexture = self.basetexture
+            basetexture = basetexture
             if basetexture:
                 basetexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$basetexture')
                 basetexture_node.image = basetexture
@@ -628,33 +603,162 @@ class VertexLitGeneric(DetailSupportMixin, Source1ShaderBase):
                     else:
                         self.connect_nodes(basetexture_node.outputs['Color'], shader.inputs['Emission'])
 
-            if not self.phong:
-                if is_blender_4():
-                    shader.inputs['Specular IOR Level'].default_value = 0
-                else:
-                    shader.inputs['Specular'].default_value = 0
-            elif self.phongboost is not None:
-                if is_blender_4():
-                    shader.inputs['Specular IOR Level'].default_value = self.clamp_value(self.phongboost / 64)
-                else:
-                    shader.inputs['Specular'].default_value = self.clamp_value(self.phongboost / 64)
-            phongexponenttexture = self.phongexponenttexture
-            if self.phongexponent is not None and phongexponenttexture is None:
-                shader.inputs['Roughness'].default_value = self.clamp_value(self.phongexponent / 256)
-            elif self.phongexponenttexture is not None:
-                phongexponenttexture_node = self.create_node(Nodes.ShaderNodeTexImage, '$phongexponenttexture')
-                phongexponenttexture_node.image = phongexponenttexture
-                phongexponenttexture_split_node = self.create_node(Nodes.ShaderNodeSeparateColor)
-                self.connect_nodes(phongexponenttexture_node.outputs['Color'],
-                                   phongexponenttexture_split_node.inputs['Image'])
+            self._setup_phong(shader, self.get_node('$basetexture'))
 
-                phongexponenttexture_r_invert_node = self.create_node(Nodes.ShaderNodeInvert)
-                self.connect_nodes(phongexponenttexture_split_node.outputs['R'],
-                                   phongexponenttexture_r_invert_node.inputs['Color'])
-                self.connect_nodes(phongexponenttexture_split_node.outputs['G'],
-                                   shader.inputs['Metallic'])
+    def _setup_phong(self, shader, basetexture_node):
+        """Approximate Source's Phong specular on a Principled BSDF.
 
-                self.connect_nodes(phongexponenttexture_r_invert_node.outputs['Color'], shader.inputs['Roughness'])
+        Mirrors ``skin_ps20b.fxc`` / ``common_vertexlitgeneric_dx9.h`` from the
+        Source SDK 2013, which computes::
+
+            fSpecExp = (const >= 0) ? const : (1.0 + 149.0 * vSpecExpMap.r)
+            specularLighting = pow( saturate(dot(vReflect, vLightDir)), fSpecExp )
+            fSpecMask = lerp( normalTexel.a, baseColor.a, $basemapalphaphongmask )
+            fSpecMask *= fFresnelRanges
+            specularLighting *= fSpecMask * $phongboost
+            vSpecularTint = lerp( 1, baseColor.rgb, vSpecExpMap.g )
+            vSpecularTint = ($phongtint.r >= 0) ? $phongtint : vSpecularTint
+            result = specularLighting * vSpecularTint + ...
+
+        Blender has no Phong lobe and its specular inputs are 0..1 factors, so:
+
+        * exponent -> Roughness via :func:`phong_exponent_to_roughness`
+        * mask x fresnel x boost -> Specular IOR Level / Roughness modulation
+        * tint -> Specular Tint (same lerp as the SDK)
+        """
+        spec_input = 'Specular IOR Level' if is_blender_4() else 'Specular'
+
+        if not self.phong:
+            shader.inputs[spec_input].default_value = 0.0
+            return
+
+        # --- Specular strength: $phongboost x fresnel ---
+        # In the SDK, boost is an unclamped multiplier into an HDR accumulator
+        # (`specularLighting *= fSpecMask * g_SpecularBoost`), so values in the
+        # hundreds are legitimate. Blender's Specular IOR Level is a hard 0..1
+        # factor (0.5 == IOR 1.45), so map the boost perceptually: 1.0 stays
+        # neutral at 0.5 and the practical 1..255 range spans 0.5..1.0 instead of
+        # saturating almost immediately.
+        boost = self.phongboost if self.phongboost is not None else 1.0
+        boost = max(boost, 0.0)
+        if boost <= 1.0:
+            strength = 0.5 * boost
+        else:
+            # log-scaled so boost 1 -> 0.5, 16 -> ~0.75, 255 -> 1.0
+            strength = 0.5 + 0.5 * min(1.0, math.log(boost, 255.0))
+
+        fresnel_ranges = self.phongfresnelranges
+        if fresnel_ranges and len(fresnel_ranges) > 1:
+            # vRanges = (low, mid, high); the SDK's piecewise curve is centred on
+            # `mid`, which is the value seen across most of the surface, so use it
+            # as the constant stand-in for the per-pixel fresnel term.
+            strength *= max(fresnel_ranges[1], 0.0)
+        shader.inputs[spec_input].default_value = self.clamp_value(strength)
+
+        # --- Roughness from the exponent (scalar or texture red channel) ---
+        exponent_texture = self.phongexponenttexture
+        roughness_output = None
+        albedo_tint_amount = None  # socket carrying the per-pixel albedo-tint mask
+        rim_mask_output = None  # socket carrying the per-pixel rimlight mask
+        if exponent_texture is not None:
+            exponent_node = self.create_texture_node(exponent_texture, '$phongexponenttexture')
+            split_node = self.create_node(Nodes.ShaderNodeSeparateColor, 'phongexponent split')
+            split_node.mode = "RGB"
+            self.connect_nodes(exponent_node.outputs['Color'], split_node.inputs[0])
+
+            # The SDK decodes the red channel as `fSpecExp = 1.0 + factor * r`
+            # (factor is 149.0 unless $phongexponentfactor overrides it), so r=0
+            # is a very broad highlight and r=1 is tight. Map Range is linear in
+            # `r`, which cannot reproduce the sqrt() curve exactly, but matching
+            # both endpoints keeps the highlight size right at the extremes.
+            exponent_factor = self._vmt.get_float('$phongexponentfactor', None) or 149.0
+            remap = self.create_node(Nodes.ShaderNodeMapRange, 'phongexponent -> roughness')
+            remap.inputs['From Min'].default_value = 0.0
+            remap.inputs['From Max'].default_value = 1.0
+            remap.inputs['To Min'].default_value = phong_exponent_to_roughness(1.0)
+            remap.inputs['To Max'].default_value = phong_exponent_to_roughness(1.0 + exponent_factor)
+            self.connect_nodes(split_node.outputs[0], remap.inputs['Value'])
+            roughness_output = remap.outputs[0]
+
+            # G is the per-pixel $phongalbedotint amount -- NOT metalness, which is
+            # what this used to be wired to.
+            albedo_tint_amount = split_node.outputs[1]
+            # A is the rim mask: `fRimMask = lerp(1.0, vSpecExpMap.a, $rimmask)`.
+            rim_mask_output = exponent_node.outputs['Alpha']
+        elif self.phongexponent is not None:
+            shader.inputs['Roughness'].default_value = phong_exponent_to_roughness(self.phongexponent)
+        else:
+            # No exponent map and no explicit $phongexponent. The SDK falls back
+            # to `max(g_EyePos_SpecExponent.w, 0)`; VertexLitGeneric's own node
+            # group uses 12 as its neutral default, which reads well in practice.
+            shader.inputs['Roughness'].default_value = phong_exponent_to_roughness(12.0)
+
+        # --- Specular tint, resolved once ---
+        # Source precedence: an explicit $phongtint wins; otherwise, when
+        # $phongalbedotint is set the specular tints toward the albedo, by the
+        # per-pixel amount in the exponent texture's green channel if present.
+        if 'Specular Tint' in shader.inputs:
+            phongtint = self.phongtint
+            if phongtint is not None:
+                shader.inputs['Specular Tint'].default_value = phongtint
+            elif self.phongalbedotint and basetexture_node is not None and albedo_tint_amount is not None:
+                # Only tint per-pixel, driven by the exponent texture's green
+                # channel. Without that channel Source has no tint amount to
+                # apply, and forcing full-albedo tint here reads far too strong.
+                albedo_tint_mix = self.create_node(Nodes.ShaderNodeMixRGB, 'phongalbedotint')
+                albedo_tint_mix.inputs['Color1'].default_value = (1.0, 1.0, 1.0, 1.0)
+                self.connect_nodes(albedo_tint_amount, albedo_tint_mix.inputs['Fac'])
+                self.connect_nodes(basetexture_node.outputs['Color'], albedo_tint_mix.inputs['Color2'])
+                self.connect_nodes(albedo_tint_mix.outputs['Color'], shader.inputs['Specular Tint'])
+
+        # --- Phong mask ---
+        # SDK: `fSpecMask = lerp( normalTexel.a, baseColor.a, $basemapalphaphongmask )`
+        # i.e. normal-map alpha by default, base-map alpha when the flag is set.
+        mask_output = None
+        if self.basemapalphaphongmask and basetexture_node is not None:
+            mask_output = basetexture_node.outputs['Alpha']
+        elif self.normalmapalphaphongmask:
+            bumpmap_node = self.get_node('$bumpmap')
+            if bumpmap_node is not None:
+                mask_output = bumpmap_node.outputs['Alpha']
+
+        if mask_output is not None:
+            # The SDK scales the specular *intensity* by the mask. Blender's
+            # Specular IOR Level is already set to a constant, so approximate the
+            # same effect by driving masked-out areas fully rough instead:
+            # Mix(Fac=mask, A=1.0, B=roughness)
+            mask_mix = self.create_node(Nodes.ShaderNodeMix, 'phongmask')
+            mask_mix.data_type = 'FLOAT'
+            self.connect_nodes(mask_output, mask_mix.inputs['Factor'])
+            mask_mix.inputs['A'].default_value = 1.0
+            if roughness_output is not None:
+                self.connect_nodes(roughness_output, mask_mix.inputs['B'])
+            else:
+                mask_mix.inputs['B'].default_value = shader.inputs['Roughness'].default_value
+            roughness_output = mask_mix.outputs[0]
+
+        if roughness_output is not None:
+            self.connect_nodes(roughness_output, shader.inputs['Roughness'])
+
+        # --- Rimlight ---
+        # SDK: `rimLighting = pow(LdotR, g_RimExponent)` masked by N.L and scaled
+        # by $rimlightboost, with the exponent texture's alpha as a per-pixel mask.
+        # Sheen is the closest Principled analogue for a broad edge-facing term.
+        if self.rimlight and 'Sheen Weight' in shader.inputs:
+            boost = self.rimlightboost
+            weight = self.clamp_value(boost if boost else 1.0)
+            if rim_mask_output is not None:
+                rim_mix = self.create_node(Nodes.ShaderNodeMix, 'rimlight mask')
+                rim_mix.data_type = 'FLOAT'
+                self.connect_nodes(rim_mask_output, rim_mix.inputs['Factor'])
+                rim_mix.inputs['A'].default_value = 0.0
+                rim_mix.inputs['B'].default_value = weight
+                self.connect_nodes(rim_mix.outputs[0], shader.inputs['Sheen Weight'])
+            else:
+                shader.inputs['Sheen Weight'].default_value = weight
+            if 'Sheen Roughness' in shader.inputs:
+                shader.inputs['Sheen Roughness'].default_value = phong_exponent_to_roughness(
+                    self.rimlightexponent or 4.0)
 
 
 class SDKVertexLitGeneric(VertexLitGeneric):

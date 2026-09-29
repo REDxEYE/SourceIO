@@ -3,6 +3,7 @@ import numpy as np
 from bpy.types import Node
 
 from SourceIO.blender_bindings.ui.export_nodes.nodes.base_node import SourceIOTextureTreeNode
+from SourceIO.library.utils.math_utilities import ensure_f32, srgb_to_linear, linear_to_srgb
 
 
 def _is_texture(a):
@@ -13,11 +14,6 @@ def _is_texture(a):
 def _is_channel(a):
     """Return True if array looks like HxW."""
     return isinstance(a, np.ndarray) and a.ndim == 2
-
-
-def _ensure_f32(a):
-    """Return a contiguous float32 view/copy."""
-    return np.ascontiguousarray(a, dtype=np.float32)
 
 
 def _clamp01(a):
@@ -36,7 +32,7 @@ def _broadcast_to_texture(x, shape_tex):
         out[..., 2] = x
         out[..., 3] = 1.0
         return out
-    return _ensure_f32(x)
+    return ensure_f32(x)
 
 
 def _broadcast_to_channel(x, shape_ch):
@@ -44,11 +40,11 @@ def _broadcast_to_channel(x, shape_ch):
     if np.isscalar(x):
         return np.full(shape_ch, float(x), dtype=np.float32)
     if _is_channel(x):
-        return _ensure_f32(x)
+        return ensure_f32(x)
     if _is_texture(x):
-        x = _ensure_f32(x)
+        x = ensure_f32(x)
         return (0.2126 * x[..., 0] + 0.7152 * x[..., 1] + 0.0722 * x[..., 2]).astype(np.float32)
-    return _ensure_f32(x)
+    return ensure_f32(x)
 
 
 def _apply_bc(x, brightness, contrast):
@@ -66,28 +62,9 @@ def _smootherstep(x: np.ndarray) -> np.ndarray:
     return x * x * x * (x * (x * 6.0 - 15.0) + 10.0)
 
 
-def _srgb_to_linear(x):
-    """Per-element sRGB->Linear 0..1."""
-    x = _ensure_f32(x)
-    a = x <= 0.04045
-    y = np.empty_like(x, dtype=np.float32)
-    y[a] = x[a] / 12.92
-    y[~a] = ((x[~a] + 0.055) / 1.055) ** 2.4
-    return y
-
-
-def _linear_to_srgb(x):
-    """Per-element Linear->sRGB 0..1."""
-    x = _ensure_f32(x)
-    a = x <= 0.0031308
-    y = np.empty_like(x, dtype=np.float32)
-    y[a] = x[a] * 12.92
-    y[~a] = 1.055 * (x[~a] ** (1.0 / 2.4)) - 0.055
-    return y
-
 def _rgb_to_unit_vec(tex):
     """Map RGB 0..1 to unit-length XYZ in [-1,1]."""
-    v = _ensure_f32(tex[..., :3]) * 2.0 - 1.0
+    v = ensure_f32(tex[..., :3]) * 2.0 - 1.0
     n = np.linalg.norm(v, axis=-1, keepdims=True)
     n = np.maximum(n, 1e-8)
     return v / n
@@ -301,7 +278,7 @@ class SourceIOTextureBrightnessContrastNode(SourceIOTextureTreeNode):
         ch = inputs.get("channel")
         kind = self._resolve_kind()
         if kind == 'TEXTURE' and _is_texture(tex):
-            img = _ensure_f32(tex.copy())
+            img = ensure_f32(tex.copy())
             if self.affect_alpha:
                 img = _apply_bc(img, self.brightness, self.contrast)
             else:
@@ -309,11 +286,11 @@ class SourceIOTextureBrightnessContrastNode(SourceIOTextureTreeNode):
             if self.clamp_result: img = _clamp01(img)
             return {"texture": img}
         if kind == 'CHANNEL' and _is_channel(ch):
-            v = _apply_bc(_ensure_f32(ch.copy()), self.brightness, self.contrast)
+            v = _apply_bc(ensure_f32(ch.copy()), self.brightness, self.contrast)
             if self.clamp_result: v = _clamp01(v)
             return {"channel": v}
         if _is_texture(tex):
-            img = _ensure_f32(tex.copy())
+            img = ensure_f32(tex.copy())
             if self.affect_alpha:
                 img = _apply_bc(img, self.brightness, self.contrast)
             else:
@@ -321,7 +298,7 @@ class SourceIOTextureBrightnessContrastNode(SourceIOTextureTreeNode):
             if self.clamp_result: img = _clamp01(img)
             return {"texture": img}
         if _is_channel(ch):
-            v = _apply_bc(_ensure_f32(ch.copy()), self.brightness, self.contrast)
+            v = _apply_bc(ensure_f32(ch.copy()), self.brightness, self.contrast)
             if self.clamp_result: v = _clamp01(v)
             return {"channel": v}
         return None
@@ -427,9 +404,9 @@ class SourceIOTextureMathNode(SourceIOTextureTreeNode):
         else:
             if a.shape[:2] != b.shape[:2]:
                 return None
-            b = _ensure_f32(b.copy())
+            b = ensure_f32(b.copy())
 
-        a = _ensure_f32(a.copy())
+        a = ensure_f32(a.copy())
 
         if kind_a == "texture":
             b = _broadcast_to_texture(b, a.shape)
@@ -512,7 +489,7 @@ class SourceIOChannelRemapNode(SourceIOTextureTreeNode):
         ch = inputs.get("channel")
         if not isinstance(ch, np.ndarray) or ch.ndim != 2:
             return None
-        x = _ensure_f32(ch.copy())
+        x = ensure_f32(ch.copy())
         denom = max(self.in_max - self.in_min, 1e-6)
         x = (x - self.in_min) / denom
         if self.clamp_input:
@@ -552,7 +529,7 @@ class SourceIONormalOpsNode(SourceIOTextureTreeNode):
         tex = inputs.get("texture")
         if not isinstance(tex, np.ndarray) or tex.ndim != 3 or tex.shape[-1] not in (3, 4):
             return None
-        img = _ensure_f32(tex.copy())
+        img = ensure_f32(tex.copy())
         rgb = img[..., :3]
         if self.flip_green:
             rgb[..., 1] = 1.0 - rgb[..., 1]
@@ -596,7 +573,7 @@ class SourceIOHeightToNormalNode(SourceIOTextureTreeNode):
         h = inputs.get("height")
         if not isinstance(h, np.ndarray) or h.ndim != 2:
             return None
-        H = _ensure_f32(h)
+        H = ensure_f32(h)
         dx = (np.roll(H, -1, axis=1) - np.roll(H, 1, axis=1)) * 0.5
         dy = (np.roll(H, -1, axis=0) - np.roll(H, 1, axis=0)) * 0.5
         s = float(self.strength)
@@ -654,8 +631,8 @@ class SourceIONormalBlendNode(SourceIOTextureTreeNode):
         if n1.shape[0] != n2.shape[0] or n1.shape[1] != n2.shape[1]:
             return None
 
-        A_img = _ensure_f32(n1.copy())
-        B_img = _ensure_f32(n2)
+        A_img = ensure_f32(n1.copy())
+        B_img = ensure_f32(n2)
         a = _rgb_to_unit_vec(A_img)
         b = _rgb_to_unit_vec(B_img)
         t = self.factor
@@ -737,19 +714,19 @@ class SourceIOColorSpaceNode(SourceIOTextureTreeNode):
             tex = inputs.get("texture")
             if not isinstance(tex, np.ndarray) or tex.ndim != 3 or tex.shape[-1] not in (3, 4):
                 return None
-            img = _ensure_f32(tex.copy())
+            img = ensure_f32(tex.copy())
             if self.direction == 'SRGB2LIN':
-                img[..., :3] = _srgb_to_linear(img[..., :3])
+                img[..., :3] = srgb_to_linear(img[..., :3], 1)
             else:
-                img[..., :3] = _linear_to_srgb(img[..., :3])
+                img[..., :3] = linear_to_srgb(img[..., :3], 1)
             if self.clamp_result: img = _clamp01(img)
             return {"texture": img}
         if kind == 'CHANNEL':
             ch = inputs.get("channel")
             if not isinstance(ch, np.ndarray) or ch.ndim != 2:
                 return None
-            v = _ensure_f32(ch.copy())
-            v = _srgb_to_linear(v) if self.direction == 'SRGB2LIN' else _linear_to_srgb(v)
+            v = ensure_f32(ch.copy())
+            v = srgb_to_linear(v, 1) if self.direction == 'SRGB2LIN' else linear_to_srgb(v, 1)
             if self.clamp_result: v = _clamp01(v)
             return {"channel": v}
         return None

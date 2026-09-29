@@ -22,6 +22,30 @@ from SourceIO.library.source1.bsp.lumps.vertex_lump import Quake3VertexLump
 from SourceIO.library.utils import SOURCE1_HAMMER_UNIT_TO_METERS, path_stem
 
 
+# This file uses a more precise value for the <= than other games, not sure if intentional.
+def _srgb_to_linear(x, in_range=255):
+    """
+    Per-element sRGB->Linear 0..1.
+
+        Args:
+        color: NumPy array of SRGB values
+        in_range: Maximum value in input (255 for uint8, 1.0 for float)
+
+    Returns:
+        Linear space image with same shape as input
+    """
+    color = ensure_f32(color)
+    # Normalize to 0-1 range
+    color /= in_range
+
+    # Apply SRGB to linear conversion
+    a = color <= 0.0404482362771082
+    linear = np.empty_like(color, dtype=np.float32)
+    linear[a] = color[a] / 12.92
+    linear[~a] = ((color[~a] + 0.055) / 1.055) ** 2.4
+    return linear
+
+
 def _bernstein_quadratic(t: np.ndarray) -> np.ndarray:
     """Return Bernstein basis B0..B2 for quadratic Bezier at samples t (shape: [N,3])."""
     t = np.asarray(t, dtype=np.float32)
@@ -590,20 +614,9 @@ class QuakeEntityHandler(AbstractEntityHandler):
         self.parent_collection.objects.link(world)
 
     def handle_light(self, entity, entity_raw: dict):
-        def to_linear(value):
-            if value <= 0.0404482362771082:
-                return value / 12.92
-            else:
-                return pow(((value + 0.055) / 1.055), 2.4)
-
-        def srgb_to_linear(color):
-            return (to_linear(color[0]),
-                    to_linear(color[1]),
-                    to_linear(color[2]))
-
         light_data = bpy.data.lights.new(name=self._get_entity_name(entity), type='POINT')
         light_data.energy = float(entity_raw.get("light", "100")) * self.light_scale
-        light_data.color = srgb_to_linear(parse_float_vector(entity_raw.get("_color", "1 1 1")))
+        light_data.color = _srgb_to_linear(parse_float_vector(entity_raw.get("_color", "1 1 1")), 1)
         obj = bpy.data.objects.new(self._get_entity_name(entity), light_data)
         self._set_location(obj, parse_float_vector(entity_raw.get("origin", "0 0 0")))
         self._set_single_angle(obj, float(entity_raw.get("angle", "0")))

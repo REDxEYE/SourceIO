@@ -12,11 +12,11 @@ from SourceIO.blender_bindings.source1.vtf import load_skybox_texture
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, get_or_create_material
 from SourceIO.library.source1.vmt import VMT
 from SourceIO.library.source1.vtf import SkyboxException
-from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec
+from SourceIO.library.utils.math_utilities import ensure_length, lerp_vec, srgb_to_linear
 from SourceIO.library.utils.path_utilities import path_stem
 from SourceIO.library.utils.tiny_path import TinyPath
 from SourceIO.logger import SourceLogMan
-from .abstract_entity_handlers import AbstractEntityHandler, _srgb2lin
+from .abstract_entity_handlers import AbstractEntityHandler, register_entity_handlers
 from .base_entity_classes import *
 from .base_entity_classes import entity_class_handle as base_entity_classes
 
@@ -24,26 +24,80 @@ strip_patch_coordinates = re.compile(r"_-?\d+_-?\d+_-?\d+.*$")
 log_manager = SourceLogMan()
 
 
-def srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
+def _srgb_to_linear(srgb: tuple[float]) -> tuple[list[float], float]:
     final_color = []
     if len(srgb) == 4:
         scale = srgb[3] / 255
     else:
         scale = 1
-    for component in srgb[:3]:
-        component = _srgb2lin(component / 255)
-        final_color.append(component)
+    final_color = srgb_to_linear(srgb[:3])
     if len(final_color) == 1:
         return ensure_length(final_color, 3, final_color[0]), 1
     return final_color, scale
 
 
+@register_entity_handlers
 class BaseEntityHandler(AbstractEntityHandler):
     entity_lookup_table = base_entity_classes
     light_power_multiplier = 100000
 
     # pointlight_power_multiplier = 100
     # spotlight_power_multiplier = 100
+
+    BRUSH_ENTITIES = {
+        'func_tank':               'brushes',
+        'momentary_rot_button':    'brushes',
+        'func_rot_button':         'brushes',
+        'func_tanktrain':          'brushes',
+        'trigger_weapon_strip':    'brushes',
+        'color_correction_volume': 'brushes',
+    }
+
+    MODEL_ENTITIES: dict[str, str] = {}
+
+    POINT_ENTITIES = {
+        'env_spark':                 'environment',
+        'env_shooter':               'environment',
+        'phys_ballsocket':           'physics',
+        'phys_constraint':           'physics',
+        'point_teleport':            'logic',
+        'phys_hinge':                'physics',
+        'env_ar2explosion':          'environment',
+        'point_camera':              'logic',
+        'npc_enemyfinder':           'npc',
+        'phys_ragdollconstraint':    'physics',
+        'env_microphone':            'environment',
+        'phys_lengthconstraint':     'physics',
+        'point_viewcontrol':         'logic',
+        'info_teleport_destination': 'logic',
+        'light_dynamic':             'lights',
+        'phys_motor':                'physics',
+        'phys_spring':               'physics',
+    }
+
+    NOOP_ENTITIES = frozenset({
+        'ai_script_conditions',
+        'env_global',
+        'env_texturetoggle',
+        'env_viewpunch',
+        'filter_damage_type',
+        'filter_multi',
+        'game_gib_manager',
+        'game_text',
+        'info_lighting_relative',
+        'logic_autosave',
+        'logic_collision_pair',
+        'logic_compare',
+        'logic_playerproxy',
+        'material_modify_control',
+        'math_remap',
+        'phys_constraintsystem',
+        'player_loadsaved',
+        'player_speedmod',
+        'player_weaponstrip',
+        'point_anglesensor',
+        'point_servercommand',
+    })
 
     def handle_func_water_analog(self, entity: func_water_analog, entity_raw: dict):
         if 'model' not in entity_raw:
@@ -331,9 +385,9 @@ class BaseEntityHandler(AbstractEntityHandler):
     # def handle_item_dynamic_resupply(self, entity: item_dynamic_resupply, entity_raw: dict):
 
     def handle_light_spot(self, entity: light_spot, entity_raw: dict):
-        use_sdr = entity._lightHDR == [-1, -1, -1, -1]
-        color_value = entity._lightHDR if use_sdr else entity._light
-        color, brightness = srgb_to_linear(color_value)
+        use_sdr = entity._lighthdr == [-1, -1, -1, -1]
+        color_value = entity._lighthdr if use_sdr else entity._light
+        color, brightness = _srgb_to_linear(color_value)
         scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
         cone = float(entity_raw.get('_cone', 0)) or 60
         inner_cone = float(entity_raw.get('_inner_cone', 0)) or 60
@@ -351,14 +405,14 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('light_spot', obj, 'lights')
 
     def handle_light_environment(self, entity: light_environment, entity_raw: dict):
-        use_sdr = entity._lightHDR == [-1, -1, -1, -1]
-        color_value = entity._lightHDR if use_sdr else entity._light
-        color, brightness = srgb_to_linear(color_value)
+        use_sdr = entity._lighthdr == [-1, -1, -1, -1]
+        color_value = entity._lighthdr if use_sdr else entity._light
+        color, brightness = _srgb_to_linear(color_value)
         scale = float(entity_raw.get('_lightscaleHDR', 1) if use_sdr else 1)
 
         light: bpy.types.SunLight = bpy.data.lights.new(f'{entity.class_name}_{entity.hammer_id}', 'SUN')
         light.cycles.use_multiple_importance_sampling = True
-        light.angle = math.radians(entity.SunSpreadAngle)
+        light.angle = math.radians(entity.sunspreadangle)
         light.color = color
         light.energy = brightness * scale * self.light_power_multiplier / 100 * self.scale * self.light_scale
         obj: bpy.types.Object = bpy.data.objects.new(f'{entity.class_name}_{entity.hammer_id}', object_data=light)
@@ -393,9 +447,9 @@ class BaseEntityHandler(AbstractEntityHandler):
         self._put_into_collection('light_environment', obj, 'lights')
 
     def handle_light(self, entity: light, entity_raw: dict):
-        use_sdr = entity._lightHDR == [-1, -1, -1, -1]
-        color_value = entity._lightHDR if use_sdr else entity._light
-        color, brightness = srgb_to_linear(color_value)
+        use_sdr = entity._lighthdr == [-1, -1, -1, -1]
+        color_value = entity._lighthdr if use_sdr else entity._light
+        color, brightness = _srgb_to_linear(color_value)
         scale = float(entity_raw.get('_lightscaleHDR', entity_raw.get('_lightscalehdr', 1)) if use_sdr else 1)
 
         light: bpy.types.PointLight = bpy.data.lights.new(self._get_entity_name(entity), 'POINT')
@@ -645,14 +699,13 @@ class BaseEntityHandler(AbstractEntityHandler):
 
     # TODO(ShadelessFox): Handle 2 or more keyframe_rope in a chain
     def handle_move_rope(self, entity: move_rope, entity_raw: dict):
-
-        if entity.NextKey is None:
+        if entity.nextkey is None:
             return
-        next_entity, next_raw = self._get_entity_by_name(entity.NextKey)
+        next_entity, next_raw = self._get_entity_by_name(entity.nextkey)
         next_entity: keyframe_rope
         next_raw: dict
         if not next_entity:
-            self.logger.error(f'Cannot find rope parent \'{entity.NextKey}\', skipping')
+            self.logger.error(f'Cannot find rope parent \'{entity.nextkey}\', skipping')
             return
         already_visited = set()
         while next_entity is not None and next_entity.targetname not in already_visited:
@@ -661,7 +714,9 @@ class BaseEntityHandler(AbstractEntityHandler):
             already_visited.add(entity.targetname)
             entity = next_entity
             entity_raw = next_raw
-            next_entity, next_raw = self._get_entity_by_name(entity.NextKey)
+            if "nextkey" not in entity_raw:
+                break
+            next_entity, next_raw = self._get_entity_by_name(entity.nextkey)
 
     def _create_rope_part(self, start_entity: move_rope, start_entity_raw: dict, end_entity: dict):
         location_start = np.multiply(parse_float_vector(start_entity_raw['origin']), self.scale)
@@ -669,11 +724,11 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         curve = bpy.data.curves.new(self._get_entity_name(start_entity), 'CURVE')
         curve.dimensions = '3D'
-        curve.bevel_depth = float(start_entity.Width) / 100
+        curve.bevel_depth = float(start_entity.width) / 100
         curve_object = bpy.data.objects.new(self._get_entity_name(start_entity), curve)
         curve_path = curve.splines.new('NURBS')
 
-        slack = start_entity.Slack
+        slack = start_entity.slack
 
         # start/end in world scale
         point_start = (*location_start, 1)
@@ -691,7 +746,7 @@ class BaseEntityHandler(AbstractEntityHandler):
 
         curve_path.use_endpoint_u = True
 
-        material_name = start_entity.RopeMaterial
+        material_name = start_entity.ropematerial
         stripped_material_name = strip_patch_coordinates.sub("", material_name)
 
         mat = get_or_create_material(TinyPath(stripped_material_name).name, stripped_material_name)
@@ -740,7 +795,8 @@ class BaseEntityHandler(AbstractEntityHandler):
     def handle_infodecal(self, entity: infodecal, entity_raw: dict):
         material_name = TinyPath(entity.texture).name
         material_path = TinyPath("materials") / (entity.texture + ".vmt")
-        size = [128, 128]
+        size = [64, 64] # More reasonable than 128x128, based off of what I've seen for decal resolutions across Source 1
+        decal_scale = 1
         mat = None
         material_file = self.content_manager.find_file(material_path)
         if material_file:
@@ -749,12 +805,17 @@ class BaseEntityHandler(AbstractEntityHandler):
             vmt = VMT(material_file, material_path, self.content_manager)
             ShaderRegistry.source1_create_nodes(self.content_manager, mat, vmt, {})
             tex_name = vmt.get('$basetexture', None)
+            decal_scale_string = vmt.get('$decalscale', None)
+            if decal_scale_string is not None:
+                decal_scale = float(decal_scale_string)
+            else:
+                pass
             if tex_name:
                 tex_name = TinyPath(tex_name).name
                 img = bpy.data.images.get(tex_name)
-                if img:
+                if img and img.size[0] > 0 and img.size[1] > 0:
                     size = list(img.size)
-        x_cor, z_cor = size[0] / 8, size[1] / 8
+        x_cor, z_cor = (size[0] * decal_scale) / 2, (size[1] * decal_scale) / 2
         verts = [
             [-x_cor, 0, -z_cor],
             [x_cor, 0, -z_cor],
