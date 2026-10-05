@@ -101,18 +101,56 @@ def _create_action(
         positions["frame"] = frames[None, :]
         rotations["frame"] = frames[None, :]
 
-        for frame_id, frame_data in enumerate(bone_anim_data):
-            pos = Vector(frame_data["pos"]) * scale
-            x, y, z, w = frame_data["rot"]
-            rot = Quaternion((w, x, y, z))
-            anim_local = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+        if not anim_data.is_delta:
+            for frame_id, frame_data in enumerate(bone_anim_data):
+                pos = Vector(frame_data["pos"]) * scale
+                x, y, z, w = frame_data["rot"]
+                rot = Quaternion((w, x, y, z))
+                anim_local = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
 
-            basis = rest_inv @ parent_rest_matrix @ anim_local
+                basis = rest_inv @ parent_rest_matrix @ anim_local
 
-            loc, quat, _ = basis.decompose()
+                loc, quat, _ = basis.decompose()
 
-            positions[:, frame_id]["value"] = loc
-            rotations[:, frame_id]["value"] = quat
+                if frame_id == 0:
+                    last_quat = quat
+
+                if quat.dot(last_quat) < 0.0: # sometimes, the transition between quaternions can take the longest way possible.
+                    quat = - quat
+
+                positions[:, frame_id]["value"] = loc
+                rotations[:, frame_id]["value"] = quat
+
+                last_quat = quat
+
+        else:
+            for frame_id, frame_data in enumerate(bone_anim_data):
+                pos = Vector(frame_data["pos"]) * scale
+                x, y, z, w = frame_data["rot"]
+                rot = Quaternion((w, x, y, z))
+                anim_local = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+                bpy_bone = armature_obj.data.bones[bone_name]
+
+                bone = bpy_bone.matrix_local.copy()
+                parent_space = bone
+                if bpy_bone.parent:
+                    bone_parent = bpy_bone.parent.matrix_local.copy()
+                    parent_space = bone_parent.inverted() @ bone
+                parent_space_pos, parent_space_rotation, _ = parent_space.decompose()
+                bone_pos, bone_rot, _ = bone.decompose()
+
+                #rot = parent_space_rotation.inverted() @ rot @ parent_space_rotation
+                #pos = parent_space_rotation.inverted() @ pos
+                #pos = parent_space_pos + pos
+                #rot = parent_space_rotation @ rot
+
+                #basis = rest_inv @ anim_local
+
+                #pos, rot, _ = basis.decompose()
+                pos, rot, _ = anim_local.decompose()
+
+                positions[:, frame_id]["value"] = pos
+                rotations[:, frame_id]["value"] = rot
 
         group = factory.new_group(bone_name)
         for i in range(3):

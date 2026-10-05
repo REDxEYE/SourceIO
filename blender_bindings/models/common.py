@@ -228,8 +228,18 @@ def generate_wrinkle_map_node_group(obj: bpy.types.Object):
     data: bpy.types.Mesh = obj.data
     shape_keys = data.shape_keys
 
-    compress = list(filter(lambda a: a.name.startswith('WR.') and a.name.endswith('.C'), data.attributes))
-    stretch = list(filter(lambda a: a.name.startswith('WR.') and a.name.endswith('.S'), data.attributes))
+    compress = list(
+        filter(
+            lambda a: a.name.startswith('WR.') and a.name.endswith('.C'),
+            data.attributes
+        )
+    )
+    stretch = list(
+        filter(
+            lambda a: a.name.startswith('WR.') and a.name.endswith('.S'),
+            data.attributes
+        )
+    )
 
     if not len(compress) + len(stretch):
         return
@@ -316,8 +326,8 @@ def create_flex_drivers(obj, mdl):
     #upper_eye_expr = '(1-abs(min({}, 0)))*{}*{}'
     #lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
 
-    all_exprs: dict[str, tuple] = mdl.rebuild_flex_rules()
-    bpy.types.Scene.t = all_exprs
+    all_exprs: list[tuple[str, tuple]] = mdl.rebuild_flex_rules()
+    bpy.types.Scene.t = all_exprs # debug point
     data: bpy.types.Mesh = obj.data
     shape_keys = data.shape_keys
     kb = shape_keys.key_blocks
@@ -399,12 +409,57 @@ def create_flex_drivers(obj, mdl):
 
     shape_keys = obj.data.shape_keys
 
+    visited_flexes = set()
+    de_duplicated_exprs = list()
+    de_duped_vars = dict()
+
+    for name, (expr, inputs) in reversed(all_exprs):
+        de_duped_name = name
+        dupe_count = 0
+        has_duplicate = False
+        de_duped_self_input = name + '_' + f'{dupe_count+1:03d}'
+
+        while de_duped_name in visited_flexes:
+            dupe_count += 1
+            has_duplicate = True
+            de_duped_name = name + '_' + f'{dupe_count:03d}'
+            de_duped_self_input = name + '_' + f'{dupe_count+1:03d}'
+
+        expr:str = expr.as_simple()
+        de_duped_inputs = []
+
+        de_duped_vars[de_duped_name] = de_duped_self_input
+        for input, type in sorted(set(inputs), key=lambda a: len(a[0]), reverse=True):
+            if type == 'fetch2':
+                de_duped_var = de_duped_vars.get(input, input)
+                de_duped_inputs.append(
+                    (
+                        de_duped_var,
+                        type
+                    )
+                )
+                expr = expr.replace(input, de_duped_var)
+            else:
+                de_duped_inputs.append(
+                    (
+                        input,
+                        type
+                    )
+                )
+
+        visited_flexes.add(de_duped_name)
+        de_duplicated_exprs.append((de_duped_name, (expr, de_duped_inputs)))
+
+    all_exprs = dict(reversed(de_duplicated_exprs))
+
     for name, (expr, inputs) in all_exprs.items():
-        expr = expr.as_simple()
+        #expr = expr.as_simple()
         vtally = var_tally()
+        is_kb = False
         if kb.get(name):
             kb[name].driver_remove('value')
             driv = kb[name].driver_add('value')
+            is_kb = True
         else:
             shape_keys[name] = 0.0
             driv = shape_keys.driver_add(f'["{name}"]')
@@ -431,7 +486,8 @@ def create_flex_drivers(obj, mdl):
                 if not combo: break
                 combo_inputs.update(set(combo[1]))
 
-            if combo_inputs == expr_inputs: # all inputs match, most likely a product of the results of all mentioned flexes. take a shortcut instead
+            # all inputs match, most likely a product of the results of all mentioned flexes. take a shortcut instead
+            if combo_inputs == expr_inputs:
                 all_vars = []
                 for combo in combo_flexes:
                     combo += side
@@ -452,7 +508,7 @@ def create_flex_drivers(obj, mdl):
                     targ.id = shape_keys
                     targ.data_path = data_path
 
-                expr = f'({"*".join(all_vars)})/(pow(FS, {len(all_vars)-1})+1e-16)'
+                expr = f'clamp({"*".join(all_vars)})/(pow(FS, {len(all_vars)-1})+1e-16)'
 
                 var = driv.variables.new()
                 var.name = 'FS'
@@ -465,8 +521,13 @@ def create_flex_drivers(obj, mdl):
                 driv.expression = expr
 
                 continue
-        
-        for input, type in set(inputs):
+
+        # normal expressions
+        for input, type in sorted(set(inputs), key=lambda a: len(a[0]), reverse=True):
+            #if input == name and type == 'fetch2':
+            #    expr = expr.replace(input, '1')
+            #    continue
+
             var = driv.variables.new()
             var.name = next(vtally)
             var.type = 'SINGLE_PROP'
@@ -501,9 +562,9 @@ def create_flex_drivers(obj, mdl):
         #print(expr)
         try:
             assert len(expr) < 256
-        except:
+        except AssertionError:
             print(expr)
             print(name)
-        driv.expression = expr.replace('--', '+') + '*FS'
+        driv.expression = ('clamp' if is_kb else '') + '(' + expr.replace('--', '+') + ')' + '*FS'
 
     return

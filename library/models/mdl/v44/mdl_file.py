@@ -159,7 +159,8 @@ class MdlV44(Mdl):
         flex_controllers.update({f.right_controller: f for f in self.flex_ui_controllers if f.stereo})
         flex_controllers.update({f.nway_controller: f for f in self.flex_ui_controllers if f.nway_controller})
         flex_controllers.update({f.name: f for f in self.flex_ui_controllers})
-        rules = {}
+        #rules = {}
+        rules: list[tuple[str, tuple]] = []
         for rule in self.flex_rules:
             stack = []
             inputs = []
@@ -272,7 +273,13 @@ class MdlV44(Mdl):
                     continue
                 final_expr = stack.pop(-1)
                 name = self.flex_names[rule.flex_index]
-                rules[name] = (final_expr, inputs)
+                #rules[name] = (final_expr, inputs)
+                rules.append(
+                    (
+                        name,
+                        (final_expr, inputs)
+                    )
+                )
             except Exception as ex:
                 traceback.print_exc()
                 print(f"failed to parse ({self.flex_names[rule.flex_index]}) flex rule")

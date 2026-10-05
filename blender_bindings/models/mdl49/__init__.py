@@ -57,6 +57,10 @@ def import_mdl49(model_path: TinyPath, buffer: Buffer,
     if options.import_animations and container.armature:
         if options.import_include_animations:
             animations = load_all_animations(mdl, buffer, content_manager, model_path)
+            # debug
+            import bpy
+            bpy.types.Scene.a = animations
+            #
             import_animations_to_armature(container.armature, animations, options.scale)
         else:
             import_animations(content_manager, mdl, container.armature, options.scale)

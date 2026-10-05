@@ -82,9 +82,6 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
                 options: ModelOptions):
-    #full_material_names = collect_full_material_names([mat.name for mat in mdl.materials], mdl.materials_paths,
-    #                                                  content_manager)
-    #             scale=1.0, create_drivers=False, load_refpose=False):
     full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
@@ -259,46 +256,6 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
             make_bodygroup_selectors(mdl, armature, bodygroups)
 
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
-
-
-#def create_flex_drivers(obj, mdl: MdlV44):
-#    all_exprs = mdl.rebuild_flex_rules()
-#    for controller in mdl.flex_controllers:
-#        shape_key = obj.shape_key_add(name=controller.name)
-#        shape_key.value = 0.0
-#
-#    def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
-#        if issubclass(type(expr), (FetchController, FetchFlex)):
-#            logger.info(f"Parsing {expr} value")
-#            if driver.variables.get(expr.value, None) is not None:
-#                return
-#            var = driver.variables.new()
-#            var.name = expr.value
-#            var.targets[0].id_type = 'KEY'
-#            var.targets[0].id = shape_key_block
-#            var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
-#
-#        elif issubclass(type(expr), Expr):
-#            parse_expr(expr.right, driver, shape_key_block)
-#            parse_expr(expr.left, driver, shape_key_block)
-#        elif issubclass(type(expr), Function):
-#            for var in expr.values:
-#                parse_expr(var, driver, shape_key_block)
-#
-#    for target, expr in all_exprs.items():
-#        shape_key_block = obj.data.shape_keys
-#        shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
-#        shape_key.value = 0.0
-#
-#        shape_key.driver_remove("value")
-#        fcurve = shape_key.driver_add("value")
-#        fcurve.modifiers.remove(fcurve.modifiers[0])
-#
-#        driver = fcurve.driver
-#        driver.type = 'SCRIPTED'
-#        parse_expr(expr, driver, shape_key_block)
-#        driver.expression = str(expr)
-#        logger.debug(f'{target} {expr}')
 
 
 def create_attachments(mdl: MdlV44, armature: bpy.types.Object, scale):
