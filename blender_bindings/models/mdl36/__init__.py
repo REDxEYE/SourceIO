@@ -45,5 +45,8 @@ def import_mdl36(model_path: TinyPath, buffer: Buffer,
         else:
             phy = Phy.from_buffer(phy_buffer)
             import_physics(phy, phy_buffer, mdl, container, options.scale)
+
+    # useful for external python scripts using SourceIO as a module
+    container.mdl = mdl
     
     return container

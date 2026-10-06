@@ -8,6 +8,19 @@ from SourceIO.library.models.vtx.v7.structs.lod import ModelLod as VtxModel
 from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
 from SourceIO.library.models.mdl import Mdl
 
+from SourceIO.library.models.mdl.load_animations import load_all_animations, load_mdl_animations
+from SourceIO.blender_bindings.models.import_animations import import_animations_to_armature
+from SourceIO.library.utils import Buffer
+from SourceIO.library.shared.content_manager import ContentManager
+
+def import_animations_common(mdl, buffer: Buffer, content_manager: ContentManager, model_path: str, scale: float, compact_animations: bool, include_all: bool, armature: bpy.types.Object):
+    #if options.import_animations and armature:
+    if include_all:
+        animations = load_all_animations(mdl, buffer, content_manager, model_path)
+    else:
+        animations = load_mdl_animations(mdl, buffer, content_manager, model_path)
+        
+    import_animations_to_armature(armature, model_path, animations, scale, compact_animations)
 
 def merge_strip_groups(vtx_mesh: VtxMesh):
     indices_accumulator = []
@@ -53,6 +66,8 @@ def put_into_collections(model_container: ModelContainer, model_name,
                 body_part_collection = master_collection
 
             for mesh in meshes:
+                if mesh == None:
+                    continue
                 body_collection = get_new_unique_collection(mesh.name, body_part_collection)
                 body_collection.objects.link(mesh)
     else:
@@ -156,3 +171,412 @@ def create_eyeballs(mdl: Mdl, armature: bpy.types.Object, mesh_obj: bpy.types.Ob
                 nodes['!EYE_Z'].attribute_name = eyeball_name + '_z_offset'
             if nodes.get('!EYE_IRIS_SCALE'):
                 nodes['!EYE_IRIS_SCALE'].attribute_name = eyeball_name + '_iris_scale'
+
+def make_bodygroup_selectors(mdl: Mdl, armature: bpy.types.Object, bodygroups: dict[str, list[bpy.types.Object]]):
+    from string import ascii_lowercase
+
+    def add_vis_drivers(
+        controller: bpy.types.Object,
+        subject: bpy.types.Object,
+        data_path: str,
+        index: int
+    ):
+        controller.update_tag()
+        for path in ['hide_viewport', 'hide_render']:
+            subject.driver_remove(path)
+            curve = subject.driver_add(path)
+            driver = curve.driver
+            driver.type = 'SCRIPTED'
+            var = driver.variables.new()
+            targs = var.targets[0]
+            targs.id_type = 'OBJECT'
+            targs.id = controller
+            targs.data_path = f'["{data_path}"]'
+            driver.expression = f'var != {index}'
+
+    bg_name_map = dict()
+
+    def tally():
+        for i in range(999):
+            yield ''.join(map(lambda a: ascii_lowercase[int(a)], f'{i}'))
+    tally = tally()
+
+    for n, body_part in enumerate(mdl.body_parts):
+        if len(body_part.models) < 2:
+            continue
+
+        enum_items = []
+        bg_name = body_part.name
+        bg_name_suffix = 'BG' + ' ' + next(tally) + ' ' + bg_name
+        bg_name_map[bg_name] = bg_name_suffix
+
+        armature[bg_name_suffix] = 0
+
+        for index, (bpy_model, model) in enumerate(zip(bodygroups[bg_name], body_part.models)):
+            enum_items.append((
+                f'{n}',
+                model.name,
+                ''
+            ))
+            if bpy_model == None:
+                continue
+            add_vis_drivers(
+                armature,
+                bpy_model,
+                bg_name_suffix,
+                index
+            )
+        
+        ui_settings = armature.id_properties_ui(bg_name_suffix)
+        ui_settings.update(
+            min=0,
+            max=len(enum_items),
+            items=enum_items
+        )
+    
+    armature['bodygroup_name_map'] = bg_name_map
+
+
+def generate_wrinkle_map_node_group(obj: bpy.types.Object):
+    data: bpy.types.Mesh = obj.data
+    shape_keys = data.shape_keys
+
+    compress = list(
+        filter(
+            lambda a: a.name.startswith('WR.') and a.name.endswith('.C'),
+            data.attributes
+        )
+    )
+    stretch = list(
+        filter(
+            lambda a: a.name.startswith('WR.') and a.name.endswith('.S'),
+            data.attributes
+        )
+    )
+
+    if not len(compress) + len(stretch):
+        return
+
+    node_group: bpy.types.GeometryNodeTree = bpy.data.node_groups.new(f'wrinkles_{obj.name}'[:63], 'GeometryNodeTree')
+    nodes = node_group.nodes
+    links = node_group.links
+    mod: bpy.types.NodesModifier = obj.modifiers.new('Wrinkle Map Data', 'NODES')
+    mod.node_group = node_group
+    if bpy.app.version >= (4, 0, 0):
+        node_group.interface.new_socket(name='Output', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+        node_group.interface.new_socket(name='Input', in_out='INPUT', socket_type='NodeSocketGeometry')
+    else:
+        node_group.inputs.new('NodeSocketGeometry', 'Input')
+        node_group.outputs.new('NodeSocketGeometry', 'Output')
+    
+    input = nodes.new('NodeGroupInput')
+    input.location = [400, 100]
+    output = nodes.new('NodeGroupOutput')
+    output.location = [800, 0]
+    combine = nodes.new('ShaderNodeCombineXYZ')
+    combine.location = [400, 0]
+    store = nodes.new('GeometryNodeStoreNamedAttribute')
+    store.data_type = 'FLOAT2'
+    store.domain = 'POINT'
+    store.inputs[2].default_value = 'tension'
+    store.location = [600, 0]
+
+    links.new(combine.outputs[0], store.inputs[3])
+    links.new(input.outputs[0], store.inputs[0])
+    links.new(store.outputs[0], output.inputs[0])
+
+
+    loc_compress = [0, 0]
+    loc_stretch = [200, 0]
+    
+    for n, attr in [*enumerate(compress), *enumerate(stretch)]:
+        loc, index = (loc_compress, 0) if attr.name.endswith('.C') else (loc_stretch, 1)
+        shape_name = attr.name.split('.')[1]
+        
+        wrinkle = nodes.new('GeometryNodeInputNamedAttribute')
+        wrinkle.inputs[0].default_value = attr.name
+        wrinkle.location = loc
+        wrinkle.name = 'WRINKLE MAP'
+        wrinkle.label = shape_name
+
+        mult = nodes.new('ShaderNodeMath')
+        mult.operation = 'MULTIPLY'
+        mult.location = loc
+        mult.name = 'SHAPEKEY VALUE'
+        mult.label = shape_name
+        driver = mult.inputs[1].driver_add('default_value')
+        var = driver.driver.variables.new()
+        targ = var.targets[0]
+        targ.id_type = 'KEY'
+        targ.id = shape_keys
+        targ.data_path = shape_keys.key_blocks[shape_name].path_from_id('value')
+        driver.driver.type = 'AVERAGE'
+
+        links.new(wrinkle.outputs[0], mult.inputs[0])
+
+        if n == 0:
+            last = mult.outputs[0]
+            links.new(last, combine.inputs[index])
+            continue
+        maximum = nodes.new('ShaderNodeMath')
+        maximum.name = 'MAXIMUM'
+        maximum.operation = 'MAXIMUM'
+        maximum.location = loc
+        links.new(last, maximum.inputs[0])
+        links.new(mult.outputs[0], maximum.inputs[1])
+        links.new(maximum.outputs[0], combine.inputs[index])
+        last = maximum.outputs[0]
+
+def create_flex_drivers(obj, mdl):
+    from string import ascii_lowercase
+    from SourceIO.library.models.mdl.structs.flex import FlexController, FlexControllerUI, FlexOpType, FlexRule
+    if not obj.data.shape_keys:
+        return
+    
+    #nway_expr = 'max(min(({0}-{1})/({2}-{1}),({4}-{0})/({4}-{3})),0)'
+    #two_way_0_expr = 'clamp({}*-1)'
+    #two_way_1_expr = 'clamp({})'
+    #upper_eye_expr = '(1-abs(min({}, 0)))*{}*{}'
+    #lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
+
+    all_exprs: list[tuple[str, tuple]] = mdl.rebuild_flex_rules()
+    bpy.types.Scene.t = all_exprs # debug point
+    data: bpy.types.Mesh = obj.data
+    shape_keys = data.shape_keys
+    kb = shape_keys.key_blocks
+
+    def make_custom_property(name, min, max, default=0.0):
+        obj.data[name] = default
+        prop = obj.data.id_properties_ui(name)
+        prop.update(min=min, max=max)
+
+    def tally():
+        for i in range(999):
+            yield ''.join(
+                map(
+                    lambda a: ascii_lowercase[int(a)],
+                    f'{i:03d}'
+                )
+            )
+    tally = tally()
+
+    flexcontrollers = dict()
+    flexmap = dict()
+    
+    flexmap['flex_scale'] = flex_sort = f'{next(tally)}_fs'
+    flex = dict()
+    flex['controller'] = 'flex_scale'
+    flex['type'] = 0b00
+    make_custom_property(flex_sort, -10, 10, 1.0)
+
+    flexcontrollers['Flex Scale'] = flex
+
+    for flex_controller_ui in mdl.flex_ui_controllers:
+        flex = dict()
+        
+        if flex_controller_ui.stereo:
+            flex['type'] = 0b01
+            left_controller = next(
+                filter(lambda a: a.name == flex_controller_ui.left_controller,
+                       mdl.flex_controllers
+                )
+            )
+            right_controller = next(
+                filter(lambda a: a.name == flex_controller_ui.right_controller,
+                       mdl.flex_controllers
+                )
+            )
+            flexmap[left_controller.name] = left_sort = f'{next(tally)}_{left_controller.name}'
+            flexmap[right_controller.name] = right_sort = f'{next(tally)}_{right_controller.name}'
+            flex['left'] = left_controller.name
+            flex['right'] = right_controller.name
+            make_custom_property(left_sort, left_controller.min, left_controller.max)
+            make_custom_property(right_sort, right_controller.min, right_controller.max)
+        else:
+            flex['type'] = 0b00
+            controller = next(filter(lambda a: a.name == flex_controller_ui.controller, mdl.flex_controllers))
+            flexmap[controller.name] = controller_sort = f'{next(tally)}_{controller.name}'
+            flex['controller'] = controller.name
+            make_custom_property(controller_sort, controller.min, controller.max)
+        
+        if flex_controller_ui.nway_controller:
+            flex['type'] |= 0b10
+            nway = next(
+                filter(
+                    lambda a: a.name == flex_controller_ui.nway_controller,
+                    mdl.flex_controllers
+                )
+            )
+            flexmap[nway.name] = nway_sort = f'{next(tally)}_{nway.name}'
+            flex['nway'] = nway.name
+            make_custom_property(nway_sort, nway.min, nway.max)
+
+        flexcontrollers[flex_controller_ui.name] = flex
+    
+    obj.data['flexmap'] = flexmap
+    obj.data['flexcontrollers'] = flexcontrollers
+
+    def var_tally():
+        for i in range(999):
+            yield 'V'+str(i)
+
+    shape_keys = obj.data.shape_keys
+
+    visited_flexes = set()
+    de_duplicated_exprs = list()
+    de_duped_vars = dict()
+
+    for name, (expr, inputs) in reversed(all_exprs):
+        de_duped_name = name
+        dupe_count = 0
+        de_duped_self_input = name + '_' + f'{dupe_count+1:03d}'
+
+        while de_duped_name in visited_flexes:
+            dupe_count += 1
+            de_duped_name = name + '_' + f'{dupe_count:03d}'
+            de_duped_self_input = name + '_' + f'{dupe_count+1:03d}'
+
+        expr:str = expr.as_simple()
+        de_duped_inputs = []
+
+        de_duped_vars[de_duped_name] = de_duped_self_input
+        for input, type in sorted(set(inputs), key=lambda a: len(a[0]), reverse=True):
+            if type == 'fetch2':
+                de_duped_var = de_duped_vars.get(input, input)
+                de_duped_inputs.append(
+                    (
+                        de_duped_var,
+                        type
+                    )
+                )
+                expr = expr.replace(input, de_duped_var)
+            else:
+                de_duped_inputs.append(
+                    (
+                        input,
+                        type
+                    )
+                )
+
+        visited_flexes.add(de_duped_name)
+        de_duplicated_exprs.append((de_duped_name, (expr, de_duped_inputs)))
+
+    all_exprs = dict(reversed(de_duplicated_exprs))
+
+    for name, (expr, inputs) in all_exprs.items():
+        #expr = expr.as_simple()
+        vtally = var_tally()
+        is_kb = False
+        if kb.get(name):
+            kb[name].driver_remove('value')
+            driv = kb[name].driver_add('value')
+            is_kb = True
+        else:
+            shape_keys[name] = 0.0
+            driv = shape_keys.driver_add(f'["{name}"]')
+
+        [driv.modifiers.remove(mod) for mod in driv.modifiers]
+        driv = driv.driver
+
+        if '_' in name: # likely a combo expression
+            match name[-1]:
+                case 'R':
+                    side = 'R'
+                case 'L':
+                    side = 'L'
+                case _:
+                    side = ''
+                
+            combo_inputs = set()
+            combo_flexes = name.rstrip(side).split('_')
+            expr_inputs = set(inputs)
+
+            for combo in combo_flexes:
+                combo += side
+                combo = all_exprs.get(combo, False)
+                if not combo: break
+                combo_inputs.update(set(combo[1]))
+
+            # all inputs match, most likely a product of the results of all mentioned flexes. take a shortcut instead
+            if combo_inputs == expr_inputs:
+                all_vars = []
+                for combo in combo_flexes:
+                    combo += side
+                    var = driv.variables.new()
+                    var.name = next(vtally); all_vars.append(var.name)
+                    var.type = 'SINGLE_PROP'
+                    targ = var.targets[0]
+
+                    if kb.get(combo):
+                        data_path = kb[combo].path_from_id('value')
+                    elif shape_keys.get(combo):
+                        data_path = f'["{combo}"]'
+                    else:
+                        shape_keys[combo] = 0.0
+                        data_path = f'["{combo}"]'
+
+                    targ.id_type = 'KEY'
+                    targ.id = shape_keys
+                    targ.data_path = data_path
+
+                expr = f'clamp({"*".join(all_vars)})/(pow(FS, {len(all_vars)-1})+1e-16)'
+
+                var = driv.variables.new()
+                var.name = 'FS'
+                var.type = 'SINGLE_PROP'
+                targ = var.targets[0]
+                targ.id_type = 'MESH'
+                targ.id = data
+                targ.data_path = '["{}"]'.format(flexmap['flex_scale'])
+
+                driv.expression = expr
+
+                continue
+
+        # normal expressions
+        for input, type in sorted(set(inputs), key=lambda a: len(a[0]), reverse=True):
+            #if input == name and type == 'fetch2':
+            #    expr = expr.replace(input, '1')
+            #    continue
+
+            var = driv.variables.new()
+            var.name = next(vtally)
+            var.type = 'SINGLE_PROP'
+            targ = var.targets[0]
+            if type == 'fetch2':
+                if kb.get(input):
+                    data_path = kb[input].path_from_id('value')
+                elif shape_keys.get(input):
+                    data_path = f'["{input}"]'
+                else:
+                    shape_keys[input] = 0.0
+                    data_path = f'["{input}"]'
+
+                targ.id_type = 'KEY'
+                targ.id = shape_keys
+                targ.data_path = data_path
+            else:
+                targ.id_type = 'MESH'
+                targ.id = data
+                targ.data_path = f'["{flexmap[input]}"]'
+            
+            expr = expr.replace(input, var.name)
+            
+            
+        var = driv.variables.new()
+        var.name = 'FS'
+        var.type = 'SINGLE_PROP'
+        targ = var.targets[0]
+        targ.id_type = 'MESH'
+        targ.id = data
+        targ.data_path = '["{}"]'.format(flexmap['flex_scale'])
+        #print(expr)
+        try:
+            assert len(expr) < 256
+        except AssertionError:
+            print(expr)
+            print(name)
+        #driv.expression = ('clamp' if is_kb else '') + '(' + expr.replace('--', '+') + ')' + '*FS'
+        driv.expression = '(' + expr.replace('--', '+') + ')' + '*FS'
+
+    return

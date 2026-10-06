@@ -1,6 +1,5 @@
 import abc
 
-
 class Value:
     def __hash__(self):
         return hash(self.value)
@@ -16,45 +15,30 @@ class Value:
         self.value = value
 
     def __repr__(self):
+        if self.value % 1 == 0.0:
+            return f'{int(self.value)}'
         return f'{self.value:.4}'
 
     def as_simple(self):
         return str(self)
 
 
-class Neg(Value):
-    def __repr__(self):
-        return f'(-{self.value})'
+class Function:
+    def __hash__(self) -> int:
+        return hash(sum(map(hash, self.values)))
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, self.__class__):
+            o: Function
+            return len(self.values) == len(o.values) and all(a == b for (a, b) in zip(self.values, o.values))
+        else:
+            return False
+
+    def __init__(self, *values):
+        self.values: list = list(values)
 
     def as_simple(self):
-        arg1 = self.value.as_simple() if isinstance(self.value, (Value, Function)) else f'({self.value})'
-        return f'(-{arg1})'
-
-
-class FetchController(Value):
-
-    def __init__(self, value, stereo=False):
-        self.stereo = stereo
-        super().__init__(value)
-
-    def __repr__(self):
-        return f'{self.value.replace(" ", "_")}'
-
-    def as_simple(self):
-        name = f'{self.value.replace(" ", "_")}'
-        if self.stereo and name.startswith('right_'):
-            name = name[6:]
-        if self.stereo and name.startswith('left_'):
-            name = name[5:]
-        return name
-
-
-class FetchFlex(Value):
-    def __repr__(self):
-        return f'{self.value.replace(" ", "_")}'
-
-    def as_simple(self):
-        return f'%{self.value.replace(" ", "_")}'
+        return "Implement me"
 
 
 class Expr:
@@ -76,71 +60,98 @@ class Expr:
     def as_simple(self):
         pass
 
+format_classes = (Value, Function, Expr)
+
+
+class Neg(Value):
+    def __repr__(self):
+        return f'(-{self.value})'
+
+    def as_simple(self):
+        arg1 = self.value.as_simple() if isinstance(self.value, format_classes) else f'({self.value})'
+        return f'(-{arg1})'
+
+
+class FetchController(Value):
+
+    def __init__(self, value, stereo=False):
+        self.stereo = stereo
+        super().__init__(value)
+
+    def __repr__(self):
+        return f'{self.value.replace(" ", "_")}'
+
+    def as_simple(self):
+        name = f'{self.value.replace(" ", "_")}'
+        #if self.stereo and name.startswith('right_'):
+        #    name = name[6:]
+        #if self.stereo and name.startswith('left_'):
+        #    name = name[5:]
+        return name
+
+
+class FetchFlex(Value):
+    def __repr__(self):
+        return f'{self.value.replace(" ", "_")}'
+
+    def as_simple(self):
+        return f'{self.value.replace(" ", "_")}'
+
 
 class Add(Expr):
     def __repr__(self):
-        arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'{arg1} + {arg2}'
+        arg1 = self.left if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, format_classes) else f'({self.right})'
+        return f'{arg2}+{arg1}'
 
     def as_simple(self):
-        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'({arg1} + {arg2})'
+        arg1 = self.left.as_simple() if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, format_classes) else f'({self.right})'
+        return f'{arg2}+{arg1}'
 
 
 class Sub(Expr):
     def __repr__(self):
-        arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'{arg2} - {arg1}'
+        arg1 = self.left if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, format_classes) else f'({self.right})'
+        return f'{arg2}-{arg1}'
 
     def as_simple(self):
-        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'({arg1} - {arg2})'
+        arg1 = self.left.as_simple() if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, format_classes) else f'({self.right})'
+        return f'{arg2}-{arg1}'
 
 
 class Mul(Expr):
     def __repr__(self):
-        arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'{arg1}*{arg2}'
+        arg1 = self.left if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, format_classes) else f'({self.right})'
+        return f'({arg2})*{arg1}'
 
     def as_simple(self):
-        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'({arg1} * {arg2})'
+        arg1 = self.left.as_simple() if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, format_classes) else f'({self.right})'
+        if not isinstance(self.left, Value):
+            arg1 = f'({arg1})'
+        if not isinstance(self.right, Value):
+            arg2 = f'({arg2})'
+        return f'{arg2}*{arg1}'
 
 
 class Div(Expr):
     def __repr__(self):
-        arg1 = self.left if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'{arg1}/{arg2}'
+        arg1 = self.left if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right if isinstance(self.right, format_classes) else f'({self.right})'
+        return f'{arg2}/{arg1}'
 
     def as_simple(self):
-        arg1 = self.left.as_simple() if isinstance(self.left, (Value, Function)) else f'({self.left})'
-        arg2 = self.right.as_simple() if isinstance(self.right, (Value, Function)) else f'({self.right})'
-        return f'({arg1} / {arg2})'
-
-
-class Function:
-    def __hash__(self) -> int:
-        return hash(sum(map(hash, self.values)))
-
-    def __eq__(self, o: object) -> bool:
-        if isinstance(o, self.__class__):
-            o: Function
-            return len(self.values) == len(o.values) and all(a == b for (a, b) in zip(self.values, o.values))
-        else:
-            return False
-
-    def __init__(self, *values):
-        self.values: list = list(values)
-
-    def as_simple(self):
-        return "Implement me"
+        arg1 = self.left.as_simple() if isinstance(self.left, format_classes) else f'({self.left})'
+        arg2 = self.right.as_simple() if isinstance(self.right, format_classes) else f'({self.right})'
+        if not isinstance(self.right, Value):
+            arg2 = f'({arg2})'
+        # arg1 will always be enclosed in parentheses
+        return f'{arg2}/({arg1}+1e-16)' # avoid division by zero
+    
 
 
 class CustomFunction(Function):
@@ -154,11 +165,11 @@ class CustomFunction(Function):
 
 class RClamp(Function):
     def as_simple(self):
-        arg0 = self.values[0].as_simple() if isinstance(self.values[0], (Value, Function)) else f'({self.values[0]})'
-        arg1 = self.values[1].as_simple() if isinstance(self.values[1], (Value, Function)) else f'({self.values[1]})'
-        arg2 = self.values[2].as_simple() if isinstance(self.values[2], (Value, Function)) else f'({self.values[2]})'
-        arg3 = self.values[3].as_simple() if isinstance(self.values[3], (Value, Function)) else f'({self.values[3]})'
-        arg4 = self.values[4].as_simple() if isinstance(self.values[4], (Value, Function)) else f'({self.values[4]})'
+        arg0 = self.values[0].as_simple() if isinstance(self.values[0], format_classes) else f'({self.values[0]})'
+        arg1 = self.values[1].as_simple() if isinstance(self.values[1], format_classes) else f'({self.values[1]})'
+        arg2 = self.values[2].as_simple() if isinstance(self.values[2], format_classes) else f'({self.values[2]})'
+        arg3 = self.values[3].as_simple() if isinstance(self.values[3], format_classes) else f'({self.values[3]})'
+        arg4 = self.values[4].as_simple() if isinstance(self.values[4], format_classes) else f'({self.values[4]})'
         return f'RemapValClamped({arg0}, {arg1}, {arg2}, {arg3}, {arg4})'
 
     def __repr__(self) -> str:
@@ -167,14 +178,57 @@ class RClamp(Function):
 
 class Clamp(Function):
     def as_simple(self):
-        arg0 = self.values[0].as_simple() if isinstance(self.values[0], (Value, Function)) else f'({self.values[0]})'
-        arg1 = self.values[1].as_simple() if isinstance(self.values[1], (Value, Function)) else f'({self.values[1]})'
-        arg2 = self.values[2].as_simple() if isinstance(self.values[2], (Value, Function)) else f'({self.values[2]})'
+        arg0 = self.values[0].as_simple() if isinstance(self.values[0], format_classes) else f'{self.values[0]}'
+        arg1 = self.values[1].as_simple() if isinstance(self.values[1], format_classes) else f'{self.values[1]}'
+        arg2 = self.values[2].as_simple() if isinstance(self.values[2], format_classes) else f'{self.values[2]}'
         return f'min(max({arg0}, {arg1}), {arg2})'
 
     def __repr__(self) -> str:
         return f'clamp({self.values[0]},{self.values[1]},{self.values[2]})'
 
+class TwoWay0(Function):
+    def as_simple(self):
+        arg0 = self.values[0].as_simple() if isinstance(self.values[0], format_classes) else f'{self.values[0]}'
+        return f'clamp({arg0}*-1)'
+    def __repr__(self) -> str:
+        return f'clamp({self.values[0]}*-1)'
+    
+class TwoWay1(Function):
+    def as_simple(self):
+        arg0 = self.values[0].as_simple() if isinstance(self.values[0], format_classes) else f'{self.values[0]}'
+        return f'clamp({arg0})'
+    def __repr__(self) -> str:
+        return f'clamp({self.values[0]})'
+
+class LowerEye(Function):
+    def as_simple(self):
+        eyes, multi, flex = self.values
+        eyes = eyes.as_simple() if isinstance(eyes, format_classes) else f'{eyes}'
+        multi = multi.as_simple() if isinstance(multi, format_classes) else f'{multi}'
+        flex = flex.as_simple() if isinstance(flex, format_classes) else f'{flex}'
+        return f'(1-abs(max({eyes}/45, 0)))*({multi}+1)/2*({flex}+1)/2'
+    
+    def __repr__(self):
+        eyes, multi, flex = self.values
+        eyes = eyes.as_simple() if isinstance(eyes, format_classes) else f'{eyes}'
+        multi = multi.as_simple() if isinstance(multi, format_classes) else f'{multi}'
+        flex = flex.as_simple() if isinstance(flex, format_classes) else f'{flex}'
+        return f'LowerEye({eyes}, {multi}, {flex})'
+    
+class UpperEye(Function):
+    def as_simple(self):
+        eyes, multi, flex = self.values
+        eyes = eyes.as_simple() if isinstance(eyes, format_classes) else f'{eyes}'
+        multi = multi.as_simple() if isinstance(multi, format_classes) else f'{multi}'
+        flex = flex.as_simple() if isinstance(flex, format_classes) else f'{flex}'
+        return f'(1-abs(min({eyes}/45, 0)))*({multi}-1)/-2*({flex}+1)/2'
+    
+    def __repr__(self):
+        eyes, multi, flex = self.values
+        eyes = eyes.as_simple() if isinstance(eyes, format_classes) else f'{eyes}'
+        multi = multi.as_simple() if isinstance(multi, format_classes) else f'{multi}'
+        flex = flex.as_simple() if isinstance(flex, format_classes) else f'{flex}'
+        return f'UpperEye({eyes}, {multi}, {flex})'
 
 class NWay(Function):
 
@@ -183,12 +237,15 @@ class NWay(Function):
 
     def as_simple(self):
         multi_cnt, flex_cnt, f_x, f_y, f_z, f_w = self.values
-        f_x = f_x.as_simple() if isinstance(f_x, (Value, Function)) else f'({f_x})'
-        f_y = f_y.as_simple() if isinstance(f_y, (Value, Function)) else f'({f_y})'
-        f_z = f_z.as_simple() if isinstance(f_z, (Value, Function)) else f'({f_z})'
-        f_w = f_w.as_simple() if isinstance(f_w, (Value, Function)) else f'({f_w})'
-        multi_cnt = multi_cnt.as_simple() if isinstance(multi_cnt, (Value, Function)) else f'({multi_cnt})'
-        flex_cnt = flex_cnt.as_simple() if isinstance(flex_cnt, (Value, Function)) else f'({flex_cnt})'
+        f_x = f_x.as_simple() if isinstance(f_x, format_classes) else f'{f_x}'
+        f_y = f_y.as_simple() if isinstance(f_y, format_classes) else f'{f_y}'
+        f_z = f_z.as_simple() if isinstance(f_z, format_classes) else f'{f_z}'
+        f_w = f_w.as_simple() if isinstance(f_w, format_classes) else f'{f_w}'
+        multi_cnt = multi_cnt.as_simple() if isinstance(multi_cnt, format_classes) else f'{multi_cnt}'
+        flex_cnt = flex_cnt.as_simple() if isinstance(flex_cnt, format_classes) else f'{flex_cnt}'
+
+        return 'max(min(({0}-{1})/({2}-{1}),({4}-{0})/({4}-{3})),0)*{5}'.format(multi_cnt, f_x, f_y, f_z, f_w, flex_cnt)
+
         greater_than_x = f"min(1, (-min(0, ({f_x} - {multi_cnt} ))))"
         less_than_y = f"min(1, (-min(0, ({multi_cnt} - ({f_y})))))"
         remap_x = f"min(max(({flex_cnt} - {f_x}) / ({f_y} - ({f_x}) ), 0), 1)"
@@ -209,26 +266,26 @@ class NWay(Function):
 
 class Max(Function):
     def __repr__(self):
-        arg1 = self.values[0] if isinstance(self.values[0], (Value, Function)) else f'({self.values[0]})'
-        arg2 = self.values[1] if isinstance(self.values[1], (Value, Function)) else f'({self.values[1]})'
+        arg1 = self.values[0] if isinstance(self.values[0], format_classes) else f'({self.values[0]})'
+        arg2 = self.values[1] if isinstance(self.values[1], format_classes) else f'({self.values[1]})'
         return f'max({arg1},{arg2})'
 
     def as_simple(self):
-        arg1 = self.values[0].as_simple() if isinstance(self.values[0], (Value, Function)) else f'({self.values[0]})'
-        arg2 = self.values[1].as_simple() if isinstance(self.values[1], (Value, Function)) else f'({self.values[1]})'
+        arg1 = self.values[0].as_simple() if isinstance(self.values[0], format_classes) else f'({self.values[0]})'
+        arg2 = self.values[1].as_simple() if isinstance(self.values[1], format_classes) else f'({self.values[1]})'
         return f'max({arg1},{arg2})'
 
 
 class Min(Function):
     def __repr__(self):
-        arg1 = self.values[0] if isinstance(self.values[0], (Value, Function)) else f'({self.values[0]})'
-        arg2 = self.values[1] if isinstance(self.values[1], (Value, Function)) else f'({self.values[1]})'
+        arg1 = self.values[0] if isinstance(self.values[0], format_classes) else f'({self.values[0]})'
+        arg2 = self.values[1] if isinstance(self.values[1], format_classes) else f'({self.values[1]})'
 
         return f'min({arg1},{arg2})'
 
     def as_simple(self):
-        arg1 = self.values[0].as_simple() if isinstance(self.values[0], (Value, Function)) else f'({self.values[0]})'
-        arg2 = self.values[1].as_simple() if isinstance(self.values[1], (Value, Function)) else f'({self.values[1]})'
+        arg1 = self.values[0].as_simple() if isinstance(self.values[0], format_classes) else f'({self.values[0]})'
+        arg2 = self.values[1].as_simple() if isinstance(self.values[1], format_classes) else f'({self.values[1]})'
         return f'min({arg1},{arg2})'
 
 
@@ -237,7 +294,7 @@ class Combo(Function):
         return f'combo({", ".join(map(str, self.values))})'
 
     def as_simple(self):
-        args = map(lambda x: x.as_simple() if isinstance(x, (Value, Function)) else f'({x})', self.values)
+        args = map(lambda x: x.as_simple() if isinstance(x, format_classes) else f'({x})', self.values)
         return f'({"*".join(args)})'
 
 
@@ -246,6 +303,7 @@ class Dominator(Function):
         return f'dom({self.values[0]}, {", ".join(map(str, self.values[1:]))})'
 
     def as_simple(self):
-        arg1 = self.values[-1].as_simple() if isinstance(self.values[-1], (Value, Function)) else f'({self.values[-1]})'
-        args = map(lambda x: x.as_simple() if isinstance(x, (Value, Function)) else f'({x})', self.values[:-1])
-        return f'((1 - {arg1}) * {"*".join(args)})'
+        arg1 = self.values[-1].as_simple() if isinstance(self.values[-1], format_classes) else f'({self.values[-1]})'
+        args = map(lambda x: x.as_simple() if isinstance(x, format_classes) else f'({x})', self.values[:-1])
+        #return f'((1-{arg1})*{"*".join(args)})'
+        return f'{arg1}*' + '*'.join([f'(1-{var})' for var in args])

@@ -49,22 +49,61 @@ class ActionCurveFactory:
     the slotted channelbag API.
     """
 
-    def __init__(self, action: bpy.types.Action, armature_obj: bpy.types.Object):
-        self.action = action
-        self._armature = armature_obj
+    def __init__(self, master_name: str, armature_obj: bpy.types.Object, legacy_behavior: bool = False):
         self._use_channelbag = is_blender_5()
-        adt = armature_obj.animation_data
-        if adt is None:
-            adt = armature_obj.animation_data_create()
-        if self._use_channelbag:
-            slot = action.slots.new(id_type='OBJECT', name=armature_obj.name)
-            adt.action = action
-            adt.action_slot = slot
-            layer = action.layers.new(name="Layer")
+        self._armature = armature_obj
+        self._legacy_behavior = legacy_behavior
+        self.master_name = master_name
+        self._adt = None
+
+        if self._armature:
+            adt = armature_obj.animation_data
+            if adt is None:
+                adt = armature_obj.animation_data_create()
+            self._adt = adt
+
+        if self._use_channelbag and not legacy_behavior:
+            master_action = bpy.data.actions.new(master_name)
+            master_action.use_fake_user = True
+
+            if self._armature:
+                self._armature.animation_data.action = master_action
+
+            layer = master_action.layers.new(name='Layer')
             strip = layer.strips.new(type='KEYFRAME')
-            self._channelbag = strip.channelbags.new(slot=slot)
+            adt.action = master_action
+            self.action = master_action
+            self._strip = strip
+
         else:
-            adt.action = action
+            pass
+
+    def new_action(self, name: str):
+        if self._use_channelbag and not self._legacy_behavior:
+            slot = self.action.slots.new(id_type='OBJECT', name=name)
+
+            if self._armature:
+                self._adt.action_slot = slot
+            self._channelbag = self._strip.channelbags.new(slot=slot)
+
+        elif self._use_channelbag and self._legacy_behavior:
+            action = bpy.data.actions.new(name)
+            action.use_fake_user = True
+            layer = action.layers.new(name='Layer')
+            strip = layer.strips.new(type='KEYFRAME')
+            slot = action.slots.new(
+                id_type='OBJECT',
+                name=self.master_name
+            )
+            channelbag = strip.channelbags.new(slot=slot)
+            self._channelbag = channelbag
+
+            if self._armature:
+                self._adt.action = action
+                self._adt.action_slot = slot
+
+        else:
+            self.action = bpy.data.actions.new(name)
 
     def new_group(self, name: str):
         if self._use_channelbag:
@@ -79,7 +118,6 @@ class ActionCurveFactory:
         if group is not None:
             curve.group = group
         return curve
-
 
 def find_layer_collection(layer_collection, name):
     if layer_collection.name == name:

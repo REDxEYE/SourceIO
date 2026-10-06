@@ -117,3 +117,5 @@ dmypy.json
 .idea
 
 sycreation-s-default.blend1
+
+.vscode/settings.json

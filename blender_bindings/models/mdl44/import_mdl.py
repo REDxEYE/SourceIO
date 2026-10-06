@@ -7,8 +7,9 @@ import bpy
 import numpy as np
 from mathutils import Euler, Matrix, Quaternion, Vector
 
-from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs
+from SourceIO.blender_bindings.models.common import merge_meshes, create_eyeballs, generate_wrinkle_map_node_group, make_bodygroup_selectors, create_flex_drivers
 from SourceIO.blender_bindings.shared.model_container import ModelContainer
+from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.blender_bindings.utils.bpy_utils import add_material, is_blender_4_1, get_or_create_material, ActionCurveFactory
 from SourceIO.blender_bindings.utils.fast_mesh import FastMesh
 from SourceIO.library.models.mdl.structs.header import StudioHDRFlags
@@ -32,6 +33,8 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 
 def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
+    if mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0:
+        return
     model_name = path_stem(mdl.header.name)
     armature = bpy.data.armatures.new(f"{model_name}_ARM_DATA")
     armature_obj = bpy.data.objects.new(f"{model_name}_ARM", armature)
@@ -70,7 +73,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
                 x, y, z, w = anim_data["rot"]
                 rot = Quaternion((w, x, y, z))
                 mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-                mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
+                mat = (bl_bone.parent.matrix @ mat) if bl_bone.parent else mat
                 bl_bone.matrix = mat
 
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -80,7 +83,7 @@ def create_armature(mdl: MdlV44, scale=1.0, load_refpose=False):
 
 
 def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vvd,
-                 scale=1.0, create_drivers=False, load_refpose=False):
+                options: ModelOptions):
     full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     # ensure all MaterialV49 has its bpy_material counterpart
@@ -95,6 +98,11 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
     static_prop = mdl.header.flags & StudioHDRFlags.STATIC_PROP != 0
     armature = None
     vertex_anim_cache = preprocess_vertex_animation(mdl, vvd)
+    vert_anim_fixed_point_scale = mdl.header.vert_anim_fixed_point_scale if (mdl.header.flags & StudioHDRFlags.VERT_ANIM_FIXED_POINT_SCALE !=0 ) else 1/4096
+
+    scale = options.scale
+    create_drivers = options.create_flex_drivers
+    debug_stereo_balance = options.debug_stereo_balance
 
     if not static_prop:
         armature = create_armature(mdl, scale)
@@ -167,30 +175,76 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
                             bone_name = mdl.bones[bone_index].name
                             weight_groups[bone_name].add([n], weight, 'REPLACE')
 
-                flex_names = []
+                flexes = []
                 for mesh in model.meshes:
                     if mesh.flexes:
-                        flex_names.extend([mdl.flex_names[flex.flex_desc_index] for flex in mesh.flexes])
+                        flexes.extend([(mdl.flex_names[flex.flex_desc_index], flex) for flex in mesh.flexes])
 
-                if flex_names:
+                if flexes:
                     mesh_obj.shape_key_add(name='base')
-                    for flex_name in flex_names:
-                        shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
-                            name=flex_name)
-                        shape_key.value = 0.0
-                        vertex_animation = vertex_anim_cache[flex_name]
 
+                    if debug_stereo_balance:
+                        # debug tool to get stereo flex balances. i'll leave it here just in case
+                        side_right = mesh_obj.vertex_groups.new(name='blendright')
+                        side_left = mesh_obj.vertex_groups.new(name='blendleft')
+                        side_all = np.zeros(model.vertex_count, dtype=np.float32)
+
+                        for flex_name, flex_desc in flexes:
+                            vertex_animation = vertex_anim_cache[flex_name]
+                            side = get_slice(vertex_animation['side'], model.vertex_offset, model.vertex_count).ravel()
+                            side_all = np.maximum(side_all, side)
+                        side_all = side_all[vtx_vertices] + 0.0
+
+                        for n, vert in enumerate(vtx_vertices):
+                            side_right.add([n], side_all[n], 'REPLACE')
+                            side_left.add([n], 1-side_all[n], 'REPLACE')
+
+                    for flex_name, flex_desc in flexes:
+                        vertex_animation = vertex_anim_cache[flex_name]
                         flex_delta = get_slice(vertex_animation["pos"], model.vertex_offset, model.vertex_count)
                         flex_delta = flex_delta[vtx_vertices] * scale
+
+                        side = get_slice(vertex_animation["side"], model.vertex_offset, model.vertex_count)
+                        side = side[vtx_vertices] + 0.0
+                        wrinkle = get_slice(vertex_animation["wrinkle"], model.vertex_offset, model.vertex_count)
+                        wrinkle = wrinkle[vtx_vertices] + 0.0 # this will have to be explained to me :P
+                        # model.vertex_count and vtx_vertices can differ in size, so doing something like this just makes it work?
+                        # apparently vtx_vertices has duplicate indicies, which can be observed by turning it into a set.
+                        # i'm just following here
+                        # -hisanimations
+                        
                         model_vertices = get_slice(all_vertices['vertex'], model.vertex_offset, model.vertex_count)
                         model_vertices = model_vertices[vtx_vertices] * scale
 
-                        shape_key.data.foreach_set("co", (flex_delta + model_vertices).ravel())
+                        if flex_desc.partner_index:
+                            partner_name = mdl.flex_names[flex_desc.partner_index]
+                            flexes, sides = [flex_name, partner_name], [1-side, side] if not debug_stereo_balance else [1.0, 1.0]
+                        else:
+                            flexes, sides = [flex_name], [1.0]
+
+                        for flex_name, side in zip(flexes, sides):
+                            shape_key = mesh_data.shape_keys.key_blocks.get(flex_name, None) or mesh_obj.shape_key_add(
+                                name=flex_name)
+                            shape_key.data.foreach_set("co", (flex_delta*side + model_vertices).ravel())
+                            shape_key.value = 0.0
+
+                            if flex_desc.vertex_anim_type == 1:
+                                mesh_data: bpy.types.Mesh
+                                if wrinkle.max() > 0:
+                                    wrinkle_name = f'WR.{flex_name}.S'
+                                if wrinkle.min() < 0:
+                                    wrinkle_name = f'WR.{flex_name}.C'
+                                attr: bpy.types.Attribute = mesh_data.attributes.get(wrinkle_name, None) or mesh_data.attributes.new(wrinkle_name, 'FLOAT', 'POINT')
+                                wrinkle_data = (abs(wrinkle) * vert_anim_fixed_point_scale) * side
+                                attr.data.foreach_set('value', wrinkle_data.ravel())
 
                     if create_drivers:
                         create_flex_drivers(mesh_obj, mdl)
 
-                mesh_data.validate()
+                    if options.generate_wrinkle_map_node_group:
+                        generate_wrinkle_map_node_group(mesh_obj)
+
+            mesh_data.validate()
                 
             if model.has_eyeballs:
                 create_eyeballs(mdl, armature, mesh_obj, model, scale, extra_stuff)
@@ -199,47 +253,11 @@ def import_model(content_manager: ContentManager, mdl: MdlV44, vtx: Vtx, vvd: Vv
         attachments = create_attachments(mdl, armature if not static_prop else objects[0], scale)
     attachments.extend(extra_stuff)
 
+    if not static_prop:
+        if options.bodygroup_vis_switches:
+            make_bodygroup_selectors(mdl, armature, bodygroups)
+
     return ModelContainer(objects, bodygroups, [], attachments, armature, None)
-
-
-def create_flex_drivers(obj, mdl: MdlV44):
-    all_exprs = mdl.rebuild_flex_rules()
-    for controller in mdl.flex_controllers:
-        shape_key = obj.shape_key_add(name=controller.name)
-        shape_key.value = 0.0
-
-    def parse_expr(expr: Union[Value, Expr, Function], driver, shape_key_block):
-        if issubclass(type(expr), (FetchController, FetchFlex)):
-            logger.info(f"Parsing {expr} value")
-            if driver.variables.get(expr.value, None) is not None:
-                return
-            var = driver.variables.new()
-            var.name = expr.value
-            var.targets[0].id_type = 'KEY'
-            var.targets[0].id = shape_key_block
-            var.targets[0].data_path = "key_blocks[\"{}\"].value".format(expr.value)
-
-        elif issubclass(type(expr), Expr):
-            parse_expr(expr.right, driver, shape_key_block)
-            parse_expr(expr.left, driver, shape_key_block)
-        elif issubclass(type(expr), Function):
-            for var in expr.values:
-                parse_expr(var, driver, shape_key_block)
-
-    for target, expr in all_exprs.items():
-        shape_key_block = obj.data.shape_keys
-        shape_key = shape_key_block.key_blocks.get(target, obj.shape_key_add(name=target))
-        shape_key.value = 0.0
-
-        shape_key.driver_remove("value")
-        fcurve = shape_key.driver_add("value")
-        fcurve.modifiers.remove(fcurve.modifiers[0])
-
-        driver = fcurve.driver
-        driver.type = 'SCRIPTED'
-        parse_expr(expr, driver, shape_key_block)
-        driver.expression = str(expr)
-        logger.debug(f'{target} {expr}')
 
 
 def create_attachments(mdl: MdlV44, armature: bpy.types.Object, scale):
@@ -343,96 +361,3 @@ def import_static_animations(cm: ContentProvider, mdl: MdlV44, animation_name: s
 
                         bpy.ops.object.mode_set(mode='OBJECT')
                         return
-
-
-def import_animations(mdl: MdlV44, armature, scale):
-    bpy.ops.object.select_all(action="DESELECT")
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = armature
-    bpy.ops.object.mode_set(mode='POSE')
-    if not armature.animation_data:
-        armature.animation_data_create()
-    # for var_pos in ['XYZ', 'YXZ', ]:
-    #     for var_rot in ['XYZ', 'XZY', 'YZX', 'ZYX', 'YXZ', 'ZXY', ]:
-    for var_pos in ['XYZ']:
-        for var_rot in ['XYZ']:
-            for anim_desc in mdl.anim_descs:
-                anim_name = f'pos_{var_pos}_rot_{var_rot}_{anim_desc.name}'
-                action = bpy.data.actions.new(anim_name)
-                factory = ActionCurveFactory(action, armature)
-                curve_per_bone = {}
-                for bone in anim_desc.anim_bones:
-                    if bone.bone_id == -1:
-                        continue
-                    bone_name = mdl.bones[bone.bone_id].name
-
-                    bone_string = f'pose.bones["{bone_name}"].'
-                    group = factory.new_group(bone_name)
-                    pos_curves = []
-                    rot_curves = []
-                    for i in range(3):
-                        pos_curve = factory.new_fcurve(data_path=bone_string + "location", index=i, group=group)
-                        pos_curve.keyframe_points.add(count=anim_desc.frame_count)
-                        pos_curves.append(pos_curve)
-                    for i in range(3):
-                        rot_curve = factory.new_fcurve(data_path=bone_string + "rotation_euler", index=i, group=group)
-                        rot_curve.keyframe_points.add(count=anim_desc.frame_count)
-                        rot_curves.append(rot_curve)
-                    curve_per_bone[bone_name] = pos_curves, rot_curves
-
-                for bone in anim_desc.anim_bones:
-                    if bone.bone_id == -1:
-                        continue
-                    mdl_bone = mdl.bones[bone.bone_id]
-
-                    bl_bone = armature.pose.bones.get(mdl_bone.name)
-                    bl_bone.rotation_mode = 'XYZ'
-
-                    pos_scale = mdl_bone.position_scale
-                    rot_scale = mdl_bone.rotation_scale
-                    if bone.is_raw_pos:
-                        pos_frames = [Vector(np.multiply(np.multiply(bone.pos, pos_scale), scale))]
-                    elif bone.is_anim_pos:
-                        pos_frames = [Vector(np.multiply(np.multiply(pos, pos_scale), scale)) for pos in
-                                      bone.pos_anim]
-                    else:
-                        pos_frames = []
-
-                    if bone.is_raw_rot:
-                        rot_frames = [Euler(np.multiply(Quaternion(bone.quat).to_euler('XYZ'), rot_scale))]
-                    elif bone.is_anim_rot:
-                        rot_frames = [Euler(np.multiply(rot, rot_scale)) for rot in bone.vec_rot_anim]
-                    else:
-                        rot_frames = []
-
-                    pos_curves, rot_curves = curve_per_bone[mdl_bone.name]
-                    for n, pos_frame in enumerate(pos_frames):
-                        pos = __swap_components(pos_frame, var_pos)
-
-                        for i in range(3):
-                            pos_curves[i].keyframe_points.add(count=1)
-                            pos_curves[i].keyframe_points[-1].co = (n, pos[i])
-
-                    for n, rot_frame in enumerate(rot_frames):
-                        fixed_rot = rot_frame
-                        if mdl_bone.parent_bone_index == -1:
-                            fixed_rot.x += math.radians(-90)
-                            fixed_rot.y += math.radians(180)
-                            fixed_rot.z += math.radians(-90)
-                        fixed_rot = Euler(__swap_components(fixed_rot, var_rot))
-                        # qx = Quaternion([1, 0, 0], fixed_rot[0])
-                        # qy = Quaternion([0, 1, 0], -fixed_rot[1])
-                        # qz = Quaternion([0, 0, 1], -fixed_rot[2])
-                        # fixed_rot: Euler = (qx @ qy @ qz).to_euler()
-                        # fixed_rot.x += mdl_bone.rotation[0]
-                        # fixed_rot.y += mdl_bone.rotation[1]
-                        # fixed_rot.z += mdl_bone.rotation[2]
-                        fixed_rot.rotate(Euler([math.radians(90), math.radians(0), math.radians(0)]))
-                        fixed_rot.rotate(Euler([math.radians(0), math.radians(0), math.radians(90)]))
-                        fixed_rot = (
-                                fixed_rot.to_matrix().to_4x4() @ bl_bone.rotation_euler.to_matrix().to_4x4()).to_euler()
-                        for i in range(3):
-                            rot_curves[i].keyframe_points.add(count=1)
-                            rot_curves[i].keyframe_points[-1].co = (n, fixed_rot[i])
-
-                        bpy.ops.object.mode_set(mode='OBJECT')
