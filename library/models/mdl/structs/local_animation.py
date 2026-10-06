@@ -286,6 +286,7 @@ class StudioAnimDesc:
             y_offset = buffer.read_int16()
             z_offset = buffer.read_int16()
             anim_rot = np.zeros((frame_count, 3), dtype=np.float32)
+
             if x_offset > 0:
                 with buffer.read_from_offset(entry + x_offset):
                     anim_rot[:, 0] = self._read_mdl_anim_values(buffer, frame_count, rot_scale[0])
@@ -298,8 +299,8 @@ class StudioAnimDesc:
                 with buffer.read_from_offset(entry + z_offset):
                     anim_rot[:, 2] = self._read_mdl_anim_values(buffer, frame_count, rot_scale[2])
 
-            # if not flags & AnimBoneFlags.ANIM_DELTA:
-            anim_rot = anim_rot + base_rot
+            if not flags & AnimBoneFlags.ANIM_DELTA:
+                anim_rot = anim_rot + base_rot
 
             return euler_to_quat(anim_rot)
         return None
@@ -330,8 +331,8 @@ class StudioAnimDesc:
             if z_offset > 0:
                 with buffer.read_from_offset(entry + z_offset):
                     anim_pos[:, 2] = self._read_mdl_anim_values(buffer, frame_count, pos_scale[2])
-            # if not flags & AnimBoneFlags.ANIM_DELTA:
-            anim_pos = anim_pos + base_pos
+            if not flags & AnimBoneFlags.ANIM_DELTA:
+                anim_pos = anim_pos + base_pos
             return anim_pos
 
     def _read_mdl_animations(self, buffer: Buffer, bones: list[Bone], section_frame_count: int):

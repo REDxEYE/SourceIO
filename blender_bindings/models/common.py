@@ -8,6 +8,19 @@ from SourceIO.library.models.vtx.v7.structs.lod import ModelLod as VtxModel
 from SourceIO.library.models.vtx.v7.structs.mesh import Mesh as VtxMesh
 from SourceIO.library.models.mdl import Mdl
 
+from SourceIO.library.models.mdl.load_animations import load_all_animations, load_mdl_animations
+from SourceIO.blender_bindings.models.import_animations import import_animations_to_armature
+from SourceIO.library.utils import Buffer
+from SourceIO.library.shared.content_manager import ContentManager
+
+def import_animations_common(mdl, buffer: Buffer, content_manager: ContentManager, model_path: str, scale: float, compact_animations: bool, include_all: bool, armature: bpy.types.Object):
+    #if options.import_animations and armature:
+    if include_all:
+        animations = load_all_animations(mdl, buffer, content_manager, model_path)
+    else:
+        animations = load_mdl_animations(mdl, buffer, content_manager, model_path)
+        
+    import_animations_to_armature(armature, model_path, animations, scale, compact_animations)
 
 def merge_strip_groups(vtx_mesh: VtxMesh):
     indices_accumulator = []
@@ -416,12 +429,10 @@ def create_flex_drivers(obj, mdl):
     for name, (expr, inputs) in reversed(all_exprs):
         de_duped_name = name
         dupe_count = 0
-        has_duplicate = False
         de_duped_self_input = name + '_' + f'{dupe_count+1:03d}'
 
         while de_duped_name in visited_flexes:
             dupe_count += 1
-            has_duplicate = True
             de_duped_name = name + '_' + f'{dupe_count:03d}'
             de_duped_self_input = name + '_' + f'{dupe_count+1:03d}'
 
@@ -565,6 +576,7 @@ def create_flex_drivers(obj, mdl):
         except AssertionError:
             print(expr)
             print(name)
-        driv.expression = ('clamp' if is_kb else '') + '(' + expr.replace('--', '+') + ')' + '*FS'
+        #driv.expression = ('clamp' if is_kb else '') + '(' + expr.replace('--', '+') + ')' + '*FS'
+        driv.expression = '(' + expr.replace('--', '+') + ')' + '*FS'
 
     return

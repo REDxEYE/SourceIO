@@ -63,14 +63,16 @@ def load_animations_from_mdl(mdl, mdl_buffer: Buffer,
                 print(f"Animation {anim_desc.name} has no frames")
                 continue
             from .structs.local_animation import AnimDescFlags
+            is_delta = bool(anim_desc.flags & AnimDescFlags.DELTA)
+            delta_prefix = 'd.' if is_delta else ''
             results.append(AnimationData(
-                name=anim_desc.name,
+                name=delta_prefix+anim_desc.name,
                 fps=anim_desc.fps,
                 frame_count=anim_desc.frame_count,
                 bone_names=[b.name for b in bones],
                 frames=dict(frames), # convert from defaultdict to normal dict
                 is_looping=bool(anim_desc.flags & AnimDescFlags.LOOPING),
-                is_delta=bool(anim_desc.flags & AnimDescFlags.DELTA),
+                is_delta=is_delta,
             ))
         except Exception as ex:
             logger.error(f"Failed to load animation '{anim_desc.name}': {ex}")
@@ -87,6 +89,17 @@ def load_all_animations(mdl: MdlV49, mdl_buffer: Buffer,
     This gives the complete animation set for a character.
     """
     animations, _ = load_all_animations_with_models(mdl, mdl_buffer, content_manager, model_path)
+    return animations
+
+def load_mdl_animations(mdl: MdlV49, mdl_buffer: Buffer,
+                        content_manager: ContentManager,
+                        model_path: TinyPath | None = None) -> list[AnimationData]:
+    """
+    Load animations from just the main MDL.
+    This gives a partial animation set for a character.
+    """
+    
+    animations, _ = load_all_animations_in_model(mdl, mdl_buffer, content_manager, model_path)
     return animations
 
 
@@ -122,6 +135,20 @@ def load_all_animations_with_models(mdl: MdlV49, mdl_buffer: Buffer,
             logger.error(f"Failed to load include model '{include_path}': {ex}")
             continue
 
+    return all_animations, mdls
+
+def load_all_animations_in_model(mdl: MdlV49, mdl_buffer: Buffer,
+                                    content_manager: ContentManager,
+                                    model_path: TinyPath | None = None
+                                    ) -> tuple[list[AnimationData], list[MdlV49]]:
+    """As :func:`load_all_animations`, but also returns from the imported model.
+
+    An animation's *sequence* table lives in whichever MDL defines it, so a caller
+    resolving a sequence name needs the include models too -- and they are already
+    parsed here, so hand them back rather than making the caller re-read them.
+    """
+    all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
+    mdls = [mdl]
     return all_animations, mdls
 
 

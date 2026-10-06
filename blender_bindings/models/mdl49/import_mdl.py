@@ -34,7 +34,6 @@ logger = log_manager.get_logger('Source1::ModelLoader')
 
 def import_model(content_manager: ContentManager, mdl: MdlV49, vtx: Vtx, vvd: Vvd,
                  options: ModelOptions):
-    bpy.types.Scene.m = mdl
     full_material_names = get_model_material_names(content_manager, mdl)
     [setattr(mat, 'bpy_material', get_or_create_material(mat.name, full_material_names[mat.name])) for mat in mdl.materials if mat.bpy_material is None]
     skin_groups = {str(n): list(map(lambda a: a.bpy_material, group)) for (n, group) in enumerate(mdl.skin_groups)}
@@ -248,77 +247,3 @@ def create_attachments(mdl: MdlV49, armature: bpy.types.Object, scale):
         attachments.append(empty)
 
     return attachments
-
-
-def import_animations(cm: ContentProvider, mdl: MdlV49, armature: bpy.types.Object,
-                      scale: float):
-    bpy.ops.object.select_all(action="DESELECT")
-    bpy.context.scene.collection.objects.link(armature)
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = armature
-    bpy.ops.object.mode_set(mode='POSE')
-    if not armature.animation_data:
-        armature.animation_data_create()
-
-    for n, anim in enumerate(mdl.anim_descs):
-        animation_data = mdl.animations[n]
-        action = bpy.data.actions.new(anim.name)
-        action.use_fake_user = True
-        factory = ActionCurveFactory(action, armature)
-        curve_per_bone = {}
-
-        for bone in mdl.bones:
-            bone_name = bone.name
-            bl_bone = armature.pose.bones.get(bone_name)
-            bl_bone.rotation_mode = 'QUATERNION'
-            bone_string = f'pose.bones["{bone_name}"].'
-            group = factory.new_group(bone_name)
-            pos_curves = []
-            rot_curves = []
-            for i in range(3):
-                pos_curve = factory.new_fcurve(data_path=bone_string + "location", index=i, group=group)
-                pos_curve.keyframe_points.add(count=anim.frame_count)
-                pos_curve.auto_smoothing = "CONT_ACCEL"
-                pos_curves.append(pos_curve)
-            for i in range(4):
-                rot_curve = factory.new_fcurve(data_path=bone_string + "rotation_quaternion", index=i, group=group)
-                rot_curve.keyframe_points.add(count=anim.frame_count)
-                rot_curve.auto_smoothing = "CONT_ACCEL"
-                rot_curves.append(rot_curve)
-            curve_per_bone[bone_name] = pos_curves, rot_curves
-        for bone_id, bone in enumerate(mdl.bones):
-            pos_curves, rot_curves = curve_per_bone[bone.name]
-            for curve in itertools.chain(pos_curves, rot_curves):
-                curve.keyframe_points.add(count=anim.frame_count)
-            bl_bone = armature.pose.bones.get(bone.name)
-            for frame_id in range(anim.frame_count):
-                anim_data = animation_data[frame_id, bone_id]
-                bl_bone.matrix_basis.identity()
-                pos = Vector(anim_data["pos"]) * scale
-                x, y, z, w = anim_data["rot"]
-                rot = Quaternion((w, x, y, z))
-                mat = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
-
-                if bl_bone.parent:
-                    mat = bl_bone.parent.matrix @ mat if bl_bone.parent else mat
-                    bl_bone.matrix = mat
-                    pos, rot = bl_bone.location, bl_bone.rotation_quaternion
-                    for i in range(3):
-                        pos_curves[i].keyframe_points[frame_id].co = (frame_id, (pos[i]))
-
-                    for i in range(4):
-                        rot_curves[i].keyframe_points[frame_id].co = (frame_id, (rot[i]))
-                else:
-                    mat = bl_bone.matrix.inverted() @ mat
-                    pos, rot, scl = mat.decompose()
-                    for i in range(3):
-                        pos_curves[i].keyframe_points[frame_id].co = (frame_id, (pos[i]))
-
-                    for i in range(4):
-                        rot_curves[i].keyframe_points[frame_id].co = (frame_id, (rot[i]))
-                bl_bone.matrix = Matrix.Identity(4)
-        for pos_curves, rot_curves in curve_per_bone.values():
-            for curve in rot_curves + pos_curves:
-                curve.update()
-        bpy.ops.object.mode_set(mode='OBJECT')
-    bpy.context.scene.collection.objects.unlink(armature)

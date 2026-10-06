@@ -35,14 +35,15 @@ class ModelOptions(SharedOptions, Source1SharedSettings):
     # write_qc: BoolProperty(name="Write QC", default=True, subtype='UNSIGNED')
     import_physics: BoolProperty(name="Import physics", default=False, subtype='UNSIGNED')
     load_refpose: BoolProperty(name="Load Ref pose", default=False, subtype='UNSIGNED')
-    import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
-    import_include_animations: BoolProperty(name="Load include model animations", default=False, subtype='UNSIGNED')
-
-    create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=True, subtype='UNSIGNED')
+    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
     bodygroup_grouping: BoolProperty(name="Group meshes by bodygroup", default=True, subtype='UNSIGNED')
     bodygroup_vis_switches: BoolProperty(name='Drive visibility for bodygroups', description='Toggle the visibility of body groups driven by a custom property switch on the armature', default=True, subtype='UNSIGNED')
-    import_textures: BoolProperty(name="Import materials", default=True, subtype='UNSIGNED')
 
+    import_animations: BoolProperty(name="Load animations", default=False, subtype='UNSIGNED')
+    import_include_animations: BoolProperty(name="Load include model animations", default=False, subtype='UNSIGNED')
+    compact_animations: BoolProperty(name='Compact Animations', default=True, description='If True, all animations will be stored as slots under one master action. If False, all animations will be in separate actions, as per legacy behavior.', subtype='UNSIGNED')
+
+    create_flex_drivers: BoolProperty(name="Create drivers for flexes", default=True, subtype='UNSIGNED')
     debug_stereo_balance: BoolProperty(name='Debug Stereo Flex Balance', description='Add vertex groups to show how stereo flexes blend. If enabled, the balance will not be mixed into shape keys.', default=False, subtype='UNSIGNED')
     generate_wrinkle_map_node_group: BoolProperty(name='Generate Wrinkle Map Nodes', description='Generates a node group that stores wrinkle map information, which you can access in the Shader Editor with the "tension" attribute.', default=True, subtype='UNSIGNED')
 

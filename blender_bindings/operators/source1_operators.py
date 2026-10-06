@@ -57,7 +57,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
                     model_container = import_model(mdl_path, f, content_manager, self, None)
                 except RequiredFileNotFound as e:
                     self.report({"ERROR"}, e.message)
-                    return {'CANCELLED'}
+                    continue
 
             put_into_collections(model_container, mdl_path.stem, bodygroup_grouping=self.bodygroup_grouping)
 
@@ -68,7 +68,38 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
             #     generate_qc(model_container.mdl, qc_file, ".".join(map(str, bl_info['version'])))
         content_manager.first_import = None
         content_manager.priority_list = None
+        content_manager.clean()
         return {'FINISHED'}
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+        col.label(text='Model', icon='ARMATURE_DATA')
+        box = col.box()
+        box = box.column(align=False)
+        for prop in ['import_physics', 'load_refpose', 'import_textures', 'bodygroup_grouping', 'bodygroup_vis_switches']:
+            box.prop(self, prop)
+        layout.separator()
+
+        col = layout.column(align=True)
+        col.label(text='Animations', icon='DECORATE_KEYFRAME')
+        box = col.box()
+        box = box.column(align=False)
+        for prop in ['import_animations', 'import_include_animations', 'compact_animations']:
+            box.prop(self, prop)
+        layout.separator()
+
+        
+        col = layout.column(align=True)
+        col.label(text='Facial Animation', icon='RESTRICT_SELECT_OFF')
+        box = col.box()
+        box = box.column(align=False)
+        for prop in ['create_flex_drivers', 'debug_stereo_balance', 'generate_wrinkle_map_node_group']:
+            box.prop(self, prop)
+
+        layout.separator()
+
+        layout.prop(self, 'discover_resources')
 
 
 def get_items():
@@ -108,6 +139,7 @@ class SOURCEIO_OT_BSPImport(ImportOperatorHelper, Source1BSPSettings):
 
         content_manager.first_import = None
         content_manager.priority_list = None
+        content_manager.clean()
 
         return {'FINISHED'}
 
@@ -380,6 +412,7 @@ class SOURCEIO_OT_SkyboxImport(ImportOperatorHelper):
         
         content_manager.first_import = None
         content_manager.priority_list = None
+        content_manager.clean()
 
         return {'FINISHED'}
 
@@ -431,6 +464,7 @@ class SOURCEIO_OT_VMTImport(ImportOperatorHelper):
         
         content_manager.first_import = None
         content_manager.priority_list = None
+        content_manager.clean()
         return {'FINISHED'}
 
     # # noinspection PyUnresolvedReferences,PyPep8Naming
