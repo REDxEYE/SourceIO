@@ -116,7 +116,7 @@ def load_all_animations_with_models(mdl: MdlV49, mdl_buffer: Buffer,
     all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
     mdls = [mdl]
 
-    mdl_name = (content_manager.get_relative_path(model_path) or model_path).lstrip('models/')
+    mdl_name = (content_manager.get_relative_path(model_path) or model_path[-63:]).lstrip('models/')
 
     mdl_animations = {mdl_name: all_animations}
 
@@ -154,7 +154,7 @@ def load_all_animations_in_model(mdl: MdlV49, mdl_buffer: Buffer,
     """
     all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
     mdls = [mdl]
-    mdl_name = (content_manager.get_relative_path(model_path) or model_path).lstrip('models/')
+    mdl_name = (content_manager.get_relative_path(model_path) or model_path[-63:]).lstrip('models/')
     mdl_animations = {mdl_name: all_animations}
     
     return mdl_animations, mdls
