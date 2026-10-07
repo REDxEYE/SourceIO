@@ -121,7 +121,7 @@ class MdlV44(Mdl):
         key_values = kv1.loads(key_values_raw, 'mdl keyvalues') if key_values_raw \
             else kv1.KV1Block()
 
-        local_animations = []
+        local_animations: list[StudioAnimDesc] = []
         buffer.seek(header.local_animation_offset)
         for _ in range(header.local_animation_count):
             local_animations.append(StudioAnimDesc.from_buffer(buffer))

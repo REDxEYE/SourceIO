@@ -37,6 +37,8 @@ def is_blender_4_2():
 def is_blender_4_3():
     return bpy.app.version >= (4, 3, 0)
 
+def is_blender_4_4():
+    return bpy.app.version >= (4, 4, 0)
 
 def is_blender_5():
     return bpy.app.version >= (5, 0, 0)
@@ -50,7 +52,7 @@ class ActionCurveFactory:
     """
 
     def __init__(self, master_name: str, armature_obj: bpy.types.Object, legacy_behavior: bool = False):
-        self._use_channelbag = is_blender_5()
+        self._use_channelbag = is_blender_4_4()
         self._armature = armature_obj
         self._legacy_behavior = legacy_behavior
         self.master_name = master_name
@@ -104,6 +106,7 @@ class ActionCurveFactory:
 
         else:
             self.action = bpy.data.actions.new(name)
+            self.action.use_fake_user = True
 
     def new_group(self, name: str):
         if self._use_channelbag:

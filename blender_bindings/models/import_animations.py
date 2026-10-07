@@ -20,6 +20,7 @@ from SourceIO.blender_bindings.utils.bpy_utils import ActionCurveFactory
 from SourceIO.library.models.mdl.load_animations import AnimationData
 from SourceIO.blender_bindings.operators.import_settings_base import ModelOptions
 from SourceIO.logger import SourceLogMan
+from SourceIO.library.utils.tiny_path import TinyPath
 
 log_manager = SourceLogMan()
 logger = log_manager.get_logger('BlenderAnimImport')
@@ -27,8 +28,8 @@ logger = log_manager.get_logger('BlenderAnimImport')
 
 def import_animations_to_armature(
         armature_obj: bpy.types.Object,
-        mdl_name: str,
-        animations: list[AnimationData],
+        mdl_name: TinyPath,
+        animations: dict[str, AnimationData],
         scale: float,
         compact_animations: bool
 ) -> list[bpy.types.Action]:
@@ -37,17 +38,19 @@ def import_animations_to_armature(
 
     rest_matrices, rest_matrices_inv = _build_rest_pose_cache(armature_obj)
 
-    action_factory = ActionCurveFactory(mdl_name, armature_obj, not compact_animations)
-    action_factory
-    actions = [action_factory]
+    for mdl_name, mdl_animations in animations.items():
 
-    for anim_data in animations:
-        try:
-            action = _create_action(armature_obj, action_factory, anim_data, scale, rest_matrices, rest_matrices_inv)
-            if action is not None:
-                actions.append(action)
-        except Exception as ex:
-            logger.error(f"Failed to import animation '{anim_data.name}': {ex}")
+        action_factory = ActionCurveFactory(mdl_name, armature_obj, not compact_animations)
+        action_factory
+        actions = [action_factory]
+
+        for anim_data in mdl_animations:
+            try:
+                action = _create_action(armature_obj, action_factory, anim_data, scale, rest_matrices, rest_matrices_inv)
+                if action is not None:
+                    actions.append(action)
+            except Exception as ex:
+                logger.error(f"Failed to import animation '{anim_data.name}': {ex}")
 
     return actions
 

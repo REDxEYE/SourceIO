@@ -12,9 +12,9 @@ from SourceIO.library.models.mdl.load_animations import load_all_animations, loa
 from SourceIO.blender_bindings.models.import_animations import import_animations_to_armature
 from SourceIO.library.utils import Buffer
 from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.utils.tiny_path import TinyPath
 
-def import_animations_common(mdl, buffer: Buffer, content_manager: ContentManager, model_path: str, scale: float, compact_animations: bool, include_all: bool, armature: bpy.types.Object):
-    #if options.import_animations and armature:
+def import_animations_common(mdl, buffer: Buffer, content_manager: ContentManager, model_path: TinyPath, scale: float, compact_animations: bool, include_all: bool, armature: bpy.types.Object):
     if include_all:
         animations = load_all_animations(mdl, buffer, content_manager, model_path)
     else:
