@@ -73,6 +73,14 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
 
     def draw(self, context):
         layout = self.layout
+        r = layout.row()
+        r.scale_y = 1.25
+        left = r.row()
+        left.alignment = 'LEFT'
+        left.label(text='World Scale')
+        right = r.row()
+        right.prop(self, 'scale', text='')
+
         col = layout.column(align=True)
         col.label(text='Model', icon='ARMATURE_DATA')
         box = col.box()
