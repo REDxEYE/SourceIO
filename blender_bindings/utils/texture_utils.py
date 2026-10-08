@@ -52,10 +52,10 @@ def check_texture_cache(texture_path: TinyPath) -> Optional[bpy.types.Image]:
             return bpy.data.images[f'{short_name}.png']
         elif short_name + '.hdr' in bpy.data.images:
             return bpy.data.images[f'{short_name}.hdr']
-    if bpy.context.scene.TextureCachePath == "":
+    if bpy.context.scene.sourceio_props.TextureCachePath == "":
         return None
     image = None
-    full_path = TinyPath(bpy.context.scene.TextureCachePath) / texture_path.with_suffix(".png")
+    full_path = TinyPath(bpy.context.scene.sourceio_props.TextureCachePath) / texture_path.with_suffix(".png")
     if full_path.exists():
         image = bpy.data.images.load(full_path.as_posix(), check_existing=True)
     full_path = full_path.with_suffix(".hdr")
@@ -137,7 +137,7 @@ def get_frame_cache_dir(asset_roots: list[TinyPath] | TinyPath | None = None) ->
         asset_roots = [TinyPath(asset_roots)]
 
     candidates = [TinyPath(root) / CACHE_DIR_NAME for root in asset_roots]
-    cache_path = bpy.context.scene.TextureCachePath
+    cache_path = bpy.context.scene.sourceio_props.TextureCachePath
     if cache_path:
         candidates.append(TinyPath(cache_path) / CACHE_DIR_NAME)
     candidates.append(TinyPath(tempfile.gettempdir()) / CACHE_DIR_NAME)
@@ -216,8 +216,8 @@ def create_and_cache_texture(texture_path: TinyPath, data: np.ndarray, is_hdr: b
     height, width, channels = data.shape
     data = data.ravel()
 
-    if bpy.context.scene.TextureCachePath != "":
-        save_path = TinyPath(bpy.context.scene.TextureCachePath) / texture_path
+    if bpy.context.scene.sourceio_props.TextureCachePath != "":
+        save_path = TinyPath(bpy.context.scene.sourceio_props.TextureCachePath) / texture_path
         os.makedirs(save_path.parent, exist_ok=True)
         save_path = save_path.with_suffix(".exr" if is_hdr else ".png")
 
