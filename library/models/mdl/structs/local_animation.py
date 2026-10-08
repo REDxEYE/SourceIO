@@ -113,6 +113,11 @@ class StudioAnimDesc:
     zero_frame_offset: int
     stall_time: int
 
+    # USED BY BLENDER BINDINGS
+    # This helps to avoid redundant animation reads
+    _conditions_cache: None
+    _return_val: None
+
     @classmethod
     def from_buffer(cls, buffer: Buffer):
         entry_offset = buffer.tell()
@@ -129,7 +134,9 @@ class StudioAnimDesc:
                    animblock_id, animblock_offset, ikrule_count, ikrule_offset, animblock_ikrule_offset,
                    local_hierarchy_count,
                    local_hierarchy_offset, section_offset, section_frame_count, zero_frame_span, zero_frame_count,
-                   zero_frame_offset, stall_time)
+                   zero_frame_offset, stall_time,
+                   
+                   None, None)
 
     def get_sections(self, buffer: Buffer) -> list[StudioAnimationSection]:
         section = []
@@ -154,6 +161,17 @@ class StudioAnimDesc:
         """
         frames_per_section = self.section_frame_count
         sections = self.get_sections(buffer)
+
+        conditions_cache =  int(bool(sections)) +\
+                            (int(self.animblock_id == 0) << 1) +\
+                            (int((not ani_buffer is None) and (not block_table is None)) << 2) +\
+                            (int((not ani_buffer is None) and (block_table is None)) << 3)
+
+
+        if (getattr(self, '_conditions_cache', 0) == conditions_cache):
+            return self._return_val
+        
+        return_val = None
 
         if sections:
             frame_buffer = defaultdict(lambda: np.zeros((self.frame_count,), ANIM_DTYPE))
@@ -196,18 +214,23 @@ class StudioAnimDesc:
                     for key, data in animation_section.items():
                         frame_buffer[key][frame_offset:frame_offset + section_frame_count] = data
                     frame_offset += section_frame_count
-            return frame_buffer
+            return_val = frame_buffer
+            
         elif self.animblock_id == 0:
             buffer.seek(self._entry_offset + self.animblock_offset)
-            return self._read_animation_frames(buffer, bones, self.frame_count)
+            return_val = self._read_animation_frames(buffer, bones, self.frame_count)
         elif ani_buffer is not None and block_table is not None:
             block_entry = block_table[self.animblock_id]
             ani_buffer.seek(block_entry.data_offset + self.animblock_offset)
-            return self._read_animation_frames(ani_buffer, bones, self.frame_count)
+            return_val = self._read_animation_frames(ani_buffer, bones, self.frame_count)
         elif ani_buffer is not None:
             ani_buffer.seek(self.animblock_offset)
-            return self._read_animation_frames(ani_buffer, bones, self.frame_count)
-        return None
+            return_val = self._read_animation_frames(ani_buffer, bones, self.frame_count)
+
+        self._conditions_cache = conditions_cache
+        self._return_val = return_val
+
+        return return_val
 
     def _read_animation_frames(self, buffer: Buffer, bones: list[Bone], section_frame_count: int) \
             -> dict[str, npt.NDArray] | None:

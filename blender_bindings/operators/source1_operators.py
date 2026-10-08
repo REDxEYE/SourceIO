@@ -12,7 +12,7 @@ from SourceIO.blender_bindings.models.common import put_into_collections
 from SourceIO.blender_bindings.shared.exceptions import RequiredFileNotFound
 from SourceIO.blender_bindings.source1.bsp.import_bsp import import_bsp
 from SourceIO.blender_bindings.source1.vtf import import_texture, load_skybox_texture
-from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, is_blender_4_1
+from SourceIO.blender_bindings.utils.bpy_utils import get_or_create_material, is_blender_4_1, is_blender_4_4
 from SourceIO.blender_bindings.utils.resource_utils import serialize_mounted_content, deserialize_mounted_content
 from SourceIO.library.shared.app_id import SteamAppId
 from SourceIO.library.shared.content_manager import ContentManager
@@ -73,6 +73,14 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
 
     def draw(self, context):
         layout = self.layout
+        r = layout.row()
+        r.scale_y = 1.25
+        left = r.row()
+        left.alignment = 'LEFT'
+        left.label(text='World Scale')
+        right = r.row()
+        right.prop(self, 'scale', text='')
+
         col = layout.column(align=True)
         col.label(text='Model', icon='ARMATURE_DATA')
         box = col.box()
@@ -86,6 +94,8 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
         box = col.box()
         box = box.column(align=False)
         for prop in ['import_animations', 'import_include_animations', 'compact_animations']:
+            if (prop == 'compact_animations') and (not is_blender_4_4()):
+                continue
             box.prop(self, prop)
         layout.separator()
 

@@ -12,9 +12,9 @@ from SourceIO.library.models.mdl.load_animations import load_all_animations, loa
 from SourceIO.blender_bindings.models.import_animations import import_animations_to_armature
 from SourceIO.library.utils import Buffer
 from SourceIO.library.shared.content_manager import ContentManager
+from SourceIO.library.utils.tiny_path import TinyPath
 
-def import_animations_common(mdl, buffer: Buffer, content_manager: ContentManager, model_path: str, scale: float, compact_animations: bool, include_all: bool, armature: bpy.types.Object):
-    #if options.import_animations and armature:
+def import_animations_common(mdl, buffer: Buffer, content_manager: ContentManager, model_path: TinyPath, scale: float, compact_animations: bool, include_all: bool, armature: bpy.types.Object):
     if include_all:
         animations = load_all_animations(mdl, buffer, content_manager, model_path)
     else:
@@ -329,7 +329,7 @@ def generate_wrinkle_map_node_group(obj: bpy.types.Object):
 
 def create_flex_drivers(obj, mdl):
     from string import ascii_lowercase
-    from SourceIO.library.models.mdl.structs.flex import FlexController, FlexControllerUI, FlexOpType, FlexRule
+    from SourceIO.blender_bindings.utils.flex_controller_ui import ui_script_as_text_block
     if not obj.data.shape_keys:
         return
     
@@ -340,10 +340,12 @@ def create_flex_drivers(obj, mdl):
     #lower_eye_expr = '(1-abs(max({}, 0)))*(1-{})*{}'
 
     all_exprs: list[tuple[str, tuple]] = mdl.rebuild_flex_rules()
-    bpy.types.Scene.t = all_exprs # debug point
     data: bpy.types.Mesh = obj.data
     shape_keys = data.shape_keys
     kb = shape_keys.key_blocks
+
+    flex_controller_ui_script = ui_script_as_text_block()
+    obj['flex_controller_ui'] = flex_controller_ui_script
 
     def make_custom_property(name, min, max, default=0.0):
         obj.data[name] = default
@@ -369,10 +371,17 @@ def create_flex_drivers(obj, mdl):
     flex['type'] = 0b00
     make_custom_property(flex_sort, -10, 10, 1.0)
 
+    new_slider = obj.flex_controllers.add()
+    new_slider.display_name = 'Flex Scale'
+    new_slider.realvalue = True
+    new_slider.name = flex_sort
+
+
     flexcontrollers['Flex Scale'] = flex
 
     for flex_controller_ui in mdl.flex_ui_controllers:
         flex = dict()
+        new_slider = obj.flex_controllers.add()
         
         if flex_controller_ui.stereo:
             flex['type'] = 0b01
@@ -392,12 +401,27 @@ def create_flex_drivers(obj, mdl):
             flex['right'] = right_controller.name
             make_custom_property(left_sort, left_controller.min, left_controller.max)
             make_custom_property(right_sort, right_controller.min, right_controller.max)
+
+            new_slider.split = True
+            new_slider.L = left_sort
+            new_slider.R = right_sort
+            new_slider.maximum = right_controller.max
+            new_slider.minimum = right_controller.min
+            new_slider.realvalue = False
+            new_slider.name = flex_controller_ui.name
+
+
         else:
             flex['type'] = 0b00
             controller = next(filter(lambda a: a.name == flex_controller_ui.controller, mdl.flex_controllers))
             flexmap[controller.name] = controller_sort = f'{next(tally)}_{controller.name}'
             flex['controller'] = controller.name
             make_custom_property(controller_sort, controller.min, controller.max)
+
+            new_slider.name = controller_sort
+            new_slider.minimum = controller.min
+            new_slider.maximum = controller.max
+            new_slider.realvalue = True
         
         if flex_controller_ui.nway_controller:
             flex['type'] |= 0b10
@@ -411,6 +435,15 @@ def create_flex_drivers(obj, mdl):
             flex['nway'] = nway.name
             make_custom_property(nway_sort, nway.min, nway.max)
 
+            new_slider_nway = obj.flex_controllers.add()
+            new_slider_nway.name = nway_sort
+            new_slider_nway.minimum = nway.min
+            new_slider_nway.maximum = nway.max
+            new_slider_nway.display_name = nway.name
+            new_slider_nway.split = False
+            new_slider_nway.realvalue = True
+
+        new_slider.display_name = flex_controller_ui.name
         flexcontrollers[flex_controller_ui.name] = flex
     
     obj.data['flexmap'] = flexmap
@@ -519,7 +552,7 @@ def create_flex_drivers(obj, mdl):
                     targ.id = shape_keys
                     targ.data_path = data_path
 
-                expr = f'clamp({"*".join(all_vars)})/(pow(FS, {len(all_vars)-1})+1e-16)'
+                expr = f'({"*".join(all_vars)})/(pow(FS, {len(all_vars)-1})+1e-16)'
 
                 var = driv.variables.new()
                 var.name = 'FS'

@@ -83,7 +83,7 @@ def load_animations_from_mdl(mdl, mdl_buffer: Buffer,
 
 def load_all_animations(mdl: MdlV49, mdl_buffer: Buffer,
                         content_manager: ContentManager,
-                        model_path: TinyPath | None = None) -> list[AnimationData]:
+                        model_path: TinyPath | None = None) -> dict[str, AnimationData]:
     """
     Load animations from the main MDL and all its include_models.
     This gives the complete animation set for a character.
@@ -93,7 +93,7 @@ def load_all_animations(mdl: MdlV49, mdl_buffer: Buffer,
 
 def load_mdl_animations(mdl: MdlV49, mdl_buffer: Buffer,
                         content_manager: ContentManager,
-                        model_path: TinyPath | None = None) -> list[AnimationData]:
+                        model_path: TinyPath | None = None) -> dict[str, AnimationData]:
     """
     Load animations from just the main MDL.
     This gives a partial animation set for a character.
@@ -106,7 +106,7 @@ def load_mdl_animations(mdl: MdlV49, mdl_buffer: Buffer,
 def load_all_animations_with_models(mdl: MdlV49, mdl_buffer: Buffer,
                                     content_manager: ContentManager,
                                     model_path: TinyPath | None = None
-                                    ) -> tuple[list[AnimationData], list[MdlV49]]:
+                                    ) -> tuple[dict[str, AnimationData], list[MdlV49]]:
     """As :func:`load_all_animations`, but also returns the models involved.
 
     An animation's *sequence* table lives in whichever MDL defines it, so a caller
@@ -116,11 +116,16 @@ def load_all_animations_with_models(mdl: MdlV49, mdl_buffer: Buffer,
     all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
     mdls = [mdl]
 
+    mdl_name = (content_manager.get_relative_path(model_path) or model_path[-63:]).lstrip('models/')
+
+    mdl_animations = {mdl_name: all_animations}
+
     if not mdl.include_models:
         return all_animations, mdls
 
     for include_path in mdl.include_models:
-        inc_buffer = content_manager.find_file(TinyPath(include_path))
+        include_path = TinyPath(include_path)
+        inc_buffer = content_manager.find_file(include_path)
         if inc_buffer is None:
             logger.info(f"Include model not found: {include_path}")
             continue
@@ -128,19 +133,19 @@ def load_all_animations_with_models(mdl: MdlV49, mdl_buffer: Buffer,
         try:
             inc_mdl = MdlV49.from_buffer(inc_buffer)
             inc_anims = load_animations_from_mdl(
-                inc_mdl, inc_buffer, content_manager, TinyPath(include_path))
-            all_animations.extend(inc_anims)
+                inc_mdl, inc_buffer, content_manager, include_path)
+            mdl_animations[include_path.lstrip('models/')] = inc_anims
             mdls.append(inc_mdl)
         except Exception as ex:
             logger.error(f"Failed to load include model '{include_path}': {ex}")
             continue
 
-    return all_animations, mdls
+    return mdl_animations, mdls
 
 def load_all_animations_in_model(mdl: MdlV49, mdl_buffer: Buffer,
                                     content_manager: ContentManager,
                                     model_path: TinyPath | None = None
-                                    ) -> tuple[list[AnimationData], list[MdlV49]]:
+                                    ) -> tuple[dict[str, AnimationData], list[MdlV49]]:
     """As :func:`load_all_animations`, but also returns from the imported model.
 
     An animation's *sequence* table lives in whichever MDL defines it, so a caller
@@ -149,7 +154,10 @@ def load_all_animations_in_model(mdl: MdlV49, mdl_buffer: Buffer,
     """
     all_animations = load_animations_from_mdl(mdl, mdl_buffer, content_manager, model_path)
     mdls = [mdl]
-    return all_animations, mdls
+    mdl_name = (content_manager.get_relative_path(model_path) or model_path[-63:]).lstrip('models/')
+    mdl_animations = {mdl_name: all_animations}
+    
+    return mdl_animations, mdls
 
 
 def _resolve_ani_file(mdl, content_manager: ContentManager,

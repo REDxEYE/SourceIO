@@ -126,9 +126,9 @@ class SourceIO_OT_LoadEntity(Operator):
         armature['prop_animation_requested'] = default_anim or ''
 
     def load_mdl(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
-        use_collections = context.scene.use_instances
-        import_materials = context.scene.import_materials
-        replace_entity = context.scene.replace_entity and not use_collections
+        use_collections = context.scene.sourceio_props.use_instances
+        import_materials = context.scene.sourceio_props.import_materials
+        replace_entity = context.scene.sourceio_props.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
         parent = obj.users_collection[0]
@@ -166,10 +166,10 @@ class SourceIO_OT_LoadEntity(Operator):
         options.import_physics = False
         options.create_flex_drivers = False
         options.scale = 1.0
-        options.use_bvlg = context.scene.use_bvlg
+        options.use_bvlg = context.scene.sourceio_props.use_bvlg
         options.bodygroup_grouping = False
         options.import_animations = False
-        options.import_physics = context.scene.import_physics
+        options.import_physics = context.scene.sourceio_props.import_physics
         try:
             model_container = import_model(prop_path, mdl_file,
                                            content_manager, options, steamapp_id)
@@ -222,9 +222,9 @@ class SourceIO_OT_LoadEntity(Operator):
                 apply_tint(o)
 
     def load_glm(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
-        use_collections = context.scene.use_instances
-        import_materials = context.scene.import_materials
-        replace_entity = context.scene.replace_entity and not use_collections
+        use_collections = context.scene.sourceio_props.use_instances
+        import_materials = context.scene.sourceio_props.import_materials
+        replace_entity = context.scene.sourceio_props.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
         parent = obj.users_collection[0]
@@ -253,10 +253,10 @@ class SourceIO_OT_LoadEntity(Operator):
         options.import_physics = False
         options.create_flex_drivers = False
         options.scale = 1.0
-        options.use_bvlg = context.scene.use_bvlg
+        options.use_bvlg = context.scene.sourceio_props.use_bvlg
         options.bodygroup_grouping = False
         options.import_animations = False
-        options.import_physics = context.scene.import_physics
+        options.import_physics = context.scene.sourceio_props.import_physics
         try:
             model_container = import_model(prop_path, mdl_file,
                                            content_manager, options, steamapp_id)
@@ -290,9 +290,9 @@ class SourceIO_OT_LoadEntity(Operator):
                     o.parent = obj
 
     def load_vmdl(self, content_manager: ContentManager, context: bpy.context, obj: bpy.types.Object):
-        use_collections = context.scene.use_instances
-        import_materials = context.scene.import_materials
-        replace_entity = context.scene.replace_entity and not use_collections
+        use_collections = context.scene.sourceio_props.use_instances
+        import_materials = context.scene.sourceio_props.import_materials
+        replace_entity = context.scene.sourceio_props.replace_entity and not use_collections
         master_instance_collection = get_or_create_collection("MASTER_INSTANCES_DO_NOT_EDIT",
                                                               bpy.context.scene.collection)
         parent = obj.users_collection[0]
@@ -305,7 +305,7 @@ class SourceIO_OT_LoadEntity(Operator):
         import_context = ImportContext(
             scale=custom_prop_data["scale"],
             lod_mask=1,
-            import_physics=context.scene.import_physics,
+            import_physics=context.scene.sourceio_props.import_physics,
             import_attachments=False,
             import_materials=import_materials,
             draw_call_index=None,
@@ -520,11 +520,11 @@ class SOURCEIO_PT_EntityLoader(UITools, Panel):
         self.layout.label(text="Entity loading")
         layout = self.layout.box()
         layout.prop(context.scene, "use_bvlg")
-        layout.prop(context.scene, "import_physics")
-        layout.prop(context.scene, "import_materials")
-        layout.prop(context.scene, "use_instances")
-        if not context.scene.use_instances:
-            layout.prop(context.scene, "replace_entity")
+        layout.prop(context.scene.sourceio_props, "import_physics")
+        layout.prop(context.scene.sourceio_props, "import_materials")
+        layout.prop(context.scene.sourceio_props, "use_instances")
+        if not context.scene.sourceio_props.use_instances:
+            layout.prop(context.scene.sourceio_props, "replace_entity")
         obj: bpy.types.Object = context.active_object
         if obj is None and context.selected_objects:
             obj = context.selected_objects[0]
@@ -695,7 +695,7 @@ class SOURCEIO_OT_NewResource(Operator):
         cm = ContentManager()
         serialize_mounted_content(cm)
         cm.clean()
-        new_resource = context.scene.mounted_resources.add()
+        new_resource = context.scene.sourceio_props.mounted_resources.add()
         new_resource.path = self.filepath
         new_resource.name = TinyPath(self.filepath).name
         cm.scan_for_content(TinyPath(self.filepath))
@@ -715,16 +715,16 @@ class SOURCEIO_OT_DeleteResource(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.mounted_resources_index >= 0
+        return context.scene.sourceio_props.mounted_resources_index >= 0
 
     def execute(self, context):
-        resources = context.scene.mounted_resources
-        index = context.scene.mounted_resources_index
+        resources = context.scene.sourceio_props.mounted_resources
+        index = context.scene.sourceio_props.mounted_resources_index
 
         resources.remove(index)
 
         if index > 0:
-            context.scene.mounted_resources_index = index - 1
+            context.scene.sourceio_props.mounted_resources_index = index - 1
 
         return {'FINISHED'}
 
@@ -734,7 +734,7 @@ class SOURCEIO_OT_CleanResources(Operator):
     bl_label = "Clean All Resources"
 
     def execute(self, context):
-        resources = context.scene.mounted_resources
+        resources = context.scene.sourceio_props.mounted_resources
 
         # Remove all resources
         for i in range(len(resources)):
@@ -764,7 +764,7 @@ class SOURCEIO_PT_ResourcesPanel(Panel):
         layout = self.layout
 
         row = layout.row()
-        row.template_list("SOURCEIO_UL_ResourcesList", "", context.scene, "mounted_resources", context.scene,
+        row.template_list("SOURCEIO_UL_ResourcesList", "", context.scene.sourceio_props, "mounted_resources", context.scene,
                           "mounted_resources_index")
 
         col = row.column(align=True)
@@ -786,18 +786,18 @@ class SOURCEIO_OT_ResourceMove(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.mounted_resources_index >= 0
+        return context.scene.sourceio_props.mounted_resources_index >= 0
 
     def move_index(self):
         # Move index of an item render queue while clamping it
-        index = bpy.context.scene.mounted_resources_index
-        list_length = len(bpy.context.scene.mounted_resources) - 1  # (index starts at 0)
+        index = bpy.context.scene.sourceio_props.mounted_resources_index
+        list_length = len(bpy.context.scene.sourceio_props.mounted_resources) - 1  # (index starts at 0)
         new_index = index + (-1 if self.direction == 'UP' else 1)
-        bpy.context.scene.mounted_resources_index = max(0, min(new_index, list_length))
+        bpy.context.scene.sourceio_props.mounted_resources_index = max(0, min(new_index, list_length))
 
     def execute(self, context):
-        resources = context.scene.mounted_resources
-        index = context.scene.mounted_resources_index
+        resources = context.scene.sourceio_props.mounted_resources
+        index = context.scene.sourceio_props.mounted_resources_index
         direction = self.direction
 
         neighbor_index = index - 1 if direction == 'UP' else index + 1
@@ -818,13 +818,13 @@ class SOURCEIO_PT_Scene(Panel):
     def draw(self, context):
         layout = self.layout
         layout.label(text="SourceIO configuration")
-        layout.prop(context.scene, "TextureCachePath")
+        layout.prop(context.scene.sourceio_props, "TextureCachePath")
 
         box = layout.box()
         box.label(text='Mounted Resources')
 
         row = box.row()
-        row.template_list("SOURCEIO_UL_ResourcesList", "", context.scene, "mounted_resources", context.scene,
+        row.template_list("SOURCEIO_UL_ResourcesList", "", context.scene.sourceio_props, "mounted_resources", context.scene.sourceio_props,
                           "mounted_resources_index")
 
         col = row.column(align=True)
