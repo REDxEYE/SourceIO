@@ -164,12 +164,18 @@ class SourceIO_OT_LoadEntity(Operator):
         options = ModelOptions()
         options.import_textures = import_materials
         options.import_physics = False
-        options.create_flex_drivers = False
+        options.create_flex_drivers = True
+        options.load_refpose = False
         options.scale = 1.0
         options.use_bvlg = context.scene.sourceio_props.use_bvlg
         options.bodygroup_grouping = False
         options.import_animations = False
         options.import_physics = context.scene.sourceio_props.import_physics
+
+        options.bodygroup_vis_switches = True
+        options.debug_stereo_balance = False
+        options.generate_wrinkle_map_node_group = True
+
         try:
             model_container = import_model(prop_path, mdl_file,
                                            content_manager, options, steamapp_id)
