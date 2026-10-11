@@ -85,7 +85,7 @@ class SOURCEIO_OT_MDLImport(ImportOperatorHelper, ModelOptions):
         col.label(text='Model', icon='ARMATURE_DATA')
         box = col.box()
         box = box.column(align=False)
-        for prop in ['import_physics', 'load_refpose', 'import_textures', 'bodygroup_grouping', 'bodygroup_vis_switches']:
+        for prop in ['use_bvlg', 'import_physics', 'load_refpose', 'import_textures', 'bodygroup_grouping', 'bodygroup_vis_switches']:
             box.prop(self, prop)
         layout.separator()
 
