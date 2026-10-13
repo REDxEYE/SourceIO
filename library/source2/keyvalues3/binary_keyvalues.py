@@ -296,6 +296,10 @@ def _read_array_typed_helper(context: KV3Context, count, specifier: Specifier):
         return np.zeros(count, np.int64)
     elif data_type == KV3Type.INT64_ONE:
         return np.ones(count, np.int64)
+    elif data_type == KV3Type.UINT32_ZERO:
+        return np.zeros(count, np.uint32)
+    elif data_type == KV3Type.UINT32_ONE:
+        return np.ones(count, np.uint32)
     elif data_type == KV3Type.DOUBLE:
         return np.frombuffer(buffers.double_buffer.read(8 * count), np.float64)
     elif data_type == KV3Type.INT64:
@@ -547,6 +551,8 @@ _kv3_readers: list[Callable[['KV3Context', Specifier], Any] | None] = [
     _read_uint8,
     _read_array_typed_byte_size,
     _read_array_typed_byte_size2,
+    lambda a, c: UInt32(0),
+    lambda a, c: UInt32(1),
 ]
 _kv3_writers: list[Callable[['KV3WriteContext', AnyKVType, Specifier], None] | None] = [
     None,
@@ -575,6 +581,8 @@ _kv3_writers: list[Callable[['KV3WriteContext', AnyKVType, Specifier], None] | N
     _write_uint8,
     _write_array_typed_byte_size,
     _write_array_typed_byte_size2,
+    lambda a, c, s: None,
+    lambda a, c, s: None,
 ]
 
 
