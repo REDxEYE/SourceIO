@@ -232,6 +232,8 @@ class KV3Type(IntEnum):
     UINT8 = 23
     ARRAY_TYPED_BYTE_LENGTH = 24
     ARRAY_TYPED_BYTE_LENGTH2 = 25
+    UINT32_ZERO = 26
+    UINT32_ONE = 27
 
 
 class Specifier(IntEnum):
