@@ -19,7 +19,7 @@ class VPKContentProvider(ContentProvider):
 
     def check(self, filepath: TinyPath) -> bool:
         self._init()
-        return self.vpk_archive.check(filepath)
+        return self.vpk_archive.check(filepath) or self.vpk_archive.check(TinyPath(filepath.casefold()))
 
     def get_relative_path(self, filepath: TinyPath) -> TinyPath | None:
         return None

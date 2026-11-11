@@ -31,7 +31,7 @@ class Source1GameInfoProvider(ContentProvider):
 
         mods_folder = self.root.parent
         for search_path_type, search_path in self.filesystem.get("searchpaths", {}).items():
-            if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk"]:
+            if search_path_type.lower() not in ["game", "mod", "platform", "gamebin", "vpk", "game_write"]:
                 logger.debug(f"Skipping mounting {search_path!r} as is not one of supported mount types: {search_path_type}")
                 continue
             if "all_source_engine_paths" in search_path.lower():

@@ -1,4 +1,5 @@
 from bpy.props import BoolProperty, FloatProperty
+from bpy.app import version
 
 from ...library.utils.math_utilities import SOURCE1_HAMMER_UNIT_TO_METERS
 
@@ -8,7 +9,7 @@ class SharedOptions:
 
 
 class Source1SharedSettings:
-    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=False, subtype='UNSIGNED')
+    use_bvlg: BoolProperty(name="Use BlenderVertexLitGeneric shader", default=version >= (5, 3, 0), subtype='UNSIGNED')
 
 
 class BSPOptions(SharedOptions):
