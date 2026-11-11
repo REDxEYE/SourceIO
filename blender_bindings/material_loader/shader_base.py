@@ -108,6 +108,8 @@ class Nodes:
     ShaderNodeVolumeScatter = 'ShaderNodeVolumeScatter'
     ShaderNodeWavelength = 'ShaderNodeWavelength'
     ShaderNodeWireframe = 'ShaderNodeWireframe'
+    NodeClosureInput = 'NodeClosureInput'
+    NodeClosureOutput = 'NodeClosureOutput'
 
 
 log_manager = SourceLogMan()
@@ -130,7 +132,10 @@ class ShaderBase:
     def load_bvlg_nodes():
         if "VertexLitGeneric" not in bpy.data.node_groups:
             current_path = TinyPath(__file__).parent.parent
-            asset_path = current_path / 'assets' / "sycreation-s-default.blend"
+            if bpy.app.version < (5, 3, 0):
+                asset_path = current_path / 'assets' / "sycreation-s-default.blend"
+            else:
+                asset_path = current_path / 'assets' / "sycreation-s-default_5_3.blend"
             append_blend(str(asset_path), "node_groups")
 
     @staticmethod
@@ -303,7 +308,7 @@ class ShaderBase:
             group_node.location = location
         return group_node
 
-    def create_texture_node(self, texture, name=None, location=None):
+    def create_texture_node(self, texture, name=None, location=None) -> bpy.types.ShaderNodeTexImage:
         texture_node = self.create_node(Nodes.ShaderNodeTexImage, name)
         if texture is not None:
             texture_node.image = texture
