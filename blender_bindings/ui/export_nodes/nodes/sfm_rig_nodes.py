@@ -9,6 +9,7 @@ from SourceIO.blender_bindings.source1.model_export.sfm_rig import (
     BONE_FIELDS, DEFAULT_HIDDEN_GROUPS, LIMB_FIELDS, SIDES, ConstraintRecipe,
     FingerRecipe, FKChainRecipe, IKChainRecipe, IKRigRecipe, biped_limbs,
     default_pole_positions, detect_biped)
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_5
 from .prop_nodes import (
     _attach_to_bone, _connected_armature, _many, _model_outputs, _PropNode,
     _PropSocket, _rest_matrix)
@@ -468,8 +469,9 @@ def add_limb_chains(tree, node, limbs, poles=None):
 def migrate_rig_nodes(tree):
     """Bring rig nodes saved by older versions up to date: add the part
     inputs they lack, move fingers from the Fingers input they briefly had
-    to Constraints, and turn the arm and leg fields they used to have into IK
-    chain nodes named R and L, which keeps their control names.
+    to Constraints, and, on Blender 5, turn the arm and leg fields they used
+    to have into IK chain nodes named R and L, which keeps their control
+    names.
     """
     for node in tree.nodes:
         if (isinstance(node, SourceIOSfmFingerNode) and node.outputs
@@ -501,6 +503,10 @@ def migrate_rig_nodes(tree):
         for socket_type, name in RIG_INPUTS:
             if name not in present:
                 node.inputs.new(socket_type, name, use_multi_input=True)
+        # Blender 5 keeps the values of properties a class no longer defines
+        # apart, where they can be found; 4.5 graphs are left to the user.
+        if not is_blender_5():
+            continue
         stored = node.bl_system_properties_get()
         if stored is None:
             continue

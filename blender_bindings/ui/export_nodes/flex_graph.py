@@ -989,7 +989,12 @@ def _consumer_geometries(node):
     """
     entries = []
     geometries = []
-    pending = list(node.outputs['Flex Rules'].links)
+    output = node.outputs.get('Flex Rules')
+    if output is None:
+        # Blender 4.5 updates the tree while a node's init is still adding
+        # its sockets.
+        return []
+    pending = list(output.links)
     while pending:
         target = pending.pop().to_node
         if target.type == 'REROUTE':

@@ -35,6 +35,7 @@ from SourceIO.blender_bindings.source1.model_export.sfm_rig import (
     SCRIPT_DIRECTORY, render_sfm_rig, script_name)
 from SourceIO.blender_bindings.source1.model_export.smd_builder import (
     write_smd)
+from SourceIO.blender_bindings.utils.bpy_utils import is_blender_5
 from .export_cache import (ExportCache, cache_path, geometry_fingerprint,
                            node_fingerprint)
 from .nodes.material_nodes import (SourceIOExternalTextureNode,
@@ -710,6 +711,23 @@ def _merged_entry(entry, mesh_name):
         entry.flex_rule_set, rules=tuple(rules.values())))
 
 
+def preview_text(name: str) -> bpy.types.Text:
+    """The preview Text called ``name``.
+
+    Blender 4.5 cuts datablock names to 63 bytes, so there long names would
+    not be found again and could collide; the full name is kept on the Text
+    and looked up instead.
+    """
+    if is_blender_5():
+        return bpy.data.texts.get(name) or bpy.data.texts.new(name)
+    for text in bpy.data.texts:
+        if text.get('sourceio_preview') == name:
+            return text
+    text = bpy.data.texts.new(name)
+    text['sourceio_preview'] = name
+    return text
+
+
 def _write_if_changed(path: Path, data: bytes) -> bool:
     try:
         if path.read_bytes() == data:
@@ -986,8 +1004,7 @@ class _GraphAction(bpy.types.Operator):
                               encode_textures=self.action != 'PREVIEW',
                               cache=cache)
             if self.action == 'PREVIEW':
-                name = f'SourceIO export preview - {output.name}'
-                text = bpy.data.texts.get(name) or bpy.data.texts.new(name)
+                text = preview_text(f'SourceIO export preview - {output.name}')
                 text.clear()
                 text.write(plan.manifest())
                 for path, data in plan.assets:
@@ -996,14 +1013,13 @@ class _GraphAction(bpy.types.Operator):
                         continue
                     relative = path.relative_to(plan.game_root).as_posix()
                     kind = 'VMT' if suffix == '.vmt' else 'SFM rig'
-                    asset_name = (f'SourceIO {kind} preview - {output.name} '
-                                  f'- {relative}')
-                    asset_text = (bpy.data.texts.get(asset_name)
-                                  or bpy.data.texts.new(asset_name))
+                    asset_text = preview_text(
+                        f'SourceIO {kind} preview - {output.name} '
+                        f'- {relative}')
                     asset_text.clear()
                     asset_text.write(data.decode('utf-8'))
                 self.report({'INFO'},
-                            f'Preview written to Blender text {name!r}')
+                            f'Preview written to Blender text {text.name!r}')
             elif self.action == 'EXPORT':
                 export_plan(plan, cache)
                 self.report({'INFO'}, f'Exported {plan.qc_path}'
