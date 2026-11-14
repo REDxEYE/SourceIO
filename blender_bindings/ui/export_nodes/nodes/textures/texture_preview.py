@@ -1,27 +1,50 @@
 import bpy
 import numpy as np
-from bpy.types import Node
 
-from SourceIO.blender_bindings.ui.export_nodes.model_tree_nodes import evaluate_tree
-from SourceIO.blender_bindings.ui.export_nodes.nodes.base_node import SourceIOTextureTreeNode
+from SourceIO.blender_bindings.ui.export_nodes.build_graph import (
+    GraphResolver)
+from SourceIO.blender_bindings.source1.model_export.material_assets import (
+    ExternalTextureSourceRecipe, ImageSourceRecipe, texture_pixels)
+from SourceIO.blender_bindings.ui.export_nodes.nodes.base_node import (
+    SourceIOTextureTreeNode)
 
 
 class SourceIO_OP_EvaluatePreview(bpy.types.Operator):
     bl_idname = "sourceio.evaluate_texture_preview"
     bl_label = "Evaluate texture preview"
 
-    def execute(self, context: bpy.types.Context):
-        tree = context.space_data.node_tree
-        node = context.active_node
+    @classmethod
+    def poll(cls, context):
+        space = context.space_data
+        return bool(space and space.type == 'NODE_EDITOR'
+                    and space.edit_tree
+                    and space.edit_tree.bl_idname
+                    == 'sourceio.model_definition')
 
-        preview_nodes = []
-        if node.type != "SourceIOTexturePreviewNode":
-            for n in tree.nodes:
-                if n.type == "SourceIOTexturePreviewNode":
-                    preview_nodes.append(n)
+    def execute(self, context: bpy.types.Context):
+        tree = context.space_data.edit_tree
+        active = context.active_node
+        if active and active.bl_idname == "SourceIOTexturePreviewNode":
+            previews = [active]
         else:
-            preview_nodes.append(node)
-        evaluate_tree(tree, preview_nodes)
+            previews = [node for node in tree.nodes
+                        if node.bl_idname == "SourceIOTexturePreviewNode"]
+        resolver = GraphResolver()
+        try:
+            for node in previews:
+                inputs = {}
+                for socket in node.inputs:
+                    if not socket.is_linked:
+                        continue
+                    value = resolver(socket)
+                    if isinstance(value, (ImageSourceRecipe,
+                                          ExternalTextureSourceRecipe)):
+                        value = texture_pixels(value)
+                    inputs[socket.name] = value
+                node.process(inputs)
+        except (ValueError, OSError, RuntimeError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
         return {"FINISHED"}
 
 
@@ -30,35 +53,62 @@ class SourceIOTexturePreviewNode(SourceIOTextureTreeNode):
     bl_label = "Texture Preview"
     bl_icon = "TEXTURE"
 
+    display: bpy.props.EnumProperty(name="Show", items=(
+        ("RGB", "RGB", "Color channels at full opacity, like VTF viewers and "
+                       "the engine sample them"),
+        ("ALPHA", "Alpha", "Alpha channel as grayscale"),
+        ("RGBA", "RGBA", "Color with alpha as transparency"),
+    ), default="RGB")
+
     def init(self, context):
         self.inputs.new("SourceIOTextureSocket", "texture")
         self.inputs.new("SourceIOTextureChannelSocket", "channel")
 
     def draw_buttons(self, context, layout):
         layout.label(text="Preview the texture connected to the input.")
-        layout.operator(SourceIO_OP_EvaluatePreview.bl_idname, text="Update Preview")
+        layout.prop(self, "display", expand=True)
+        layout.operator(SourceIO_OP_EvaluatePreview.bl_idname,
+                        text="Update Preview")
 
-    def process(self, inputs: dict) -> dict | None:
-        print(inputs, "texture" in inputs and inputs["texture"] is not None, "channel" in inputs and inputs["channel"] is not None)
-        if "texture" in inputs and inputs["texture"] is not None:
-            img_data: np.ndarray = inputs["texture"]
-        elif "channel" in inputs and inputs["channel"] is not None:
-            channel_data: np.ndarray = inputs["channel"]
-            if channel_data.ndim == 2:
-                img_data = np.stack([channel_data] * 3 + [np.ones_like(channel_data)], axis=-1)
-            elif channel_data.ndim == 1:
-                img_data = np.stack([channel_data] * 3 + [np.ones_like(channel_data)], axis=-1)
+    def process(self, inputs: dict) -> None:
+        """Write the input into this node's preview Image."""
+        texture = inputs.get("texture")
+        if (isinstance(texture, np.ndarray) and texture.ndim == 3
+                and texture.shape[-1] in (3, 4)):
+            if texture.shape[-1] == 4:
+                alpha = texture[..., 3]
+            else:
+                alpha = np.ones(texture.shape[:2], np.float32)
+            opaque = np.ones_like(alpha)
+            if self.display == "ALPHA":
+                img_data = np.stack((alpha, alpha, alpha, opaque), axis=-1)
+            elif self.display == "RGB":
+                img_data = np.concatenate(
+                    (texture[..., :3], opaque[..., None]), axis=-1)
+            else:
+                img_data = np.concatenate(
+                    (texture[..., :3], alpha[..., None]), axis=-1)
+            # Exported VTFs clamp to 0..1; show the same values.
+            img_data = np.clip(img_data, 0.0, 1.0).astype(np.float32)
         else:
-            return None
-        image = bpy.data.images.get("SOURCE_NODES__Texture Preview" + self.name)
-        if image is None:
-            height, width = img_data.shape[:2]
-            image = bpy.data.images.new("SOURCE_NODES__Texture Preview" + self.name, width=width, height=height,
-                                        alpha=True)
-        elif image.size[0] != img_data.shape[1] or image.size[1] != img_data.shape[0]:
+            channel = inputs.get("channel")
+            if (not isinstance(channel, np.ndarray)
+                    or channel.ndim not in (1, 2)):
+                return None
+            if channel.ndim == 1:
+                channel = channel[np.newaxis, :]
+            img_data = np.stack(
+                (channel, channel, channel, np.ones_like(channel)), axis=-1)
+
+        name = f"SOURCE_NODES__Texture Preview {self.id_data.name} {self.name}"
+        image = bpy.data.images.get(name)
+        height, width = img_data.shape[:2]
+        if image is not None and tuple(image.size) != (width, height):
             bpy.data.images.remove(image)
-            height, width = img_data.shape[:2]
-            image = bpy.data.images.new("SOURCE_NODES__Texture Preview", width=width, height=height)
+            image = None
+        if image is None:
+            image = bpy.data.images.new(name, width=width, height=height,
+                                        alpha=True)
         image.pixels.foreach_set(img_data.ravel())
         image.update()
         return None

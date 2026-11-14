@@ -1,55 +1,4 @@
-from collections import defaultdict, deque
-
-import bpy
-from bpy.types import Node, NodeTree, Operator
-
-from . import nodes
-
-
-class SourceIO_OP_EvaluateNodeTree(Operator):
-    bl_idname = "sourceio.evaluate_nodetree"
-    bl_label = "Evaluate tree"
-    tmp_file: bpy.types.Text
-
-    def execute(self, context: bpy.types.Context):
-        if not bpy.data.texts.get('qc', False):
-            self.tmp_file = bpy.data.texts.new('qc')
-        else:
-            self.tmp_file = bpy.data.texts['qc']
-        all_nodes = context.space_data.node_tree.nodes
-        outputs = []  # type:list[Node]
-        for node in all_nodes:  # type: Node
-            if node.bl_idname == "SourceIOModelNode":
-                outputs.append(node)
-        for output in outputs:  # type:nodes.SourceIOModelNode
-            self.traverse_tree(output)
-        return {'FINISHED'}
-
-    def traverse_tree(self, start_node: nodes.SourceIOModelNode):
-        start_node.write(self.tmp_file)
-        objects = start_node.inputs['Objects']
-        bodygroups = start_node.inputs['Bodygroups']
-        skins = start_node.inputs['Skin']
-        textures = start_node.inputs['Textures']
-
-        if textures.is_linked:
-            for link in textures.links:
-                texture_node: nodes.SourceIOTextureInputNode = link.from_node
-                texture_data = texture_node.execute()
-                print(f"Texture data shape: {texture_data}")
-        if objects.is_linked:
-            for link in objects.links:
-                object_node: nodes.SourceIOObjectNode = link.from_node
-                object_node.write(self.tmp_file)
-
-        if bodygroups.is_linked:
-            for link in bodygroups.links:
-                bodygroup_node: nodes.SourceIOBodygroupNode = link.from_node
-                bodygroup_node.write(self.tmp_file)
-        if skins.is_linked:
-            skin_node = skins.links[0].from_node  # type: nodes.SourceIOSkinNode
-            self.tmp_file.write(str(skin_node.get_value()))
-            self.tmp_file.write('\n')
+from bpy.types import NodeTree
 
 
 class SourceIO_NT_ModelTree(NodeTree):
@@ -57,192 +6,138 @@ class SourceIO_NT_ModelTree(NodeTree):
     bl_label = "SourceIO model definition"
     bl_icon = 'NODETREE'
 
-    def update(self, ):
+    def update(self):
+        from .flex_graph import (
+            migrate_flex_geometry, repair_flex_groups,
+            sync_connected_flex_groups, sync_flex_tree)
+        from .nodes.sfm_rig_nodes import migrate_rig_nodes
+        repair_flex_groups(self)
+        migrate_flex_geometry(self)
+        migrate_rig_nodes(self)
         for node in self.nodes:
-            node.update()
-        for link in self.links:  # type:bpy.types.NodeLink
-            if link.from_socket.bl_idname != link.to_socket.bl_idname:
-                self.links.remove(link)
-        self.check_link_duplicates()
-
-    def check_link_duplicates(self):
-        to_remove = []
+            if (node.bl_idname == 'SourceIOModelEntryNode'
+                    and not node.inputs.get('Flex Rules')):
+                node.inputs.new('SourceIOFlexRulesSocket', 'Flex Rules')
+            elif node.bl_idname == 'SourceIOPropModelNode':
+                if not node.inputs.get('Flex Rules'):
+                    node.inputs.new('SourceIOFlexRulesSocket', 'Flex Rules',
+                                    use_multi_input=True)
+                if not node.inputs.get('Bone names'):
+                    node.inputs.new('SourceIOBoneNamesSocket', 'Bone names')
+                if not node.inputs.get('SFM rig'):
+                    node.inputs.new('SourceIOSfmRigSocket', 'SFM rig')
+        seen = set()
+        invalid = []
+        wrappers = []
+        vtf_outputs = []
         for link in self.links:
-            for link2 in self.links:
-                if link == link2 or link in to_remove:
-                    continue
-
-                if (
-                        link.from_node == link2.from_node and
-                        link.to_node == link2.to_node and
-                        link.from_socket == link2.to_socket
-                ):
-                    to_remove.append(link2)
-                    break
-        for link in to_remove:
+            endpoints = (link.from_socket, link.to_socket)
+            if endpoints in seen:
+                invalid.append(link)
+                continue
+            seen.add(endpoints)
+            if (link.from_node.bl_idname == 'SourceIOPropGeometryNode'
+                    and link.from_socket.name == 'Geometry'
+                    and link.to_node.bl_idname == 'SourceIOPropModelNode'
+                    and link.to_socket.name in {'Models', 'Bodygroups'}):
+                rank = sum(
+                    other.multi_input_sort_id > link.multi_input_sort_id
+                    for other in link.to_socket.links)
+                wrappers.append((link, link.from_node, link.to_node, rank,
+                                 'SourceIOModelEntryNode'
+                                 if link.to_socket.name == 'Models'
+                                 else 'SourceIOPropBodygroupNode'))
+            elif (link.from_socket.bl_idname == 'SourceIOMaterialSocket'
+                  and link.to_node.bl_idname == 'SourceIOPropModelNode'
+                  and link.to_socket.name == 'Skin families'):
+                rank = sum(
+                    other.multi_input_sort_id > link.multi_input_sort_id
+                    for other in link.to_socket.links)
+                wrappers.append((link, link.from_node, link.to_node, rank,
+                                 'SourceIOPropSkinFamilyNode'))
+            elif (link.from_socket.bl_idname == 'SourceIOTextureSocket'
+                  and link.to_socket.bl_idname == 'SourceIOTextureVtfSocket'):
+                parameter = next(
+                    (key for _, label, key
+                     in getattr(link.to_node, '_textures', ())
+                     if label == link.to_socket.name), None)
+                if parameter is None:
+                    invalid.append(link)
+                else:
+                    vtf_outputs.append((link, link.from_socket,
+                                        link.to_socket, link.from_node,
+                                        link.to_node, parameter))
+            elif (link.from_node.type != 'REROUTE'
+                  and link.to_node.type != 'REROUTE'
+                  and link.from_socket.bl_idname
+                  != link.to_socket.bl_idname):
+                invalid.append(link)
+        for link in invalid:
             self.links.remove(link)
+        for link, source, output, rank, node_type in wrappers:
+            source_socket = link.from_socket
+            self.links.remove(link)
+            wrapper = self.nodes.new(node_type)
+            wrapper.location = (source.location_absolute
+                                + output.location_absolute) * 0.5
+            if node_type in {'SourceIOModelEntryNode',
+                             'SourceIOPropBodygroupNode'}:
+                selected = (source.obj if source.source_type == 'OBJECT'
+                            else source.collection)
+                base = source.basename.strip() or (
+                    selected.name if selected else source.name)
+                if node_type == 'SourceIOModelEntryNode':
+                    property_name, input_name, output_name, target_name = (
+                        'entry_name', 'Geometry', 'Model', 'Models')
+                else:
+                    property_name, input_name, output_name, target_name = (
+                        'bodygroup_name', 'Choices', 'Bodygroup',
+                        'Bodygroups')
+                used = {getattr(node, property_name) for node in self.nodes
+                        if node.bl_idname == node_type and node != wrapper}
+                name = base
+                suffix = 1
+                while name in used:
+                    name = f'{base}.{suffix:03d}'
+                    suffix += 1
+                setattr(wrapper, property_name, name)
+            else:
+                input_name, output_name, target_name = (
+                    'Materials', 'Skin family', 'Skin families')
+            self.links.new(source_socket, wrapper.inputs[input_name])
+            new_link = self.links.new(wrapper.outputs[output_name],
+                                      output.inputs[target_name])
+            # Preserve the dropped link's position on the multi-input socket.
+            ordered = sorted(output.inputs[target_name].links,
+                             key=lambda item: item.multi_input_sort_id,
+                             reverse=True)
+            rank = min(rank, len(ordered) - 1)
+            index = ordered.index(new_link)
+            while index != rank:
+                next_index = index + (1 if index < rank else -1)
+                new_link.swap_multi_input_sort_id(ordered[next_index])
+                ordered[index], ordered[next_index] = (ordered[next_index],
+                                                       ordered[index])
+                index = next_index
 
-
-class EvalContext:
-    """Per-pass state holding computed socket values and per-node caches."""
-
-    def __init__(self, tree):
-        self.tree = tree
-        self.values = {}
-
-    def get_output_result(self, node, socket_name):
-        """Get the computed value for a given output socket of a node."""
-        for sock in node.outputs:
-            if sock.name == socket_name:
-                return self.values.get((node, sock))
-        return None
-
-
-def _is_frame(n):
-    """Return True if node is a frame."""
-    return n.type == "FRAME"
-
-
-def _collapse_reroute_to(link):
-    """Follow downstream through reroute nodes and return (node, socket)."""
-    n, s = link.to_node, link.to_socket
-    while n.type == "REROUTE":
-        outs = n.outputs
-        if not outs or not outs[0].links:
-            break
-        link = outs[0].links[0]
-        n, s = link.to_node, link.to_socket
-    return n, s
-
-def _collapse_upstream(link, collapse_reroutes=True, collapse_muted=True):
-    """Follow upstream across REROUTE and muted nodes using internal_links; return (node, socket)."""
-    n, s = link.from_node, link.from_socket
-    while True:
-        if collapse_reroutes and n.type == "REROUTE":
-            ins = n.inputs
-            if not ins or not ins[0].links:
-                break
-            link = ins[0].links[0]
-            n, s = link.from_node, link.from_socket
-            continue
-
-        if collapse_muted and n.mute:
-            # Find which input feeds this muted node's output socket `s`
-            mapped = None
-            for il in n.internal_links:
-                if il.to_socket == s and il.from_socket and il.from_socket.links:
-                    mapped = il.from_socket.links[0]
-                    break
-            if mapped is None:
-                break
-            link = mapped
-            n, s = link.from_node, link.from_socket
-            continue
-
-        break
-    return n, s
-
-def _collect_inputs(ctx, node, collapse_reroutes=True):
-    """Return a mapping of input socket names to resolved values for a node."""
-    out = {}
-    for sock in node.inputs:
-        if sock.is_linked and sock.links:
-            link = sock.links[0]
-            upn, ups = _collapse_upstream(link, collapse_reroutes=collapse_reroutes, collapse_muted=True)
-            out[sock.name] = ctx.values.get((upn, ups))
-        else:
-            out[sock.name] = getattr(sock, "value", None) or getattr(sock, "default_value", None)
-    return out
-
-
-
-def _build_graph(tree, collapse_reroutes=True, skip_frames=True):
-    """Build adjacency and indegree for the node DAG."""
-    adj = defaultdict(set)
-    indeg = defaultdict(int)
-    for n in tree.nodes:
-        if skip_frames and _is_frame(n):
-            continue
-        adj.setdefault(n, set())
-    for n in list(adj.keys()):
-        for out_sock in n.outputs:
-            for link in out_sock.links:
-                m, _ = _collapse_reroute_to(link) if collapse_reroutes else (link.to_node, link.to_socket)
-                if skip_frames and _is_frame(m):
-                    continue
-                if m not in adj[n]:
-                    adj[n].add(m)
-                    indeg[m] += 1
-                    indeg.setdefault(n, 0)
-    for n in adj:
-        indeg.setdefault(n, 0)
-    return adj, indeg
-
-
-def _restrict_to_upstream(tree, targets, collapse_reroutes=True, skip_frames=True):
-    """Return the set of nodes that can reach any of the targets."""
-    rev = defaultdict(set)
-    for n in tree.nodes:
-        if skip_frames and _is_frame(n):
-            continue
-        for out_sock in n.outputs:
-            for link in out_sock.links:
-                m, _ = _collapse_reroute_to(link) if collapse_reroutes else (link.to_node, link.to_socket)
-                if skip_frames and _is_frame(m):
-                    continue
-                rev[m].add(n)
-        rev.setdefault(n, set())
-    seen = set()
-    dq = deque(targets)
-    while dq:
-        x = dq.popleft()
-        if x in seen:
-            continue
-        seen.add(x)
-        for p in rev.get(x, ()):
-            if p not in seen:
-                dq.append(p)
-    return seen
-
-
-def compute_order(tree, subset=None, collapse_reroutes=True, skip_frames=True):
-    """Compute a topological order using a deque; subset restricts to an induced subgraph."""
-    adj, indeg = _build_graph(tree, collapse_reroutes, skip_frames)
-    if subset is not None:
-        keep = set(subset)
-        adj = {u: {v for v in vs if v in keep} for u, vs in adj.items() if u in keep}
-        indeg = {u: 0 for u in adj}
-        for u, vs in adj.items():
-            for v in vs:
-                indeg[v] = indeg.get(v, 0) + 1
-    q = deque([n for n, d in indeg.items() if d == 0 and n in adj])
-    order, seen = [], set()
-    while q:
-        u = q.popleft()
-        if u in seen:
-            continue
-        seen.add(u)
-        order.append(u)
-        for v in adj[u]:
-            indeg[v] -= 1
-            if indeg[v] == 0:
-                q.append(v)
-    if any(d > 0 for d in indeg.values() if isinstance(d, int)):
-        raise ValueError("Cycle detected in node graph")
-    return order
-
-
-def evaluate_tree(tree, targets=None, collapse_reroutes=True, skip_frames=True) -> EvalContext:
-    ctx = EvalContext(tree)
-    subset = _restrict_to_upstream(tree, targets, collapse_reroutes, skip_frames) if targets else None
-    order = compute_order(tree, subset=subset, collapse_reroutes=collapse_reroutes, skip_frames=skip_frames)
-    for node in order:
-        if node.mute:                           # hard-skip muted nodes
-            continue
-        props = _collect_inputs(ctx, node, collapse_reroutes=collapse_reroutes)
-        outputs = node.process(props) or {}
-        for sock in node.outputs:
-            if sock.name in outputs:
-                ctx.values[(node, sock)] = outputs[sock.name]
-    return ctx
-
+        for (link, source_socket, target_socket, source, material,
+             parameter) in vtf_outputs:
+            self.links.remove(link)
+            vtf = self.nodes.new('SourceIOVTFOutputNode')
+            vtf.location = (source.location_absolute
+                            + material.location_absolute) * 0.5
+            base = material.vmt_path.strip().replace('\\', '/')
+            if base.lower().startswith('materials/'):
+                base = base[len('materials/'):]
+            if base.lower().endswith('.vmt'):
+                base = base[:-4]
+            suffix = ('albedo' if parameter == '$basetexture'
+                      else parameter[1:])
+            vtf.vtf_name = f'{base or "models/props/material"}_{suffix}.vtf'
+            vtf.is_normal = parameter in {'$bumpmap', '$normalmap'}
+            self.links.new(source_socket, vtf.inputs['Texture'])
+            self.links.new(vtf.outputs['VTF'], target_socket)
+        # Topology changes may add/remove a geometry or rule link without a
+        # Key update.
+        sync_flex_tree(self)
+        sync_connected_flex_groups(self)

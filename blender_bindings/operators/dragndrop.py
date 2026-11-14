@@ -12,7 +12,10 @@ if is_blender_4_1():
 
         @classmethod
         def poll_drop(cls, context):
-            return context.region and context.region.type == 'WINDOW'
+            return (context.region and context.region.type == 'WINDOW' and
+                    not (context.area and context.area.type == 'NODE_EDITOR' and
+                         context.area.ui_type == 'sourceio.model_definition' and
+                         context.space_data.edit_tree is not None))
 
     # noinspection PyPep8Naming
     class IMAGE_FH_vtex_import(bpy.types.FileHandler):

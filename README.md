@@ -24,11 +24,11 @@ In order to find the import tools you simply need to go to File>Import>Source En
 ## Source 1
 | File Type | Contents                          | Import             | Export            |
 | ------    | ------                            | ------             | ------            |
-| .MDL      | Model                             | :heavy_check_mark: | :x:               |
+| .MDL      | Model                             | :heavy_check_mark: | Model graph (native DMX/SMD; StudioMDL) |
 | .BSP      | Map Files (Compiled)              | :heavy_check_mark: | Not Planned       |
 | .VMF      | Map Files (Hammer Format)         | Not Planned        | Not Planned       |
-| .VTF      | Textures                          | :heavy_check_mark: | :x:|
-| .VMT      | Materials                         | :heavy_check_mark: | :x:               |
+| .VTF      | Textures                          | :heavy_check_mark: | :heavy_check_mark: |
+| .VMT      | Materials                         | :heavy_check_mark: | Model graph |
 
 ## Source 2
 | File Type | Contents                          | Import              | Export       |

@@ -6,8 +6,6 @@ from typing import Any
 """
 SourceIO vtf module
 """
-
-
 class ImageFormat(IntEnum):
     """
     Enum where members are also (and must be) ints
@@ -52,7 +50,6 @@ class ImageFormat(IntEnum):
     ATI2N: ImageFormat
     ATI1N: ImageFormat
 
-
 class MipFilter(IntEnum):
     """
     Enum where members are also (and must be) ints
@@ -71,7 +68,6 @@ class MipFilter(IntEnum):
     HAMMING: MipFilter
     BLACKMAN: MipFilter
     KAISER: MipFilter
-
 
 class TextureFlags(IntFlag):
     """
@@ -102,7 +98,6 @@ class TextureFlags(IntFlag):
     SSBUMP: TextureFlags
     BORDER: TextureFlags
 
-
 class VTFFile:
     bump_scale: Any
     face_count: Any
@@ -121,34 +116,40 @@ class VTFFile:
 
     def compute_reflectivity(self: Any) -> Any:
         """
-        Compute reflectivity from image data.
+        Compute reflectivity from image data. Raises RuntimeError on failure.
         """
         ...
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    def create(self: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., format: Any = ..., thumbnail: Any = ..., mipmaps: Any = ...) -> Any:
         """
-        Create a new VTF image with the given dimensions, layout and format.
+        Create a new, empty VTF image with the given dimensions, layout and format.
+        All integer arguments must be non-negative and fit in 32 bits; width and height must be > 0.
+        Raises RuntimeError if VTFLib rejects the parameters.
         """
         ...
 
-    def create_from_data(*args: Any, **kwargs: Any) -> Any:
+    def create_from_data(self: Any, data: Any, width: Any, height: Any, frames: Any = ..., faces: Any = ..., slices: Any = ..., src_image_format: Any = ..., dst_image_format: Any = ..., filter_mode: Any = ..., flags: Any = ..., generate_mipmaps: Any = ..., generate_thumbnail: Any = ..., resize_to_pow2: Any = ..., resolution_limit_x: Any = ..., resolution_limit_y: Any = ...) -> Any:
         """
-        Create a new VTF image from raw bytes.
+        Create a new VTF image from raw pixel data.
         
         Parameters
         ----------
         data : bytes
-            Raw pixel data (layout must match the chosen image_format).
+            Raw pixel data in src_image_format: frames * faces * slices consecutive
+            width x height images. Extra trailing bytes are ignored.
         width, height : int
-            Texture dimensions (> 0).
+            Texture dimensions (> 0, < 2**32).
         frames, faces, slices : int, optional
-            Animation frames, cubemap faces, and depth slices; defaults to 1.
-        image_format : ImageFormat or int, optional
-            Target VTF image format; default RGBA8888.
-        filter_mode : MipmapFilter or int, optional
+            Animation frames, cubemap faces, and depth slices (> 0, < 2**32); defaults to 1.
+        src_image_format : ImageFormat or int, optional
+            Format of the pixels in data; default RGBA8888.
+        dst_image_format : ImageFormat or int, optional
+            Storage format of the created VTF; default RGBA8888.
+        filter_mode : MipFilter or int, optional
             Filter used when generating mipmaps; default CATROM.
         flags : TextureFlags or int, optional
-            VTF flags to apply; default SRGB.
+            Accepted for compatibility but currently not applied to the texture;
+            use the flags property or set_flag() afterwards.
         generate_mipmaps : bool, optional
             Whether to generate mipmaps; default True.
         generate_thumbnail : bool, optional
@@ -156,92 +157,102 @@ class VTFFile:
         resize_to_pow2 : int, optional
             Power-of-two resize mode: 0=disabled, 1=biggest, 2=smallest, 3=nearest. Default 1.
         resolution_limit_x, resolution_limit_y : int, optional
-            Clamp final size; if either differs from (width, height), clamping is enabled.
+            Clamp final size (> 0); if either differs from (width, height), clamping is enabled.
         
         Raises
         ------
+        TypeError
+            If data is not bytes.
         ValueError
-            If width/height/frames/faces/slices are not positive.
-        VTFLibError
+            If a dimension is not positive, data is too short, or a format, filter_mode or
+            resize_to_pow2 value is out of range.
+        OverflowError
+            If a dimension does not fit in 32 bits or the total size is too large.
+        RuntimeError
             If the underlying VTFLib call fails.
         """
         ...
 
-    def generate_mipmaps(*args: Any, **kwargs: Any) -> Any:
+    def generate_mipmaps(self: Any, filter: Any = ...) -> Any:
         """
-        Generate mipmaps using the selected filters.
+        Regenerate every existing mip level from level 0 using the given MipFilter.
+        Raises ValueError for an invalid filter and NotImplementedError for volume textures.
         """
         ...
 
     def get_data(self: Any, frame: Any, face: Any, slice: Any, mip: Any) -> Any:
         """
-        Return pixel data for the specified level as bytes.
+        Return the pixel data of one slice of the specified level as bytes, in the storage format.
+        Raises IndexError if frame/face/slice/mip is out of range.
         """
         ...
 
     def get_flag(self: Any, flag: Any) -> Any:
         """
-        Return True if the given flag is set.
+        Return True if the given flag (TextureFlags or int) is set.
         """
         ...
 
-    def get_version(self: Any) -> tuple[int, int]:
+    def get_version(self: Any) -> Any:
         """
-        Return tuple of version
+        Return the VTF version as a (major, minor) tuple.
         """
         ...
 
     def load(self: Any, path: Any, header_only: Any = ...) -> Any:
         """
         Load a VTF from a file path. If header_only is True, only parse the header.
+        Raises OSError if the file cannot be read and RuntimeError if VTFLib fails to load it.
         """
         ...
 
     def load_bytes(self: Any, data: Any, header_only: Any = ...) -> Any:
         """
-        Load a VTF from a bytes object. If header_only is True, only parse the header.
+        Load a VTF from a bytes-like object. If header_only is True, only parse the header.
+        Raises RuntimeError if VTFLib fails to parse the data.
         """
         ...
 
     def save(self: Any, path: Any) -> Any:
         """
-        Save the VTF to a file path.
+        Save the VTF to a file path. Raises OSError if the file cannot be written and
+        RuntimeError if VTFLib fails to serialize the image.
         """
         ...
 
     def set_data(self: Any, frame: Any, face: Any, slice: Any, mip: Any, data: Any) -> Any:
         """
-        Set pixel data for the specified level. 'data' must match the storage
-        format and size for that level.
+        Set the pixel data of one slice of the specified level. 'data' must be bytes in the
+        storage format and exactly the size of that level (ValueError otherwise).
+        Raises IndexError if frame/face/slice/mip is out of range.
         """
         ...
 
     def set_flag(self: Any, flag: Any, state: Any) -> Any:
         """
-        Enable or disable a VTF flag.
+        Enable or disable a VTF flag (TextureFlags or int).
         """
         ...
 
     def set_reflectivity(self: Any, x: Any, y: Any, z: Any) -> Any:
         """
-        Set the reflectivity vector (RGB).
+        Set the reflectivity vector (RGB floats).
         """
         ...
 
-    def set_version(self: Any, major: int, minor: int) -> Any:
+    def set_version(self: Any, major: Any, minor: Any) -> Any:
         """
-        Set version of the VTF file
+        Set the version of the VTF file. Raises RuntimeError if VTFLib rejects it.
         """
         ...
 
     def to_bytes(self: Any) -> Any:
         """
-        Serialize the VTF to a bytes object (.vtf file contents).
+        Serialize the VTF to a bytes object (.vtf file contents). Raises RuntimeError on failure.
         """
         ...
 
-
-def load_vtf_texture(input_data: Any, frame: int = ..., face: int = ..., mip: int = ...) -> Any:
+def load_vtf_texture(input_data: Any, frame: Any = ..., face: Any = ..., mip: Any = ...) -> Any:
     """
     Load VTF texture from input data, converted to RGBA8888 (or
     RGBA32323232F for float formats).
@@ -266,13 +277,20 @@ def load_vtf_texture(input_data: Any, frame: int = ..., face: int = ..., mip: in
     
     Raises
     ------
+    TypeError
+        If input_data is not bytes or an index is not an int.
+    ValueError
+        If input_data is empty or an index is negative.
     IndexError
         If frame, face or mip is out of range for this texture.
+    OverflowError
+        If the decoded level would exceed 4 GiB.
+    RuntimeError
+        If VTFLib fails to parse or convert the texture.
     """
     ...
 
-
-def load_vtf_texture_frames(input_data: bytes, face: int = ..., mip: int = ...) -> list[Any]:
+def load_vtf_texture_frames(input_data: Any, face: Any = ..., mip: Any = ...) -> Any:
     """
     Load every animation frame of a VTF texture in one pass.
     
@@ -297,14 +315,16 @@ def load_vtf_texture_frames(input_data: bytes, face: int = ..., mip: int = ...) 
     
     Raises
     ------
+    TypeError, ValueError, OverflowError, RuntimeError
+        As for ``load_vtf_texture``.
     IndexError
         If face or mip is out of range for this texture.
     """
     ...
 
-
 def version() -> Any:
     """
-    Return VTFLib version string.
+    Return the VTFLib version string, or None if unavailable.
     """
     ...
+

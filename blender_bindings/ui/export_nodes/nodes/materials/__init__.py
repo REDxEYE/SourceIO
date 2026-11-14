@@ -1,1 +1,0 @@
-from .vertex_lit_generic import SourceIOVertexLitGenericNode

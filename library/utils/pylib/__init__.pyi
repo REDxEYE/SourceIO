@@ -14,19 +14,23 @@ class VPKFile:
 
     def check(self: Any, name: Any) -> Any:
         """
-        Check if a file exists in the VPK by its name. Returns True if found, False otherwise.
+        Return True if the file `name` (case-insensitive) exists in the VPK, False otherwise.
         """
         ...
 
     def find_file(self: Any, name: Any) -> Any:
         """
-        Find a file in the VPK by its name. Returns a tuple (offset, size, archive_id) if found, or None if not found.
+        Return the contents of the file `name` (case-insensitive) as bytes, or None if
+        the VPK has no such file. Raises OSError/ValueError if the data cannot be read.
         """
         ...
 
     def glob(self: Any, pattern: Any) -> Any:
         """
-        Find files in the VPK matching a glob pattern.
+        Return an iterator of (name, data) tuples for files matching `pattern`.
+        Matching follows fnmatch.fnmatchcase on the lowercased name and pattern:
+        '*' matches any run of characters including '/', '?' one character,
+        '[seq]'/'[!seq]' character classes.
         """
         ...
 

@@ -1,8 +1,4 @@
-from .bodygroup_node import SourceIOBodygroupNode, SourceIOBodygroupProto
-from .input_material_node import SourceIOMaterialNode, SourceIOMaterialProto
-from .input_object_node import SourceIOObjectNode
-from .output_model_node import SourceIOModelNode
-from .skingroup_node import (SourceIOSkingroupNode, SourceIOSkinGroupProto,
-                             SourceIOSkinNode, SourceIOSkinProto)
-from .materials import SourceIOVertexLitGenericNode
-from .textures import *
+"""Source 1 export graph nodes."""
+
+from .material_nodes import classes as material_classes
+from .prop_nodes import classes as prop_classes
