@@ -1,4 +1,4 @@
-"""Compile a generated QC through the direct or add-on compiler."""
+"""Compile a generated QC through the direct, add-on or built-in compiler."""
 
 from __future__ import annotations
 
@@ -57,6 +57,38 @@ def validate_source_tools_compiler(game_root: Path, engine_root: Path):
     if bpy.context.window is None:
         raise SourceToolsError('Blender Source Tools needs an active Blender window to compile')
     return state
+
+
+def builtin_studiomdl():
+    """The pylib.studiomdl module, or CompilationError when this build has none (it is x86_64 only)."""
+    try:
+        from SourceIO.library.utils.pylib import studiomdl
+    except ImportError as exc:
+        raise CompilationError('The built-in studiomdl is not available in this SourceIO build (it needs an x86_64 '
+                               'Blender); choose another compiler backend') from exc
+    return studiomdl
+
+
+def compile_builtin(qc_path: Path, game_root: Path) -> str:
+    """Compile in process with pylib.studiomdl and write the outputs under game_root/models.
+
+    gameinfo.txt is optional: without it materials and $includemodel files are not looked up in a game.
+    """
+    studiomdl = builtin_studiomdl()
+    game_dir = game_root if (game_root / 'gameinfo.txt').is_file() else None
+    try:
+        result = studiomdl.compile_qc(qc_path, game_dir=game_dir)
+        result.save(game_root)
+    except studiomdl.StudioMdlError as exc:
+        location = (f' ({exc.file}:{exc.line})' if isinstance(exc, studiomdl.QcError) and exc.file else '')
+        detail = _message_text(exc.messages, studiomdl.Severity.WARNING)
+        raise CompilationError(f'studiomdl: {exc}{location}' + (f'\n{detail}' if detail else '')) from exc
+    return _message_text(result.messages, studiomdl.Severity.WARNING)
+
+
+def _message_text(messages, minimum) -> str:
+    """Warnings and errors of a compile, one per line."""
+    return '\n'.join(message.text.rstrip() for message in messages if message.severity >= minimum)
 
 
 def compile_with_source_tools(qc_path: Path, game_root: Path, engine_root: Path, state) -> str:

@@ -326,8 +326,7 @@ def _advanced(document, text, mesh_elements, shapes):
                     or rule.dm_type != 'DmeFlexRuleExpression'
                     or target.name not in shapes.get(rule.name, ())):
                 raise ValueError(
-                    f'Advanced flex rules for {target.name!r} reference '
-                    f'unknown shape {getattr(rule, "name", None)!r}')
+                    f'Advanced flex rules for {target.name!r} reference unknown shape {getattr(rule, "name", None)!r}')
             if rule.name in seen:
                 raise ValueError(f'Advanced flex rules for {target.name!r} '
                                  f'repeat shape {rule.name!r}')
@@ -347,41 +346,32 @@ def attach_flex(document: dm.DataModel, capture,
                 entry: ModelEntryRecipe | None = None,
                 advanced_text: str | None = None) -> None:
     """Attach a typed, mesh-bound Source 1 combination operator to a model."""
-    if (advanced_text is not None and entry is not None
-            and entry.flex_controller_source is None):
-        raise ValueError('Advanced flex Text conflicts with graph or direct '
-                         'flex controllers')
-    if (entry is not None and entry.flex_controller_source is not None
-            and advanced_text is None):
-        raise ValueError(f'Advanced flex Text '
-                         f'{entry.flex_controller_source!r} was not supplied')
+    if advanced_text is not None and entry is not None and entry.flex_controller_source is None:
+        raise ValueError('Advanced flex Text conflicts with graph or direct flex controllers')
+    if entry is not None and entry.flex_controller_source is not None and advanced_text is None:
+        raise ValueError(f'Advanced flex Text {entry.flex_controller_source!r} was not supplied')
     meshes = {mesh.name: mesh for mesh in capture.meshes}
-    if (len(meshes) != len(capture.meshes)
-            or meshes.keys() != mesh_elements.keys()):
-        raise ValueError('Flex mesh mapping does not match captured mesh '
-                         'object names')
+    if len(meshes) != len(capture.meshes) or meshes.keys() != mesh_elements.keys():
+        raise ValueError('Flex mesh mapping does not match captured mesh object names')
     shape_owners = defaultdict(set)
     for mesh in capture.meshes:
         target = mesh_elements[mesh.name]
         deltas = target.get('deltaStates', ())
         shape_names = [shape.name for shape in mesh.shapes]
         if not set(shape_names).issubset({delta.name for delta in deltas}):
-            raise ValueError(
-                f'Mesh {mesh.name!r} is missing captured shape deltas')
+            raise ValueError(f'Mesh {mesh.name!r} is missing captured shape deltas')
         for name in shape_names:
             shape_owners[name].add(mesh.name)
     clips = getattr(capture, 'vertex_animations', ())
     unique_clips = tuple(dict((clip.name, clip) for clip in clips).values())
     for clip in clips:
         if clip.mesh_name not in mesh_elements:
-            raise ValueError(f'Vertex animation {clip.name!r} refers to '
-                             f'unknown mesh {clip.mesh_name!r}')
+            raise ValueError(f'Vertex animation {clip.name!r} refers to unknown mesh {clip.mesh_name!r}')
         target = mesh_elements[clip.mesh_name]
         names = {item.name for item in target.get('deltaStates', ())}
         for index in range(len(clip.frames)):
             if f'{clip.name}-{index}' not in names:
-                raise ValueError(f'Vertex animation {clip.name!r} lacks '
-                                 f'frame delta {index}')
+                raise ValueError(f'Vertex animation {clip.name!r} lacks frame delta {index}')
     if advanced_text is not None:
         operator, scales = _advanced(document, advanced_text, mesh_elements,
                                      shape_owners)

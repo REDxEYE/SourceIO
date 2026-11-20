@@ -12,6 +12,7 @@ from pathlib import PurePosixPath
 import re
 from typing import Any, Mapping
 from .dmx_types import VertexAnimationRange
+from .procedural_bones import HelperBoneRecipe
 
 
 def _text(value: str, label: str) -> str:
@@ -439,6 +440,8 @@ class ModelRecipe:
     bone_names: tuple[tuple[str, str], ...] = ()
     # Optional sfm_rig.IKRigRecipe; written as an SFM rig script, never to the QC.
     sfm_rig: Any = None
+    # Quaternion helper bones; written to a VRD next to the QC.
+    procedural_bones: tuple[HelperBoneRecipe, ...] = ()
 
     def __post_init__(self):
         _number(self.scale, "model scale")
@@ -455,7 +458,7 @@ class ModelRecipe:
                 (self.models, ModelEntryRecipe), (self.material_dirs, str), (self.bodygroups, BodygroupRecipe),
                 (self.skinfamilies, SkinFamilyRecipe), (self.lods, LODRecipe),
                 (self.attachments, AttachmentRecipe), (self.hitboxes, HitboxRecipe),
-                (self.raw_snippets, RawQcRecipe),
+                (self.raw_snippets, RawQcRecipe), (self.procedural_bones, HelperBoneRecipe),
         ):
             if not isinstance(field, tuple) or any(not isinstance(item, cls) for item in field):
                 raise ValueError("Model recipe collections must be typed immutable tuples")
@@ -507,6 +510,11 @@ class ModelRecipe:
                 raise ValueError(f"Conflicting geometry exports for {item.key!r}")
             found.setdefault(item.key, item)
         return tuple(found.values())
+
+
+def vrd_name(model_path: str) -> str:
+    """QC-relative VRD filename of a model; the VRD sits next to the QC."""
+    return PurePosixPath(_path(model_path, "model path")).with_suffix(".vrd").name
 
 
 def render_qc(recipe: ModelRecipe, material_dirs: tuple[str, ...] | list[str],
@@ -607,6 +615,8 @@ def render_qc(recipe: ModelRecipe, material_dirs: tuple[str, ...] | list[str],
     for item in recipe.hitboxes:
         lines.append(f'$hbox {item.group} {_quote(bones.get(item.bone, item.bone), "hitbox bone")} '
                      f'{_vector(scaled(item.minimum), "hitbox minimum")} {_vector(scaled(item.maximum), "hitbox maximum")}')
+    if recipe.procedural_bones:
+        lines.append(f'$proceduralbones {_quote(vrd_name(recipe.model_path), "VRD path")}')
     for clip, path in sequences:
         lines.append(f'$bonemerge {_quote(f"vcabone_{clip}", "vertex animation bone")}')
         lines.append(f'$sequence {_quote(clip, "sequence name")} {_quote(path, "vertex animation path")} fps {fps}')

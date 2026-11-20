@@ -9,8 +9,8 @@ from uuid import uuid4
 import bpy
 
 from SourceIO.blender_bindings.source1.model_export.compiler import (
-    CompilationError, compile_direct, compile_with_source_tools,
-    direct_command, validate_source_tools_compiler)
+    CompilationError, builtin_studiomdl, compile_builtin, compile_direct, compile_with_source_tools, direct_command,
+    validate_source_tools_compiler)
 from SourceIO.blender_bindings.source1.model_export.dmx_axis import (
     orient_capture)
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import (
@@ -28,6 +28,7 @@ from SourceIO.blender_bindings.source1.model_export.geometry_rig import (
 from SourceIO.blender_bindings.source1.model_export.material_assets import (
     BinaryArtifact, ExternalTextureSourceRecipe, ImageSourceRecipe,
     MaterialRecipe, VTFRecipe, material_asset_path, texture_pixels)
+from SourceIO.blender_bindings.source1.model_export.procedural_bones import render_vrd
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     FlexControllerRecipe, GeometryRecipe, ModelRecipe, parse_bone_table,
     render_qc)
@@ -41,6 +42,7 @@ from .export_cache import (ExportCache, cache_path, geometry_fingerprint,
 from .nodes.material_nodes import (SourceIOExternalTextureNode,
                                    SourceIOImageSourceNode,
                                    SourceIOVTFOutputNode, VMT_NODE_TYPES)
+from .nodes.procedural_bone_nodes import armature_rest_bones
 from .nodes.prop_nodes import (SourceIOModelEntryNode,
                                SourceIOPropGeometryNode,
                                SourceIOPropModelNode, collect_model)
@@ -415,6 +417,15 @@ def _flex_sources(model: ModelRecipe,
     return tuple(result)
 
 
+def _model_armature(model: ModelRecipe, rigs, feature: str):
+    """The one armature of the model's $model/$body entries."""
+    armatures = tuple(dict.fromkeys(
+        rigs[item.geometry.key] for item in model.models if rigs[item.geometry.key] is not None))
+    if len(armatures) != 1:
+        raise GraphBuildError(f'{feature} needs the model entries to use exactly one armature')
+    return armatures[0]
+
+
 def _sfm_rig_script(model: ModelRecipe, rigs,
                     game_root: Path) -> tuple[Path, bytes]:
     """The SFM IK rig script of a model.
@@ -422,13 +433,7 @@ def _sfm_rig_script(model: ModelRecipe, rigs,
     It is validated against the armature of the model's $model/$body
     entries.
     """
-    armatures = tuple(dict.fromkeys(
-        rigs[item.geometry.key] for item in model.models
-        if rigs[item.geometry.key] is not None))
-    if len(armatures) != 1:
-        raise GraphBuildError('SFM IK rig needs the model entries to use '
-                              'exactly one armature')
-    armature = armatures[0]
+    armature = _model_armature(model, rigs, 'SFM IK rig')
     parents = {bone.name: bone.parent.name if bone.parent else None
                for bone in armature.data.bones}
     positions = {bone.name: tuple(armature.matrix_world @ bone.head_local)
@@ -439,6 +444,13 @@ def _sfm_rig_script(model: ModelRecipe, rigs,
     path = game_root.joinpath(*PurePosixPath(SCRIPT_DIRECTORY).parts,
                               f'{name}.py')
     return path, text.encode('utf-8')
+
+
+def _procedural_bones_vrd(model: ModelRecipe, rigs, qc_path: Path) -> tuple[Path, bytes]:
+    """The $proceduralbones VRD of a model, next to its QC."""
+    armature = _model_armature(model, rigs, 'Procedural bones')
+    text = render_vrd(model.procedural_bones, armature_rest_bones(armature), dict(model.bone_names), model.scale)
+    return qc_path.with_suffix('.vrd'), text.encode('utf-8')
 
 
 def _stub_textures(resolver, root_node):
@@ -625,6 +637,8 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
         assets = _artifacts(materials, game_root)
         if model.sfm_rig is not None:
             assets += (_sfm_rig_script(model, rigs, game_root),)
+        if model.procedural_bones:
+            assets += (_procedural_bones_vrd(model, rigs, qc_path),)
         source_files = set()
         for node in nodes:
             if isinstance(node, SourceIOExternalTextureNode):
@@ -916,9 +930,12 @@ def sync_vmt(material_node) -> tuple[Path, ...]:
 
 
 def compile_plan(plan: BuildPlan, cache: ExportCache | None = None) -> str:
+    # Validate the backend before writing anything
     if plan.compiler_backend == 'COMMAND':
         argv = direct_command(plan.qc_path, plan.game_root,
                               plan.compiler_command)
+    elif plan.compiler_backend == 'BUILTIN':
+        builtin_studiomdl()
     else:
         engine = _root(plan.bst_engine_root, 'BST engine root')
         state = validate_source_tools_compiler(plan.game_root, engine)
@@ -927,6 +944,8 @@ def compile_plan(plan: BuildPlan, cache: ExportCache | None = None) -> str:
     before = model_file.stat().st_mtime_ns if model_file.is_file() else None
     if plan.compiler_backend == 'COMMAND':
         output = compile_direct(plan.qc_path, argv)
+    elif plan.compiler_backend == 'BUILTIN':
+        output = compile_builtin(plan.qc_path, plan.game_root)
     else:
         output = compile_with_source_tools(plan.qc_path, plan.game_root,
                                            engine, state)
@@ -1008,11 +1027,11 @@ class _GraphAction(bpy.types.Operator):
                 text.clear()
                 text.write(plan.manifest())
                 for path, data in plan.assets:
-                    suffix = path.suffix.lower()
-                    if suffix not in ('.vmt', '.py'):
+                    kind = {'.vmt': 'VMT', '.py': 'SFM rig', '.vrd': 'VRD'}.get(path.suffix.lower())
+                    if kind is None:
                         continue
-                    relative = path.relative_to(plan.game_root).as_posix()
-                    kind = 'VMT' if suffix == '.vmt' else 'SFM rig'
+                    root = (plan.content_root if kind == 'VRD' else plan.game_root)
+                    relative = path.relative_to(root).as_posix()
                     asset_text = preview_text(
                         f'SourceIO {kind} preview - {output.name} '
                         f'- {relative}')
@@ -1264,6 +1283,7 @@ class NODE_PT_sourceio_export_graph(bpy.types.Panel):
                    SourceIO_OP_ExportModelMaterials,
                    SourceIO_OP_CompileModelGraph):
             layout.operator(op.bl_idname).output_node = output.name
+        layout.operator('sourceio.import_vrd', icon='IMPORT').output_node = output.name
 
 
 class NODE_PT_sourceio_flex_rules(bpy.types.Panel):

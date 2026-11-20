@@ -10,14 +10,16 @@ class SourceIO_NT_ModelTree(NodeTree):
         from .flex_graph import (
             migrate_flex_geometry, repair_flex_groups,
             sync_connected_flex_groups, sync_flex_tree)
+        from .nodes.prop_nodes import dedupe_inputs
         from .nodes.sfm_rig_nodes import migrate_rig_nodes
         repair_flex_groups(self)
         migrate_flex_geometry(self)
         migrate_rig_nodes(self)
         for node in self.nodes:
-            if (node.bl_idname == 'SourceIOModelEntryNode'
-                    and not node.inputs.get('Flex Rules')):
-                node.inputs.new('SourceIOFlexRulesSocket', 'Flex Rules')
+            if node.bl_idname == 'SourceIOModelEntryNode':
+                if not node.inputs.get('Flex Rules'):
+                    node.inputs.new('SourceIOFlexRulesSocket', 'Flex Rules')
+                dedupe_inputs(node)
             elif node.bl_idname == 'SourceIOPropModelNode':
                 if not node.inputs.get('Flex Rules'):
                     node.inputs.new('SourceIOFlexRulesSocket', 'Flex Rules',
@@ -26,6 +28,9 @@ class SourceIO_NT_ModelTree(NodeTree):
                     node.inputs.new('SourceIOBoneNamesSocket', 'Bone names')
                 if not node.inputs.get('SFM rig'):
                     node.inputs.new('SourceIOSfmRigSocket', 'SFM rig')
+                if not node.inputs.get('Procedural bones'):
+                    node.inputs.new('SourceIOProceduralBoneSocket', 'Procedural bones', use_multi_input=True)
+                dedupe_inputs(node)
         seen = set()
         invalid = []
         wrappers = []

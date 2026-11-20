@@ -10,6 +10,8 @@ _IMAGE_EXTENSIONS = frozenset({
     '.tif', '.tiff', '.vtf', '.webp',
 })
 _QC_EXTENSIONS = frozenset({'.qc', '.qci'})
+_VRD_EXTENSIONS = frozenset({'.vrd'})
+_EXTENSIONS = _IMAGE_EXTENSIONS | _QC_EXTENSIONS | _VRD_EXTENSIONS
 
 
 class SOURCEIO_OT_DropExportAsset(bpy.types.Operator):
@@ -47,11 +49,11 @@ class SOURCEIO_OT_DropExportAsset(bpy.types.Operator):
         elif self.filepath:
             paths = [Path(bpy.path.abspath(self.filepath))]
         else:
-            self.report({'ERROR'}, 'Drop an image, VTF, QC, or QCI file')
+            self.report({'ERROR'}, 'Drop an image, VTF, QC, QCI, or VRD file')
             return {'CANCELLED'}
         paths = list(dict.fromkeys(paths))
         for path in paths:
-            if (path.suffix.lower() not in _IMAGE_EXTENSIONS | _QC_EXTENSIONS
+            if (path.suffix.lower() not in _EXTENSIONS
                     or not path.is_file()):
                 self.report({'ERROR'},
                             f'Unsupported or missing SourceIO file: {path}')
@@ -73,6 +75,24 @@ class SOURCEIO_OT_DropExportAsset(bpy.types.Operator):
         for node in tree.nodes:
             node.select = False
         x, y = self.location
+        vrd_paths = [path for path in paths if path.suffix.lower() in _VRD_EXTENSIONS]
+        if vrd_paths:
+            from .nodes.procedural_bone_nodes import import_vrd, vrd_target_output
+            output = vrd_target_output(context)
+            if output is None:
+                self.report({'ERROR'}, 'Select the model output that gets the VRD helper bones')
+                return {'CANCELLED'}
+            for index, path in enumerate(vrd_paths):
+                try:
+                    created = import_vrd(
+                        output, path.read_text(encoding='utf-8', errors='replace'), (x, y - index * 600))
+                except (OSError, ValueError, RuntimeError) as exc:
+                    self.report({'ERROR'}, f'{path.name}: {exc}')
+                    return {'CANCELLED'}
+                for node in created:
+                    node.select = True
+                    tree.nodes.active = node
+            paths = [path for path in paths if path not in vrd_paths]
         for index, path in enumerate(paths):
             if path.suffix.lower() in _QC_EXTENSIONS:
                 node = tree.nodes.new('SourceIOPropRawQcNode')
@@ -91,7 +111,7 @@ class NODE_FH_SourceIOExportAssets(bpy.types.FileHandler):
     bl_idname = 'NODE_FH_SourceIOExportAssets'
     bl_label = 'SourceIO export graph file drop'
     bl_import_operator = SOURCEIO_OT_DropExportAsset.bl_idname
-    bl_file_extensions = ';'.join(sorted(_IMAGE_EXTENSIONS | _QC_EXTENSIONS))
+    bl_file_extensions = ';'.join(sorted(_EXTENSIONS))
 
     @classmethod
     def poll_drop(cls, context):

@@ -10,6 +10,8 @@ from .flex_graph import (
 from .model_tree_nodes import SourceIO_NT_ModelTree
 from .nodes.material_nodes import classes as material_classes
 from .nodes.prop_nodes import classes as prop_classes
+from .nodes.procedural_bone_nodes import (
+    classes as procedural_bone_classes, register_preview, sockets as procedural_bone_sockets, unregister_preview)
 from .nodes.sfm_rig_nodes import (
     classes as sfm_rig_classes, sockets as sfm_rig_sockets)
 from .nodes.textures import texture_ops
@@ -58,6 +60,9 @@ node_categories = [
         NodeItem("SourceIOPropIdleNode"),
         NodeItem("SourceIOPropRawQcNode"),
         NodeItem("SourceIOBoneRenameNode"),
+    ]),
+    SourceIONodeCategory('ProceduralBones', "Procedural bones", items=[
+        NodeItem("SourceIOHelperBoneNode"),
     ]),
     SourceIONodeCategory('SfmRig', "SFM rig", items=[
         NodeItem("SourceIOSfmIkRigNode"),
@@ -127,9 +132,12 @@ classes = (
     sockets.SourceIOTextureSocket,
     sockets.SourceIOTextureVtfSocket,
     sockets.SourceIOTextureChannelSocket,
-    *sfm_rig_sockets,  # before the model output node that uses them
+    # Before the model output node that uses them.
+    *sfm_rig_sockets,
+    *procedural_bone_sockets,
     *prop_classes,
     *sfm_rig_classes[len(sfm_rig_sockets):],
+    *procedural_bone_classes,
     *flex_classes,
     *material_classes,
     *texture_classes,
@@ -146,11 +154,13 @@ def register_nodes():
 
     nodeitems_utils.register_node_categories('SourceIO_Nodes', node_categories)
     register_flex_sync()
+    register_preview()
 
 
 def unregister_nodes():
     nodeitems_utils.unregister_node_categories('SourceIO_Nodes')
     unregister_flex_sync()
+    unregister_preview()
 
     from bpy.utils import unregister_class
     for cls in reversed(classes):

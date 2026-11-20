@@ -20,6 +20,7 @@ from SourceIO.blender_bindings.source1.model_export.geometry_rig import (
     resolve_geometry_rig)
 from SourceIO.blender_bindings.source1.model_export.material_assets import (
     MaterialRecipe)
+from SourceIO.blender_bindings.source1.model_export.procedural_bones import HelperBoneRecipe
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     BLANK, AttachmentRecipe, BodygroupRecipe, CollisionRecipe,
     FlexControllerRecipe, FlexRuleSetRecipe, GeometryRecipe, HitboxRecipe,
@@ -107,23 +108,33 @@ def _model_outputs(tree, node):
             and node in set(_upstream_nodes(output))]
 
 
+def _output_armature(output, resolver=None):
+    """Armature of the geometry exported by a model output."""
+    from ..build_graph import GraphResolver, _upstream_nodes
+    resolver = resolver or GraphResolver()
+    for geometry_node in _upstream_nodes(output):
+        if not isinstance(geometry_node, SourceIOPropGeometryNode):
+            continue
+        try:
+            geometry = resolver(geometry_node.outputs[0])
+            rig = (
+                resolve_geometry_rig(geometry.source, geometry.rig)
+                if isinstance(geometry, GeometryRecipe) else None)
+        except (ValueError, RuntimeError):
+            continue
+        if rig is not None:
+            return rig
+    return None
+
+
 def _connected_armature(tree, node):
     """Armature of the geometry exported by the model outputs of a node."""
-    from ..build_graph import GraphResolver, _upstream_nodes
+    from ..build_graph import GraphResolver
     resolver = GraphResolver()
     for output in _model_outputs(tree, node):
-        for geometry_node in _upstream_nodes(output):
-            if not isinstance(geometry_node, SourceIOPropGeometryNode):
-                continue
-            try:
-                geometry = resolver(geometry_node.outputs[0])
-                rig = (
-                    resolve_geometry_rig(geometry.source, geometry.rig)
-                    if isinstance(geometry, GeometryRecipe) else None)
-            except (ValueError, RuntimeError):
-                continue
-            if rig is not None:
-                return rig
+        rig = _output_armature(output, resolver)
+        if rig is not None:
+            return rig
     return None
 
 
@@ -356,6 +367,7 @@ class SourceIOModelEntryNode(_PropNode, Node):
         self.width = 200
         self.inputs.new("SourceIOObjectSocket", "Geometry")
         self.inputs.new("SourceIOFlexRulesSocket", "Flex Rules")
+        dedupe_inputs(self)
         self.outputs.new("SourceIOModelEntrySocket", "Model")
 
     def draw_buttons(self, context, layout):
@@ -813,6 +825,9 @@ class SourceIOPropModelNode(_PropNode, Node):
          "Invoke configured compiler command without a shell"),
         ("STUDIOMDL", "Blender Source Tools",
          "Use Blender Source Tools' Windows studiomdl.exe backend"),
+        ("BUILTIN", "Built-in studiomdl",
+         "Compile inside Blender with SourceIO's bundled studiomdl; needs no external tools or Wine (x86_64 Blender "
+         "only)"),
     ), default="COMMAND")
     compiler_command: bpy.props.StringProperty(
         name="Compiler command",
@@ -855,6 +870,8 @@ class SourceIOPropModelNode(_PropNode, Node):
         self.inputs.new("SourceIOPropIdleSocket", "Idle")
         self.inputs.new("SourceIOBoneNamesSocket", "Bone names")
         self.inputs.new("SourceIOSfmRigSocket", "SFM rig")
+        self.inputs.new("SourceIOProceduralBoneSocket", "Procedural bones", use_multi_input=True)
+        dedupe_inputs(self)
 
     def draw_buttons(self, context, layout):
         for prop in ("model_path", "model_scale", "mostlyopaque",
@@ -873,9 +890,10 @@ class SourceIOPropModelNode(_PropNode, Node):
         layout.prop(self, "dmx_up_axis")
         if not self.native_settings_confirmed:
             layout.prop(self, "native_settings_confirmed")
-        layout.prop(self, "compiler_command"
-                    if self.compiler_backend == "COMMAND"
-                    else "bst_engine_root")
+        if self.compiler_backend == "COMMAND":
+            layout.prop(self, "compiler_command")
+        elif self.compiler_backend == "STUDIOMDL":
+            layout.prop(self, "bst_engine_root")
         for operator in ("sourceio.preview_export_graph",
                          "sourceio.export_model_graph",
                          "sourceio.export_model_meshes",
@@ -885,6 +903,24 @@ class SourceIOPropModelNode(_PropNode, Node):
 
     def recipe(self, resolve=None):
         return collect_model(self, resolve)
+
+
+def dedupe_inputs(node):
+    """Keep the last input of each name, moving links of earlier copies.
+
+    Adding the first socket in ``init`` runs the tree update, whose migration then adds sockets that ``init`` creates
+    again later.
+    """
+    tree = node.id_data
+    kept = {}
+    for socket in reversed(node.inputs[:]):
+        target = kept.setdefault(socket.name, socket)
+        if target == socket:
+            continue
+        for link in sorted(socket.links,
+                           key=lambda item: item.multi_input_sort_id):
+            tree.links.new(link.from_socket, target)
+        node.inputs.remove(socket)
 
 
 def collect_model(output_node: SourceIOPropModelNode, resolve) -> ModelRecipe:
@@ -899,6 +935,9 @@ def collect_model(output_node: SourceIOPropModelNode, resolve) -> ModelRecipe:
                if output_node.inputs.get("Bone names") else None)
     sfm_rig = (_one(output_node, "SFM rig", resolve, IKRigRecipe)
                if output_node.inputs.get("SFM rig") else None)
+    procedural_bones = (
+        _many(output_node, "Procedural bones", resolve, HelperBoneRecipe)
+        if output_node.inputs.get("Procedural bones") else ())
     idle = _one(output_node, "Idle", resolve, IdleRecipe)
     if idle is None and output_node.auto_idle:
         idle = IdleRecipe()
@@ -922,7 +961,7 @@ def collect_model(output_node: SourceIOPropModelNode, resolve) -> ModelRecipe:
         hitboxes=_many(output_node, "Hitboxes", resolve, HitboxRecipe),
         idle=idle,
         raw_snippets=_many(output_node, "Raw QC", resolve, RawQcRecipe),
-        sfm_rig=sfm_rig,
+        sfm_rig=sfm_rig, procedural_bones=procedural_bones,
     )
     result.geometries()
     return result
