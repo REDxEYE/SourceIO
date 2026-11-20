@@ -15,7 +15,8 @@ from SourceIO.blender_bindings.ui.export_nodes.nodes import (procedural_bone_nod
 from SourceIO.blender_bindings.ui.export_nodes import register_nodes, unregister_nodes
 from SourceIO.blender_bindings.source1.model_export.bst_bridge import SourceToolsError
 from SourceIO.blender_bindings.ui.export_nodes.build_graph import (
-    GraphBuildError, GraphResolver, compile_plan, export_plan, model_cache, plan_model)
+    GraphBuildError, GraphResolver, compile_plan, export_plan, model_cache, plan_model, store_direct_issues,
+    write_compile_log)
 from SourceIO.blender_bindings.source1.model_export.compiler import CompilationError, direct_command
 from SourceIO.blender_bindings.source1.model_export.material_assets import texture_pixels
 from SourceIO.library.utils.pylib.vtf import ImageFormat, TextureFlags, VTFFile, load_vtf_texture
@@ -619,10 +620,120 @@ class ExportGraphTests(unittest.TestCase):
         with self.assertRaises(CompilationError):
             direct_command(qc, game, 'wine studiomdl -game {game} {missing}')
 
+    def _flex_rules(self):
+        """Face with smile and blink.L/R keys, teeth with an open key; a flex rules collector over them."""
+        if not hasattr(bpy.types.Object, 'flex_controllers'):  # registered by the add-on, not by register_nodes
+            from SourceIO.blender_bindings.operators.flex_operators import SourceIO_PG_FlexController
+            bpy.utils.register_class(SourceIO_PG_FlexController)
+            bpy.types.Object.flex_controllers = bpy.props.CollectionProperty(type=SourceIO_PG_FlexController)
+
+            def unregister():
+                del bpy.types.Object.flex_controllers
+                bpy.utils.unregister_class(SourceIO_PG_FlexController)
+            self.addCleanup(unregister)
+        objects = {}
+        for name, keys in (('face', ('smile', 'blink.L', 'blink.R')), ('teeth', ('open',))):
+            mesh = bpy.data.meshes.new(name)
+            mesh.from_pydata([(0, 0, 0), (1, 0, 0), (0, 1, 0)], [], [(0, 1, 2)])
+            obj = bpy.data.objects.new(name, mesh)
+            bpy.context.scene.collection.objects.link(obj)
+            self.addCleanup(lambda obj=obj, mesh=mesh: (bpy.data.objects.remove(obj), bpy.data.meshes.remove(mesh)))
+            obj.shape_key_add(name='Basis')
+            for key in keys:
+                obj.shape_key_add(name=key)
+            objects[name] = obj
+        nodes, links = self.tree.nodes, self.tree.links
+        collector = nodes.new('SourceIOFlexRulesNode')
+        smile = nodes.new('SourceIOFlexControllerNode')
+        smile.control_name = 'smile'
+        blink = nodes.new('SourceIOFlexControllerNode')
+        blink.control_name, blink.stereo = 'blink', True
+        for controller in (smile, blink):
+            links.new(controller.outputs['Controller'], collector.inputs['Controllers'])
+        smile_rule = nodes.new('SourceIOFlexShapeRuleNode')
+        smile_rule.obj, smile_rule.shape_name = objects['face'], 'smile'
+        links.new(smile.outputs['Value'], smile_rule.inputs['Value'])
+        blink_rule = nodes.new('SourceIOFlexStereoRuleNode')
+        blink_rule.obj, blink_rule.left_shape, blink_rule.right_shape = objects['face'], 'blink.L', 'blink.R'
+        links.new(blink.outputs['Value'], blink_rule.inputs['Value'])
+        half = nodes.new('SourceIOFlexConstantNode')
+        half.value = 0.5
+        product = nodes.new('SourceIOFlexMathNode')
+        product.operation = 'MULTIPLY'
+        links.new(smile.outputs['Value'], product.inputs['A'])
+        links.new(half.outputs['Value'], product.inputs['B'])
+        open_rule = nodes.new('SourceIOFlexShapeRuleNode')
+        open_rule.obj, open_rule.shape_name = objects['teeth'], 'open'
+        links.new(product.outputs['Value'], open_rule.inputs['Value'])
+        for rule in (smile_rule, blink_rule, open_rule):
+            links.new(rule.outputs['Rule'], collector.inputs['Rules'])
+        return collector, objects['face'], objects['teeth']
+
+    def test_flex_rule_drivers_drive_shape_keys_from_controller_sliders_and_turn_off_cleanly(self):
+        collector, face, teeth = self._flex_rules()
+        collector.use_drivers = True
+        self.assertEqual(collector.driver_error, '')
+        sliders = {slider.display_name: slider for slider in face.flex_controllers}
+        self.assertEqual(set(sliders), {'smile', 'blink'})
+        self.assertTrue(sliders['blink'].split)
+        self.assertEqual((sliders['blink'].L, sliders['blink'].R), ('left_blink', 'right_blink'))
+        self.assertEqual(len(teeth.flex_controllers), 0)
+
+        face.data['smile'] = 0.8
+        face.data['left_blink'] = 1.0
+        face.data.update_tag()
+        bpy.context.view_layer.update()
+        keys = face.data.shape_keys.key_blocks
+        self.assertAlmostEqual(keys['smile'].value, 0.8, places=5)
+        self.assertAlmostEqual(keys['blink.L'].value, 1.0, places=5)
+        self.assertAlmostEqual(keys['blink.R'].value, 0.0, places=5)
+        # Drivers on other meshes read the slider object's controllers
+        self.assertAlmostEqual(teeth.data.shape_keys.key_blocks['open'].value, 0.4, places=5)
+
+        collector.use_drivers = False
+        for obj in (face, teeth):
+            animation = obj.data.shape_keys.animation_data
+            self.assertEqual(len(animation.drivers) if animation else 0, 0)
+        self.assertEqual(len(face.flex_controllers), 0)
+        self.assertNotIn('smile', face.data)
+        self.assertNotIn('sourceio_flex_preview', face)
+
+    def test_flex_rule_drivers_refuse_missing_shape_keys_and_switch_off(self):
+        collector, face, _ = self._flex_rules()
+        face.shape_key_remove(face.data.shape_keys.key_blocks['smile'])
+        collector.use_drivers = True
+        self.assertFalse(collector.use_drivers)
+        self.assertIn("no shape key 'smile'", collector.driver_error)
+        self.assertEqual(len(face.flex_controllers), 0)
+
+    def test_flex_rule_drivers_can_put_the_sliders_on_the_skeleton(self):
+        collector, face, teeth = self._flex_rules()
+        skeleton_data = bpy.data.armatures.new('skeleton')
+        skeleton = bpy.data.objects.new('skeleton', skeleton_data)
+        bpy.context.scene.collection.objects.link(skeleton)
+        self.addCleanup(lambda: (bpy.data.objects.remove(skeleton), bpy.data.armatures.remove(skeleton_data)))
+        collector.driver_object = skeleton
+        collector.use_drivers = True
+        self.assertEqual(collector.driver_error, '')
+        self.assertEqual({slider.display_name for slider in skeleton.flex_controllers}, {'smile', 'blink'})
+        self.assertEqual(len(face.flex_controllers), 0)
+        skeleton.data['smile'] = 1.0
+        skeleton.data.update_tag()
+        bpy.context.view_layer.update()
+        self.assertAlmostEqual(face.data.shape_keys.key_blocks['smile'].value, 1.0, places=5)
+        self.assertAlmostEqual(teeth.data.shape_keys.key_blocks['open'].value, 0.5, places=5)
+        collector.use_drivers = False
+        self.assertNotIn('smile', skeleton.data)
+        self.assertEqual(len(skeleton.flex_controllers), 0)
+
     def test_builtin_compiler_writes_the_model_or_refuses_before_exporting(self):
         self.model_entry(self.mesh_node('reference'))
         self.output.compiler_backend = 'BUILTIN'
+        # The hidden DMX fields don't apply: fixed versions, weights left for studiomdl to reduce
+        self.output.dmx_encoding_version, self.output.dmx_model_version = '2', '1'
+        self.output.dmx_trim_weights = True
         plan = plan_model(self.output)
+        self.assertEqual((plan.encoding_version, plan.model_version, plan.trim_weights), (5, 18, False))
         try:
             from SourceIO.library.utils.pylib import studiomdl  # noqa: F401
         except ImportError:  # builds without pylib.studiomdl (arm64 macOS)
@@ -630,7 +741,10 @@ class ExportGraphTests(unittest.TestCase):
                 compile_plan(plan)
             self.assertFalse(plan.qc_path.exists())
             return
-        compile_plan(plan)
+        log = write_compile_log(plan.model.model_path, compile_plan(plan))
+        self.addCleanup(lambda: bpy.data.texts.remove(log))
+        self.assertEqual(log.name, f'.{plan.model_file.stem}.compile.log')
+        self.assertIn(plan.model_file.stem, log.as_string())
         self.assertEqual(plan.model_file.read_bytes()[:4], b'IDST')
         for suffix in ('.vvd', '.dx90.vtx'):
             self.assertTrue(plan.model_file.with_name(plan.model_file.stem + suffix).is_file(), suffix)
@@ -2468,6 +2582,259 @@ class ExportGraphTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "'thumb' is not in the armature"):
             procedural_bone_nodes.import_vrd(
                 self.output, '<helper> thumb arm arm hand.R\n<trigger> 90 0 0 0 0 0 0 0 0 0\n')
+
+    def _compiled_summary(self, plan):
+        """Structure of a compiled model that the QC route and direct export must agree on."""
+        import struct
+        from SourceIO.library.models.mdl.v49.mdl_file import MdlV49
+        from SourceIO.library.utils import MemoryBuffer
+        data = plan.model_file.read_bytes()
+        mdl = MdlV49.from_buffer(MemoryBuffer(data))
+        names = [bone.name for bone in mdl.bones]
+        rules = [bone.procedural_rule_type for bone in mdl.bones if bone.procedural_rule_type]
+        return {
+            'bones': [(bone.name, names[bone.parent_id] if bone.parent_id >= 0 else None,
+                       type(bone.procedural_rule_type).__name__) for bone in mdl.bones],
+            'positions': np.array([tuple(bone.position) for bone in mdl.bones]),
+            'controls': [names[rule.control_bone_index] for rule in rules],
+            'triggers': np.array([(trigger.inverse_tolerance_angle, *trigger.trigger, *trigger.pos, *trigger.quat)
+                                  for rule in rules for trigger in rule.triggers]),
+            # VTX header numLODs, PHY header solidCount (None without collision)
+            'lods': struct.unpack_from('<i', plan.model_file.with_suffix('.dx90.vtx').read_bytes(), 20)[0],
+            'solids': (struct.unpack_from('<i', plan.model_file.with_suffix('.phy').read_bytes(), 8)[0]
+                       if plan.model_file.with_suffix('.phy').is_file() else None),
+            'parts': [(part.name, [(model.vertex_count, len(model.meshes)) for model in part.models])
+                      for part in mdl.body_parts],
+            'materials': [material.name for material in mdl.materials],
+            'skins': [[material.name for material in family] for family in mdl.skin_groups],
+            'paths': mdl.materials_paths,
+            'attachments': [(item.name, names[item.parent_bone]) for item in mdl.attachments],
+            'attachment matrices': np.array([tuple(item.matrix) for item in mdl.attachments]),
+            # mstudiohitboxset_t: name, box count, box offset
+            'hitboxes': [struct.unpack_from('<i', data, mdl.header.hitbox_set_offset + 12 * index + 4)[0]
+                         for index in range(mdl.header.hitbox_set_count)],
+            'sequences': [sequence.name for sequence in mdl.sequences],
+            'files': sorted(path.name for path in plan.model_file.parent.glob(f'{plan.model_file.stem}.*')),
+            'flexes': mdl.flex_names,
+            'flex controllers': [(item.name, item.min, item.max) for item in mdl.flex_controllers],
+            'flex rules': [(mdl.flex_names[rule.flex_index], [(op.op.name, round(float(op.value), 4))
+                                                              for op in rule.flex_ops]) for rule in mdl.flex_rules],
+            # flex, partner, vertex animation type and vertex count of every mesh
+            'mesh flexes': [[(mdl.flex_names[flex.flex_desc_index],
+                              None if flex.partner_index is None else mdl.flex_names[flex.partner_index],
+                              flex.vertex_anim_type.name, len(flex.vertex_animations)) for flex in mesh.flexes]
+                            for part in mdl.body_parts for model in part.models for mesh in model.meshes],
+        }
+
+    def _flex_object(self, name, keys):
+        """A 3x3 grid object whose shape keys move vertices: keys maps key -> {vertex: z offset}."""
+        mesh = bpy.data.meshes.new(name)
+        mesh.from_pydata([(x, y, 0) for y in range(3) for x in range(-1, 2)], [],
+                         [(0, 1, 4, 3), (1, 2, 5, 4), (3, 4, 7, 6), (4, 5, 8, 7)])
+        obj = bpy.data.objects.new(name, mesh)
+        bpy.context.scene.collection.objects.link(obj)
+        self.meshes.append(mesh.name)
+        self.objects.append(obj.name)
+        obj.shape_key_add(name='Basis')
+        for key, offsets in keys.items():
+            block = obj.shape_key_add(name=key)
+            for vertex, offset in offsets.items():
+                block.data[vertex].co.z += offset
+        node = self.tree.nodes.new('SourceIOPropGeometryNode')
+        node.basename = name
+        node.obj = obj
+        return node
+
+    def _compare_routes(self):
+        """Compile through the QC route (DMX, built-in studiomdl) and directly; return both summaries."""
+        try:
+            from SourceIO.library.utils.pylib import studiomdl  # noqa: F401
+        except ImportError:
+            self.skipTest('this build has no built-in studiomdl')
+        self.output.compiler_backend, self.output.geometry_format = 'BUILTIN', 'DMX'
+        reference = plan_model(self.output)
+        compile_plan(reference)
+        expected = self._compiled_summary(reference)
+        self.output.content_root = str(self.root / 'direct content')
+        self.output.game_root = str(self.root / 'direct game')
+        self.output.compiler_backend = 'DIRECT'
+        plan = plan_model(self.output)
+        self.assertEqual(plan.direct_issues, ())
+        compile_plan(plan)
+        actual = self._compiled_summary(plan)
+        # DMX material names count as relative, so the DMX route stores an empty $cdmaterials path (and skips the
+        # default one); direct export bakes materials like the SMD route, compared in the SMD parity test
+        del actual['paths'], expected['paths']
+        for key in ('positions', 'attachment matrices', 'triggers'):
+            np.testing.assert_allclose(actual.pop(key), expected.pop(key), atol=1e-3, err_msg=key)
+        self.maxDiff = None
+        self.assertEqual(actual, expected)
+        return expected
+
+    def test_direct_flexes_from_node_controls_match_the_dmx_route(self):
+        face = self._flex_object('flex_face', {'smile': {0: .2, 1: .1, 2: .2}, 'blink.L': {6: .1}, 'blink.R': {8: .1},
+                                              'smile_blink.L': {6: .05}})
+        entry = self.model_entry(face, 'face')
+        for name, raw, second, stereo, wrinkle in (('smile', 'smile', '', True, 1.5),
+                                                   ('blink', 'blink.L', 'blink.R', False, 0.0)):
+            control = entry.flex_controllers.add()
+            control.name, control.raw_name, control.second_raw_name = name, raw, second
+            control.stereo, control.wrinkle_scale = stereo, wrinkle
+        self.model_entry(self._flex_object('flex_teeth', {'open': {4: .3}}), 'teeth')  # automatic controls
+        summary = self._compare_routes()
+        self.assertIn(('right_smile', 0.0, 1.0), summary['flex controllers'])
+        self.assertIn(('smileL', 'smileR', 'WRINKLE', 6), summary['mesh flexes'][1])
+
+    def test_direct_flexes_from_graph_rules_match_the_dmx_route(self):
+        collector, face, teeth = self._flex_rules()
+        for obj, moves in ((face, {'smile': 0, 'blink.L': 1, 'blink.R': 2}), (teeth, {'open': 1})):
+            for key, vertex in moves.items():
+                obj.data.shape_keys.key_blocks[key].data[vertex].co.z += .25
+        for name, obj in (('face', face), ('teeth', teeth)):
+            node = self.tree.nodes.new('SourceIOPropGeometryNode')
+            node.basename, node.obj = f'rules_{name}', obj
+            self.model_entry(node, name)
+        self.tree.links.new(collector.outputs['Flex Rules'], self.output.inputs['Flex Rules'])
+        summary = self._compare_routes()
+        self.assertIn('open', summary['flexes'])
+        self.assertTrue(summary['flex rules'])
+
+    def test_direct_flexes_move_separate_vertices_at_one_position_apart(self):
+        # Closed lips: the upper and lower lip are separate vertices at the same positions; opening moves them apart
+        mesh = bpy.data.meshes.new('lips')
+        mesh.from_pydata([(-1, 0, .1), (0, 0, 0), (1, 0, .1), (-1, 0, -.1), (0, 0, 0), (1, 0, -.1)], [],
+                         [(0, 1, 2), (3, 5, 4)])
+        mesh.uv_layers.new()
+        obj = bpy.data.objects.new('lips', mesh)
+        bpy.context.scene.collection.objects.link(obj)
+        self.meshes.append(mesh.name)
+        self.objects.append(obj.name)
+        obj.shape_key_add(name='Basis')
+        opened = obj.shape_key_add(name='open')
+        opened.data[1].co.z += .2
+        opened.data[4].co.z -= .2
+        node = self.tree.nodes.new('SourceIOPropGeometryNode')
+        node.basename, node.obj = 'lips', obj
+        self.model_entry(node, 'lips')
+        summary = self._compare_routes()
+        self.assertEqual(summary['mesh flexes'][0][0][0], 'open')
+
+    def test_direct_flexes_from_advanced_text_match_the_dmx_route(self):
+        face = self._flex_object('advanced_face', {'smile': {0: .2, 4: .1}})
+        entry = self.model_entry(face, 'face')
+        text = bpy.data.texts.new('direct advanced flex')
+        self.texts.append(text)
+        text.from_string(advanced_flex_text('smile', 0.6))
+        entry.flex_controller_text = text
+        summary = self._compare_routes()
+        self.assertIn(('smile', 0.0, 1.0), summary['flex controllers'])
+
+    def test_direct_export_compiles_what_the_qc_route_compiles_without_writing_qc_or_meshes(self):
+        try:
+            from SourceIO.library.utils.pylib import studiomdl  # noqa: F401
+        except ImportError:
+            self.skipTest('this build has no built-in studiomdl')
+        rig, helper = self._helper_rig()
+        procedural_bone_nodes.capture_trigger(helper, helper.triggers.add(), rig)
+        table = bpy.data.texts.new('direct_renames')
+        self.texts.append(table)
+        table.write('hand.R = hand_R\n')
+        rename = self.tree.nodes.new('SourceIOBoneRenameNode')
+        rename.table = table
+        self.tree.links.new(rename.outputs['Bone names'], self.output.inputs['Bone names'])
+        skin, cloth = bpy.data.materials.new('direct_skin'), bpy.data.materials.new('direct_cloth')
+        self.materials.extend((skin, cloth))
+        bpy.data.objects['helper_body_object'].data.materials.append(skin)
+        for material in (skin, cloth):
+            vmt = self.material_node(material, material.name)
+            self.tree.links.new(vmt.outputs[0], self.output.inputs['Materials'])
+            family = self.tree.nodes.new('SourceIOPropSkinFamilyNode')
+            self.tree.links.new(vmt.outputs[0], family.inputs['Materials'])
+            self.tree.links.new(family.outputs[0], self.output.inputs['Skin families'])
+        rigged = {}
+        for name, material in (('helper_sleeve', cloth), ('helper_low', skin)):
+            rigged[name] = node = self.mesh_node(name, material)
+            node.rig = rig
+            for index, bone in enumerate(('arm', 'hand.R', 'twist')):
+                node.obj.vertex_groups.new(name=bone).add([index], 1.0, 'REPLACE')
+        bodygroup = self.tree.nodes.new('SourceIOPropBodygroupNode')
+        bodygroup.bodygroup_name = 'sleeves'
+        self.tree.links.new(self.tree.nodes.new('SourceIOPropBlankNode').outputs[0], bodygroup.inputs['Choices'])
+        self.tree.links.new(rigged['helper_sleeve'].outputs[0], bodygroup.inputs['Choices'])
+        self.tree.links.new(bodygroup.outputs[0], self.output.inputs['Bodygroups'])
+        body = next(node for node in self.tree.nodes if getattr(node, 'basename', '') == 'helper_body')
+        lod = self.tree.nodes.new('SourceIOPropLodNode')
+        lod.distance = 25
+        self.tree.links.new(body.outputs[0], lod.inputs['Original mesh'])
+        self.tree.links.new(rigged['helper_low'].outputs[0], lod.inputs['Replacement mesh'])
+        self.tree.links.new(lod.outputs[0], self.output.inputs['LODs'])
+        collision = self.tree.nodes.new('SourceIOPropCollisionNode')
+        collision.mass, collision.concave = 5, True
+        hull = self.mesh_node('helper_hull')
+        hull.obj.data.clear_geometry()
+        hull.obj.data.from_pydata([(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)], [],
+                                  [(0, 2, 1), (0, 1, 3), (1, 2, 3), (2, 0, 3)])
+        self.tree.links.new(hull.outputs[0], collision.inputs[0])
+        self.tree.links.new(collision.outputs[0], self.output.inputs['Collision'])
+        attachment = self.tree.nodes.new('SourceIOPropAttachmentNode')
+        attachment.attachment_name, attachment.bone = 'grip', 'hand.R'
+        attachment.position, attachment.rotation = (0.1, 0.2, 0.3), (radians(90), 0, 0)
+        self.tree.links.new(attachment.outputs['Attachment'], self.output.inputs['Attachments'])
+        hitbox = self.tree.nodes.new('SourceIOPropHitboxNode')
+        hitbox.group, hitbox.bone, hitbox.minimum, hitbox.maximum = 1, 'arm', (-1, -1, -1), (1, 1, 1)
+        self.tree.links.new(hitbox.outputs[0], self.output.inputs['Hitboxes'])
+        self.output.dmx_up_axis = 'Y'
+
+        self.output.compiler_backend, self.output.geometry_format = 'BUILTIN', 'SMD'
+        reference = plan_model(self.output)
+        compile_plan(reference)
+        expected = self._compiled_summary(reference)
+        self.assertIn(('twist', 'arm', 'QuatInterpRule'), expected['bones'])
+        self.assertEqual((expected['lods'], expected['solids']), (2, 1))
+
+        self.output.content_root = str(self.root / 'direct content')
+        self.output.game_root = str(self.root / 'direct game')
+        self.output.compiler_backend = 'DIRECT'
+        plan = plan_model(self.output)
+        self.assertEqual(plan.direct_issues, ())
+        self.assertIn('Direct export: built in memory', plan.manifest())
+        self.assertNotIn('Geometry: ', plan.manifest())
+        log = compile_plan(plan)
+        self.assertIn('writing', log)
+        actual = self._compiled_summary(plan)
+        self.assertFalse(plan.qc_path.exists())
+        self.assertFalse(any(path.exists() for _, path in plan.geometry))
+        self.assertTrue(all(path.is_file() for path, _ in plan.assets))  # VMTs and the VRD as on the QC route
+        for key in ('positions', 'attachment matrices', 'triggers'):
+            np.testing.assert_allclose(actual.pop(key), expected.pop(key), atol=1e-3, err_msg=key)
+        self.maxDiff = None
+        self.assertEqual(actual, expected)
+
+    def test_direct_export_refuses_unsupported_features_before_writing(self):
+        self.model_entry(self.mesh_node('reference'))
+        raw = self.tree.nodes.new('SourceIOPropRawQcNode')
+        raw.snippet = '$surfaceprop "metal"'
+        self.tree.links.new(raw.outputs[0], self.output.inputs['Raw QC'])
+        face = self.mesh_node('face')
+        face.obj.shape_key_add(name='Basis')
+        face.obj.shape_key_add(name='smile')
+        face.vertex_animation_ranges = 'pulse 1 3 sequence'
+        self.model_entry(face, 'face')
+        self.output.compiler_backend = 'DIRECT'
+        plan = plan_model(self.output)
+        self.assertEqual([issue.severity for issue in plan.direct_issues], ['ERROR'] * 2)
+        messages = '\n'.join(issue.message for issue in plan.direct_issues)
+        for expected in ("Raw QC '$surfaceprop \"metal\"'", "Vertex animation 'pulse' of 'face'"):
+            self.assertIn(expected, messages)
+            self.assertIn(expected, plan.manifest())
+        with self.assertRaises(CompilationError) as caught:
+            compile_plan(plan)
+        self.assertIn("Direct export can't build this model", str(caught.exception))
+        self.assertIn("Raw QC '$surfaceprop \"metal\"'", caught.exception.log)
+        self.assertFalse((self.root / 'game').exists())
+        self.assertFalse((self.root / 'content').exists())
+        store_direct_issues(self.output, plan.direct_issues)
+        self.assertEqual(self.output.direct_issues.splitlines()[0].split('\t')[0], 'ERROR')
 
 
 if __name__ == '__main__':

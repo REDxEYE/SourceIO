@@ -848,8 +848,10 @@ class Geometry:
     The source data of a mesh (what an SMD file holds), built in memory: vertices, materials, triangles, shapes. From Mesh.geometry / Mesh.append_geometry / Lod.replace_mesh. Settings are properties reading back the value last assigned (None: studiomdl's default).
     """
     flip_triangles: bool | None
+    indexed_corners: bool | None
     relative_materials: bool | None
     scale: float | None
+    source_name: str | None
 
     @property
     def material_count(self) -> int: ...
@@ -1225,7 +1227,7 @@ class Mesh:
 
     def add_combination_control(self, name: str, raw_controls: StrSequence, stereo: bool = False) -> CombinationControl:
         """
-        DMX combination operator: a control (flex controller `name`) driven by the raw controls (names) the geometry's shapes are named after (a shape `a_b_c` combines the raw controls a, b, c). stereo makes right_<name> / left_<name> controllers and L/R flexes. Returns the CombinationControl.
+        DMX combination operator: a control (flex controller `name`) driven by the raw controls (names) the geometry's shapes are named after (a shape `a_b_c` combines the raw controls a, b, c). stereo makes right_<name> / left_<name> controllers and L/R flexes. Without raw controls the control only adds its controller for combination flex rules (the compile refuses it on a mesh without rules). Returns the CombinationControl.
         """
         ...
 
@@ -1375,6 +1377,7 @@ class Model:
     opaque: bool | None
     origin: tuple[float, float, float] | None
     origin_angle: float | None
+    perf: bool | None
     preserve_triangle_order: bool | None
     qc_path: str | None
     realign_bones: bool | None

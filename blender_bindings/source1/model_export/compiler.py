@@ -12,6 +12,7 @@ from .bst_bridge import SourceToolsError, _source_tools
 
 
 class CompilationError(RuntimeError):
+    log: str
     pass
 
 
@@ -69,21 +70,36 @@ def builtin_studiomdl():
     return studiomdl
 
 
-def compile_builtin(qc_path: Path, game_root: Path) -> str:
-    """Compile in process with pylib.studiomdl and write the outputs under game_root/models.
+def compile_builtin(qc_path: Path, game_root: Path, fit_weight_poses: int = 0) -> str:
+    """Compile in process with pylib.studiomdl and write the outputs under game_root/models; returns the full log.
 
-    gameinfo.txt is optional: without it materials and $includemodel files are not looked up in a game.
+    gameinfo.txt is optional: without it materials and $includemodel files are not looked up in a game. A failed
+    compile raises CompilationError with the warnings and errors; its ``log`` attribute holds the full log.
+    ``fit_weight_poses``: -fitweights over that many sample poses (0: off).
     """
     studiomdl = builtin_studiomdl()
+    arguments = ('-fitweights', str(fit_weight_poses)) if fit_weight_poses else ()
+    return _run_studiomdl(studiomdl, lambda game_dir: studiomdl.compile_qc(qc_path, game_dir=game_dir,
+                                                                           arguments=arguments), game_root)
+
+
+def compile_model(model, game_root: Path) -> str:
+    """Compile a pylib.studiomdl Model built in memory (direct export) like ``compile_builtin``."""
+    return _run_studiomdl(builtin_studiomdl(), model.compile, game_root)
+
+
+def _run_studiomdl(studiomdl, compile_in, game_root: Path) -> str:
     game_dir = game_root if (game_root / 'gameinfo.txt').is_file() else None
     try:
-        result = studiomdl.compile_qc(qc_path, game_dir=game_dir)
+        result = compile_in(game_dir)
         result.save(game_root)
     except studiomdl.StudioMdlError as exc:
         location = (f' ({exc.file}:{exc.line})' if isinstance(exc, studiomdl.QcError) and exc.file else '')
         detail = _message_text(exc.messages, studiomdl.Severity.WARNING)
-        raise CompilationError(f'studiomdl: {exc}{location}' + (f'\n{detail}' if detail else '')) from exc
-    return _message_text(result.messages, studiomdl.Severity.WARNING)
+        error = CompilationError(f'studiomdl: {exc}{location}' + (f'\n{detail}' if detail else ''))
+        error.log = f'{_message_text(exc.messages, studiomdl.Severity.MESSAGE)}\nstudiomdl: {exc}{location}'
+        raise error from exc
+    return _message_text(result.messages, studiomdl.Severity.MESSAGE)
 
 
 def _message_text(messages, minimum) -> str:

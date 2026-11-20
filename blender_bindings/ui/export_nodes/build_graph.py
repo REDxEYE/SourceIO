@@ -9,8 +9,10 @@ from uuid import uuid4
 import bpy
 
 from SourceIO.blender_bindings.source1.model_export.compiler import (
-    CompilationError, builtin_studiomdl, compile_builtin, compile_direct, compile_with_source_tools, direct_command,
-    validate_source_tools_compiler)
+    CompilationError, builtin_studiomdl, compile_builtin, compile_direct, compile_model, compile_with_source_tools,
+    direct_command, validate_source_tools_compiler)
+from SourceIO.blender_bindings.source1.model_export.direct_build import (
+    AdvancedFlex, Issue, build_model, direct_support, parse_advanced_flex)
 from SourceIO.blender_bindings.source1.model_export.dmx_axis import (
     orient_capture)
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import (
@@ -28,7 +30,7 @@ from SourceIO.blender_bindings.source1.model_export.geometry_rig import (
 from SourceIO.blender_bindings.source1.model_export.material_assets import (
     BinaryArtifact, ExternalTextureSourceRecipe, ImageSourceRecipe,
     MaterialRecipe, VTFRecipe, material_asset_path, texture_pixels)
-from SourceIO.blender_bindings.source1.model_export.procedural_bones import render_vrd
+from SourceIO.blender_bindings.source1.model_export.procedural_bones import helper_rows, render_vrd
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     FlexControllerRecipe, GeometryRecipe, ModelRecipe, parse_bone_table,
     render_qc)
@@ -141,31 +143,45 @@ class BuildPlan:
     cached_assets: frozenset[Path] = frozenset()
     texture_keys: tuple[tuple[Path, str], ...] = ()
     trim_weights: bool = True
+    # $cdmaterials paths (the QC route writes them into qc_text)
+    material_dirs: tuple[str, ...] = ()
+    # What the direct backend can't build (only computed for it)
+    direct_issues: tuple[Issue, ...] = ()
+    # -fitweights sample poses of the built-in studiomdl (0: off)
+    fit_weight_poses: int = 0
 
     @property
     def model_file(self) -> Path:
         return self.game_root / self.model.model_path
 
     def manifest(self) -> str:
-        lines = [f'QC: {self.qc_path}', f'Compiled model: {self.model_file}',
-                 f'Geometry format: {self.geometry_format}']
+        direct = self.compiler_backend == 'DIRECT'
+        if direct:
+            lines = [f'Compiled model: {self.model_file}',
+                     'Direct export: built in memory, no QC or mesh files are written '
+                     f'(the QC below is the QC route equivalent); up axis: {self.up_axis}']
+            lines.extend(f'{issue.severity.capitalize()}: {issue.message}' for issue in self.direct_issues)
+        else:
+            lines = [f'QC: {self.qc_path}', f'Compiled model: {self.model_file}',
+                     f'Geometry format: {self.geometry_format}']
         if self.model.scale != 1.0:
             lines.append(f'Model scale: {self.model.scale:g}')
         lines.extend(f'Bone rename: {source} -> {target}'
                      for source, target in self.model.bone_names
                      if source != target)
-        if self.geometry_format == 'DMX':
-            lines.append(f'DMX encoding/model: {self.encoding_version}/'
-                         f'{self.model_version}; up axis: {self.up_axis}')
-        else:
-            lines.append(f'SMD up axis: {self.up_axis}')
-        for geometry, path in self.geometry:
-            lines.append(f'Geometry: {path}')
-            clip_directory = path.with_suffix('')
-            lines.extend(f'Vertex animation: '
-                         f'{clip_directory / f"vcaanim_{clip.name}.dmx"}'
-                         for clip in geometry.vertex_animations
-                         if clip.export_sequence)
+        if not direct:
+            if self.geometry_format == 'DMX':
+                lines.append(f'DMX encoding/model: {self.encoding_version}/'
+                             f'{self.model_version}; up axis: {self.up_axis}')
+            else:
+                lines.append(f'SMD up axis: {self.up_axis}')
+            for geometry, path in self.geometry:
+                lines.append(f'Geometry: {path}')
+                clip_directory = path.with_suffix('')
+                lines.extend(f'Vertex animation: '
+                             f'{clip_directory / f"vcaanim_{clip.name}.dmx"}'
+                             for clip in geometry.vertex_animations
+                             if clip.export_sequence)
         lines.extend(f'Asset: {path}' for path, _ in self.assets)
         for item in self.flex_sources:
             lines.append(f'Flex controllers: {item.label} -> {item.key}')
@@ -453,6 +469,29 @@ def _procedural_bones_vrd(model: ModelRecipe, rigs, qc_path: Path) -> tuple[Path
     return qc_path.with_suffix('.vrd'), text.encode('utf-8')
 
 
+def _advanced_flex(model: ModelRecipe) -> tuple[dict[str, AdvancedFlex], dict[str, str]]:
+    """Parsed advanced flex Texts by geometry key, and why the others can't be used (by Text name)."""
+    parsed, errors = {}, {}
+    for entry in model.models + model.flex_entries:
+        name = entry.flex_controller_source
+        if name is None or entry.directive != 'MODEL':
+            continue
+        text = bpy.data.texts.get(name)
+        if text is None:
+            errors[name] = 'the Text no longer exists'
+            continue
+        try:
+            parsed[entry.geometry.key] = parse_advanced_flex(text.as_string())
+        except ValueError as exc:
+            errors[name] = str(exc)
+    return parsed, errors
+
+
+def _direct_issues(model: ModelRecipe) -> tuple[Issue, ...]:
+    """``direct_support`` of a model, with its advanced flex Texts checked."""
+    return direct_support(model, advanced_errors=_advanced_flex(model)[1])
+
+
 def _stub_textures(resolver, root_node):
     """Resolve VTF Output nodes to path-only recipes.
 
@@ -614,14 +653,23 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
                 'materials'))
             if directory != '.' and directory not in explicit:
                 explicit.append(directory)
-        extension = output.geometry_format.lower()
+        # Direct export writes no mesh files; its plan follows the DMX route (the QC route equivalent of the preview,
+        # flex and vertex animation checks)
+        direct = output.compiler_backend == 'DIRECT'
+        geometry_format = 'DMX' if direct else output.geometry_format
+        extension = geometry_format.lower()
         geometry = tuple(
             (item, qc_path.parent.joinpath(
                 *PurePosixPath(f'{item.key}.{extension}').parts))
             for item in geometries)
         paths = {item.key: path.relative_to(qc_path.parent).as_posix()
                  for item, path in geometry}
-        if output.geometry_format == 'DMX':
+        trim_weights = output.dmx_trim_weights
+        if geometry_format == 'DMX' and output.compiler_backend in {'BUILTIN', 'DIRECT'}:
+            # The built-in studiomdl reads every DMX version and reduces the weights to 3 itself (or fits them)
+            encoding_version, model_version = BUILTIN_DMX_VERSIONS
+            trim_weights = False
+        elif geometry_format == 'DMX':
             encoding_version = int(output.dmx_encoding_version)
             model_version = int(output.dmx_model_version)
             _validate_versions(encoding_version, model_version)
@@ -657,16 +705,18 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
                 raise GraphBuildError(f'VTF output would overwrite source '
                                       f'image {destination}; choose a '
                                       'different VTF path')
-        flex_sources = _flex_sources(model, output.geometry_format)
+        flex_sources = _flex_sources(model, geometry_format)
         plan = BuildPlan(model, content_root, game_root, qc_path,
-                         output.geometry_format, encoding_version,
+                         geometry_format, encoding_version,
                          model_version, output.dmx_up_axis,
                          output.compiler_backend, output.compiler_command,
                          output.bst_engine_root, geometry, assets, qc_text,
                          tuple(material_names.items()), flex_sources,
                          frozenset(cached_assets),
                          tuple(texture_keys.items()),
-                         output.dmx_trim_weights)
+                         trim_weights, tuple(explicit),
+                         _direct_issues(model) if direct else (),
+                         output.fit_weight_poses if output.compiler_backend in {'BUILTIN', 'DIRECT'} else 0)
         if check_shared:
             own_assets = dict(plan.assets)
             for sibling in output.id_data.nodes:
@@ -723,6 +773,19 @@ def _merged_entry(entry, mesh_name):
         rules[rule.shape_name] = merged
     return replace(entry, flex_rule_set=replace(
         entry.flex_rule_set, rules=tuple(rules.values())))
+
+
+def compile_log_name(model_path: str) -> str:
+    """Blender text holding the last compile log of a model; the leading dot hides it from text lists."""
+    return f'.{PurePosixPath(model_path).stem}.compile.log'
+
+
+def write_compile_log(model_path: str, text: str) -> bpy.types.Text:
+    """Replace the model's compile log Text (saved in the .blend) with text."""
+    log = preview_text(compile_log_name(model_path))
+    log.clear()
+    log.write(text or '(no compiler output)')
+    return log
 
 
 def preview_text(name: str) -> bpy.types.Text:
@@ -873,6 +936,53 @@ def export_geometry(plan: BuildPlan, cache: ExportCache | None = None):
             cache.record(path, key)
 
 
+def build_direct(plan: BuildPlan):
+    """The pylib.studiomdl Model of a plan (direct export): meshes and flexes are captured like the DMX route's,
+    nothing is written."""
+    studiomdl = builtin_studiomdl()
+    model = plan.model
+    advanced, errors = _advanced_flex(model)
+    if errors:
+        raise GraphBuildError('Direct export: ' + '; '.join(f'advanced flex Text {name!r}: {error}'
+                                                            for name, error in errors.items()))
+    entries = {entry.geometry.key: entry for entry in model.models + model.flex_entries
+               if entry.directive == 'MODEL'}
+    mesh_keys = {entry.geometry.key for entry in model.models}
+    mesh_keys.update(item.key for group in model.bodygroups for item in group.entries
+                     if isinstance(item, GeometryRecipe))
+    rigs = {}
+    captures = {}
+    for geometry, _ in plan.geometry:
+        _tick()
+        key = geometry.key
+        try:
+            rigs[key] = resolve_geometry_rig(geometry.source, geometry.rig)
+            capture = capture_geometry(geometry.source, geometry.rig, material_names=dict(plan.material_names),
+                                       stereo_balance_groups=dict(geometry.stereo_balance_groups),
+                                       include_shapes=key in mesh_keys)
+            if geometry.auto_merge:
+                capture = merge_collection_capture(capture)
+                if key in entries:
+                    entries[key] = _merged_entry(entries[key], capture.source_name)
+            entry = entries.get(key)
+            if key in mesh_keys and entry is not None and entry.flex_rule_set is not None:
+                capture = derive_rule_shapes(capture, entry.flex_rule_set.rules)
+            capture = transform_capture(capture, model.scale, dict(model.bone_names))
+            captures[key] = orient_capture(capture, plan.up_axis)
+        except (ValueError, TypeError, ReferenceError) as exc:
+            raise GraphBuildError(f'Direct export {key!r}: {exc}') from exc
+    helpers = ()
+    if model.procedural_bones:
+        armature = _model_armature(model, rigs, 'Procedural bones')
+        helpers = helper_rows(model.procedural_bones, armature_rest_bones(armature),
+                              dict(model.bone_names), model.scale)
+    try:
+        return build_model(studiomdl, model, captures, material_dirs=plan.material_dirs, helpers=helpers,
+                           advanced=advanced, entries=entries, fit_weight_poses=plan.fit_weight_poses)
+    except (ValueError, KeyError, studiomdl.StudioMdlError) as exc:
+        raise GraphBuildError(f'Direct export: {exc}') from exc
+
+
 def export_materials(output: SourceIOPropModelNode,
                      cache: ExportCache | None = None) -> tuple[Path, ...]:
     """Write every linked VMT and VTF of a model output.
@@ -929,23 +1039,42 @@ def sync_vmt(material_node) -> tuple[Path, ...]:
     return tuple(written)
 
 
+# DMX binary encoding and model format written for the built-in studiomdl (the newest SourceIO writes)
+BUILTIN_DMX_VERSIONS = (5, 18)
+
+
 def compile_plan(plan: BuildPlan, cache: ExportCache | None = None) -> str:
     # Validate the backend before writing anything
     if plan.compiler_backend == 'COMMAND':
         argv = direct_command(plan.qc_path, plan.game_root,
                               plan.compiler_command)
-    elif plan.compiler_backend == 'BUILTIN':
+    elif plan.compiler_backend in {'BUILTIN', 'DIRECT'}:
         builtin_studiomdl()
     else:
         engine = _root(plan.bst_engine_root, 'BST engine root')
         state = validate_source_tools_compiler(plan.game_root, engine)
-    export_plan(plan, cache)
+    if plan.compiler_backend == 'DIRECT':
+        errors = [issue.message for issue in plan.direct_issues if issue.severity == 'ERROR']
+        if errors:
+            error = CompilationError("Direct export can't build this model:\n" + '\n'.join(
+                f'- {message}' for message in errors))
+            error.log = str(error)
+            raise error
+        # Materials, the SFM rig and the VRD are written as for the QC route; meshes and the QC are not
+        _write_assets(plan.assets, plan.cached_assets, plan.texture_keys, cache)
+        _tick()
+        model = build_direct(plan)
+    else:
+        export_plan(plan, cache)
     model_file = plan.model_file
     before = model_file.stat().st_mtime_ns if model_file.is_file() else None
     if plan.compiler_backend == 'COMMAND':
         output = compile_direct(plan.qc_path, argv)
     elif plan.compiler_backend == 'BUILTIN':
-        output = compile_builtin(plan.qc_path, plan.game_root)
+        output = compile_builtin(plan.qc_path, plan.game_root, plan.fit_weight_poses)
+    elif plan.compiler_backend == 'DIRECT':
+        warnings = '\n'.join(f'Warning: {issue.message}' for issue in plan.direct_issues)
+        output = '\n'.join(filter(None, (warnings, compile_model(model, plan.game_root))))
     else:
         output = compile_with_source_tools(plan.qc_path, plan.game_root,
                                            engine, state)
@@ -1017,11 +1146,21 @@ class _GraphAction(bpy.types.Operator):
                 self.report({'INFO'}, f'Mesh files: {len(plan.geometry)}'
                                       f'{self._cache_note(cache)}')
                 return {'FINISHED'}
+            if self.action == 'CHECK':
+                plan = plan_model(output, encode_textures=False)
+                store_direct_issues(output, plan.direct_issues)
+                errors = sum(issue.severity == 'ERROR' for issue in plan.direct_issues)
+                self.report({'WARNING' if errors else 'INFO'},
+                            f'Direct export: {errors} errors, {len(plan.direct_issues) - errors} warnings'
+                            if plan.direct_issues else 'Direct export supports everything in this model')
+                return {'FINISHED'}
             # The preview only needs texture paths, never the encoded VTF
             # data.
             plan = plan_model(output,
                               encode_textures=self.action != 'PREVIEW',
                               cache=cache)
+            if plan.compiler_backend == 'DIRECT':
+                store_direct_issues(output, plan.direct_issues)
             if self.action == 'PREVIEW':
                 text = preview_text(f'SourceIO export preview - {output.name}')
                 text.clear()
@@ -1044,9 +1183,13 @@ class _GraphAction(bpy.types.Operator):
                 self.report({'INFO'}, f'Exported {plan.qc_path}'
                                       f'{self._cache_note(cache)}')
             else:
-                output_text = compile_plan(plan, cache)
-                self.report({'INFO'}, f'Compiled {plan.model.model_path}; '
-                                      f'{output_text[:180]}')
+                try:
+                    output_text = compile_plan(plan, cache)
+                except CompilationError as exc:
+                    write_compile_log(plan.model.model_path, getattr(exc, 'log', None) or str(exc))
+                    raise
+                log = write_compile_log(plan.model.model_path, output_text)
+                self.report({'INFO'}, f'Compiled {plan.model.model_path}; log in Blender text {log.name!r}')
         except (GraphBuildError, CompilationError, OSError,
                 RuntimeError) as exc:
             self.report({'ERROR'}, str(exc))
@@ -1080,6 +1223,20 @@ class SourceIO_OP_ExportModelMeshes(_GraphAction):
     bl_description = ('Write the DMX/SMD meshes with flexes; materials, '
                       'textures and the QC are not exported')
     action = 'MESHES'
+
+
+class SourceIO_OP_CheckDirectExport(_GraphAction):
+    bl_idname = 'sourceio.check_direct_export'
+    bl_label = 'Check direct export'
+    bl_description = ('List what direct export can\'t build in this model; nothing is written and no texture is '
+                      'encoded')
+    action = 'CHECK'
+
+
+def store_direct_issues(output: SourceIOPropModelNode, issues) -> None:
+    """Keep the last direct export check on the output node, which draws it."""
+    output.direct_issues = '\n'.join(f'{issue.severity}\t{issue.message}' for issue in issues)
+    output.direct_checked = True
 
 
 class SourceIO_OP_GenerateBoneTable(bpy.types.Operator):
@@ -1342,6 +1499,6 @@ class NODE_PT_sourceio_flex_rules(bpy.types.Panel):
 classes = (SourceIO_OP_PreviewExportGraph, SourceIO_OP_ExportModelGraph,
            SourceIO_OP_ExportModelMeshes, SourceIO_OP_ExportModelMaterials,
            SourceIO_OP_SyncVMT, SourceIO_OP_GenerateBoneTable,
-           SourceIO_OP_CompileModelGraph, SOURCEIO_UL_FlexControllers,
+           SourceIO_OP_CompileModelGraph, SourceIO_OP_CheckDirectExport, SOURCEIO_UL_FlexControllers,
            SourceIO_OP_EditFlexControllers, NODE_PT_sourceio_export_graph,
            NODE_PT_sourceio_flex_rules)

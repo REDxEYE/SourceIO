@@ -506,7 +506,8 @@ class SOURCEIO_PT_Utils(UITools, Panel):
     @classmethod
     def poll(cls, context):
         obj: bpy.types.Object = context.active_object
-        return obj and (obj.get("entity_data", None) or obj.get("skin_groups", None))
+        return obj and (obj.get("entity_data", None) or obj.get("skin_groups", None)
+                        or len(getattr(obj, "flex_controllers", ())))
 
 
 # noinspection PyPep8Naming

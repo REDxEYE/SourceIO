@@ -9,6 +9,7 @@ implicitly.
 from math import degrees
 from pathlib import PurePosixPath
 import re
+import textwrap
 
 import bpy
 from bpy.types import Node, NodeSocket, Operator, PropertyGroup
@@ -828,7 +829,18 @@ class SourceIOPropModelNode(_PropNode, Node):
         ("BUILTIN", "Built-in studiomdl",
          "Compile inside Blender with SourceIO's bundled studiomdl; needs no external tools or Wine (x86_64 Blender "
          "only)"),
+        ("DIRECT", "Direct export (built-in)",
+         "Build the model in memory and compile it with SourceIO's bundled studiomdl: no QC or mesh files are "
+         "written (x86_64 Blender only). Use Check direct export for what it can't build yet"),
     ), default="COMMAND")
+    # Last direct export check: one "SEVERITY\tmessage" line per issue
+    direct_issues: bpy.props.StringProperty()
+    direct_checked: bpy.props.BoolProperty()
+    fit_weight_poses: bpy.props.IntProperty(
+        name="Fit weight poses", default=24, min=0, soft_max=200,
+        description="Built-in and direct export: studiomdl -fitweights. Each vertex keeps the 3 bone weights that best "
+                    "match the original skinning over this many sample poses, instead of dropping the smallest ones. "
+                    "0 turns it off")
     compiler_command: bpy.props.StringProperty(
         name="Compiler command",
         description="Argument template with {game} and {qc}")
@@ -840,7 +852,9 @@ class SourceIOPropModelNode(_PropNode, Node):
         name="Use export cache", default=True,
         description="Only re-export meshes and textures whose inputs "
                     "changed since the last export (fingerprints are kept "
-                    "in <model>.sourceio-cache.json next to the QC)")
+                    "in <model>.sourceio-cache.json next to the QC). Direct "
+                    "export writes no meshes: there it only skips encoding "
+                    "VTFs that are unchanged on disk")
     model_scale: bpy.props.FloatProperty(
         name="Model scale", default=1.0, min=1e-6, soft_min=0.001,
         soft_max=1000.0, precision=4,
@@ -882,18 +896,30 @@ class SourceIOPropModelNode(_PropNode, Node):
         for prop in ("auto_idle", "content_root", "game_root",
                      "geometry_format", "use_export_cache",
                      "compiler_backend"):
-            layout.prop(self, prop)
-        if self.geometry_format == "DMX":
+            if prop == "geometry_format" and self.compiler_backend == "DIRECT":
+                continue
+            if prop == "use_export_cache" and self.compiler_backend == "DIRECT":
+                layout.prop(self, prop, text="Skip unchanged textures")
+            else:
+                layout.prop(self, prop)
+        # The built-in studiomdl uses fixed DMX settings (see BUILTIN_DMX_VERSIONS); direct export writes no meshes
+        if self.compiler_backend == "DIRECT":
+            layout.label(text="Mesh format and DMX settings don't apply", icon="INFO")
+        elif self.geometry_format == "DMX" and self.compiler_backend != "BUILTIN":
             layout.prop(self, "dmx_encoding_version")
             layout.prop(self, "dmx_model_version")
             layout.prop(self, "dmx_trim_weights")
         layout.prop(self, "dmx_up_axis")
         if not self.native_settings_confirmed:
             layout.prop(self, "native_settings_confirmed")
+        if self.compiler_backend in {"BUILTIN", "DIRECT"}:
+            layout.prop(self, "fit_weight_poses")
         if self.compiler_backend == "COMMAND":
             layout.prop(self, "compiler_command")
         elif self.compiler_backend == "STUDIOMDL":
             layout.prop(self, "bst_engine_root")
+        elif self.compiler_backend == "DIRECT":
+            self._draw_direct_issues(layout)
         for operator in ("sourceio.preview_export_graph",
                          "sourceio.export_model_graph",
                          "sourceio.export_model_meshes",
@@ -903,6 +929,23 @@ class SourceIOPropModelNode(_PropNode, Node):
 
     def recipe(self, resolve=None):
         return collect_model(self, resolve)
+
+    def _draw_direct_issues(self, layout):
+        box = layout.box()
+        box.operator("sourceio.check_direct_export").output_node = self.name
+        if not self.direct_checked:
+            return
+        if not self.direct_issues:
+            box.label(text="Last check: no issues", icon="CHECKMARK")
+            return
+        for line in self.direct_issues.splitlines():
+            severity, _, message = line.partition("\t")
+            column = box.column(align=True)
+            # Errors red; warnings with the warning icon
+            column.alert = severity == "ERROR"
+            for index, part in enumerate(textwrap.wrap(message, 48)):
+                column.label(text=part, icon=("CANCEL" if severity == "ERROR" else "ERROR") if index == 0
+                             else "BLANK1")
 
 
 def dedupe_inputs(node):

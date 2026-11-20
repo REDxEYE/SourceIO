@@ -261,8 +261,21 @@ def _validate_helpers(helpers, bones: RestBones, exported) -> None:
             ancestor = bones[ancestor][0]
 
 
-def render_vrd(helpers, bones: RestBones, bone_names: Mapping[str, str] | None = None, scale: float = 1.0) -> str:
-    """VRD text of ``helpers`` for an armature.
+@dataclass(frozen=True)
+class HelperRow:
+    """One ``<helper>`` in exported names: ``<basepos>`` and per trigger (tolerance, control angles, target angles,
+    target position minus basepos); angles in degrees, positions in exported units."""
+    bone: str
+    parent: str
+    control_parent: str
+    control: str
+    basepos: Vec3
+    triggers: tuple[tuple[float, Vec3, Vec3, Vec3], ...]
+
+
+def helper_rows(helpers, bones: RestBones, bone_names: Mapping[str, str] | None = None,
+                scale: float = 1.0) -> tuple[HelperRow, ...]:
+    """VRD values of ``helpers`` for an armature.
 
     ``bones`` maps each Blender bone name to its parent name (``None`` for roots) and its 4x4 armature-space rest matrix
     (Blender ``Bone.matrix_local``). Exported names come from ``bone_names``; positions are multiplied by the model
@@ -277,23 +290,34 @@ def render_vrd(helpers, bones: RestBones, bone_names: Mapping[str, str] | None =
 
     _validate_helpers(helpers, bones, exported)
     rests = rest_locals(bones)
-    lines = []
+    rows = []
     for helper in helpers:
         helper_rest = rests[helper.bone]
         control_rest = rests[helper.control]
         basepos = helper_rest[:3, 3] * scale
-        lines.append(" ".join((
-            "<helper>", exported(helper.bone), exported(bones[helper.bone][0]), exported(bones[helper.control][0]),
-            exported(helper.control))))
-        lines.append(f"<basepos> {_numbers(basepos)}")
+        triggers = []
         for trigger in helper.triggers:
             control = control_rest[:3, :3] @ euler_matrix(trigger.control_rotation)
             target = helper_rest @ _transform(euler_matrix(trigger.helper_rotation), trigger.helper_location)
-            lines.append(" ".join((
-                "<trigger>", _number(trigger.tolerance),
-                _numbers(degrees(v) for v in matrix_euler(control)),
-                _numbers(degrees(v) for v in matrix_euler(target[:3, :3])),
-                _numbers(target[:3, 3] * scale - basepos))))
+            triggers.append((float(trigger.tolerance),
+                             tuple(degrees(v) for v in matrix_euler(control)),
+                             tuple(degrees(v) for v in matrix_euler(target[:3, :3])),
+                             tuple(float(v) for v in target[:3, 3] * scale - basepos)))
+        rows.append(HelperRow(exported(helper.bone), exported(bones[helper.bone][0]),
+                              exported(bones[helper.control][0]), exported(helper.control),
+                              tuple(float(v) for v in basepos), tuple(triggers)))
+    return tuple(rows)
+
+
+def render_vrd(helpers, bones: RestBones, bone_names: Mapping[str, str] | None = None, scale: float = 1.0) -> str:
+    """VRD text of ``helpers`` for an armature (arguments as for ``helper_rows``)."""
+    lines = []
+    for row in helper_rows(helpers, bones, bone_names, scale):
+        lines.append(" ".join(("<helper>", row.bone, row.parent, row.control_parent, row.control)))
+        lines.append(f"<basepos> {_numbers(row.basepos)}")
+        for tolerance, control, target, position in row.triggers:
+            lines.append(" ".join(("<trigger>", _number(tolerance), _numbers(control), _numbers(target),
+                                   _numbers(position))))
         lines.append("")
     return "\n".join(lines)
 

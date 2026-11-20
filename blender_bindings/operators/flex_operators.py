@@ -156,7 +156,7 @@ class SOURCEIO_OT_SLIDERHANDLER(Operator):
                 face.data[i.L] = i.originalvalL
             else:
                 face.data[i.name] = i.originalval
-        face.data.update()
+        face.data.update_tag()
 
     def modal(self, context, event):
         global _dragging
@@ -184,7 +184,7 @@ class SOURCEIO_OT_SLIDERHANDLER(Operator):
             for slider in self.active_sliders:
                 handle_slider(context, obj, slider)
 
-            obj.data.update()
+            obj.data.update_tag()
             return {'PASS_THROUGH'}
 
         if event.value == 'RELEASE':
@@ -212,7 +212,7 @@ class SOURCEIO_OT_SLIDERHANDLER(Operator):
             for slider in self.active_sliders:
                 slider.value = 0.0
 
-            obj.data.update()
+            obj.data.update_tag()
             self.active_sliders.clear()
 
             _updating_values = False
@@ -267,12 +267,16 @@ class SOURCEIO_OT_resetface(Operator):
     bl_options = {'UNDO'}
 
     def execute(self, context):
-        data = context.object.data
-        
+        obj = context.object
+        data = obj.data
+
         if data.get('flexmap'):
             flexes = list(data['flexmap'].values())
         elif data.get('flexcontrollers'):
             flexes = list(data['flexcontrollers'].values())
+        else:  # sliders made by flex rule drivers: no flex map, the sliders name their properties
+            flexes = [name for slider in obj.flex_controllers
+                      for name in ((slider.R, slider.L) if slider.split else (slider.name,))]
 
         for flex in flexes:
             if flex == 'aaa_fs':
@@ -286,7 +290,7 @@ class SOURCEIO_OT_resetface(Operator):
                 if context.scene.tool_settings.use_keyframe_insert_auto:
                     data.keyframe_insert(data_path=f'["{flex}"]', frame=get_frame(context))
         
-        data.update()
+        data.update_tag()
         return {'FINISHED'}
 
 class SOURCEIO_OT_KEY_ALL_FLEXCONTROLLERS(Operator):
@@ -325,7 +329,7 @@ class SOURCEIO_PT_FlexControlPanel(bpy.types.Panel):
         if not obj:
             return False
 
-        return obj and obj.type == 'MESH' and len(obj.flex_controllers)
+        return obj and obj.type in {'MESH', 'ARMATURE'} and len(obj.flex_controllers)
     
     def draw_header(self, context):
         l = self.layout

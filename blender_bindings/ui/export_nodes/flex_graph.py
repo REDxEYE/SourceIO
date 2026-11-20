@@ -700,6 +700,11 @@ def expand_stereo_rules(controls, rules):
     return tuple(result_controls), tuple(result_rules)
 
 
+def _flex_drivers():
+    from . import flex_drivers
+    return flex_drivers
+
+
 class SourceIOFlexRulesNode(_PropNode, Node):
     bl_idname = "SourceIOFlexRulesNode"
     bl_label = "Flex rules"
@@ -708,6 +713,19 @@ class SourceIOFlexRulesNode(_PropNode, Node):
                                            options={'HIDDEN'})
     known_shapes: bpy.props.StringProperty(options={'HIDDEN'})
     missing_shapes: bpy.props.StringProperty(options={'HIDDEN'})
+    use_drivers: bpy.props.BoolProperty(
+        name="Blender drivers",
+        description="Drive the shape keys from these flex rules in Blender, with a slider per controller in the "
+                    "Flex Controllers panel (SourceIO utilities) of the slider object. Turning it off removes the "
+                    "drivers, sliders and controller properties again",
+        # Only `self` in the lambda: this module's annotations are strings that Blender evaluates without its globals
+        update=lambda self, context: self.drivers_toggled(context))
+    driver_object: bpy.props.PointerProperty(
+        name="Slider object", type=bpy.types.Object, poll=lambda self, obj: obj.type in {'MESH', 'ARMATURE'},
+        description="Mesh or armature (e.g. the model's skeleton) that gets the controller sliders (blank: the mesh "
+                    "with the most rules)")
+    driver_state: bpy.props.StringProperty(options={'HIDDEN'})
+    driver_error: bpy.props.StringProperty(options={'HIDDEN'})
 
     def init(self, context):
         self.inputs.new("SourceIOFlexControlSocket", "Controllers",
@@ -716,12 +734,16 @@ class SourceIOFlexRulesNode(_PropNode, Node):
                         use_multi_input=True)
         self.outputs.new("SourceIOFlexRulesSocket", "Flex Rules")
 
+    def drivers_toggled(self, context):
+        _flex_drivers().drivers_toggled(self, context)
+
     def draw_buttons(self, context, layout):
         if self.sync_warning:
             layout.label(text=self.sync_warning, icon='ERROR')
         _draw_missing(layout, self.missing_shapes)
         layout.operator("sourceio.sync_flex_rules", text="Sync shape keys",
                         icon='FILE_REFRESH')
+        _flex_drivers().draw_driver_toggle(self, layout)
 
     def recipe(self, resolve=None):
         # Unbound: bind_flex_rules attaches the set to model entries by the
@@ -776,6 +798,7 @@ class SourceIOFlexGroupNode(_PropNode, NodeCustomGroup):
             for node in self.node_tree.nodes:
                 if node.bl_idname == 'SourceIOFlexRulesNode':
                     _draw_missing(layout, node.missing_shapes)
+                    _flex_drivers().draw_driver_toggle(node, layout)
 
     def recipe(self, resolve=None):
         from .build_graph import GraphResolver

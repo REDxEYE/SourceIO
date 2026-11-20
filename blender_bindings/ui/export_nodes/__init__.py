@@ -7,6 +7,7 @@ from . import sockets
 from .build_graph import classes as build_classes
 from .flex_graph import (
     classes as flex_classes, register_flex_sync, unregister_flex_sync)
+from .flex_drivers import classes as flex_driver_classes
 from .model_tree_nodes import SourceIO_NT_ModelTree
 from .nodes.material_nodes import classes as material_classes
 from .nodes.prop_nodes import classes as prop_classes
@@ -139,6 +140,7 @@ classes = (
     *sfm_rig_classes[len(sfm_rig_sockets):],
     *procedural_bone_classes,
     *flex_classes,
+    *flex_driver_classes,
     *material_classes,
     *texture_classes,
     *drop_classes,
