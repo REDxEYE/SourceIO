@@ -782,7 +782,7 @@ class ExportGraphTests(unittest.TestCase):
         self.assertEqual(plan.fit_weight_poses, 7)
         try:
             from SourceIO.library.utils.pylib import studiomdl  # noqa: F401
-        except ImportError:  # builds without pylib.studiomdl (arm64 macOS)
+        except ImportError:  # a native build without pylib.studiomdl
             with self.assertRaisesRegex(CompilationError, 'built-in studiomdl is not available'):
                 compile_plan(plan)
             self.assertFalse(plan.qc_path.exists())

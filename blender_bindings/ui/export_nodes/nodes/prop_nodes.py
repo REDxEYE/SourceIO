@@ -819,11 +819,10 @@ class SourceIOPropModelNode(_PropNode, Node):
         ("STUDIOMDL", "Blender Source Tools",
          "Use Blender Source Tools' Windows studiomdl.exe backend"),
         ("BUILTIN", "Built-in studiomdl",
-         "Compile inside Blender with SourceIO's bundled studiomdl; needs no external tools or Wine (x86_64 Blender "
-         "only)"),
+         "Compile inside Blender with SourceIO's bundled studiomdl; needs no external tools or Wine"),
         ("DIRECT", "Direct export (built-in)",
          "Build the model in memory and compile it with SourceIO's bundled studiomdl: no QC or mesh files are "
-         "written (x86_64 Blender only). Use Check direct export for what it can't build yet"),
+         "written. Use Check direct export for what it can't build yet"),
     ), default="COMMAND")
     # Last direct export check: one "SEVERITY\tmessage" line per issue
     direct_issues: bpy.props.StringProperty()

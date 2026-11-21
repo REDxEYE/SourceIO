@@ -66,12 +66,12 @@ def validate_source_tools_compiler(game_root: Path, engine_root: Path):
 
 
 def builtin_studiomdl():
-    """The pylib.studiomdl module, or CompilationError when this build has none (it is x86_64 only)."""
+    """The pylib.studiomdl module, or CompilationError when this build has none."""
     try:
         from SourceIO.library.utils.pylib import studiomdl
     except ImportError as exc:
-        raise CompilationError('The built-in studiomdl is not available in this SourceIO build (it needs an x86_64 '
-                               'Blender); choose another compiler backend') from exc
+        raise CompilationError('The built-in studiomdl is not available in this SourceIO build; choose another '
+                               'compiler backend') from exc
     return studiomdl
 
 

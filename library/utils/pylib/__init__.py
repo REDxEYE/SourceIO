@@ -28,8 +28,7 @@ def _load_native_and_alias():
 
     # Alias native submodules under our *current* package path
     # so 'from my_addon.sub1.sub2.pylib.compression import ...' works.
-    # studiomdl is only built for x86_64 (absent on Apple Silicon): `from ...pylib import studiomdl` raises ImportError
-    # there.
+    # A native build without studiomdl leaves it out: `from ...pylib import studiomdl` raises ImportError there.
     for sub in ("compression", "image", "mesh", "vtf", "studiomdl"):
         submod = getattr(native, sub, None)
         if submod is None:
