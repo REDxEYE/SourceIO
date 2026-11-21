@@ -8,7 +8,7 @@ import numpy as np
 
 from .dmx_builder import _IDENTITY, _matrix
 from .dmx_flex import _stereo_balance
-from .dmx_types import Capture, Face, Mesh, Shape, VertexAnimation
+from .dmx_types import FACE_DTYPE, Capture, Mesh, Shape, VertexAnimation
 
 
 def _tuple_rows(values):
@@ -21,7 +21,7 @@ def _positions(positions, matrix, label):
     if (values.ndim != 2 or values.shape[1] != 3 or not len(values)
             or not np.isfinite(values).all()):
         raise ValueError(f'{label} has invalid positions')
-    return _tuple_rows(values @ matrix[:3, :3].T + matrix[:3, 3])
+    return _frozen(values @ matrix[:3, :3].T + matrix[:3, 3], np.float32)
 
 
 def _normal_array(normals, matrix, label):
@@ -36,13 +36,8 @@ def _normal_array(normals, matrix, label):
     return transformed / lengths[:, :, None]
 
 
-def _normals(normals, matrix, label):
-    return tuple(_tuple_rows(face)
-                 for face in _normal_array(normals, matrix, label))
-
-
-def _frozen(array):
-    array = np.ascontiguousarray(array, dtype=np.float64)
+def _frozen(array, dtype=np.float64):
+    array = np.ascontiguousarray(array, dtype=dtype)
     array.setflags(write=False)
     return array
 
@@ -142,6 +137,7 @@ def merge_collection_capture(capture: Capture) -> Capture:
 
     positions = []
     faces = []
+    material_table = {}
     weights = []
     balance = []
     base_by_mesh = {}
@@ -155,19 +151,20 @@ def merge_collection_capture(capture: Capture) -> Capture:
         flipped = reverse[mesh.name]
         size = len(mesh.positions)
         mesh_positions = _positions(mesh.positions, world, mesh.name)
-        positions.extend(mesh_positions)
-        first_face = len(faces)
-        corners = (0, 2, 1) if flipped else (0, 1, 2)
-        mesh_normals = _normals(tuple(face.normals for face in mesh.faces),
-                                normal_matrix, mesh.name)
-        for face, normals in zip(mesh.faces, mesh_normals):
-            faces.append(Face(
-                tuple(face.vertices[index] + offset for index in corners),
-                tuple(normals[index] for index in corners),
-                tuple(face.uvs[index] for index in corners), face.material))
-        base_by_mesh[mesh.name] = np.asarray(mesh_positions)
-        normals_by_mesh[mesh.name] = np.asarray(
-            tuple(face.normals for face in faces[first_face:]))
+        positions.append(mesh_positions)
+        corners = [0, 2, 1] if flipped else [0, 1, 2]
+        mesh_normals = _normal_array(mesh.faces['normals'], normal_matrix,
+                                     mesh.name)[:, corners]
+        mesh_faces = np.empty(len(mesh.faces), dtype=FACE_DTYPE)
+        mesh_faces['vertices'] = mesh.faces['vertices'][:, corners] + offset
+        mesh_faces['normals'] = mesh_normals
+        mesh_faces['uvs'] = mesh.faces['uvs'][:, corners]
+        mesh_faces['material'] = np.array(
+            [material_table.setdefault(name, len(material_table))
+             for name in mesh.materials], dtype=np.int32)[mesh.faces['material']]
+        faces.append(mesh_faces)
+        base_by_mesh[mesh.name] = mesh_positions
+        normals_by_mesh[mesh.name] = mesh_normals
         weights.extend(mesh.weights)
         balance.extend(balances[mesh.name])
         shape_by_name = {}
@@ -199,15 +196,15 @@ def merge_collection_capture(capture: Capture) -> Capture:
     per_mesh = {}
     for mesh in meshes:
         resolved = transformed_shapes[mesh.name]
-        empty = Shape('', _tuple_rows(base_by_mesh[mesh.name]),
+        empty = Shape('', base_by_mesh[mesh.name],
                       _frozen(normals_by_mesh[mesh.name]))
         per_mesh[mesh.name] = tuple(resolved.get(name, empty)
                                     for name in shape_order)
 
     shapes = tuple(
         Shape(name,
-              tuple(point for mesh in meshes
-                    for point in per_mesh[mesh.name][index].positions),
+              _frozen(np.concatenate([per_mesh[mesh.name][index].positions
+                                      for mesh in meshes]), np.float32),
               _frozen(np.concatenate(
                   [np.asarray(per_mesh[mesh.name][index].normals,
                               dtype=np.float64) for mesh in meshes])))
@@ -218,8 +215,9 @@ def merge_collection_capture(capture: Capture) -> Capture:
         members = transformed_clips[name]
         frames = tuple(
             Shape(first.frames[index].name,
-                  tuple(point for member in members
-                        for point in member[index].positions),
+                  _frozen(np.concatenate([member[index].positions
+                                          for member in members]),
+                          np.float32),
                   _frozen(np.concatenate(
                       [np.asarray(member[index].normals, dtype=np.float64)
                        for member in members])))
@@ -227,8 +225,11 @@ def merge_collection_capture(capture: Capture) -> Capture:
         merged_animations.append(VertexAnimation(
             name, capture.source_name, frames, first.export_sequence,
             first.frame_rate))
+    all_faces = np.concatenate(faces)
+    all_faces.setflags(write=False)
     merged = Mesh(capture.source_name, _tuple_rows(_IDENTITY), None, None,
-                  None, tuple(positions), tuple(faces), tuple(weights),
+                  None, _frozen(np.concatenate(positions), np.float32),
+                  all_faces, tuple(material_table), tuple(weights),
                   shapes, tuple(balance))
     return Capture(capture.source_name, (merged,), rig,
                    tuple(merged_animations))

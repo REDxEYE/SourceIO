@@ -11,7 +11,8 @@ import bpy
 import numpy as np
 
 from SourceIO.blender_bindings.source1.model_export.dmx_capture import (capture_geometry, capture_vertex_animations)
-from SourceIO.blender_bindings.source1.model_export.dmx_builder import write_dmx, write_vca_sequences
+from SourceIO.blender_bindings.source1.model_export.dmx_builder import (_split_transform, build_document, write_dmx,
+                                                                        write_vca_sequences)
 from SourceIO.blender_bindings.source1.model_export.dmx_types import VertexAnimationRange
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     FlexControllerRecipe, GeometryRecipe, ModelEntryRecipe)
@@ -49,6 +50,29 @@ class NativeDMXIntegrationTests(unittest.TestCase):
             write_dmx(capture, path, encoding_version=encoding, model_version=model_version)
             return datamodel_v2.load(filepath=path)
 
+    def test_rotated_mirror_splits_and_real_shear_is_rejected(self):
+        cosine, sine = np.cos(.5), np.sin(.5)
+        rotation = np.array(((cosine, -sine, 0.), (sine, cosine, 0.), (0., 0., 1.)))
+        for scale in ((-1., 1., 1.), (-1., 2., .5), (1., -1., 1.)):
+            with self.subTest(scale=scale):
+                matrix = np.eye(4)
+                matrix[:3, :3] = rotation @ np.diag(scale)
+                rigid, residual = _split_transform(matrix, 'panel')
+                self.assertGreater(np.linalg.det(rigid[:3, :3]), 0)
+                np.testing.assert_allclose(rigid[:3, :3] @ residual, matrix[:3, :3], atol=1e-6)
+                np.testing.assert_allclose(residual, np.diag(np.diag(residual)), atol=1e-6)
+        shear = np.eye(4)
+        shear[:3, :3] = rotation @ np.diag((-1., 1., 1.)) @ ((1., .25, 0.), (0., 1., 0.), (0., 0., 1.))
+        with self.assertRaisesRegex(ValueError, 'shear'):
+            _split_transform(shear, 'panel')
+
+    def test_rotated_mirror_object_exports(self):
+        obj = self.mesh('Mirror')
+        obj.scale = (-1, 1, 1)
+        obj.rotation_euler.z = .5
+        document = self.write(capture_geometry(obj), 5, 18)
+        self.assertEqual(document.root['model']['children'][0].name, 'Mirror')
+
     def test_named_collection_materials_transform_and_shapes(self):
         left = self.mesh('Panel Left')
         right = self.mesh('Panel Right')
@@ -81,6 +105,46 @@ class NativeDMXIntegrationTests(unittest.TestCase):
                 self.assertEqual(right_mesh['deltaStates'][0].name, 'smile')
                 np.testing.assert_allclose(right_mesh['deltaStates'][0]['positions'][0], (0, 0, .2), atol=1e-5)
                 np.testing.assert_allclose(children[1]['transform']['position'], (2, 3, 1))
+
+    def test_surface_layout_matches_per_corner_reference(self):
+        obj = self.mesh('Layout')
+        data = obj.data
+        data.clear_geometry()
+        data.from_pydata(((0, 0, 0), (1, 0, 0), (1.5, 1, 0), (.5, 1.7, .2), (-.5, 1, 0), (2, 0, 1), (2, 1, 0)), (),
+                         ((0, 1, 2, 3, 4), (1, 5, 6, 2), (5, 6, 2), (0, 4, 3, 2, 1)))
+        materials = [bpy.data.materials.new(name) for name in ('layout_a', 'layout_b')]
+        for material in materials:
+            data.materials.append(material)
+            self.addCleanup(lambda material=material: bpy.data.materials.remove(material))
+        for polygon, slot in zip(data.polygons, (1, 0, 1, 2)):  # slot 2 is past the end: no_material
+            polygon.material_index = slot
+        layer = data.uv_layers.new(name='UVMap')
+        for index, loop in enumerate(data.loops):  # seams plus duplicate UVs across faces
+            layer.data[index].uv = ((loop.vertex_index % 3) * .25, -0.0 if index % 2 else (index % 4) * .5)
+        data.normals_split_custom_set_from_vertices([(0, 0, 1)] * 3 + [(.3, .4, .866)] * 4)
+        obj.scale.x = -1
+        capture = capture_geometry(obj)
+        document = build_document(capture, encoding_version=5, model_version=18)
+        state = document.root['model']['children'][0]['shape']['bindState']
+        mesh = capture.meshes[0]
+        corners = (0, 2, 1)  # the mirrored object flips winding
+        positions, uvs, uv_indices, by_material = [], [], [], {}
+        for face in mesh.faces:
+            rows = by_material.setdefault(mesh.materials[face['material']] or 'no_material', [])
+            for corner in corners:
+                positions.append(int(face['vertices'][corner]))
+                uv = tuple(face['uvs'][corner].tolist())
+                if uv not in uvs:
+                    uvs.append(uv)
+                uv_indices.append(uvs.index(uv))
+                rows.append(len(positions) - 1)
+            rows.append(-1)
+        self.assertEqual(list(state['positionsIndices']), positions)
+        self.assertEqual(list(state['textureCoordinatesIndices']), uv_indices)
+        np.testing.assert_allclose(np.asarray(state['textureCoordinates']), uvs, atol=1e-7)
+        face_sets = document.root['model']['children'][0]['shape']['faceSets']
+        self.assertEqual({item['material']['mtlName']: list(item['faces']) for item in face_sets}, by_material)
+        self.assertEqual([item['material']['mtlName'] for item in face_sets], list(by_material))
 
     def test_curve_and_generated_uvs_survive_assembly(self):
         data = bpy.data.curves.new('Pipe data', 'CURVE')

@@ -363,6 +363,9 @@ def attach_flex(document: dm.DataModel, capture,
         for name in shape_names:
             shape_owners[name].add(mesh.name)
     clips = getattr(capture, 'vertex_animations', ())
+    if clips and entry is not None and entry.flex_rule_set is not None and entry.flex_rule_set.rules:
+        # Rules own the mesh's flex targets; clip frames would be dropped.
+        raise ValueError('Flex rules cannot be combined with vertex animation clips on one geometry; remove one')
     unique_clips = tuple(dict((clip.name, clip) for clip in clips).values())
     for clip in clips:
         if clip.mesh_name not in mesh_elements:

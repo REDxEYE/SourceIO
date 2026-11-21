@@ -21,8 +21,11 @@ def _scaled_translation(matrix: Matrix4, scale: float) -> Matrix4:
 
 
 def _scaled_points(points, scale: float):
-    scaled = np.asarray(points, dtype=np.float64) * scale
-    return tuple(map(tuple, scaled.tolist()))
+    # float32 like captured positions: shape points must round exactly as the
+    # base mesh does, or unchanged vertices would show spurious deltas.
+    scaled = (np.asarray(points, dtype=np.float64) * scale).astype(np.float32)
+    scaled.setflags(write=False)
+    return scaled
 
 
 def _scaled_shape(shape: Shape, scale: float) -> Shape:

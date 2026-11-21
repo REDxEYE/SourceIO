@@ -139,7 +139,13 @@ def _image_pixels(image: bpy.types.Image) -> np.ndarray:
     # channels.
     data = np.empty(width * height * 4, dtype=np.float32)
     image.pixels.foreach_get(data)
-    return data.reshape((height, width, 4))
+    data = data.reshape((height, width, 4))
+    # Float buffers (16-bit PNG/TIFF, EXR) of an sRGB image hold linear values;
+    # 8-bit images expose their stored values, so re-encode to match them.
+    if image.is_float and image.colorspace_settings.name == 'sRGB':
+        from SourceIO.library.utils.math_utilities import linear_to_srgb
+        data[..., :3] = linear_to_srgb(data[..., :3].copy(), 1)
+    return data
 
 
 def texture_pixels(
@@ -160,16 +166,11 @@ def texture_pixels(
         pixels = pixels.reshape((height, width, 4))[::-1].astype(np.float32)
         if not is_float:
             pixels /= 255.0
-            vtf = VTFFile()
-            vtf.load_bytes(raw)
-            if (vtf.get_flag(TextureFlags.SRGB)
-                    and not vtf.get_flag(TextureFlags.NORMAL)):
-                from SourceIO.library.utils.math_utilities import (
-                    srgb_to_linear)
-                pixels[..., :3] = srgb_to_linear(pixels[..., :3].copy(), 1)
         return pixels
     image = bpy.data.images.load(str(path), check_existing=False)
     try:
+        # Temporary copy: decode the file's own values, not Blender's linear.
+        image.colorspace_settings.is_data = True
         return _image_pixels(image)
     finally:
         bpy.data.images.remove(image)
@@ -177,7 +178,7 @@ def texture_pixels(
 
 def _encode_vtf(pixels: np.ndarray, fmt: ImageFormat, mip_filter: MipFilter,
                 generate_mipmaps: bool, is_normal: bool,
-                linear_space: bool = True) -> bytes:
+                linear_space: bool = True, on_resize=None) -> bytes:
     """Encode bottom-up RGBA floats as a VTF.
 
     Blender exposes 8-bit images as their stored, already gamma-encoded
@@ -200,9 +201,9 @@ def _encode_vtf(pixels: np.ndarray, fmt: ImageFormat, mip_filter: MipFilter,
     if not is_normal and not linear_space:
         from SourceIO.library.utils.math_utilities import linear_to_srgb
         rgb = linear_to_srgb(rgb, 1)
-    rgba[..., :3] = (np.clip(rgb, 0, 1) * 255).astype(np.uint8)
+    rgba[..., :3] = np.rint(np.clip(rgb, 0, 1) * 255).astype(np.uint8)
     alpha = pixels[::-1, :, 3] if channels == 4 else 1.0
-    rgba[..., 3] = (np.clip(alpha, 0, 1) * 255).astype(np.uint8)
+    rgba[..., 3] = np.rint(np.clip(alpha, 0, 1) * 255).astype(np.uint8)
     if is_normal:
         flags = TextureFlags.NORMAL
     else:
@@ -213,7 +214,9 @@ def _encode_vtf(pixels: np.ndarray, fmt: ImageFormat, mip_filter: MipFilter,
         src_image_format=ImageFormat.RGBA8888, dst_image_format=fmt,
         filter_mode=mip_filter, flags=flags,
         generate_mipmaps=generate_mipmaps, generate_thumbnail=True,
-        resize_to_pow2=2)
+        resize_to_pow2=3)
+    if on_resize is not None and (vtf.width, vtf.height) != (width, height):
+        on_resize(width, height, vtf.width, vtf.height)
     vtf.set_flag(TextureFlags.NORMAL, is_normal)
     vtf.set_flag(TextureFlags.SRGB, not is_normal and not linear_space)
     return vtf.to_bytes()
@@ -224,7 +227,7 @@ def render_vtf(source: (ImageSourceRecipe | ExternalTextureSourceRecipe
                name: str, image_format: str = 'DXT5',
                mip_filter: str = 'CATROM', generate_mipmaps: bool = True,
                is_normal: bool = False,
-               linear_space: bool = True) -> VTFRecipe:
+               linear_space: bool = True, on_resize=None) -> VTFRecipe:
     """Resolve an image or external path into VTF bytes without writing
     artifacts.
 
@@ -254,7 +257,10 @@ def render_vtf(source: (ImageSourceRecipe | ExternalTextureSourceRecipe
     except KeyError as exc:
         raise ValueError(f'Unknown VTF format or mip filter: {exc}') from exc
     return VTFRecipe(BinaryArtifact(destination, _encode_vtf(
-        pixels, fmt, filt, generate_mipmaps, is_normal, linear_space)))
+        pixels, fmt, filt, generate_mipmaps, is_normal, linear_space,
+        (lambda w, h, new_w, new_h: on_resize(
+            f'{destination}: auto-resized {w}x{h} to {new_w}x{new_h}'))
+        if on_resize is not None else None)))
 
 
 def render_material(material: bpy.types.Material, path: str, shader: str,

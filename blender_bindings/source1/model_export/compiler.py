@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -26,7 +27,10 @@ def direct_command(qc_path: Path, game_root: Path, command: str) -> list[str]:
     if not command.strip():
         raise CompilationError('Configure a studiomdl command before compiling')
     try:
-        tokens = shlex.split(command)
+        tokens = shlex.split(command, posix=os.name != 'nt')
+        if os.name == 'nt':
+            tokens = [token[1:-1] if token.startswith('"') and token.endswith('"')
+                      else token for token in tokens]
         if not tokens or not any('{qc}' in token for token in tokens):
             raise CompilationError('The compiler command must contain {qc}')
         if not any('{game}' in token for token in tokens):
@@ -39,7 +43,8 @@ def direct_command(qc_path: Path, game_root: Path, command: str) -> list[str]:
 def compile_direct(qc_path: Path, argv: list[str]) -> str:
     """Run a prevalidated command without a shell."""
     try:
-        result = subprocess.run(argv, cwd=qc_path.parent, capture_output=True, text=True, check=False)
+        result = subprocess.run(argv, cwd=qc_path.parent, capture_output=True,
+                                text=True, errors='replace', check=False)
     except OSError as exc:
         raise CompilationError(f'Cannot launch studiomdl: {exc}') from exc
     output = '\n'.join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
@@ -71,16 +76,16 @@ def builtin_studiomdl():
 
 
 def compile_builtin(qc_path: Path, game_root: Path, fit_weight_poses: int = 0) -> str:
-    """Compile in process with pylib.studiomdl and write the outputs under game_root/models; returns the full log.
+    """Compile in process with pylib.studiomdl and write the outputs under game_root; returns the full log.
 
     gameinfo.txt is optional: without it materials and $includemodel files are not looked up in a game. A failed
     compile raises CompilationError with the warnings and errors; its ``log`` attribute holds the full log.
-    ``fit_weight_poses``: -fitweights over that many sample poses (0: off).
+    ``fit_weight_poses``: sample poses for fitting and testing weights (0: off).
     """
     studiomdl = builtin_studiomdl()
-    arguments = ('-fitweights', str(fit_weight_poses)) if fit_weight_poses else ()
+    fit_weights = (fit_weight_poses, fit_weight_poses) if fit_weight_poses else None
     return _run_studiomdl(studiomdl, lambda game_dir: studiomdl.compile_qc(qc_path, game_dir=game_dir,
-                                                                           arguments=arguments), game_root)
+                                                                           fit_weights=fit_weights), game_root)
 
 
 def compile_model(model, game_root: Path) -> str:

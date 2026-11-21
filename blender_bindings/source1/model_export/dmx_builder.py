@@ -14,7 +14,7 @@ import numpy as np
 
 from SourceIO.library.utils import datamodel_v2 as dm
 
-from .dmx_types import Capture, Mesh
+from .dmx_types import Capture, Mesh, material_codes
 from .prop_qc import ModelEntryRecipe
 
 
@@ -45,9 +45,11 @@ def _split_transform(matrix, label: str):
     axes = matrix[:3, :3]
     if abs(np.linalg.det(axes)) < 1e-10:
         raise ValueError(f'{label} has a singular transform')
-    u, _, vt = np.linalg.svd(axes)
-    correction = np.diag((1., 1., np.linalg.det(u @ vt)))
-    rotation = u @ correction @ vt
+    # Mirror X first so the polar factor is a proper rotation; the sign stays
+    # in the residual, which is then diagonal for a rotated mirror.
+    flip = np.diag((-1. if np.linalg.det(axes) < 0 else 1., 1., 1.))
+    u, _, vt = np.linalg.svd(axes @ flip)
+    rotation = u @ vt
     residual = rotation.T @ axes
     if not np.allclose(residual, np.diag(np.diag(residual)), atol=1e-5):
         raise ValueError(f'{label} has shear that cannot be represented as '
@@ -127,11 +129,7 @@ class _Builder:
 
     @staticmethod
     def _corner_normals(face_normals, normal_matrix, corners):
-        if isinstance(face_normals, np.ndarray):
-            stacked = face_normals.astype(np.float64, copy=False)
-        else:
-            stacked = np.asarray([[tuple(n) for n in f] for f in face_normals],
-                                 dtype=np.float64)
+        stacked = np.asarray(face_normals, dtype=np.float64)
         stacked = stacked.reshape(-1, 3, 3)
         return (stacked[:, corners, :] @ normal_matrix.T).reshape(-1, 3)
 
@@ -172,30 +170,37 @@ class _Builder:
         normal_matrix = np.linalg.inv(residual).T
         flipped = np.linalg.det(residual) < 0
         corners = (0, 2, 1) if flipped else (0, 1, 2)
-        uv_values, position_indices, uv_indices = [], [], []
-        uv_lookup = {}
-        faces_by_material = {}
-        for face_index, face in enumerate(mesh.faces):
-            indices = faces_by_material.setdefault(
-                face.material or 'no_material', [])
-            for corner in corners:
-                vertex = face.vertices[corner]
-                if not 0 <= vertex < len(positions):
-                    raise ValueError(f'{mesh.name!r} face {face_index} has '
-                                     'an invalid vertex index')
-                position_indices.append(vertex)
-                uv = face.uvs[corner]
-                if uv not in uv_lookup:
-                    uv_lookup[uv] = len(uv_values)
-                    uv_values.append(uv)
-                uv_indices.append(uv_lookup[uv])
-                indices.append(len(position_indices) - 1)
-            indices.append(-1)
-        if not faces_by_material:
+        count = len(mesh.faces)
+        if not count:
             raise ValueError(f'{mesh.name!r} has no exportable faces')
+        corner_vertices = mesh.faces['vertices'].astype(
+            np.int64)[:, corners]
+        invalid = (corner_vertices < 0) | (corner_vertices >= len(positions))
+        if invalid.any():
+            raise ValueError(
+                f'{mesh.name!r} face {int(np.flatnonzero(invalid.any(1))[0])} '
+                'has an invalid vertex index')
+        position_indices = corner_vertices.ravel()
+        uvs = mesh.faces['uvs'].astype(np.float64)[:, corners]
+        uvs = uvs.reshape(-1, 2)
+        # +0.0 folds -0.0 into 0.0 so equal UVs share one entry; unique()
+        # sorts, so renumber by first occurrence to keep the file layout.
+        _, first, inverse = np.unique(uvs + 0.0, axis=0, return_index=True,
+                                      return_inverse=True)
+        rank = np.argsort(np.argsort(first))
+        uv_values = uvs[np.sort(first)]
+        uv_indices = rank[inverse.ravel()]
+        lookup = {}
+        codes = material_codes(mesh, lookup)
+        # One -1 terminated row per face, grouped by material in face order.
+        rows = np.arange(count * 3).reshape(-1, 3)
+        rows = np.concatenate((rows, np.full((count, 1), -1)), axis=1)
+        faces_by_material = dict(zip(lookup, np.split(
+            rows[np.argsort(codes, kind='stable')].ravel(),
+            4 * np.cumsum(np.bincount(codes))[:-1])))
         state['positionsIndices'] = dm.IntArray(position_indices)
         normal_values = self._corner_normals(
-            (face.normals for face in mesh.faces), normal_matrix, corners)
+            mesh.faces['normals'], normal_matrix, corners)
         lengths = np.linalg.norm(normal_values, axis=1)
         if len(lengths) and lengths.min() < 1e-10:
             face_index = int(np.flatnonzero(lengths < 1e-10)[0]) // 3

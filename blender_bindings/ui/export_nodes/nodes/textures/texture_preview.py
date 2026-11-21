@@ -3,8 +3,6 @@ import numpy as np
 
 from SourceIO.blender_bindings.ui.export_nodes.build_graph import (
     GraphResolver)
-from SourceIO.blender_bindings.source1.model_export.material_assets import (
-    ExternalTextureSourceRecipe, ImageSourceRecipe, texture_pixels)
 from SourceIO.blender_bindings.ui.export_nodes.nodes.base_node import (
     SourceIOTextureTreeNode)
 
@@ -36,11 +34,7 @@ class SourceIO_OP_EvaluatePreview(bpy.types.Operator):
                 for socket in node.inputs:
                     if not socket.is_linked:
                         continue
-                    value = resolver(socket)
-                    if isinstance(value, (ImageSourceRecipe,
-                                          ExternalTextureSourceRecipe)):
-                        value = texture_pixels(value)
-                    inputs[socket.name] = value
+                    inputs[socket.name] = resolver.pixels_for(resolver(socket))
                 node.process(inputs)
         except (ValueError, OSError, RuntimeError) as exc:
             self.report({'ERROR'}, str(exc))
@@ -59,6 +53,12 @@ class SourceIOTexturePreviewNode(SourceIOTextureTreeNode):
         ("ALPHA", "Alpha", "Alpha channel as grayscale"),
         ("RGBA", "RGBA", "Color with alpha as transparency"),
     ), default="RGB")
+
+    preview_image: bpy.props.PointerProperty(type=bpy.types.Image,
+                                             options={'HIDDEN'})
+
+    def copy(self, node):
+        self.preview_image = None
 
     def init(self, context):
         self.inputs.new("SourceIOTextureSocket", "texture")
@@ -100,15 +100,15 @@ class SourceIOTexturePreviewNode(SourceIOTextureTreeNode):
             img_data = np.stack(
                 (channel, channel, channel, np.ones_like(channel)), axis=-1)
 
-        name = f"SOURCE_NODES__Texture Preview {self.id_data.name} {self.name}"
-        image = bpy.data.images.get(name)
+        image = self.preview_image
         height, width = img_data.shape[:2]
-        if image is not None and tuple(image.size) != (width, height):
-            bpy.data.images.remove(image)
-            image = None
         if image is None:
+            name = f"SOURCE_NODES__Texture Preview {self.id_data.name} {self.name}"
             image = bpy.data.images.new(name, width=width, height=height,
                                         alpha=True)
+            self.preview_image = image
+        elif tuple(image.size) != (width, height):
+            image.scale(width, height)
         image.pixels.foreach_set(img_data.ravel())
         image.update()
         return None

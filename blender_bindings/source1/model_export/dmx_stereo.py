@@ -53,10 +53,8 @@ def derive_rule_shapes(capture: Capture, rules) -> Capture:
                              f'{missing!r} to derive flex shapes from')
         left = _left_weights(mesh)
         base = np.asarray(mesh.positions, dtype=np.float64)
-        base_normals = np.asarray([face.normals for face in mesh.faces],
-                                  dtype=np.float64)
-        corners = np.asarray([face.vertices for face in mesh.faces],
-                             dtype=np.int64)
+        base_normals = mesh.faces['normals'].astype(np.float64)
+        corners = mesh.faces['vertices'].astype(np.int64)
         shapes = []
         for shape in mesh.shapes:
             if shape.name not in wanted:

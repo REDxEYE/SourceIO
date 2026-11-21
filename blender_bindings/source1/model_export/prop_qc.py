@@ -30,7 +30,10 @@ def _path(value: str, label: str) -> str:
 
 
 def _quote(value: str, label: str) -> str:
-    return '"' + _text(value, label).replace("\\", "\\\\").replace('"', '\\"') + '"'
+    value = _text(value, label)
+    if '"' in value:
+        raise ValueError(f'{label} cannot contain double quotes')
+    return f'"{value}"'
 
 
 def _number(value: float, label: str, *, minimum: float | None = None) -> str:

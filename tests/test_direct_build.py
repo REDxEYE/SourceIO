@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import struct
 import unittest
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import numpy as np
 
 from SourceIO.blender_bindings.source1.model_export.direct_build import (
-    MAX_WEIGHTS, FlexControl, build_model, direct_support, flex_setup, geometry_arrays, parse_advanced_flex)
+    MAX_WEIGHTS, FlexControl, build_model, check_joint_collision, direct_support, flex_setup, geometry_arrays,
+    parse_advanced_flex)
 from SourceIO.blender_bindings.source1.model_export.dmx_types import (
-    Bone, Capture, Face, Mesh, Rig, Shape, VertexAnimationRange)
+    Bone, Capture, Mesh, Rig, Shape, VertexAnimationRange, face_array)
 from SourceIO.blender_bindings.source1.model_export.procedural_bones import (
     HelperBoneRecipe, HelperTriggerRecipe, helper_rows)
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
@@ -29,7 +32,7 @@ def translation(x, y, z):
 
 def triangle_mesh(name, weights=(), matrix=IDENTITY, material='skin', parent=None, parent_bone=None):
     return Mesh(name, matrix, parent, 'BONE' if parent_bone else None, parent_bone,
-                ((0., 0., 0.), (10., 0., 0.), (0., 10., 0.)), (Face((0, 1, 2), UP, UVS, material),),
+                ((0., 0., 0.), (10., 0., 0.), (0., 10., 0.)), *face_array([((0, 1, 2), UP, UVS, material)]),
                 weights, ())
 
 
@@ -74,13 +77,29 @@ class DirectSupportTests(unittest.TestCase):
         self.assertEqual(direct_support(flexed), ())
         self.assertEqual(direct_support(self.model(collision=CollisionRecipe(hulls))), ())
 
+    def test_conflicting_flex_rules_across_objects_are_an_error(self):
+        controls = (FlexControllerRecipe('smile', ('smile',)), VirtualControllerRecipe('jaw'))
+
+        def model(*rules, attr='models'):
+            entry = ModelEntryRecipe('head', self.body, flex_rule_set=FlexRuleSetRecipe(
+                self.body, controls, tuple(FlexRuleRecipe(*rule) for rule in rules)))
+            if attr == 'models':
+                return ModelRecipe('models/props/test.mdl', (entry,))
+            return ModelRecipe('models/props/test.mdl', (ModelEntryRecipe('studio', self.body),), flex_entries=(entry,))
+
+        self.assertEqual(direct_support(model(('face', 'smile', 'smile'), ('teeth', 'Smile', 'smile'))), ())
+        for attr in ('models', 'flex_entries'):
+            (issue,) = direct_support(model(('face', 'smile', 'smile'), ('teeth', 'Smile', 'jaw'), attr=attr))
+            self.assertEqual(issue.severity, 'ERROR')
+            self.assertIn("objects give the flex 'Smile' different rules", issue.message)
+
 
 class GeometryArrayTests(unittest.TestCase):
     def test_mirrored_objects_keep_outward_winding_and_normals(self):
         mirror = ((-1., 0., 0., 5.), (0., 1., 0., 0.), (0., 0., 1., 0.), (0., 0., 0., 1.))
         normals = ((1., 0., 0.), (0., 1., 0.), (0., 0., 1.))
         mesh = Mesh('panel', mirror, None, None, None, ((0., 0., 0.), (10., 0., 0.), (0., 10., 0.)),
-                    (Face((0, 1, 2), normals, UVS, None),), (), ())
+                    *face_array([((0, 1, 2), normals, UVS, None)]), (), ())
         arrays = geometry_arrays(Capture('panel', (mesh,), None))
         np.testing.assert_allclose(arrays.positions, [[5, 0, 0], [-5, 0, 0], [5, 10, 0]])
         self.assertEqual(arrays.triangles.tolist(), [[0, 2, 1]])
@@ -118,6 +137,15 @@ class GeometryArrayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'spans multiple bones'):
             geometry_arrays(Capture('hulls', (split,), RIG), joints=True)
 
+    def test_joint_hull_weight_ties_pick_the_lower_bone_index_like_smd(self):
+        from SourceIO.blender_bindings.source1.model_export.smd_builder import build_document
+        tied = (('twist', .5), ('arm', .5), ('root', .25 + .25))  # listed highest index first
+        capture = Capture('hulls', (triangle_mesh('hull', (tied,) * 3),), RIG)
+        direct = geometry_arrays(capture, joints=True)
+        smd = build_document(capture, joints=True)
+        self.assertEqual(direct.bones.tolist(), [[0]] * 3)
+        self.assertEqual(set(smd.triangles['corners']['bone'].ravel().tolist()), {0})
+
 
 def shape(name, base, moved=None, normal=(0., 0., 1.)):
     """A Shape of a one-triangle mesh: ``moved`` maps vertex -> offset (object space)."""
@@ -129,7 +157,7 @@ def shape(name, base, moved=None, normal=(0., 0., 1.)):
 
 def shaped_mesh(name, shapes, matrix=IDENTITY):
     base = ((0., 0., 0.), (10., 0., 0.), (0., 10., 0.))
-    return Mesh(name, matrix, None, None, None, base, (Face((0, 1, 2), UP, UVS, 'skin'),), (),
+    return Mesh(name, matrix, None, None, None, base, *face_array([((0, 1, 2), UP, UVS, 'skin')]), (),
                 tuple(shape(item[0], base, *item[1:]) for item in shapes))
 
 
@@ -259,8 +287,38 @@ def studiomdl():
     return studiomdl
 
 
+class JointCollisionSharingTests(unittest.TestCase):
+    def test_joint_collision_geometry_cannot_be_a_model_bodygroup_or_lod_geometry(self):
+        shared, other = geometry('shared'), geometry('other')
+        joints = CollisionRecipe(shared, mode='JOINTS')
+        cases = {
+            'model': ModelRecipe('models/props/t.mdl', (ModelEntryRecipe('studio', shared),), collision=joints),
+            'bodygroup': ModelRecipe('models/props/t.mdl', (ModelEntryRecipe('studio', other),), collision=joints,
+                                     bodygroups=(BodygroupRecipe('g', (BLANK, shared)),)),
+            'lod': ModelRecipe('models/props/t.mdl', (ModelEntryRecipe('studio', other),), collision=joints,
+                               lods=(LODRecipe(other, shared, 20),)),
+        }
+        for name, recipe in cases.items():
+            with self.subTest(name):
+                with self.assertRaisesRegex(ValueError, r"\$collisionjoints geometry 'shared'"):
+                    build_model(None, recipe, {})
+        separate = ModelRecipe('models/props/t.mdl', (ModelEntryRecipe('studio', other),), collision=joints)
+        check_joint_collision(separate)
+        check_joint_collision(ModelRecipe('models/props/t.mdl', (ModelEntryRecipe('studio', shared),),
+                                          collision=CollisionRecipe(shared)))
+
+
 @unittest.skipIf(studiomdl() is None, 'this pylib build has no studiomdl')
 class BuildModelTests(unittest.TestCase):
+    def test_direct_weights_use_one_pose_count_for_fitting_and_testing(self):
+        body = geometry('body')
+        recipe = ModelRecipe('models/props/weights.mdl', (ModelEntryRecipe('studio', body),))
+        native = Mock(wraps=studiomdl().Model('props/weights'))
+        build_model(SimpleNamespace(Model=lambda name: native), recipe,
+                    {'body': Capture('body', (triangle_mesh('body'),), None)},
+                    fit_weight_poses=5)
+        native.set_fit_weights.assert_called_once_with(True, 5, 5)
+
     def test_compiled_model_has_the_recipe_parts(self):
         from SourceIO.library.models.mdl.v49.mdl_file import MdlV49
         from SourceIO.library.utils import MemoryBuffer
@@ -273,8 +331,8 @@ class BuildModelTests(unittest.TestCase):
             'low': Capture('low', (triangle_mesh('low', weights),), RIG),
             'hull': Capture('hull', (Mesh('hull', IDENTITY, None, None, None,
                                           ((0., 0., 0.), (10., 0., 0.), (0., 10., 0.), (0., 0., 10.)),
-                                          tuple(Face(face, UP, UVS, None)
-                                                for face in ((0, 2, 1), (0, 1, 3), (1, 2, 3), (2, 0, 3))),
+                                          *face_array((face, UP, UVS, None)
+                                                      for face in ((0, 2, 1), (0, 1, 3), (1, 2, 3), (2, 0, 3))),
                                           (), ()),), None),
         }
         helper = HelperBoneRecipe('twist', 'hand', (HelperTriggerRecipe(), HelperTriggerRecipe(
@@ -289,7 +347,8 @@ class BuildModelTests(unittest.TestCase):
             procedural_bones=(helper,), scale=2.0)
         rest = {bone.name: (bone.parent, np.array(bone.matrix_local)) for bone in RIG.bones}
         model = build_model(studiomdl(), recipe, captures, material_dirs=('models/props',),
-                            helpers=helper_rows(recipe.procedural_bones, rest, scale=1.0))
+                            helpers=helper_rows(recipe.procedural_bones, rest, scale=1.0),
+                            fit_weight_poses=7)
         result = model.compile()
         self.assertEqual(sorted(result.files), [f'models/props/direct.{suffix}'
                                                 for suffix in ('dx90.vtx', 'mdl', 'phy', 'vvd')])

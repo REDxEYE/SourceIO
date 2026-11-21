@@ -59,6 +59,14 @@ class SOURCEIO_OT_DropExportAsset(bpy.types.Operator):
                             f'Unsupported or missing SourceIO file: {path}')
                 return {'CANCELLED'}
 
+        vrd_paths = [path for path in paths if path.suffix.lower() in _VRD_EXTENSIONS]
+        if vrd_paths:
+            from .nodes.procedural_bone_nodes import import_vrd, vrd_target_output
+            output = vrd_target_output(context)
+            if output is None:
+                self.report({'ERROR'}, 'Select the model output that gets the VRD helper bones')
+                return {'CANCELLED'}
+
         texts = {}
         try:
             for path in paths:
@@ -75,24 +83,23 @@ class SOURCEIO_OT_DropExportAsset(bpy.types.Operator):
         for node in tree.nodes:
             node.select = False
         x, y = self.location
-        vrd_paths = [path for path in paths if path.suffix.lower() in _VRD_EXTENSIONS]
-        if vrd_paths:
-            from .nodes.procedural_bone_nodes import import_vrd, vrd_target_output
-            output = vrd_target_output(context)
-            if output is None:
-                self.report({'ERROR'}, 'Select the model output that gets the VRD helper bones')
-                return {'CANCELLED'}
-            for index, path in enumerate(vrd_paths):
-                try:
-                    created = import_vrd(
-                        output, path.read_text(encoding='utf-8', errors='replace'), (x, y - index * 600))
-                except (OSError, ValueError, RuntimeError) as exc:
-                    self.report({'ERROR'}, f'{path.name}: {exc}')
-                    return {'CANCELLED'}
+        created = []
+        for index, path in enumerate(vrd_paths):
+            try:
+                created += import_vrd(
+                    output, path.read_text(encoding='utf-8', errors='replace'), (x, y - index * 600))
+            except (OSError, ValueError, RuntimeError) as exc:
+                # A cancelled drop leaves nothing behind.
                 for node in created:
-                    node.select = True
-                    tree.nodes.active = node
-            paths = [path for path in paths if path not in vrd_paths]
+                    tree.nodes.remove(node)
+                for text in texts.values():
+                    bpy.data.texts.remove(text)
+                self.report({'ERROR'}, f'{path.name}: {exc}')
+                return {'CANCELLED'}
+        for node in created:
+            node.select = True
+            tree.nodes.active = node
+        paths = [path for path in paths if path not in vrd_paths]
         for index, path in enumerate(paths):
             if path.suffix.lower() in _QC_EXTENSIONS:
                 node = tree.nodes.new('SourceIOPropRawQcNode')

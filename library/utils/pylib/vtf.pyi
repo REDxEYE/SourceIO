@@ -148,8 +148,8 @@ class VTFFile:
         filter_mode : MipFilter or int, optional
             Filter used when generating mipmaps; default CATROM.
         flags : TextureFlags or int, optional
-            Accepted for compatibility but currently not applied to the texture;
-            use the flags property or set_flag() afterwards.
+            Only TextureFlags.NORMAL is applied here (it also makes mipmap generation treat alpha as an
+            independent channel); set other flags with the flags property or set_flag() afterwards.
         generate_mipmaps : bool, optional
             Whether to generate mipmaps; default True.
         generate_thumbnail : bool, optional

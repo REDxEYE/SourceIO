@@ -155,6 +155,14 @@ def _input_expression(node, name, resolve):
     return _expression(_one(node, name, resolve, _VALUE_TYPES, required=True))
 
 
+def _direct_controller(expression):
+    """Controller name when ``expression`` is just one name, however parenthesised (a raw expression node), else None."""
+    match = re.fullmatch(r"\s*((?:\(\s*)*)([A-Za-z_][A-Za-z0-9_]*)((?:\s*\))*)\s*", expression)
+    if match and match.group(1).count("(") == match.group(3).count(")"):
+        return match.group(2)
+    return None
+
+
 class SourceIOFlexMathNode(_PropNode, Node):
     bl_idname = "SourceIOFlexMathNode"
     bl_label = "Flex arithmetic"
@@ -333,7 +341,7 @@ class SourceIOFlexRawExpressionNode(_PropNode, Node):
         layout.prop(self, "expression")
 
     def recipe(self, resolve=None):
-        return _expression(self.expression)
+        return f"({_expression(self.expression)})"
 
 
 def _shape_keys(node):
@@ -499,7 +507,7 @@ def apply_rule_ranges(controls, rules):
     for rule in rules:
         if rule.weight_range is None:
             continue
-        name = rule.expression.strip()
+        name = _direct_controller(rule.expression)
         if name not in names:
             raise ValueError(
                 f"Flex rule {rule.object_name}:{rule.shape_name}: "
@@ -734,6 +742,15 @@ class SourceIOFlexRulesNode(_PropNode, Node):
                         use_multi_input=True)
         self.outputs.new("SourceIOFlexRulesSocket", "Flex Rules")
 
+    def copy(self, node):
+        # The copy must not inherit the original's installed drivers; turning
+        # use_drivers off on a node without state removes nothing.
+        self.driver_state = ""
+        self.use_drivers = False
+
+    def free(self):
+        _flex_drivers().clear_node_drivers(self)
+
     def drivers_toggled(self, context):
         _flex_drivers().drivers_toggled(self, context)
 
@@ -828,7 +845,7 @@ def derive_controller_shapes(controls, rules):
         if isinstance(control, FlexControllerRecipe) and not control.raw_names:
             direct = {}
             for rule in rules:
-                if rule.expression.strip() == control.name:
+                if _direct_controller(rule.expression) == control.name:
                     direct.setdefault(rule.shape_name, rule.wrinkle_scale)
             if len(direct) != 1:
                 direct = {}
@@ -1064,17 +1081,28 @@ def _touches(shapes, geometries, changed_keys):
     return False
 
 
+_repairing = False
+
+
 def repair_flex_groups(tree):
     """Recreate the inner tree of groups whose datablock was deleted.
 
     The rules that were in the deleted tree are lost.
     """
-    for node in tuple(tree.nodes):
-        if (node.bl_idname == 'SourceIOFlexGroupNode'
-                and node.node_tree is None):
-            node.create_inner_tree()
-            if node.outputs.get('Flex Rules') is None:
-                node.outputs.new("SourceIOFlexRulesSocket", "Flex Rules")
+    global _repairing
+    if _repairing:  # creating the tree updates this tree again before node_tree is assigned
+        return
+    _repairing = True
+    try:
+        for node in tuple(tree.nodes):
+            # Only nodes that already have their output: the update that fires
+            # while init() is still running must not add a second output/tree.
+            if (node.bl_idname == 'SourceIOFlexGroupNode'
+                    and node.node_tree is None
+                    and node.outputs.get('Flex Rules') is not None):
+                node.create_inner_tree()
+    finally:
+        _repairing = False
 
 
 def migrate_flex_geometry(tree):
@@ -1680,7 +1708,6 @@ def _shape_key_update(scene, depsgraph):
     for tree in bpy.data.node_groups:
         if tree.bl_idname == 'sourceio.model_definition':
             sync_flex_tree(tree, keys)
-            sync_connected_flex_groups(tree, keys)
 
 
 def register_flex_sync():

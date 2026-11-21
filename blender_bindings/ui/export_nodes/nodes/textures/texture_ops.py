@@ -91,6 +91,85 @@ def _blend_angle(a0, a1, t):
     return np.arctan2(s, c)
 
 
+def _clear_size_error(node):
+    """Forget the last size error; written only when set to keep the node clean."""
+    if node.size_error:
+        node.size_error = ""
+
+
+def _check_size(node, label, value, ref_label, ref):
+    """Raise ValueError (and remember it on ``node``) unless ``value`` and
+    ``ref`` share height and width.
+    """
+    if value.shape[:2] == ref.shape[:2]:
+        return
+    (h, w), (rh, rw) = value.shape[:2], ref.shape[:2]
+    node.size_error = (
+        f"{label} is {w}×{h}, {ref_label} is {rw}×{rh}. Add Resize "
+        f"(Texture/Channel) between {label} and {node.name}, set "
+        f"Width={rw} Height={rh}.")
+    raise ValueError(node.size_error)
+
+
+def _draw_size_error(node, layout):
+    if node.size_error:
+        # Problem and fix on separate lines; one long label gets elided mid-text.
+        problem, _, fix = node.size_error.partition(". ")
+        col = layout.column(align=True)
+        col.label(text=problem, icon='ERROR')
+        col.label(text=fix)
+
+
+# Largest Resize output (float32 bytes); 8192×8192 RGBA fits exactly.
+_MAX_RESIZE_BYTES = 1 << 30
+# Elements per temporary array while resampling a band of output rows.
+_RESIZE_BAND_ELEMENTS = 1 << 22
+
+
+def _source_coords(src_size, dst_size):
+    """Source coordinate of each destination pixel centre."""
+    return (np.arange(dst_size) + 0.5) * (src_size / dst_size) - 0.5
+
+
+def _resize(src, width, height, nearest):
+    """Resample an HxW or HxWxC float array to ``height`` x ``width``,
+    clamping at the edges; rows keep their order.
+    """
+    src = ensure_f32(src)
+    src_h, src_w = src.shape[:2]
+    extra = src.shape[2:]
+    out = np.empty((height, width, *extra), np.float32)
+    band = max(1, _RESIZE_BAND_ELEMENTS
+               // (max(src_w, width) * (extra[0] if extra else 1)))
+    if nearest:
+        ys = np.clip(np.floor(_source_coords(src_h, height) + 0.5),
+                     0, src_h - 1).astype(np.intp)
+        xs = np.clip(np.floor(_source_coords(src_w, width) + 0.5),
+                     0, src_w - 1).astype(np.intp)
+        for start in range(0, height, band):
+            out[start:start + band] = src[ys[start:start + band]][:, xs]
+        return out
+
+    def axis(src_size, dst_size):
+        x = np.clip(_source_coords(src_size, dst_size), 0, src_size - 1)
+        i0 = np.floor(x).astype(np.intp)
+        i1 = np.minimum(i0 + 1, src_size - 1)
+        return i0, i1, (x - i0).astype(np.float32)
+
+    y0, y1, ty = axis(src_h, height)
+    x0, x1, tx = axis(src_w, width)
+    ones = (1,) * len(extra)
+    tx = tx.reshape(1, width, *ones)
+    for start in range(0, height, band):
+        rows = slice(start, start + band)
+        t = ty[rows].reshape(-1, 1, *ones)
+        top = src[y0[rows]]
+        mixed = top + (src[y1[rows]] - top) * t
+        left = mixed[:, x0]
+        out[rows] = left + (mixed[:, x1] - left) * tx
+    return out
+
+
 class SourceIOTextureInvertChannelsNode(SourceIOTextureTreeNode):
     bl_idname = "SourceIOTextureInvertChannelsNode"
     bl_label = "Invert Channels"
@@ -166,6 +245,8 @@ class SourceIOTextureCombineChannelsNode(SourceIOTextureTreeNode):
     bl_idname = "SourceIOTextureCombineChannelsNode"
     bl_label = "Combine Channels"
 
+    size_error: bpy.props.StringProperty(options={'HIDDEN'})
+
     def init(self, context):
         for channel in "RGBA":
             socket = self.inputs.new('SourceIOTextureChannelSocket', channel)
@@ -174,14 +255,19 @@ class SourceIOTextureCombineChannelsNode(SourceIOTextureTreeNode):
 
         self.outputs.new('SourceIOTextureSocket', "texture")
 
+    def draw_buttons(self, context, layout):
+        _draw_size_error(self, layout)
+
     def process(self, inputs: dict[str, np.ndarray]) -> dict | None:
-        arrays = [value for value in inputs.values()
+        _clear_size_error(self)
+        arrays = [(name, value) for name, value in inputs.items()
                   if isinstance(value, np.ndarray)]
-        if not arrays or arrays[0].ndim != 2:
+        if not arrays or not all(_is_channel(value) for _, value in arrays):
             return None
-        if any(array.shape != arrays[0].shape for array in arrays):
-            return None
-        height, width = arrays[0].shape
+        ref_name, ref = arrays[0]
+        for name, value in arrays[1:]:
+            _check_size(self, name, value, ref_name, ref)
+        height, width = ref.shape
 
         rgba = np.zeros((height, width, 4), np.float32)
 
@@ -313,6 +399,7 @@ class SourceIOTextureMathNode(SourceIOTextureTreeNode):
     factor: bpy.props.FloatProperty(name="Factor", default=0.5,
                                     min=0.0, max=1.0)
     clamp_result: bpy.props.BoolProperty(name="Clamp 0..1", default=False)
+    size_error: bpy.props.StringProperty(options={'HIDDEN'})
 
     def _sync_io_visibility(self):
         """Show the result type selected by the linked input shapes."""
@@ -340,6 +427,7 @@ class SourceIOTextureMathNode(SourceIOTextureTreeNode):
         if self.operation == 'LERP':
             layout.prop(self, "factor")
         layout.prop(self, "clamp_result")
+        _draw_size_error(self, layout)
 
     def init(self, context):
         """Create sockets."""
@@ -368,14 +456,15 @@ class SourceIOTextureMathNode(SourceIOTextureTreeNode):
 
         An unlinked B uses the B channel socket value.
         """
+        _clear_size_error(self)
         kind_a, a = self._pick(inputs, "A")
         if a is None:
             return None
         kind_b, b = self._pick(inputs, "B")
         if b is None:
             b = float(self.inputs["B channel"].default_value)
-        elif a.shape[:2] != b.shape[:2]:
-            return None
+        else:
+            _check_size(self, f"B {kind_b}", b, f"A {kind_a}", a)
         kind = "texture" if "texture" in (kind_a, kind_b) else "channel"
         a = ensure_f32(a)
         if isinstance(b, np.ndarray):
@@ -399,7 +488,8 @@ class SourceIOTextureMathNode(SourceIOTextureTreeNode):
         elif self.operation == 'MUL':
             r = a * b
         elif self.operation == 'DIV':
-            r = a / np.maximum(b, 1e-6)
+            r = a / np.where(np.abs(b) < 1e-6,
+                             np.copysign(1e-6, b), b)
         elif self.operation == 'POW':
             r = np.power(np.maximum(a, 0.0), b)
         elif self.operation == 'MIN':
@@ -591,11 +681,13 @@ class SourceIONormalBlendNode(SourceIOTextureTreeNode):
     factor: bpy.props.FloatProperty(name="Factor", default=1.0,
                                     min=0.0, max=1.0)
     renormalize: bpy.props.BoolProperty(name="Renormalize", default=True)
+    size_error: bpy.props.StringProperty(options={'HIDDEN'})
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "method", text="")
         layout.prop(self, "factor")
         layout.prop(self, "renormalize")
+        _draw_size_error(self, layout)
 
     def init(self, context):
         self.inputs.new('SourceIOTextureSocket', "Base")
@@ -603,12 +695,12 @@ class SourceIONormalBlendNode(SourceIOTextureTreeNode):
         self.outputs.new('SourceIOTextureSocket', "texture")
 
     def process(self, inputs: dict) -> dict | None:
+        _clear_size_error(self)
         base = inputs.get("Base")
         detail = inputs.get("Detail")
         if not (_is_texture(base) and _is_texture(detail)):
             return None
-        if base.shape[:2] != detail.shape[:2]:
-            return None
+        _check_size(self, "Detail", detail, "Base", base)
 
         a = _rgb_to_unit_vec(base)
         b = _rgb_to_unit_vec(detail)
@@ -710,17 +802,79 @@ class SourceIOColorSpaceNode(SourceIOTextureTreeNode):
         return None
 
 
-def _channel_like(value, shape, label):
-    """Broadcast an unlinked channel default (float) or validate a linked
-    HxW channel.
+def _dimension(value, label):
+    """A linked or inline Width/Height as a positive int."""
+    if (isinstance(value, (bool, np.bool_))
+            or not isinstance(value, (int, np.integer))):
+        raise ValueError(f"{label} needs a positive integer, got "
+                         f"{type(value).__name__}")
+    if value <= 0:
+        raise ValueError(f"{label} must be greater than 0, got {value}")
+    return int(value)
+
+
+class SourceIOTextureResizeNode(SourceIOTextureTreeNode):
+    """Resample a texture or channel to exact pixel dimensions."""
+    bl_idname = "SourceIOTextureResizeNode"
+    bl_label = "Resize (Texture/Channel)"
+
+    filter: bpy.props.EnumProperty(
+        name="Filter",
+        items=[('NEAREST', 'Nearest', 'Copy the nearest source pixel'),
+               ('BILINEAR', 'Bilinear',
+                'Interpolate the four nearest source pixels')],
+        default='BILINEAR'
+    )
+
+    _sync_io_visibility = SourceIOColorSpaceNode._sync_io_visibility
+    _resolve_kind = SourceIOColorSpaceNode._resolve_kind
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "filter", text="")
+
+    def init(self, context):
+        self.inputs.new('SourceIOTextureSocket', "texture")
+        self.inputs.new('SourceIOTextureChannelSocket', "channel")
+        for name in ("Width", "Height"):
+            self.inputs.new('NodeSocketInt', name).default_value = 1024
+        self.outputs.new('SourceIOTextureSocket', "texture")
+        self.outputs.new('SourceIOTextureChannelSocket', "channel")
+        self._sync_io_visibility()
+
+    def process(self, inputs: dict) -> dict | None:
+        if self.inputs["texture"].is_linked and self.inputs["channel"].is_linked:
+            raise ValueError("connect either texture or channel, not both")
+        kind = self._resolve_kind()
+        if kind is None:
+            return None
+        key = kind.lower()
+        src = inputs.get(key)
+        if not (_is_texture(src) if kind == 'TEXTURE' else _is_channel(src)):
+            return None
+        width = _dimension(inputs.get("Width"), "Width")
+        height = _dimension(inputs.get("Height"), "Height")
+        if src.shape[:2] == (height, width):
+            return {key: ensure_f32(src)}
+        size = width * height * (src.shape[2] if src.ndim == 3 else 1) * 4
+        if size > _MAX_RESIZE_BYTES:
+            raise ValueError(f"{width}×{height} output needs "
+                             f"{size / (1 << 30):.1f} GiB, more than the "
+                             f"{_MAX_RESIZE_BYTES >> 30} GiB limit")
+        return {key: _resize(src, width, height, self.filter == 'NEAREST')}
+
+
+def _channel_like(node, value, normal, label):
+    """Broadcast an unlinked channel default (float) to the normal map size
+    or validate a linked HxW channel.
     """
     if isinstance(value, np.ndarray):
-        if value.ndim != 2 or value.shape != shape:
-            raise ValueError(f"PBR to Phong: {label} is {value.shape[:2]}, "
-                             f"normal map is {shape}")
+        if not _is_channel(value):
+            raise ValueError(f"{label} needs a channel (H×W), got an array "
+                             f"of shape {value.shape}")
+        _check_size(node, label, value, "Normal", normal)
         return ensure_f32(value)
-    return np.full(shape, float(value if value is not None else 0.0),
-                   np.float32)
+    return np.full(normal.shape[:2],
+                   float(value if value is not None else 0.0), np.float32)
 
 
 class SourceIOPBRToPhongNode(SourceIOTextureTreeNode):
@@ -751,6 +905,7 @@ class SourceIOPBRToPhongNode(SourceIOTextureTreeNode):
     mask_gloss_power: bpy.props.FloatProperty(
         name="Mask gloss power", default=1.0, min=0.0,
         description="Mask is multiplied by (1 - roughness) ^ power")
+    size_error: bpy.props.StringProperty(options={'HIDDEN'})
 
     def init(self, context):
         self.width = 200
@@ -771,18 +926,17 @@ class SourceIOPBRToPhongNode(SourceIOTextureTreeNode):
             layout.prop(self, "max_exponent")
         layout.prop(self, "dielectric_mask")
         layout.prop(self, "mask_gloss_power")
+        _draw_size_error(self, layout)
 
     def process(self, inputs: dict) -> dict | None:
+        _clear_size_error(self)
         normal = inputs.get("Normal")
         if not _is_texture(normal):
             return None
         shape = normal.shape[:2]
-        roughness = _clamp01(_channel_like(inputs.get("Roughness"), shape,
-                                           "Roughness"))
-        metalness = _clamp01(_channel_like(inputs.get("Metalness"), shape,
-                                           "Metalness"))
-        rim = _clamp01(_channel_like(inputs.get("Rim mask"), shape,
-                                     "Rim mask"))
+        roughness, metalness, rim = (
+            _clamp01(_channel_like(self, inputs.get(label), normal, label))
+            for label in ("Roughness", "Metalness", "Rim mask"))
         gloss = 1.0 - roughness
         if self.exponent_mode == "PHYSICAL":
             alpha = np.maximum(roughness * roughness, 1e-4)

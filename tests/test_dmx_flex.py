@@ -11,7 +11,7 @@ import numpy as np
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import write_dmx
 from SourceIO.blender_bindings.source1.model_export.dmx_flex import _advanced, _stereo_balance
 from SourceIO.blender_bindings.source1.model_export.dmx_stereo import _left_weights
-from SourceIO.blender_bindings.source1.model_export.dmx_types import Capture, Face, Mesh, Shape
+from SourceIO.blender_bindings.source1.model_export.dmx_types import Capture, Mesh, Shape, VertexAnimation, face_array
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     FlexControllerRecipe, FlexRuleRecipe, FlexRuleSetRecipe, GeometryRecipe, ModelEntryRecipe, VirtualControllerRecipe)
 from SourceIO.library.utils import datamodel_v2 as dm
@@ -25,7 +25,7 @@ VERSIONS = ((2, 1), (4, 15), (5, 18))
 
 def mesh(name='Panel', shapes=()):
     return Mesh(name, IDENTITY, None, None, None, BASE,
-                (Face((0, 1, 2), NORMALS[0], ((0., 0.), (1., 0.), (0., 1.)), 'panel'),), (), shapes)
+                *face_array([((0, 1, 2), NORMALS[0], ((0., 0.), (1., 0.), (0., 1.)), 'panel')]), (), shapes)
 
 
 def shape(name, z):
@@ -108,6 +108,17 @@ class TypedFlexTests(unittest.TestCase):
                                     (FlexRuleRecipe('Left', 'left', 'missing'), *rules.rules[1:]))
         with self.assertRaisesRegex(ValueError, 'unknown controller'):
             self.write(capture, recipe(flex_rule_set=invalid))
+
+    def test_flex_rules_and_vertex_animation_clips_are_rejected_together(self):
+        base = mesh('Panel', (shape('smile', .2),))
+        clips = (VertexAnimation('pulse', 'Panel', (Shape('pulse-0', BASE, NORMALS),)),)
+        rules = FlexRuleSetRecipe(GeometryRecipe(object(), 'face'), (FlexControllerRecipe('smile', ('smile',)),),
+                                  (FlexRuleRecipe('Panel', 'smile', 'smile'),))
+        with self.assertRaisesRegex(ValueError, 'Flex rules cannot be combined'):
+            self.write(Capture('face', (base,), None, clips), recipe(flex_rule_set=rules))
+        # Clips alone, and rules alone, still export.
+        self.write(Capture('face', (base,), None, clips))
+        self.write(Capture('face', (base,), None), recipe(flex_rule_set=rules))
 
     def test_shared_shape_name_still_targets_each_mesh_rule(self):
         capture = Capture('face', (mesh('Left', (shape('smile', .2),)), mesh('Right', (shape('smile', .3),))), None)

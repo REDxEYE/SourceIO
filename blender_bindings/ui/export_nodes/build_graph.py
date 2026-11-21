@@ -12,7 +12,7 @@ from SourceIO.blender_bindings.source1.model_export.compiler import (
     CompilationError, builtin_studiomdl, compile_builtin, compile_direct, compile_model, compile_with_source_tools,
     direct_command, validate_source_tools_compiler)
 from SourceIO.blender_bindings.source1.model_export.direct_build import (
-    AdvancedFlex, Issue, build_model, direct_support, parse_advanced_flex)
+    AdvancedFlex, Issue, build_model, check_joint_collision, direct_support, parse_advanced_flex)
 from SourceIO.blender_bindings.source1.model_export.dmx_axis import (
     orient_capture)
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import (
@@ -41,6 +41,7 @@ from SourceIO.blender_bindings.source1.model_export.smd_builder import (
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_5
 from .export_cache import (ExportCache, cache_path, geometry_fingerprint,
                            node_fingerprint)
+from .nodes.base_node import SourceIOTextureTreeNode
 from .nodes.material_nodes import (SourceIOExternalTextureNode,
                                    SourceIOImageSourceNode,
                                    SourceIOVTFOutputNode, VMT_NODE_TYPES)
@@ -59,7 +60,15 @@ class GraphResolver:
 
     def __init__(self):
         self.cache = {}
+        self.pixels = {}
         self.active = set()
+
+    def pixels_for(self, value):
+        if not isinstance(value, (ImageSourceRecipe, ExternalTextureSourceRecipe)):
+            return value
+        if value not in self.pixels:
+            self.pixels[value] = texture_pixels(value)
+        return self.pixels[value]
 
     def __call__(self, socket):
         if not socket.is_output:
@@ -91,12 +100,15 @@ class GraphResolver:
             elif callable(getattr(node, 'process', None)):
                 inputs = {}
                 for item in node.inputs:
-                    value = self(item)
-                    if isinstance(value, (ImageSourceRecipe,
-                                          ExternalTextureSourceRecipe)):
-                        value = texture_pixels(value)
-                    inputs[item.name] = value
-                values = node.process(inputs) or {}
+                    inputs[item.name] = self.pixels_for(self(item))
+                try:
+                    values = node.process(inputs) or {}
+                except ValueError as exc:
+                    # Texture ops raise ValueError without their node name; Export and Update Preview report
+                    # GraphBuildError. Flex nodes name themselves and their callers catch ValueError.
+                    if not isinstance(node, SourceIOTextureTreeNode):
+                        raise
+                    raise GraphBuildError(f'{node.name}: {exc}') from exc
                 for output in node.outputs:
                     if output.name in values:
                         self.cache[(node, output)] = values[output.name]
@@ -147,7 +159,7 @@ class BuildPlan:
     material_dirs: tuple[str, ...] = ()
     # What the direct backend can't build (only computed for it)
     direct_issues: tuple[Issue, ...] = ()
-    # -fitweights sample poses of the built-in studiomdl (0: off)
+    # -fitweights poses for fitting and testing (0: off)
     fit_weight_poses: int = 0
 
     @property
@@ -271,6 +283,27 @@ def _artifacts(materials: tuple[MaterialRecipe, ...], game_root: Path):
                     f'Conflicting material recipes for {destination}')
             result[destination] = data
     return tuple(result.items())
+
+
+def _protect_source_textures(assets, nodes):
+    """Never write a VTF over an image used by this graph."""
+    source_files = set()
+    for node in nodes:
+        if isinstance(node, SourceIOExternalTextureNode):
+            source_path = node.source_path
+        elif (isinstance(node, SourceIOImageSourceNode)
+              and node.image is not None):
+            source_path = node.image.filepath
+        else:
+            continue
+        if source_path:
+            source_files.add(Path(bpy.path.abspath(source_path)).resolve())
+    for destination, _ in assets:
+        if (destination.suffix.lower() == '.vtf'
+                and destination.resolve() in source_files):
+            raise GraphBuildError(f'VTF output would overwrite source '
+                                  f'image {destination}; choose a '
+                                  'different VTF path')
 
 
 def _geometry_objects(geometry):
@@ -514,6 +547,8 @@ def _cached_textures(resolver, root_node, game_root: Path,
     Returns (fingerprints of the other outputs, stubbed paths).
     """
     keys, cached = {}, set()
+    outputs = []
+    counts = {}
     for node in _upstream_nodes(root_node):
         if not isinstance(node, SourceIOVTFOutputNode):
             continue
@@ -522,6 +557,12 @@ def _cached_textures(resolver, root_node, game_root: Path,
         except ValueError as exc:
             raise GraphBuildError(f'{node.name}: {exc}') from exc
         destination = game_root.joinpath(*PurePosixPath(relative).parts)
+        outputs.append((node, relative, destination))
+        counts[destination] = counts.get(destination, 0) + 1
+    for node, relative, destination in outputs:
+        if counts[destination] > 1:
+            # One cache key cannot represent multiple producers of this file.
+            continue
         key = node_fingerprint(node)
         if cache.fresh(destination, key):
             resolver.cache[(node, node.outputs['VTF'])] = VTFRecipe(
@@ -541,7 +582,7 @@ def model_cache(output: SourceIOPropModelNode) -> ExportCache | None:
         return None
     try:
         qc_path = _root(output.content_root, 'content root') / PurePosixPath(
-            output.model_path.strip()).with_suffix('.qc')
+            output.model_path.strip().replace('\\', '/')).with_suffix('.qc')
     except (GraphBuildError, ValueError):
         return None
     return ExportCache(cache_path(qc_path))
@@ -567,6 +608,7 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
             resolver, output, _root(output.game_root, 'game root'), cache)
     try:
         model = collect_model(output, resolver)
+        check_joint_collision(model)
         if not output.native_settings_confirmed:
             raise GraphBuildError('Review geometry up axis, collection merge '
                                   'and triangulation (and DMX version for '
@@ -592,9 +634,15 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
         # filenames. Prefer the old same-named choice when multiple recipes
         # provide skins.
         material_names = {}
+        material_paths = {}
         for item in materials:
             name = item.material.name
             stem = PurePosixPath(item.vmt_path).stem
+            previous = material_paths.setdefault(stem.casefold(), item.vmt_path)
+            if previous.casefold() != item.vmt_path.casefold():
+                raise GraphBuildError(
+                    f'Conflicting material filename {stem!r}: '
+                    f'{previous!r} and {item.vmt_path!r}')
             if (name not in material_names
                     or stem.casefold() == name.casefold()):
                 material_names[name] = stem
@@ -687,24 +735,7 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
             assets += (_sfm_rig_script(model, rigs, game_root),)
         if model.procedural_bones:
             assets += (_procedural_bones_vrd(model, rigs, qc_path),)
-        source_files = set()
-        for node in nodes:
-            if isinstance(node, SourceIOExternalTextureNode):
-                source_path = node.source_path
-            elif (isinstance(node, SourceIOImageSourceNode)
-                  and node.image is not None):
-                source_path = node.image.filepath
-            else:
-                continue
-            if source_path:
-                source_files.add(
-                    Path(bpy.path.abspath(source_path)).resolve())
-        for destination, _ in assets:
-            if (destination.suffix.lower() == '.vtf'
-                    and destination.resolve() in source_files):
-                raise GraphBuildError(f'VTF output would overwrite source '
-                                      f'image {destination}; choose a '
-                                      'different VTF path')
+        _protect_source_textures(assets, nodes)
         flex_sources = _flex_sources(model, geometry_format)
         plan = BuildPlan(model, content_root, game_root, qc_path,
                          geometry_format, encoding_version,
@@ -727,9 +758,13 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
                         or not sibling.game_root.strip()
                         or not sibling.inputs['Models'].is_linked):
                     continue
-                other = plan_model(sibling, check_shared=False)
-                if other.game_root != game_root:
-                    continue
+                try:
+                    if _root(sibling.game_root, 'game root') != game_root:
+                        continue
+                    other = plan_model(sibling, check_shared=False,
+                                       cache=model_cache(sibling))
+                except GraphBuildError as exc:
+                    raise GraphBuildError(f'{sibling.name}: {exc}') from exc
                 if (other.model_file == plan.model_file
                         or other.qc_path == plan.qc_path):
                     raise GraphBuildError(
@@ -739,6 +774,10 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
                     if destination in plan.cached_assets:
                         # Reused from disk: nothing new is written there.
                         continue
+                    if (destination in own_assets
+                            and destination in other.cached_assets):
+                        # Compare cached bytes only when paths overlap.
+                        data = destination.read_bytes()
                     if (destination in own_assets
                             and own_assets[destination] != data):
                         raise GraphBuildError(
@@ -777,7 +816,7 @@ def _merged_entry(entry, mesh_name):
 
 def compile_log_name(model_path: str) -> str:
     """Blender text holding the last compile log of a model; the leading dot hides it from text lists."""
-    return f'.{PurePosixPath(model_path).stem}.compile.log'
+    return f'.{PurePosixPath(model_path).with_suffix("")}.compile.log'
 
 
 def write_compile_log(model_path: str, text: str) -> bpy.types.Text:
@@ -1008,6 +1047,7 @@ def export_materials(output: SourceIOPropModelNode,
         raise GraphBuildError(
             'A linked Material node returned an invalid recipe')
     assets = _artifacts(materials, game_root)
+    _protect_source_textures(assets, _upstream_nodes(output))
     _write_assets(assets, frozenset(cached), tuple(keys.items()), cache)
     return tuple(path for path, _ in assets)
 
@@ -1073,8 +1113,7 @@ def compile_plan(plan: BuildPlan, cache: ExportCache | None = None) -> str:
     elif plan.compiler_backend == 'BUILTIN':
         output = compile_builtin(plan.qc_path, plan.game_root, plan.fit_weight_poses)
     elif plan.compiler_backend == 'DIRECT':
-        warnings = '\n'.join(f'Warning: {issue.message}' for issue in plan.direct_issues)
-        output = '\n'.join(filter(None, (warnings, compile_model(model, plan.game_root))))
+        output = compile_model(model, plan.game_root)
     else:
         output = compile_with_source_tools(plan.qc_path, plan.game_root,
                                            engine, state)
@@ -1114,9 +1153,16 @@ class _GraphAction(bpy.types.Operator):
             return self._run(output)
 
     def _run(self, output):
-        cache = model_cache(output) if self.action != 'PREVIEW' else None
+        cache = model_cache(output) if self.action not in {'PREVIEW', 'CHECK'} else None
         try:
-            return self._action(output, cache)
+            result = self._action(output, cache)
+            if result == {'FINISHED'} and self.action in {'MATERIALS', 'EXPORT', 'COMPILE'}:
+                output.texture_issues = '\n'.join(
+                    node.resize_warning for node in _upstream_nodes(output)
+                    if isinstance(node, SourceIOVTFOutputNode) and node.resize_warning)
+                for warning in output.texture_issues.splitlines():
+                    self.report({'WARNING'}, warning)
+            return result
         finally:
             if cache is not None:
                 try:

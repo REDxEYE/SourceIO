@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from math import radians
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import bpy
 import numpy as np
@@ -15,9 +17,10 @@ from SourceIO.blender_bindings.ui.export_nodes.nodes import (procedural_bone_nod
 from SourceIO.blender_bindings.ui.export_nodes import register_nodes, unregister_nodes
 from SourceIO.blender_bindings.source1.model_export.bst_bridge import SourceToolsError
 from SourceIO.blender_bindings.ui.export_nodes.build_graph import (
-    GraphBuildError, GraphResolver, compile_plan, export_plan, model_cache, plan_model, store_direct_issues,
-    write_compile_log)
+    GraphBuildError, GraphResolver, _GraphAction, compile_plan, export_materials, export_plan, model_cache, plan_model,
+    store_direct_issues, write_compile_log)
 from SourceIO.blender_bindings.source1.model_export.compiler import CompilationError, direct_command
+from SourceIO.blender_bindings.source1.model_export import compiler as export_compiler
 from SourceIO.blender_bindings.source1.model_export.material_assets import texture_pixels
 from SourceIO.library.utils.pylib.vtf import ImageFormat, TextureFlags, VTFFile, load_vtf_texture
 from SourceIO.library.utils import datamodel_v2
@@ -589,6 +592,18 @@ class ExportGraphTests(unittest.TestCase):
         for actual, expected in zip(angles, (90, 0, -45)):
             self.assertAlmostEqual(actual, expected, places=3)
 
+    def test_qc_names_preserve_backslashes_and_reject_quotes(self):
+        self.model_entry(self.mesh_node('reference'))
+        attachment = self.tree.nodes.new('SourceIOPropAttachmentNode')
+        attachment.attachment_name = 'eyes\\'
+        attachment.bone = r'Head\\bone'
+        self.tree.links.new(attachment.outputs['Attachment'], self.output.inputs['Attachments'])
+        self.assertIn('$attachment "eyes\\" "Head\\\\bone" ', plan_model(self.output).qc_text)
+        attachment.attachment_name = 'bad"name'
+        with self.assertRaisesRegex(GraphBuildError, 'cannot contain double quotes'):
+            plan_model(self.output)
+        self.assertFalse((self.root / 'game').exists())
+
     def test_reroute_cycle_reports_graph_error(self):
         first = self.tree.nodes.new('NodeReroute')
         second = self.tree.nodes.new('NodeReroute')
@@ -612,6 +627,23 @@ class ExportGraphTests(unittest.TestCase):
         with self.assertRaisesRegex(GraphBuildError, 'not a directory'):
             plan_model(self.output)
 
+    def test_windows_style_model_path_uses_same_qc_cache_and_model_path(self):
+        self.model_entry(self.mesh_node('reference'))
+        self.output.model_path = r'models\props\test.mdl'
+        plan = plan_model(self.output)
+        self.assertEqual(plan.model.model_path, 'models/props/test.mdl')
+        self.assertEqual(plan.qc_path, self.root / 'content/models/props/test.qc')
+        self.assertEqual(model_cache(self.output).path,
+                         self.root / 'content/models/props/test.sourceio-cache.json')
+        self.assertIn('$modelname "props/test.mdl"', plan.qc_text)
+
+    def test_compiler_preserves_non_utf8_output_in_log(self):
+        log = export_compiler.compile_direct(
+            self.root / 'test.qc',
+            [bpy.app.binary_path, '-b', '--factory-startup', '--python-expr',
+             "import os; os.write(1, b'\\xff')"])
+        self.assertIn('\ufffd', log)
+
     def test_compiler_command_expands_paths_as_single_arguments(self):
         qc = self.root / 'content dir' / 'model.qc'
         game = self.root / 'game dir'
@@ -620,7 +652,19 @@ class ExportGraphTests(unittest.TestCase):
         with self.assertRaises(CompilationError):
             direct_command(qc, game, 'wine studiomdl -game {game} {missing}')
 
+    def test_compiler_command_preserves_windows_backslashes(self):
+        qc = self.root / 'content dir' / 'model.qc'
+        game = self.root / 'game dir'
+        with patch.object(export_compiler, 'os', SimpleNamespace(name='nt')):
+            self.assertEqual(
+                direct_command(qc, game, r'D:\SDK\bin\studiomdl.exe -game {game} {qc}'),
+                [r'D:\SDK\bin\studiomdl.exe', '-game', str(game), str(qc)])
+            self.assertEqual(
+                direct_command(qc, game, r'"D:\Source SDK\studiomdl.exe" -game "{game}" "{qc}"'),
+                [r'D:\Source SDK\studiomdl.exe', '-game', str(game), str(qc)])
+
     def _flex_rules(self):
+
         """Face with smile and blink.L/R keys, teeth with an open key; a flex rules collector over them."""
         if not hasattr(bpy.types.Object, 'flex_controllers'):  # registered by the add-on, not by register_nodes
             from SourceIO.blender_bindings.operators.flex_operators import SourceIO_PG_FlexController
@@ -729,11 +773,13 @@ class ExportGraphTests(unittest.TestCase):
     def test_builtin_compiler_writes_the_model_or_refuses_before_exporting(self):
         self.model_entry(self.mesh_node('reference'))
         self.output.compiler_backend = 'BUILTIN'
+        self.output.fit_weight_poses = 7
         # The hidden DMX fields don't apply: fixed versions, weights left for studiomdl to reduce
         self.output.dmx_encoding_version, self.output.dmx_model_version = '2', '1'
         self.output.dmx_trim_weights = True
         plan = plan_model(self.output)
         self.assertEqual((plan.encoding_version, plan.model_version, plan.trim_weights), (5, 18, False))
+        self.assertEqual(plan.fit_weight_poses, 7)
         try:
             from SourceIO.library.utils.pylib import studiomdl  # noqa: F401
         except ImportError:  # builds without pylib.studiomdl (arm64 macOS)
@@ -743,11 +789,36 @@ class ExportGraphTests(unittest.TestCase):
             return
         log = write_compile_log(plan.model.model_path, compile_plan(plan))
         self.addCleanup(lambda: bpy.data.texts.remove(log))
-        self.assertEqual(log.name, f'.{plan.model_file.stem}.compile.log')
+        self.assertEqual(log.name, '.models/props/test.compile.log')
         self.assertIn(plan.model_file.stem, log.as_string())
         self.assertEqual(plan.model_file.read_bytes()[:4], b'IDST')
         for suffix in ('.vvd', '.dx90.vtx'):
             self.assertTrue(plan.model_file.with_name(plan.model_file.stem + suffix).is_file(), suffix)
+
+    def test_direct_plan_uses_the_shared_pose_count(self):
+        self.model_entry(self.mesh_node('reference'))
+        self.output.compiler_backend = 'DIRECT'
+        self.output.fit_weight_poses = 5
+        self.assertEqual(plan_model(self.output).fit_weight_poses, 5)
+
+    def test_only_one_pose_count_control_is_shown(self):
+        for backend in ('BUILTIN', 'DIRECT'):
+            self.output.compiler_backend = backend
+            layout = MagicMock()
+            self.output.draw_buttons(None, layout)
+            properties = [call.args[1] for call in layout.prop.call_args_list]
+            self.assertEqual(properties.count('fit_weight_poses'), 1)
+            self.assertNotIn('test_weight_poses', properties)
+
+    def test_builtin_compiler_uses_one_pose_count_for_fitting_and_testing(self):
+        counts = []
+        backend = SimpleNamespace(compile_qc=lambda path, **options: counts.append(options['fit_weights']))
+        with patch.object(export_compiler, 'builtin_studiomdl', return_value=backend), \
+                patch.object(export_compiler, '_run_studiomdl',
+                             side_effect=lambda module, run, root: run(None)):
+            export_compiler.compile_builtin(self.root / 'unused.qc', self.root, 5)
+            export_compiler.compile_builtin(self.root / 'unused.qc', self.root, 0)
+        self.assertEqual(counts, [(5, 5), None])
 
     def test_conflicting_shared_texture_path_fails_before_any_file_write(self):
         mat_a = bpy.data.materials.new('first')
@@ -769,6 +840,123 @@ class ExportGraphTests(unittest.TestCase):
             self.tree.links.new(vmt.outputs[0], self.output.inputs['Materials'])
         with self.assertRaisesRegex(GraphBuildError, 'Conflicting material recipes'):
             plan_model(self.output)
+        self.assertFalse((self.root / 'game').exists())
+
+    def test_material_export_reports_texture_auto_resize_and_clears_when_fixed(self):
+        image = bpy.data.images.new('npot_source', width=47, height=47)
+        self.images.append(image)
+        material = bpy.data.materials.new('npot_material')
+        self.materials.append(material)
+        source = self.tree.nodes.new('SourceIOImageSourceNode')
+        source.image = image
+        texture = self.tree.nodes.new('SourceIOVTFOutputNode')
+        texture.vtf_name = 'models/props/npot.vtf'
+        texture.img_format = 'RGBA8888'
+        texture.generate_mipmaps = False
+        self.tree.links.new(source.outputs['Texture'], texture.inputs['Texture'])
+        vmt = self.material_node(material, 'npot_material')
+        self.tree.links.new(texture.outputs['VTF'], vmt.inputs['Base texture'])
+        self.tree.links.new(vmt.outputs['Material'], self.output.inputs['Materials'])
+        self.output.use_export_cache = False
+        reports = []
+
+        def export(output, cache):
+            export_materials(output, cache)
+            return {'FINISHED'}
+
+        action = SimpleNamespace(action='MATERIALS', _action=export,
+                                 report=lambda kind, message: reports.append((kind, message)))
+        self.assertEqual(_GraphAction._run(action, self.output), {'FINISHED'})
+        self.assertIn('47x47 to 32x32', self.output.texture_issues)
+        self.assertEqual(reports[-1], ({'WARNING'}, self.output.texture_issues))
+
+        image.scale(32, 32)
+        self.assertEqual(_GraphAction._run(action, self.output), {'FINISHED'})
+        self.assertEqual(self.output.texture_issues, '')
+        self.assertEqual(texture.resize_warning, '')
+        self.assertEqual(len(reports), 1)
+
+    def test_duplicate_vtf_destinations_survive_cached_material_export(self):
+        image = bpy.data.images.new('duplicate_vtf_source', width=4, height=4)
+        image.pixels[:] = [0.25, 0.5, 0.75, 1.0] * 16
+        self.images.append(image)
+        source = self.tree.nodes.new('SourceIOImageSourceNode')
+        source.image = image
+        for name in ('duplicate_first', 'duplicate_second'):
+            material = bpy.data.materials.new(name)
+            self.materials.append(material)
+            texture = self.tree.nodes.new('SourceIOVTFOutputNode')
+            texture.img_format = 'RGBA8888'
+            texture.generate_mipmaps = False
+            texture.vtf_name = 'models/props/duplicated.vtf'
+            self.tree.links.new(source.outputs['Texture'], texture.inputs['Texture'])
+            vmt = self.material_node(material, name)
+            self.tree.links.new(texture.outputs['VTF'], vmt.inputs['Base texture'])
+            self.tree.links.new(vmt.outputs['Material'], self.output.inputs['Materials'])
+        cache = model_cache(self.output)
+        export_materials(self.output, cache)
+        cache.save()
+        path = self.root / 'game/materials/models/props/duplicated.vtf'
+        original = path.read_bytes()
+        export_materials(self.output, model_cache(self.output))
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_cached_sibling_texture_still_checks_shared_path_and_names_errors(self):
+        material = bpy.data.materials.new('shared')
+        self.materials.append(material)
+        reference = self.mesh_node('reference', material)
+        other = self.tree.nodes.new('SourceIOPropModelNode')
+        other.model_path = 'models/props/other.mdl'
+        other.content_root = self.output.content_root
+        other.game_root = self.output.game_root
+        for output in (self.output, other):
+            self.model_entry(reference, output=output)
+        images = []
+        for output, name in ((self.output, 'current'), (other, 'sibling')):
+            image = bpy.data.images.new(name, width=4, height=4)
+            image.pixels[:] = [0.25, 0.5, 0.75, 1.0] * 16
+            images.append(image)
+            self.images.append(image)
+            source = self.tree.nodes.new('SourceIOImageSourceNode')
+            source.image = image
+            texture = self.tree.nodes.new('SourceIOVTFOutputNode')
+            texture.img_format = 'RGBA8888'
+            texture.generate_mipmaps = False
+            texture.vtf_name = 'models/props/shared.vtf'
+            self.tree.links.new(source.outputs['Texture'], texture.inputs['Texture'])
+            vmt = self.material_node(material, 'shared')
+            self.tree.links.new(texture.outputs['VTF'], vmt.inputs['Base texture'])
+            self.tree.links.new(vmt.outputs['Material'], output.inputs['Materials'])
+        cache = model_cache(other)
+        export_plan(plan_model(other, check_shared=False, cache=cache), cache)
+        cache.save()
+        shared_path = self.root / 'game/materials/models/props/shared.vtf'
+        self.assertIn(shared_path, plan_model(other, check_shared=False,
+                                               cache=model_cache(other)).cached_assets)
+        self.assertEqual(dict(plan_model(self.output).assets)[shared_path],
+                         shared_path.read_bytes())
+        images[0].pixels[:] = [1.0, 0.0, 0.0, 1.0] * 16
+        with self.assertRaisesRegex(GraphBuildError, 'Conflicting material recipes'):
+            plan_model(self.output)
+        other.native_settings_confirmed = False
+        with self.assertRaisesRegex(GraphBuildError, f'{other.name}: Review geometry'):
+            plan_model(self.output)
+
+    def test_material_stems_cannot_collide_across_directories(self):
+        material = bpy.data.materials.new('base')
+        self.materials.append(material)
+        self.model_entry(self.mesh_node('reference', material))
+        first = self.material_node(material, 'base')
+        second = self.material_node(material, 'base')
+        self.tree.links.new(first.outputs[0], self.output.inputs['Materials'])
+        self.tree.links.new(second.outputs[0], self.output.inputs['Materials'])
+        plan_model(self.output)  # Reusing the same destination is allowed.
+        second.vmt_path = 'models/other/BASE.vmt'
+        for backend in ('COMMAND', 'STUDIOMDL', 'BUILTIN', 'DIRECT'):
+            with self.subTest(backend=backend):
+                self.output.compiler_backend = backend
+                with self.assertRaisesRegex(GraphBuildError, 'Conflicting material filename'):
+                    plan_model(self.output)
         self.assertFalse((self.root / 'game').exists())
 
     def test_shared_material_recipe_must_match_across_model_outputs(self):
@@ -854,6 +1042,15 @@ class ExportGraphTests(unittest.TestCase):
         image.pixels.foreach_get(current)
         np.testing.assert_array_equal(current.reshape(pixels.shape), pixels)
 
+    def test_texture_math_divide_preserves_negative_divisor(self):
+        node = self.tree.nodes.new('SourceIOTextureMathNode')
+        node.operation = 'DIV'
+        numerator = np.full((1, 4), 0.5, np.float32)
+        denominator = np.array([[-0.5, 0.5, -0.0, 0.0]], np.float32)
+        result = node.process({'A channel': numerator, 'B channel': denominator})['channel']
+        np.testing.assert_allclose(result, [[-1.0, 1.0, -500000.0, 500000.0]])
+        np.testing.assert_array_equal(denominator, [[-0.5, 0.5, -0.0, 0.0]])
+
     def test_texture_math_pads_rgb_with_opaque_alpha_for_rgba(self):
         rgb = np.array([[[0.2, 0.4, 0.8]]], np.float32)
         rgba = np.array([[[0.1, 0.1, 0.1, 0.5]]], np.float32)
@@ -927,6 +1124,141 @@ class ExportGraphTests(unittest.TestCase):
         np.testing.assert_array_equal(linear_image[..., 3], pixels[..., 3])
         np.testing.assert_array_equal(texture_pixels(GraphResolver()(source.outputs['Texture'])), pixels)
 
+    def image_source(self, name, rgba):
+        """An Image Source node holding the HxWx4 float pixels ``rgba``."""
+        rgba = np.asarray(rgba, np.float32)
+        image = bpy.data.images.new(name, width=rgba.shape[1], height=rgba.shape[0], alpha=True, float_buffer=True)
+        image.pixels.foreach_set(rgba.ravel())
+        self.images.append(image)
+        source = self.tree.nodes.new('SourceIOImageSourceNode')
+        source.image = image
+        return source
+
+    def channel_output(self, name, values):
+        """A channel output socket carrying the HxW ``values``."""
+        values = np.asarray(values, np.float32)
+        rgba = np.ones((*values.shape, 4), np.float32)
+        rgba[..., 0] = values
+        split = self.tree.nodes.new('SourceIOTextureSplitChannelsNode')
+        self.tree.links.new(self.image_source(name, rgba).outputs['Texture'], split.inputs['texture'])
+        return split.outputs['R']
+
+    def resize_node(self, width, height, filter='BILINEAR'):
+        node = self.tree.nodes.new('SourceIOTextureResizeNode')
+        node.inputs['Width'].default_value = width
+        node.inputs['Height'].default_value = height
+        node.filter = filter
+        return node
+
+    def test_resize_channel_bilinear_and_nearest_keep_width_height_and_row_order(self):
+        channel = self.channel_output('resize_square', [[0.0, 0.2], [0.6, 1.0]])
+        source = GraphResolver()(channel)
+        resize = self.resize_node(3, 3)
+        self.tree.links.new(channel, resize.inputs['channel'])
+        self.assertTrue(resize.outputs['texture'].hide)
+        self.assertFalse(resize.outputs['channel'].hide)
+        result = GraphResolver()(resize.outputs['channel'])
+        self.assertEqual(result.shape, (3, 3))
+        self.assertEqual(result.dtype, np.float32)
+        self.assertAlmostEqual(result[1, 1], source.mean(), places=6)
+        np.testing.assert_allclose(result[::2, ::2], source, rtol=1e-6)  # corners clamp to source corners
+        np.testing.assert_allclose(result[0, 1], source[0].mean(), rtol=1e-6)
+        np.testing.assert_allclose(result[1, 0], source[:, 0].mean(), rtol=1e-6)
+
+        # 2 wide × 3 high -> Width=4, Height=2
+        channel = self.channel_output('resize_tall', np.arange(6).reshape(3, 2) / 10)
+        source = GraphResolver()(channel)
+        resize = self.resize_node(4, 2, 'NEAREST')
+        self.tree.links.new(channel, resize.inputs['channel'])
+        np.testing.assert_array_equal(GraphResolver()(resize.outputs['channel']), source[[0, 2]][:, [0, 0, 1, 1]])
+        resize.filter = 'BILINEAR'
+        rows = np.array([0.75 * source[0] + 0.25 * source[1], 0.25 * source[1] + 0.75 * source[2]])
+        t = np.array([0.0, 0.25, 0.75, 1.0])
+        np.testing.assert_allclose(GraphResolver()(resize.outputs['channel']),
+                                   rows[:, [0]] * (1 - t) + rows[:, [1]] * t, rtol=1e-6, atol=1e-7)
+
+    def test_resize_texture_keeps_channels_and_reports_invalid_setup(self):
+        resize = self.resize_node(3, 1)
+        source = self.image_source('resize_texture', np.ones((1, 1, 4)))
+        self.tree.links.new(source.outputs['Texture'], resize.inputs['texture'])
+        self.assertTrue(resize.outputs['channel'].hide)
+        rgb = np.array([[[0.0, 0.0, 0.0], [1.0, 0.5, 0.25]]], np.float32)
+        rgba = np.array([[[0.0, 0.0, 0.0, 0.0], [1.0, 0.5, 0.25, 1.0]]], np.float32)
+        for pixels in (rgb, rgba):
+            unchanged = pixels.copy()
+            result = resize.process({'texture': pixels, 'Width': 3, 'Height': 1})['texture']
+            self.assertEqual(result.shape, (1, 3, pixels.shape[-1]))
+            self.assertEqual(result.dtype, np.float32)
+            np.testing.assert_allclose(result[0, 1], pixels[0].mean(axis=0), rtol=1e-6)
+            np.testing.assert_array_equal(pixels, unchanged)
+        np.testing.assert_allclose(resize.process({'texture': rgba, 'Width': 3, 'Height': 1})['texture'][..., 3],
+                                   [[0.0, 0.5, 1.0]], rtol=1e-6)
+        self.assertIs(resize.process({'texture': rgba, 'Width': 2, 'Height': 1})['texture'], rgba)
+
+        for width, message in ((0, 'Width must be greater than 0'), (-1, 'Width must be greater than 0'),
+                               (2.5, 'Width needs a positive integer, got float'),
+                               (True, 'Width needs a positive integer, got bool'),
+                               (rgba, 'Width needs a positive integer, got ndarray')):
+            with self.assertRaisesRegex(ValueError, message):
+                resize.process({'texture': rgba, 'Width': width, 'Height': 1})
+        with self.assertRaisesRegex(ValueError, 'GiB limit'):
+            resize.process({'texture': rgba, 'Width': 100000, 'Height': 100000})
+        resize.inputs['Height'].default_value = 0
+        with self.assertRaisesRegex(GraphBuildError, 'Resize .*: Height must be greater than 0'):
+            GraphResolver()(resize.outputs['texture'])
+        resize.inputs['Height'].default_value = 1
+        self.tree.links.new(self.channel_output('resize_both', [[0.5]]), resize.inputs['channel'])
+        with self.assertRaisesRegex(GraphBuildError, 'either texture or channel, not both'):
+            GraphResolver()(resize.outputs['texture'])
+        unlinked = self.resize_node(4, 4)
+        with self.assertRaisesRegex(GraphBuildError, 'output texture is unavailable'):
+            GraphResolver()(unlinked.outputs['texture'])
+
+    def test_pbr_to_phong_size_mismatch_names_input_and_resize_fixes_it(self):
+        normal = self.image_source('pbr_normal', np.full((2, 4, 4), 0.5))
+        pbr = self.tree.nodes.new('SourceIOPBRToPhongNode')
+        self.tree.links.new(normal.outputs['Texture'], pbr.inputs['Normal'])
+        self.assertEqual(GraphResolver()(pbr.outputs['Normal']).shape, (2, 4, 4))  # unlinked scalar broadcasts
+        roughness = self.channel_output('pbr_roughness', [[0.2, 0.4], [0.6, 0.8]])
+        link = self.tree.links.new(roughness, pbr.inputs['Roughness'])
+        expected = (f'{pbr.name}: Roughness is 2×2, Normal is 4×2. Add Resize (Texture/Channel) between Roughness '
+                    f'and {pbr.name}, set Width=4 Height=2.')
+        with self.assertRaises(GraphBuildError) as caught:
+            GraphResolver()(pbr.outputs['Normal'])
+        self.assertEqual(str(caught.exception), expected)
+        self.assertIn('Roughness is 2×2', pbr.size_error)
+
+        self.tree.links.remove(link)
+        resize = self.resize_node(4, 2)
+        self.tree.links.new(roughness, resize.inputs['channel'])
+        self.tree.links.new(resize.outputs['channel'], pbr.inputs['Roughness'])
+        self.assertEqual(GraphResolver()(pbr.outputs['Phong exponent']).shape, (2, 4, 4))
+        self.assertEqual(pbr.size_error, '')
+
+    def test_combine_math_and_blend_normals_report_size_mismatch_until_fixed(self):
+        small = np.full((2, 2), 0.5, np.float32)
+        wide = np.full((2, 4), 0.5, np.float32)
+        combine = self.tree.nodes.new('SourceIOTextureCombineChannelsNode')
+        with self.assertRaisesRegex(ValueError, r'^G is 2×2, R is 4×2\. .* between G and Combine Channels, '
+                                                r'set Width=4 Height=2\.$'):
+            combine.process({'R': wide, 'G': small, 'B': 0.0, 'A': 1.0})
+        self.assertTrue(combine.size_error)
+        self.assertEqual(combine.process({'R': wide, 'G': wide, 'B': 0.0, 'A': 1.0})['texture'].shape, (2, 4, 4))
+        self.assertEqual(combine.size_error, '')
+
+        math = self.tree.nodes.new('SourceIOTextureMathNode')
+        texture = np.full((2, 4, 4), 0.5, np.float32)
+        with self.assertRaisesRegex(ValueError, r'^B channel is 2×2, A texture is 4×2\. .* Width=4 Height=2\.$'):
+            math.process({'A texture': texture, 'B channel': small})
+        self.assertEqual(math.process({'A texture': texture, 'B channel': wide})['texture'].shape, (2, 4, 4))
+        self.assertEqual(math.size_error, '')
+
+        blend = self.tree.nodes.new('SourceIONormalBlendNode')
+        with self.assertRaisesRegex(ValueError, r'^Detail is 2×2, Base is 4×2\. .* Width=4 Height=2\.$'):
+            blend.process({'Base': texture, 'Detail': np.full((2, 2, 4), 0.5, np.float32)})
+        self.assertEqual(blend.process({'Base': texture, 'Detail': texture})['texture'].shape, (2, 4, 4))
+        self.assertEqual(blend.size_error, '')
+
     def test_dropped_image_and_qc_files_create_usable_export_nodes(self):
         if bpy.app.version < (4, 1, 0):
             self.skipTest('Blender file handlers require 4.1')
@@ -971,6 +1303,14 @@ class ExportGraphTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'Unsupported or missing SourceIO file'):
                 bpy.ops.sourceio.drop_export_asset(filepath=str(self.root / 'unsupported.txt'))
             self.assertEqual(len(self.tree.nodes), node_count)
+            vrd = self.root / 'helpers.vrd'
+            vrd.write_text('')
+            text_count = len(bpy.data.texts)
+            with self.assertRaisesRegex(RuntimeError, 'connect rigged geometry first'):
+                bpy.ops.sourceio.drop_export_asset(
+                    directory=str(self.root), files=[{'name': qci.name}, {'name': vrd.name}])
+            self.assertEqual(len(self.tree.nodes), node_count)
+            self.assertEqual(len(bpy.data.texts), text_count)
 
     def test_proxy_blocks_and_raw_vmt_parameters_are_ordered(self):
         material = bpy.data.materials.new('base')
@@ -1108,6 +1448,28 @@ class ExportGraphTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'conflicts with a generated parameter'):
             GraphResolver()(unlit.outputs['Material'])
 
+    def test_vmt_parameters_override_engine_defaults_even_when_zero(self):
+        material = bpy.data.materials.new('engine_defaults')
+        self.materials.append(material)
+        detail = self.tree.nodes.new('SourceIOVertexLitGenericVMTNode')
+        detail.mat = material
+        self.assertEqual(detail.detail_scale, 4.0)
+        self.assertNotIn('$detailscale', GraphResolver()(detail.outputs['Material']).vmt_text)
+        detail.detail_scale = 1.0
+        self.assertIn('$detailscale', GraphResolver()(detail.outputs['Material']).vmt_text)
+
+        eye = self.tree.nodes.new('SourceIOEyeRefractVMTNode')
+        eye.mat = material
+        self.assertEqual((eye.dilation, eye.parallax_strength, eye.eyeball_radius),
+                         (0.5, 0.25, 0.5))
+        defaults = GraphResolver()(eye.outputs['Material']).vmt_text
+        for key in ('$dilation', '$parallaxstrength', '$eyeballradius'):
+            self.assertNotIn(key, defaults)
+        eye.dilation = eye.parallax_strength = eye.eyeball_radius = 0.0
+        overrides = GraphResolver()(eye.outputs['Material']).vmt_text
+        for key in ('$dilation', '$parallaxstrength', '$eyeballradius'):
+            self.assertIn(key, overrides)
+
     def test_material_names_must_be_valid_vmt_references(self):
         material = bpy.data.materials.new('base')
         self.materials.append(material)
@@ -1117,6 +1479,42 @@ class ExportGraphTests(unittest.TestCase):
                 vmt.vmt_path = name
                 with self.assertRaises(ValueError):
                     GraphResolver()(vmt.outputs['Material'])
+
+    def test_shared_source_is_decoded_once_for_graph_and_preview(self):
+        image = bpy.data.images.new('shared_decode', width=2, height=2)
+        image.pixels[:] = [0.2, 0.4, 0.6, 1.0] * 4
+        self.images.append(image)
+        source = self.tree.nodes.new('SourceIOImageSourceNode')
+        source.image = image
+        split = self.tree.nodes.new('SourceIOTextureSplitChannelsNode')
+        invert = self.tree.nodes.new('SourceIOTextureInvertChannelsNode')
+        for node in (split, invert):
+            self.tree.links.new(source.outputs['Texture'], node.inputs['texture'])
+        from SourceIO.blender_bindings.ui.export_nodes import build_graph
+        with patch.object(build_graph, 'texture_pixels', wraps=texture_pixels) as decode:
+            resolver = GraphResolver()
+            resolver(split.outputs['R'])
+            resolver(invert.outputs['texture'])
+            self.assertEqual(decode.call_count, 1)
+
+            previews = [self.tree.nodes.new('SourceIOTexturePreviewNode')
+                        for _ in range(2)]
+            for preview in previews:
+                self.tree.links.new(source.outputs['Texture'], preview.inputs['texture'])
+            self.tree.nodes.active = source
+            area = next(area for area in bpy.context.screen.areas if area.type == 'VIEW_3D')
+            area_type, ui_type = area.type, area.ui_type
+            try:
+                area.type = 'NODE_EDITOR'
+                area.ui_type = 'sourceio.model_definition'
+                area.spaces.active.node_tree = self.tree
+                with bpy.context.temp_override(area=area):
+                    self.assertEqual(bpy.ops.sourceio.evaluate_texture_preview(),
+                                     {'FINISHED'})
+            finally:
+                area.type, area.ui_type = area_type, ui_type
+            self.assertEqual(decode.call_count, 2)
+            self.images.extend(preview.preview_image for preview in previews)
 
     def test_texture_preview_accepts_channels_and_keeps_trees_independent(self):
         first = self.tree.nodes.new('SourceIOTexturePreviewNode')
@@ -1138,6 +1536,26 @@ class ExportGraphTests(unittest.TestCase):
         self.assertAlmostEqual(second_image.pixels[0], 0.9, places=2)
         self.assertAlmostEqual(second_image.pixels[3], 1.0, places=5)
         self.assertAlmostEqual(first_image.pixels[0], 0.2, places=5)
+
+    def test_preview_long_name_reuses_image_when_updated_or_resized(self):
+        old_name = self.tree.name
+        self.addCleanup(setattr, self.tree, 'name', old_name)
+        self.tree.name = 'Long preview graph ' + 'x' * 230
+        preview = self.tree.nodes.new('SourceIOTexturePreviewNode')
+        preview.name = 'Long preview node'
+        pixels = np.full((2, 2), 0.25, np.float32)
+        preview.process({'channel': pixels})
+        image = preview.preview_image
+        self.images.append(image)
+        count = len(bpy.data.images)
+        preview.process({'channel': np.full((2, 2), 0.75, np.float32)})
+        self.assertIs(preview.preview_image, image)
+        self.assertEqual(len(bpy.data.images), count)
+        self.assertAlmostEqual(image.pixels[0], 0.75, places=2)
+        preview.process({'channel': np.full((3, 4), 0.5, np.float32)})
+        self.assertIs(preview.preview_image, image)
+        self.assertEqual(tuple(image.size), (4, 3))
+        self.assertEqual(len(bpy.data.images), count)
 
     def test_collapsed_texture_inputs_keep_linked_sockets_visible(self):
         node = self.tree.nodes.new('SourceIOVertexLitGenericVMTNode')
@@ -1212,7 +1630,7 @@ class ExportGraphTests(unittest.TestCase):
         self.assertEqual(encoded(), (False, (128, 64, 191)))
         # Off: converted from linear to sRGB and flagged.
         node.linear_space = False
-        self.assertEqual(encoded(), (True, (187, 137, 224)))
+        self.assertEqual(encoded(), (True, (188, 137, 224)))
 
     def test_split_output_cannot_overwrite_its_external_source_vtf(self):
         image = bpy.data.images.new('split_file_source', width=2, height=2)
@@ -1249,6 +1667,8 @@ class ExportGraphTests(unittest.TestCase):
         self.tree.links.new(vmt.outputs['Material'], self.output.inputs['Materials'])
         with self.assertRaisesRegex(GraphBuildError, 'would overwrite source image'):
             plan_model(self.output)
+        with self.assertRaisesRegex(GraphBuildError, 'would overwrite source image'):
+            export_materials(self.output)
         self.assertEqual(source_file.read_bytes(), original)
         self.assertFalse((self.root / 'content').exists())
 
@@ -1929,8 +2349,8 @@ class ExportGraphTests(unittest.TestCase):
             self.assertIn('SMD up axis: Y', plan.manifest())
             export_plan(plan)
         document = smd.load(filepath=plan.geometry[0][1])
-        self.assertEqual([triangle.material for triangle in document.triangles], ['exported_skin'])
-        self.assertEqual(document.triangles[0].vertices[0].position, (0., 0., 0.))
+        self.assertEqual([document.materials[index] for index in document.triangles['material']], ['exported_skin'])
+        self.assertEqual(document.triangles['corners']['position'][0, 0].tolist(), [0., 0., 0.])
         self.assertEqual(raised.value, 1)
         self.assertEqual(bpy.context.scene, scene)
         self.assertEqual(set(bpy.data.scenes), scene_names)
@@ -1972,7 +2392,7 @@ class ExportGraphTests(unittest.TestCase):
         bones = {node.name: node.id for node in document.nodes}
         self.assertTrue(names <= bones.keys())
         self.assertNotEqual(bones[first.obj.name], bones[second.obj.name])
-        self.assertEqual({triangle.vertices[0].bone for triangle in document.triangles},
+        self.assertEqual(set(document.triangles['corners']['bone'][:, 0].tolist()),
                          {bones[first.obj.name], bones[second.obj.name]})
         self.assertEqual(bpy.context.scene, scene)
         self.assertEqual(set(bpy.data.scenes), scene_names)
@@ -2053,7 +2473,7 @@ class ExportGraphTests(unittest.TestCase):
         self.tree.links.new(rename.outputs['Bone names'], self.output.inputs['Bone names'])
 
         plan = plan_model(self.output)
-        script = self.root / 'game' / 'scripts' / 'sfm' / 'animset' / 'rig_ik_test.py'
+        script = self.root / 'game' / 'scripts' / 'sfm' / 'animset' / 'rig_ik_props__test.py'
         self.assertIn(f'Asset: {script}', plan.manifest())
         self.assertNotIn('rig_ik', plan.qc_text)
         export_plan(plan)
@@ -2402,8 +2822,25 @@ class ExportGraphTests(unittest.TestCase):
         with self.assertRaisesRegex(GraphBuildError, "bone 'Nope' is not in"):
             plan_model(self.output)
 
+    def test_handmade_attachment_uses_connected_armature(self):
+        rig = self._biped()
+        rig.location = (10, 20, 30)
+        bpy.context.view_layer.update()
+        node = self.tree.nodes.new('SourceIOPropAttachmentNode')
+        node.attachment_name, node.bone = 'eyes', 'Head'
+        self.tree.links.new(node.outputs['Attachment'], self.output.inputs['Attachments'])
+        empty = bpy.data.objects.new('handmade_attachment', None)
+        bpy.context.scene.collection.objects.link(empty)
+        self.objects.append(empty.name)
+        empty.matrix_world = (rig.matrix_world @ rig.data.bones['Head'].matrix_local
+                              @ Matrix.Translation((1, 2, 3)))
+        node.empty = empty
+        bpy.context.view_layer.update()
+        self.assertIsNone(node.armature)
+        self.assert_attachment('eyes', 'Head', (1, 2, 3, 0, 0, 0))
+
     def test_attachment_empty_without_a_bone_uses_world_space(self):
-        self._biped()
+        self.model_entry(self.mesh_node('static_reference'))
         node = self.tree.nodes.new('SourceIOPropAttachmentNode')
         node.attachment_name, node.bone = 'muzzle', 'static_prop'
         node.position = (5.0, 6.0, 7.0)
@@ -2809,6 +3246,24 @@ class ExportGraphTests(unittest.TestCase):
             np.testing.assert_allclose(actual.pop(key), expected.pop(key), atol=1e-3, err_msg=key)
         self.maxDiff = None
         self.assertEqual(actual, expected)
+
+    def test_check_direct_export_does_not_write_cache_or_content(self):
+        self.model_entry(self.mesh_node('reference'))
+        self.output.compiler_backend = 'DIRECT'
+        area = next(area for area in bpy.context.screen.areas if area.type == 'VIEW_3D')
+        area_type, ui_type = area.type, area.ui_type
+        try:
+            area.type = 'NODE_EDITOR'
+            area.ui_type = 'sourceio.model_definition'
+            area.spaces.active.node_tree = self.tree
+            with bpy.context.temp_override(area=area):
+                self.assertEqual(
+                    bpy.ops.sourceio.check_direct_export(output_node=self.output.name),
+                    {'FINISHED'})
+        finally:
+            area.type, area.ui_type = area_type, ui_type
+        self.assertFalse((self.root / 'content').exists())
+        self.assertFalse((self.root / 'game').exists())
 
     def test_direct_export_refuses_unsupported_features_before_writing(self):
         self.model_entry(self.mesh_node('reference'))

@@ -9,7 +9,7 @@ import numpy as np
 from SourceIO.blender_bindings.source1.model_export.dmx_axis import orient_capture
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import build_document, build_vca_sequence
 from SourceIO.blender_bindings.source1.model_export.dmx_types import (
-    Bone, Capture, Face, Mesh, Rig, Shape, VertexAnimation)
+    Bone, Capture, Mesh, Rig, Shape, VertexAnimation, face_array)
 
 
 IDENTITY = ((1., 0., 0., 0.), (0., 1., 0., 0.), (0., 0., 1., 0.), (0., 0., 0., 1.))
@@ -21,7 +21,7 @@ def translated(x=0., y=0., z=0.):
 
 def mesh(name, world=IDENTITY, *, parent=None, parent_type=None, parent_bone=None, weights=()):
     return Mesh(name, world, parent, parent_type, parent_bone, ((0., 0., 0.), (1., 0., 0.), (0., 0., 1.)),
-                (Face((0, 1, 2), ((0., -1., 0.),) * 3, ((0., 0.), (1., 0.), (0., 1.)), 'material'),),
+                *face_array([((0, 1, 2), ((0., -1., 0.),) * 3, ((0., 0.), (1., 0.), (0., 1.)), 'material')]),
                 weights, (Shape('tall', ((0., 0., 1.), (1., 0., 0.), (0., 0., 1.)), (((0., -1., 0.),) * 3,)),))
 
 
@@ -66,8 +66,8 @@ class AxisCaptureTests(unittest.TestCase):
                   (Bone('Root', None, IDENTITY), Bone('Child', 'Root', translated(0., 0., 1.))))
         attached = mesh('Attached', translated(0., 0., 3.), parent='Rig', parent_type='BONE', parent_bone='Child',
                         weights=((('Root', 1.),),) * 3)
-        frames = (Shape('pulse-0', attached.positions, (attached.faces[0].normals,)),
-                  Shape('pulse-1', attached.shapes[0].positions, (attached.faces[0].normals,)))
+        frames = (Shape('pulse-0', attached.positions, attached.faces['normals'][:1]),
+                  Shape('pulse-1', attached.shapes[0].positions, attached.faces['normals'][:1]))
         capture = Capture('Model', (attached,), rig, (VertexAnimation('pulse', 'Attached', frames, True),))
         oriented = orient_capture(capture, 'Y')
         self.assertIs(oriented.rig.bones, rig.bones)

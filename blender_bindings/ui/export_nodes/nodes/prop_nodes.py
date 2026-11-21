@@ -15,6 +15,7 @@ import bpy
 from bpy.types import Node, NodeSocket, Operator, PropertyGroup
 from mathutils import Euler, Matrix
 
+from SourceIO.blender_bindings.source1.model_export.dmx_capture import rest_world_matrix
 from SourceIO.blender_bindings.source1.model_export.dmx_types import (
     VertexAnimationRange)
 from SourceIO.blender_bindings.source1.model_export.geometry_rig import (
@@ -71,17 +72,6 @@ def _text_or_string(text, string):
     return text.as_string() if text else string
 
 
-def _rest_matrix(obj):
-    """World matrix of an object with its bone parent in the rest pose."""
-    world = obj.matrix_world
-    armature = obj.parent
-    if armature is not None and obj.parent_type == 'BONE':
-        pose_bone = armature.pose.bones.get(obj.parent_bone)
-        if pose_bone is not None:
-            rest = armature.matrix_world @ pose_bone.bone.matrix_local
-            pose = armature.matrix_world @ pose_bone.matrix
-            world = rest @ pose.inverted() @ world
-    return world
 
 
 def _attach_to_bone(obj, armature, bone_name, rest_world):
@@ -590,7 +580,9 @@ class SourceIOPropAttachmentNode(_PropNode, Node):
         if armature is None and parent is not None and (
                 parent.type == 'ARMATURE'):
             armature = parent
-        world = _rest_matrix(self.empty)
+        if armature is None:
+            armature = _connected_armature(self.id_data, self)
+        world = rest_world_matrix(self.empty)
         if armature is not None:
             bone = armature.data.bones.get(self.bone.strip())
             if bone is None:
@@ -836,11 +828,11 @@ class SourceIOPropModelNode(_PropNode, Node):
     # Last direct export check: one "SEVERITY\tmessage" line per issue
     direct_issues: bpy.props.StringProperty()
     direct_checked: bpy.props.BoolProperty()
+    texture_issues: bpy.props.StringProperty()
     fit_weight_poses: bpy.props.IntProperty(
         name="Fit weight poses", default=24, min=0, soft_max=200,
-        description="Built-in and direct export: studiomdl -fitweights. Each vertex keeps the 3 bone weights that best "
-                    "match the original skinning over this many sample poses, instead of dropping the smallest ones. "
-                    "0 turns it off")
+        description="Built-in and direct export: sample poses for both fitting and testing "
+                    "vertex weights. 0 turns fitting off")
     compiler_command: bpy.props.StringProperty(
         name="Compiler command",
         description="Argument template with {game} and {qc}")
@@ -920,6 +912,13 @@ class SourceIOPropModelNode(_PropNode, Node):
             layout.prop(self, "bst_engine_root")
         elif self.compiler_backend == "DIRECT":
             self._draw_direct_issues(layout)
+        if self.texture_issues:
+            box = layout.box()
+            box.label(text="Last texture export:", icon="ERROR")
+            for message in self.texture_issues.splitlines():
+                column = box.column(align=True)
+                for index, part in enumerate(textwrap.wrap(message, 48)):
+                    column.label(text=part, icon="ERROR" if index == 0 else "BLANK1")
         for operator in ("sourceio.preview_export_graph",
                          "sourceio.export_model_graph",
                          "sourceio.export_model_meshes",
@@ -987,7 +986,7 @@ def collect_model(output_node: SourceIOPropModelNode, resolve) -> ModelRecipe:
     material_dirs = _text_or_string(output_node.material_dirs_text,
                                     output_node.material_dirs)
     result = ModelRecipe(
-        model_path=output_node.model_path.strip(), models=models,
+        model_path=output_node.model_path.strip().replace('\\', '/'), models=models,
         mostlyopaque=output_node.mostlyopaque,
         ambientboost=output_node.ambientboost,
         material_dirs=tuple(line.strip() for line in

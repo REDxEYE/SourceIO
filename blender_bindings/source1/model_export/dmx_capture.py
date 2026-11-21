@@ -11,7 +11,7 @@ from typing import Mapping
 
 import bpy
 import numpy as np
-from mathutils import Matrix, Vector
+from mathutils import Matrix
 
 from . import dmx_types
 from .geometry_rig import resolve_geometry_rig, validate_geometry_weights
@@ -25,19 +25,39 @@ def _matrix(value) -> dmx_types.Matrix4:
     return tuple(_vector(row) for row in value)
 
 
-def _bind_world_matrix(obj, depsgraph) -> dmx_types.Matrix4:
-    world = obj.evaluated_get(depsgraph).matrix_world.copy()
-    if obj.parent_type == 'BONE':
-        armature = obj.parent.evaluated_get(depsgraph)
-        pose_bone = armature.pose.bones.get(obj.parent_bone)
-        rest_bone = armature.data.bones.get(obj.parent_bone)
-        if pose_bone is None or rest_bone is None:
-            raise ValueError(f'{obj.name!r} has an unavailable parent bone '
-                             f'{obj.parent_bone!r}')
-        pose_world = armature.matrix_world @ pose_bone.matrix
-        rest_world = armature.matrix_world @ rest_bone.matrix_local
-        world = rest_world @ pose_world.inverted() @ world
-    return _matrix(world)
+def _bone_parented(obj) -> bool:
+    while obj is not None:
+        if obj.parent is not None and obj.parent_type == 'BONE':
+            return True
+        obj = obj.parent
+    return False
+
+
+def rest_world_matrix(obj, depsgraph=None) -> Matrix:
+    """World matrix of ``obj`` with every bone parent in its ancestor chain
+    (including ``obj`` itself) in the rest pose.
+
+    Evaluated when a depsgraph is given, else the object's current matrices.
+    """
+    def evaluated(item):
+        return item if depsgraph is None else item.evaluated_get(depsgraph)
+
+    world = evaluated(obj).matrix_world.copy()
+    if not _bone_parented(obj):
+        return world
+    parent = obj.parent
+    parent_rest = rest_world_matrix(parent, depsgraph)
+    if obj.parent_type != 'BONE':
+        return parent_rest @ evaluated(parent).matrix_world.inverted() @ world
+    armature = evaluated(parent)
+    pose_bone = armature.pose.bones.get(obj.parent_bone)
+    rest_bone = armature.data.bones.get(obj.parent_bone)
+    if pose_bone is None or rest_bone is None:
+        raise ValueError(f'{obj.name!r} has an unavailable parent bone '
+                         f'{obj.parent_bone!r}')
+    pose_world = armature.matrix_world @ pose_bone.matrix
+    return (parent_rest @ rest_bone.matrix_local @ pose_world.inverted()
+            @ world)
 
 
 def _rig_snapshot(rig, depsgraph):
@@ -60,14 +80,33 @@ def _rig_snapshot(rig, depsgraph):
     return dmx_types.Rig(rig.name, world, tuple(result))
 
 
-def _generated_uvs(positions, vertices, normal, origin, span):
+def _foreach(items, name: str, dtype, width: int = 1) -> np.ndarray:
+    array = np.empty(len(items) * width, dtype=dtype)
+    items.foreach_get(name, array)
+    return array.reshape(-1, width) if width > 1 else array
+
+
+def _triangle_loops(mesh, label: str):
+    """Loop triangles of ``mesh``: vertices, loops, polygon index and normal."""
+    mesh.calc_loop_triangles()
+    triangles = mesh.loop_triangles
+    if not triangles:
+        raise ValueError(f'{label!r} has no exportable faces')
+    return (_foreach(triangles, 'vertices', np.int64, 3),
+            _foreach(triangles, 'loops', np.int64, 3),
+            _foreach(triangles, 'polygon_index', np.int64),
+            _foreach(triangles, 'normal', np.float32, 3))
+
+
+def _generated_uvs(positions, vertices, normals):
     # Project along the dominant face normal using mesh-wide bounds so
     # coplanar neighboring triangles share UV coordinates.
-    axis = max(range(3), key=lambda index: abs(normal[index]))
-    u, v = ((1, 2), (0, 2), (0, 1))[axis]
-    return tuple(((positions[index][u] - origin[u]) / span[u],
-                  (positions[index][v] - origin[v]) / span[v])
-                 for index in vertices)
+    origin = positions.min(axis=0)
+    span = positions.max(axis=0) - origin
+    span = np.where(span == 0, 1.0, span)
+    axes = np.array(((1, 2), (0, 2), (0, 1)))[np.abs(normals).argmax(axis=1)]
+    axes = axes[:, None, :]
+    return (positions[vertices[:, :, None], axes] - origin[axes]) / span[axes]
 
 
 def _sample(obj, depsgraph, material_names: Mapping[str, str], rig_bones,
@@ -82,37 +121,29 @@ def _sample(obj, depsgraph, material_names: Mapping[str, str], rig_bones,
     if mesh is None:
         raise ValueError(f'{label!r} cannot be evaluated as a mesh')
     try:
-        mesh.calc_loop_triangles()
-        if not mesh.loop_triangles:
-            raise ValueError(f'{label!r} has no exportable faces')
-        positions = tuple(_vector(vertex.co) for vertex in mesh.vertices)
-        corners = mesh.corner_normals
+        vertices, loops, polygons, triangle_normals = _triangle_loops(
+            mesh, label)
+        coordinates = _foreach(mesh.vertices, 'co', np.float32, 3)
+        positions = _frozen(coordinates)
+        normals = _foreach(mesh.corner_normals, 'vector', np.float32, 3)
         uv = mesh.uv_layers.active
-        if uv is None:
-            origin = tuple(min(position[axis] for position in positions)
-                           for axis in range(3))
-            span = tuple(max(position[axis] for position in positions)
-                         - origin[axis] or 1.0
-                         for axis in range(3))
-        faces = []
-        triangle_loops = []
-        for triangle in mesh.loop_triangles:
-            vertices = tuple(triangle.vertices)
-            loops = tuple(triangle.loops)
-            normal = tuple(_vector(corners[index].vector) for index in loops)
-            if uv is not None:
-                coords = tuple(_vector(uv.data[index].uv) for index in loops)
-            else:
-                coords = _generated_uvs(positions, vertices, triangle.normal,
-                                        origin, span)
-            polygon = mesh.polygons[triangle.polygon_index]
-            slot_index = polygon.material_index
-            material = (obj.material_slots[slot_index].material
-                        if slot_index < len(obj.material_slots) else None)
-            name = (material_names.get(material.name, material.name)
-                    if material else None)
-            faces.append(dmx_types.Face(vertices, normal, coords, name))
-            triangle_loops.append(loops)
+        if uv is not None:
+            coords = _foreach(uv.data, 'uv', np.float32, 2)[loops]
+        else:
+            coords = _generated_uvs(coordinates.astype(np.float64), vertices,
+                                    triangle_normals)
+        # Slots past the end (and empty slots) export without a material.
+        slots = [slot.material for slot in obj.material_slots]
+        slot_names = tuple(material_names.get(material.name, material.name)
+                           if material else None for material in slots) + (None,)
+        faces = np.empty(len(vertices), dtype=dmx_types.FACE_DTYPE)
+        faces['vertices'] = vertices
+        faces['normals'] = normals[loops]
+        faces['uvs'] = coords
+        faces['material'] = np.minimum(
+            _foreach(mesh.polygons, 'material_index', np.int32)[polygons],
+            len(slots))
+        faces.setflags(write=False)
         weights = ()
         if rig_bones is not None:
             groups = {group.index: group.name for group in obj.vertex_groups}
@@ -124,6 +155,11 @@ def _sample(obj, depsgraph, material_names: Mapping[str, str], rig_bones,
                 for vertex in mesh.vertices)
             missing = [index for index, assigned in enumerate(weights)
                        if not assigned]
+            if (missing and len(missing) == len(weights) and obj.parent_type == 'BONE'
+                    and obj.parent_bone in rig_bones):
+                # Rigid bone parenting: every vertex follows the parent bone.
+                weights = (((obj.parent_bone, 1.0),),) * len(weights)
+                missing = []
             if missing:
                 shown = (', '.join(map(str, missing[:8]))
                          + (', ...' if len(missing) > 8 else ''))
@@ -141,8 +177,20 @@ def _sample(obj, depsgraph, material_names: Mapping[str, str], rig_bones,
             balance = tuple(next((item.weight for item in vertex.groups
                                   if item.group == group.index), 0.0)
                             for vertex in mesh.vertices)
-        loops = np.array(triangle_loops, dtype=np.int64).reshape(-1, 3)
-        return positions, tuple(faces), weights, loops, balance
+        return positions, faces, slot_names, weights, loops, balance
+    finally:
+        evaluated.to_mesh_clear()
+
+
+def _sample_loops(obj, depsgraph, label: str):
+    """Vertex count and loop indices of every triangle, shape (triangles, 3)."""
+    evaluated = obj.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh(preserve_all_data_layers=True,
+                             depsgraph=depsgraph)
+    if mesh is None:
+        raise ValueError(f'{label!r} cannot be evaluated as a mesh')
+    try:
+        return len(mesh.vertices), _triangle_loops(mesh, label)[1]
     finally:
         evaluated.to_mesh_clear()
 
@@ -152,6 +200,25 @@ def _frozen(array):
     array = np.ascontiguousarray(array)
     array.setflags(write=False)
     return array
+
+
+def _animated_paths(key) -> set[str]:
+    """Data paths (relative to the Key datablock) with an fcurve or driver."""
+    anim = key.animation_data
+    if anim is None:
+        return set()
+    curves = list(anim.drivers)
+    actions = [anim.action] + [strip.action for track in anim.nla_tracks
+                               for strip in track.strips]
+    for action in filter(None, actions):
+        if hasattr(action, 'layers'):  # Blender 4.4+ slotted actions
+            curves.extend(fcurve for layer in action.layers
+                          for strip in layer.strips
+                          for bag in strip.channelbags
+                          for fcurve in bag.fcurves)
+        else:
+            curves.extend(action.fcurves)
+    return {fcurve.data_path for fcurve in curves}
 
 
 def _sample_shape(obj, depsgraph, label: str):
@@ -174,8 +241,7 @@ def _sample_shape(obj, depsgraph, label: str):
         mesh.loops.foreach_get('vertex_index', order)
         normals = np.empty(len(mesh.corner_normals) * 3, dtype=np.float32)
         mesh.corner_normals.foreach_get('vector', normals)
-        return (tuple(map(tuple, positions.reshape(-1, 3).tolist())),
-                normals.reshape(-1, 3), order)
+        return positions.reshape(-1, 3), normals.reshape(-1, 3), order
     finally:
         evaluated.to_mesh_clear()
 
@@ -212,16 +278,22 @@ def _capture_mesh(obj, depsgraph, material_names, rig_bones,
             bpy.context.scene.collection.children.link(collection)
             collection.objects.link(clone)
             if has_keys:
+                # The copy still carries the drivers/actions; they would
+                # overwrite the sampled values on every depsgraph update.
+                data.shape_keys.animation_data_clear()
                 for key in data.shape_keys.key_blocks:
                     key.mute = False
                     if keys.use_relative:
+                        # Sampling 0 and 1 must not be clamped by the slider.
+                        key.slider_max = max(key.slider_max, 1.0)
+                        key.slider_min = min(key.slider_min, 0.0)
                         key.value = 0.0
                 if not keys.use_relative:
                     data.shape_keys.eval_time = (
                         data.shape_keys.key_blocks[0].frame)
             depsgraph.update()
         source = clone or obj
-        positions, faces, weights, base_loops, balance = _sample(
+        positions, faces, materials, weights, base_loops, balance = _sample(
             source, depsgraph, material_names, rig_bones, obj.name,
             balance_group)
         if shape_names:
@@ -243,16 +315,17 @@ def _capture_mesh(obj, depsgraph, material_names, rig_bones,
                     f'count ({len(positions)} -> {len(shape_positions)}) or '
                     'vertex order')
             shape_normals = _frozen(loop_normals[base_loops])
-            shapes.append(dmx_types.Shape(name, shape_positions,
-                                          shape_normals))
+            shapes.append(dmx_types.Shape(
+                name, tuple(map(tuple, shape_positions.tolist())),
+                shape_normals))
             if keys.use_relative:
                 key.value = 0.0
         return dmx_types.Mesh(
-            obj.name, _bind_world_matrix(obj, depsgraph),
+            obj.name, _matrix(rest_world_matrix(obj, depsgraph)),
             obj.parent.name if obj.parent else None,
             obj.parent_type if obj.parent else None,
             obj.parent_bone if obj.parent_type == 'BONE' else None,
-            positions, faces, weights, tuple(shapes), balance)
+            positions, faces, materials, weights, tuple(shapes), balance)
     finally:
         if clone is not None:
             bpy.data.objects.remove(clone, do_unlink=True)
@@ -363,7 +436,6 @@ def capture_vertex_animations(
                             f'{shape_name!r} collides with a shape key')
 
         fps = scene.render.fps / scene.render.fps_base
-        materials = material_names if material_names is not None else {}
         animations = []
         with ExitStack() as copies:
             sample_objects = {}
@@ -386,12 +458,17 @@ def capture_vertex_animations(
                     clone.show_only_shape_key = False
                     clone.data = obj.data.copy()
                     copies.callback(bpy.data.meshes.remove, clone.data)
-                    for key in clone.data.shape_keys.key_blocks:
-                        key.value = 0.0
-                        key.mute = True
-                    if not clone.data.shape_keys.use_relative:
-                        clone.data.shape_keys.eval_time = (
-                            clone.data.shape_keys.key_blocks[0].frame)
+                    keys = clone.data.shape_keys
+                    animated = _animated_paths(keys)
+                    # Animated keys keep their fcurves/drivers so the clips
+                    # sample them; only static keys are zeroed.
+                    for key in keys.key_blocks:
+                        if key.path_from_id('value') not in animated:
+                            key.value = 0.0
+                            key.mute = True
+                    if (not keys.use_relative
+                            and 'eval_time' not in animated):
+                        keys.eval_time = keys.key_blocks[0].frame
                 copies.callback(bpy.data.objects.remove, clone,
                                 do_unlink=True)
                 collection.objects.link(clone)
@@ -405,9 +482,9 @@ def capture_vertex_animations(
             baselines = {}
             for mesh in capture.meshes:
                 sample_object = sample_objects[mesh.name]
-                positions, _, _, base_loops, _ = _sample(
-                    sample_object, depsgraph, materials, None, mesh.name)
-                if len(positions) != len(mesh.positions):
+                vertex_count, base_loops = _sample_loops(
+                    sample_object, depsgraph, mesh.name)
+                if vertex_count != len(mesh.positions):
                     raise ValueError(f'{mesh.name!r} has an unrepresentable '
                                      'vertex animation bind vertex count')
                 base_order = _sample_shape(sample_object, depsgraph,
@@ -429,8 +506,8 @@ def capture_vertex_animations(
                                 f'{mesh.name!r} clip {clip.name!r} frame '
                                 f'{frame} changes vertex count or vertex '
                                 'order')
-                        transform = bind_inverse[mesh.name] @ Matrix(
-                            _bind_world_matrix(obj, depsgraph))
+                        transform = bind_inverse[mesh.name] @ rest_world_matrix(
+                            obj, depsgraph)
                         try:
                             normal_transform = (
                                 transform.to_3x3().inverted().transposed())
@@ -438,9 +515,9 @@ def capture_vertex_animations(
                             raise ValueError(
                                 f'{mesh.name!r} clip {clip.name!r} frame '
                                 f'{frame} has a singular transform') from exc
-                        transformed_positions = tuple(
-                            _vector(transform @ Vector(position))
-                            for position in positions)
+                        matrix = np.asarray(transform, dtype=np.float32)
+                        transformed_positions = _frozen(
+                            positions @ matrix[:3, :3].T + matrix[:3, 3])
                         normals = (loop_normals[base_loops].astype(np.float64)
                                    @ np.asarray(normal_transform,
                                                 dtype=np.float64).T)

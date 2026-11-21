@@ -86,6 +86,7 @@ class SourceIOVTFOutputNode(Node, SourceIOModelTreeNode):
                     'flag, as vtex does. Off converts colours from linear '
                     'to sRGB and flags the VTF SRGB, which looks washed out '
                     'for ordinary 8-bit images')
+    resize_warning: bpy.props.StringProperty()
 
     def init(self, context):
         self.width = 220
@@ -107,9 +108,13 @@ class SourceIOVTFOutputNode(Node, SourceIOModelTreeNode):
         if source is None:
             raise ValueError('VTF Output requires a linked Image, external '
                              'file, or pixel array')
-        return render_vtf(source, self.vtf_name, self.img_format,
-                          self.mip_filter, self.generate_mipmaps,
-                          self.is_normal, self.linear_space)
+        warnings = []
+        result = render_vtf(source, self.vtf_name, self.img_format,
+                            self.mip_filter, self.generate_mipmaps,
+                            self.is_normal, self.linear_space,
+                            on_resize=warnings.append)
+        self.resize_warning = warnings[0] if warnings else ''
+        return result
 
 
 def _number(value):
@@ -190,12 +195,12 @@ class _VMTNodeMixin:
                                                  default=1.0)
     detail_blend_mode: bpy.props.IntProperty(name='$detailblendmode',
                                              default=0, min=0)
-    detail_scale: bpy.props.FloatProperty(name='$detailscale', default=1.0)
+    detail_scale: bpy.props.FloatProperty(name='$detailscale', default=4.0)
     eyeball_radius: bpy.props.FloatProperty(name='$eyeballradius',
-                                            default=0.0, min=0)
-    dilation: bpy.props.FloatProperty(name='$dilation', default=0.0, min=0)
+                                            default=0.5, min=0)
+    dilation: bpy.props.FloatProperty(name='$dilation', default=0.5, min=0)
     parallax_strength: bpy.props.FloatProperty(name='$parallaxstrength',
-                                               default=0.0)
+                                               default=0.25)
     pupil: bpy.props.FloatProperty(name='$pupil', default=0.0, min=0)
     refract_amount: bpy.props.FloatProperty(name='$refractamount',
                                             default=0.0)
@@ -392,7 +397,7 @@ class _VMTNodeMixin:
             if self.detail_blend_factor != 1.0:
                 typed.append(KVPair('$detailblendfactor',
                                     _number(self.detail_blend_factor)))
-            if self.detail_scale != 1.0:
+            if self.detail_scale != self.bl_rna.properties['detail_scale'].default:
                 typed.append(KVPair('$detailscale',
                                     _number(self.detail_scale)))
             if self.detail_blend_mode:
@@ -432,7 +437,7 @@ class _VMTNodeMixin:
                     getattr(self, slot + '_uv_offset'))))
         for name, key in self._scalar_keys:
             value = getattr(self, name)
-            if value != 0.0:
+            if value != self.bl_rna.properties[name].default:
                 typed.append(KVPair(key, _number(value)))
         for name, key in self._vector_keys:
             value = getattr(self, name)

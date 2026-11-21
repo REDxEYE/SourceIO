@@ -8,11 +8,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
-from SourceIO.library.shared.vector_types import Vector2, Vector3
+import numpy as np
+
+from SourceIO.library.shared.vector_types import Vector3
 
 __all__ = [
-    'SMDDocument', 'SMDNode', 'SMDBone', 'SMDWeight', 'SMDVertex',
-    'SMDTriangle', 'SMDVertexAnimationVertex', 'parse', 'dump', 'load',
+    'SMDDocument', 'SMDNode', 'SMDBone', 'SMDVertexAnimationVertex', 'parse', 'dump', 'load',
+    'triangle_dtype', 'triangle_array',
 ]
 
 
@@ -31,44 +33,52 @@ class SMDBone:
 
 
 @dataclass(slots=True)
-class SMDWeight:
-    bone: int
-    weight: float
-
-
-@dataclass(slots=True)
-class SMDVertex:
-    bone: int
-    position: Vector3[float]
-    normal: Vector3[float]
-    uv: Vector2[float]
-    # None omits the optional link count; () writes an explicit count of zero.
-    weights: tuple[SMDWeight, ...] | None = None
-
-
-@dataclass(slots=True)
-class SMDTriangle:
-    material: str
-    vertices: tuple[SMDVertex, SMDVertex, SMDVertex]
-
-
-@dataclass(slots=True)
 class SMDVertexAnimationVertex:
     index: int
     position: Vector3[float]
     normal: Vector3[float]
 
 
-@dataclass(slots=True)
+_LINK = np.dtype([('bone', np.int32), ('weight', np.float64)])
+
+
+def triangle_dtype(max_links: int = 0) -> np.dtype:
+    """One row per triangle: a ``materials`` index and three corners.
+
+    ``link_count`` is -1 when the optional count is not written and 0 for an explicit zero; only the
+    first ``link_count`` entries of ``links`` are meaningful, the rest is zero padding.
+    """
+    corner = np.dtype([('bone', np.int32), ('position', np.float64, 3), ('normal', np.float64, 3),
+                       ('uv', np.float64, 2), ('link_count', np.int32), ('links', _LINK, (max_links,))])
+    return np.dtype([('material', np.int32), ('corners', corner, 3)])
+
+
+def triangle_array(count: int = 0, max_links: int = 0) -> np.ndarray:
+    """Zeroed triangles whose corners carry no link count."""
+    triangles = np.zeros(count, triangle_dtype(max_links))
+    triangles['corners']['link_count'] = -1
+    return triangles
+
+
+@dataclass(slots=True, eq=False)
 class SMDDocument:
     nodes: list[SMDNode] = field(default_factory=list)
     skeleton: dict[int, list[SMDBone]] = field(default_factory=dict)
-    triangles: list[SMDTriangle] = field(default_factory=list)
+    materials: list[str] = field(default_factory=list)
+    triangles: np.ndarray = field(default_factory=triangle_array)
     vertex_animation: dict[int, list[SMDVertexAnimationVertex]] = field(default_factory=dict)
     version: int = 1
 
+    def __eq__(self, other):
+        if not isinstance(other, SMDDocument):
+            return NotImplemented
+        return (self.nodes == other.nodes and self.skeleton == other.skeleton and self.materials == other.materials
+                and self.vertex_animation == other.vertex_animation and self.version == other.version
+                and self.triangles.dtype == other.triangles.dtype
+                and np.array_equal(self.triangles, other.triangles))
 
-_NODE = re.compile(r'(\d+)\s+"((?:[^"\\]|\\["\\])*)"\s+(-?\d+)')
+
+_NODE = re.compile(r'(\d+)\s+"([^"]*)"\s+(-?\d+)')
 _SECTIONS = {'nodes', 'skeleton', 'triangles', 'vertexanimation'}
 
 
@@ -81,13 +91,9 @@ class _Reader:
         for number, raw in self.lines:
             self.line = number
             if '//' in raw:
-                quoted = escaped = False
+                quoted = False
                 for index, char in enumerate(raw):
-                    if escaped:
-                        escaped = False
-                    elif char == '\\' and quoted:
-                        escaped = True
-                    elif char == '"':
+                    if char == '"':
                         quoted = not quoted
                     elif (char == '/' and raw[index:index + 2] == '//' and not quoted
                           and (index == 0 or raw[index - 1].isspace())):
@@ -130,9 +136,7 @@ class _Reader:
             if match is None:
                 raise ValueError(f'Invalid SMD node on line {self.line}')
             uid, name, parent = match.groups()
-            document.nodes.append(SMDNode(self.integer(uid),
-                                          name.replace('\\"', '"').replace('\\\\', '\\'),
-                                          self.integer(parent)))
+            document.nodes.append(SMDNode(self.integer(uid), name, self.integer(parent)))
 
     def skeleton(self, document: SMDDocument):
         frame = None
@@ -151,7 +155,7 @@ class _Reader:
                 frame.append(SMDBone(self.integer(tokens[0]), self.numbers(tokens[1:4], 3),
                                      self.numbers(tokens[4:7], 3)))
 
-    def vertex(self, line: str) -> SMDVertex:
+    def vertex(self, line: str) -> tuple:
         tokens = line.split()
         if len(tokens) < 9:
             raise ValueError(f'Invalid SMD triangle vertex on line {self.line}')
@@ -159,22 +163,30 @@ class _Reader:
         position = self.numbers(tokens[1:4], 3)
         normal = self.numbers(tokens[4:7], 3)
         uv = self.numbers(tokens[7:9], 2)
-        weights = None
+        links = None
         if len(tokens) > 9:
             count = self.integer(tokens[9])
             if count < 0 or len(tokens) != 10 + count * 2:
                 raise ValueError(f'Invalid SMD vertex link count on line {self.line}')
-            weights = tuple(SMDWeight(self.integer(tokens[10 + 2 * i]),
-                                      self.number(tokens[11 + 2 * i])) for i in range(count))
-            if any(weight.weight < 0 or weight.weight > 1 for weight in weights) or (
-                    sum(weight.weight for weight in weights) > 1 + 1e-6):
+            links = tuple((self.integer(tokens[10 + 2 * i]), self.number(tokens[11 + 2 * i])) for i in range(count))
+            if any(weight < 0 or weight > 1 for _, weight in links) or (
+                    sum(weight for _, weight in links) > 1 + 1e-6):
                 raise ValueError(f'Invalid SMD vertex weights on line {self.line}')
-        return SMDVertex(bone, position, normal, uv, weights)
+        return bone, position, normal, uv, links
 
     def triangles(self, document: SMDDocument):
+        lookup: dict[str, int] = {}
+        rows = []
         while (material := self.required('triangles')) != 'end':
-            vertices = tuple(self.vertex(self.required('triangles')) for _ in range(3))
-            document.triangles.append(SMDTriangle(material, vertices))
+            rows.append((lookup.setdefault(material, len(lookup)),
+                         [self.vertex(self.required('triangles')) for _ in range(3)]))
+        width = max((len(links or ()) for _, corners in rows for *_, links in corners), default=0)
+        document.materials = list(lookup)
+        document.triangles = np.array(
+            [(material, [(bone, position, normal, uv, -1 if links is None else len(links),
+                          [*(links or ()), *[(0, 0.)] * (width - len(links or ()))])
+                         for bone, position, normal, uv, links in corners])
+             for material, corners in rows], dtype=triangle_dtype(width))
 
     def vertexanimation(self, document: SMDDocument):
         frame = None
@@ -197,6 +209,38 @@ class _Reader:
                                                       self.numbers(tokens[4:7], 3)))
 
 
+def _validate_triangles(document: SMDDocument, ids):
+    triangles = document.triangles
+    if triangles.ndim != 1:
+        raise ValueError('SMD triangles must be a one-dimensional array')
+    if not len(triangles):
+        return
+    corners = triangles['corners']
+    used = np.unique(triangles['material'])
+    if used[0] < 0 or used[-1] >= len(document.materials):
+        raise ValueError('Invalid SMD triangle material or vertex count')
+    for index in used.tolist():
+        name = document.materials[index]
+        if not name or name == 'end' or any(c in name for c in '\n\r') or '//' in name:
+            raise ValueError('Invalid SMD triangle material or vertex count')
+    known = np.fromiter(ids, np.int64, len(ids))
+    if not np.isin(corners['bone'], known).all():
+        raise ValueError('Unknown SMD triangle bone')
+    if not all(np.isfinite(corners[name]).all() for name in ('position', 'normal', 'uv')):
+        raise ValueError('SMD values must be finite')
+    counts, links = corners['link_count'], corners['links']
+    if ((counts < -1) | (counts > links.shape[-1])).any():
+        raise ValueError('Invalid SMD vertex link count')
+    active = np.arange(links.shape[-1]) < counts[..., None]
+    weights = np.where(active, links['weight'], 0.)
+    if not np.isfinite(weights).all():
+        raise ValueError('SMD values must be finite')
+    if (weights < 0).any() or (weights > 1).any() or (weights.sum(-1) > 1 + 1e-6).any():
+        raise ValueError('Invalid SMD vertex weights')
+    if not np.isin(links['bone'][active], known).all():
+        raise ValueError('Unknown SMD triangle bone')
+
+
 def _validate(document: SMDDocument):
     by_id = {node.id: node.parent for node in document.nodes}
     ids = by_id.keys()
@@ -217,10 +261,7 @@ def _validate(document: SMDDocument):
         bones = [pose.bone for pose in frame]
         if len(bones) != len(set(bones)) or any(bone not in ids for bone in bones):
             raise ValueError('Duplicate or unknown SMD skeleton bone')
-    for triangle in document.triangles:
-        for vertex in triangle.vertices:
-            if vertex.bone not in ids or any(link.bone not in ids for link in vertex.weights or ()):
-                raise ValueError('Unknown SMD triangle bone')
+    _validate_triangles(document, ids)
 
 
 def parse(text: str) -> SMDDocument:
@@ -248,6 +289,37 @@ def _number(value: float) -> str:
     return str(float(value))
 
 
+def _triangle_text(document: SMDDocument, chunk_size: int = 1 << 14) -> str:
+    """Triangle lines in the text of ``'%d %r ...' % values``, formatted per chunk and link count."""
+    names = np.array(document.materials, dtype=object)
+    parts = []
+    for start in range(0, len(document.triangles), chunk_size):
+        chunk = document.triangles[start:start + chunk_size]
+        corners = chunk['corners'].reshape(-1)
+        counts = corners['link_count']
+        lines = np.empty(len(corners), dtype=object)
+        for count in np.unique(counts).tolist():
+            mask = counts == count
+            rows = corners[mask]
+            matrix = np.empty((len(rows), 9 + 2 * max(count, 0)))
+            matrix[:, 0] = rows['bone']
+            matrix[:, 1:4] = rows['position']
+            matrix[:, 4:7] = rows['normal']
+            matrix[:, 7:9] = rows['uv']
+            template = '%d' + ' %r' * 8
+            if count >= 0:
+                matrix[:, 9::2] = rows['links']['bone'][:, :count]
+                matrix[:, 10::2] = rows['links']['weight'][:, :count]
+                template += f' {count}' + ' %d %r' * count
+            text = '\n'.join([template] * len(rows)) % tuple(matrix.ravel().tolist())
+            lines[mask] = np.array(text.split('\n'), dtype=object)
+        table = np.empty((len(chunk), 4), dtype=object)
+        table[:, 0] = names[chunk['material']]
+        table[:, 1:] = lines.reshape(-1, 3)
+        parts.append('\n'.join(table.ravel().tolist()))
+    return '\n'.join(parts)
+
+
 def dump(document: SMDDocument, stream: TextIO | None = None) -> str | None:
     """Write canonical version-1 text; return it when no text stream is supplied."""
     if document.version != 1:
@@ -256,11 +328,10 @@ def dump(document: SMDDocument, stream: TextIO | None = None) -> str | None:
     lines = ['version 1', 'nodes']
     ids = set()
     for node in document.nodes:
-        if node.id < 0 or node.id in ids or '\n' in node.name or '\r' in node.name:
+        if node.id < 0 or node.id in ids or any(c in node.name for c in '\n\r"'):
             raise ValueError('Invalid or duplicate SMD node')
         ids.add(node.id)
-        name = node.name.replace('\\', '\\\\').replace('"', '\\"')
-        lines.append(f'{node.id} "{name}" {node.parent}')
+        lines.append(f'{node.id} "{node.name}" {node.parent}')
     lines.extend(('end', 'skeleton'))
     for time, frame in sorted(document.skeleton.items()):
         if time < 0:
@@ -272,26 +343,9 @@ def dump(document: SMDDocument, stream: TextIO | None = None) -> str | None:
                 raise ValueError('SMD bone pose needs position and rotation vectors')
             lines.append(f'{pose.bone} ' + ' '.join(map(_number, fields)))
     lines.append('end')
-    if document.triangles:
+    if len(document.triangles):
         lines.append('triangles')
-        for triangle in document.triangles:
-            if not triangle.material or triangle.material == 'end' or '\n' in triangle.material or (
-                    '\r' in triangle.material or '//' in triangle.material) or len(triangle.vertices) != 3:
-                raise ValueError('Invalid SMD triangle material or vertex count')
-            lines.append(triangle.material)
-            for vertex in triangle.vertices:
-                fields = (*vertex.position, *vertex.normal, *vertex.uv)
-                if len(fields) != 8:
-                    raise ValueError('SMD vertex needs position, normal, and UV values')
-                line = f'{vertex.bone} ' + ' '.join(map(_number, fields))
-                if vertex.weights is not None:
-                    if any(link.weight < 0 or link.weight > 1 for link in vertex.weights) or (
-                            sum(link.weight for link in vertex.weights) > 1 + 1e-6):
-                        raise ValueError('Invalid SMD vertex weights')
-                    line += f' {len(vertex.weights)}'
-                    for link in vertex.weights:
-                        line += f' {link.bone} {_number(link.weight)}'
-                lines.append(line)
+        lines.append(_triangle_text(document))
         lines.append('end')
     if document.vertex_animation:
         lines.append('vertexanimation')

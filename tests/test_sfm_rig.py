@@ -13,7 +13,7 @@ import numpy as np
 
 from SourceIO.blender_bindings.source1.model_export.sfm_rig import (
     BONE_FIELDS, ConstraintRecipe, FingerRecipe, FKChainRecipe, IKChainRecipe, IKRigRecipe, biped_limbs,
-    default_pole_positions, detect_biped, render_sfm_rig, resolve_rig, script_name)
+    _keyword_bone, default_pole_positions, detect_biped, render_sfm_rig, resolve_rig, script_name)
 
 
 def creature():
@@ -268,6 +268,28 @@ class DetectionTests(unittest.TestCase):
                     self.assertEqual(found[key], names[field].replace('{S}', left))
                 self.assertTrue(all(found.values()))
 
+    def test_rigify_control_bones_do_not_hide_the_real_limbs(self):
+        parents = {'root': None, 'spine': 'root', 'chest': 'spine', 'head': 'chest',
+                   'MCH-hand_ik_parent.L': 'root', 'MCH-hand_ik_parent.R': 'root',
+                   'ctrl_foot.L': 'root'}
+        for side in 'LR':
+            parents.update({
+                f'hand_ik.{side}': 'root', f'foot_ik.{side}': 'root', f'IKFoot.{side}': 'root',
+                f'DEF-shoulder.{side}': 'chest', f'DEF-upper_arm.{side}': f'DEF-shoulder.{side}',
+                f'DEF-forearm.{side}': f'DEF-upper_arm.{side}', f'DEF-hand.{side}': f'DEF-forearm.{side}',
+                f'DEF-thigh.{side}': 'root', f'DEF-shin.{side}': f'DEF-thigh.{side}',
+                f'DEF-foot.{side}': f'DEF-shin.{side}', f'DEF-toe.{side}': f'DEF-foot.{side}'})
+        self.assertEqual(_keyword_bone({'root': None, 'kick_hand.L': 'root', 'hand_ik.L': 'root'}, 'hand', 'L'),
+                         'kick_hand.L')
+        found = detect_biped(parents)
+        for side in 'LR':
+            suffix = side.lower()
+            self.assertEqual(found[f'hand_{suffix}'], f'DEF-hand.{side}')
+            self.assertEqual(found[f'upper_arm_{suffix}'], f'DEF-upper_arm.{side}')
+            self.assertEqual(found[f'foot_{suffix}'], f'DEF-foot.{side}')
+            self.assertEqual(found[f'thigh_{suffix}'], f'DEF-thigh.{side}')
+            self.assertEqual(found[f'toe_{suffix}'], f'DEF-toe.{side}')
+
     def test_no_limbs(self):
         found = detect_biped({'root': None, 'lid': 'root'})
         self.assertFalse(any(found.values()))
@@ -389,8 +411,21 @@ class ResolveTests(unittest.TestCase):
 class RenderTests(unittest.TestCase):
     def test_script_name(self):
         recipe = IKRigRecipe(pelvis='p')
-        self.assertEqual(script_name(recipe, 'models/my char/hero-v2.mdl'), 'rig_ik_hero_v2')
+        self.assertEqual(script_name(recipe, 'models/props/hero_v2.mdl'), 'rig_ik_props__hero_v2')
+        self.assertEqual(script_name(recipe, 'models\\props\\hero.mdl'), 'rig_ik_props__hero')
         self.assertEqual(script_name(IKRigRecipe(pelvis='p', script_name='rig_hero'), 'models/a.mdl'), 'rig_hero')
+
+    def test_script_name_never_collides_after_sanitizing_or_truncating(self):
+        recipe = IKRigRecipe(pelvis='p')
+        paths = ('models/a/hero.mdl', 'models/b/hero.mdl', 'models/my char/hero.mdl', 'models/my_char/hero.mdl',
+                 'models/my-char/hero.mdl', 'models/a/b_c.mdl', 'models/a_b/c.mdl', 'models/a_b_c.mdl',
+                 'models/a/b/c.mdl', 'models/a__b.mdl', 'models/a/_b.mdl', 'models/a_/b.mdl', 'models/a.mdl',
+                 'models/' + 'long/' * 30 + 'a.mdl', 'models/' + 'long/' * 30 + 'b.mdl')
+        names = [script_name(recipe, path) for path in paths]
+        self.assertEqual(len(set(names)), len(paths), names)
+        for name in names:
+            self.assertRegex(name, r'[A-Za-z0-9_]{1,64}\Z')
+        self.assertEqual(script_name(recipe, 'models/my char/hero.mdl'), script_name(recipe, 'models/my char/hero.mdl'))
 
     def test_renames_and_python2_subset(self):
         bones = skeleton()

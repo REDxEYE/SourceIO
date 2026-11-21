@@ -17,7 +17,7 @@ import numpy as np
 
 from .dmx_builder import _IDENTITY, _matrix, _rigid
 from .dmx_flex import _stereo_balance, _validate_expression
-from .dmx_types import Capture
+from .dmx_types import Capture, material_codes
 from .procedural_bones import HelperRow, _quaternion
 from .prop_qc import BlankRecipe, FlexControllerRecipe, ModelEntryRecipe, ModelRecipe
 
@@ -58,7 +58,30 @@ def direct_support(model: ModelRecipe, *, advanced_errors: Mapping[str, str] | N
     for name, error in (advanced_errors or {}).items():
         issues.append(Issue("ERROR", f"Advanced flex Text '{name}' can't be used with direct export: {error}; "
                                      f"{_FALLBACK} or use flex rule nodes"))
+    for entry in model.models + model.flex_entries:
+        if entry.flex_rule_set is None:
+            continue
+        try:
+            _merge_rules((("expression", rule.shape_name, rule.expression) for rule in entry.flex_rule_set.rules),
+                         f"Flexes of {entry.geometry.key!r}")
+        except ValueError as exc:
+            issues.append(Issue("ERROR", f"{exc}; {_FALLBACK} or give the objects the same rule"))
     return tuple(issues)
+
+
+def check_joint_collision(model: ModelRecipe) -> None:
+    """Refuse a $collisionjoints geometry that is also a $model/$body or LOD geometry: the jointed bake drops
+    shapes and skin weights differ, so one geometry can't serve both."""
+    collision = model.collision
+    if collision is None or collision.mode != "JOINTS":
+        return
+    used = {item.geometry.key for item in model.models}
+    used.update(item.key for group in model.bodygroups for item in group.entries if not isinstance(item, BlankRecipe))
+    used.update(lod.source.key for lod in model.lods)
+    used.update(lod.geometry.key for lod in model.lods)
+    if collision.geometry.key in used:
+        raise ValueError(f"$collisionjoints geometry {collision.geometry.key!r} is also used as a $model/$body or "
+                         "LOD geometry; use a separate geometry for the joint collision")
 
 
 @dataclass(frozen=True)
@@ -183,15 +206,13 @@ def geometry_arrays(capture: Capture, *, joints: bool = False,
         positions = np.asarray(mesh.positions, dtype=np.float64)
         if positions.ndim != 2 or positions.shape[1] != 3 or not len(positions) or not np.isfinite(positions).all():
             raise ValueError(f"{mesh.name!r} has invalid positions")
-        if not mesh.faces:
+        if not len(mesh.faces):
             raise ValueError(f"{mesh.name!r} has no exportable faces")
         count = len(positions)
-        triangles = np.asarray([face.vertices for face in mesh.faces], dtype=np.int64)
-        normals = np.asarray([face.normals for face in mesh.faces], dtype=np.float64)
-        uvs = np.asarray([face.uvs for face in mesh.faces], dtype=np.float64)
+        triangles = mesh.faces["vertices"].astype(np.int64)
+        normals = mesh.faces["normals"].astype(np.float64)
+        uvs = mesh.faces["uvs"].astype(np.float64)
         faces = len(mesh.faces)
-        if triangles.shape != (faces, 3) or normals.shape != (faces, 3, 3) or uvs.shape != (faces, 3, 2):
-            raise ValueError(f"{mesh.name!r} has non-triangular faces")
         if triangles.min() < 0 or triangles.max() >= count:
             raise ValueError(f"{mesh.name!r} has an invalid vertex index")
         if not np.isfinite(normals).all() or not np.isfinite(uvs).all():
@@ -208,9 +229,7 @@ def geometry_arrays(capture: Capture, *, joints: bool = False,
                     wrinkle = np.zeros(len(vertices))
                 shapes.setdefault(name, []).append((vertices + offset, moved, normal_deltas, wrinkle))
             balances.append(_stereo_balance(mesh))
-        names = [mesh.name if joints else face.material or "no_material" for face in mesh.faces]
-        material_ids = np.fromiter((materials.setdefault(name, len(materials)) for name in names),
-                                   dtype=np.uint32, count=faces)
+        material_ids = material_codes(mesh, materials, mesh.name if joints else None)
 
         attached = None
         if mesh.parent_type == "BONE":
@@ -224,7 +243,9 @@ def geometry_arrays(capture: Capture, *, joints: bool = False,
                 rigid = attached
             elif rig is not None:
                 bones, weights = _skin(mesh, indices, count)
-                dominant = set(bones[np.arange(count), weights.argmax(axis=1)].tolist())
+                # Ties go to the lower bone index, as the SMD route sorts links by (-weight, index)
+                dominant = set(np.where(weights == weights.max(axis=1, keepdims=True), bones,
+                                        len(skeleton)).min(axis=1).tolist())
                 if len(dominant) != 1:
                     raise ValueError(f"{mesh.name!r} collision hull spans multiple bones")
                 rigid = dominant.pop()
@@ -487,7 +508,8 @@ def _apply_combination(mesh, setup: FlexSetup):
 def build_model(studiomdl, model: ModelRecipe, captures: Mapping[str, Capture], *,
                 material_dirs: Sequence[str] = (), helpers: Sequence[HelperRow] = (),
                 advanced: Mapping[str, AdvancedFlex] | None = None,
-                entries: Mapping[str, ModelEntryRecipe] | None = None, fit_weight_poses: int = 0):
+                entries: Mapping[str, ModelEntryRecipe] | None = None,
+                fit_weight_poses: int = 0):
     """The ``studiomdl.Model`` of a recipe; ``captures`` maps every geometry key to its prepared capture.
 
     ``material_dirs`` are the $cdmaterials paths and ``helpers`` the procedural bones (``procedural_bones.helper_rows``)
@@ -496,6 +518,7 @@ def build_model(studiomdl, model: ModelRecipe, captures: Mapping[str, Capture], 
     retargeted to auto-merged meshes). Shapes of the $model/$body and bodygroup meshes become flexes like the DMX
     route's delta states; LOD replacements and collision take no shapes.
     """
+    check_joint_collision(model)
     from SourceIO.library.utils.pylib import studiomdl as StudioMdl
     collision = model.collision
     joint_key = collision.geometry.key if collision is not None and collision.mode == "JOINTS" else None
@@ -523,8 +546,7 @@ def build_model(studiomdl, model: ModelRecipe, captures: Mapping[str, Capture], 
     result: StudioMdl.Model = studiomdl.Model(str(PurePosixPath(model.model_path.split("/", 1)[1]).with_suffix("")))
     result.perf = True
     if fit_weight_poses:
-        # -fitweights: fit the weights to the 3 studiomdl keeps over this many sample poses
-        result.set_fit_weights(True, fit_weight_poses)
+        result.set_fit_weights(True, fit_weight_poses, fit_weight_poses)
     if model.mostlyopaque:
         result.mostly_opaque = True
     if model.ambientboost:

@@ -12,7 +12,7 @@ import numpy as np
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import (
     build_document, write_dmx, write_vca_sequences)
 from SourceIO.blender_bindings.source1.model_export.dmx_types import (
-    Bone, Capture, Face, Mesh, Rig, Shape, VertexAnimation)
+    Bone, Capture, Mesh, Rig, Shape, VertexAnimation, face_array)
 from SourceIO.library.utils import datamodel_v2 as dm
 
 
@@ -23,8 +23,8 @@ VERSIONS = ((2, 1), (4, 15), (5, 18))
 def panel(*, name='Panel', matrix=IDENTITY, parent=None, parent_type=None, parent_bone=None, weights=(),
           shapes=(), faces=None):
     if faces is None:
-        faces = (Face((0, 1, 2), ((0., 0., 1.),) * 3, ((0., 0.), (1., 0.), (0., 1.)), 'panel'),)
-    return Mesh(name, matrix, parent, parent_type, parent_bone, ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)), faces,
+        faces = face_array([((0, 1, 2), ((0., 0., 1.),) * 3, ((0., 0.), (1., 0.), (0., 1.)), 'panel')])
+    return Mesh(name, matrix, parent, parent_type, parent_bone, ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)), *faces,
                 weights, shapes)
 
 
@@ -62,8 +62,8 @@ class DMXBuilderTests(unittest.TestCase):
         angle = 0.5
         cosine, sine = np.cos(angle), np.sin(angle)
         world = ((-cosine, -1.5*sine, 0., 2.), (-sine, 1.5*cosine, 0., 3.), (0., 0., 1., 1.), (0., 0., 0., 1.))
-        faces = (Face((0, 1, 2), ((0., 0., 1.),) * 3, ((0., 0.), (1., 0.), (1., 1.)), 'base'),
-                 Face((0, 1, 2), ((0., 0., 1.),) * 3, ((0.5, 0.), (1., 1.), (0., 1.)), 'override'))
+        faces = face_array([((0, 1, 2), ((0., 0., 1.),) * 3, ((0., 0.), (1., 0.), (1., 1.)), 'base'),
+                            ((0, 1, 2), ((0., 0., 1.),) * 3, ((0.5, 0.), (1., 1.), (0., 1.)), 'override')])
         capture = Capture('Scene', (panel(matrix=world, faces=faces),), None)
         document = build_document(capture, encoding_version=4, model_version=15)
         dag = document.root['model']['children'][0]
@@ -178,8 +178,8 @@ class DMXBuilderTests(unittest.TestCase):
 
     def test_vertex_animation_samples_and_sequence_drive_matching_joint(self):
         base = panel()
-        moved = Shape('pulse-1', ((0., 0., .3), *base.positions[1:]), (base.faces[0].normals,))
-        frames = (Shape('pulse-0', base.positions, (base.faces[0].normals,)), moved)
+        moved = Shape('pulse-1', ((0., 0., .3), *base.positions[1:]), base.faces['normals'][:1])
+        frames = (Shape('pulse-0', base.positions, base.faces['normals'][:1]), moved)
         animation = VertexAnimation('pulse', 'Panel', frames, export_sequence=True, frame_rate=24.0)
         capture = Capture('Scene', (base,), None, (animation,))
         for encoding, model_version in VERSIONS:
@@ -218,8 +218,8 @@ class DMXBuilderTests(unittest.TestCase):
         left = panel(name='Left')
         right = panel(name='Right')
         def frames():
-            return (Shape('pulse-0', left.positions, (left.faces[0].normals,)),
-                    Shape('pulse-1', ((0., 0., .2), *left.positions[1:]), (left.faces[0].normals,)))
+            return (Shape('pulse-0', left.positions, left.faces['normals'][:1]),
+                    Shape('pulse-1', ((0., 0., .2), *left.positions[1:]), left.faces['normals'][:1]))
         capture = Capture('Scene', (left, right), None,
                           (VertexAnimation('pulse', 'Left', frames()),
                            VertexAnimation('pulse', 'Right', frames())))

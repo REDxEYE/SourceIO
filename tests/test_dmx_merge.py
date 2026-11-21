@@ -7,7 +7,7 @@ import numpy as np
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import build_document, build_vca_sequence
 from SourceIO.blender_bindings.source1.model_export.dmx_merge import merge_collection_capture
 from SourceIO.blender_bindings.source1.model_export.dmx_types import (
-    Bone, Capture, Face, Mesh, Rig, Shape, VertexAnimation)
+    Bone, Capture, Mesh, Rig, Shape, VertexAnimation, face_array)
 
 
 IDENTITY = ((1., 0., 0., 0.), (0., 1., 0., 0.), (0., 0., 1., 0.), (0., 0., 0., 1.))
@@ -16,9 +16,9 @@ NORMALS = ((0., 0., 1.),) * 3
 
 def mesh(name, *, matrix=IDENTITY, material='material', uv=0., shapes=(), balance=None, weights=(), parent=None,
          parent_type=None, parent_bone=None):
-    face = Face((0, 1, 2), NORMALS, ((uv, 0.), (1., 0.), (0., 1.)), material)
+    faces = face_array([((0, 1, 2), NORMALS, ((uv, 0.), (1., 0.), (0., 1.)), material)])
     return Mesh(name, matrix, parent, parent_type, parent_bone, ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)),
-                (face,), weights, shapes, balance)
+                *faces, weights, shapes, balance)
 
 
 def moved(name, z):
@@ -37,9 +37,10 @@ class DMXMergeTests(unittest.TestCase):
         self.assertEqual(merged.meshes[0].name, 'Collection')
         self.assertEqual(merged.meshes[0].matrix_world, IDENTITY)
         self.assertEqual(merged.meshes[0].balance, (0., .5, 1., 1., .5, 0.))
-        self.assertEqual([face.material for face in merged.meshes[0].faces], ['material', 'other'])
-        self.assertEqual(merged.meshes[0].faces[1].vertices, (3, 5, 4))
-        self.assertEqual(merged.meshes[0].faces[1].uvs[0], (.5, 0.))
+        faces = merged.meshes[0].faces
+        self.assertEqual([merged.meshes[0].materials[index] for index in faces['material']], ['material', 'other'])
+        self.assertEqual(faces['vertices'][1].tolist(), [3, 5, 4])
+        self.assertEqual(faces['uvs'][1, 0].tolist(), [.5, 0.])
         np.testing.assert_allclose(merged.meshes[0].positions[3], (3., 1., 0.))
         np.testing.assert_allclose(merged.meshes[0].shapes[0].positions[3], (3., 1., 2.))
         document = build_document(merged, encoding_version=4, model_version=15)
@@ -52,7 +53,7 @@ class DMXMergeTests(unittest.TestCase):
         # Moved 100 units to the character's left (+X).
         second = mesh('B', matrix=((1., 0., 0., 100.), (0., 1., 0., 0.), (0., 0., 1., 0.), (0., 0., 0., 1.)))
         merged = merge_collection_capture(Capture('Collection', (first, second), None))
-        self.assertEqual(merged.meshes[0].shapes[0].positions[3:], merged.meshes[0].positions[3:])
+        np.testing.assert_array_equal(merged.meshes[0].shapes[0].positions[3:], merged.meshes[0].positions[3:])
         # A straddles the middle; all of B is on the left.
         self.assertEqual(merged.meshes[0].balance, (0.5, 0.0, 0.5, 0.0, 0.0, 0.0))
         document = build_document(merged, encoding_version=4, model_version=15)
@@ -68,7 +69,7 @@ class DMXMergeTests(unittest.TestCase):
         self.assertEqual(len(merged.vertex_animations), 1)
         clip = merged.vertex_animations[0]
         self.assertEqual(clip.mesh_name, 'Collection')
-        self.assertEqual(clip.frames[1].positions[3], (5., 0., 4.))
+        np.testing.assert_allclose(clip.frames[1].positions[3], (5., 0., 4.))
         document = build_document(merged, encoding_version=4, model_version=15)
         shape = next(child['shape'] for child in document.root['model']['children'] if child.name == 'Collection')
         self.assertEqual(len(shape['deltaStates']), 2)
@@ -99,7 +100,7 @@ class DMXMergeTests(unittest.TestCase):
         first = mesh('A', shapes=(moved('A', 1.), moved('B', 2.), moved('A+B', 4.)))
         second = mesh('B', shapes=(moved('A', 1.), moved('B', 2.)))
         merged = merge_collection_capture(Capture('Collection', (first, second), None))
-        self.assertEqual(merged.meshes[0].shapes[2].positions[3], merged.meshes[0].positions[3])
+        np.testing.assert_array_equal(merged.meshes[0].shapes[2].positions[3], merged.meshes[0].positions[3])
         document = build_document(merged, encoding_version=4, model_version=15)
         delta = document.root['model']['children'][0]['shape']['deltaStates'][2]
         self.assertEqual(list(delta['positionsIndices']), [0])

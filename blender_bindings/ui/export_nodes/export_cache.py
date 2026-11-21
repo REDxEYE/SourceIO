@@ -35,9 +35,10 @@ import numpy as np
 CACHE_VERSION = 1
 CACHE_SUFFIX = '.sourceio-cache.json'
 
-# Node RNA properties that do not affect the exported result.
+# Node RNA properties that do not affect the exported result (the last two are
+# diagnostics written while exporting).
 _SKIPPED_PROPERTIES = (frozenset(bpy.types.Node.bl_rna.properties.keys())
-                       | {'rna_type'})
+                       | {'rna_type', 'size_error', 'resize_warning'})
 
 
 def cache_path(qc_path: Path) -> Path:
@@ -68,15 +69,19 @@ class _Hasher:
 def code_fingerprint() -> str:
     """Hash of the exporter sources; computed once per Blender session."""
     here = Path(__file__).resolve().parent
-    roots = (here, here.parent.parent / 'source1' / 'model_export')
+    library = here.parents[2] / 'library'
+    roots = (here, here.parent.parent / 'source1' / 'model_export',
+             library / 'models' / 'smd')
     hasher = _Hasher().feed(CACHE_VERSION)
     for root in roots:
         for path in sorted(root.rglob('*.py')):
             hasher.feed(path.relative_to(root.parent).as_posix(),
                         path.read_bytes())
-    vtf_root = here.parents[2] / 'library' / 'utils' / 'pylib'
-    for path in sorted(vtf_root.glob('**/*vtf*')):
-        if path.is_file():
+    datamodel = library / 'utils' / 'datamodel_v2.py'
+    hasher.feed(datamodel.name, datamodel.read_bytes())
+    # The native VTF encoder and studiomdl: size and time only, they are large.
+    for path in sorted((library / 'utils' / 'pylib').rglob('*')):
+        if path.is_file() and '__pycache__' not in path.parts:
             stat = path.stat()
             hasher.feed(path.name, stat.st_size, stat.st_mtime_ns)
     return hasher.hexdigest()
@@ -168,6 +173,7 @@ _ATTRIBUTE_LAYOUT = {
     'FLOAT_COLOR': ('color', 4, np.float32),
     'BYTE_COLOR': ('color', 4, np.float32),
     'INT32_2D': ('value', 2, np.int32),
+    'INT16_2D': ('value', 2, np.int32),
     'QUATERNION': ('value', 4, np.float32),
     'FLOAT4X4': ('value', 16, np.float32),
 }
@@ -179,17 +185,20 @@ def _array(collection, prop, components, dtype):
     return values
 
 
-def _mesh_data(hasher, mesh):
+def _mesh_data(hasher, mesh) -> bool:
+    """Feed the mesh data; False when an attribute type is not understood."""
     hasher.feed(_array(mesh.vertices, 'co', 3, np.float32),
                 _array(mesh.edges, 'vertices', 2, np.int32),
                 _array(mesh.loops, 'vertex_index', 1, np.int32),
                 _array(mesh.polygons, 'loop_start', 1, np.int32))
     for attribute in sorted(mesh.attributes, key=lambda item: item.name):
         layout = _ATTRIBUTE_LAYOUT.get(attribute.data_type)
+        if layout is None:
+            # An unhashed attribute could change the export without a cache miss.
+            return False
         hasher.feed(attribute.name, attribute.domain, attribute.data_type)
-        if layout is not None:
-            prop, components, dtype = layout
-            hasher.feed(_array(attribute.data, prop, components, dtype))
+        prop, components, dtype = layout
+        hasher.feed(_array(attribute.data, prop, components, dtype))
     hasher.feed(mesh.uv_layers.active.name if mesh.uv_layers.active else None)
     keys = mesh.shape_keys
     if keys is not None:
@@ -199,6 +208,7 @@ def _mesh_data(hasher, mesh):
                         block.slider_max, block.relative_key.name,
                         block.vertex_group, block.interpolation,
                         _array(block.data, 'co', 3, np.float32))
+    return True
 
 
 def geometry_fingerprint(geometry, rig, settings) -> str | None:
@@ -226,7 +236,8 @@ def geometry_fingerprint(geometry, rig, settings) -> str | None:
         if obj.type != 'MESH':
             continue
         hasher.feed(obj.data.name)
-        _mesh_data(hasher, obj.data)
+        if not _mesh_data(hasher, obj.data):
+            return None
         hasher.feed([(slot.link, slot.material.name if slot.material else None)
                      for slot in obj.material_slots])
         for modifier in obj.modifiers:

@@ -40,7 +40,8 @@ def _variables(expression, controls):
 def _shape_targets(rules):
     """{(object, shape key): expression} for the shape keys that exist in Blender.
 
-    Generated stereo halves of one source key become the average of the halves, times their delta scale.
+    Generated halves of one source key (range parts, stereo sides) are summed, each by its own delta scale; stereo
+    sides are averaged, since the key covers the whole mesh.
     """
     halves = {}
     targets = {}
@@ -50,12 +51,8 @@ def _shape_targets(rules):
         else:
             targets[(rule.object_name, rule.shape_name)] = rule.expression
     for key, parts in halves.items():
-        scale = parts[0].delta_scale
-        if len(parts) == 1:
-            expression = f"({parts[0].expression}) * {scale!r}"
-        else:
-            expression = " + ".join(f"({part.expression})" for part in parts)
-            expression = f"({expression}) * {scale / len(parts)!r}"
+        sides = len({part.side for part in parts})
+        expression = " + ".join(f"({part.expression}) * {part.delta_scale / sides!r}" for part in parts)
         targets.setdefault(key, expression)
     return targets
 
@@ -125,9 +122,8 @@ def build_flex_drivers(rule_set: FlexRuleSetRecipe, slider_object=None) -> dict:
     # Controller properties and sliders on the slider object
     data = host.data
     properties = []
-    if host.get("sourceio_flex_preview") is None and len(host.flex_controllers):
-        raise ValueError(f"{host.name!r} already has imported flex controller sliders; pick another slider object")
-    host.flex_controllers.clear()
+    if host.get("sourceio_flex_preview") is not None or len(host.flex_controllers):
+        raise ValueError(f"{host.name!r} already has flex controller sliders; pick another slider object")
     for item in _slider_pairs(rule_set.controls):
         slider = host.flex_controllers.add()
         if item[0] == "stereo":

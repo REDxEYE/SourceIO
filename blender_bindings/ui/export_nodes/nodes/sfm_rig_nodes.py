@@ -5,6 +5,7 @@ import bpy
 from bpy.types import Node, Operator
 from mathutils import Matrix, Vector
 
+from SourceIO.blender_bindings.source1.model_export.dmx_capture import rest_world_matrix
 from SourceIO.blender_bindings.source1.model_export.sfm_rig import (
     BONE_FIELDS, DEFAULT_HIDDEN_GROUPS, LIMB_FIELDS, SIDES, ConstraintRecipe,
     FingerRecipe, FKChainRecipe, IKChainRecipe, IKRigRecipe, biped_limbs,
@@ -12,7 +13,7 @@ from SourceIO.blender_bindings.source1.model_export.sfm_rig import (
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_5
 from .prop_nodes import (
     _attach_to_bone, _connected_armature, _many, _model_outputs, _PropNode,
-    _PropSocket, _rest_matrix)
+    _PropSocket)
 
 # Side fields the rig node had before its limbs became IK chain nodes.
 LEGACY_LIMB_FIELDS = tuple(f"{name}_{side.lower()}" for side, _ in SIDES
@@ -30,7 +31,7 @@ def _pole_property(label):
 
 
 def _pole(obj):
-    return None if obj is None else tuple(_rest_matrix(obj).translation)
+    return None if obj is None else tuple(rest_world_matrix(obj).translation)
 
 
 class SourceIOSfmRigSocket(_PropSocket):

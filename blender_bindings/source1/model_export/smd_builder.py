@@ -11,7 +11,7 @@ import numpy as np
 from SourceIO.library.models import smd
 
 from .dmx_builder import _IDENTITY, _matrix, _rigid
-from .dmx_types import Capture, Mesh
+from .dmx_types import Capture, Mesh, material_codes
 
 
 def _vector(values, count: int, label: str) -> tuple[float, ...]:
@@ -38,7 +38,7 @@ def _pose(index: int, matrix: np.ndarray) -> smd.SMDBone:
 
 
 def _links(mesh: Mesh, indices: dict[str, int],
-           vertex: int) -> tuple[smd.SMDWeight, ...]:
+           vertex: int) -> tuple[tuple[int, float], ...]:
     links = []
     for name, weight in mesh.weights[vertex]:
         if name not in indices or not np.isfinite(weight) or weight <= 0:
@@ -53,8 +53,23 @@ def _links(mesh: Mesh, indices: dict[str, int],
             f'{mesh.name!r} vertex {vertex} has duplicate joint weights')
     links.sort(key=lambda item: (-item[1], item[0]))
     total = sum(weight for _, weight in links)
-    return tuple(smd.SMDWeight(index, weight / total)
-                 for index, weight in links)
+    return tuple((index, weight / total) for index, weight in links)
+
+
+def _vertex_links(mesh: Mesh, indices: dict[str, int], vertices: np.ndarray):
+    """Per-vertex ``(count, bones, weights)`` arrays, filled only for ``vertices``."""
+    links = [_links(mesh, indices, vertex) for vertex in vertices.tolist()]
+    counts = np.fromiter(map(len, links), np.int64, len(links))
+    flat = np.array([link for vertex in links for link in vertex])
+    rows = np.repeat(vertices, counts)
+    columns = np.arange(len(flat)) - np.repeat(np.cumsum(counts) - counts, counts)
+    count = np.zeros(len(mesh.positions), np.int32)
+    bones = np.zeros((len(mesh.positions), int(counts.max())), np.int32)
+    weights = np.zeros(bones.shape)
+    count[vertices] = counts
+    bones[rows, columns] = flat[:, 0]
+    weights[rows, columns] = flat[:, 1]
+    return count, bones, weights
 
 
 def build_document(capture: Capture, *,
@@ -75,6 +90,8 @@ def build_document(capture: Capture, *,
         raise ValueError('Captured meshes have duplicate object names')
 
     document = smd.SMDDocument(skeleton={0: []})
+    lookup: dict[str, int] = {}
+    parts = []
     indices: dict[str, int] = {}
     rig = capture.rig
     if rig:
@@ -122,7 +139,7 @@ def build_document(capture: Capture, *,
             raise ValueError(f'{mesh.name!r} has invalid positions')
         if rig and mesh.weights and len(mesh.weights) != len(positions):
             raise ValueError(f'{mesh.name!r} has mismatched vertex weights')
-        if not mesh.faces:
+        if not len(mesh.faces):
             raise ValueError(f'{mesh.name!r} has no exportable faces')
         attached = None
         if mesh.parent_type == 'BONE':
@@ -140,7 +157,7 @@ def build_document(capture: Capture, *,
             if attached is not None:
                 bone_id = attached
             elif rig:
-                dominant = {_links(mesh, indices, vertex)[0].bone
+                dominant = {_links(mesh, indices, vertex)[0][0]
                             for vertex in range(len(positions))}
                 if len(dominant) != 1:
                     raise ValueError(
@@ -156,53 +173,53 @@ def build_document(capture: Capture, *,
         if not np.isfinite(transformed).all():
             raise ValueError(
                 f'{mesh.name!r} has invalid transformed positions')
-        position_values = tuple(map(tuple, transformed.tolist()))
-        for face_index, face in enumerate(mesh.faces):
-            if (len(face.vertices) != 3 or len(face.normals) != 3
-                    or len(face.uvs) != 3):
-                raise ValueError(
-                    f'{mesh.name!r} face {face_index} is not triangular')
-        normals = np.asarray([face.normals for face in mesh.faces],
-                             dtype=np.float64)
-        uvs = np.asarray([face.uvs for face in mesh.faces], dtype=np.float64)
-        if (normals.shape != (len(mesh.faces), 3, 3)
-                or not np.isfinite(normals).all()):
+        normals = mesh.faces['normals'].astype(np.float64)
+        uvs = mesh.faces['uvs'].astype(np.float64)
+        if not np.isfinite(normals).all():
             raise ValueError(f'{mesh.name!r} has invalid face normals')
-        if (uvs.shape != (len(mesh.faces), 3, 2)
-                or not np.isfinite(uvs).all()):
+        if not np.isfinite(uvs).all():
             raise ValueError(f'{mesh.name!r} has invalid UVs')
         normals = normals @ normal_matrix.T
         lengths = np.linalg.norm(normals, axis=2)
         if not np.isfinite(lengths).all() or (lengths < 1e-10).any():
             raise ValueError(
                 f'{mesh.name!r} has a zero or invalid face normal')
-        normal_values = (normals / lengths[:, :, None]).tolist()
-        uv_values = uvs.tolist()
-        weight_cache = ([None] * len(positions)
-                        if rig and mesh.weights and not joints else None)
-        for face_index, face in enumerate(mesh.faces):
-            vertices = []
-            for corner in corners:
-                vertex = face.vertices[corner]
-                if type(vertex) is not int or not 0 <= vertex < len(positions):
-                    raise ValueError(f'{mesh.name!r} face {face_index} has an '
-                                     'invalid vertex index')
-                weights = None
-                if weight_cache is not None:
-                    weights = weight_cache[vertex]
-                    if weights is None:
-                        weights = weight_cache[vertex] = _links(
-                            mesh, indices, vertex)
-                vertices.append(smd.SMDVertex(
-                    bone_id, position_values[vertex],
-                    tuple(normal_values[face_index][corner]),
-                    tuple(uv_values[face_index][corner]), weights))
-            # Collision materials identify object hulls without adding physics
-            # bones.
-            material = mesh.name if joints else (face.material
-                                                 or 'no_material')
-            document.triangles.append(
-                smd.SMDTriangle(material, tuple(vertices)))
+        normals /= lengths[:, :, None]
+        triangles = mesh.faces['vertices']
+        invalid = (triangles < 0) | (triangles >= len(positions))
+        if invalid.any():
+            raise ValueError(
+                f'{mesh.name!r} face {int(np.flatnonzero(invalid.any(1))[0])} '
+                'has an invalid vertex index')
+        # Collision materials identify object hulls without adding physics
+        # bones.
+        codes = material_codes(mesh, lookup, mesh.name if joints else None)
+        order = triangles[:, corners]
+        links = None
+        if rig and mesh.weights and not joints:
+            # Weights are per vertex; validate them in first-use face order.
+            used, first = np.unique(order, return_index=True)
+            links = _vertex_links(mesh, indices, used[np.argsort(first)])
+        parts.append((bone_id, transformed[order], normals[:, corners],
+                      uvs[:, corners], codes, order, links))
+    document.materials = list(lookup)
+    width = max((part[6][1].shape[1] for part in parts if part[6]), default=0)
+    document.triangles = smd.triangle_array(sum(len(part[4]) for part in parts), width)
+    start = 0
+    for bone_id, position, normal, uv, codes, order, links in parts:
+        rows = document.triangles[start:start + len(codes)]
+        start += len(codes)
+        rows['material'] = codes
+        rows = rows['corners']
+        rows['bone'] = bone_id
+        rows['position'] = position
+        rows['normal'] = normal
+        rows['uv'] = uv
+        if links:
+            count, bones, weights = links
+            rows['link_count'] = count[order]
+            rows['links']['bone'][..., :bones.shape[1]] = bones[order]
+            rows['links']['weight'][..., :bones.shape[1]] = weights[order]
     return document
 
 

@@ -24,6 +24,7 @@ Nothing here touches Blender: the armature is described by a
 """
 
 from dataclasses import dataclass
+import hashlib
 import json
 from math import isfinite
 import re
@@ -286,15 +287,29 @@ def biped_limbs(found) -> tuple[tuple, ...]:
     return tuple(limbs)
 
 
+MAX_SCRIPT_NAME = 64
+
+
 def script_name(recipe: IKRigRecipe, model_path: str) -> str:
-    """File stem of the rig script: the explicit name, else
-    ``rig_ik_<model stem>``.
+    """File stem of the rig script: the explicit name, else ``rig_ik_<path under models/>``.
+
+    ``/`` becomes ``__`` and only paths that decode back uniquely (alphanumeric components joined by single ``_``
+    inside, none empty) keep that plain name. Any other path, or one over ``MAX_SCRIPT_NAME``, gets a truncated name
+    plus ``___<hash of the full path>``; plain names never hold ``___``, so no two models share a script.
     """
     if recipe.script_name:
         return recipe.script_name
-    stem = model_path.replace("\\", "/").rsplit("/", 1)[-1].rsplit(".", 1)[0]
-    return "rig_ik_" + (
-        re.sub(r"[^A-Za-z0-9_]+", "_", stem).strip("_") or "model")
+    path = model_path.replace("\\", "/").strip("/")
+    if path.casefold().startswith("models/"):
+        path = path[len("models/"):]
+    path = re.sub(r"\.[^/.]*\Z", "", path)
+    plain = "rig_ik_" + path.replace("/", "__")
+    if re.fullmatch(r"[A-Za-z0-9]+(_[A-Za-z0-9]+)*(/[A-Za-z0-9]+(_[A-Za-z0-9]+)*)*", path) \
+            and len(plain) <= MAX_SCRIPT_NAME:
+        return plain
+    digest = hashlib.sha1(path.casefold().encode("utf-8")).hexdigest()[:8]
+    name = re.sub(r"[^A-Za-z0-9_]+", "_", path).strip("_") or "model"
+    return f"rig_ik_{name}"[:MAX_SCRIPT_NAME - 11].rstrip("_") + f"___{digest}"
 
 
 # -----------------------------------------------------------------------------
@@ -329,9 +344,15 @@ def _side(name, keyword):
     return None
 
 
+# Rigify-style control bones (hand_ik.L, MCH-..., ctrl_...) hang off the root and would hide the real limb.
+_CONTROL_TOKENS = {"ik", "mch", "ctrl", "target"}
+_NAME_TOKEN = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")  # splits on case changes: "IKHand", not "kick"
+
+
 def _keyword_bone(parents, keyword, side):
     found = [name for name in parents
-             if keyword in name.lower() and _side(name, keyword) == side]
+             if keyword in name.lower() and _side(name, keyword) == side
+             and not _CONTROL_TOKENS.intersection(token.lower() for token in _NAME_TOKEN.findall(name))]
     return min(
         found, key=lambda name: (_depth(name, parents), len(name), name),
         default="")
