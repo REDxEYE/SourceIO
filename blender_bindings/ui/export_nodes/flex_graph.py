@@ -379,6 +379,10 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
     obj: bpy.props.PointerProperty(name="Mesh object", type=bpy.types.Object,
                                    poll=lambda self, obj: obj.type == 'MESH')
     shapes: bpy.props.CollectionProperty(type=SourceIO_PG_FlexSequenceShape)
+    use_shape_range: bpy.props.BoolProperty(
+        name="Use shape key range",
+        description="Use each key's slider maximum for its forward pose and add "
+                    "a reversed pose before it if its slider minimum is negative")
     group_id: bpy.props.StringProperty(options={'HIDDEN'})
     orphaned: bpy.props.BoolProperty(options={'HIDDEN'})
     needs_review: bpy.props.BoolProperty(options={'HIDDEN'})
@@ -392,6 +396,7 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "obj")
+        layout.prop(self, "use_shape_range")
         layout.label(text="First key at 0 → last key at 1")
         keys = _shape_keys(self)
         count = len(self.shapes)
@@ -426,17 +431,29 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         control = _one(self, "Value", resolve, _CONTROLLER_TYPES, required=True)
         if control.stereo or (control.minimum, control.maximum) != (0.0, 1.0):
             raise ValueError(f"{self.name}: use one non-stereo controller with range 0 to 1")
-        last = len(names) - 1
+        poses = []
+        for name in names:
+            key = keys.key_blocks[name]
+            low, high = (key.slider_min, key.slider_max) if self.use_shape_range else (0.0, 1.0)
+            if low < 0:
+                negative = f"{name}.neg"
+                if negative in keys.key_blocks:
+                    raise ValueError(f"{self.name}: generated range shape {negative!r} already exists")
+                poses.append((negative, name, low))
+            if high > 0:
+                poses.append((name, name if low < 0 or high != 1 else "", high))
+        last = len(poses) - 1
         p = f"({control.name}*{last})" if last > 1 else control.name
         rules = []
-        for i, name in enumerate(names):
+        for i, (name, source, scale) in enumerate(poses):
             if i == 0:
                 t = _bounded(f"1-{p}", "0", "1")
             elif i == last:
                 t = _bounded(f"{p}-{i - 1}", "0", "1")
             else:
                 t = f"max(min({p}-{i - 1},{i + 1}-{p}),0)"
-            rules.append(FlexRuleRecipe(obj.name, name, f"({t}*{t}*(3-2*{t}))"))
+            rules.append(FlexRuleRecipe(obj.name, name, f"({t}*{t}*(3-2*{t}))",
+                                        source_shape=source, delta_scale=scale))
         return tuple(rules)
 
 

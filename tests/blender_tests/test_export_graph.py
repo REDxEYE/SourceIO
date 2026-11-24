@@ -2149,6 +2149,8 @@ class ExportGraphTests(unittest.TestCase):
         sequence.shapes.add()
         for item, name in zip(sequence.shapes, ('open', 'wide', 'closed')):
             item.shape_name = name
+        wide = mesh.obj.data.shape_keys.key_blocks['wide']
+        wide.slider_min, wide.slider_max = -1.5, 2.0
         control = self.tree.nodes.new('SourceIOVirtualControllerNode')
         control.control_name = 'transition'
         self.tree.links.new(control.outputs['Value'], sequence.inputs['Value'])
@@ -2165,6 +2167,20 @@ class ExportGraphTests(unittest.TestCase):
             actual = [eval(expressions[name], {'__builtins__': {}, 'min': min, 'max': max},
                            {'transition': position}) for name in ('open', 'wide', 'closed')]
             self.assertEqual(tuple(actual), expected)
+
+        sequence.use_shape_range = True
+        rules = plan_model(self.output).model.models[0].flex_rule_set
+        self.assertEqual([(c.name, c.minimum, c.maximum) for c in rules.controls],
+                         [('transition', 0, 1)])
+        for position, expected in ((0, (1, 0, 0)), (1 / 3, (0, -1.5, 0)),
+                                   (0.5, (0, 0.25, 0)), (2 / 3, (0, 2, 0)), (1, (0, 0, 1))):
+            weights = dict.fromkeys(('open', 'wide', 'closed'), 0.0)
+            for rule in rules.rules:
+                value = eval(rule.expression, {'__builtins__': {}, 'min': min, 'max': max},
+                             {'transition': position})
+                self.assertTrue(0 <= value <= 1)
+                weights[rule.source_shape or rule.shape_name] += value * rule.delta_scale
+            np.testing.assert_allclose(tuple(weights.values()), expected)
 
     def test_flex_crossfade_blends_two_exported_shape_rules(self):
         if bpy.context.window is None:

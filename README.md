@@ -29,6 +29,9 @@ list of shape keys on one mesh. Connect a single non-stereo controller's
 collector. Connect the sequence's **Rule** to the same collector. The first
 shape is fully on at 0, the last at 1, and adjacent shapes ease in and out
 between evenly spaced stops.
+Enable **Use shape key range** to use each key's Blender slider maximum
+instead of a unit peak. A negative slider minimum adds a reversed pose before
+that key's forward pose. The controller still runs from 0 to 1.
 
 # Credits
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
