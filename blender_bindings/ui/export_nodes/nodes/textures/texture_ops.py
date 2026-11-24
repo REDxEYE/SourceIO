@@ -120,7 +120,7 @@ def _draw_size_error(node, layout):
         col.label(text=fix)
 
 
-# Largest Resize output (float32 bytes); 8192×8192 RGBA fits exactly.
+# Largest resampled or tiled output (float32 bytes); 8192×8192 RGBA fits.
 _MAX_RESIZE_BYTES = 1 << 30
 # Elements per temporary array while resampling a band of output rows.
 _RESIZE_BAND_ELEMENTS = 1 << 22
@@ -131,33 +131,44 @@ def _source_coords(src_size, dst_size):
     return (np.arange(dst_size) + 0.5) * (src_size / dst_size) - 0.5
 
 
-def _resize(src, width, height, nearest):
-    """Resample an HxW or HxWxC float array to ``height`` x ``width``,
-    clamping at the edges; rows keep their order.
+def _resize(src, width, height, nearest, *, repeats=(1, 1)):
+    """Resample a virtually tiled source without allocating the tiled image.
+
+    Clamp at the outer edges of the tiled extent; rows keep their order.
     """
     src = ensure_f32(src)
     src_h, src_w = src.shape[:2]
     extra = src.shape[2:]
+    tiles_x, tiles_y = repeats
     out = np.empty((height, width, *extra), np.float32)
     band = max(1, _RESIZE_BAND_ELEMENTS
                // (max(src_w, width) * (extra[0] if extra else 1)))
     if nearest:
-        ys = np.clip(np.floor(_source_coords(src_h, height) + 0.5),
-                     0, src_h - 1).astype(np.intp)
-        xs = np.clip(np.floor(_source_coords(src_w, width) + 0.5),
-                     0, src_w - 1).astype(np.intp)
+        def nearest_axis(src_size, dst_size, tiles):
+            extent = src_size * tiles
+            indices = np.clip(np.floor(_source_coords(extent, dst_size) + 0.5),
+                              0, extent - 1).astype(np.intp)
+            return indices % src_size if tiles != 1 else indices
+
+        ys = nearest_axis(src_h, height, tiles_y)
+        xs = nearest_axis(src_w, width, tiles_x)
         for start in range(0, height, band):
             out[start:start + band] = src[ys[start:start + band]][:, xs]
         return out
 
-    def axis(src_size, dst_size):
-        x = np.clip(_source_coords(src_size, dst_size), 0, src_size - 1)
+    def axis(src_size, dst_size, tiles):
+        extent = src_size * tiles
+        x = np.clip(_source_coords(extent, dst_size), 0, extent - 1)
         i0 = np.floor(x).astype(np.intp)
-        i1 = np.minimum(i0 + 1, src_size - 1)
-        return i0, i1, (x - i0).astype(np.float32)
+        i1 = np.minimum(i0 + 1, extent - 1)
+        weight = (x - i0).astype(np.float32)
+        if tiles != 1:
+            i0 %= src_size
+            i1 %= src_size
+        return i0, i1, weight
 
-    y0, y1, ty = axis(src_h, height)
-    x0, x1, tx = axis(src_w, width)
+    y0, y1, ty = axis(src_h, height, tiles_y)
+    x0, x1, tx = axis(src_w, width, tiles_x)
     ones = (1,) * len(extra)
     tx = tx.reshape(1, width, *ones)
     for start in range(0, height, band):
@@ -813,6 +824,14 @@ def _dimension(value, label):
     return int(value)
 
 
+def _check_output_size(src, width, height):
+    size = width * height * (src.shape[2] if src.ndim == 3 else 1) * 4
+    if size > _MAX_RESIZE_BYTES:
+        raise ValueError(f"{width}×{height} output needs "
+                         f"{size / (1 << 30):.1f} GiB, more than the "
+                         f"{_MAX_RESIZE_BYTES >> 30} GiB limit")
+
+
 class SourceIOTextureResizeNode(SourceIOTextureTreeNode):
     """Resample a texture or channel to exact pixel dimensions."""
     bl_idname = "SourceIOTextureResizeNode"
@@ -855,12 +874,51 @@ class SourceIOTextureResizeNode(SourceIOTextureTreeNode):
         height = _dimension(inputs.get("Height"), "Height")
         if src.shape[:2] == (height, width):
             return {key: ensure_f32(src)}
-        size = width * height * (src.shape[2] if src.ndim == 3 else 1) * 4
-        if size > _MAX_RESIZE_BYTES:
-            raise ValueError(f"{width}×{height} output needs "
-                             f"{size / (1 << 30):.1f} GiB, more than the "
-                             f"{_MAX_RESIZE_BYTES >> 30} GiB limit")
+        _check_output_size(src, width, height)
         return {key: _resize(src, width, height, self.filter == 'NEAREST')}
+
+
+class SourceIOTextureTileNode(SourceIOTextureTreeNode):
+    """Bake repeated copies of the input into the output texture."""
+    bl_idname = "SourceIOTextureTileNode"
+    bl_label = "Tile Texture"
+
+    tiles_x: bpy.props.IntProperty(name="Tiles X", default=1, min=1)
+    tiles_y: bpy.props.IntProperty(name="Tiles Y", default=1, min=1)
+    resample: bpy.props.BoolProperty(
+        name="Resize Output", description="Bilinearly resample to an exact resolution")
+    output_width: bpy.props.IntProperty(name="Width", default=1024, min=1)
+    output_height: bpy.props.IntProperty(name="Height", default=1024, min=1)
+
+    def init(self, context):
+        self.inputs.new('SourceIOTextureSocket', "texture")
+        self.outputs.new('SourceIOTextureSocket', "texture")
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "tiles_x")
+        layout.prop(self, "tiles_y")
+        layout.prop(self, "resample")
+        if self.resample:
+            layout.prop(self, "output_width")
+            layout.prop(self, "output_height")
+
+    def process(self, inputs: dict) -> dict | None:
+        src = inputs.get("texture")
+        if not _is_texture(src):
+            return None
+        src_h, src_w, channels = src.shape
+        tiles_x, tiles_y = self.tiles_x, self.tiles_y
+        tiled_size = (src_w * tiles_x, src_h * tiles_y)
+        width, height = ((self.output_width, self.output_height)
+                         if self.resample else tiled_size)
+        if (tiles_x, tiles_y) == (1, 1) and (width, height) == tiled_size:
+            return {"texture": ensure_f32(src)}
+        _check_output_size(src, width, height)
+        if (width, height) == tiled_size:
+            tiled = np.empty((tiles_y, src_h, tiles_x, src_w, channels), np.float32)
+            tiled[...] = src[:, None, :, :]
+            return {"texture": tiled.reshape(height, width, channels)}
+        return {"texture": _resize(src, width, height, False, repeats=(tiles_x, tiles_y))}
 
 
 def _channel_like(node, value, normal, label):

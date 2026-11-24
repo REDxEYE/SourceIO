@@ -12,6 +12,13 @@ Small WIKI -> [WIKI](https://github.com/REDxEYE/SourceIO/wiki)
 # Usage
 In order to find the import tools you simply need to go to File>Import>Source Engine Assets
 ![](https://cdn.discordapp.com/attachments/786989240529059900/1143975506589515886/image.png)
+
+In the Source 1 export graph, use **Add → Textures → Tile Texture** to bake
+horizontal and vertical repeats into the input pixels without changing material
+UVs. By default, output dimensions are the source dimensions multiplied by the
+tile counts. Enable **Resize Output** for bilinear resampling to an exact width
+and height.
+
 # Credits
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
 * [ValveResourceFormat](https://github.com/SteamDatabase/ValveResourceFormat) For initial research on Source2 file formats

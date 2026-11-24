@@ -98,6 +98,7 @@ node_categories = [
         NodeItem("SourceIONormalBlendNode"),
         NodeItem("SourceIOColorSpaceNode"),
         NodeItem("SourceIOTextureResizeNode"),
+        NodeItem("SourceIOTextureTileNode"),
         NodeItem("SourceIOPBRToPhongNode"),
         NodeItem("SourceIOTexturePreviewNode"),
     ]),
@@ -116,6 +117,7 @@ texture_classes = (
     texture_ops.SourceIOPBRToPhongNode,
     texture_ops.SourceIOColorSpaceNode,
     texture_ops.SourceIOTextureResizeNode,
+    texture_ops.SourceIOTextureTileNode,
     SourceIOTexturePreviewNode,
 )
 

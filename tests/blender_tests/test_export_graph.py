@@ -1143,6 +1143,26 @@ class ExportGraphTests(unittest.TestCase):
         self.tree.links.new(self.image_source(name, rgba).outputs['Texture'], split.inputs['texture'])
         return split.outputs['R']
 
+    def test_tile_texture_bakes_repeats_and_resamples_across_tile_boundary(self):
+        rgba = np.arange(24, dtype=np.float32).reshape(3, 2, 4) / 24
+        source = self.image_source('tile_source', rgba)
+        tile = self.tree.nodes.new('SourceIOTextureTileNode')
+        self.tree.links.new(source.outputs['Texture'], tile.inputs['texture'])
+        pixels = texture_pixels(GraphResolver()(source.outputs['Texture']))
+        tile.tiles_x = 2
+        tile.tiles_y = 3
+        tiled = GraphResolver()(tile.outputs['texture'])
+        np.testing.assert_array_equal(tiled, np.tile(pixels, (3, 2, 1)))
+
+        tile.resample = True
+        tile.output_width = 3
+        tile.output_height = 9
+        resized = GraphResolver()(tile.outputs['texture'])
+        first, second = tiled[:, 0], tiled[:, 1]
+        np.testing.assert_allclose(resized, np.stack(
+            ((5 * first + second) / 6, (first + second) / 2,
+             (first + 5 * second) / 6), axis=1), atol=1e-7)
+
     def resize_node(self, width, height, filter='BILINEAR'):
         node = self.tree.nodes.new('SourceIOTextureResizeNode')
         node.inputs['Width'].default_value = width
