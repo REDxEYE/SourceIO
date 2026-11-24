@@ -46,6 +46,7 @@ node_categories = [
         NodeItem("SourceIOFlexShapeRuleNode"),
         NodeItem("SourceIOFlexStereoRuleNode"),
         NodeItem("SourceIOFlexCorrectiveRuleNode"),
+        NodeItem("SourceIOFlexSequenceRuleNode"),
         NodeItem("SourceIOFlexConstantNode"),
         NodeItem("SourceIOFlexMathNode"),
         NodeItem("SourceIOFlexClampNode"),

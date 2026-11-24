@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import bpy
 from bpy.app.handlers import persistent
-from bpy.types import Node, NodeCustomGroup, Panel
+from bpy.types import Node, NodeCustomGroup, Operator, Panel, PropertyGroup
 
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     FlexControllerRecipe, FlexRuleRecipe, FlexRuleSetRecipe, GeometryRecipe,
@@ -366,6 +366,114 @@ def _draw_shape_key(layout, node, prop, text):
         layout.prop_search(node, prop, keys, "key_blocks", text=text)
     else:
         layout.prop(node, prop, text=text)
+
+
+class SourceIO_PG_FlexSequenceShape(PropertyGroup):
+    shape_name: bpy.props.StringProperty(name="Shape key")
+
+
+class SourceIOFlexSequenceRuleNode(_PropNode, Node):
+    bl_idname = "SourceIOFlexSequenceRuleNode"
+    bl_label = "Flex sequence rule"
+
+    obj: bpy.props.PointerProperty(name="Mesh object", type=bpy.types.Object,
+                                   poll=lambda self, obj: obj.type == 'MESH')
+    shapes: bpy.props.CollectionProperty(type=SourceIO_PG_FlexSequenceShape)
+    group_id: bpy.props.StringProperty(options={'HIDDEN'})
+    orphaned: bpy.props.BoolProperty(options={'HIDDEN'})
+    needs_review: bpy.props.BoolProperty(options={'HIDDEN'})
+
+    def init(self, context):
+        self.width = 245
+        self.inputs.new("SourceIOFlexValueSocket", "Value")
+        self.outputs.new("SourceIOFlexRuleSocket", "Rule")
+        for _ in range(2):
+            self.shapes.add()
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "obj")
+        layout.label(text="First key at 0 → last key at 1")
+        keys = _shape_keys(self)
+        count = len(self.shapes)
+        edit = SourceIO_OP_EditFlexSequence.bl_idname
+        for index, item in enumerate(self.shapes):
+            row = layout.row(align=True)
+            if keys is None:
+                row.prop(item, "shape_name", text="")
+            else:
+                row.prop_search(item, "shape_name", keys, "key_blocks", text="")
+            for action, icon, enabled in (
+                    ('UP', 'TRIA_UP', index > 0),
+                    ('DOWN', 'TRIA_DOWN', index + 1 < count),
+                    ('REMOVE', 'X', count > 2)):
+                button = row.row(align=True)
+                button.enabled = enabled
+                op = button.operator(edit, text="", icon=icon)
+                op.node_name, op.action, op.index = self.name, action, index
+        op = layout.operator(edit, text="Add shape key", icon='ADD')
+        op.node_name, op.action = self.name, 'ADD'
+        _draw_status(layout, self)
+
+    def recipe(self, resolve=None):
+        obj = _mesh_object(self)
+        keys = _shape_keys(self)
+        names = tuple(item.shape_name for item in self.shapes)
+        if len(names) < 2 or len({name.casefold() for name in names}) != len(names):
+            raise ValueError(f"{self.name}: select at least two distinct shape keys")
+        for name in names:
+            if not name or keys is None or name == keys.reference_key.name or name not in keys.key_blocks:
+                raise ValueError(f"{self.name}: select an existing non-Basis shape key, got {name!r}")
+        control = _one(self, "Value", resolve, _CONTROLLER_TYPES, required=True)
+        if control.stereo or (control.minimum, control.maximum) != (0.0, 1.0):
+            raise ValueError(f"{self.name}: use one non-stereo controller with range 0 to 1")
+        last = len(names) - 1
+        p = f"({control.name}*{last})" if last > 1 else control.name
+        rules = []
+        for i, name in enumerate(names):
+            if i == 0:
+                t = _bounded(f"1-{p}", "0", "1")
+            elif i == last:
+                t = _bounded(f"{p}-{i - 1}", "0", "1")
+            else:
+                t = f"max(min({p}-{i - 1},{i + 1}-{p}),0)"
+            rules.append(FlexRuleRecipe(obj.name, name, f"({t}*{t}*(3-2*{t}))"))
+        return tuple(rules)
+
+
+class SourceIO_OP_EditFlexSequence(Operator):
+    bl_idname = "sourceio.edit_flex_sequence"
+    bl_label = "Edit flex sequence"
+    bl_options = {'UNDO', 'INTERNAL'}
+
+    node_name: bpy.props.StringProperty()
+    index: bpy.props.IntProperty(default=-1)
+    action: bpy.props.EnumProperty(items=(
+        ('ADD', "Add", "Append a shape key"),
+        ('REMOVE', "Remove", "Remove this shape key"),
+        ('UP', "Move up", "Move this shape key earlier"),
+        ('DOWN', "Move down", "Move this shape key later")))
+
+    def execute(self, context):
+        tree = getattr(context.space_data, 'edit_tree', None)
+        node = tree.nodes.get(self.node_name) if tree else None
+        if not isinstance(node, SourceIOFlexSequenceRuleNode):
+            return {'CANCELLED'}
+        shapes = node.shapes
+        index = self.index
+        if self.action == 'ADD':
+            shapes.add()
+        elif not 0 <= index < len(shapes):
+            return {'CANCELLED'}
+        elif self.action == 'REMOVE':
+            if len(shapes) <= 2:
+                return {'CANCELLED'}
+            shapes.remove(index)
+        else:
+            target = index - 1 if self.action == 'UP' else index + 1
+            if not 0 <= target < len(shapes):
+                return {'CANCELLED'}
+            shapes.move(index, target)
+        return {'FINISHED'}
 
 
 def _draw_status(layout, node):
@@ -765,10 +873,16 @@ class SourceIOFlexRulesNode(_PropNode, Node):
     def recipe(self, resolve=None):
         # Unbound: bind_flex_rules attaches the set to model entries by the
         # mesh objects its rules target.
+        rules = []
+        for value in _many(self, "Rules", resolve, (FlexRuleRecipe, StereoFlexRuleRecipe, tuple)):
+            if isinstance(value, tuple):
+                if any(not isinstance(rule, FlexRuleRecipe) for rule in value):
+                    raise ValueError(f"{self.name}: Rules has the wrong recipe type")
+                rules.extend(value)
+            else:
+                rules.append(value)
         controls, rules = expand_stereo_rules(
-            _many(self, "Controllers", resolve, _CONTROLLER_TYPES),
-            _many(self, "Rules", resolve,
-                  (FlexRuleRecipe, StereoFlexRuleRecipe)))
+            _many(self, "Controllers", resolve, _CONTROLLER_TYPES), rules)
         controls = apply_rule_ranges(controls, rules)
         rules = apply_range_scaling(rules)
         controls = derive_controller_shapes(controls, rules)
@@ -1209,13 +1323,16 @@ def _make_stereo_rule(tree, collector, obj, left, right, controller, offset):
 
 _RULE_TYPES = frozenset(('SourceIOFlexShapeRuleNode',
                          'SourceIOFlexStereoRuleNode',
-                         'SourceIOFlexCorrectiveRuleNode'))
+                         'SourceIOFlexCorrectiveRuleNode',
+                         'SourceIOFlexSequenceRuleNode'))
 
 
 def _covered(rule):
     """Shape keys a rule node drives."""
     if rule.bl_idname == 'SourceIOFlexStereoRuleNode':
         return (rule.left_shape, rule.right_shape)
+    if rule.bl_idname == 'SourceIOFlexSequenceRuleNode':
+        return tuple(item.shape_name for item in rule.shapes if item.shape_name)
     return (rule.shape_name,)
 
 
@@ -1240,7 +1357,11 @@ def _controller_key(rule):
 
 
 def _retarget(rule, former, replacement):
-    if rule.bl_idname == 'SourceIOFlexStereoRuleNode':
+    if rule.bl_idname == 'SourceIOFlexSequenceRuleNode':
+        for item in rule.shapes:
+            if item.shape_name == former:
+                item.shape_name = replacement
+    elif rule.bl_idname == 'SourceIOFlexStereoRuleNode':
         if rule.left_shape == former:
             rule.left_shape = replacement
         else:
@@ -1335,6 +1456,8 @@ def sync_flex_tree(tree, changed_keys=None, geometries=None, create=False):
             # on several meshes gets one controller, one rule each.
             shape_controllers = {}
             for rule in rules:
+                if rule.bl_idname == 'SourceIOFlexSequenceRuleNode':
+                    continue
                 links = (rule.inputs['Value'].links
                          if rule.inputs.get('Value') else ())
                 if links and (links[0].from_node.bl_idname
@@ -1730,6 +1853,7 @@ classes = (
     SourceIOFlexInvertNode, SourceIOFlexCrossfadeNode,
     SourceIOFlexRawExpressionNode, SourceIOFlexShapeRuleNode,
     SourceIOFlexStereoRuleNode, SourceIOFlexCorrectiveRuleNode,
+    SourceIO_PG_FlexSequenceShape, SourceIOFlexSequenceRuleNode, SourceIO_OP_EditFlexSequence,
     SourceIOFlexRulesNode, SourceIOFlexGroupNode,
     SourceIO_OP_GenerateFlexRules, SourceIO_OP_SyncFlexRules,
     SourceIO_OP_EditFlexGroup, NODE_PT_sourceio_flex_rule_graph,

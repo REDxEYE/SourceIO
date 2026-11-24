@@ -2140,6 +2140,32 @@ class ExportGraphTests(unittest.TestCase):
             if owns_tools:
                 io_scene_valvesource.unregister()
 
+    def test_flex_sequence_eases_between_adjacent_keys_with_one_controller(self):
+        mesh = self._flex_object('sequence', {'open': {0: .2}, 'wide': {1: .2}, 'closed': {2: .2}})
+        self.model_entry(mesh, 'sequence')
+        collector = self.tree.nodes.new('SourceIOFlexRulesNode')
+        sequence = self.tree.nodes.new('SourceIOFlexSequenceRuleNode')
+        sequence.obj = mesh.obj
+        sequence.shapes.add()
+        for item, name in zip(sequence.shapes, ('open', 'wide', 'closed')):
+            item.shape_name = name
+        control = self.tree.nodes.new('SourceIOVirtualControllerNode')
+        control.control_name = 'transition'
+        self.tree.links.new(control.outputs['Value'], sequence.inputs['Value'])
+        self.tree.links.new(control.outputs['Controller'], collector.inputs['Controllers'])
+        self.tree.links.new(sequence.outputs['Rule'], collector.inputs['Rules'])
+        self.tree.links.new(collector.outputs['Flex Rules'], self.output.inputs['Flex Rules'])
+        rules = plan_model(self.output).model.models[0].flex_rule_set
+        self.assertEqual([control.name for control in rules.controls], ['transition'])
+        expressions = {rule.shape_name: rule.expression for rule in rules.rules}
+        self.assertEqual(set(expressions), {'open', 'wide', 'closed'})
+        for position, expected in (
+                (-1, (1, 0, 0)), (0, (1, 0, 0)), (0.125, (0.84375, 0.15625, 0)),
+                (0.5, (0, 1, 0)), (0.875, (0, 0.15625, 0.84375)), (1, (0, 0, 1)), (2, (0, 0, 1))):
+            actual = [eval(expressions[name], {'__builtins__': {}, 'min': min, 'max': max},
+                           {'transition': position}) for name in ('open', 'wide', 'closed')]
+            self.assertEqual(tuple(actual), expected)
+
     def test_flex_crossfade_blends_two_exported_shape_rules(self):
         if bpy.context.window is None:
             self.skipTest('Blender Source Tools requires a window')

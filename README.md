@@ -23,6 +23,13 @@ Use **Add → Textures → Mix Textures** to blend two textures of the same
 resolution. Set a constant **Factor**, or link a same-resolution channel as a
 per-pixel mask. A factor of 0 selects A, and 1 selects B. Alpha is blended too.
 
+Use **Add → Flex rules → Flex sequence rule** to crossfade through an ordered
+list of shape keys on one mesh. Connect a single non-stereo controller's
+**Value** to the sequence and its **Controller** output to the **Flex rules**
+collector. Connect the sequence's **Rule** to the same collector. The first
+shape is fully on at 0, the last at 1, and adjacent shapes ease in and out
+between evenly spaced stops.
+
 # Credits
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
 * [ValveResourceFormat](https://github.com/SteamDatabase/ValveResourceFormat) For initial research on Source2 file formats
