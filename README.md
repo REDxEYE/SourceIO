@@ -19,6 +19,10 @@ UVs. By default, output dimensions are the source dimensions multiplied by the
 tile counts. Enable **Resize Output** for bilinear resampling to an exact width
 and height.
 
+Use **Add → Textures → Mix Textures** to blend two textures of the same
+resolution. Set a constant **Factor**, or link a same-resolution channel as a
+per-pixel mask. A factor of 0 selects A, and 1 selects B. Alpha is blended too.
+
 # Credits
 * [datamodel.py](https://github.com/Artfunkel/BlenderSourceTools/blob/master/io_scene_valvesource/datamodel.py) by [Artfunkel](https://github.com/Artfunkel)
 * [ValveResourceFormat](https://github.com/SteamDatabase/ValveResourceFormat) For initial research on Source2 file formats

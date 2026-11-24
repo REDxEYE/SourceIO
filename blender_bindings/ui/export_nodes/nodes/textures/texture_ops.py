@@ -523,6 +523,45 @@ class SourceIOTextureMathNode(SourceIOTextureTreeNode):
         return {kind: r}
 
 
+class SourceIOTextureMixNode(SourceIOTextureTreeNode):
+    """Blend A into B with a constant or per-pixel factor."""
+    bl_idname = "SourceIOTextureMixNode"
+    bl_label = "Mix Textures"
+
+    size_error: bpy.props.StringProperty(options={'HIDDEN'})
+
+    def init(self, context):
+        for name in ("A", "B"):
+            self.inputs.new('SourceIOTextureSocket', name)
+        self.inputs.new('SourceIOTextureChannelSocket', "Factor").default_value = 0.5
+        self.outputs.new('SourceIOTextureSocket', "texture")
+
+    def draw_buttons(self, context, layout):
+        _draw_size_error(self, layout)
+
+    def process(self, inputs: dict) -> dict | None:
+        _clear_size_error(self)
+        a, b = inputs.get("A"), inputs.get("B")
+        if not (_is_texture(a) and _is_texture(b)):
+            return None
+        _check_size(self, "B", b, "A", a)
+        factor = inputs.get("Factor")
+        if _is_channel(factor):
+            _check_size(self, "Factor", factor, "A", a)
+            factor = _clamp01(ensure_f32(factor))[..., None]
+        elif isinstance(factor, (float, int)):
+            factor = max(0.0, min(1.0, factor))
+        else:
+            raise ValueError("Factor needs a channel or a numeric value")
+
+        a, b = ensure_f32(a), ensure_f32(b)
+        if a.shape[-1] != b.shape[-1]:
+            a, b = _with_alpha(a), _with_alpha(b)
+        mixed = a * (1.0 - factor)
+        mixed += b * factor
+        return {"texture": mixed}
+
+
 class SourceIOChannelRemapNode(SourceIOTextureTreeNode):
     bl_idname = "SourceIOChannelRemapNode"
     bl_label = "Remap (Channel)"

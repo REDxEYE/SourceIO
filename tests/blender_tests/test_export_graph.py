@@ -1143,6 +1143,27 @@ class ExportGraphTests(unittest.TestCase):
         self.tree.links.new(self.image_source(name, rgba).outputs['Texture'], split.inputs['texture'])
         return split.outputs['R']
 
+    def test_mix_textures_uses_constant_or_channel_factor(self):
+        a = self.image_source('mix_a', [[[1, 0, 0, 1]] * 3])
+        b = self.image_source('mix_b', [[[0, 0, 1, 0]] * 3])
+        mix = self.tree.nodes.new('SourceIOTextureMixNode')
+        self.tree.links.new(a.outputs['Texture'], mix.inputs['A'])
+        self.tree.links.new(b.outputs['Texture'], mix.inputs['B'])
+        mix.inputs['Factor'].default_value = 0.25
+        output = mix.outputs['texture']
+        np.testing.assert_array_equal(GraphResolver()(output),
+                                      [[[0.75, 0, 0.25, 0.75]] * 3])
+
+        mask = self.channel_output('mix_mask', [[-0.5, 0.5, 1.5]])
+        self.tree.links.new(mask, mix.inputs['Factor'])
+        np.testing.assert_array_equal(GraphResolver()(output),
+                                      [[[1, 0, 0, 1], [0.5, 0, 0.5, 0.5], [0, 0, 1, 0]]])
+
+        wrong_size = self.channel_output('mix_mask_small', [[0.5]])
+        self.tree.links.new(wrong_size, mix.inputs['Factor'])
+        with self.assertRaisesRegex(GraphBuildError, 'Factor is 1×1, A is 3×1'):
+            GraphResolver()(output)
+
     def test_tile_texture_bakes_repeats_and_resamples_across_tile_boundary(self):
         rgba = np.arange(24, dtype=np.float32).reshape(3, 2, 4) / 24
         source = self.image_source('tile_source', rgba)
