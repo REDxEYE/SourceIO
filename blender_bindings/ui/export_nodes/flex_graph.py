@@ -1974,7 +1974,7 @@ def _shape_key_update(scene, depsgraph):
 
 
 @persistent
-def _restore_extra_range_sockets(_):
+def _restore_extra_range_sockets(_=None):
     for tree in bpy.data.node_groups:
         if tree.bl_idname == 'sourceio.model_definition':
             for node in tree.nodes:
@@ -1990,7 +1990,9 @@ def register_flex_sync():
     handlers = bpy.app.handlers.load_post
     if _restore_extra_range_sockets not in handlers:
         handlers.append(_restore_extra_range_sockets)
-    _restore_extra_range_sockets(None)
+    # Add-on registration runs with restricted bpy.data.
+    if not bpy.app.timers.is_registered(_restore_extra_range_sockets):
+        bpy.app.timers.register(_restore_extra_range_sockets, first_interval=0)
 
 
 def unregister_flex_sync():
@@ -2000,6 +2002,8 @@ def unregister_flex_sync():
     handlers = bpy.app.handlers.load_post
     if _restore_extra_range_sockets in handlers:
         handlers.remove(_restore_extra_range_sockets)
+    if bpy.app.timers.is_registered(_restore_extra_range_sockets):
+        bpy.app.timers.unregister(_restore_extra_range_sockets)
 
 
 classes = (
