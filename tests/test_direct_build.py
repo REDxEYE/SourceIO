@@ -10,8 +10,8 @@ from unittest.mock import Mock
 import numpy as np
 
 from SourceIO.blender_bindings.source1.model_export.direct_build import (
-    MAX_WEIGHTS, FlexControl, build_model, check_joint_collision, direct_support, flex_setup, geometry_arrays,
-    parse_advanced_flex)
+    MAX_WEIGHTS, AdvancedFlex, FlexControl, build_model, check_joint_collision, direct_support, flex_setup,
+    geometry_arrays, parse_advanced_flex)
 from SourceIO.blender_bindings.source1.model_export.dmx_types import (
     Bone, Capture, Mesh, Rig, Shape, VertexAnimationRange, face_array)
 from SourceIO.blender_bindings.source1.model_export.procedural_bones import (
@@ -318,6 +318,31 @@ class BuildModelTests(unittest.TestCase):
                     {'body': Capture('body', (triangle_mesh('body'),), None)},
                     fit_weight_poses=5)
         native.set_fit_weights.assert_called_once_with(True, 5, 5)
+
+    def test_flex_slot_limit_counts_remaps_per_mesh_before_native_submission(self):
+        body, detail, eye = (geometry(name) for name in ('body', 'detail', 'eye'))
+        recipe = ModelRecipe('models/props/budget.mdl',
+                             (ModelEntryRecipe('body', body), ModelEntryRecipe('detail', detail)),
+                             bodygroups=(BodygroupRecipe('eyes', (BLANK, eye)),), idle=IdleRecipe())
+
+        def capture(key, names):
+            return Capture(key, (shaped_mesh(key, tuple((name, {0: (0., 0., .1)})
+                                                       for name in names)),), None)
+
+        names = tuple(f'flex_{i}' for i in range(62))
+        raw = ('lower_lid', 'upper_lid')
+        captures = {'body': capture('body', names), 'detail': capture('detail', names),
+                    'eye': capture('eye', raw)}
+        advanced = AdvancedFlex((FlexControl('lid', raw, stereo=True, eyelid=True),), (), ())
+        native = Mock(wraps=studiomdl().Model)
+        build_model(SimpleNamespace(Model=native), recipe, captures, advanced={'eye': advanced})
+        native.assert_called_once()
+
+        captures['detail'] = capture('detail', (*names, 'extra'))
+        native.reset_mock()
+        with self.assertRaisesRegex(ValueError, r'need 129 slots; StudioMDL allows 128.*lid.*eye'):
+            build_model(SimpleNamespace(Model=native), recipe, captures, advanced={'eye': advanced})
+        native.assert_not_called()
 
     def test_compiled_model_has_the_recipe_parts(self):
         from SourceIO.library.models.mdl.v49.mdl_file import MdlV49

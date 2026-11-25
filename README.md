@@ -19,6 +19,9 @@ Selecting a Geometry source fills **Rig** if it has exactly one Armature
 modifier with a target. Explicit VMT paths and rig picks are preserved.
 Muted shape keys are omitted from export and flex rule generation. Existing
 rule connections are kept so unmuting a key can restore its behavior.
+Direct export checks the bundled StudioMDL's 128-slot flex controller limit
+before submitting the model. Stereo, N-way, and eyelid controls can use more
+than one slot.
 
 After compiling from the **Source 1 model output**, click **Package** and
 choose a folder. It copies the compiled model and sidecars, plus referenced

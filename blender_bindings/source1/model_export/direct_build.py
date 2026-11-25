@@ -505,6 +505,36 @@ def _apply_combination(mesh, setup: FlexSetup):
             mesh.add_combination_local_var(flex)
 
 
+def _check_flex_controller_limit(geometries, setups):
+    # AddCombination reuses exact names for expression rules; AddFlexControllers appends every remap.
+    names = set()
+    count = 0
+    limit = 128  # MAXSTUDIOFLEXCTRL in the bundled SFM compiler.
+    first_excess = None
+    for geometry in geometries:
+        setup = setups.get(geometry.key)
+        if setup is None:
+            continue
+        for control in setup.controls:
+            if setup.rules:
+                slots = () if control.name in names else (control.name,)
+            else:
+                slots = (f'right_{control.name}', f'left_{control.name}') if control.stereo else (control.name,)
+                if control.eyelid or len(control.raw) > 2:
+                    slots += (f'multi_{control.name}',)
+                if control.eyelid:
+                    slots += ('blink',)
+            names.update(slots)
+            count += len(slots)
+            if count > limit and first_excess is None:
+                first_excess = geometry.key, control.name
+    if first_excess is not None:
+        key, control = first_excess
+        raise ValueError(f'Flex controllers need {count} slots; StudioMDL allows {limit}. '
+                         f'First over the limit: {control!r} in geometry {key!r}. '
+                         'Mute unused shape keys or reduce the controls.')
+
+
 def build_model(studiomdl, model: ModelRecipe, captures: Mapping[str, Capture], *,
                 material_dirs: Sequence[str] = (), helpers: Sequence[HelperRow] = (),
                 advanced: Mapping[str, AdvancedFlex] | None = None,
@@ -525,14 +555,15 @@ def build_model(studiomdl, model: ModelRecipe, captures: Mapping[str, Capture], 
     if entries is None:
         entries = {entry.geometry.key: entry for entry in model.models + model.flex_entries
                    if entry.directive == "MODEL"}
-    mesh_keys = {entry.geometry.key for entry in model.models}
-    mesh_keys.update(item.key for group in model.bodygroups for item in group.entries
-                     if not isinstance(item, BlankRecipe))
+    meshes = tuple(entry.geometry for entry in model.models) + tuple(
+        item for group in model.bodygroups for item in group.entries if not isinstance(item, BlankRecipe))
+    mesh_keys = {geometry.key for geometry in meshes}
     for key in mesh_keys:
         if key not in captures:
             raise ValueError(f"No capture for geometry {key!r}")
     setups = {key: setup for key in sorted(mesh_keys)
               if (setup := flex_setup(captures[key], entries.get(key), (advanced or {}).get(key))) is not None}
+    _check_flex_controller_limit(meshes, setups)
     arrays = {}
 
     for geometry in model.geometries():

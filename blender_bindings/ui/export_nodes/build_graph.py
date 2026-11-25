@@ -1189,10 +1189,10 @@ def compile_plan(plan: BuildPlan, cache: ExportCache | None = None) -> str:
                 f'- {message}' for message in errors))
             error.log = str(error)
             raise error
+        model = build_direct(plan)
         # Materials, the SFM rig and the VRD are written as for the QC route; meshes and the QC are not
         _write_assets(plan.assets, plan.cached_assets, plan.texture_keys, cache)
         _tick()
-        model = build_direct(plan)
     else:
         export_plan(plan, cache)
     model_file = plan.model_file
