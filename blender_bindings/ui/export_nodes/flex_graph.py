@@ -769,8 +769,10 @@ class SourceIOFlexStereoRuleNode(_PropNode, Node):
     bl_idname = "SourceIOFlexStereoRuleNode"
     bl_label = "Stereo flex rule"
     obj: bpy.props.PointerProperty(name="Mesh object", type=bpy.types.Object)
-    left_shape: bpy.props.StringProperty(name="Left shape key")
-    right_shape: bpy.props.StringProperty(name="Right shape key")
+    left_shape: bpy.props.StringProperty(
+        name="Left shape key", update=lambda self, context: self._fill_opposite("L"))
+    right_shape: bpy.props.StringProperty(
+        name="Right shape key", update=lambda self, context: self._fill_opposite("R"))
     wrinkle_scale: bpy.props.FloatProperty(name="Wrinkle scale")
     use_shape_range: bpy.props.BoolProperty(
         name="Use shape key range",
@@ -784,6 +786,24 @@ class SourceIOFlexStereoRuleNode(_PropNode, Node):
                                          options={'HIDDEN'})
 
     sync_extra_range = _sync_extra_range
+
+    def _fill_opposite(self, side):
+        selected, opposite = ((self.left_shape, "right_shape") if side == "L"
+                              else (self.right_shape, "left_shape"))
+        if getattr(self, opposite):
+            return
+        split = _stereo_split(selected)
+        keys = _shape_keys(self)
+        if keys is None or split is None or split[1] != side:
+            return
+        suffix = "R" if side == "L" else "L"
+        if selected[-1].islower():
+            suffix = suffix.lower()
+        for letter in (suffix, suffix.swapcase()):
+            key = keys.key_blocks.get(f"{split[0]}.{letter}")
+            if key is not None and key != keys.reference_key and not key.mute:
+                setattr(self, opposite, key.name)
+                break
 
     def init(self, context):
         self.width = 200

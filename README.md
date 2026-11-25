@@ -37,6 +37,9 @@ Use **Add → Textures → Mix Textures** to blend two textures of the same
 resolution. Set a constant **Factor**, or link a same-resolution channel as a
 per-pixel mask. A factor of 0 selects A, and 1 selects B. Alpha is blended too.
 
+On **Stereo flex rule**, selecting a `.L` or `.R` shape key fills the
+opposite field if it is empty and the matching unmuted key exists.
+
 Use **Add → Flex rules → Flex sequence rule** to crossfade through an ordered
 list of shape keys on one mesh. Connect a single non-stereo controller's
 **Value** to the sequence and its **Controller** output to the **Flex rules**

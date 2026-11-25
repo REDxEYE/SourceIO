@@ -122,6 +122,29 @@ class ExportGraphTests(unittest.TestCase):
         node.vmt_path = f'models/props/{filename}.vmt'
         return node
 
+    def test_stereo_rule_fills_the_empty_opposite_shape(self):
+        geometry = self._flex_object('pair', dict.fromkeys(
+            ('smile.L', 'smile.R', 'blink.l', 'blink.R', 'solo.L', 'frown.L', 'frown.R'), {}))
+        node = self.tree.nodes.new('SourceIOFlexStereoRuleNode')
+        node.obj = geometry.obj
+        node.left_shape = 'smile.L'
+        self.assertEqual(node.right_shape, 'smile.R')
+        node.right_shape = 'blink.R'
+        self.assertEqual(node.left_shape, 'smile.L')  # Keep an explicitly selected partner.
+
+        other = self.tree.nodes.new('SourceIOFlexStereoRuleNode')
+        other.obj = geometry.obj
+        other.right_shape = 'blink.R'
+        self.assertEqual(other.left_shape, 'blink.l')
+
+        unmatched = self.tree.nodes.new('SourceIOFlexStereoRuleNode')
+        unmatched.obj = geometry.obj
+        unmatched.left_shape = 'solo.L'
+        self.assertEqual(unmatched.right_shape, '')
+        geometry.obj.data.shape_keys.key_blocks['frown.R'].mute = True
+        unmatched.left_shape = 'frown.L'
+        self.assertEqual(unmatched.right_shape, '')
+
     def test_vmt_path_autofills_on_connection_or_material_pick(self):
         material = bpy.data.materials.new('autofill')
         self.materials.append(material)
