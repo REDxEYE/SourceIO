@@ -13,6 +13,10 @@ Small WIKI -> [WIKI](https://github.com/REDxEYE/SourceIO/wiki)
 In order to find the import tools you simply need to go to File>Import>Source Engine Assets
 ![](https://cdn.discordapp.com/attachments/786989240529059900/1143975506589515886/image.png)
 
+After compiling from the **Source 1 model output**, click **Package** and
+choose a folder. It copies the compiled model and sidecars, plus referenced
+VMTs and VTFs, into `models/` and `materials/` without recompiling.
+
 In the Source 1 export graph, use **Add → Textures → Tile Texture** to bake
 horizontal and vertical repeats into the input pixels without changing material
 UVs. By default, output dimensions are the source dimensions multiplied by the

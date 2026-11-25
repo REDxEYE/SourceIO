@@ -922,7 +922,8 @@ class SourceIOPropModelNode(_PropNode, Node):
                          "sourceio.export_model_graph",
                          "sourceio.export_model_meshes",
                          "sourceio.export_model_materials",
-                         "sourceio.compile_model_graph"):
+                         "sourceio.compile_model_graph",
+                         "sourceio.package_model"):
             layout.operator(operator).output_node = self.name
 
     def recipe(self, resolve=None):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
+from struct import error as StructError
 from uuid import uuid4
 
 import bpy
@@ -39,6 +40,7 @@ from SourceIO.blender_bindings.source1.model_export.sfm_rig import (
 from SourceIO.blender_bindings.source1.model_export.smd_builder import (
     write_smd)
 from SourceIO.blender_bindings.utils.bpy_utils import is_blender_5
+from SourceIO.library.source1.model_package import package_model
 from .export_cache import (ExportCache, cache_path, geometry_fingerprint,
                            node_fingerprint)
 from .nodes.base_node import SourceIOTextureTreeNode
@@ -1271,6 +1273,43 @@ class SourceIO_OP_ExportModelMeshes(_GraphAction):
     action = 'MESHES'
 
 
+class SourceIO_OP_PackageModel(_GraphAction):
+    bl_idname = 'sourceio.package_model'
+    bl_label = 'Package'
+    bl_description = 'Copy the compiled model, sidecars, materials and textures to a folder'
+
+    output_node: bpy.props.StringProperty(options={'HIDDEN', 'SKIP_SAVE'})
+    filter_folder: bpy.props.BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
+    directory: bpy.props.StringProperty(subtype='DIR_PATH', options={'SKIP_SAVE'})
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        if not self.poll(context):
+            return {'CANCELLED'}
+        tree = context.space_data.edit_tree
+        output = tree.nodes.get(self.output_node) if self.output_node else context.active_node
+        if not isinstance(output, SourceIOPropModelNode):
+            self.report({'ERROR'}, 'Select a Source 1 model output node')
+            return {'CANCELLED'}
+        if not self.directory:
+            self.report({'ERROR'}, 'Choose a package destination folder')
+            return {'CANCELLED'}
+        try:
+            game_root = _root(output.game_root, 'game root')
+            destination = Path(bpy.path.abspath(self.directory))
+            count, missing = package_model(game_root, output.model_path, destination)
+        except (GraphBuildError, OSError, EOFError, ValueError, StructError) as exc:
+            self.report({'ERROR'}, f'Could not package model: {exc}')
+            return {'CANCELLED'}
+        for path in missing:
+            self.report({'WARNING'}, f'Missing package dependency: {path}')
+        self.report({'INFO'}, f'Packaged {count} files to {destination}')
+        return {'FINISHED'}
+
+
 class SourceIO_OP_CheckDirectExport(_GraphAction):
     bl_idname = 'sourceio.check_direct_export'
     bl_label = 'Check direct export'
@@ -1484,7 +1523,8 @@ class NODE_PT_sourceio_export_graph(bpy.types.Panel):
                    SourceIO_OP_ExportModelGraph,
                    SourceIO_OP_ExportModelMeshes,
                    SourceIO_OP_ExportModelMaterials,
-                   SourceIO_OP_CompileModelGraph):
+                   SourceIO_OP_CompileModelGraph,
+                   SourceIO_OP_PackageModel):
             layout.operator(op.bl_idname).output_node = output.name
         layout.operator('sourceio.import_vrd', icon='IMPORT').output_node = output.name
 
@@ -1544,7 +1584,7 @@ class NODE_PT_sourceio_flex_rules(bpy.types.Panel):
 
 classes = (SourceIO_OP_PreviewExportGraph, SourceIO_OP_ExportModelGraph,
            SourceIO_OP_ExportModelMeshes, SourceIO_OP_ExportModelMaterials,
-           SourceIO_OP_SyncVMT, SourceIO_OP_GenerateBoneTable,
+           SourceIO_OP_PackageModel, SourceIO_OP_SyncVMT, SourceIO_OP_GenerateBoneTable,
            SourceIO_OP_CompileModelGraph, SourceIO_OP_CheckDirectExport, SOURCEIO_UL_FlexControllers,
            SourceIO_OP_EditFlexControllers, NODE_PT_sourceio_export_graph,
            NODE_PT_sourceio_flex_rules)
