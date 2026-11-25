@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from struct import error as StructError
@@ -19,7 +20,7 @@ from SourceIO.blender_bindings.source1.model_export.dmx_axis import (
 from SourceIO.blender_bindings.source1.model_export.dmx_builder import (
     _validate_versions, write_dmx, write_vca_sequences)
 from SourceIO.blender_bindings.source1.model_export.dmx_capture import (
-    capture_geometry, capture_vertex_animations)
+    capture_geometry, capture_vertex_animations, export_shape_keys)
 from SourceIO.blender_bindings.source1.model_export.dmx_merge import (
     merge_collection_capture)
 from SourceIO.blender_bindings.source1.model_export.dmx_stereo import (
@@ -318,7 +319,89 @@ def _flex_shape_names(geometry) -> tuple[str, ...]:
     return tuple(dict.fromkeys(
         shape.name for obj in _geometry_objects(geometry)
         if obj.type == 'MESH' and obj.data.shape_keys
-        for shape in obj.data.shape_keys.key_blocks[1:]))
+        for shape in export_shape_keys(obj.data.shape_keys)))
+
+
+def _muted_flex_names(geometry):
+    return {obj.name: {shape.name for shape in obj.data.shape_keys.key_blocks[1:] if shape.mute}
+            for obj in _geometry_objects(geometry) if obj.type == 'MESH' and obj.data.shape_keys}
+
+
+def _omit_muted_entry_flexes(entry):
+    if not (entry.flex_controllers or entry.flex_rule_set is not None or entry.flex_controller_source):
+        return entry
+    muted = set().union(*_muted_flex_names(entry.geometry).values())
+    if not muted:
+        return entry
+    muted.difference_update(active := _flex_shape_names(entry.geometry))
+    controls = []
+    for control in entry.flex_controllers:
+        pairs = [(raw, scale) for raw, scale in zip(control.raw_names, control.wrinkle_scales)
+                 if raw not in muted]
+        if pairs or not control.raw_names:
+            controls.append(replace(control, raw_names=tuple(raw for raw, _ in pairs),
+                                    wrinkle_scales=tuple(scale for _, scale in pairs)))
+    return replace(entry, flex_controllers=tuple(controls),
+                   flex_rule_set=entry.flex_rule_set if active else None,
+                   flex_controller_source=entry.flex_controller_source if active else None)
+
+
+def _filter_advanced_flex(document, geometry):
+    from SourceIO.library.utils import datamodel_v2 as dm
+
+    muted = _muted_flex_names(geometry)
+    if not any(muted.values()):
+        return
+    muted_names = set().union(*muted.values()) - set(_flex_shape_names(geometry))
+    operator = document.root['combinationOperator']
+    expressions = []
+    for target in operator['targets']:
+        if target.dm_type != 'DmeFlexRules':
+            continue
+        rules = target['deltaStates']
+        weights = target['deltaStateWeights']
+        if len(rules) != len(weights):
+            raise ValueError(f'Advanced flex rules for {target.name!r} have mismatched weights')
+        keep = [i for i, rule in enumerate(rules) if rule.name not in muted.get(target.name, ())]
+        target['deltaStates'] = dm.ElementArray(rules[i] for i in keep)
+        target['deltaStateWeights'] = dm.Vector2Array([weights[i] for i in keep])
+        expressions.extend(rule.get('expr', '') for rule in target['deltaStates'])
+    expression_text = ' '.join(expr for expr in expressions if isinstance(expr, str))
+    keep_controls = []
+    for index, control in enumerate(operator['controls']):
+        raw, scales = control['rawControlNames'], control['wrinkleScales']
+        if len(raw) != len(scales):
+            raise ValueError(f'Advanced flex control {control.name!r} has mismatched wrinkle scales')
+        pairs = [(name, scale) for name, scale in zip(raw, scales) if name not in muted_names]
+        if raw and not pairs and not re.search(rf'\b{re.escape(control.name)}\b', expression_text):
+            continue
+        keep_controls.append(index)
+        if len(pairs) != len(raw):
+            control['rawControlNames'] = dm.StringArray([name for name, _ in pairs])
+            control['wrinkleScales'] = dm.FloatArray([scale for _, scale in pairs])
+    controls = operator['controls']
+    if len(keep_controls) != len(controls):
+        operator['controls'] = dm.ElementArray(controls[i] for i in keep_controls)
+        for field in ('controlValues', 'controlValuesLagged'):
+            if field in operator:
+                values = operator[field]
+                if len(values) != len(controls):
+                    raise ValueError(f'Advanced flex Text {field} must match its controls')
+                operator[field] = dm.Vector3Array([values[i] for i in keep_controls])
+    if 'dominators' in operator:
+        operator['dominators'] = dm.ElementArray(
+            rule for rule in operator['dominators']
+            if not muted_names.intersection((*rule['dominators'], *rule['suppressed'])))
+
+
+def _advanced_flex_text(text, geometry):
+    if not any(_muted_flex_names(geometry).values()):
+        return text
+    from SourceIO.library.utils import datamodel_v2 as dm
+
+    document = dm.parse(text)
+    _filter_advanced_flex(document, geometry)
+    return dm.dump(document, encoding='keyvalues2')
 
 
 def _rule_set_lines(rule_set) -> tuple[str, ...]:
@@ -352,7 +435,7 @@ def _validate_flex_rules(entry) -> None:
     for obj in _geometry_objects(geometry):
         if obj.type != 'MESH' or obj.data.shape_keys is None:
             continue
-        for shape in obj.data.shape_keys.key_blocks[1:]:
+        for shape in export_shape_keys(obj.data.shape_keys):
             owners.add(shape.name)
             shapes[(obj.name, shape.name)] = None
     if not shapes:
@@ -457,10 +540,11 @@ def _flex_sources(model: ModelRecipe,
             operator['targets']  # KeyError when the operator has no targets
             raw_names = {raw for control in controls
                          for raw in control['rawControlNames']}
+            _filter_advanced_flex(dm, entry.geometry)
         except Exception as exc:
             raise GraphBuildError(
                 f'Invalid flex controller Text {name!r}: {exc}') from exc
-        if not shapes.intersection(raw_names):
+        if raw_names.isdisjoint(shapes.union(*_muted_flex_names(entry.geometry).values())):
             raise GraphBuildError(f'Flex controller Text {name!r} has no '
                                   f'controls for shape keys on geometry '
                                   f'{key!r}')
@@ -516,7 +600,8 @@ def _advanced_flex(model: ModelRecipe) -> tuple[dict[str, AdvancedFlex], dict[st
             errors[name] = 'the Text no longer exists'
             continue
         try:
-            parsed[entry.geometry.key] = parse_advanced_flex(text.as_string())
+            parsed[entry.geometry.key] = parse_advanced_flex(
+                _advanced_flex_text(text.as_string(), entry.geometry))
         except ValueError as exc:
             errors[name] = str(exc)
     return parsed, errors
@@ -610,6 +695,8 @@ def plan_model(output: SourceIOPropModelNode, *, check_shared: bool = True,
             resolver, output, _root(output.game_root, 'game root'), cache)
     try:
         model = collect_model(output, resolver)
+        model = replace(model, models=tuple(map(_omit_muted_entry_flexes, model.models)),
+                        flex_entries=tuple(map(_omit_muted_entry_flexes, model.flex_entries)))
         check_joint_collision(model)
         if not output.native_settings_confirmed:
             raise GraphBuildError('Review geometry up axis, collection merge '
@@ -909,7 +996,7 @@ def export_geometry(plan: BuildPlan, cache: ExportCache | None = None):
                       and geometry.key == collision.geometry.key)
         entry = entries.get(geometry.key)
         advanced_text = (
-            bpy.data.texts[entry.flex_controller_source].as_string()
+            _advanced_flex_text(bpy.data.texts[entry.flex_controller_source].as_string(), geometry)
             if entry and entry.flex_controller_source else None)
         key = None
         if cache is not None:

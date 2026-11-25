@@ -10,6 +10,7 @@ import bpy
 from bpy.app.handlers import persistent
 from bpy.types import Node, NodeCustomGroup, Operator, Panel, PropertyGroup
 
+from SourceIO.blender_bindings.source1.model_export.dmx_capture import export_shape_keys
 from SourceIO.blender_bindings.source1.model_export.prop_qc import (
     FlexControllerRecipe, FlexRuleRecipe, FlexRuleSetRecipe, GeometryRecipe,
     ModelEntryRecipe, StereoFlexRuleRecipe, VirtualControllerRecipe)
@@ -466,6 +467,8 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         poses = []
         for name in names:
             key = keys.key_blocks[name]
+            if key.mute and key != keys.reference_key:
+                continue
             if key == keys.reference_key:
                 poses.append((None, "", 0))
                 continue
@@ -484,7 +487,9 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
             # Basis occupies a stop but never exports a flex.
             if name is None:
                 continue
-            if i == 0:
+            if last == 0:
+                t = '1'
+            elif i == 0:
                 t = _bounded(f"1-{p}", "0", "1")
             elif i == last:
                 t = _bounded(f"{p}-{i - 1}", "0", "1")
@@ -886,6 +891,40 @@ def expand_stereo_rules(controls, rules):
     return tuple(result_controls), tuple(result_rules)
 
 
+def _muted_shape(obj, name):
+    keys = obj.data.shape_keys if obj is not None and obj.type == 'MESH' else None
+    key = keys.key_blocks.get(name) if keys else None
+    return key is not None and key != keys.reference_key and key.mute
+
+
+def _omit_muted_rules(controls, rules):
+    kept, dropped = [], []
+    for rule in rules:
+        obj = bpy.data.objects.get(rule.object_name)
+        if isinstance(rule, StereoFlexRuleRecipe):
+            shapes = (rule.left_shape, rule.right_shape)
+            active = tuple(shape for shape in shapes if not _muted_shape(obj, shape))
+            if active == shapes:
+                kept.append(rule)
+                continue
+            for shape in active:
+                kept.append(FlexRuleRecipe(rule.object_name, shape, rule.expression,
+                                           rule.wrinkle_scale, rule.weight_range,
+                                           range_factor=rule.range_factor))
+        elif not _muted_shape(obj, rule.source_shape or rule.shape_name):
+            kept.append(rule)
+            continue
+        dropped.append(rule)
+    if not dropped:
+        return controls, rules
+    active_text = ' '.join(f'{rule.expression} {rule.range_factor}' for rule in kept)
+    dropped_text = ' '.join(f'{rule.expression} {rule.range_factor}' for rule in dropped)
+    controls = tuple(control for control in controls
+                     if (token := _token(re.escape(control.name))).search(active_text)
+                     or not token.search(dropped_text))
+    return controls, tuple(kept)
+
+
 def _flex_drivers():
     from . import flex_drivers
     return flex_drivers
@@ -953,6 +992,7 @@ class SourceIOFlexRulesNode(_PropNode, Node):
                 rules.append(value)
         controls, rules = expand_stereo_rules(
             _many(self, "Controllers", resolve, _CONTROLLER_TYPES), rules)
+        controls, rules = _omit_muted_rules(controls, rules)
         controls = apply_rule_ranges(controls, rules)
         rules = apply_range_scaling(rules)
         controls = derive_controller_shapes(controls, rules)
@@ -1074,7 +1114,7 @@ def complete_flex_rules(entry):
     for obj in _geometry_objects(entry.geometry):
         if obj.type != 'MESH' or obj.data.shape_keys is None:
             continue
-        shapes = [block.name for block in obj.data.shape_keys.key_blocks[1:]]
+        shapes = [block.name for block in export_shape_keys(obj.data.shape_keys)]
         plain = [shape for shape in shapes if (obj.name, shape) not in covered]
         if not plain:
             continue
@@ -1669,10 +1709,12 @@ def sync_flex_tree(tree, changed_keys=None, geometries=None, create=False):
                         orphan.orphaned = False
                         orphan.needs_review = False
                         missing.difference_update(_covered(orphan))
+                missing = {shape for shape in missing if not _muted_shape(obj, shape)}
                 if create and missing and not ambiguous:
+                    enabled = {shape for shape in current if not _muted_shape(obj, shape)}
                     rules.extend(_create_rules(tree, collector, obj, missing,
                                                shape_controllers, used,
-                                               len(rules), current))
+                                               len(rules), enabled))
                     missing = set()
                 missing_total.extend(f'{obj.name}:{shape}'
                                      for shape in sorted(missing))

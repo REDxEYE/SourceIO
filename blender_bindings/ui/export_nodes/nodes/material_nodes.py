@@ -136,6 +136,9 @@ def _update_socket_visibility(node, context):
     node._sync_socket_visibility()
 
 
+_DEFAULT_VMT_PATH = 'models/props/material.vmt'
+
+
 class _VMTNodeMixin:
     """Shared Blender controls and recipe collection for Source 1 shaders.
 
@@ -143,9 +146,38 @@ class _VMTNodeMixin:
     annotations are copied to each concrete class below, not registered here.
     """
     mat: bpy.props.PointerProperty(name='Blender material',
-                                   type=bpy.types.Material)
+                                   type=bpy.types.Material,
+                                   update=lambda self, context: self._autofill_vmt_path())
     vmt_path: bpy.props.StringProperty(name='VMT path under materials',
-                                       default='models/props/material.vmt')
+                                       default=_DEFAULT_VMT_PATH)
+
+    def _autofill_vmt_path(self):
+        if self.mat is None or self.vmt_path != _DEFAULT_VMT_PATH:
+            return
+        from .prop_nodes import _material_dirs
+
+        paths = set()
+        pending = [self.outputs['Material']]
+        visited = set()
+        while pending:
+            socket = pending.pop()
+            if socket in visited:
+                continue
+            visited.add(socket)
+            for link in socket.links:
+                node = link.to_node
+                if node.type == 'REROUTE':
+                    pending.append(node.outputs[0])
+                elif node.bl_idname == 'SourceIOPropSkinFamilyNode':
+                    pending.append(node.outputs['Skin family'])
+                elif node.bl_idname == 'SourceIOPropModelNode':
+                    dirs = _material_dirs(node)
+                    if dirs:
+                        directory = dirs[0].replace('\\', '/').rstrip('/')
+                        paths.add(f'{directory}/{self.mat.name}.vmt')
+        if len(paths) == 1:
+            self.vmt_path = paths.pop()
+
     model: bpy.props.BoolProperty(name='$model', default=True)
     translucent: bpy.props.BoolProperty(name='$translucent')
     alphatest: bpy.props.BoolProperty(name='$alphatest')

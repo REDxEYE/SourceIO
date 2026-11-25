@@ -246,14 +246,17 @@ def _sample_shape(obj, depsgraph, label: str):
         evaluated.to_mesh_clear()
 
 
+def export_shape_keys(keys):
+    return (key for key in keys.key_blocks[1:] if not key.mute) if keys else ()
+
+
 def _capture_mesh(obj, depsgraph, material_names, rig_bones,
                   balance_group=None, *, include_shapes=True):
     if obj.type == 'CURVE' and obj.data.shape_keys is not None:
         raise ValueError(f'{obj.name!r} curve shape keys are not supported')
     keys = obj.data.shape_keys if obj.type == 'MESH' else None
     has_keys = bool(keys and len(keys.key_blocks) > 1)
-    shape_names = (tuple(key.name for key in keys.key_blocks[1:])
-                   if has_keys and include_shapes else ())
+    shape_names = tuple(key.name for key in export_shape_keys(keys)) if include_shapes else ()
     clone = None
     data = None
     collection = None
@@ -282,7 +285,8 @@ def _capture_mesh(obj, depsgraph, material_names, rig_bones,
                 # overwrite the sampled values on every depsgraph update.
                 data.shape_keys.animation_data_clear()
                 for key in data.shape_keys.key_blocks:
-                    key.mute = False
+                    if not keys.use_relative:
+                        key.mute = False
                     if keys.use_relative:
                         # Sampling 0 and 1 must not be clamped by the slider.
                         key.slider_max = max(key.slider_max, 1.0)

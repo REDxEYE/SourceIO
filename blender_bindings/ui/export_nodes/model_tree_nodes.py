@@ -10,6 +10,7 @@ class SourceIO_NT_ModelTree(NodeTree):
         from .flex_graph import (
             migrate_flex_geometry, repair_flex_groups,
             sync_connected_flex_groups, sync_flex_tree)
+        from .nodes.material_nodes import VMT_NODE_TYPES
         from .nodes.prop_nodes import dedupe_inputs
         from .nodes.sfm_rig_nodes import migrate_rig_nodes
         repair_flex_groups(self)
@@ -124,6 +125,10 @@ class SourceIO_NT_ModelTree(NodeTree):
                 ordered[index], ordered[next_index] = (ordered[next_index],
                                                        ordered[index])
                 index = next_index
+
+        for node in self.nodes:
+            if isinstance(node, VMT_NODE_TYPES):
+                node._autofill_vmt_path()
 
         for (link, source_socket, target_socket, source, material,
              parameter) in vtf_outputs:

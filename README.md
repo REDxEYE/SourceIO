@@ -13,6 +13,13 @@ Small WIKI -> [WIKI](https://github.com/REDxEYE/SourceIO/wiki)
 In order to find the import tools you simply need to go to File>Import>Source Engine Assets
 ![](https://cdn.discordapp.com/attachments/786989240529059900/1143975506589515886/image.png)
 
+With a Blender material selected and a VMT node linked to the model output,
+SourceIO fills the default VMT path from the first `$cdmaterials` directory.
+Selecting a Geometry source fills **Rig** if it has exactly one Armature
+modifier with a target. Explicit VMT paths and rig picks are preserved.
+Muted shape keys are omitted from export and flex rule generation. Existing
+rule connections are kept so unmuting a key can restore its behavior.
+
 After compiling from the **Source 1 model output**, click **Package** and
 choose a folder. It copies the compiled model and sidecars, plus referenced
 VMTs and VTFs, into `models/` and `materials/` without recompiling.

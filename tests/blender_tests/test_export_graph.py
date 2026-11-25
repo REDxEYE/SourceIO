@@ -122,6 +122,50 @@ class ExportGraphTests(unittest.TestCase):
         node.vmt_path = f'models/props/{filename}.vmt'
         return node
 
+    def test_vmt_path_autofills_on_connection_or_material_pick(self):
+        material = bpy.data.materials.new('autofill')
+        self.materials.append(material)
+        self.output.material_dirs = 'models/wrong'
+        dirs = bpy.data.texts.new('autofill cdmaterials')
+        self.texts.append(dirs)
+        dirs.write('\n  models/test/  \nmodels/second')
+        self.output.material_dirs_text = dirs
+
+        for material_first in (True, False):
+            node = self.tree.nodes.new('SourceIOVertexLitGenericVMTNode')
+            if material_first:
+                node.mat = material
+            self.tree.links.new(node.outputs['Material'], self.output.inputs['Materials'])
+            if not material_first:
+                node.mat = material
+            self.assertEqual(node.vmt_path, f'models/test/{material.name}.vmt')
+
+        custom = self.tree.nodes.new('SourceIOUnlitGenericVMTNode')
+        custom.vmt_path = 'custom/keep.vmt'
+        self.tree.links.new(custom.outputs['Material'], self.output.inputs['Materials'])
+        custom.mat = material
+        self.assertEqual(custom.vmt_path, 'custom/keep.vmt')
+
+    def test_geometry_autofills_only_one_armature_modifier(self):
+        armature = bpy.data.armatures.new('autofill armature')
+        self.addCleanup(bpy.data.armatures.remove, armature)
+        rig = bpy.data.objects.new('autofill rig', armature)
+        self.addCleanup(bpy.data.objects.remove, rig)
+        single = self.mesh_node('single armature').obj
+        multiple = self.mesh_node('multiple armatures').obj
+        single.modifiers.new('Rig', 'ARMATURE').object = rig
+        multiple.modifiers.new('First rig', 'ARMATURE').object = rig
+        multiple.modifiers.new('Second rig', 'ARMATURE').object = rig
+        geometry = self.tree.nodes.new('SourceIOPropGeometryNode')
+        geometry.obj = single
+        self.assertEqual(geometry.rig, rig)
+        geometry.obj = multiple
+        self.assertIsNone(geometry.rig)
+        geometry.rig = rig
+        geometry.obj = single
+        geometry.obj = multiple
+        self.assertEqual(geometry.rig, rig)
+
     def test_bodygroup_skin_lod_collision_and_raw_qc_render_in_graph_order(self):
         base = bpy.data.materials.new('base')
         self.materials.append(base)
@@ -3314,6 +3358,49 @@ class ExportGraphTests(unittest.TestCase):
         entry.flex_controller_text = text
         summary = self._compare_routes()
         self.assertIn(('smile', 0.0, 1.0), summary['flex controllers'])
+
+    def test_muted_shape_rules_and_automatic_flexes_are_not_compiled(self):
+        face = self._flex_object('muted_face', {'live': {0: .2}, 'muted_rule': {1: .2},
+                                              'muted_auto': {2: .2}})
+        self.model_entry(face, 'face')
+        keys = face.obj.data.shape_keys.key_blocks
+        keys['muted_rule'].mute = keys['muted_auto'].mute = True
+        collector = self.tree.nodes.new('SourceIOFlexRulesNode')
+        rule = self.tree.nodes.new('SourceIOFlexShapeRuleNode')
+        rule.obj, rule.shape_name = face.obj, 'muted_rule'
+        control = self.tree.nodes.new('SourceIOVirtualControllerNode')
+        control.control_name = 'muted_slider'
+        self.tree.links.new(control.outputs['Value'], rule.inputs['Value'])
+        self.tree.links.new(control.outputs['Controller'], collector.inputs['Controllers'])
+        self.tree.links.new(rule.outputs['Rule'], collector.inputs['Rules'])
+        self.tree.links.new(collector.outputs['Flex Rules'], self.output.inputs['Flex Rules'])
+        rule_set = GraphResolver()(collector.outputs['Flex Rules'])
+        self.assertEqual((rule_set.controls, rule_set.rules), ((), ()))
+        summary = self._compare_routes()
+        self.assertEqual({name for name, *_ in summary['flex controllers']}, {'live'})
+        self.assertEqual({name for mesh in summary['mesh flexes'] for name, *_ in mesh}, {'live'})
+        keys['muted_rule'].mute = False
+        self.assertEqual(GraphResolver()(collector.outputs['Flex Rules']).rules[0].shape_name, 'muted_rule')
+
+    def test_muted_shape_is_omitted_from_advanced_flex_controls(self):
+        face = self._flex_object('advanced_face', {'smile': {0: .2}, 'muted': {1: .2}})
+        entry = self.model_entry(face, 'face')
+        face.obj.data.shape_keys.key_blocks['muted'].mute = True
+        document = datamodel_v2.parse(advanced_flex_text('smile', 0.6))
+        operator = document.root['combinationOperator']
+        muted = document.add_element('muted', 'DmeCombinationInputControl', uuid='test/control/muted')
+        muted['rawControlNames'] = datamodel_v2.StringArray(['muted'])
+        muted['wrinkleScales'] = datamodel_v2.FloatArray([0.0])
+        operator['controls'].append(muted)
+        operator['controlValues'] = datamodel_v2.Vector3Array([(0.0, 0.0, 0.5)] * 2)
+        text = bpy.data.texts.new('advanced mute')
+        self.texts.append(text)
+        original = datamodel_v2.dump(document, encoding='keyvalues2')
+        text.from_string(original)
+        entry.flex_controller_text = text
+        summary = self._compare_routes()
+        self.assertEqual({name for name, *_ in summary['flex controllers']}, {'smile'})
+        self.assertEqual(text.as_string(), original)
 
     def test_direct_export_compiles_what_the_qc_route_compiles_without_writing_qc_or_meshes(self):
         try:

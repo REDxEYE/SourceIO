@@ -72,6 +72,11 @@ def _text_or_string(text, string):
     return text.as_string() if text else string
 
 
+def _material_dirs(output):
+    return tuple(line.strip() for line in
+                 _text_or_string(output.material_dirs_text, output.material_dirs).splitlines()
+                 if line.strip())
+
 
 
 def _attach_to_bone(obj, armature, bone_name, rest_world):
@@ -180,15 +185,18 @@ class SourceIOPropGeometryNode(_PropNode, Node):
     bl_label = "Geometry"
 
     source_type: bpy.props.EnumProperty(name="Source", items=(
-        ("OBJECT", "Object", ""), ("COLLECTION", "Collection", "")))
-    obj: bpy.props.PointerProperty(name="Mesh object", type=bpy.types.Object)
-    collection: bpy.props.PointerProperty(name="Mesh collection",
-                                          type=bpy.types.Collection)
+        ("OBJECT", "Object", ""), ("COLLECTION", "Collection", "")),
+        update=lambda self, context: self._autofill_rig())
+    obj: bpy.props.PointerProperty(name="Mesh object", type=bpy.types.Object,
+                                   update=lambda self, context: self._autofill_rig())
+    collection: bpy.props.PointerProperty(name="Mesh collection", type=bpy.types.Collection,
+                                          update=lambda self, context: self._autofill_rig())
     rig: bpy.props.PointerProperty(
         name="Rig",
         description="Armature for weighted meshes without an armature "
                     "parent or modifier",
         type=bpy.types.Object, poll=lambda self, obj: obj.type == "ARMATURE")
+    auto_rig: bpy.props.PointerProperty(type=bpy.types.Object, options={'HIDDEN'})
     basename: bpy.props.StringProperty(
         name="Export basename",
         description="Leave blank to use the selected object or collection "
@@ -209,6 +217,16 @@ class SourceIOPropGeometryNode(_PropNode, Node):
                     "exclusive")
     vertex_animation_ranges_text: bpy.props.PointerProperty(
         name="Vertex animation Text", type=bpy.types.Text)
+
+    def _autofill_rig(self):
+        if self.rig is not None and self.rig != self.auto_rig:
+            return
+        objects = ((self.obj,) if self.source_type == 'OBJECT' else
+                   self.collection.all_objects if self.collection else ())
+        modifiers = [mod for obj in objects if obj is not None and obj.type in {'MESH', 'CURVE'}
+                     for mod in obj.modifiers if mod.type == 'ARMATURE']
+        rig = modifiers[0].object if len(modifiers) == 1 else None
+        self.rig = self.auto_rig = rig if rig is not None and rig.type == 'ARMATURE' else None
 
     def init(self, context):
         self.width = 210
@@ -983,14 +1001,11 @@ def collect_model(output_node: SourceIOPropModelNode, resolve) -> ModelRecipe:
     idle = _one(output_node, "Idle", resolve, IdleRecipe)
     if idle is None and output_node.auto_idle:
         idle = IdleRecipe()
-    material_dirs = _text_or_string(output_node.material_dirs_text,
-                                    output_node.material_dirs)
     result = ModelRecipe(
         model_path=output_node.model_path.strip().replace('\\', '/'), models=models,
         mostlyopaque=output_node.mostlyopaque,
         ambientboost=output_node.ambientboost,
-        material_dirs=tuple(line.strip() for line in
-                            material_dirs.splitlines() if line.strip()),
+        material_dirs=_material_dirs(output_node),
         bodygroups=bodygroups, flex_entries=flex_entries,
         scale=output_node.model_scale,
         bone_names=renames.names if renames else (),

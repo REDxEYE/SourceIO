@@ -187,7 +187,10 @@ class DMXCaptureTests(unittest.TestCase):
         smile = obj.shape_key_add(name='smile')
         smile.data[0].co.z += 0.5
         smile.value = 0.35
-        smile.mute = True
+        muted = obj.shape_key_add(name='muted')
+        muted.data[0].co.z += 2
+        muted.value = 0.75
+        muted.mute = True
         obj.active_shape_key_index = 1
         obj.show_only_shape_key = True
         displace = obj.modifiers.new('Raised', 'DISPLACE')
@@ -200,7 +203,8 @@ class DMXCaptureTests(unittest.TestCase):
         self.assertEqual(self.counts(), before)
         self.assertEqual(scene.frame_current, 11)
         self.assertAlmostEqual(smile.value, 0.35)
-        self.assertTrue(smile.mute)
+        self.assertAlmostEqual(muted.value, 0.75)
+        self.assertTrue(muted.mute)
         self.assertTrue(obj.show_only_shape_key)
         self.assertEqual(displace.strength, 0.125)
         base = result.meshes[0]
