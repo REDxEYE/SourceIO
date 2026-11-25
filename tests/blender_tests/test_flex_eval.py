@@ -1,15 +1,19 @@
 """Flex expression and driver-preview evaluation checks, run inside Blender's Python."""
 
 import unittest
+from dataclasses import dataclass
+from types import SimpleNamespace
 
 import bpy
 
-from SourceIO.blender_bindings.source1.model_export.prop_qc import FlexControllerRecipe, FlexRuleRecipe
+from SourceIO.blender_bindings.source1.model_export.prop_qc import (
+    FlexControllerRecipe, FlexRuleRecipe, FlexRuleSetRecipe, GeometryRecipe)
 from SourceIO.blender_bindings.ui.export_nodes import register_nodes, unregister_nodes
 from SourceIO.blender_bindings.ui.export_nodes.build_graph import GraphResolver
 from SourceIO.blender_bindings.ui.export_nodes.flex_drivers import _shape_targets
 from SourceIO.blender_bindings.ui.export_nodes.flex_graph import (
-    apply_range_scaling, apply_rule_ranges, derive_controller_shapes, expand_stereo_rules)
+    _create_rules, apply_range_scaling, apply_rule_ranges, complete_flex_rules, derive_controller_shapes,
+    expand_stereo_rules)
 
 
 def evaluate(expression, **values):
@@ -110,6 +114,46 @@ class FlexEvalTests(unittest.TestCase):
     def test_ordinary_rules_are_left_unchanged(self):
         rules = (FlexRuleRecipe('face', 'smile', 'c * 2'),)
         self.assertEqual(_shape_targets(rules), {('face', 'smile'): 'c * 2'})
+
+
+    def add_keys(self, *names):
+        for name in names:
+            self.face.shape_key_add(name=name)
+
+    def test_bst_correctives_get_corrective_rules_driven_by_their_parts(self):
+        self.add_keys('blink', 'blink_smile', 'x_smile', 'smile_smile')
+        collector = self.tree.nodes.new('SourceIOFlexRulesNode')
+        shapes = {block.name for block in self.face.data.shape_keys.key_blocks[1:]}
+        created = _create_rules(self.tree, collector, self.face, shapes, {}, set(), 0, shapes)
+        by_shape = {node.shape_name: node for node in created}
+        corrective = by_shape['blink_smile']
+        self.assertEqual(corrective.bl_idname, 'SourceIOFlexCorrectiveRuleNode')
+        self.assertEqual(sorted(link.from_node.control_name for link in corrective.inputs['Drivers'].links),
+                         ['blink', 'smile'])
+        self.assertEqual(GraphResolver()(corrective.outputs['Rule']).expression, '(blink) * (smile)')
+        # 'x' is not a shape key and 'smile_smile' repeats a part: ordinary shapes with their own slider.
+        for name in ('x_smile', 'smile_smile', 'blink', 'smile'):
+            self.assertEqual(by_shape[name].bl_idname, 'SourceIOFlexShapeRuleNode', name)
+        self.assertNotIn('blink_smile', {node.control_name for node in self.tree.nodes
+                                         if node.bl_idname == 'SourceIOFlexControllerNode'})
+
+    def test_unruled_bst_correctives_export_as_the_product_of_their_parts(self):
+        self.add_keys('blink', 'blink_smile', 'x_smile')
+        rule_set = FlexRuleSetRecipe(GeometryRecipe(self.face, 'face'),
+                                     (FlexControllerRecipe('grin', (), wrinkle_scales=()),),
+                                     (FlexRuleRecipe('face', 'smile', 'grin * 2'),))
+        entry = complete_flex_rules(_Entry(rule_set, 'MODEL', SimpleNamespace(source=self.face)))
+        rules = {rule.shape_name: rule.expression for rule in entry.flex_rule_set.rules}
+        self.assertEqual(rules['blink_smile'], '(blink) * (grin * 2)')  # authored part expression is reused
+        self.assertEqual(rules['x_smile'], 'x_smile')
+        self.assertNotIn('blink_smile', {control.name for control in entry.flex_rule_set.controls})
+
+
+@dataclass(frozen=True)
+class _Entry:
+    flex_rule_set: object
+    directive: str
+    geometry: object
 
 
 if __name__ == '__main__':

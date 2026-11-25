@@ -188,6 +188,7 @@ class FlexRuleRecipe:
     source_shape: str = ""
     side: str = ""
     delta_scale: float = 1.0
+    range_factor: str = ""
 
     def __post_init__(self):
         _text(self.object_name, "flex rule object name")
@@ -222,6 +223,7 @@ class StereoFlexRuleRecipe:
     expression: str
     wrinkle_scale: float = 0.0
     weight_range: tuple[float, float] | None = None
+    range_factor: str = ""
 
     def __post_init__(self):
         _weight_range(self.weight_range)

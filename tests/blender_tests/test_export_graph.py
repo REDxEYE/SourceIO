@@ -2182,6 +2182,41 @@ class ExportGraphTests(unittest.TestCase):
                 weights[rule.source_shape or rule.shape_name] += value * rule.delta_scale
             np.testing.assert_allclose(tuple(weights.values()), expected)
 
+    def test_extended_range_factor_scales_shape_stereo_and_sequence_weights(self):
+        from SourceIO.blender_bindings.ui.export_nodes.flex_drivers import _shape_targets
+
+        mesh = self._flex_object('ranged', {'open': {0: .2}, 'close': {1: .2}})
+        keys = mesh.obj.data.shape_keys.key_blocks
+        keys['open'].slider_min = keys['close'].slider_min = -2
+        keys['open'].slider_max = keys['close'].slider_max = 2
+        for node_type in ('Shape', 'Stereo', 'Sequence'):
+            with self.subTest(node=node_type):
+                collector = self.tree.nodes.new('SourceIOFlexRulesNode')
+                rule = self.tree.nodes.new(f'SourceIOFlex{node_type}RuleNode')
+                rule.obj = mesh.obj
+                if node_type == 'Shape':
+                    rule.shape_name = 'open'
+                elif node_type == 'Stereo':
+                    rule.left_shape, rule.right_shape = 'open', 'close'
+                else:
+                    rule.shapes[0].shape_name, rule.shapes[1].shape_name = 'open', 'close'
+                for name, target in (('primary', 'Value'), ('extra', 'Extra range')):
+                    rule.use_shape_range = True
+                    control = self.tree.nodes.new('SourceIOVirtualControllerNode')
+                    control.control_name = name
+                    self.tree.links.new(control.outputs['Value'], rule.inputs[target])
+                    self.tree.links.new(control.outputs['Controller'], collector.inputs['Controllers'])
+                self.tree.links.new(rule.outputs['Rule'], collector.inputs['Rules'])
+                recipe = GraphResolver()(collector.outputs['Flex Rules'])
+                expression = _shape_targets(recipe.rules)[(mesh.obj.name, 'open')]
+                namespace = {'__builtins__': {}, 'min': min, 'max': max}
+                forward, reverse = (1 / 3, 0) if node_type == 'Sequence' else (2, -2)
+                for extra, positive, negative in ((0, 1, 0), (0.5, 1.5, -1), (1, 2, -2)):
+                    for position, expected in ((forward, positive), (reverse, negative)):
+                        self.assertAlmostEqual(eval(expression, namespace, {
+                            'primary': position, 'left_primary': position, 'extra': extra,
+                        }), expected)
+
     def test_flex_crossfade_blends_two_exported_shape_rules(self):
         if bpy.context.window is None:
             self.skipTest('Blender Source Tools requires a window')

@@ -368,6 +368,33 @@ def _draw_shape_key(layout, node, prop, text):
         layout.prop(node, prop, text=text)
 
 
+_EXTRA_RANGE = "Extra range"
+
+
+def _sync_extra_range(node):
+    socket = node.inputs.get(_EXTRA_RANGE)
+    if socket is None:
+        socket = node.inputs.new("SourceIOFlexValueSocket", _EXTRA_RANGE)
+    socket.hide = not (node.use_shape_range or socket.is_linked)
+
+
+def _extra_range(node, resolve):
+    socket = node.inputs.get(_EXTRA_RANGE)
+    if node.use_shape_range and socket is not None and socket.is_linked:
+        return _bounded(_input_expression(node, _EXTRA_RANGE, resolve), 0, 1)
+    return ""
+
+
+def _scale_extra_range(weight, peak, factor):
+    """Scale a normalized weight from its ordinary peak to its baked peak."""
+    if not factor or 0 < peak <= 1:
+        return weight
+    if peak < 0:
+        return f"({weight}*{factor})"
+    base = 1 / peak
+    return f"({weight}*({base:.9g}+{1 - base:.9g}*{factor}))"
+
+
 class SourceIO_PG_FlexSequenceShape(PropertyGroup):
     shape_name: bpy.props.StringProperty(name="Shape key")
 
@@ -381,11 +408,14 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
     shapes: bpy.props.CollectionProperty(type=SourceIO_PG_FlexSequenceShape)
     use_shape_range: bpy.props.BoolProperty(
         name="Use shape key range",
+        update=lambda self, context: self.sync_extra_range(),
         description="Use each key's slider maximum for its forward pose and add "
                     "a reversed pose before it if its slider minimum is negative")
     group_id: bpy.props.StringProperty(options={'HIDDEN'})
     orphaned: bpy.props.BoolProperty(options={'HIDDEN'})
     needs_review: bpy.props.BoolProperty(options={'HIDDEN'})
+
+    sync_extra_range = _sync_extra_range
 
     def init(self, context):
         self.width = 245
@@ -393,6 +423,7 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         self.outputs.new("SourceIOFlexRuleSocket", "Rule")
         for _ in range(2):
             self.shapes.add()
+        self.sync_extra_range()
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "obj")
@@ -431,6 +462,7 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         control = _one(self, "Value", resolve, _CONTROLLER_TYPES, required=True)
         if control.stereo or (control.minimum, control.maximum) != (0.0, 1.0):
             raise ValueError(f"{self.name}: use one non-stereo controller with range 0 to 1")
+        factor = _extra_range(self, resolve)
         poses = []
         for name in names:
             key = keys.key_blocks[name]
@@ -452,7 +484,8 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
                 t = _bounded(f"{p}-{i - 1}", "0", "1")
             else:
                 t = f"max(min({p}-{i - 1},{i + 1}-{p}),0)"
-            rules.append(FlexRuleRecipe(obj.name, name, f"({t}*{t}*(3-2*{t}))",
+            weight = _scale_extra_range(f"({t}*{t}*(3-2*{t}))", scale, factor)
+            rules.append(FlexRuleRecipe(obj.name, name, weight,
                                         source_shape=source, delta_scale=scale))
         return tuple(rules)
 
@@ -508,6 +541,7 @@ class SourceIOFlexShapeRuleNode(_PropNode, Node):
     wrinkle_scale: bpy.props.FloatProperty(name="Wrinkle scale")
     use_shape_range: bpy.props.BoolProperty(
         name="Use shape key range",
+        update=lambda self, context: self.sync_extra_range(),
         description="Give the directly connected controller the shape key's "
                     "slider min/max (e.g. -1..1 to also apply the shape "
                     "reversed)")
@@ -516,9 +550,12 @@ class SourceIOFlexShapeRuleNode(_PropNode, Node):
     needs_review: bpy.props.BoolProperty(name="Ambiguous change",
                                          options={'HIDDEN'})
 
+    sync_extra_range = _sync_extra_range
+
     def init(self, context):
         self.inputs.new("SourceIOFlexValueSocket", "Value")
         self.outputs.new("SourceIOFlexRuleSocket", "Rule")
+        self.sync_extra_range()
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "obj")
@@ -532,7 +569,8 @@ class SourceIOFlexShapeRuleNode(_PropNode, Node):
         expression = _input_expression(self, "Value", resolve)
         shape = self.shape_name.strip()
         return FlexRuleRecipe(obj.name, shape, expression, self.wrinkle_scale,
-                              _shape_range(self, (shape,)))
+                              _shape_range(self, (shape,)),
+                              range_factor=_extra_range(self, resolve))
 
 
 def _draw_missing(layout, missing):
@@ -678,7 +716,7 @@ def apply_range_scaling(rules):
             positive = (expression if high == 1
                         else f'({expression}) / {high:.9g}')
             result.append(replace(
-                rule, expression=_bounded(positive, 0, 1),
+                rule, expression=_scale_extra_range(_bounded(positive, 0, 1), high, rule.range_factor),
                 source_shape=source, delta_scale=rule.delta_scale * high))
         if low < 0:
             name = f'{rule.shape_name}.neg'
@@ -688,7 +726,8 @@ def apply_range_scaling(rules):
                     'collides with an existing rule')
             negative = f'-({expression}) / {-low:.9g}'
             result.append(replace(
-                rule, shape_name=name, expression=_bounded(negative, 0, 1),
+                rule, shape_name=name,
+                expression=_scale_extra_range(_bounded(negative, 0, 1), low, rule.range_factor),
                 source_shape=source, delta_scale=rule.delta_scale * low))
     return tuple(result)
 
@@ -724,6 +763,7 @@ class SourceIOFlexStereoRuleNode(_PropNode, Node):
     wrinkle_scale: bpy.props.FloatProperty(name="Wrinkle scale")
     use_shape_range: bpy.props.BoolProperty(
         name="Use shape key range",
+        update=lambda self, context: self.sync_extra_range(),
         description="Give the directly connected controller the shape key's "
                     "slider min/max (e.g. -1..1 to also apply the shape "
                     "reversed)")
@@ -732,10 +772,13 @@ class SourceIOFlexStereoRuleNode(_PropNode, Node):
     needs_review: bpy.props.BoolProperty(name="Ambiguous change",
                                          options={'HIDDEN'})
 
+    sync_extra_range = _sync_extra_range
+
     def init(self, context):
         self.width = 200
         self.inputs.new("SourceIOFlexValueSocket", "Value")
         self.outputs.new("SourceIOFlexRuleSocket", "Rule")
+        self.sync_extra_range()
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "obj")
@@ -751,7 +794,8 @@ class SourceIOFlexStereoRuleNode(_PropNode, Node):
         shapes = (self.left_shape.strip(), self.right_shape.strip())
         return StereoFlexRuleRecipe(obj.name, *shapes, expression,
                                     self.wrinkle_scale,
-                                    _shape_range(self, shapes))
+                                    _shape_range(self, shapes),
+                                    range_factor=_extra_range(self, resolve))
 
 
 def expand_stereo_rules(controls, rules):
@@ -771,13 +815,14 @@ def expand_stereo_rules(controls, rules):
     stereo_rules = [rule for rule in rules
                     if isinstance(rule, StereoFlexRuleRecipe)]
 
-    def used(name, candidates):
+    def used(name, candidates, include_factor=False):
         token = _token(re.escape(name))
-        return any(token.search(rule.expression) for rule in candidates)
+        return any(token.search(rule.expression)
+                   or (include_factor and token.search(rule.range_factor)) for rule in candidates)
 
     names = {control.name for control in controls}
     split = [control.name for control in controls
-             if (control.stereo and used(control.name, rules))
+             if (control.stereo and used(control.name, rules, include_factor=True))
              or used(control.name, stereo_rules)]
     if not split:
         return tuple(controls), tuple(rules)
@@ -816,8 +861,9 @@ def expand_stereo_rules(controls, rules):
                                   (rule.right_shape, 'right_')):
                 result_rules.append(FlexRuleRecipe(
                     rule.object_name, shape, side(rule.expression, prefix),
-                    rule.wrinkle_scale, rule.weight_range))
-        elif pattern.search(rule.expression):
+                    rule.wrinkle_scale, rule.weight_range,
+                    range_factor=side(rule.range_factor, prefix)))
+        elif pattern.search(rule.expression) or pattern.search(rule.range_factor):
             for half, prefix in (('L', 'left_'), ('R', 'right_')):
                 name = f'{rule.shape_name}.{half}'
                 if (rule.object_name, name) in targets:
@@ -827,7 +873,8 @@ def expand_stereo_rules(controls, rules):
                 result_rules.append(replace(
                     rule, shape_name=name,
                     expression=side(rule.expression, prefix),
-                    source_shape=rule.shape_name, side=half))
+                    source_shape=rule.source_shape or rule.shape_name, side=half,
+                    range_factor=side(rule.range_factor, prefix)))
         else:
             result_rules.append(rule)
     return tuple(result_controls), tuple(result_rules)
@@ -992,8 +1039,9 @@ def complete_flex_rules(entry):
     That is the behaviour it would have if no rules were authored: plain
     shapes get a controller named after the shape (``shape = shape``) and
     ``X.L``/``X.R`` pairs a ``right_X``/``left_X`` stereo slider. Existing
-    controllers with the same name are reused. Corrective shapes are not
-    inferred: author them with a Corrective flex rule.
+    controllers with the same name are reused. BST style correctives (``A_B``
+    where ``A`` and ``B`` are shape keys of the mesh) are driven by the
+    product of their parts' rule expressions instead of a slider of their own.
     """
     rule_set = entry.flex_rule_set
     if rule_set is None or entry.directive != 'MODEL':
@@ -1033,8 +1081,21 @@ def complete_flex_rules(entry):
             rule(obj, sides['L'], 'left_' + base)
             rule(obj, sides['R'], 'right_' + base)
             paired.update(sides.values())
+        correctives = {shape: parts for shape, parts
+                       in corrective_parts(shapes).items()
+                       if shape in plain and shape not in paired}
         for shape in plain:
-            if shape not in paired:
+            if shape not in paired and shape not in correctives:
+                control(_identifier(shape))
+                rule(obj, shape, _identifier(shape))
+        drivers = {item.shape_name: item.expression for item in rules
+                   if item.object_name == obj.name and not item.source_shape}
+        for shape, parts in sorted(correctives.items()):
+            if all(part in drivers for part in parts):
+                rule(obj, shape, ' * '.join(f'({drivers[part]})'
+                                            for part in parts))
+            else:
+                # A part split into stereo halves: no single expression.
                 control(_identifier(shape))
                 rule(obj, shape, _identifier(shape))
     if not added:
@@ -1387,12 +1448,46 @@ def _retarget(rule, former, replacement):
         rule.shape_name = replacement
 
 
-def _create_rules(tree, collector, obj, shapes, controllers, used, offset):
+def corrective_parts(shapes):
+    """``{shape: parts}`` for Blender Source Tools style correctives.
+
+    A shape named ``A_B`` (two or more ``_``-separated parts, all different)
+    whose every part is another shape key in ``shapes`` is driven by the
+    product of its parts' controllers.
+    """
+    names = set(shapes)
+    result = {}
+    for shape in names:
+        parts = tuple(shape.split('_'))
+        if (len(parts) > 1 and len(set(parts)) == len(parts)
+                and all(part in names for part in parts)):
+            result[shape] = parts
+    return result
+
+
+def _make_corrective(tree, collector, obj, shape, controllers, offset):
+    rule = tree.nodes.new("SourceIOFlexCorrectiveRuleNode")
+    rule.location = (360, -offset * 170)
+    rule.obj = obj
+    rule.shape_name = shape
+    rule.group_id = collector.group_id
+    # Multi-input sockets list the newest link first: link in reverse so the
+    # product reads in name order.
+    for controller in reversed(controllers):
+        tree.links.new(controller.outputs['Value'], rule.inputs['Drivers'])
+    tree.links.new(rule.outputs['Rule'], collector.inputs['Rules'])
+    return rule
+
+
+def _create_rules(tree, collector, obj, shapes, controllers, used, offset,
+                  all_shapes=()):
     """Create rules (and missing controllers) for new shape keys.
 
     .L/.R pairs get a stereo rule. ``controllers`` maps ``_controller_key``
     values to existing controller nodes, so the same shape (or stereo pair)
-    on several meshes shares one controller. Returns the created rule nodes.
+    on several meshes shares one controller. Shapes named after other shape
+    keys of the mesh (``all_shapes``), BST style ``A_B``, get a corrective
+    rule driven by their parts' controllers. Returns the created rule nodes.
     """
     created = []
     paired = set()
@@ -1406,7 +1501,10 @@ def _create_rules(tree, collector, obj, shapes, controllers, used, offset):
                                          sides['R'], controller, offset))
         paired.update(sides.values())
         offset += 1
-    for shape in sorted(set(shapes) - paired):
+    correctives = {shape: parts for shape, parts
+                   in corrective_parts(set(all_shapes) | set(shapes)).items()
+                   if shape in shapes and shape not in paired}
+    for shape in sorted(set(shapes) - paired - set(correctives)):
         key = ('mono', shape)
         controller = controllers.get(key)
         if controller is None:
@@ -1414,6 +1512,21 @@ def _create_rules(tree, collector, obj, shapes, controllers, used, offset):
                 tree, collector, _name(shape, used), offset)
         created.append(
             _make_rule(tree, collector, obj, shape, controller, offset))
+        offset += 1
+    for shape, parts in sorted(correctives.items()):
+        drivers = [controllers.get(('mono', part)) for part in parts]
+        if any(driver is None for driver in drivers):
+            # A part without a controller of its own: leave it a plain shape.
+            key = ('mono', shape)
+            controller = controllers.get(key)
+            if controller is None:
+                controller = controllers[key] = _new_controller(
+                    tree, collector, _name(shape, used), offset)
+            created.append(
+                _make_rule(tree, collector, obj, shape, controller, offset))
+        else:
+            created.append(_make_corrective(tree, collector, obj, shape,
+                                            drivers, offset))
         offset += 1
     return created
 
@@ -1551,7 +1664,7 @@ def sync_flex_tree(tree, changed_keys=None, geometries=None, create=False):
                 if create and missing and not ambiguous:
                     rules.extend(_create_rules(tree, collector, obj, missing,
                                                shape_controllers, used,
-                                               len(rules)))
+                                               len(rules), current))
                     missing = set()
                 missing_total.extend(f'{obj.name}:{shape}'
                                      for shape in sorted(missing))
@@ -1673,6 +1786,7 @@ class SourceIO_OP_GenerateFlexRules(bpy.types.Operator):
             tree.links.new(group.outputs['Flex Rules'],
                            entry.inputs['Flex Rules'])
             used = set()
+            shared = {}
             index = 0
             for old_control in old:
                 controller = _new_controller(
@@ -1693,12 +1807,13 @@ class SourceIO_OP_GenerateFlexRules(bpy.types.Operator):
                     rule = _make_rule(inner, collector, obj, raw, controller,
                                       index)
                     rule.wrinkle_scale = scale
+                    if not old_control.stereo:
+                        shared.setdefault(('mono', raw), controller)
                     index += 1
-            shared = {}
             for obj, obj_shapes in shapes.items():
                 index += len(_create_rules(inner, collector, obj,
                                            obj_shapes - seen, shared, used,
-                                           index))
+                                           index, obj_shapes))
             entry.flex_controllers.clear()
         finally:
             if inner_key is not None:
@@ -1850,16 +1965,33 @@ def _shape_key_update(scene, depsgraph):
             sync_flex_tree(tree, keys)
 
 
+@persistent
+def _restore_extra_range_sockets(_):
+    for tree in bpy.data.node_groups:
+        if tree.bl_idname == 'sourceio.model_definition':
+            for node in tree.nodes:
+                if isinstance(node, (SourceIOFlexShapeRuleNode, SourceIOFlexStereoRuleNode,
+                                     SourceIOFlexSequenceRuleNode)):
+                    node.sync_extra_range()
+
+
 def register_flex_sync():
     handlers = bpy.app.handlers.depsgraph_update_post
     if _shape_key_update not in handlers:
         handlers.append(_shape_key_update)
+    handlers = bpy.app.handlers.load_post
+    if _restore_extra_range_sockets not in handlers:
+        handlers.append(_restore_extra_range_sockets)
+    _restore_extra_range_sockets(None)
 
 
 def unregister_flex_sync():
     handlers = bpy.app.handlers.depsgraph_update_post
     if _shape_key_update in handlers:
         handlers.remove(_shape_key_update)
+    handlers = bpy.app.handlers.load_post
+    if _restore_extra_range_sockets in handlers:
+        handlers.remove(_restore_extra_range_sockets)
 
 
 classes = (
