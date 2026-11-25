@@ -457,8 +457,8 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         if len(names) < 2 or len({name.casefold() for name in names}) != len(names):
             raise ValueError(f"{self.name}: select at least two distinct shape keys")
         for name in names:
-            if not name or keys is None or name == keys.reference_key.name or name not in keys.key_blocks:
-                raise ValueError(f"{self.name}: select an existing non-Basis shape key, got {name!r}")
+            if not name or keys is None or name not in keys.key_blocks:
+                raise ValueError(f"{self.name}: select an existing shape key, got {name!r}")
         control = _one(self, "Value", resolve, _CONTROLLER_TYPES, required=True)
         if control.stereo or (control.minimum, control.maximum) != (0.0, 1.0):
             raise ValueError(f"{self.name}: use one non-stereo controller with range 0 to 1")
@@ -466,6 +466,9 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         poses = []
         for name in names:
             key = keys.key_blocks[name]
+            if key == keys.reference_key:
+                poses.append((None, "", 0))
+                continue
             low, high = (key.slider_min, key.slider_max) if self.use_shape_range else (0.0, 1.0)
             if low < 0:
                 negative = f"{name}.neg"
@@ -478,6 +481,9 @@ class SourceIOFlexSequenceRuleNode(_PropNode, Node):
         p = f"({control.name}*{last})" if last > 1 else control.name
         rules = []
         for i, (name, source, scale) in enumerate(poses):
+            # Basis occupies a stop but never exports a flex.
+            if name is None:
+                continue
             if i == 0:
                 t = _bounded(f"1-{p}", "0", "1")
             elif i == last:
@@ -1410,7 +1416,9 @@ def _covered(rule):
     if rule.bl_idname == 'SourceIOFlexStereoRuleNode':
         return (rule.left_shape, rule.right_shape)
     if rule.bl_idname == 'SourceIOFlexSequenceRuleNode':
-        return tuple(item.shape_name for item in rule.shapes if item.shape_name)
+        keys = _shape_keys(rule)
+        basis = keys.reference_key.name if keys is not None else None
+        return tuple(item.shape_name for item in rule.shapes if item.shape_name and item.shape_name != basis)
     return (rule.shape_name,)
 
 

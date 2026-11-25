@@ -60,7 +60,7 @@ def main(output):
                 node.obj = obj
                 node.use_shape_range = True
                 node.shapes.add()
-                for row, name in zip(node.shapes, ('Narrow', 'Neutral', 'Wide')):
+                for row, name in zip(node.shapes, ('Basis', 'Neutral', 'Wide')):
                     row.shape_name = name
             case 'SourceIOFlexShapeRuleNode':
                 node.obj = obj

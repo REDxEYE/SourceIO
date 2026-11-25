@@ -2182,6 +2182,37 @@ class ExportGraphTests(unittest.TestCase):
                 weights[rule.source_shape or rule.shape_name] += value * rule.delta_scale
             np.testing.assert_allclose(tuple(weights.values()), expected)
 
+    def test_flex_sequence_basis_is_a_neutral_stop(self):
+        mesh = self._flex_object('sequence', {'open': {0: .2}, 'wide': {1: .2}})
+        self.model_entry(mesh, 'sequence')
+        basis = mesh.obj.data.shape_keys.reference_key
+        basis.name = 'Rest'
+        collector = self.tree.nodes.new('SourceIOFlexRulesNode')
+        sequence = self.tree.nodes.new('SourceIOFlexSequenceRuleNode')
+        sequence.obj = mesh.obj
+        sequence.shapes.add()
+        sequence.use_shape_range = True
+        control = self.tree.nodes.new('SourceIOVirtualControllerNode')
+        control.control_name = 'transition'
+        self.tree.links.new(control.outputs['Value'], sequence.inputs['Value'])
+        self.tree.links.new(control.outputs['Controller'], collector.inputs['Controllers'])
+        self.tree.links.new(sequence.outputs['Rule'], collector.inputs['Rules'])
+        self.tree.links.new(collector.outputs['Flex Rules'], self.output.inputs['Flex Rules'])
+
+        for order, samples in (
+                (('Rest', 'open', 'wide'), ((0, (0, 0)), (.25, (.5, 0)), (.5, (1, 0)), (1, (0, 1)))),
+                (('open', 'Rest', 'wide'), ((0, (1, 0)), (.25, (.5, 0)), (.5, (0, 0)), (.75, (0, .5)))),
+        ):
+            for item, name in zip(sequence.shapes, order):
+                item.shape_name = name
+            rule_set = plan_model(self.output).model.models[0].flex_rule_set
+            expressions = {rule.shape_name: rule.expression for rule in rule_set.rules}
+            self.assertEqual(set(expressions), {'open', 'wide'})
+            for position, expected in samples:
+                namespace = {'__builtins__': {}, 'min': min, 'max': max, 'transition': position}
+                self.assertEqual(tuple(eval(expressions[name], namespace) for name in ('open', 'wide')),
+                                 expected)
+
     def test_extended_range_factor_scales_shape_stereo_and_sequence_weights(self):
         from SourceIO.blender_bindings.ui.export_nodes.flex_drivers import _shape_targets
 
